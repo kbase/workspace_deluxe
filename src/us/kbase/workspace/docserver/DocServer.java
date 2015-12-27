@@ -2,6 +2,7 @@ package us.kbase.workspace.docserver;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -13,18 +14,107 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
+import us.kbase.common.service.JsonServerServlet;
 import us.kbase.common.service.JsonServerSyslog;
+import us.kbase.common.service.JsonServerSyslog.RpcInfo;
+import us.kbase.common.service.JsonServerSyslog.SyslogOutput;
 
+/** A document server that serves documentation for another service.
+ * This code is configured for the Workspace service, but is easy to configure
+ * for other services by changing DEFAULT_COMPANION_SERVICE_NAME.
+ * @author gaprice@lbl.gov
+ *
+ */
 public class DocServer extends HttpServlet {
 	
-	private static final String DOCS_LOC = "/workspace_docs";
-	private static final String SERVICE_NAME = "WorkspaceDocServ";
-
+	/** 
+	 * The name of the service that this document server is serving documents
+	 * for. This name will be used to find the appropriate section of the
+	 * KBase deploy.cfg configuration file if the name is not specified in the
+	 * environment.
+	 */
+	public static final String DEFAULT_COMPANION_SERVICE_NAME = "Workspace";
+	/**
+	 * The name of this document server, used for logging purposes.
+	 */
+	public static final String DEFAULT_SERVICE_NAME = "DocServ";
+	/** 
+	 * Location of the documents this service will serve in relation to the
+	 * root of the classpath.
+	 */
+	public static final String DEFAULT_DOCS_LOC = "/server_docs";
+	
+	//TODO DS add these to config
+	//TODO DS add docs loc variable to build.xml
+	private static final String CFG_SERVICE_NAME = "doc-server-name";
+	private static final String CFG_DOCS_LOC = "doc-server-docs-location";
+	
+	private static final String X_FORWARDED_FOR = "X-Forwarded-For";
+	private static final String USER_AGENT = "User-Agent";
+	
+	private final String docsLoc;
 	private final JsonServerSyslog logger;
+	private final Map<String, String> config;
+	
+	private static SyslogOutput SYSLOG_OUT = null;
+	private static String SERVER_CONTEXT_LOC = "/docs/*";
+	private Integer jettyPort = null;
+	private Server jettyServer = null;
 	private static final long serialVersionUID = 1L;
 	
+
+	// could make custom 404 page at some point
+	// http://www.eclipse.org/jetty/documentation/current/custom-error-pages.html
+	
+	
+	/**
+	 * Creates a new document server for the Workspace service
+	 */
 	public DocServer() {
-		logger = new JsonServerSyslog(SERVICE_NAME, null);
+		super();
+		/* really should try and get the companion service name from the env
+		 * here, but not worth the effort
+		 */
+		JsonServerSyslog templogger = new JsonServerSyslog(
+				DEFAULT_COMPANION_SERVICE_NAME, JsonServerServlet.KB_DEP,
+				JsonServerSyslog.LOG_LEVEL_INFO);
+		if (SYSLOG_OUT != null) {
+			templogger.changeOutput(SYSLOG_OUT);
+		}
+		// getConfig() gets the service name from the env if it exists
+		config = JsonServerServlet.getConfig(DEFAULT_COMPANION_SERVICE_NAME,
+				templogger);
+		
+		String serverName = config.get(CFG_SERVICE_NAME);
+		if (serverName == null || serverName.isEmpty()) {
+			serverName = DEFAULT_SERVICE_NAME;
+		} 
+		final String dlog = config.get(CFG_DOCS_LOC);
+		if (dlog == null || dlog.isEmpty()) {
+			docsLoc = DEFAULT_DOCS_LOC;
+		} else {
+			if (!dlog.startsWith("/")) {
+				docsLoc = "/" + dlog;
+			} else {
+				docsLoc = dlog;
+			}
+		}
+		logger = new JsonServerSyslog(serverName, JsonServerServlet.KB_DEP,
+				JsonServerSyslog.LOG_LEVEL_INFO);
+		if (SYSLOG_OUT != null) {
+			logger.changeOutput(SYSLOG_OUT);
+		}
+	}
+	
+	@Override
+	protected void doOptions(
+			final HttpServletRequest request,
+			final HttpServletResponse response)
+			throws ServletException, IOException {
+		JsonServerServlet.setupResponseHeaders(request, response);
+		response.setContentLength(0);
+		response.getOutputStream().print("");
+		response.getOutputStream().flush();
 	}
 	
 	@Override
@@ -32,43 +122,106 @@ public class DocServer extends HttpServlet {
 			final HttpServletRequest request,
 			final HttpServletResponse response)
 			throws ServletException, IOException {
-		//TODO needs logging
-		//TODO IP check
-		//TODO stop listing files in dir if there's no file
-		// not totally sure if requiring a server restart to update docs
-		// is the best idea... on the other hand it makes things very simple
-		// deploy wise
 		
+		final RpcInfo rpc = JsonServerSyslog.getCurrentRpcInfo();
+		rpc.setId(("" + Math.random()).substring(2));
+		rpc.setIp(JsonServerServlet.getIpAddress(request, config));
+		rpc.setMethod("GET");
+		logHeaders(request);
+	
 		String path = request.getPathInfo();
 		
-		if (path == null) { // for /docs
-			response.sendError(404);
+		if (path == null) { // e.g. /docs
+			handle404(request, response);
 			return;
 		}
-		if (path.endsWith("/")) { // for /docs/
+		if (path.endsWith("/")) { // e.g. /docs/
 			path = path + "index.html";
 		}
-		path = DOCS_LOC + path;
+		path = docsLoc + path;
 		final InputStream is = getClass().getResourceAsStream(path);
 		if (is == null) {
-			response.sendError(404, path.replace(DOCS_LOC, ""));
+			handle404(request, response);
 			return;
 		}
-		final byte[] page = IOUtils.toByteArray(is);
-		
-		response.getOutputStream().write(page);
+		try {
+			final byte[] page = IOUtils.toByteArray(is);
+			response.getOutputStream().write(page);
+		} catch (IOException ioe) {
+			logger.logErr(path + " " + request.getHeader(USER_AGENT));
+			logger.logErr(ioe);
+			response.sendError(500);
+		}
+		logger.logInfo(request.getRequestURI() + " 200 " +
+				request.getHeader(USER_AGENT));
+	}
+
+	private void handle404(final HttpServletRequest request,
+			final HttpServletResponse response) throws IOException {
+		logger.logErr(request.getRequestURI() + " 404 " +
+				request.getHeader(USER_AGENT));
+		response.sendError(404);
 	}
 	
 	
+	private void logHeaders(final HttpServletRequest req) {
+		final String xFF = req.getHeader(X_FORWARDED_FOR);
+		if (xFF != null && !xFF.isEmpty()) {
+			logger.logInfo(X_FORWARDED_FOR + ": " + xFF);
+		}
+	}
+	
+	/** Test method to test logging. Call before creating a server.
+	* @param output where logger output is to be sent.
+	 */
+	public static void setLoggerOutput(final SyslogOutput output) {
+		SYSLOG_OUT = output;
+	}
+	
+	/**
+	 * Starts a test jetty doc server on an OS-determined port at /docs. Blocks
+	 * until the server is terminated.
+	 * @throws Exception if the server couldn't be started.
+	 */
+	public void startupServer() throws Exception {
+		startupServer(0);
+	}
+	
+	/**
+	 * Starts a test jetty doc server at /docs. Blocks until the
+	 * server is terminated.
+	 * @param port the port to which the server will connect.
+	 * @throws Exception if the server couldn't be started.
+	 */
 	public void startupServer(int port) throws Exception {
-		Server jettyServer = new Server(port);
+		jettyServer = new Server(port);
 		ServletContextHandler context =
 				new ServletContextHandler(ServletContextHandler.SESSIONS);
 		context.setContextPath("/");
 		jettyServer.setHandler(context);
-		context.addServlet(new ServletHolder(this),"/docs/*");
+		context.addServlet(new ServletHolder(this), SERVER_CONTEXT_LOC);
 		jettyServer.start();
+		jettyPort = jettyServer.getConnectors()[0].getLocalPort();
 		jettyServer.join();
+	}
+	
+	/**
+	 * Get the jetty test server port. Returns null if the server is not running or starting up.
+	 * @return the port
+	 */
+	public Integer getServerPort() {
+		return jettyPort;
+	}
+	
+	/**
+	 * Stops the test jetty server.
+	 * @throws Exception if there was an error stopping the server.
+	 */
+	public void stopServer() throws Exception {
+		jettyServer.stop();
+		jettyServer = null;
+		jettyPort = null;
+		
 	}
 	
 	public static void main(String[] args) throws Exception {
