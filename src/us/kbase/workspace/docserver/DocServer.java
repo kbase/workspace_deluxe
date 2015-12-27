@@ -64,7 +64,6 @@ public class DocServer extends HttpServlet {
 	// could make custom 404 page at some point
 	// http://www.eclipse.org/jetty/documentation/current/custom-error-pages.html
 	
-	
 	/**
 	 * Creates a new document server for the Workspace service
 	 */
