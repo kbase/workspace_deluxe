@@ -126,6 +126,17 @@ public class DocServerTest {
 	private static class LogEvent {
 		public int level;
 		public String message;
+		
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("LogEvent [level=");
+			builder.append(level);
+			builder.append(", message=");
+			builder.append(message);
+			builder.append("]");
+			return builder.toString();
+		}
 	}
 	
 	private static class SysLogOutputMock extends SyslogOutput {
@@ -192,10 +203,19 @@ public class DocServerTest {
 		HttpServletResponseMock res = new HttpServletResponseMock();
 		req.setIpAddress("123.123.123.123");
 		req.setPathInfo("/");
+		req.setRequestURI("/docs/");
+		req.setHeader("User-Agent", "Apache-HttpClient/4.3.1 (java 1.5)");
 		
 		doGet.invoke(s, (HttpServletRequest) req, (HttpServletResponse) res);
 		assertThat("correct status code", res.getStatusCode(), is(500));
-		
+		checkLogging(Arrays.asList(
+				new ExpectedLog(ERR, "123.123.123.123", "GET")
+						.withFullMsg("/docs/ 500 Apache-HttpClient/4.3.1 (java 1.5)"),
+				new ExpectedLog(ERR, "123.123.123.123", "GET")
+						.withFullMsg("java.io.IOException: ow"),
+				new ExpectedLog(ERR, "123.123.123.123", "GET")
+						.withFullMsg("Traceback (most recent call last):")),
+				10);
 	}
 	
 	@Test
@@ -311,12 +331,18 @@ public class DocServerTest {
 	}
 	
 	private void checkLogging(List<ExpectedLog> expected) throws Exception {
+		checkLogging(expected, expected.size());
+	}
+	
+	private void checkLogging(List<ExpectedLog> expected, int eventCount) throws Exception {
 		assertThat("correct # of logging events", logout.events.size(),
-				is(expected.size()));
+				is(eventCount));
 		Iterator<ExpectedLog> i = expected.iterator();
+		Iterator<LogEvent> e = logout.events.iterator();
 		String callID = null;
-		for (LogEvent got: logout.events) {
+		while (i.hasNext()) {
 			ExpectedLog exp = i.next();
+			LogEvent got = e.next();
 			assertThat("correct level", got.level, is(exp.level));
 			String call = checkMessage(got.message, exp);
 			if (callID == null) {

@@ -145,7 +145,8 @@ public class DocServer extends HttpServlet {
 			final byte[] page = IOUtils.toByteArray(is);
 			response.getOutputStream().write(page);
 		} catch (IOException ioe) {
-			logger.logErr(path + " 500 " + request.getHeader(USER_AGENT));
+			logger.logErr(request.getRequestURI() + " 500 " +
+					request.getHeader(USER_AGENT));
 			logger.logErr(ioe);
 			response.sendError(500);
 			return;

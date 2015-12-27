@@ -20,6 +20,11 @@ public class HttpServletRequestMock implements HttpServletRequest {
 	private Map<String, String> headers = new HashMap<String, String>();
 	private String ipAddress = null;
 	private String pathInfo = null;
+	private String requestURI = null;
+	
+	public void setRequestURI(String requestURI) {
+		this.requestURI = requestURI;
+	}
 	
 	public void setPathInfo(String pathInfo) {
 		this.pathInfo = pathInfo;
@@ -253,7 +258,7 @@ public class HttpServletRequestMock implements HttpServletRequest {
 
 	@Override
 	public String getRequestURI() {
-		throw new UnsupportedOperationException();
+		return requestURI;
 	}
 
 	@Override
