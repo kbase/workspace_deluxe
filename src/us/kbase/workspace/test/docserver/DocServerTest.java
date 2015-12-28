@@ -4,9 +4,11 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -43,6 +45,7 @@ public class DocServerTest {
 	private static DocServer server;
 	private static URL docURL;
 	private static SysLogOutputMock logout;
+	private static File iniFile;
 	private static CloseableHttpClient client = HttpClients.createDefault();
 	
 	private static String FILE1_CONTENTS = "<html>\n<body>\nfoo\n</body>\n</html>";
@@ -60,13 +63,33 @@ public class DocServerTest {
 		DocServer.setLoggerOutput(logout);
 		Files.createDirectories(Paths.get(WorkspaceTestCommon.getTempDir())
 				.toAbsolutePath());
+		
+		server = createServer("TestDocServer",
+				"/us/kbase/workspace/test/docserver");
+		iniFile = new File(getenv().get("KB_DEPLOYMENT_CONFIG"));
+		docURL = getServerURL(server);
+		System.out.println("Started doc server at " + docURL);
+	}
+
+	private static URL getServerURL(DocServer server)
+			throws MalformedURLException {
+		return new URL("http://localhost:" + server.getServerPort() +
+				"/docs");
+	}
+
+	private static DocServer createServer(String serverName, String serverDocs)
+			throws IOException, NoSuchFieldException, IllegalAccessException,
+			InterruptedException {
 		File iniFile = File.createTempFile("test", ".cfg",
 				new File(WorkspaceTestCommon.getTempDir()));
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
-		ws.add("doc-server-name", "TestDocServer");
-		ws.add("doc-server-docs-location",
-				"/us/kbase/workspace/test/docserver");
+		if (serverName != null) {
+			ws.add("doc-server-name", serverName);
+		}
+		if (serverDocs != null) {
+			ws.add("doc-server-docs-location", serverDocs);
+		}
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		System.out.println("Created temporary config file: " +
@@ -77,14 +100,19 @@ public class DocServerTest {
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 		
-		server = new DocServer();
-		new ServerThread(server).start();
-		while (server.getServerPort() == null) {
+		DocServer serv = new DocServer();
+		new ServerThread(serv).start();
+		while (serv.getServerPort() == null) {
 			Thread.sleep(1000);
 		}
-		docURL = new URL("http://localhost:" + server.getServerPort() +
-				"/docs");
-		System.out.println("Started doc server at " + docURL);
+		return serv;
+	}
+	
+	private void restoreEnv() throws Exception {
+		Map<String, String> env = getenv();
+		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
+		env.put("KB_SERVICE_NAME", "Workspace");
+		DocServer.setDefaultDocsLocation(DocServer.DEFAULT_DOCS_LOC);
 	}
 	
 	@AfterClass
@@ -169,6 +197,7 @@ public class DocServerTest {
 		public String method;
 		public String url;
 		public String fullMessage;
+		public String serviceName = "TestDocServer";
 
 		public ExpectedLog(int level, String ip, String method) {
 			this.level = level;
@@ -185,11 +214,63 @@ public class DocServerTest {
 			this.fullMessage = msg;
 			return this;
 		}
+		
+		public ExpectedLog withServiceName(String name) {
+			this.serviceName = name;
+			return this;
+		}
 	}
 	
 	@Before
 	public void beforeTest() throws Exception {
 		logout.reset();
+		restoreEnv();
+	}
+	
+	@Test
+	public void serverNameNull() throws Exception {
+		checkStartup(null, "DocServ", "/us/kbase/workspace/test/docserver",
+				IDX1_CONTENTS);
+	}
+	
+	@Test
+	public void serverNameEmpty() throws Exception {
+		checkStartup("", "DocServ", "/us/kbase/workspace/test/docserver",
+				IDX1_CONTENTS);
+	}
+	
+	@Test
+	public void docsLocNull() throws Exception {
+		DocServer.setDefaultDocsLocation(
+				"/us/kbase/workspace/test/docserver/files");
+		checkStartup("WhooptyWoo", "WhooptyWoo", null, IDX2_CONTENTS);
+	}
+	
+	@Test
+	public void docsLocEmpty() throws Exception {
+		DocServer.setDefaultDocsLocation(
+				"/us/kbase/workspace/test/docserver/files");
+		checkStartup("WhooptyWoo", "WhooptyWoo", "", IDX2_CONTENTS);
+	}
+	
+	@Test
+	public void docsLocNoSlash() throws Exception {
+		checkStartup("WhooptyWoo", "WhooptyWoo",
+				"us/kbase/workspace/test/docserver/files", IDX2_CONTENTS);
+	}
+
+	private void checkStartup(String serverName, String serverNameExp,
+			String serverDocs, String body) throws Exception {
+		DocServer serv = createServer(serverName, serverDocs);
+		URL url = getServerURL(serv);
+		CloseableHttpResponse res = client.execute(new HttpGet(url + "/"));
+		checkResponse(res, 200, body);
+		
+		checkLogging(Arrays.asList(
+				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/")
+						.withServiceName(serverNameExp))); //default server name
+		
+		serv.stopServer();
 	}
 	
 	@Test
@@ -379,7 +460,7 @@ public class DocServerTest {
 		String[] parts = message.split(":", 2);
 		String[] headerParts = parts[0].split("]\\s*\\[");
 		assertThat("server name correct", headerParts[0].substring(1),
-				is("TestDocServer"));
+				is(exp.serviceName));
 		assertThat("record type correct", headerParts[1],
 				is(exp.level == INFO ? "INFO" : "ERR"));
 		//2 is timestamp
@@ -407,7 +488,6 @@ public class DocServerTest {
 					is("Apache-HttpClient/4.3.1 (java 1.5)"));
 		}
 		return callID;
-		
 	}
 	
 }

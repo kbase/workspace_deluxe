@@ -40,7 +40,7 @@ public class DocServer extends HttpServlet {
 	public static final String DEFAULT_SERVICE_NAME = "DocServ";
 	/** 
 	 * Location of the documents this service will serve in relation to the
-	 * root of the classpath.
+	 * classpath.
 	 */
 	public static final String DEFAULT_DOCS_LOC = "/server_docs";
 	
@@ -54,8 +54,9 @@ public class DocServer extends HttpServlet {
 	private final JsonServerSyslog logger;
 	private final Map<String, String> config;
 	
-	private static SyslogOutput SYSLOG_OUT = null;
-	private static String SERVER_CONTEXT_LOC = "/docs/*";
+	private static String defaultDocsLoc = DEFAULT_DOCS_LOC;
+	private static SyslogOutput sysLogOut = null;
+	private static final String SERVER_CONTEXT_LOC = "/docs/*";
 	private Integer jettyPort = null;
 	private Server jettyServer = null;
 	private static final long serialVersionUID = 1L;
@@ -75,8 +76,8 @@ public class DocServer extends HttpServlet {
 		JsonServerSyslog templogger = new JsonServerSyslog(
 				DEFAULT_COMPANION_SERVICE_NAME, JsonServerServlet.KB_DEP,
 				JsonServerSyslog.LOG_LEVEL_INFO);
-		if (SYSLOG_OUT != null) {
-			templogger.changeOutput(SYSLOG_OUT);
+		if (sysLogOut != null) {
+			templogger.changeOutput(sysLogOut);
 		}
 		// getConfig() gets the service name from the env if it exists
 		config = JsonServerServlet.getConfig(DEFAULT_COMPANION_SERVICE_NAME,
@@ -88,7 +89,7 @@ public class DocServer extends HttpServlet {
 		} 
 		final String dlog = config.get(CFG_DOCS_LOC);
 		if (dlog == null || dlog.isEmpty()) {
-			docsLoc = DEFAULT_DOCS_LOC;
+			docsLoc = defaultDocsLoc;
 		} else {
 			if (!dlog.startsWith("/")) {
 				docsLoc = "/" + dlog;
@@ -98,8 +99,8 @@ public class DocServer extends HttpServlet {
 		}
 		logger = new JsonServerSyslog(serverName, JsonServerServlet.KB_DEP,
 				JsonServerSyslog.LOG_LEVEL_INFO);
-		if (SYSLOG_OUT != null) {
-			logger.changeOutput(SYSLOG_OUT);
+		if (sysLogOut != null) {
+			logger.changeOutput(sysLogOut);
 		}
 	}
 	
@@ -174,7 +175,16 @@ public class DocServer extends HttpServlet {
 	* @param output where logger output is to be sent.
 	 */
 	public static void setLoggerOutput(final SyslogOutput output) {
-		SYSLOG_OUT = output;
+		sysLogOut = output;
+	}
+	
+	/**
+	 * Location of the documents this service will serve in relation to the
+	 * classpath. Call before creating a server.
+	 * @param path documents location
+	 */
+	public static void setDefaultDocsLocation(final String path) {
+		defaultDocsLoc = path;
 	}
 	
 	/**
