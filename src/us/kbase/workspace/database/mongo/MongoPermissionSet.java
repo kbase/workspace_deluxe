@@ -1,5 +1,6 @@
 package us.kbase.workspace.database.mongo;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -12,12 +13,29 @@ import us.kbase.workspace.database.WorkspaceUser;
 
 public class MongoPermissionSet implements PermissionSet {
 	
+	//TODO unit tests 
+	
+	private static class Perms {
+		private final Permission perm;
+		private final boolean worldRead;
+		
+		public Perms(final Permission perm, final boolean worldReadable) {
+			this.perm = perm;
+			this.worldRead = worldReadable;
+		}
+
+		public Permission getPerm() {
+			return perm;
+		}
+
+		public boolean isWorldReadable() {
+			return worldRead;
+		}
+	}
 	private final WorkspaceUser user;
 	private final User globalUser;
-	private final Map<ResolvedWorkspaceID, Permission> userPerms = 
-			new HashMap<ResolvedWorkspaceID, Permission>();
-	private final Map<ResolvedWorkspaceID, Boolean> worldRead = 
-			new HashMap<ResolvedWorkspaceID, Boolean>();
+	private final Map<ResolvedWorkspaceID, Perms> perms = 
+			new HashMap<ResolvedWorkspaceID, Perms>();
 	
 	MongoPermissionSet(final WorkspaceUser user, final User globalUser) {
 		if (globalUser == null) {
@@ -44,7 +62,7 @@ public class MongoPermissionSet implements PermissionSet {
 			throw new IllegalArgumentException(
 					"Mongo workspace ID cannot be null");
 		}
-		if (userPerms.containsKey(rwsi)) {
+		if (perms.containsKey(rwsi)) {
 			throw new IllegalArgumentException("Permissions for workspace " + 
 					rwsi.getID() + " have already been set");
 		}
@@ -59,8 +77,7 @@ public class MongoPermissionSet implements PermissionSet {
 		if (userPerm.equals(Permission.NONE) && !globalread) {
 			throw new IllegalArgumentException("Cannot add unreadable workspace");
 		}
-		userPerms.put(rwsi, userPerm);
-		worldRead.put(rwsi, globalread);
+		perms.put(rwsi, new Perms(userPerm, globalread));
 	}
 	
 	@Override
@@ -99,11 +116,11 @@ public class MongoPermissionSet implements PermissionSet {
 	
 	@Override
 	public Permission getUserPermission(final ResolvedWorkspaceID rwsi) {
-		if (!userPerms.containsKey(rwsi)) {
+		if (!perms.containsKey(rwsi)) {
 			throw new IllegalArgumentException(
 					"Workspace not registered: " + rwsi);
 		}
-		return userPerms.get(rwsi);
+		return perms.get(rwsi).getPerm();
 	}
 	
 	@Override
@@ -123,32 +140,31 @@ public class MongoPermissionSet implements PermissionSet {
 	
 	@Override
 	public boolean isWorldReadable(final ResolvedWorkspaceID rwsi) {
-		if (!worldRead.containsKey(rwsi)) {
+		if (!perms.containsKey(rwsi)) {
 			throw new IllegalArgumentException(
 					"Workspace not registered: " + rwsi);
 		}
-		return worldRead.get(rwsi);
+		return perms.get(rwsi).isWorldReadable();
 	}
 
 	@Override
 	public Set<ResolvedWorkspaceID> getWorkspaces() {
-		return userPerms.keySet();
+		return Collections.unmodifiableSet(perms.keySet());
 	}
 	
 	@Override
 	public boolean hasWorkspace(final ResolvedWorkspaceID ws) {
-		return userPerms.containsKey(ws) || worldRead.containsKey(ws);
+		return perms.containsKey(ws);
 	}
 	
 	@Override
 	public boolean isEmpty() {
-		return userPerms.isEmpty() && worldRead.isEmpty();
+		return perms.isEmpty();
 	}
 
 	@Override
 	public String toString() {
 		return "MongoPermissionSet [user=" + user + ", globalUser="
-				+ globalUser + ", userPerms=" + userPerms + ", worldRead="
-				+ worldRead + "]";
+				+ globalUser + ", perms=" + perms + "]";
 	}
 }

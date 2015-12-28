@@ -39,16 +39,6 @@ Interface Description Language (KIDL). It has the following primary features:
 - Sharing workspaces with specific KBase users or the world
 - Freezing and publishing workspaces
 
-Size limits:
-TOs are limited to 1GB
-TO subdata is limited to 15MB
-TO provenance is limited to 1MB
-User provided metadata for workspaces and objects is limited to 16kB
-
-NOTE ON BINARY DATA:
-All binary data must be hex encoded prior to storage in a workspace. 
-Attempting to send binary data via a workspace client will cause errors.
-
 
 =cut
 
@@ -1350,7 +1340,7 @@ sub get_permissions_mass
 {
     my($self, @args) = @_;
 
-# Authentication: required
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
@@ -1445,7 +1435,7 @@ sub get_permissions
 {
     my($self, @args) = @_;
 
-# Authentication: required
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
@@ -2853,7 +2843,8 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 =item Description
 
-List objects that reference one or more objects.
+List objects that reference one or more specified objects. References
+in the deleted state are not returned.
 
 =back
 
@@ -8068,10 +8059,10 @@ OR an object reference string:
 AND a subset specification:
         list<object_path> included - the portions of the object to include
                 in the object subset.
-strict_maps - this parameter forbids to use included paths with keys absent in map or
-        object (default value is false)
-strict_arrays - this parameter forbids to use included paths with array positions large than 
-        array size (default value is true)
+strict_maps - if true, throw an exception if the subset specification
+        traverses a non-existant map key (default false)
+strict_arrays - if true, throw an exception if the subset specification
+        exceeds the size of an array (default true)
 
 
 =item Definition
@@ -9505,8 +9496,8 @@ Parameters for the 'list_objects' function.
                         metadata will be null.
                 boolean excludeGlobal - exclude objects in global workspaces. This
                         parameter only has an effect when filtering by types alone.
-                int skip - skip the first X objects. Maximum value is 2^31, skip values
-                        < 0 are treated as 0, the default.
+                int skip - DEPRECATED. skip the first X objects. Maximum value is 2^31,
+                        skip values < 0 are treated as 0, the default.
                 int limit - limit the output to X objects. Default and maximum value
                         is 10000. Limit values < 1 are treated as 10000, the default.
 

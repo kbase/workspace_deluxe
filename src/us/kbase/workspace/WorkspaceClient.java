@@ -33,14 +33,6 @@ import us.kbase.common.service.UnauthorizedException;
  * - Collecting typed objects into a workspace
  * - Sharing workspaces with specific KBase users or the world
  * - Freezing and publishing workspaces
- * Size limits:
- * TOs are limited to 1GB
- * TO subdata is limited to 15MB
- * TO provenance is limited to 1MB
- * User provided metadata for workspaces and objects is limited to 16kB
- * NOTE ON BINARY DATA:
- * All binary data must be hex encoded prior to storage in a workspace. 
- * Attempting to send binary data via a workspace client will cause errors.
  * </pre>
  */
 public class WorkspaceClient {
@@ -408,7 +400,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(mass);
         TypeReference<List<WorkspacePermissions>> retType = new TypeReference<List<WorkspacePermissions>>() {};
-        List<WorkspacePermissions> res = caller.jsonrpcCall("Workspace.get_permissions_mass", args, retType, true, true);
+        List<WorkspacePermissions> res = caller.jsonrpcCall("Workspace.get_permissions_mass", args, retType, true, false);
         return res.get(0);
     }
 
@@ -426,7 +418,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
-        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, true);
+        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, false);
         return res.get(0);
     }
 
@@ -579,7 +571,8 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: list_referencing_objects</p>
      * <pre>
-     * List objects that reference one or more objects.
+     * List objects that reference one or more specified objects. References
+     * in the deleted state are not returned.
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "referrers" of list of list of original type "object_info" (Information about an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username saved_by - the user that saved or copied the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta meta - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 11: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "version" of Long, parameter "saved_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "chsum" of String, parameter "size" of Long, parameter "meta" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
