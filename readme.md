@@ -20,11 +20,15 @@ Getting documentation
 ---------------------
 
 The WSS documentation describes how to install, configure, run, develop, and
-use the WSS. The best way to read the documentation is to find an already built
-instance online - we're working on that. Until that happens, the documentation
-can be read on Github as restructured text (reST) files:
+use the WSS. The easiest way to read the documentation is to find an already
+built instance online:
 
-https://github.com/kbase/workspace_deluxe/docsource
+* [KBase Continuous Integration](http://ci.kbase.us/services/ws/docs/)
+* [KBase Next](http://next.kbase.us/services/ws/docs/)
+* [KBase Production](http://kbase.us/services/ws/docs/)
+
+The documentation can also be read on Github as
+[restructured text (reST) files](https://github.com/kbase/workspace_deluxe/docsource).
 
 However, Github does not display tables of contents and cross references don't
 work, so navigation isn't particularly friendly. Also, the API documentation
