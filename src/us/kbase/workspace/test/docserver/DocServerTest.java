@@ -46,7 +46,14 @@ public class DocServerTest {
 	private static URL docURL;
 	private static SysLogOutputMock logout;
 	private static File iniFile;
-	private static CloseableHttpClient client = HttpClients.createDefault();
+	
+	/* For some reason running tests with a static client works fine in
+	 * Eclipse but causes infinite hang in ant, seemingly randomly. 
+	 */
+//	private static CloseableHttpClient client = HttpClients.createDefault();
+	public static CloseableHttpClient getClient() {
+		return HttpClients.createDefault();
+	}
 	
 	private static String FILE1_CONTENTS = "<html>\n<body>\nfoo\n</body>\n</html>";
 	private static String FILE2_CONTENTS = "<html>\n<body>\nfoo2\n</body>\n</html>";
@@ -263,7 +270,7 @@ public class DocServerTest {
 			String serverDocs, String body) throws Exception {
 		DocServer serv = createServer(serverName, serverDocs);
 		URL url = getServerURL(serv);
-		CloseableHttpResponse res = client.execute(new HttpGet(url + "/"));
+		CloseableHttpResponse res = getClient().execute(new HttpGet(url + "/"));
 		checkResponse(res, 200, body);
 		
 		checkLogging(Arrays.asList(
@@ -301,7 +308,8 @@ public class DocServerTest {
 	
 	@Test
 	public void options() throws Exception {
-		CloseableHttpResponse res = client.execute(new HttpOptions(docURL + ""));
+		CloseableHttpResponse res = getClient().execute(
+				new HttpOptions(docURL + ""));
 		assertThat("correct access origin header",
 				res.getFirstHeader("Access-Control-Allow-Origin").getValue(),
 				is("*"));
@@ -309,7 +317,8 @@ public class DocServerTest {
 				res.getFirstHeader("Access-Control-Allow-Headers").getValue(),
 				is("authorization"));
 		assertThat("correct content type",
-				res.getFirstHeader("Content-Type").getValue(), is("application/json"));
+				res.getFirstHeader("Content-Type").getValue(),
+				is("application/json"));
 		assertThat("correct content length",
 				res.getFirstHeader("Content-Length").getValue(), is("0"));
 		checkResponse(res, 200, "");
@@ -319,7 +328,7 @@ public class DocServerTest {
 	public void forwardHeader() throws Exception {
 		HttpGet h = new HttpGet(docURL + "/");
 		h.addHeader("X-Forwarded-For", "123.456.789.123,foo,bar");
-		CloseableHttpResponse res = client.execute(h);
+		CloseableHttpResponse res = getClient().execute(h);
 		checkResponse(res, 200, IDX1_CONTENTS);
 		
 		checkLogging(Arrays.asList(
@@ -332,7 +341,7 @@ public class DocServerTest {
 	public void forwardHeaderEmpty() throws Exception {
 		HttpGet h = new HttpGet(docURL + "/");
 		h.addHeader("X-Forwarded-For", "");
-		CloseableHttpResponse res = client.execute(h);
+		CloseableHttpResponse res = getClient().execute(h);
 		checkResponse(res, 200, IDX1_CONTENTS);
 		
 		checkLogging(Arrays.asList(
@@ -341,7 +350,8 @@ public class DocServerTest {
 	
 	@Test
 	public void getIndexIndirect() throws Exception {
-		CloseableHttpResponse res = client.execute(new HttpGet(docURL + "/"));
+		CloseableHttpResponse res = getClient().execute(
+				new HttpGet(docURL + "/"));
 		checkResponse(res, 200, IDX1_CONTENTS);
 		
 		checkLogging(Arrays.asList(
@@ -350,52 +360,63 @@ public class DocServerTest {
 	
 	@Test
 	public void getIndexDirect() throws Exception {
-		CloseableHttpResponse res = client.execute(new HttpGet(docURL + "/index.html"));
+		CloseableHttpResponse res = getClient().execute(
+				new HttpGet(docURL + "/index.html"));
 		checkResponse(res, 200, IDX1_CONTENTS);
 		
 		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/index.html")));
+				new ExpectedLog(INFO, "127.0.0.1", "GET")
+				.withURL("/docs/index.html")));
 	}
 	
 	@Test
 	public void getSubIndexIndirect() throws Exception {
-		CloseableHttpResponse res = client.execute(new HttpGet(docURL + "/files/"));
+		CloseableHttpResponse res = getClient().execute(
+				new HttpGet(docURL + "/files/"));
 		checkResponse(res, 200, IDX2_CONTENTS);
 		
 		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/files/")));
+				new ExpectedLog(INFO, "127.0.0.1", "GET")
+				.withURL("/docs/files/")));
 	}
 	
 	@Test
 	public void getSubIndexDirect() throws Exception {
-		CloseableHttpResponse res = client.execute(new HttpGet(docURL + "/files/index.html"));
+		CloseableHttpResponse res = getClient().execute(
+				new HttpGet(docURL + "/files/index.html"));
 		checkResponse(res, 200, IDX2_CONTENTS);
 		
 		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/files/index.html")));
+				new ExpectedLog(INFO, "127.0.0.1", "GET")
+				.withURL("/docs/files/index.html")));
 	}
 	
 	@Test
 	public void getFile() throws Exception {
-		CloseableHttpResponse res = client.execute(new HttpGet(docURL + "/docserverTestFile.html"));
+		CloseableHttpResponse res = getClient().execute(
+				new HttpGet(docURL + "/docserverTestFile.html"));
 		checkResponse(res, 200, FILE1_CONTENTS);
 		
 		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/docserverTestFile.html")));
+				new ExpectedLog(INFO, "127.0.0.1", "GET")
+				.withURL("/docs/docserverTestFile.html")));
 	}
 	
 	@Test
 	public void getSubFile() throws Exception {
-		CloseableHttpResponse res = client.execute(new HttpGet(docURL + "/files/docserverTestFile2.html"));
+		CloseableHttpResponse res = getClient().execute(
+				new HttpGet(docURL + "/files/docserverTestFile2.html"));
 		checkResponse(res, 200, FILE2_CONTENTS);
 		
 		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/files/docserverTestFile2.html")));
+				new ExpectedLog(INFO, "127.0.0.1", "GET")
+				.withURL("/docs/files/docserverTestFile2.html")));
 	}
 	
 	@Test
 	public void nullRoot() throws Exception {
-		CloseableHttpResponse res = client.execute(new HttpGet(docURL + ""));
+		CloseableHttpResponse res = getClient().execute(
+				new HttpGet(docURL + ""));
 		checkResponse(res, 404, null);
 		
 		checkLogging(Arrays.asList(
@@ -404,18 +425,21 @@ public class DocServerTest {
 	
 	@Test
 	public void getNonExtantFile() throws Exception {
-		CloseableHttpResponse res = client.execute(new HttpGet(docURL + "/foo.html"));
+		CloseableHttpResponse res = getClient().execute(
+				new HttpGet(docURL + "/foo.html"));
 		checkResponse(res, 404, null);
 		
 		checkLogging(Arrays.asList(
-				new ExpectedLog(ERR, "127.0.0.1", "GET").withURL("/docs/foo.html")));
+				new ExpectedLog(ERR, "127.0.0.1", "GET")
+				.withURL("/docs/foo.html")));
 	}
 	
 	private void checkLogging(List<ExpectedLog> expected) throws Exception {
 		checkLogging(expected, expected.size());
 	}
 	
-	private void checkLogging(List<ExpectedLog> expected, int eventCount) throws Exception {
+	private void checkLogging(List<ExpectedLog> expected, int eventCount)
+			throws Exception {
 		assertThat("correct # of logging events", logout.events.size(),
 				is(eventCount));
 		Iterator<ExpectedLog> i = expected.iterator();
@@ -447,8 +471,8 @@ public class DocServerTest {
 		assertThat("correct response code", res.getStatusLine().getStatusCode(),
 				is(code));
 		if (code != 404) {
-			assertThat("correct response body", EntityUtils.toString(res.getEntity()),
-					is(body));
+			assertThat("correct response body",
+					EntityUtils.toString(res.getEntity()), is(body));
 		} else {
 			assertThat("body contains 404 message", 
 					EntityUtils.toString(res.getEntity())
@@ -477,7 +501,8 @@ public class DocServerTest {
 		
 		
 		if (exp.fullMessage != null) {
-			assertThat("full message correct", parts[1].trim(), is(exp.fullMessage));
+			assertThat("full message correct", parts[1].trim(),
+					is(exp.fullMessage));
 		} else {
 			String[] msgparts = parts[1].trim().split("\\s+", 3);
 //			printArray(msgparts);

@@ -258,7 +258,7 @@ to reconnect 1/s until this limit has been reached. This is useful for starting
 the Workspace automatically after a server restart, as MongoDB can take quite a
 while to get from start to accepting connections. The default is no retries.
 
-dont_trust_x_ip_headers
+dont-trust-x-ip-headers
 """""""""""""""""""""""
 **Required**: No
 
