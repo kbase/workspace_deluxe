@@ -1184,10 +1184,28 @@ public class Workspace {
 	}
 	
 	//TODO PRE test
+	//TODO PRE test with regex chars, incl . | - _
+	/** Get object names based on a provided prefix. Returns at most 1000
+	 * names. Intended for use as an auto-completion method.
+	 * @param user The user requesting names.
+	 * @param wsis The workspaces in which to look for names.
+	 * @param prefix The prefix returned names must have.
+	 * @return List of workspace names, listed by workspace in order of the 
+	 * input workspace list.
+	 * @throws NoSuchWorkspaceException if an input workspace does not exist.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the backend database occurs.
+	 * @throws CorruptWorkspaceDBException if there is a data error in the
+	 * database
+	 * @throws WorkspaceAuthorizationException if the user is not authorized
+	 * to read one of the input workspaces.
+	 */
 	public List<List<String>> getNamesByPrefix(
 			final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis,
-			String prefix)
+			String prefix,
+			final boolean includeHidden,
+			final boolean includeDeleted)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, WorkspaceAuthorizationException {
 		if (wsis == null) {
