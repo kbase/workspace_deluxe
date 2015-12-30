@@ -1111,6 +1111,25 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: get_names_by_prefix</p>
+     * <pre>
+     * Get object names matching a prefix. At most 1000 names are returned.
+     * No particular ordering is guaranteed, nor is which names will be
+     * returned if more than 1000 are found.
+     * This function is intended for use as an autocomplete helper function.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetNamesByPrefixParams GetNamesByPrefixParams}
+     * @return   parameter "res" of type {@link us.kbase.workspace.GetNamesByPrefixResults GetNamesByPrefixResults}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_names_by_prefix", authOptional=true)
+    public GetNamesByPrefixResults getNamesByPrefix(GetNamesByPrefixParams params, AuthToken authPart) throws Exception {
+        GetNamesByPrefixResults returnVal = null;
+        //BEGIN get_names_by_prefix
+        //END get_names_by_prefix
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: hide_objects</p>
      * <pre>
      * Hide objects. All versions of an object are hidden, regardless of

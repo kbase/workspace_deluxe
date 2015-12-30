@@ -1185,7 +1185,8 @@ public class Workspace {
 	//TODO PRE performance testing
 	//TODO PRE test
 	//TODO PRE test with regex chars, incl . | - _
-	//TODO test hidden & deleted objects
+	//TODO PRE test hidden & deleted objects
+	//TODO PRE test null user
 	/** Get object names based on a provided prefix. Returns at most 1000
 	 * names in no particular order. Intended for use as an auto-completion
 	 * method.

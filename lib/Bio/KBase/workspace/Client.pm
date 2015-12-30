@@ -4782,6 +4782,117 @@ sub revert_object
 
 
 
+=head2 get_names_by_prefix
+
+  $res = $obj->get_names_by_prefix($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.GetNamesByPrefixParams
+$res is a Workspace.GetNamesByPrefixResults
+GetNamesByPrefixParams is a reference to a hash where the following keys are defined:
+	workspaces has a value which is a reference to a list where each element is a Workspace.WorkspaceIdentity
+	prefix has a value which is a string
+	includeHidden has a value which is a Workspace.boolean
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+boolean is an int
+GetNamesByPrefixResults is a reference to a hash where the following keys are defined:
+	names has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_name
+obj_name is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.GetNamesByPrefixParams
+$res is a Workspace.GetNamesByPrefixResults
+GetNamesByPrefixParams is a reference to a hash where the following keys are defined:
+	workspaces has a value which is a reference to a list where each element is a Workspace.WorkspaceIdentity
+	prefix has a value which is a string
+	includeHidden has a value which is a Workspace.boolean
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+boolean is an int
+GetNamesByPrefixResults is a reference to a hash where the following keys are defined:
+	names has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_name
+obj_name is a string
+
+
+=end text
+
+=item Description
+
+Get object names matching a prefix. At most 1000 names are returned.
+No particular ordering is guaranteed, nor is which names will be
+returned if more than 1000 are found.
+
+This function is intended for use as an autocomplete helper function.
+
+=back
+
+=cut
+
+sub get_names_by_prefix
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_names_by_prefix (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_names_by_prefix:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_names_by_prefix');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
+	method => "Workspace.get_names_by_prefix",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'get_names_by_prefix',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_names_by_prefix",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_names_by_prefix',
+				       );
+    }
+}
+
+
+
 =head2 hide_objects
 
   $obj->hide_objects($object_ids)
@@ -9783,6 +9894,91 @@ to has a value which is a Workspace.ObjectIdentity
 a reference to a hash where the following keys are defined:
 from has a value which is a Workspace.ObjectIdentity
 to has a value which is a Workspace.ObjectIdentity
+
+
+=end text
+
+=back
+
+
+
+=head2 GetNamesByPrefixParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the get_names_by_prefix function.
+
+        Required arguments:
+        list<WorkspaceIdentity> workspaces - the workspaces to search.
+        string prefix - the prefix of the object names to return.
+        
+        Optional arguments:
+        boolean includeHidden - include names of hidden objects in the results.
+                Default false.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspaces has a value which is a reference to a list where each element is a Workspace.WorkspaceIdentity
+prefix has a value which is a string
+includeHidden has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspaces has a value which is a reference to a list where each element is a Workspace.WorkspaceIdentity
+prefix has a value which is a string
+includeHidden has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 GetNamesByPrefixResults
+
+=over 4
+
+
+
+=item Description
+
+Results object for the get_names_by_prefix function.
+
+        list<list<obj_name>> names - the names matching the provided prefix,
+                listed in order of the input workspaces.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+names has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_name
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+names has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_name
 
 
 =end text
