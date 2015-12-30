@@ -2,6 +2,7 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
+
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -1125,6 +1126,21 @@ public class WorkspaceServer extends JsonServerServlet {
     public GetNamesByPrefixResults getNamesByPrefix(GetNamesByPrefixParams params, AuthToken authPart) throws Exception {
         GetNamesByPrefixResults returnVal = null;
         //BEGIN get_names_by_prefix
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final List<WorkspaceIdentifier> wsil =
+				new LinkedList<WorkspaceIdentifier>();
+		for (final WorkspaceIdentity wsi: params.getWorkspaces()) {
+			wsil.add(processWorkspaceIdentifier(wsi));
+		}
+		returnVal = new GetNamesByPrefixResults().withNames(
+				ws.getNamesByPrefix(
+						getUser(authPart),
+						wsil,
+						params.getPrefix(),
+						longToBoolean(params.getIncludeHidden()),
+						1000
+				)
+		);
         //END get_names_by_prefix
         return returnVal;
     }
