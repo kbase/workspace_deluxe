@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -1183,14 +1182,19 @@ public class Workspace {
 		return ret;
 	}
 	
+	//TODO PRE performance testing
 	//TODO PRE test
 	//TODO PRE test with regex chars, incl . | - _
+	//TODO test hidden & deleted objects
 	/** Get object names based on a provided prefix. Returns at most 1000
-	 * names. Intended for use as an auto-completion method.
-	 * @param user The user requesting names.
-	 * @param wsis The workspaces in which to look for names.
-	 * @param prefix The prefix returned names must have.
-	 * @return List of workspace names, listed by workspace in order of the 
+	 * names in no particular order. Intended for use as an auto-completion
+	 * method.
+	 * @param user the user requesting names.
+	 * @param wsis the workspaces in which to look for names.
+	 * @param prefix the prefix returned names must have.
+	 * @param includeHidden include hidden objects in the output.
+	 * @param limit the maximum number of names to return, at most 1000.
+	 * @return list of workspace names, listed by workspace in order of the 
 	 * input workspace list.
 	 * @throws NoSuchWorkspaceException if an input workspace does not exist.
 	 * @throws WorkspaceCommunicationException if a communication error with
@@ -1203,9 +1207,9 @@ public class Workspace {
 	public List<List<String>> getNamesByPrefix(
 			final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis,
-			String prefix,
+			final String prefix,
 			final boolean includeHidden,
-			final boolean includeDeleted)
+			final int limit)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, WorkspaceAuthorizationException {
 		if (wsis == null) {
@@ -1219,13 +1223,23 @@ public class Workspace {
 		if (prefix == null) {
 			throw new NullPointerException("prefix cannot be null");
 		}
-		prefix = "^" + Pattern.quote(prefix); // escape regex chars
+		if (limit > NAME_LIMIT) {
+			throw new IllegalArgumentException(
+					"limit cannot be greater than " + NAME_LIMIT);
+		}
 		
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				checkPermsMass(user, wsis, Permission.READ, "read", false,
 						false);
-	
-		return null; //TODO PRE finish method
+		final Map<ResolvedWorkspaceID, List<String>> names =
+				db.getNamesByPrefix(
+						new HashSet<ResolvedWorkspaceID>(rwsis.values()),
+						prefix, includeHidden, limit);
+		final List<List<String>> ret = new LinkedList<List<String>>();
+		for (final WorkspaceIdentifier wi: wsis) {
+			ret.add(names.get(rwsis.get(wi)));
+		}
+		return ret;
 	}
 	
 	public WorkspaceInformation renameWorkspace(final WorkspaceUser user,
