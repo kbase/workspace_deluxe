@@ -1238,7 +1238,12 @@ public class Workspace {
 						prefix, includeHidden, limit);
 		final List<List<String>> ret = new LinkedList<List<String>>();
 		for (final WorkspaceIdentifier wi: wsis) {
-			ret.add(names.get(rwsis.get(wi)));
+			final ResolvedWorkspaceID rwi = rwsis.get(wi);
+			if (!names.containsKey(rwi)) {
+				ret.add(new LinkedList<String>());
+			} else {
+				ret.add(names.get(rwi));
+			}
 		}
 		return ret;
 	}

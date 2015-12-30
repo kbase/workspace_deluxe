@@ -2418,7 +2418,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		q.put(Fields.OBJ_WS_ID, new BasicDBObject("$in", wsIDtoWS.keySet()));
 		if (!prefix.isEmpty()) {
 			// escape regex chars
-			q.put(Fields.OBJ_NAME, "^" + Pattern.quote(prefix));
+			q.put(Fields.OBJ_NAME,
+					new BasicDBObject("$regex", "^" + Pattern.quote(prefix)));
 		}
 		if (!includeHidden) {
 			q.put(Fields.OBJ_HIDE, false);
