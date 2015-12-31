@@ -1,0 +1,79 @@
+package performance.nameByPrefix;
+
+import java.net.URL;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+
+import us.kbase.common.service.UObject;
+import us.kbase.workspace.CloneWorkspaceParams;
+import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.WorkspaceClient;
+import us.kbase.workspace.WorkspaceIdentity;
+
+/** Set up objects to test speed of the name_by_prefix function. Assumes
+ *  Empty.AType (which has no restrictions on the save object, e.g. 1 optional
+ *  field) is released in the target workspace.
+ * @author gaprice@lbl.gov
+ *
+ */
+public class NamebyPrefix {
+	
+	public static final String TYPE = "Empty.AType";
+	public static final String wsURL = "http://localhost:7058";
+	public static final String ORIGINAL_WORKSPACE_NAME =
+			"getnamesbyprefix_original";
+	public static final int CLONE_COUNT = 9;
+	
+	public static String PASSWORD;
+	
+	public static void main(String[] args) throws Exception {
+		PASSWORD = args[0];
+		
+		loadOneMillion();
+	}
+	
+	private static String intToName(int in) {
+		final char[] seq = new char[4];
+		final int start = (int) 'a';
+		final int abc = 26;
+		for (int i = seq.length - 1; i >= 0; i--) {
+			seq[i] = (char)(start + in % abc);
+			in = in / abc;
+		}
+		return new String(seq);
+	}
+	
+	private static void loadOneMillion() throws Exception {
+		WorkspaceClient cli = new WorkspaceClient(new URL(wsURL), "kbasetest",
+				PASSWORD);
+		cli.createWorkspace(new CreateWorkspaceParams().withGlobalread("r")
+				.withWorkspace(ORIGINAL_WORKSPACE_NAME));
+		List<ObjectSaveData> o = new LinkedList<ObjectSaveData>();
+		for (int i = 0; i < 100000; i++) {
+			o.add(new ObjectSaveData()
+					.withData(new UObject(new HashMap<String, String>()))
+					.withName(intToName(i))
+					.withType(TYPE));
+		}
+		System.out.println("saving 100000 objects");
+		cli.saveObjects(new SaveObjectsParams()
+				.withWorkspace(ORIGINAL_WORKSPACE_NAME)
+				.withObjects(o));
+		
+		
+		for (int i = 1; i <= CLONE_COUNT; i++) {
+			System.out.println(String.format(
+					"Clone %s of %s.", i, CLONE_COUNT));
+			cli.cloneWorkspace(new CloneWorkspaceParams().withGlobalread("r")
+					.withWsi(new WorkspaceIdentity()
+							.withWorkspace(ORIGINAL_WORKSPACE_NAME))
+					.withWorkspace(ORIGINAL_WORKSPACE_NAME + (i + 1)));
+			}
+		System.out.println("Done");
+
+	}
+
+}
