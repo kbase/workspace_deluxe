@@ -27,6 +27,7 @@ public class NamebyPrefix {
 	public static final String ORIGINAL_WORKSPACE_NAME =
 			"getnamesbyprefix_original";
 	public static final int CLONE_COUNT = 9;
+	public static final int READ_TIME_OUT = 60 * 60 * 1000; // 1hr in ms
 	
 	public static String PASSWORD;
 	
@@ -55,6 +56,7 @@ public class NamebyPrefix {
 		WorkspaceClient cli = new WorkspaceClient(new URL(wsURL), "kbasetest",
 				PASSWORD);
 		cli.setIsInsecureHttpConnectionAllowed(true);
+		cli.setConnectionReadTimeOut(READ_TIME_OUT);
 		cli.createWorkspace(new CreateWorkspaceParams().withGlobalread("r")
 				.withWorkspace(ORIGINAL_WORKSPACE_NAME));
 		List<ObjectSaveData> o = new LinkedList<ObjectSaveData>();
