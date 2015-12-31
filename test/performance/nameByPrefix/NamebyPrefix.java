@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CreateWorkspaceParams;
@@ -14,14 +15,14 @@ import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 
 /** Set up objects to test speed of the name_by_prefix function. Assumes
- *  Empty.AType (which has no restrictions on the save object, e.g. 1 optional
- *  field) is released in the target workspace.
+ *  Empty.AType-0.1 (which has no restrictions on the save object, e.g. 1
+ *  optional field) exists in the target workspace.
  * @author gaprice@lbl.gov
  *
  */
 public class NamebyPrefix {
 	
-	public static final String TYPE = "Empty.AType";
+	public static final String TYPE = "Empty.AType-0.1";
 	public static final String wsURL = "http://localhost:7058";
 	public static final String ORIGINAL_WORKSPACE_NAME =
 			"getnamesbyprefix_original";
@@ -31,8 +32,12 @@ public class NamebyPrefix {
 	
 	public static void main(String[] args) throws Exception {
 		PASSWORD = args[0];
-		
-		loadOneMillion();
+		try {
+			loadOneMillion();
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
 	}
 	
 	private static String intToName(int in) {
@@ -49,6 +54,7 @@ public class NamebyPrefix {
 	private static void loadOneMillion() throws Exception {
 		WorkspaceClient cli = new WorkspaceClient(new URL(wsURL), "kbasetest",
 				PASSWORD);
+		cli.setIsInsecureHttpConnectionAllowed(true);
 		cli.createWorkspace(new CreateWorkspaceParams().withGlobalread("r")
 				.withWorkspace(ORIGINAL_WORKSPACE_NAME));
 		List<ObjectSaveData> o = new LinkedList<ObjectSaveData>();
