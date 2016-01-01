@@ -66,11 +66,14 @@ public class NamebyPrefix {
 					.withName(intToName(i))
 					.withType(TYPE));
 		}
-		System.out.println("saving 100000 objects");
-		cli.saveObjects(new SaveObjectsParams()
-				.withWorkspace(ORIGINAL_WORKSPACE_NAME)
-				.withObjects(o));
-		
+		for (int i = 0; i < 10; i++) {
+			System.out.println(String.format("saving objects from %s to %s",
+					i * 10000, (i + 1) * 10000 - 1));
+			cli.saveObjects(new SaveObjectsParams()
+					.withWorkspace(ORIGINAL_WORKSPACE_NAME)
+					// sublist is inclusive to exclusive
+					.withObjects(o.subList(i * 10000, (i + 1) * 10000)));
+		}
 		
 		for (int i = 1; i <= CLONE_COUNT; i++) {
 			System.out.println(String.format(
