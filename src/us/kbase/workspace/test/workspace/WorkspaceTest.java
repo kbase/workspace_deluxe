@@ -89,8 +89,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		super(config, backend, maxMemoryUsePerCall);
 	}
 
-	private static final WorkspaceIdentifier lockWS = new WorkspaceIdentifier("lock");
-	
 	@Test
 	public void workspaceDescription() throws Exception {
 		WorkspaceInformation ltinfo = ws.createWorkspace(SOMEUSER, "lt", false, LONG_TEXT, null);
@@ -3617,7 +3615,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void lockWorkspace() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("lockuser");
 		WorkspaceUser user2 = new WorkspaceUser("lockuser2");
-		WorkspaceIdentifier wsi = lockWS;
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("lock");
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("some meta", "for u");
 		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, meta).getId();
@@ -4050,22 +4048,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		expected.put(globalreadable, false);
 		expected.put(listuser3gl, false);
-		WorkspaceInformation locked = null;
-		try {
-			locked = ws.getWorkspaceInformation(user, lockWS);
-		} catch (NoSuchWorkspaceException nswe) {
-			//ignore - means that the locking ws test has not been run yet
-		}
-		if (locked != null) {
-			expected.put(locked, false);
-		}
 		checkWSInfoList(ws.listWorkspaces(user, null, null, null, null, null, false, false, false), expected);
 		
 		expected.put(deletedws, true);
 		checkWSInfoList(ws.listWorkspaces(user, null, null, null, null, null, false, true, false), expected);
 		
 		expected.remove(globalreadable);
-		expected.remove(locked);
 		expected.remove(listuser3gl);
 		checkWSInfoList(ws.listWorkspaces(user, null, null, null, null, null, true, true, false), expected);
 		checkWSInfoList(ws.listWorkspaces(user, Permission.NONE, null, null, null, null, true, true, false), expected);
@@ -4080,9 +4068,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		expected.clear();
 		expected.put(globalreadable, false);
 		expected.put(listuser3gl, false);
-		if (locked != null) {
-			expected.put(locked, false);
-		}
 		WorkspaceUser newb = new WorkspaceUser("listUserAZillion");
 		expected.put(ws.getWorkspaceInformation(newb, new WorkspaceIdentifier("globalws")), false);
 		checkWSInfoList(ws.listWorkspaces(newb, null, null, null, null, null, false, false, false), expected);
@@ -4394,31 +4379,13 @@ public class WorkspaceTest extends WorkspaceTester {
 				new Provenance(user), false)), getIdFactory()).get(0);
 		ws.setObjectsDeleted(user3, Arrays.asList(new ObjectIdentifier(thirdparty, "thirdobjdel")), true);
 		
-		ObjectInformation lock = null;
-		ObjectInformation locknometa = null;
-		try {
-			ListObjectsParameters lop = new ListObjectsParameters(user, Arrays.asList(lockWS))
-				.withIncludeMetaData(true);
-			List<ObjectInformation> foo = ws.listObjects(lop);
-			if (foo.size() > 1) {
-				fail("found more than one object in the locked workspace, this is unexpected");
-			}
-			if (foo.size() == 1) {
-				lock = foo.get(0);
-				locknometa = ws.listObjects(lop.withIncludeMetaData(false)).get(0);
-			}
-		} catch (NoSuchWorkspaceException nswe) {
-			//do nothing, lock workspace wasn't created yet
-		}
-		
 		TypeDefId allType1 = new TypeDefId(SAFE_TYPE1.getType().getTypeString());
 		TypeDefId allType2 = new TypeDefId(SAFE_TYPE2.getType().getTypeString());
 		
 		//test with anon user
 		ListObjectsParameters lop = new ListObjectsParameters(null, SAFE_TYPE1)
 				.withShowDeleted(true).withIncludeMetaData(true);
-		compareObjectInfo(ws.listObjects(lop),
-				setUpListObjectsExpected(Arrays.asList(thirdobj), lock));
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(thirdobj));
 		compareObjectInfo(ws.listObjects(lop.withExcludeGlobal(true)),
 				new LinkedList<ObjectInformation>());
 		
@@ -4459,12 +4426,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		lop = new ListObjectsParameters(user, allType1)
 				.withShowHidden(true).withShowDeleted(true).withShowAllVersions(true)
 				.withIncludeMetaData(true);
-		compareObjectInfo(ws.listObjects(lop),
-				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
-						stdws2, hidden, deleted, readobj, adminobj, thirdobj), lock));
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(std, objstack1,
+				objstack2, stdws2, hidden, deleted, readobj, adminobj,
+				thirdobj));
 		compareObjectInfo(ws.listObjects(lop.withSavers(new ArrayList<WorkspaceUser>())),
-				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
-						stdws2, hidden, deleted, readobj, adminobj, thirdobj), lock));
+				Arrays.asList(std, objstack1, objstack2, stdws2, hidden,
+						deleted, readobj, adminobj, thirdobj));
 		
 		//exclude globally readable workspaces
 		compareObjectInfo(ws.listObjects(lop.withExcludeGlobal(true)),
@@ -4539,17 +4506,17 @@ public class WorkspaceTest extends WorkspaceTester {
 				.withShowHidden(true).withShowDeleted(true)
 				.withShowAllVersions(true).withIncludeMetaData(true);
 		compareObjectInfo(ws.listObjects(lop),
-				setUpListObjectsExpected(Arrays.asList(std, stdws2, hidden, deleted,
-						readobj, adminobj, thirdobj), lock));
+				Arrays.asList(std, stdws2, hidden, deleted,
+						readobj, adminobj, thirdobj));
 		compareObjectInfo(ws.listObjects(lop.withIncludeMetaData(false)),
-				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
-						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
+				Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
+						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa));
 		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.NONE)),
-				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
-						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
+				Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
+						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa));
 		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.READ)),
-				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
-						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
+				Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
+						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa));
 		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.WRITE)),
 				Arrays.asList(stdnometa, stdws2nometa, hiddennometa, deletednometa, adminobjnometa));
 		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.ADMIN)),
@@ -4590,8 +4557,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user2, allType1)
 				.withShowHidden(true).withShowDeleted(true)
 				.withShowAllVersions(true).withIncludeMetaData(true)),
-				setUpListObjectsExpected(Arrays.asList(stdws2, hidden, deleted, readobj,
-						adminobj, thirdobj), lock));
+				Arrays.asList(stdws2, hidden, deleted, readobj,
+						adminobj, thirdobj));
 		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user2, Arrays.asList(writeable))
 				.withShowHidden(true).withShowDeleted(true)
 				.withShowAllVersions(true).withIncludeMetaData(true)),

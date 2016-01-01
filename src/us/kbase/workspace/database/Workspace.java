@@ -1182,7 +1182,6 @@ public class Workspace {
 		return ret;
 	}
 	
-	//TODO PRE performance testing
 	//TODO PRE test
 	//TODO PRE test with regex chars, incl . | - _
 	//TODO PRE test hidden & deleted objects
