@@ -189,7 +189,7 @@ public class WorkspaceTester {
 	}
 	
 	@Before
-	public void clearDBs() throws Exception {
+	public void clearDB() throws Exception {
 		DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 				DB_WS_NAME);
 		WorkspaceTestCommon.destroyDB(wsdb);

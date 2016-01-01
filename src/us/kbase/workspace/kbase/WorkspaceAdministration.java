@@ -107,16 +107,11 @@ public class WorkspaceAdministration {
 			return strAdm;
 		}
 		if ("addAdmin".equals(fn)) {
-			ws.addAdmin(getUser(cmd, token));
+			ws.addAdmin(getUser(cmd));
 			return null;
 		}
 		if ("removeAdmin".equals(fn)) {
-			final WorkspaceUser wsadmin = getUser(cmd, token);
-			final String admin = wsadmin.getUser();
-			if (!ROOT.equals(admin) && internaladmins.contains(admin)) {
-				internaladmins.remove(admin);
-			}
-			ws.removeAdmin(wsadmin);
+			ws.removeAdmin(getUser(cmd));
 			return null;
 		}
 		if ("setWorkspaceOwner".equals(fn)) {
@@ -127,11 +122,11 @@ public class WorkspaceAdministration {
 							params.wsi);
 			return wsInfoToTuple(ws.setWorkspaceOwner(null, wsi,
 					params.new_user == null ? null :
-					getUser(params.new_user, token), params.new_name, true));
+					getUser(params.new_user), params.new_name, true));
 		}
 		if ("createWorkspace".equals(fn)) {
 			final CreateWorkspaceParams params = getParams(cmd, CreateWorkspaceParams.class);
-			return wsmeth.createWorkspace(params, getUser(cmd, token));
+			return wsmeth.createWorkspace(params, getUser(cmd));
 		}
 		if ("setPermissions".equals(fn)) {
 			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
@@ -140,20 +135,20 @@ public class WorkspaceAdministration {
 		}
 		if ("getPermissions".equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
-			return wsmeth.getPermissions(params, getUser(cmd, token));
+			return wsmeth.getPermissions(params, getUser(cmd));
 		}
 		if ("setGlobalPermission".equals(fn)) {
 			final SetGlobalPermissionsParams params = getParams(cmd, SetGlobalPermissionsParams.class);
-			wsmeth.setGlobalPermission(params, getUser(cmd, token));
+			wsmeth.setGlobalPermission(params, getUser(cmd));
 			return null;
 		}
 		if ("saveObjects".equals(fn)) {
 			final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
-			return wsmeth.saveObjects(params, getUser(cmd, token), token);
+			return wsmeth.saveObjects(params, getUser(cmd), token);
 		}
 		if ("listWorkspaces".equals(fn)) {
 			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
-			return wsmeth.listWorkspaceInfo(params, getUser(cmd, token));
+			return wsmeth.listWorkspaceInfo(params, getUser(cmd));
 		}
 		if ("listWorkspaceOwners".equals(fn)) {
 			return usersToStrings(ws.getAllWorkspaceOwners());
@@ -180,14 +175,12 @@ public class WorkspaceAdministration {
 		return ret;
 	}
 
-	private WorkspaceUser getUser(final AdminCommand cmd,
-			final AuthToken token)
+	private WorkspaceUser getUser(final AdminCommand cmd)
 			throws IOException, AuthException {
-		final String user = (String) cmd.getUser();
-		return getUser(user, token);
+		return getUser((String) cmd.getUser());
 	}
 
-	private WorkspaceUser getUser(final String user, final AuthToken token)
+	private WorkspaceUser getUser(final String user)
 			throws IOException, AuthException {
 		if (user == null) {
 			throw new NullPointerException("User may not be null");
