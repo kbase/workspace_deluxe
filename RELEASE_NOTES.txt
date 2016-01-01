@@ -34,6 +34,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 - Fixed a bug where objects from deleted workspaces could be listed in 
   list_objects output.
 - get_permissions no longer requires authentication.
+- the admin user specified in the deploy.cfg file can no longer be removed by
+  other admins.
 
 KNOWN BUGS:
 - When filtering list_object output, deleted, hidden and early versions of
