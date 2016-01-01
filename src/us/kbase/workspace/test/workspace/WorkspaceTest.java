@@ -4715,6 +4715,15 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	private void checkGetByPrefix(WorkspaceUser user,
+			WorkspaceIdentifier wsi,
+			String prefix,
+			List<String> results)
+			throws Exception {
+		checkGetByPrefix(user, Arrays.asList(wsi), prefix, false, 1000,
+				Arrays.asList(results));
+	}
+	
+	private void checkGetByPrefix(WorkspaceUser user,
 			List<WorkspaceIdentifier> wsis,
 			String prefix,
 			boolean includeHidden,
@@ -4733,6 +4742,43 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		
 		assertThat("correct returned names", got, is(exp));
+	}
+	
+	@Test
+	public void getNameByPrefixRegex() throws Exception {
+		WorkspaceUser u = new WorkspaceUser("getNamesByPrefix");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("getNamesByPrefix1");
+		ws.createWorkspace(u, wsi.getName(), false, null, null);
+		Map<String, String> mt = new HashMap<String, String>();
+		Provenance p = new Provenance(u);
+		List<String> mtlist = new LinkedList<String>();
+		
+		ws.saveObjects(u, wsi, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("foo|bar.baz-thing_woo"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("aba"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("abc"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("ab."), mt,
+						SAFE_TYPE1, null, p, false)
+				), getIdFactory());
+		
+		checkGetByPrefix(u, wsi, "f",
+				Arrays.asList("foo|bar.baz-thing_woo"));
+		checkGetByPrefix(u, wsi, "foo|bar.baz-thing_",
+				Arrays.asList("foo|bar.baz-thing_woo"));
+		
+		//regex patterns shouldn't work
+		checkGetByPrefix(u, wsi, ".*", mtlist);
+		checkGetByPrefix(u, wsi, "ab.", Arrays.asList("ab."));
+		checkGetByPrefix(u, wsi, "\\w", mtlist);
+		checkGetByPrefix(u, wsi, "ab[a-c]", mtlist);
+		checkGetByPrefix(u, wsi, "ab(a|c)", mtlist);
+		checkGetByPrefix(u, wsi, "aba|abc", mtlist);
+		// end a quote, which is what Pattern.quote does to make a literal sequence
+		checkGetByPrefix(u, wsi, "\\E.*", mtlist);
+		
 	}
 	
 	@Test
