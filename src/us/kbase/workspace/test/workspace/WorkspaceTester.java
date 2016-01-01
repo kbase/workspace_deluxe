@@ -1289,6 +1289,21 @@ public class WorkspaceTester {
 		}
 	}
 	
+	protected void failGetNamesByPrefix(
+			WorkspaceUser user,
+			List<WorkspaceIdentifier> wsis,
+			String prefix,
+			boolean includeHidden,
+			int limit,
+			Exception e)
+			throws Exception {
+		try {
+			ws.getNamesByPrefix(user, wsis, prefix, includeHidden, limit);
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+	
 	protected void compareObjectInfo(List<ObjectInformation> got,
 			List<ObjectInformation> expected) {
 		HashSet<ObjectInformation> g = new HashSet<ObjectInformation>();
