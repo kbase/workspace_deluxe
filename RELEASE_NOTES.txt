@@ -22,6 +22,7 @@ VERSION: 0.3.6 (Released TBD)
 --------------------------------------
 NEW FEATURES:
 - Added get_permissions_mass function.
+- Added get_names_by_prefix function.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 - Removed internal data subsetting (intended for indexing of data contents)
