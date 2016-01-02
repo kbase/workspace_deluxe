@@ -40,6 +40,8 @@ import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.GetModuleInfoParams;
+import us.kbase.workspace.GetNamesByPrefixParams;
+import us.kbase.workspace.GetNamesByPrefixResults;
 import us.kbase.workspace.GetObjectInfoNewParams;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListAllTypesParams;
@@ -2292,6 +2294,74 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2), false);
 		
 		failListObjectsByDate(ws, "crappy obj date", "Unparseable date: Invalid format: \"crappy obj date\"");
+	}
+	
+	@Test
+	public void getNamesByPrefix() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws1"));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws2")
+				.withGlobalread("r"));
+		List<WorkspaceIdentity> wsis = Arrays.asList(
+				new WorkspaceIdentity().withWorkspace("ws1"),
+				new WorkspaceIdentity().withWorkspace("ws2"));
+		
+		Map<String, String> data = new HashMap<String, String>();
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("ws1")
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withData(new UObject(data))
+							.withType(SAFE_TYPE).withName("aba"),
+						new ObjectSaveData().withData(new UObject(data))
+							.withType(SAFE_TYPE).withName("abc").withHidden(1L)
+						)));
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("ws2")
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withData(new UObject(data))
+							.withType(SAFE_TYPE).withName("adb"))));
+		
+		List<WorkspaceIdentity> mt = new LinkedList<WorkspaceIdentity>();
+		List<List<String>> mtres = new LinkedList<List<String>>(); 
+		checkGetByPrefix(CLIENT1, mt, "", 0L, mtres);
+		checkGetByPrefix(CLIENT1, wsis, "", 0L, Arrays.asList(
+				Arrays.asList("aba"),
+				Arrays.asList("adb")));
+		checkGetByPrefix(CLIENT1, wsis, "a", 1L, Arrays.asList(
+				Arrays.asList("aba", "abc"),
+				Arrays.asList("adb")));
+		checkGetByPrefix(CLIENT1, wsis, "ab", 1L, Arrays.asList(
+				Arrays.asList("aba", "abc"),
+				new LinkedList<String>()));
+		checkGetByPrefix(CLIENT_NO_AUTH, Arrays.asList(wsis.get(1)), "a", 0L,
+				Arrays.asList(Arrays.asList("adb")));
+		
+		try {
+			CLIENT_NO_AUTH.getNamesByPrefix(new GetNamesByPrefixParams()
+					.withPrefix("").withWorkspaces(wsis.subList(0, 1)));
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Anonymous users may not read workspace ws1"));
+		}
+	}
+	
+	private void checkGetByPrefix(
+			WorkspaceClient cli, List<WorkspaceIdentity> wsis,
+			String prefix,
+			long includeHidden,
+			List<List<String>> results)
+			throws Exception {
+		List<Set<String>> exp = new LinkedList<Set<String>>();
+		for (List<String> r: results) {
+			exp.add(new HashSet<String>(r));
+		}
+		List<Set<String>> got = new LinkedList<Set<String>>();
+		GetNamesByPrefixResults ret = cli.getNamesByPrefix(
+				new GetNamesByPrefixParams().withWorkspaces(wsis)
+						.withIncludeHidden(includeHidden)
+						.withPrefix(prefix));
+		for (List<String> r: ret.getNames()) {
+			got.add(new HashSet<String>(r));
+		}
+		
+		assertThat("correct returned names", got, is(exp));
 	}
 	
 	@Test
