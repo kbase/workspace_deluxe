@@ -1693,6 +1693,7 @@ public class TypeDefinitionDB {
 	
 	public void requestModuleRegistration(String moduleName, String ownerUserId)
 			throws TypeStorageException {
+		TypeDefName.checkTypeName(moduleName, "Module name");
 		requestReadLockNM(moduleName);
 		try {
 			storage.addNewModuleRegistrationRequest(moduleName, ownerUserId);
@@ -1999,7 +2000,15 @@ public class TypeDefinitionDB {
 		KbModule module = compileSpecFile(specDocument, includedModules, moduleToTypeToSchema, moduleToInfo, 
 				moduleVersionRestrictions);
 		final String moduleName = module.getModuleName();
-		//TODO BF add tests for below
+		/* There's not really any way to test the next 11 lines.
+		 * Module name requests check for bad module names.
+		 * The Perl TC chokes on type names > 250 chars so any test with
+		 * type names > than that fails (if this is fixed or we stop running
+		 * 'both' type tests then add the test back).
+		 * The TCs should catch missing names or bad characters and throw an
+		 * exception before this point.
+		 * That being said, it's not bad to have a safeguard here. 
+		 */
 		TypeDefName.checkTypeName(moduleName, "Module name");
 		for (final KbModuleComp comp: module.getModuleComponents()){
 			if (comp instanceof KbTypedef) {

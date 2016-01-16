@@ -1,5 +1,9 @@
 package us.kbase.typedobj.db.test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -67,6 +71,13 @@ public class TypeRegisteringTest {
 	private static String adminUser = "admin";
 	
 	private static MongoController mongo = null;
+	
+	private static String longstr = "";
+	static {
+		for (int i = 0; i < 256; i++) {
+			longstr += "a";
+		}
+	}
 
 	public static void main(String[] args) throws Exception {
 		boolean[] storageParams = {false, true};
@@ -499,11 +510,33 @@ public class TypeRegisteringTest {
 				db.approveModuleRegistrationRequest(adminUser, "NewModule", true);
 			}
 			Assert.assertEquals(0, db.getNewModuleRegistrationRequests(adminUser, true).size());
-		}		
+		}
+		
+		failReg(null, adminUser, "Module name cannot be null or the empty string");
+		failReg("", adminUser, "Module name cannot be null or the empty string");
+		failReg("a-b", adminUser, "Illegal character in Module name a-b: -");
+		failReg(longstr, adminUser, "Module name size of 256 is > 255 bytes");
 	}
 	
+	private void failReg(String module, String user, String exp) {
+		try {
+			db.requestModuleRegistration(module, user);
+			fail("expected exception");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception", iae.getLocalizedMessage(), is(exp));
+		} catch (TypeStorageException e) {
+			fail("Wrong exception type");
+		}
+		
+	}
+
 	@Test
 	public void testError() throws Exception {
+		//this doesn't work - the perl TC chokes on type names > 250, so there's no way to test 256
+		//the parser should catch any other type or module name errors
+//		List<String> mttypes = new LinkedList<String>();
+//		failRegister("LongTypeName", mttypes, adminUser, "error", "foobar");
+		
 		initModule("Test", adminUser);
 		try {
 			db.registerModule(loadSpec("error", "Test"), Arrays.asList("bebebe"), adminUser);
@@ -558,6 +591,18 @@ public class TypeRegisteringTest {
 			Assert.fail();
 		} catch (SpecParseException ex) {
 			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Name duplication for field [val1]"));
+		}
+	}
+
+	@SuppressWarnings("unused")
+	private void failRegister(String mod, List<String> types, String user,
+			String test, String exp) throws Exception {
+		initModule(mod, user);
+		try {
+			db.registerModule(loadSpec(test, mod), types, user);
+			fail("registered bad type");
+		} catch (SpecParseException ex) {
+			assertThat("correct exception", ex.getLocalizedMessage(), is (exp));
 		}
 	}
 	
