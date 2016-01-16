@@ -7,7 +7,7 @@ import java.util.Set;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
-import static us.kbase.workspace.database.Util.checkSize;
+import static us.kbase.typedobj.util.SizeUtils.checkJSONSizeInBytes;
 
 public class ResolvedSaveObject {
 	
@@ -83,7 +83,7 @@ public class ResolvedSaveObject {
 	public void addUserMeta(Map<String,String> newUserMeta) {
 		if(userMeta==null) userMeta = newUserMeta;
 		else userMeta.putAll(newUserMeta);
-		checkSize(userMeta, "Metadata", WorkspaceSaveObject.getMaxUserMetaSize());
+		checkJSONSizeInBytes(userMeta, "Metadata", WorkspaceSaveObject.getMaxUserMetaSize());
 	}
 
 	public Provenance getProvenance() {

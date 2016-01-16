@@ -21,12 +21,12 @@ public class TypeDefsTest {
 	
 	@Test
 	public void type() throws Exception {
-		checkTypeDefName(null, "bar", "Module cannot be null or the empty string");
-		checkTypeDefName("foo", null, "Name cannot be null or the empty string");
-		checkTypeDefName("", "bar", "Module cannot be null or the empty string");
-		checkTypeDefName("foo", "", "Name cannot be null or the empty string");
-		checkTypeDefName("fo-o", "bar", "Illegal character in type id fo-o: -");
-		checkTypeDefName("foo", "ba/r", "Illegal character in type id ba/r: /");
+		checkTypeDefName(null, "bar", "Module name cannot be null or the empty string");
+		checkTypeDefName("foo", null, "Type name cannot be null or the empty string");
+		checkTypeDefName("", "bar", "Module name cannot be null or the empty string");
+		checkTypeDefName("foo", "", "Type name cannot be null or the empty string");
+		checkTypeDefName("fo-o", "bar", "Illegal character in Module name fo-o: -");
+		checkTypeDefName("foo", "ba/r", "Illegal character in Type name ba/r: /");
 		TypeDefName wst = new TypeDefName("foo", "bar");
 		checkTypeId(null, null, null, "Type cannot be null");
 		checkTypeId(null, 1, null, "Type cannot be null");
@@ -42,8 +42,8 @@ public class TypeDefsTest {
 		checkTypeId("foo", null, "Type foo could not be split into a module and name");
 		checkTypeId(".", "Type . could not be split into a module and name");
 		checkTypeId(".", null, "Type . could not be split into a module and name");
-		checkTypeId(".foo", "Module cannot be null or the empty string");
-		checkTypeId(".foo", null, "Module cannot be null or the empty string");
+		checkTypeId(".foo", "Module name cannot be null or the empty string");
+		checkTypeId(".foo", null, "Module name cannot be null or the empty string");
 		checkTypeId("foo.", "Type foo. could not be split into a module and name");
 		checkTypeId("foo.", null, "Type foo. could not be split into a module and name");
 		checkTypeId("foo.bar", "", "Typeversion cannot be an empty string");
@@ -56,7 +56,7 @@ public class TypeDefsTest {
 		checkTypeIdFromString("-2.1", "Moduletype cannot be null or the empty string");	
 		checkTypeIdFromString("foo", "Type foo could not be split into a module and name");
 		checkTypeIdFromString(".", "Type . could not be split into a module and name");
-		checkTypeIdFromString(".foo", "Module cannot be null or the empty string");
+		checkTypeIdFromString(".foo", "Module name cannot be null or the empty string");
 		checkTypeIdFromString("foo.", "Type foo. could not be split into a module and name");
 		checkTypeIdFromString("foo.bar-2.1.3", "Type version string 2.1.3 could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-n", "Type version string n could not be parsed to a version");
@@ -75,9 +75,9 @@ public class TypeDefsTest {
 		assertThat("TypeDefName constructor of Mod.type parsed type name",foobar.getName(),is("bar"));
 		checkTypeDefNameFromString("foobar", "Illegal fullname of a typed object: foobar");
 		checkTypeDefNameFromString("f.o.o.b.a.r", "Illegal fullname of a typed object: f.o.o.b.a.r");
-		checkTypeDefNameFromString("f .r", "Illegal character in type id f :  ");
+		checkTypeDefNameFromString("f .r", "Illegal character in Module name f :  ");
 		checkTypeDefNameFromString("foobar.", "Illegal fullname of a typed object: foobar.");
-		checkTypeDefNameFromString(".foobar", "Module cannot be null or the empty string");
+		checkTypeDefNameFromString(".foobar", "Module name cannot be null or the empty string");
 		
 		MD5 m = new MD5("a216f0dba216f0dba216f0dba216f0db");
 		assertTrue("absolute type", new TypeDefId(wst, 1, 1).isAbsolute());

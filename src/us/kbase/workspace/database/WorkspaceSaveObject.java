@@ -1,6 +1,6 @@
 package us.kbase.workspace.database;
 
-import static us.kbase.workspace.database.Util.checkSize;
+import static us.kbase.typedobj.util.SizeUtils.checkJSONSizeInBytes;
 
 import java.util.List;
 import java.util.Map;
@@ -36,7 +36,7 @@ public class WorkspaceSaveObject {
 		this.userMeta = userMeta;
 		this.provenance = provenance;
 		this.hidden = hidden;
-		checkSize(userMeta, "Metadata", MAX_USER_META_SIZE);
+		checkJSONSizeInBytes(userMeta, "Metadata", MAX_USER_META_SIZE);
 	}
 	
 	public WorkspaceSaveObject(final Object data, final TypeDefId type,
@@ -52,7 +52,7 @@ public class WorkspaceSaveObject {
 		this.userMeta = userMeta;
 		this.provenance = provenance;
 		this.hidden = hidden;
-		checkSize(userMeta, "Metadata", MAX_USER_META_SIZE);
+		checkJSONSizeInBytes(userMeta, "Metadata", MAX_USER_META_SIZE);
 	}
 
 	private UObject transformData(final Object data) {

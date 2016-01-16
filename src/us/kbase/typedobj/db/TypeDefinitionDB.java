@@ -1993,13 +1993,25 @@ public class TypeDefinitionDB {
 			NoSuchPrivilegeException, NoSuchModuleException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
-		String moduleName = null;
 		long transactionStartTime = -1;
 		Map<String, Map<String, String>> moduleToTypeToSchema = new HashMap<String, Map<String, String>>();
 		Map<String, ModuleInfo> moduleToInfo = new HashMap<String, ModuleInfo>();
 		KbModule module = compileSpecFile(specDocument, includedModules, moduleToTypeToSchema, moduleToInfo, 
 				moduleVersionRestrictions);
-		moduleName = module.getModuleName();
+		final String moduleName = module.getModuleName();
+		//TODO BF add tests for below
+		TypeDefName.checkTypeName(moduleName, "Module name");
+		for (final KbModuleComp comp: module.getModuleComponents()){
+			if (comp instanceof KbTypedef) {
+				TypeDefName.checkTypeName(((KbTypedef) comp).getName(),
+						"Type name");
+			}
+			if (comp instanceof KbFuncdef) {
+				TypeDefName.checkTypeName(((KbFuncdef) comp).getName(),
+						"Function name");
+			}
+		}
+		
 		checkModuleRegistered(moduleName);
 		checkModuleSupported(moduleName);
 		checkUserIsOwnerOrAdmin(moduleName, userId, isAdmin);

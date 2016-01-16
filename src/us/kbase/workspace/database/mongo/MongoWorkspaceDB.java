@@ -1,6 +1,6 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.workspace.database.Util.checkSize;
+import static us.kbase.typedobj.util.SizeUtils.checkJSONSizeInBytes;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -269,7 +269,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		//TODO gavin merge check size code from Util and make new max size exception
-		checkSize(meta, "Metadata", MAX_WS_META_SIZE);
+		checkJSONSizeInBytes(meta, "Metadata", MAX_WS_META_SIZE);
 		//avoid incrementing the counter if we don't have to
 		try {
 			final List<Map<String, Object>> ws = query.queryCollection(
@@ -369,7 +369,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		Map<String, String> currMeta = metaMongoArrayToHash(
 				(List<Object>) ws.get(Fields.WS_META));
 		currMeta.putAll(meta);
-		checkSize(currMeta, "Updated metadata", MAX_WS_META_SIZE);
+		checkJSONSizeInBytes(currMeta, "Updated metadata", MAX_WS_META_SIZE);
 		
 		for (final Entry<String, String> e: meta.entrySet()) {
 			final String key = e.getKey();

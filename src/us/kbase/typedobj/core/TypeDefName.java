@@ -1,25 +1,27 @@
 package us.kbase.typedobj.core;
 
 import static us.kbase.common.utils.StringUtils.checkString;
+import static us.kbase.typedobj.util.SizeUtils.checkSizeInBytes;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TypeDefName {
 	
+	//TODO BF add tests for checkTypeName & max bytes size
+	
 	private final static Pattern INVALID_TYPE_NAMES = 
 			Pattern.compile("[^\\w]");
+	private final static int MAX_NAME_SIZE_BYTES = 255;
 	
 	private final String module;
 	private final String name;
 	
 	public TypeDefName(String module, String name) {
-		checkString(module, "Module");
-		checkTypeName(module);
-		checkString(name, "Name");
-		checkTypeName(name);
 		this.module = module;
 		this.name = name;
+		checkTypeName(this.module, "Module name");
+		checkTypeName(this.name, "Type name");
 	}
 	
 	/**
@@ -33,17 +35,24 @@ public class TypeDefName {
 		}
 		this.module = tokens[0];
 		this.name = tokens[1];
-		checkString(this.module, "Module");
-		checkTypeName(this.module);
-		checkString(this.name, "Name");
-		checkTypeName(this.name);
+		checkTypeName(this.module, "Module name");
+		checkTypeName(this.name, "Type name");
 	}
 	
-	private void checkTypeName(String name) {
+	/** Checks that a type name or module name is acceptable. Must be a
+	 * non-zero length string of <= 255B with only the ASCII characters a-z, 
+	 * A-Z, 0-9, and _.
+	 * @param name
+	 * @param dataName
+	 */
+	public static void checkTypeName(final String name, final String dataName) {
+		checkString(name, dataName);
+		checkSizeInBytes(name, dataName, MAX_NAME_SIZE_BYTES);
 		final Matcher m = INVALID_TYPE_NAMES.matcher(name);
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(
-					"Illegal character in type id %s: %s", name, m.group()));
+					"Illegal character in %s %s: %s", dataName, name,
+					m.group()));
 		}
 	}
 	
