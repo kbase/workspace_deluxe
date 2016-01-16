@@ -19,6 +19,13 @@ import us.kbase.typedobj.core.TypeDefName;
 
 public class TypeDefsTest {
 	
+	private static String str255 = "";
+	static {
+		for (int i = 0; i < 255; i++) {
+			str255 += "a";
+		}
+	}
+	
 	@Test
 	public void type() throws Exception {
 		checkTypeDefName(null, "bar", "Module name cannot be null or the empty string");
@@ -27,7 +34,11 @@ public class TypeDefsTest {
 		checkTypeDefName("foo", "", "Type name cannot be null or the empty string");
 		checkTypeDefName("fo-o", "bar", "Illegal character in Module name fo-o: -");
 		checkTypeDefName("foo", "ba/r", "Illegal character in Type name ba/r: /");
+		checkTypeDefName(str255 + "a", "bar", "Module name size of 256 is > 255 bytes");
+		checkTypeDefName("foo", str255 + "a", "Type name size of 256 is > 255 bytes");
 		TypeDefName wst = new TypeDefName("foo", "bar");
+		@SuppressWarnings("unused")
+		TypeDefName wst2 = new TypeDefName(str255, str255); //should work
 		checkTypeId(null, null, null, "Type cannot be null");
 		checkTypeId(null, 1, null, "Type cannot be null");
 		checkTypeId(null, 1, 0, "Type cannot be null");
@@ -46,6 +57,8 @@ public class TypeDefsTest {
 		checkTypeId(".foo", null, "Module name cannot be null or the empty string");
 		checkTypeId("foo.", "Type foo. could not be split into a module and name");
 		checkTypeId("foo.", null, "Type foo. could not be split into a module and name");
+		checkTypeId(str255 + "a.foo", "Module name size of 256 is > 255 bytes");
+		checkTypeId("a.a" + str255, "Type name size of 256 is > 255 bytes");
 		checkTypeId("foo.bar", "", "Typeversion cannot be an empty string");
 		checkTypeId("foo.bar", "2.1.3", "Type version string 2.1.3 could not be parsed to a version");
 		checkTypeId("foo.bar", "n", "Type version string n could not be parsed to a version");
@@ -58,6 +71,8 @@ public class TypeDefsTest {
 		checkTypeIdFromString(".", "Type . could not be split into a module and name");
 		checkTypeIdFromString(".foo", "Module name cannot be null or the empty string");
 		checkTypeIdFromString("foo.", "Type foo. could not be split into a module and name");
+		checkTypeIdFromString(str255 + "a.bar-2.1.3", "Module name size of 256 is > 255 bytes");
+		checkTypeIdFromString("foo.a" + str255 + "-2.1.3", "Type name size of 256 is > 255 bytes");
 		checkTypeIdFromString("foo.bar-2.1.3", "Type version string 2.1.3 could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-n", "Type version string n could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-1.n", "Type version string 1.n could not be parsed to a version");
@@ -103,6 +118,25 @@ public class TypeDefsTest {
 		assertThat("get correct typestring", TypeDefId.fromTypeString(
 				"foo.bar-" + m.getMD5()).getTypeString(), is("foo.bar-" + m.getMD5()));
 		
+	}
+	
+	@Test
+	public void checkTypeName() throws Exception {
+		checkTypeNameHlpr(null, "thingy", "thingy cannot be null or the empty string");
+		checkTypeNameHlpr("", "thingy", "thingy cannot be null or the empty string");
+		checkTypeNameHlpr("a-b", "thingy", "Illegal character in thingy a-b: -");
+		checkTypeNameHlpr(str255 + "a", "thingy", "thingy size of 256 is > 255 bytes");
+		TypeDefName.checkTypeName(str255, "whoo"); //should work
+	}
+	
+	private void checkTypeNameHlpr(String name, String dataName, String exp) {
+		try {
+			TypeDefName.checkTypeName(name, dataName);
+			fail("should've thrown exception");
+		} catch (IllegalArgumentException iae) {
+			assertThat("correct exception string", iae.getLocalizedMessage(),
+					is(exp));
+		}
 	}
 	
 	@Test

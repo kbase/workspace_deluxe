@@ -8,8 +8,6 @@ import java.util.regex.Pattern;
 
 public class TypeDefName {
 	
-	//TODO BF add tests for checkTypeName & max bytes size
-	
 	private final static Pattern INVALID_TYPE_NAMES = 
 			Pattern.compile("[^\\w]");
 	private final static int MAX_NAME_SIZE_BYTES = 255;
