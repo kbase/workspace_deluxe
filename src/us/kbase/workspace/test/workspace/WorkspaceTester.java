@@ -49,6 +49,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
@@ -425,7 +426,7 @@ public class WorkspaceTester {
 		assertThat("ws permissions correct", info.getUserPermission(), is(perm));
 		assertThat("ws global read correct", info.isGloballyReadable(), is(globalread));
 		assertThat("ws lockstate correct", info.getLockState(), is(lockstate));
-		assertThat("ws meta correct", info.getUserMeta(), is(meta));
+		assertThat("ws meta correct", info.getUserMeta().getMetadata(), is(meta));
 	}
 	
 	protected void assertDatesAscending(Date... dates) {
@@ -455,7 +456,7 @@ public class WorkspaceTester {
 	protected void failWSSetMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
 			Map<String, String> meta, Exception e) {
 		try {
-			ws.setWorkspaceMetadata(user, wsi, meta);
+			ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(meta));
 			fail("expected set ws meta to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -472,7 +473,8 @@ public class WorkspaceTester {
 			boolean global, Map<String,String> meta, String description, Exception e)
 			throws Exception {
 		try {
-			ws.createWorkspace(user, name, global, description, meta);
+			ws.createWorkspace(user, name, global, description,
+					new WorkspaceUserMetadata(meta));
 			fail("created workspace w/ bad args");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -514,7 +516,10 @@ public class WorkspaceTester {
 		assertThat("Object workspace name is correct", info.getWorkspaceName(), is(wsname));
 		assertThat("Object chksum is correct", info.getCheckSum(), is(chksum));
 		assertThat("Object size is correct", info.getSize(), is(size));
-		assertThat("Object user meta is correct", info.getUserMetaData(), is(usermeta));
+		Map<String, String> meta = info.getUserMetaData() == null ? null :
+			info.getUserMetaData().getMetadata();
+		assertThat("Object user meta is correct",
+				meta, is(usermeta));
 	}
 	
 	protected void assertDateisRecent(Date orig) {
@@ -574,7 +579,7 @@ public class WorkspaceTester {
 			checkObjInfo(woi.getObjectInfo(), inf.getObjectId(), inf.getObjectName(),
 					inf.getTypeString(), inf.getVersion(), inf.getSavedBy(),
 					inf.getWorkspaceId(), inf.getWorkspaceName(), inf.getCheckSum(),
-					inf.getSize(), inf.getUserMetaData());
+					inf.getSize(), inf.getUserMetaData().getMetadata());
 		}
 		if (ret2.hasNext() || info.hasNext() || dataiter.hasNext() || infd.hasNext()) {
 			fail("mismatched iter counts");
@@ -586,7 +591,7 @@ public class WorkspaceTester {
 		checkObjInfo(wod.getObjectInfo(), info.getObjectId(), info.getObjectName(),
 				info.getTypeString(), info.getVersion(), info.getSavedBy(),
 				info.getWorkspaceId(), info.getWorkspaceName(), info.getCheckSum(),
-				info.getSize(), info.getUserMetaData());
+				info.getSize(), info.getUserMetaData().getMetadata());
 		assertThat("correct data", wod.getData(), is((Object) data));
 		
 	}
@@ -1119,18 +1124,21 @@ public class WorkspaceTester {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		if (name == null) {
 			return ws.saveObjects(user, wsi, Arrays.asList(
-					new WorkspaceSaveObject(data, type, meta, prov, hide)), fac)
+					new WorkspaceSaveObject(data, type,
+							new WorkspaceUserMetadata(meta), prov, hide)), fac)
 					.get(0);
 		}
 		return ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), data,
-						type, meta, prov, hide)), fac).get(0);
+						type, new WorkspaceUserMetadata(meta), prov, hide)), fac)
+				.get(0);
 	}
 
 	protected void failClone(WorkspaceUser user, WorkspaceIdentifier wsi,
 			String name, Map<String, String> meta, Exception e) {
 		try {
-			ws.cloneWorkspace(user, wsi, name, false, null, meta);
+			ws.cloneWorkspace(user, wsi, name, false, null,
+					new WorkspaceUserMetadata(meta));
 			fail("expected clone to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -1283,7 +1291,7 @@ public class WorkspaceTester {
 			Exception e) {
 		try {
 			ws.listObjects(new ListObjectsParameters(user, wsis)
-					.withMetadata(meta));
+					.withMetadata(new WorkspaceUserMetadata(meta)));
 			fail("listed obj when should fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);

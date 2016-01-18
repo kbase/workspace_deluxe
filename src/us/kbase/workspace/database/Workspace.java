@@ -201,6 +201,10 @@ public class Workspace {
 			final boolean ignoreLock)
 			throws CorruptWorkspaceDBException, WorkspaceAuthorizationException,
 			NoSuchWorkspaceException, WorkspaceCommunicationException {
+		if (wsi == null) {
+			throw new IllegalArgumentException(
+					"Workspace identifier cannot be null");
+		}
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi,
 				allowDeletedWorkspace);
 		if (!ignoreLock) {
@@ -287,12 +291,13 @@ public class Workspace {
 	
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
 			final String wsname, boolean globalread, final String description,
-			final Map<String, String> meta)
+			final WorkspaceUserMetadata meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		new WorkspaceIdentifier(wsname, user); //check for errors
 		return db.createWorkspace(user, wsname, globalread,
-				pruneWorkspaceDescription(description), meta);
+				pruneWorkspaceDescription(description),
+				meta == null ? new WorkspaceUserMetadata() : meta);
 	}
 	
 	//might be worthwhile to make this work on multiple values,
@@ -307,18 +312,19 @@ public class Workspace {
 	}
 	
 	public void setWorkspaceMetadata(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final Map<String, String> meta)
+			final WorkspaceIdentifier wsi, final WorkspaceUserMetadata meta)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
 				"alter metadata for");
-		db.setWorkspaceMetaKey(wsid, meta);
+		db.setWorkspaceMeta(wsid, meta);
 	}
 	
+	//TODO BF test create/clone ws with null wsi
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String newname,
 			final boolean globalread, final String description,
-			final Map<String, String> meta)
+			final WorkspaceUserMetadata meta)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			PreExistingWorkspaceException {
@@ -326,7 +332,8 @@ public class Workspace {
 				"read");
 		new WorkspaceIdentifier(newname, user); //check for errors
 		return db.cloneWorkspace(user, wsid, newname, globalread,
-				pruneWorkspaceDescription(description), meta);
+				pruneWorkspaceDescription(description),
+				meta == null ? new WorkspaceUserMetadata() : meta);
 	}
 	
 	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,
@@ -848,7 +855,7 @@ public class Workspace {
 	//should probably make an options builder
 	public List<WorkspaceInformation> listWorkspaces(
 			final WorkspaceUser user, Permission minPerm,
-			final List<WorkspaceUser> users, final Map<String, String> meta,
+			final List<WorkspaceUser> users, final WorkspaceUserMetadata meta,
 			final Date after, final Date before,
 			final boolean excludeGlobal, final boolean showDeleted,
 			final boolean showOnlyDeleted)

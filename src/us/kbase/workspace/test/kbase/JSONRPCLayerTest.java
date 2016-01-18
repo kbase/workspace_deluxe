@@ -780,7 +780,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(1L));
 		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 1, USER1,
 				wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23, meta, data);
-		
 		loi.clear();
 		// w/o versions
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
@@ -1434,7 +1433,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("called save with too large meta");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Object 2 save error: Metadata size of 16119 is > 16000 bytes"));
+					is("Object 2 save error: Metadata exceeds maximum of 16000B"));
 		}
 		try {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta2")
@@ -1442,7 +1441,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("called createWS with too large meta");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Metadata size of 16119 is > 16000 bytes"));
+					is("Metadata exceeds maximum of 16000B"));
 		}
 	}
 
@@ -2877,10 +2876,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAlterWSMeta(CLIENT1, new AlterWorkspaceMetadataParams().withRemove(Arrays.asList("foo")),
 				"WorkspaceIdentifier cannot be null");
 		failAlterWSMeta(CLIENT1, new AlterWorkspaceMetadataParams().withWsi(wsi),
-				"The new and remove params cannot both be null");
+				"Must provide metadata keys to add or remove");
 		failAlterWSMeta(CLIENT1, new AlterWorkspaceMetadataParams().withWsi(wsi)
-				.withRemove(Arrays.asList("foo")).withNew(MT_META),
-				"Metadata cannot be null or empty");
+				.withRemove(new LinkedList<String>()).withNew(MT_META),
+				"Must provide metadata keys to add or remove");
 		failAlterWSMeta(CLIENT2, new AlterWorkspaceMetadataParams().withWsi(wsi)
 				.withNew(newmeta),
 				"User " + USER2 + " may not alter metadata for workspace " + wsi.getWorkspace());

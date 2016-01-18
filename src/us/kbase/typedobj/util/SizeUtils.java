@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 import us.kbase.common.utils.CountingOutputStream;
 
@@ -23,24 +22,20 @@ public class SizeUtils {
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	/** Check the size of a Map in bytes when serialized to a JSON map.
-	 * @param o the Map to check
-	 * @param dataName the name of the data to report in exceptions.
-	 * @param maxsize the maximum size of the Map in bytes.
-	 * @throws IllegalArgumentException if the Map cannot be serialized or
-	 * exceeds maxsize.
+	/** Check the size of an Object in bytes when serialized to a JSON map.
+	 * @param o the Object to check
+	 * @returns the size of the map.
+	 * @throws IllegalArgumentException if the object cannot be serialized to
+	 * JSON.
 	 */
-	public static void checkJSONSizeInBytes(
-			final Map<String, ? extends Object> o,
-			final String dataName,
-			final int maxsize) {
+	public static long checkJSONSizeInBytes(final Object o) {
 		final CountingOutputStream cos = new CountingOutputStream();
 		try {
 			//writes in UTF8
 			MAPPER.writeValue(cos, o);
 		} catch (JsonProcessingException jpe) {
 			throw new IllegalArgumentException(
-					"Unable to serialize " + dataName, jpe);
+					"Unable to serialize object", jpe);
 		} catch (IOException ioe) {
 			throw new RuntimeException("something's broken", ioe);
 		} finally {
@@ -50,26 +45,18 @@ public class SizeUtils {
 				throw new RuntimeException("something's broken", ioe);
 			}
 		}
-		if (cos.getSize() > maxsize) {
-				throw new IllegalArgumentException(String.format(
-						dataName + " size of %s is > %s bytes", cos.getSize(),
-						maxsize));
-		}
+		return cos.getSize();
 	}
 	
 	/** Check the size of a String in UTF-8 bytes.
 	 * @param s the String to check
-	 * @param dataName the name of the data to report in exceptions.
-	 * @param maxsize the maximum size of the String in UTF-8 in bytes.
-	 * @throws IllegalArgumentException if the String exceeds maxsize.
+	 * @return the size of the String in UTF-8.
 	 */
-	public static void checkSizeInBytes(
-			final String s,
-			final String dataName,
-			final int maxsize) {
+	public static long checkSizeInBytes(final String s) {
 		CountingOutputStream cos = new CountingOutputStream();
 		try {
-			Writer writer = new OutputStreamWriter(cos, StandardCharsets.UTF_8);
+			Writer writer = new OutputStreamWriter(cos,
+					StandardCharsets.UTF_8);
 			try {
 				writer.write(s);
 				writer.flush();
@@ -85,10 +72,7 @@ public class SizeUtils {
 				throw new RuntimeException("something's broken", ioe);
 			}
 		}
-		if (cos.getSize() > maxsize) {
-			throw new IllegalArgumentException(String.format(
-					dataName + " size of %s is > %s bytes", cos.getSize(),
-					maxsize));
-		}
+		return cos.getSize();
 	}
+	
 }

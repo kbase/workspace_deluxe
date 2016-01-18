@@ -7,12 +7,12 @@ import java.util.Set;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
-import static us.kbase.typedobj.util.SizeUtils.checkJSONSizeInBytes;
+import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 
 public class ResolvedSaveObject {
 	
 	private final ObjectIDNoWSNoVer id;
-	private Map<String, String> userMeta; // userMeta data is non-final because it can be appended
+	private final WorkspaceUserMetadata userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
 	private final TypedObjectValidationReport rep;
@@ -22,7 +22,7 @@ public class ResolvedSaveObject {
 	
 	ResolvedSaveObject(
 			final ObjectIDNoWSNoVer id,
-			final Map<String, String> userMeta,
+			final WorkspaceUserMetadata userMeta,
 			final Provenance provenance,
 			final boolean hidden,
 			final TypedObjectValidationReport rep,
@@ -30,9 +30,10 @@ public class ResolvedSaveObject {
 			final List<Reference> provenancerefs,
 			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
 		if (id == null || rep == null || refs == null ||
-				provenancerefs == null || extractedIDs == null) {
+				provenancerefs == null || extractedIDs == null ||
+				userMeta == null) {
 			throw new IllegalArgumentException(
-					"Neither id, rep, refs, extractedIDs, nor provenancerefs may be null");
+					"Neither id, rep, refs, extractedIDs, metadata, nor provenancerefs may be null");
 		}
 		this.id = id;
 		this.userMeta = userMeta;
@@ -45,7 +46,7 @@ public class ResolvedSaveObject {
 	}
 	
 	ResolvedSaveObject(
-			final Map<String, String> userMeta,
+			final WorkspaceUserMetadata userMeta,
 			final Provenance provenance,
 			final boolean hidden,
 			final TypedObjectValidationReport rep,
@@ -53,9 +54,9 @@ public class ResolvedSaveObject {
 			final List<Reference> provenancerefs,
 			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
 		if (rep == null || refs == null || provenancerefs == null ||
-				extractedIDs == null) {
+				extractedIDs == null || userMeta == null) {
 			throw new IllegalArgumentException(
-					"Neither rep, refs, extractedIDs nor provenancerefs may be null");
+					"Neither rep, refs, extractedIDs, metadata nor provenancerefs may be null");
 		}
 		this.id = null;
 		this.userMeta = userMeta;
@@ -71,19 +72,21 @@ public class ResolvedSaveObject {
 		return id;
 	}
 
-	//mutable!
-	public Map<String, String> getUserMeta() {
+	public WorkspaceUserMetadata getUserMeta() {
 		return userMeta;
 	}
 	
 	/**
-	 * Add new metadata, which will overwrite existing metadata fields with the same name.
-	 * This method also checks that the size of the metadata is within the size limit.
+	 * Add new metadata, which will overwrite existing metadata fields with the
+	 * same name. This method also checks that the size of the metadata is
+	 * within the size limit.
+	 * @param newUserMeta the new metadata.
+	 * @throws MetadataException if the metadata exeeds the allowed size or a
+	 * key or value exceeds the allowed key/value size.
 	 */
-	public void addUserMeta(Map<String,String> newUserMeta) {
-		if(userMeta==null) userMeta = newUserMeta;
-		else userMeta.putAll(newUserMeta);
-		checkJSONSizeInBytes(userMeta, "Metadata", WorkspaceSaveObject.getMaxUserMetaSize());
+	public void addUserMeta(Map<String,String> newUserMeta)
+			throws MetadataException {
+		userMeta.addMetadata(newUserMeta);
 	}
 
 	public Provenance getProvenance() {

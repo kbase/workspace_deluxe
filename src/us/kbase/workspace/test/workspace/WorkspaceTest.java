@@ -60,6 +60,7 @@ import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -70,6 +71,8 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
@@ -177,7 +180,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
 		meta.put("baz", "bash");
-		WorkspaceInformation info2 = ws.createWorkspace(SOMEUSER, "foo2", true, "eeswaffertheen2", meta);
+		WorkspaceInformation info2 = ws.createWorkspace(SOMEUSER, "foo2", true,
+				"eeswaffertheen2", new WorkspaceUserMetadata(meta));
 		checkWSInfo(info2, SOMEUSER, "foo2", 0, Permission.OWNER, true, "unlocked", meta);
 		checkWSInfo(new WorkspaceIdentifier("foo2"), SOMEUSER, "foo2", 0, 
 				Permission.OWNER, true, info2.getId(), info2.getModDate(), "unlocked", meta);
@@ -207,11 +211,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		info = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
 		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked", MT_META);
 		
+		//TODO BF these tests should be in the metadata class unit tests
+		/*
 		Map<String, String> bigmeta = new HashMap<String, String>();
 		for (int i = 0; i < 141; i++) {
 			bigmeta.put("thing" + i, TEXT100);
 		}
-		ws.createWorkspace(SOMEUSER, "foo3", false, "eeswaffertheen", bigmeta);
+		ws.createWorkspace(SOMEUSER, "foo3", false, "eeswaffertheen", new WorkspaceUserMetadata(bigmeta));
 		bigmeta.put("thing", TEXT100);
 		try {
 			ws.createWorkspace(SOMEUSER, "foo4", false, "eeswaffertheen", bigmeta);
@@ -219,8 +225,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata size of 16076 is > 16000 bytes"));
-		}
-		
+		}*/
 		ws.setGlobalPermission(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"), Permission.NONE);
 		ws.setGlobalPermission(SOMEUSER, new WorkspaceIdentifier("foo2"), Permission.NONE);
 	}
@@ -230,31 +235,40 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceUser user = new WorkspaceUser("blahblah");
 		WorkspaceUser user2 = new WorkspaceUser("blahblah2");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("workspaceMetadata");
-		WorkspaceIdentifier wsiNo = new WorkspaceIdentifier("workspaceNoMetadata");
-		WorkspaceIdentifier wsiNo2 = new WorkspaceIdentifier("workspaceNoMetadata2");
+		WorkspaceIdentifier wsiNo =
+				new WorkspaceIdentifier("workspaceNoMetadata");
+		WorkspaceIdentifier wsiNo2 =
+				new WorkspaceIdentifier("workspaceNoMetadata2");
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
 		meta.put("foo2", "bar2");
 		meta.put("some", "meta");
-		WorkspaceInformation info = ws.createWorkspace(user, wsi.getName(), false, null, meta);
+		WorkspaceInformation info = ws.createWorkspace(user, wsi.getName(),
+				false, null, new WorkspaceUserMetadata(meta));
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.ADMIN);
-		checkWSInfo(info, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
-		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), info.getModDate(), "unlocked", meta);
-		WorkspaceInformation infoNo = ws.createWorkspace(user, wsiNo.getName(), false, null, null);
-		checkWSInfo(infoNo, user, wsiNo.getName(), 0, Permission.OWNER, false, infoNo.getId(), infoNo.getModDate(), "unlocked", MT_META);
-		checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false, infoNo.getId(), infoNo.getModDate(), "unlocked", MT_META);
-		WorkspaceInformation infoNo2 = ws.createWorkspace(user, wsiNo2.getName(), false, null, null);
+		checkWSInfo(info, user, wsi.getName(), 0, Permission.OWNER, false,
+				info.getId(), info.getModDate(), "unlocked", meta);
+		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
+				info.getId(), info.getModDate(), "unlocked", meta);
+		WorkspaceInformation infoNo = ws.createWorkspace(user, wsiNo.getName(),
+				false, null, null);
+		checkWSInfo(infoNo, user, wsiNo.getName(), 0, Permission.OWNER, false,
+				infoNo.getId(), infoNo.getModDate(), "unlocked", MT_META);
+		checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false,
+				infoNo.getId(), infoNo.getModDate(), "unlocked", MT_META);
+		WorkspaceInformation infoNo2 = ws.createWorkspace(user, wsiNo2.getName(),
+				false, null, null);
 		
 		
 		meta.put("foo2", "bar3"); //replace
 		Map<String, String> putmeta = new HashMap<String, String>();
 		putmeta.put("foo2", "bar3");
-		ws.setWorkspaceMetadata(user, wsi, putmeta);
+		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(putmeta));
 		Date d1 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
 		meta.put("foo3", "bar4"); //new
 		putmeta.clear();
 		putmeta.put("foo3", "bar4");
-		ws.setWorkspaceMetadata(user, wsi, putmeta);
+		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(putmeta));
 		Date d2 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
 		
 		putmeta.clear();
@@ -266,12 +280,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		meta.put("some.garbage", "with.dots");
 		meta.put("foo", "whoa this is new");
 		meta.put("no, this part is new", "prunker");
-		ws.setWorkspaceMetadata(user, wsi, putmeta);
+		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(putmeta));
 		Date d3 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
 		
 		Map<String, String> newmeta = new HashMap<String, String>();
 		newmeta.put("new", "meta");
-		ws.setWorkspaceMetadata(user, wsiNo, newmeta);
+		ws.setWorkspaceMetadata(user, wsiNo, new WorkspaceUserMetadata(newmeta));
 		Date nod1 = checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false, infoNo.getId(), "unlocked", newmeta);
 		
 		assertDatesAscending(infoNo.getModDate(), nod1);
@@ -308,14 +322,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		for (int i = 0; i < 147; i++) {
 			putmeta.put("" + i, TEXT100);
 		}
-		ws.createWorkspace(user, "wsmetafake", false, null, putmeta); //should work
+		ws.createWorkspace(user, "wsmetafake", false, null,
+				new WorkspaceUserMetadata(putmeta)); //should work
 		failWSSetMeta(user, wsi, putmeta, new IllegalArgumentException(
-				"Updated metadata size of 16013 is > 16000 bytes"));
+				"Updated metadata exceeds allowed size of 16000B"));
 		
-		ws.setWorkspaceMetadata(user, wsiNo, putmeta); //should work
+		ws.setWorkspaceMetadata(user, wsiNo, new WorkspaceUserMetadata(putmeta)); //should work
 		putmeta.put("148", TEXT100);
-		failWSSetMeta(user, wsiNo2, putmeta, new IllegalArgumentException(
-				"Updated metadata size of 16023 is > 16000 bytes"));
+		failWSSetMeta(user, wsiNo2, putmeta, new MetadataSizeException(
+				"Metadata exceeds maximum of 16000B"));
 		
 		failWSSetMeta(user, wsi, null, new IllegalArgumentException(
 				"Metadata cannot be null or empty"));
@@ -852,16 +867,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		long privid = privinfo.getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> data2 = new HashMap<String, Object>();
-		Map<String, String> meta = new HashMap<String, String>();
+		Map<String, String> premeta = new HashMap<String, String>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
 		JsonNode savedata = MAPPER.valueToTree(data);
 		data2.put("fubar2", moredata);
 		JsonNode savedata2 = MAPPER.valueToTree(data2);
-		meta.put("metastuff", "meta");
-		Map<String, String> meta2 = new HashMap<String, String>();
-		meta2.put("meta2", "my hovercraft is full of eels");
+		premeta.put("metastuff", "meta");
+		WorkspaceUserMetadata meta = new WorkspaceUserMetadata(premeta);
+		Map<String, String> premeta2 = new HashMap<String, String>();
+		premeta2.put("meta2", "my hovercraft is full of eels");
+		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(premeta2);
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
 		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
@@ -894,11 +911,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		readLastDate = assertWorkspaceDateUpdated(foo, read, readLastDate, "ws date modified on save");
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
-		checkObjInfo(objinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo.get(2), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo.get(3), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo.get(4), 4, "auto4", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(objinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
+		checkObjInfo(objinfo.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
+		checkObjInfo(objinfo.get(2), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
+		checkObjInfo(objinfo.get(3), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, premeta2);
+		checkObjInfo(objinfo.get(4), 4, "auto4", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
 		
 		List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
 		loi.add(new ObjectIdentifier(read, 1));
@@ -916,18 +933,18 @@ public class WorkspaceTest extends WorkspaceTester {
 
 		List<ObjectInformation> objinfo2 = ws.getObjectInformation(foo, loi, true, false);
 		List<ObjectInformation> objinfo2NoMeta = ws.getObjectInformation(foo, loi, false, false);
-		checkObjInfo(objinfo2.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo2.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo2.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(5), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo2.get(6), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(7), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
-		checkObjInfo(objinfo2.get(8), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(9), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(10), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
-		checkObjInfo(objinfo2.get(11), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(objinfo2.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
+		checkObjInfo(objinfo2.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
+		checkObjInfo(objinfo2.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
+		checkObjInfo(objinfo2.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
+		checkObjInfo(objinfo2.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
+		checkObjInfo(objinfo2.get(5), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
+		checkObjInfo(objinfo2.get(6), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
+		checkObjInfo(objinfo2.get(7), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
+		checkObjInfo(objinfo2.get(8), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, premeta2);
+		checkObjInfo(objinfo2.get(9), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, premeta2);
+		checkObjInfo(objinfo2.get(10), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, premeta2);
+		checkObjInfo(objinfo2.get(11), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, premeta2);
 		checkObjInfo(objinfo2NoMeta.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
 		checkObjInfo(objinfo2NoMeta.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
 		checkObjInfo(objinfo2NoMeta.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
@@ -943,18 +960,20 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		List<FakeObjectInfo> retinfo = new ArrayList<FakeObjectInfo>();
 		FakeResolvedWSID fakews = new FakeResolvedWSID(read.getName(), readid);
-		retinfo.add(new FakeObjectInfo(1L, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24L, meta2));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, meta2));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, meta2));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, meta2));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, meta));
-		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
-		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
-		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
-		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, meta2));
+		UncheckedUserMetadata umeta = new UncheckedUserMetadata(meta);
+		UncheckedUserMetadata umeta2 = new UncheckedUserMetadata(meta2);
+		retinfo.add(new FakeObjectInfo(1L, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24L, umeta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, umeta));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, umeta));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, umeta));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, umeta));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, umeta2));
 		List<Map<String, Object>> retdata = Arrays.asList(
 				data2, data, data2, data, data2, data, data2, data, data2, data2, data2, data2);
 		checkObjectAndInfo(foo, loi, retinfo, retdata);
@@ -967,9 +986,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), savedata, SAFE_TYPE1, meta2, p, false));
 		objinfo = ws.saveObjects(foo, read, objects, foofac);
 		ws.saveObjects(foo, priv, objects, foofac);
-		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
+		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, premeta2);
 		objinfo2 = ws.getObjectInformation(foo, Arrays.asList(new ObjectIdentifier(read, 2)), true, false);
-		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, meta2);
+		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, premeta2);
 		
 		ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(read, 2)), true, false); //should work
 		try {
@@ -994,18 +1013,18 @@ public class WorkspaceTest extends WorkspaceTester {
 
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
 		objinfo2 = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true, false);
-		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, meta2);
+		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, premeta2);
 		
 		checkObjectAndInfo(bar, Arrays.asList(new ObjectIdentifier(priv, 2)),
 				Arrays.asList(new FakeObjectInfo(2L, "auto3-1", SAFE_TYPE1.getTypeString(),
 						new Date(), 2, foo, new FakeResolvedWSID(priv.getName(), privid),
-						chksum1, 23L, meta2)), Arrays.asList(data));
+						chksum1, 23L, umeta2)), Arrays.asList(data));
 		
 		failSave(bar, priv, objects, new WorkspaceAuthorizationException("User bar may not write to workspace saveobj"));
 		
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objinfo = ws.saveObjects(bar, priv, objects, barfac);
-		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, meta2);
+		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, premeta2);
 		
 		failGetObjects(foo, Arrays.asList(new ObjectIdentifier(read, "booger")),
 				new NoSuchObjectException("No object with name booger exists in workspace " + readid));
@@ -1025,10 +1044,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		nullloi.add(new ObjectIdentifier(read, 1, 1));
 		
 		List<ObjectInformation> nullobjinfo = ws.getObjectInformation(foo, nullloi, true, true);
-		checkObjInfo(nullobjinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(nullobjinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
 		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
 		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(2));
-		checkObjInfo(nullobjinfo.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(nullobjinfo.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
 		
 		nullloi.clear();
 		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "auto3"));
@@ -1050,9 +1069,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		nullloi.add(new ObjectIdentifier(read, "auto3"));
 		
 		nullobjinfo = ws.getObjectInformation(null, nullloi, true, true);
-		checkObjInfo(nullobjinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, meta);
+		checkObjInfo(nullobjinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
 		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
-		checkObjInfo(nullobjinfo.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, meta2);
+		checkObjInfo(nullobjinfo.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
 		
 		ws.setObjectsDeleted(foo, Arrays.asList(new ObjectIdentifier(priv, 3)), true);
 		ws.setWorkspaceDeleted(foo, read, true);
@@ -1091,14 +1110,16 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		Map<String, String> metadata = new HashMap<String, String>();
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("d1"),d1, MyType, metadata, emptyprov, false)),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("d1"),d1, MyType,
+						new WorkspaceUserMetadata(metadata), emptyprov, false)),
 				getIdFactory());
 		List <ObjectInformation> oi = ws.getObjectInformation(userfoo, Arrays.asList(new ObjectIdentifier(wspace, "d1")), true, true);
 		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi);
 		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi.get(0));
 		
 		// check that automatic metadata fields were populated correctly, and nothing else was added
-		Map<String,String> savedUserMetaData = oi.get(0).getUserMetaData();
+		Map<String,String> savedUserMetaData = new HashMap<String, String>(
+				oi.get(0).getUserMetaData().getMetadata());
 		for(Entry<String,String> m : savedUserMetaData.entrySet()) {
 			if(m.getKey().equals("val")) 
 				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals(val));
@@ -1114,20 +1135,22 @@ public class WorkspaceTest extends WorkspaceTester {
 		metadata.put("Length of list","i am pretty sure it was 7");
 		metadata.put("my_special_metadata", "yes");
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("d2"),d1, MyType, metadata, emptyprov, false)),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("d2"),d1, MyType,
+						new WorkspaceUserMetadata(metadata), emptyprov, false)),
 				getIdFactory());
 		List <ObjectInformation> oi2 = ws.getObjectInformation(userfoo, Arrays.asList(new ObjectIdentifier(wspace, "d2")), true, true);
 		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi2);
 		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi2.get(0));
 		
-		savedUserMetaData = oi2.get(0).getUserMetaData();
+		savedUserMetaData = new HashMap<String, String>(
+				oi2.get(0).getUserMetaData().getMetadata());
 		for(Entry<String,String> m : savedUserMetaData.entrySet()) {
 			if(m.getKey().equals("val"))
-				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals(val));
+				assertThat("Extracted metadata must be correct", m.getValue(), is(val));
 			if(m.getKey().equals("Length of list"))
-				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals("8"));
+				assertThat("Extracted metadata must be correct", m.getValue(), is("8"));
 			if(m.getKey().equals("my_special_metadata"))
-				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals("yes"));
+				assertThat("Extracted metadata must be correct", m.getValue(), is("yes"));
 		}
 		savedUserMetaData.remove("val");
 		savedUserMetaData.remove("Length of list");
@@ -2570,6 +2593,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 	}
 	
+	//TODO BF this test belongs in the user metadata test
+	/*
 	@Test
 	public void bigUserMetaErrors() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -2604,7 +2629,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			assertThat("correct exception", iae.getLocalizedMessage(),
 					is("Metadata size of 19413 is > 16000 bytes"));
 		}
-	}
+	}*/
 	
 	@Test
 	public void saveWithWrongObjectId() throws Exception {
@@ -2636,7 +2661,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		meta.put("foo", "bar");
 		try {
 			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer("jframe"), data, SAFE_TYPE1, meta,
+					new ObjectIDNoWSNoVer("jframe"), data, SAFE_TYPE1,
+					new WorkspaceUserMetadata(meta),
 					new Provenance(foo), false)),
 					getIdFactory());
 			fail("saved unserializable object");
@@ -3494,13 +3520,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceIdentifier cp1 = new WorkspaceIdentifier(ws1);
 		WorkspaceIdentifier clone1 = new WorkspaceIdentifier("newclone");
 		
-		Map<String, String> meta = new HashMap<String, String>();
-		meta.put("clone", "workspace");
+		Map<String, String> premeta = new HashMap<String, String>();
+		premeta.put("clone", "workspace");
+		WorkspaceUserMetadata meta = new WorkspaceUserMetadata(premeta);
 		
 		WorkspaceInformation info1 = ws.cloneWorkspace(user1, cp1, clone1.getName(), false, null, meta);
 		
 		checkWSInfo(clone1, user1, "newclone", 3, Permission.OWNER, false, info1.getId(),
-				info1.getModDate(), "unlocked", meta);
+				info1.getModDate(), "unlocked", premeta);
 		assertNull("desc ok", ws.getWorkspaceDescription(user1, clone1));
 		
 		List<ObjectInformation> objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hide"));
@@ -3582,7 +3609,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceInformation info3 = ws.cloneWorkspace(user1, cp1, clone3.getName(), false, "my desc2", meta);
 		
 		checkWSInfo(clone3, user1, "newclone3", 2, Permission.OWNER, false, info3.getId(),
-				info3.getModDate(), "unlocked", meta);
+				info3.getModDate(), "unlocked", premeta);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone3), is("my desc2"));
 		
 		origobjs = ws.getObjectHistory(user1, new ObjectIdentifier(clone3, "orig"));
@@ -3600,6 +3627,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.cloneWorkspace(user1, cp1, clone4.getName(), true, LONG_TEXT, null);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone4), is(LONG_TEXT.subSequence(0, 1000)));
 		
+		//TODO BF this test should go in metadata class unit tests
+		/*
 		Map<String, String> bigmeta = new HashMap<String, String>();
 		for (int i = 0; i < 141; i++) {
 			bigmeta.put("thing" + i, TEXT100);
@@ -3608,7 +3637,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		bigmeta.put("thing", TEXT100);
 		failClone(user1, cp1, "fakename", bigmeta, new IllegalArgumentException(
 				"Metadata size of 16076 is > 16000 bytes"));
-		
+		*/
 		ws.setGlobalPermission(user1, clone2, Permission.NONE);
 		ws.setGlobalPermission(user1, clone4, Permission.NONE);
 	}
@@ -3620,9 +3649,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceIdentifier wsi = lockWS;
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("some meta", "for u");
-		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, meta).getId();
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null,
+				new WorkspaceUserMetadata(meta)).getId();
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE1, null,
+				new HashMap<String, String>(), SAFE_TYPE1, new WorkspaceUserMetadata(),
 				new Provenance(user), false)), getIdFactory());
 		ObjectIdentifier oi = new ObjectIdentifier(wsi, "auto1");
 		//these should work
@@ -3672,7 +3702,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		try {
 			ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-					new HashMap<String, String>(), SAFE_TYPE1, null,
+					new HashMap<String, String>(), SAFE_TYPE1,
+					new WorkspaceUserMetadata(),
 					new Provenance(user), false)), getIdFactory());
 			fail("saved to locked workspace");
 		} catch (WorkspaceAuthorizationException e) {
@@ -3852,7 +3883,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("?", "42");
 		meta.put("Panic", "towel");
-		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(), false, null, meta);
+		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(),
+				false, null, new WorkspaceUserMetadata(meta));
 		WorkspaceIdentifier newwsi = new WorkspaceIdentifier(user.getUser() + ":newRenameWS");
 		Thread.sleep(2); //make sure timestamp is different on rename
 		WorkspaceInformation info2 = ws.renameWorkspace(user, wsi, newwsi.getName());
@@ -3996,12 +4028,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceUser user2 = new WorkspaceUser("listUser2");
 		WorkspaceUser user3 = new WorkspaceUser("listUser3");
 		
-		Map<String, String> meta1 = new HashMap<String, String>();
-		meta1.put("this is", "some meta meta");
-		meta1.put("bro", "heim");
+		Map<String, String> premeta1 = new HashMap<String, String>();
+		premeta1.put("this is", "some meta meta");
+		premeta1.put("bro", "heim");
+		WorkspaceUserMetadata meta1 = new WorkspaceUserMetadata(premeta1);
 		
-		Map<String, String> meta2 = new HashMap<String, String>();
-		meta2.put("suckmaster", "burstingfoam");
+		Map<String, String> premeta2 = new HashMap<String, String>();
+		premeta2.put("suckmaster", "burstingfoam");
+		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(premeta2);
 		
 		WorkspaceInformation stdws = ws.createWorkspace(user, "stdws", false, null, meta1);
 		WorkspaceInformation globalws = ws.createWorkspace(user, "globalws", true, null, meta2);
@@ -4045,8 +4079,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		expected.put(writeable, false);
 		expected.put(adminable, false);
 		expected.put(listuser3, false);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, null, null, null, true, false, false), expected);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, MT_META, null, null, true, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null, null, null, null,
+				true, false, false), expected);
+		checkWSInfoList(ws.listWorkspaces(user, null, null,
+				new WorkspaceUserMetadata(MT_META), null, null, true, false,
+				false), expected);
 		
 		expected.put(globalreadable, false);
 		expected.put(listuser3gl, false);
@@ -4132,7 +4169,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		expected.put(writeable, false);
 		expected.put(globalreadable, false);
 		expected.put(listuser3gl, false);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, querymeta, null, null, false,
+		checkWSInfoList(ws.listWorkspaces(user, null, null,
+				new WorkspaceUserMetadata(querymeta), null, null, false,
 				false, false), expected);
 		
 		querymeta.clear();
@@ -4140,12 +4178,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		expected.clear();
 		expected.put(stdws, false);
 		expected.put(readable, false);
-		checkWSInfoList(ws.listWorkspaces(user, null, null, querymeta, null, null, false,
+		checkWSInfoList(ws.listWorkspaces(user, null, null,
+				new WorkspaceUserMetadata(querymeta), null, null, false,
 				false, false), expected);
 		
 		querymeta.clear();
 		querymeta.put("bro", "heim");
-		checkWSInfoList(ws.listWorkspaces(user, null, null, querymeta, null, null, false,
+		checkWSInfoList(ws.listWorkspaces(user, null, null,
+				new WorkspaceUserMetadata(querymeta), null, null, false,
 				false, false), expected);
 		
 		try {
@@ -4256,8 +4296,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(u1, wsi.getName(), false, null, null);
 		ws.createWorkspace(u1, wsdel.getName(), false, null, null);
 		
-		Map<String, String> meta = new HashMap<String, String>();
-		meta.put("test", "listObjDelWS");
+		Map<String, String> pmeta = new HashMap<String, String>();
+		pmeta.put("test", "listObjDelWS");
+		WorkspaceUserMetadata meta = new WorkspaceUserMetadata(pmeta);
 		
 		ObjectInformation std = ws.saveObjects(u1, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("std"), new HashMap<String, String>(), SAFE_TYPE1,
@@ -4295,15 +4336,19 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceUser user3 = new WorkspaceUser("listObjUser3");
 		ws.createWorkspace(user3, thirdparty.getName(), true, null, null).getId();
 		
-		Map<String, String> meta = new HashMap<String, String>();
-		meta.put("meta1", "1");
-		Map<String, String> meta2 = new HashMap<String, String>();
-		meta2.put("meta2", "2");
-		Map<String, String> meta3 = new HashMap<String, String>();
-		meta3.put("meta3", "3");
-		Map<String, String> meta32 = new HashMap<String, String>();
-		meta32.put("meta3", "3");
-		meta32.put("meta2", "2");
+		Map<String, String> pmeta = new HashMap<String, String>();
+		pmeta.put("meta1", "1");
+		Map<String, String> pmeta2 = new HashMap<String, String>();
+		pmeta2.put("meta2", "2");
+		Map<String, String> pmeta3 = new HashMap<String, String>();
+		pmeta3.put("meta3", "3");
+		Map<String, String> pmeta32 = new HashMap<String, String>();
+		pmeta32.put("meta3", "3");
+		pmeta32.put("meta2", "2");
+		WorkspaceUserMetadata meta = new WorkspaceUserMetadata(pmeta);
+		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(pmeta2);
+		WorkspaceUserMetadata meta3 = new WorkspaceUserMetadata(pmeta3);
+		WorkspaceUserMetadata meta32 = new WorkspaceUserMetadata(pmeta32);
 		
 		
 		Map<String, Object> passTCdata = new HashMap<String, Object>();
@@ -4499,7 +4544,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//meta filtering
 		lop = new ListObjectsParameters(user, Arrays.asList(wsi, writeable))
-				.withMetadata(new HashMap<String, String>())
+				.withMetadata(new WorkspaceUserMetadata())
 				.withShowHidden(true).withShowDeleted(true)
 				.withShowAllVersions(true).withIncludeMetaData(true);
 		compareObjectInfo(ws.listObjects(lop),
@@ -4639,7 +4684,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceAuthorizationException("Anonymous users may not read workspace listObj1"));
 		failListObjects(user, Arrays.asList(writeable, new WorkspaceIdentifier("listfake")), null,
 				new NoSuchWorkspaceException("No workspace with name listfake exists", wsi));
-		failListObjects(user, Arrays.asList(wsi, writeable), meta32,
+		failListObjects(user, Arrays.asList(wsi, writeable), meta32.getMetadata(),
 				new IllegalArgumentException("Only one metadata spec allowed"));
 		
 		ws.createWorkspace(user, "listdel", false, null, null);
@@ -4738,10 +4783,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		
-		Map<String, String> meta = new HashMap<String, String>();
-		meta.put("metastuff", "meta");
-		Map<String, String> meta2 = new HashMap<String, String>();
-		meta2.put("meta2", "my hovercraft is full of eels");
+		Map<String, String> pmeta = new HashMap<String, String>();
+		pmeta.put("metastuff", "meta");
+		Map<String, String> pmeta2 = new HashMap<String, String>();
+		pmeta2.put("meta2", "my hovercraft is full of eels");
+		WorkspaceUserMetadata meta = new WorkspaceUserMetadata(pmeta);
+		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(pmeta2);
 		
 		Provenance p1 = new Provenance(user);
 		p1.addAction(new ProvenanceAction().withDescription("provenance 1")
@@ -4935,10 +4982,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		
-		Map<String, String> meta1 = new HashMap<String, String>();
-		meta1.put("metastuff", "meta");
-		Map<String, String> meta2 = new HashMap<String, String>();
-		meta2.put("meta2", "my hovercraft is full of eels");
+		Map<String, String> pmeta1 = new HashMap<String, String>();
+		pmeta1.put("metastuff", "meta");
+		Map<String, String> pmeta2 = new HashMap<String, String>();
+		pmeta2.put("meta2", "my hovercraft is full of eels");
+		WorkspaceUserMetadata meta1 = new WorkspaceUserMetadata(pmeta1);
+		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(pmeta2);
 		
 
 		Map<String, Object> mtdata = new HashMap<String, Object>();

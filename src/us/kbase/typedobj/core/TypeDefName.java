@@ -45,7 +45,10 @@ public class TypeDefName {
 	 */
 	public static void checkTypeName(final String name, final String dataName) {
 		checkString(name, dataName);
-		checkSizeInBytes(name, dataName, MAX_NAME_SIZE_BYTES);
+		if (checkSizeInBytes(name) >  MAX_NAME_SIZE_BYTES) {
+			throw new IllegalArgumentException(String.format(
+					"%s size is > %s bytes", dataName, MAX_NAME_SIZE_BYTES)); 
+		}
 		final Matcher m = INVALID_TYPE_NAMES.matcher(name);
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(

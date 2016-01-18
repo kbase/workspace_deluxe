@@ -34,8 +34,8 @@ public class TypeDefsTest {
 		checkTypeDefName("foo", "", "Type name cannot be null or the empty string");
 		checkTypeDefName("fo-o", "bar", "Illegal character in Module name fo-o: -");
 		checkTypeDefName("foo", "ba/r", "Illegal character in Type name ba/r: /");
-		checkTypeDefName(str255 + "a", "bar", "Module name size of 256 is > 255 bytes");
-		checkTypeDefName("foo", str255 + "a", "Type name size of 256 is > 255 bytes");
+		checkTypeDefName(str255 + "a", "bar", "Module name size is > 255 bytes");
+		checkTypeDefName("foo", str255 + "a", "Type name size is > 255 bytes");
 		TypeDefName wst = new TypeDefName("foo", "bar");
 		@SuppressWarnings("unused")
 		TypeDefName wst2 = new TypeDefName(str255, str255); //should work
@@ -57,8 +57,8 @@ public class TypeDefsTest {
 		checkTypeId(".foo", null, "Module name cannot be null or the empty string");
 		checkTypeId("foo.", "Type foo. could not be split into a module and name");
 		checkTypeId("foo.", null, "Type foo. could not be split into a module and name");
-		checkTypeId(str255 + "a.foo", "Module name size of 256 is > 255 bytes");
-		checkTypeId("a.a" + str255, "Type name size of 256 is > 255 bytes");
+		checkTypeId(str255 + "a.foo", "Module name size is > 255 bytes");
+		checkTypeId("a.a" + str255, "Type name size is > 255 bytes");
 		checkTypeId("foo.bar", "", "Typeversion cannot be an empty string");
 		checkTypeId("foo.bar", "2.1.3", "Type version string 2.1.3 could not be parsed to a version");
 		checkTypeId("foo.bar", "n", "Type version string n could not be parsed to a version");
@@ -71,8 +71,8 @@ public class TypeDefsTest {
 		checkTypeIdFromString(".", "Type . could not be split into a module and name");
 		checkTypeIdFromString(".foo", "Module name cannot be null or the empty string");
 		checkTypeIdFromString("foo.", "Type foo. could not be split into a module and name");
-		checkTypeIdFromString(str255 + "a.bar-2.1.3", "Module name size of 256 is > 255 bytes");
-		checkTypeIdFromString("foo.a" + str255 + "-2.1.3", "Type name size of 256 is > 255 bytes");
+		checkTypeIdFromString(str255 + "a.bar-2.1.3", "Module name size is > 255 bytes");
+		checkTypeIdFromString("foo.a" + str255 + "-2.1.3", "Type name size is > 255 bytes");
 		checkTypeIdFromString("foo.bar-2.1.3", "Type version string 2.1.3 could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-n", "Type version string n could not be parsed to a version");
 		checkTypeIdFromString("foo.bar-1.n", "Type version string 1.n could not be parsed to a version");
@@ -125,7 +125,7 @@ public class TypeDefsTest {
 		checkTypeNameHlpr(null, "thingy", "thingy cannot be null or the empty string");
 		checkTypeNameHlpr("", "thingy", "thingy cannot be null or the empty string");
 		checkTypeNameHlpr("a-b", "thingy", "Illegal character in thingy a-b: -");
-		checkTypeNameHlpr(str255 + "a", "thingy", "thingy size of 256 is > 255 bytes");
+		checkTypeNameHlpr(str255 + "a", "thingy", "thingy size is > 255 bytes");
 		TypeDefName.checkTypeName(str255, "whoo"); //should work
 	}
 	

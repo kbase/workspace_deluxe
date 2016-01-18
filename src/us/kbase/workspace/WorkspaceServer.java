@@ -2,6 +2,7 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
+
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -73,6 +74,7 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.InitWorkspaceServer.InitReporter;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
@@ -317,20 +319,25 @@ public class WorkspaceServer extends JsonServerServlet {
     public void alterWorkspaceMetadata(AlterWorkspaceMetadataParams params, AuthToken authPart) throws Exception {
         //BEGIN alter_workspace_metadata
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		if (params.getNew() == null && params.getRemove() == null) {
+		final boolean noNew = params.getNew() == null ||
+				params.getNew().isEmpty();
+		final boolean noRemove = params.getRemove() == null ||
+				params.getRemove().isEmpty();
+		if (noNew && noRemove) {
 			throw new IllegalArgumentException(
-					"The new and remove params cannot both be null");
+					"Must provide metadata keys to add or remove");
 		}
 		final WorkspaceIdentifier wsi =
 				processWorkspaceIdentifier(params.getWsi());
 		final WorkspaceUser user = getUser(authPart);
-		if (params.getRemove() != null) {
+		if (!noRemove) {
 			for (final String key: params.getRemove()) {
 				ws.removeWorkspaceMetadata(user, wsi, key);
 			}
 		}
-		if (params.getNew() != null) {
-			ws.setWorkspaceMetadata(user, wsi, params.getNew());
+		if (!noNew) {
+			ws.setWorkspaceMetadata(user, wsi,
+					new WorkspaceUserMetadata(params.getNew()));
 		}
         //END alter_workspace_metadata
     }
@@ -353,7 +360,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				processWorkspaceIdentifier(params.getWsi());
 		final WorkspaceInformation meta = ws.cloneWorkspace(getUser(authPart),
 				wsi, params.getWorkspace(), p.equals(Permission.READ),
-				params.getDescription(), params.getMeta());
+				params.getDescription(),
+				new WorkspaceUserMetadata(params.getMeta()));
 		returnVal = wsInfoToTuple(meta);
         //END clone_workspace
         return returnVal;
@@ -936,7 +944,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		lop.withMinimumPermission(params.getPerm() == null ? null :
 				translatePermission(params.getPerm()))
 			.withSavers(ArgUtils.convertUsers(params.getSavedby()))
-			.withMetadata(params.getMeta())
+			.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
 			.withAfter(parseDate(params.getAfter()))
 			.withBefore(parseDate(params.getBefore()))
 			.withShowHidden(longToBoolean(params.getShowHidden()))

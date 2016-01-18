@@ -52,6 +52,7 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
@@ -145,8 +146,8 @@ public class MongoInternalsTest {
 				new TypeDefName("SomeModule", "AType"), 0, 1);
 		
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("testobj"),
-				new UObject(data), t, meta, p, false);
+				new ObjectIDNoWSNoVer("testobj"), new UObject(data), t,
+				new WorkspaceUserMetadata(meta), p, false);
 		ResolvedSaveObject rso = wso.resolve(
 				new DummyTypedObjectValidationReport(at, wso.getData()),
 				new HashSet<Reference>(), new LinkedList<Reference>(),
@@ -231,7 +232,8 @@ public class MongoInternalsTest {
 							objname, rwsi.getID())));
 		}
 		
-		mwdb.cloneWorkspace(user, rwsi, wsi2.getName(), false, null, null);
+		mwdb.cloneWorkspace(user, rwsi, wsi2.getName(), false, null,
+				new WorkspaceUserMetadata());
 		ResolvedMongoWSID rwsi2 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
 				wsi2);
 		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
@@ -285,7 +287,8 @@ public class MongoInternalsTest {
 			.update("{id: 1, ws: #}", rwsi.getID())
 			.with("{$inc: {numver: 1}}");
 		
-		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null, null);
+		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null,
+				new WorkspaceUserMetadata());
 		ResolvedMongoWSID rwsi3 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
 				wsi3);
 		ObjectIDResolvedWS oidrw3_1 = new ObjectIDResolvedWS(rwsi3,

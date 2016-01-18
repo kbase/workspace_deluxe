@@ -515,7 +515,7 @@ public class TypeRegisteringTest {
 		failReg(null, adminUser, "Module name cannot be null or the empty string");
 		failReg("", adminUser, "Module name cannot be null or the empty string");
 		failReg("a-b", adminUser, "Illegal character in Module name a-b: -");
-		failReg(longstr, adminUser, "Module name size of 256 is > 255 bytes");
+		failReg(longstr, adminUser, "Module name size is > 255 bytes");
 	}
 	
 	private void failReg(String module, String user, String exp) {

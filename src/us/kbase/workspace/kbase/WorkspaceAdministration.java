@@ -35,6 +35,7 @@ import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -70,7 +71,8 @@ public class WorkspaceAdministration {
 			CorruptWorkspaceDBException, NoSuchObjectException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			ParseException, NoSuchPrivilegeException,
-			TypedObjectValidationException, TypedObjectSchemaException {
+			TypedObjectValidationException, TypedObjectSchemaException,
+			MetadataException {
 		final String putativeAdmin = token.getUserName();
 		if (!(internaladmins.contains(putativeAdmin) ||
 				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
