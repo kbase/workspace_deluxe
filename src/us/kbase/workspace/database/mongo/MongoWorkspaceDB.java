@@ -1436,7 +1436,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Object %s: %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
 						e.getMessage()), e);
-				//TODO BF test exceptions below
 			} catch (MetadataSizeException mse) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s: The user-provided metadata, when " +

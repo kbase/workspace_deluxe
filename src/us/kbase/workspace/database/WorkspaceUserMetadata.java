@@ -12,7 +12,6 @@ public class WorkspaceUserMetadata {
 	
 	//TODO BF test, unit tests 
 	//TODO BF docs
-	//TODO BF test for autometadata with key / value > 1000 bytes
 	
 	public static final int MAX_METADATA_SIZE = 16000;
 	private static final int MAX_KEY_VALUE_SIZE = 1000;

@@ -1188,15 +1188,22 @@ public class WorkspaceTest extends WorkspaceTester {
 						"nested4 " + TEXT100 + TEXT100.substring(11) + ";" +
 					"} nested5;" +
 						
-					"/* @metadata ws val\n" +
+					"/*" +
+					"@metadata ws val\n" +
+					"@metadata ws val2\n" +
+					"@metadata ws val3\n" +
 					"@metadata ws length(l) as Length of list\n" +
 					"@metadata ws " + oknestmeta + "\n" + 
 					"@metadata ws " + badnestmeta + "\n" +
 					"@optional oknest\n" +
 					"@optional badnest\n" +
+					"@optional val2\n" +
+					"@optional val3\n" +
 					"*/" +
 					"typedef structure {" +
 						"string val;" +
+						"string val2;" +
+						"string val3;" +
 						"list<int> l;" +
 						"nested5 oknest;" +
 						"nested5 badnest;" +
@@ -1260,17 +1267,33 @@ public class WorkspaceTest extends WorkspaceTester {
 								+ badnestmeta));
 		dBig.remove("badnest");
 		
-		
-		
 		// test fail when extracted metadata > limit
 		StringBuilder bigVal = new StringBuilder();
-		for (int i = 0; i < 18; i++) {
-			bigVal.append(LONG_TEXT); //> 16kb now
+		for (int i = 0; i < 16; i++) {
+			bigVal.append(TEXT1000); //> 16kb now
 		}
 		dBig.put("val", bigVal.toString());
 		failSave(user, wsi, "bigextractedmeta", dBig, type, mtprov,
 				new IllegalArgumentException(
 						"Object #1, bigextractedmeta: Extracted metadata from object exceeds limit of 16000B"));
+		
+		// test fail when supplied metadata + extracted metadata > limit
+		Map<String, String> meta = new HashMap<String, String>();
+		for (int i = 0; i < 15; i++) {
+			meta.put("k" + i, TEXT1000);
+		}
+		meta.put("val2", "wheee");
+		meta.put("val3", TEXT1000.substring(376));
+		dBig.put("val", TEXT100);
+		dBig.put("val2", TEXT100);
+		saveObject(user, wsi, meta, dBig, type, "whocares", mtprov); //should work
+		
+		meta.put("val3", TEXT1000.substring(375));
+		failSave(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("whooop"), dBig, type,
+				new WorkspaceUserMetadata(meta), mtprov, false)),
+				new IllegalArgumentException(
+						"Object #1, whooop: The user-provided metadata, when updated with object-extracted metadata, exceeds the allowed maximum of 16000B"));
 	}
 	
 	@Test
