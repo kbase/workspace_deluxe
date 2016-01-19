@@ -5,9 +5,10 @@ VERSION: 0.3.6 (Released TBD)
 -----------------------------
 NEW FEATURES:
 
-* Added get_permissions_mass function.
+* Added ``get_permissions_mass`` function.
+* Added ``get_names_by_prefix`` function.
 * A documentation server now provides all available workspace documentation at
-  the /docs endpoint.
+  the ``/docs`` endpoint.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
@@ -18,10 +19,12 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * Fixed a bug where mongo connections would not be released when redeploying
   the server in an already running glassfish instance.
 * Fixed a bug where objects from deleted workspaces could be listed in 
-  list_objects output.
+  ``list_objects`` output.
 * The ``list_objects`` ``skip`` parameter is deprecated. It will be removed in
   a future version.
-* get_permissions no longer requires authentication.
+* ``get_permissions`` no longer requires authentication.
+* the admin user specified in the ``deploy.cfg`` file can no longer be removed
+  by other admins.
 
 VERSION: 0.3.5 (Released 5/15/15)
 ---------------------------------

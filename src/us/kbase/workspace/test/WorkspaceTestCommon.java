@@ -110,7 +110,8 @@ public class WorkspaceTestCommon {
 	public static void destroyDB(DB db) {
 		for (String name: db.getCollectionNames()) {
 			if (!name.startsWith("system.")) {
-				db.getCollection(name).drop();
+				// dropping collection also drops indexes
+				db.getCollection(name).remove(new BasicDBObject());
 			}
 		}
 	}
