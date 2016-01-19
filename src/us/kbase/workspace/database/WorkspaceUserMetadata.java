@@ -8,19 +8,35 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+/** Container for user-provided workspace metadata. Ensures that metadata does
+ * not exceed size limits on keys, values or the total size.
+ * @author gaprice@lbl.gov
+ *
+ */
 public class WorkspaceUserMetadata {
 	
-	//TODO BF docs
-	
+	/**
+	 * The maximum size for user provided metdata, in bytes, when serialized
+	 * to JSON.
+	 */
 	public static final int MAX_METADATA_SIZE = 16000;
 	private static final int MAX_KEY_VALUE_SIZE = 1000;
 	
 	private Map<String, String> metadata;
 	
+	/** 
+	 * Creates an empty metadata container.
+	 */
 	public WorkspaceUserMetadata() {
 		metadata = new HashMap<String, String>();
 	}
 	
+	/** Creates a metdata container.
+	 * @param meta the metadata to contain. A null value results in an empty
+	 * metadata container.
+	 * @throws MetadataException if the metadata is too large or any
+	 * individual key or value in the metadata is too large.
+	 */
 	public WorkspaceUserMetadata(final Map<String, String> meta)
 			throws MetadataException {
 		final Map<String, String> m = new HashMap<String, String>();
@@ -48,6 +64,12 @@ public class WorkspaceUserMetadata {
 		}
 	}
 	
+	/** Adds metadata to this container, overwriting any existing metadata with
+	 * the same key.
+	 * @param meta the metadata to add. A null value results in a no-op.
+	 * @throws MetadataException if the combined metadata is too large or any
+	 * individual key or value in the metadata is too large.
+	 */
 	public void addMetadata(final Map<String, String> meta)
 			throws MetadataException {
 		if (meta == null) {return;}
@@ -59,12 +81,23 @@ public class WorkspaceUserMetadata {
 		metadata = m;
 	}
 	
+	/** Adds metadata to this container, overwriting any existing metadata with
+	 * the same key.
+	 * @param meta the metadata to add. A null value results in a no-op.
+	 * @throws MetadataException if the combined metadata is too large or any
+	 * individual key or value in the metadata is too large.
+	 */
 	public void addMetadata(final WorkspaceUserMetadata meta)
 			throws MetadataException {
 		if (meta == null) {return;}
 		addMetadata(meta.getMetadata());
 	}
 
+	/** Checks that the size of metadata in Map form does not exceed the limit.
+	 * Does not check key / value sizes.
+	 * @param meta the metadata to check
+	 * @throws MetadataException if the metadata is too large.
+	 */
 	public static void checkMetadataSize(final Map<String, String> meta) 
 			throws MetadataException {
 		if (checkJSONSizeInBytes(meta) > MAX_METADATA_SIZE) {
@@ -73,14 +106,23 @@ public class WorkspaceUserMetadata {
 		}
 	}
 	
+	/** Get the metadata in this container.
+	 * @return the metadata.
+	 */
 	public Map<String, String> getMetadata() {
 		return Collections.unmodifiableMap(metadata);
 	}
 
+	/** Check if this container is empty.
+	 * @return true if there is no data in this container, false otherwise.
+	 */
 	public boolean isEmpty() {
 		return metadata.isEmpty();
 	}
 	
+	/** Get the number of metadata entries in this container.
+	 * @return the number of metadata entries in this container.
+	 */
 	public int size() {
 		return metadata.size();
 	}
