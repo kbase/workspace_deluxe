@@ -40,7 +40,7 @@ public class WorkspaceUserMetadata {
 			if (checkSizeInBytes(e.getKey()) > MAX_KEY_VALUE_SIZE) {
 				throw new MetadataKeySizeException(String.format(
 						"Metadata key exceeds maximum of %sB: %s",
-						MAX_METADATA_SIZE, e.getKey()));
+						MAX_KEY_VALUE_SIZE, e.getKey()));
 			}
 			if (checkSizeInBytes(e.getValue()) > MAX_KEY_VALUE_SIZE) {
 				throw new MetadataValueSizeException(String.format(

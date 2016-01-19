@@ -73,8 +73,6 @@ import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
-import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataKeySizeException;
-import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataValueSizeException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
@@ -1167,13 +1165,41 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void metadataExtractedLargeTest() throws Exception {
 		String module = "TestLargeMetadata";
 		String typeName = "BigMeta";
+		String nestmeta = "." + TEXT100 + TEXT100.substring(11) + "." +
+				TEXT100 + TEXT100 + "." + TEXT100 + TEXT100 + "." +
+				TEXT100 + TEXT100 + "." + TEXT100 + TEXT100;
+		String oknestmeta = "oknest" + nestmeta;
+		String badnestmeta = "badnest" + nestmeta;
 		String spec =
 				"module " + module + " {" +
+					"typedef structure {" +
+						"string " + TEXT100 + TEXT100 + ";" +
+					"} nested1;" +
+					"typedef structure {" +
+						"nested1 " + TEXT100 + TEXT100 + ";" +
+					"} nested2;" +
+					"typedef structure {" +
+						"nested2 " + TEXT100 + TEXT100 + ";" +
+					"} nested3;" +
+					"typedef structure {" +
+						"nested3 " + TEXT100 + TEXT100 + ";" +
+					"} nested4;" +
+					"typedef structure {" +
+						"nested4 " + TEXT100 + TEXT100.substring(11) + ";" +
+					"} nested5;" +
+						
 					"/* @metadata ws val\n" +
-					"@metadata ws length(l) as Length of list*/" +
+					"@metadata ws length(l) as Length of list\n" +
+					"@metadata ws " + oknestmeta + "\n" + 
+					"@metadata ws " + badnestmeta + "\n" +
+					"@optional oknest\n" +
+					"@optional badnest\n" +
+					"*/" +
 					"typedef structure {" +
 						"string val;" +
 						"list<int> l;" +
+						"nested5 oknest;" +
+						"nested5 badnest;" +
 					"} " + typeName + ";" +
 				"};";
 		WorkspaceUser user = new WorkspaceUser("foo");
@@ -1211,6 +1237,29 @@ public class WorkspaceTest extends WorkspaceTester {
 				new IllegalArgumentException(
 						"Object #1, bar: Value for metadata key val exceeds maximum of 1000B: "
 								+ unicode.toString() + "f"));
+		
+		// test fail on extracted keys
+		Map<String, String> n1 = new HashMap<String, String>();
+		n1.put(TEXT100 + TEXT100, "thing");
+		Map<String, Object> n2 = new HashMap<String, Object>();
+		n2.put(TEXT100 + TEXT100, n1);
+		Map<String, Object> n3 = new HashMap<String, Object>();
+		n3.put(TEXT100 + TEXT100, n2);
+		Map<String, Object> n4 = new HashMap<String, Object>();
+		n4.put(TEXT100 + TEXT100, n3);
+		Map<String, Object> n5 = new HashMap<String, Object>();
+		n5.put(TEXT100 + TEXT100.substring(11), n4);
+		dBig.put("val", "foo");
+		dBig.put("oknest", n5);
+		saveObject(user, wsi, null, dBig, type, "foo", mtprov); //should work
+		dBig.remove("oknest");
+		dBig.put("badnest", n5);
+		failSave(user, wsi, "baz", dBig, type, mtprov,
+				new IllegalArgumentException(
+						"Object #1, baz: Metadata key exceeds maximum of 1000B: "
+								+ badnestmeta));
+		dBig.remove("badnest");
+		
 		
 		
 		// test fail when extracted metadata > limit
