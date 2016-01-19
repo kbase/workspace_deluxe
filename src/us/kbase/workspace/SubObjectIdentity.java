@@ -35,10 +35,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * AND a subset specification:
  *         list<object_path> included - the portions of the object to include
  *                 in the object subset.
- * strict_maps - this parameter forbids to use included paths with keys absent in map or
- *         object (default value is false)
- * strict_arrays - this parameter forbids to use included paths with array positions large than 
- *         array size (default value is true)
+ * strict_maps - if true, throw an exception if the subset specification
+ *         traverses a non-existant map key (default false)
+ * strict_arrays - if true, throw an exception if the subset specification
+ *         exceeds the size of an array (default true)
  * </pre>
  * 
  */
