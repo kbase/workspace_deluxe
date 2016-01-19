@@ -52,8 +52,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         metadata will be null.
  *                 boolean excludeGlobal - exclude objects in global workspaces. This
  *                         parameter only has an effect when filtering by types alone.
- *                 int skip - skip the first X objects. Maximum value is 2^31, skip values
- *                         < 0 are treated as 0, the default.
+ *                 int skip - DEPRECATED. skip the first X objects. Maximum value is 2^31,
+ *                         skip values < 0 are treated as 0, the default.
  *                 int limit - limit the output to X objects. Default and maximum value
  *                         is 10000. Limit values < 1 are treated as 10000, the default.
  * </pre>
