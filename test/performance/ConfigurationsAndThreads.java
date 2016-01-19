@@ -23,6 +23,7 @@ import org.nocrala.tools.texttablefmt.Table;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.DB;
 
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -34,7 +35,10 @@ import us.kbase.shock.client.ShockNode;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.Writable;
+import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectIdentity;
@@ -50,9 +54,9 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.mongo.GridFSBackend;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspaceservice.DeleteWorkspaceParams;
@@ -61,6 +65,9 @@ import us.kbase.workspaceservice.SaveObjectParams;
 import us.kbase.workspaceservice.WorkspaceServiceClient;
 
 /* DO NOT run these tests on production workspaces.
+ * WARNING: extensive changes have been made to the workspace initialization
+ * sequence. Read through the code before using, probably doesn't work 
+ * correctly any more. See TODOs
  * 
  * Note you must make the SupahFakeKBGA.Genome type available in the workspace
  * before running these tests. 
@@ -166,8 +173,16 @@ public class ConfigurationsAndThreads {
 		//need to redo set up if this is used again
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, user, null);
-		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB,
-				password, tfm, 0),
+		//TODO this setup is just to make it compile, not tested yet
+		DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
+		TypedObjectValidator val = new TypedObjectValidator(
+				new TypeDefinitionDB(new MongoTypeStorage(
+						GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
+						tfm.getTempDir()));
+		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
+				new GridFSBlobStore(db), tfm, val);
+		
+		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new KBaseReferenceParser());
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -470,7 +485,16 @@ public class ConfigurationsAndThreads {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, tfm, 0),
+			//TODO check this still works
+			DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
+			TypedObjectValidator val = new TypedObjectValidator(
+					new TypeDefinitionDB(new MongoTypeStorage(
+							GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
+							tfm.getTempDir()));
+			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
+					new ShockBlobStore(db.getCollection("shock_map"), shockURL, "baduser", "badpwd"),
+					tfm, val);
+			ws = new Workspace(mwdb,
 					new ResourceUsageConfigurationBuilder().build(),
 					new KBaseReferenceParser());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
@@ -520,15 +544,15 @@ public class ConfigurationsAndThreads {
 	
 	public static class ShockBackendOnly extends AbstractReadWriteTest {
 		
-		private ShockBackend sb;
+		private ShockBlobStore sb;
 		@SuppressWarnings("unused")
 		private int id;
 		public final List<MD5> md5s = new LinkedList<MD5>();
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.sb = new ShockBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0),
-					"temp_shock_node_map", shockURL, token.getUserName(), password);
+			this.sb = new ShockBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0).getCollection(
+					"temp_shock_node_map"), shockURL, token.getUserName(), password);
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);
@@ -562,14 +586,14 @@ public class ConfigurationsAndThreads {
 	
 	public static class GridFSBackendOnly extends AbstractReadWriteTest {
 		
-		private GridFSBackend gfsb;
+		private GridFSBlobStore gfsb;
 		@SuppressWarnings("unused")
 		private int id;
 		public final List<MD5> md5s = new LinkedList<MD5>();
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.gfsb = new GridFSBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB));
+			this.gfsb = new GridFSBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB));
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);

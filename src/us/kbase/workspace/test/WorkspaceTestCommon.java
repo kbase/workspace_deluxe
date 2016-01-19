@@ -12,6 +12,7 @@ public class WorkspaceTestCommon {
 	
 	public static final String SHOCKEXE = "test.shock.exe";
 	public static final String MONGOEXE = "test.mongo.exe";
+	public static final String MONGO_USE_WIRED_TIGER = "test.mongo.useWiredTiger";
 	public static final String MYSQLEXE = "test.mysql.exe";
 	public static final String MYSQL_INSTALL_EXE = "test.mysql.install.exe";
 	public static final String PLACKUPEXE = "test.plackup.exe";
@@ -83,18 +84,27 @@ public class WorkspaceTestCommon {
 		return getProp(HANDLE_PERL5LIB);
 	}
 	
-	public static boolean getDeleteTempFiles() {
+	public static boolean deleteTempFiles() {
 		return !"true".equals(System.getProperty(KEEP_TEMP_DIR));
 	}
 	
+	public static boolean useWiredTigerEngine() {
+		return "true".equals(System.getProperty(MONGO_USE_WIRED_TIGER));
+	}
+	
+	//useful for tests starting a server with GFS as the backend
 	public static void initializeGridFSWorkspaceDB(DB mdb, String typedb) {
-		destroyDB(mdb);
-		destroyDB(mdb.getSisterDB(typedb));
+		destroyWSandTypeDBs(mdb, typedb);
 		DBObject dbo = new BasicDBObject();
 		dbo.put("type_db", typedb);
 		dbo.put("backend", GRIDFS);
 		mdb.getCollection("settings").insert(dbo);
 		System.out.println(String.format("Configured new %s backend.", GRIDFS));
+	}
+
+	public static void destroyWSandTypeDBs(DB mdb, String typedb) {
+		destroyDB(mdb);
+		destroyDB(mdb.getSisterDB(typedb));
 	}
 	
 	public static void destroyDB(DB db) {
@@ -105,10 +115,10 @@ public class WorkspaceTestCommon {
 		}
 	}
 	
+	//useful for tests starting a server with shock as the backend
 	public static void initializeShockWorkspaceDB(DB mdb, String shockuser,
 			URL shockURL, String typedb) {
-		destroyDB(mdb);
-		destroyDB(mdb.getSisterDB(typedb));
+		destroyWSandTypeDBs(mdb, typedb);
 		DBObject dbo = new BasicDBObject();
 		dbo.put("type_db", typedb);
 		dbo.put("backend", SHOCK);

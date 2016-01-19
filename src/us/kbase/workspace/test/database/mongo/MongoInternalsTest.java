@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.jongo.Jongo;
@@ -26,12 +25,16 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
@@ -44,13 +47,13 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedSaveObject;
-import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
@@ -78,22 +81,26 @@ public class MongoInternalsTest {
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(WorkspaceTestCommon.getTempDir()),
+				WorkspaceTestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " +
 				mongo.getTempDir());
 		WorkspaceTestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 		final DB db = mongoClient.getDB("MongoInternalsTest");
-		WorkspaceTestCommon.initializeGridFSWorkspaceDB(
-				db, "MongoInternalsTest_types");
+		String typedb = "MongoInternalsTest_types";
+		WorkspaceTestCommon.destroyWSandTypeDBs(db, typedb);
 		jdb = new Jongo(db);
 		final String kidlpath = new Util().getKIDLpath();
 		
 		TempFilesManager tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
-		mwdb = new MongoWorkspaceDB(mongohost, "MongoInternalsTest", "foo",
-				"foo", "foo", kidlpath, null, tfm);
+		TypedObjectValidator val = new TypedObjectValidator(
+				new TypeDefinitionDB(new MongoTypeStorage(
+						GetMongoDB.getDB(mongohost, typedb)),
+						null, kidlpath, "both"));
+		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm, val);
 		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new DefaultReferenceParser());
@@ -114,7 +121,7 @@ public class MongoInternalsTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 	}
 	
@@ -384,7 +391,7 @@ public class MongoInternalsTest {
 		wo.set(pkg, rso);
 		Field td = pkg.getClass().getDeclaredField("td");
 		td.setAccessible(true);
-		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype, null));
+		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype));
 		
 		Method incrementWorkspaceCounter = mwdb.getClass()
 				.getDeclaredMethod("incrementWorkspaceCounter", ResolvedMongoWSID.class,
@@ -495,183 +502,6 @@ public class MongoInternalsTest {
 			String name, int ver) {
 		map.put("ref", wsid + "/" + name + "/" + ver);
 		return map;
-	}
-	
-	@SuppressWarnings("unchecked")
-	@Test
-	public void subdata() throws Exception {
-		final String specSubdata =
-				"module TestSubdata {\n" +
-					"typedef structure {\n" +
-						"int legs\n;" +
-						"string patronymic;\n" +
-						"int charisma;\n" +
-					"} BugType;\n" +
-					"\n" +
-					"/* @searchable ws_subset booger bugs.legs\n" +
-					"   @searchable ws_subset whanga.*.(legs,charisma)\n" +
-					"   @searchable ws_subset foop.[*].(legs,patronymic)\n" +
-					"   @searchable ws_subset keys_of(looloo)\n" +
-					" */" +
-					"typedef structure {" +
-						"int booger;" +
-						"int booger1;" +
-						"BugType bugs;" +
-						"BugType bugs1;" +
-						"mapping<string, BugType> whanga;" +
-						"mapping<string, BugType> whanga1;" +
-						"list<BugType> foop;" +
-						"list<BugType> foop1;" +
-						"mapping<string, string> looloo;" +
-						"mapping<string, string> looloo1;" +
-					"} SubSetType;" +
-				"};";
-		String mod = "TestSubdata";
-		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, specSubdata, Arrays.asList("SubSetType"), null, null, false, null);
-		TypeDefId subsettype = new TypeDefId(new TypeDefName(mod, "SubSetType"), 0, 1);
-		
-		WorkspaceIdentifier subdataws = new WorkspaceIdentifier("subset");
-		ws.createWorkspace(userfoo, subdataws.getName(), false, null, null);
-		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("booger", 6);
-		Map<String, Object> bugs = new HashMap<String, Object>();
-		bugs.put("legs", 3);
-		bugs.put("patronymic", "pater");
-		bugs.put("charisma", 18);
-		data.put("bugs", bugs);
-		Map<String, Object> whangabugs = new HashMap<String, Object>(bugs);
-		Map<String, Map<String, Object>> whanga =
-				new HashMap<String, Map<String, Object>>();
-		whanga.put("foo", whangabugs);
-		whanga.put("bar", whangabugs);
-		data.put("whanga", whanga);
-		Map<String, Object> foopbugs = new HashMap<String, Object>(bugs);
-		data.put("foop", Arrays.asList(foopbugs, foopbugs, foopbugs));
-		Map<String, String> looloo = new HashMap<String, String>();
-		looloo.put("question", "42");
-		looloo.put("answer", "?");
-		data.put("looloo", looloo);
-		
-		//need to remove stuff from whanga and foop
-		Map<String, Object> expected = new HashMap<String, Object>(data);
-		
-		data.put("booger1", 7);
-		Map<String, Object> bugs1 = new HashMap<String, Object>();
-		bugs1.put("legs", 2);
-		bugs1.put("patronymic", "mater");
-		bugs1.put("charisma", 3);
-		data.put("bugs1", bugs1);
-		Map<String, Map<String, Object>> whanga1 =
-				new HashMap<String, Map<String, Object>>();
-		whanga1.put("foo1", bugs1);
-		whanga1.put("bar1", bugs1);
-		data.put("whanga1", whanga1);
-		data.put("foop1", Arrays.asList(bugs1, bugs1, bugs1));
-		Map<String, String> looloo1 = new HashMap<String, String>();
-		looloo1.put("question1", "43");
-		looloo1.put("answer1", "!");
-		data.put("looloo1", looloo1);
-		
-		ws.saveObjects(userfoo, subdataws, Arrays.asList(
-				new WorkspaceSaveObject(new UObject(data), subsettype, null, new Provenance(userfoo), false)),
-				fac);
-		
-		((Map<String, Object>) expected.get("bugs")).remove("patronymic");
-		((Map<String, Object>) expected.get("bugs")).remove("charisma");
-		for (Entry<String, Map<String, Object>> entry:
-			((Map<String, Map<String, Object>>) expected.get("whanga")).entrySet()) {
-			entry.getValue().remove("patronymic");
-		}
-		for (Map<String, Object> foop: (List<Map<String, Object>>) expected.get("foop")) {
-			foop.remove("charisma");
-		}
-		expected.put("looloo", new HashSet<String>(Arrays.asList("question", "answer")));
-		
-		ResolvedWorkspaceID rwi = mwdb.resolveWorkspace(subdataws);
-		ObjectIDResolvedWS oid = new ObjectIDResolvedWS(rwi, 1L);
-		Map<String, Object> d = mwdb.getObjectSubData(new HashSet<ObjectIDResolvedWS>(Arrays.asList(
-				new ObjectIDResolvedWS(rwi, 1L)))).get(oid);
-						
-		d.put("looloo", new HashSet<String>((List<String>) d.get("looloo")));
-		assertThat("subdata is not correct", expected, is(d));
-	}
-	
-	@Test
-	public void escapeSubdataKeys() throws Exception {
-		final String specSubdata =
-				"module TestSubdataEscape {\n" +
-					"/* @searchable ws_subset stuff\n" +
-					" */" +
-					"typedef structure {" +
-						"mapping<string, list<mapping<string, string>>> stuff;" +
-					"} SubSetEscapeType;" +
-				"};";
-		String mod = "TestSubdataEscape";
-		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, specSubdata, Arrays.asList("SubSetEscapeType"), null, null, false, null);
-		TypeDefId subsettype = new TypeDefId(new TypeDefName(mod, "SubSetEscapeType"), 0, 1);
-		WorkspaceIdentifier subdataws = new WorkspaceIdentifier("escapesubset");
-		ws.createWorkspace(userfoo, subdataws.getName(), false, null, null);
-		
-		Map<String, Object> data = new HashMap<String, Object>();
-		Map<String, Object> expected = new HashMap<String, Object>();
-		
-		Map<String, String> dataSimpleCheck = new HashMap<String, String>();
-		dataSimpleCheck.put("foo.bar", "foo");
-		dataSimpleCheck.put("foo$Bar", "foo");
-		dataSimpleCheck.put("foo%bar", "foo");
-		dataSimpleCheck.put("foo@bar", "foo");
-		
-		Map<String, String> expectedSimpleCheck = new HashMap<String, String>();
-		expectedSimpleCheck.put("foo%2ebar", "foo");
-		expectedSimpleCheck.put("foo%24Bar", "foo");
-		expectedSimpleCheck.put("foo%25bar", "foo");
-		expectedSimpleCheck.put("foo@bar", "foo");
-		
-		Map<String, String> dataOverwrite = new HashMap<String, String>();
-		for (int i = 0; i < 50; i++) {
-			dataOverwrite.put("foo%2ebar", "foo");
-		}
-		dataOverwrite.put("foo.bar", "foo");
-		for (int i = 0; i < 50; i++) {
-			dataOverwrite.put("foo%2ebar", "foo");
-		}
-		Map<String, String> expectedOverwrite = new HashMap<String, String>();
-		for (int i = 0; i < 50; i++) {
-			expectedOverwrite.put("foo%252ebar", "foo");
-		}
-		expectedOverwrite.put("foo%2ebar", "foo");
-		for (int i = 0; i < 50; i++) {
-			expectedOverwrite.put("foo%252ebar", "foo");
-		}
-		Map<String, List<Map<String, String>>> datastuff =
-				new HashMap<String, List<Map<String, String>>>();
-		Map<String, List<Map<String, String>>> expectedstuff =
-				new HashMap<String, List<Map<String, String>>>();
-		datastuff.put("thing", Arrays.asList(dataSimpleCheck, dataOverwrite));
-		expectedstuff.put("thing", Arrays.asList(expectedSimpleCheck, expectedOverwrite));
-		datastuff.put("foo%$.bar", Arrays.asList(dataSimpleCheck));
-		expectedstuff.put("foo%25%24%2ebar", Arrays.asList(expectedSimpleCheck));
-		datastuff.put("foobar", Arrays.asList(dataSimpleCheck));
-		expectedstuff.put("foobar", Arrays.asList(expectedSimpleCheck));
-		data.put("stuff", datastuff);
-		expected.put("stuff", expectedstuff);
-		
-		ws.saveObjects(userfoo, subdataws, Arrays.asList(
-				new WorkspaceSaveObject(new UObject(data), subsettype, null, new Provenance(userfoo), false)),
-				fac);
-		
-		ResolvedWorkspaceID rwi = mwdb.resolveWorkspace(subdataws);
-		ObjectIDResolvedWS oid = new ObjectIDResolvedWS(rwi, 1L);
-		Map<String, Object> d = mwdb.getObjectSubData(new HashSet<ObjectIDResolvedWS>(Arrays.asList(
-				new ObjectIDResolvedWS(rwi, 1L)))).get(oid);
-		
-		assertThat("subdata is not correct", expected, is(d));
 	}
 	
 	@Test

@@ -2,7 +2,6 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
-
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -33,10 +32,7 @@ import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceId
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -54,16 +50,9 @@ import ch.qos.logback.core.AppenderBase;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
-import us.kbase.abstracthandle.AbstractHandleClient;
-import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
-import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.auth.RefreshingToken;
-import us.kbase.common.mongo.exceptions.InvalidHostException;
-import us.kbase.common.mongo.exceptions.MongoAuthException;
-import us.kbase.common.service.ServerException;
-import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -72,24 +61,23 @@ import us.kbase.typedobj.db.FuncDetailedInfo;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
-import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.ObjectChain;
-import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.Workspace;
-import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.exceptions.WorkspaceDBException;
-import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.kbase.ArgUtils;
-import us.kbase.workspace.kbase.KBaseReferenceParser;
+import us.kbase.workspace.kbase.InitWorkspaceServer.InitReporter;
+import us.kbase.workspace.kbase.InitWorkspaceServer;
+import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
+import us.kbase.workspace.kbase.KBaseWorkspaceConfig;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 //END_HEADER
@@ -109,14 +97,6 @@ import us.kbase.workspace.kbase.WorkspaceServerMethods;
  * - Collecting typed objects into a workspace
  * - Sharing workspaces with specific KBase users or the world
  * - Freezing and publishing workspaces
- * Size limits:
- * TOs are limited to 1GB
- * TO subdata is limited to 15MB
- * TO provenance is limited to 1MB
- * User provided metadata for workspaces and objects is limited to 16kB
- * NOTE ON BINARY DATA:
- * All binary data must be hex encoded prior to storage in a workspace. 
- * Attempting to send binary data via a workspace client will cause errors.
  * </pre>
  */
 public class WorkspaceServer extends JsonServerServlet {
@@ -130,132 +110,25 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private static final String VER = "0.3.5";
 
-	//required deploy parameters:
-	private static final String HOST = "mongodb-host";
-	private static final String DB = "mongodb-database";
-	//startup workspace admin user
-	private static final String WSADMIN = "ws-admin";
-	//required backend param:
-	private static final String BACKEND_SECRET = "backend-secret"; 
-	//mongo db auth params:
-	private static final String USER = "mongodb-user";
-	private static final String PWD = "mongodb-pwd";
-	//mongo connection attempt limit
-	private static final String MONGO_RECONNECT = "mongodb-retry";
-	
-	//credentials to use for user queries
-	private static final String KBASE_ADMIN_USER = "kbase-admin-user";
-	private static final String KBASE_ADMIN_PWD = "kbase-admin-pwd";
-	
-	//handle service / manager info
-	private static final String IGNORE_HANDLE_SERVICE =
-			"ignore_handle_service";
-	private static final String HANDLE_SERVICE_URL = "handle-service-url";
-	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
-	private static final String HANDLE_MANAGER_USER = "handle-manager-user";
-	private static final String HANDLE_MANAGER_PWD = "handle-manager-pwd";
-	private static final int TOKEN_REFRESH_INTERVAL = 24 * 60 * 60;
-	private static int maxUniqueIdCountPerCall = 100000;
-
-	//directory for temp files
-	private static final String TEMP_DIR = "temp-dir";
-	
-	
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
 	private static final int MAX_RPC_PACKAGE_MEM_USE = 100000000;
 	
-	private final static int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
-	
 	private static Map<String, String> wsConfig = null;
-	
-	private static int instanceCount = 0;
-	private static boolean wasTempFileCleaningDone = false;
 	
 	private final TempFilesManager tfm;
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final WorkspaceAdministration wsadmin;
 	
-	private final URL handleServiceUrl;
 	private final URL handleManagerUrl;
 	private final RefreshingToken handleMgrToken;
 	
 	private ThreadLocal<Set<ByteArrayFileCache>> resourcesToDelete =
 			new ThreadLocal<Set<ByteArrayFileCache>>();
 	
-	private static boolean ignoreHandleService = false;
-	
-	private WorkspaceDatabase getDB(final String host, final String dbs,
-			final String secret, final String user, final String pwd,
-			final TempFilesManager tfm, final int mongoReconnectRetry) {
-		try {
-			if (user != null) {
-				return new MongoWorkspaceDB(host, dbs, secret, user, pwd, tfm,
-						mongoReconnectRetry);
-			} else {
-				return new MongoWorkspaceDB(host, dbs, secret, tfm,
-						mongoReconnectRetry);
-			}
-		} catch (UnknownHostException uhe) {
-			fail("Couldn't find mongo host " + host + ": " +
-					uhe.getLocalizedMessage());
-		} catch (IOException io) {
-			fail("Couldn't connect to mongo host " + host + ": " +
-					io.getLocalizedMessage());
-		} catch (MongoAuthException ae) {
-			fail("Not authorized: " + ae.getLocalizedMessage());
-		} catch (InvalidHostException ihe) {
-			fail(host + " is an invalid database host: "  +
-					ihe.getLocalizedMessage());
-		} catch (WorkspaceDBException uwde) {
-			fail("The workspace database is invalid: " +
-					uwde.getLocalizedMessage());
-		} catch (TypeStorageException tse) {
-			fail("There was a problem setting up the type storage system: " +
-					tse.getLocalizedMessage());
-		} catch (InterruptedException ie) {
-			fail("Connection to MongoDB was interrupted. This should never " +
-					"happen and indicates a programming problem. Error: " +
-					ie.getLocalizedMessage());
-		}
-		return null;
-	}
-	
-	private TempFilesManager initTempFilesManager() {
-		if (!wsConfig.containsKey(TEMP_DIR)) {
-			fail("Must provide param " + TEMP_DIR + " in config file");
-			return null;
-		}
-		try {
-			final TempFilesManager tfm = new TempFilesManager(
-					new File(wsConfig.get(TEMP_DIR)));
-			if (!wasTempFileCleaningDone) {
-				wasTempFileCleaningDone = true;
-				tfm.cleanup();
-			}
-			return tfm;
-		} catch (Exception e) {
-			fail(e.getLocalizedMessage());
-			return null;
-		}
-	}
-	
-	private void fail(final String error) {
-		logErr(error);
-		System.err.println(error);
-		startupFailed();
-	}
 	
 	public static void clearConfigForTests() {
 		wsConfig = null;
-	}
-	
-	public static void setIgnoreHandleServiceForTests(final boolean ignore) {
-		ignoreHandleService = ignore;
-	}
-	
-	public static void setMaximumUniqueIdCountForTests(final int count) {
-		maxUniqueIdCountPerCall = count;
 	}
 	
 	@Override
@@ -263,6 +136,10 @@ public class WorkspaceServer extends JsonServerServlet {
 		return ws.getTempFilesManager().generateTempFile("rpc", "json");
 	}
 	
+	public TempFilesManager getTempFilesManager() {
+		return tfm;
+	}
+
 	@Override
 	protected void onRpcMethodDone() {
 		if (resourcesToDelete.get() != null &&
@@ -273,10 +150,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				} catch (Exception ignore) {}
 			resourcesToDelete.set(null);
 		}
-	}
-	
-	public TempFilesManager getTempFilesManager() {
-		return tfm;
 	}
 	
 	public ResourceUsageConfiguration getWorkspaceResourceUsageConfig() {
@@ -320,129 +193,23 @@ public class WorkspaceServer extends JsonServerServlet {
 		kbaseRootLogger.addAppender(kbaseAppender);
 	}
 	
-	private int getReconnectCount() {
-		final String rec = wsConfig.get(MONGO_RECONNECT);
-		Integer recint = null;
-		try {
-			recint = Integer.parseInt(rec); 
-		} catch (NumberFormatException nfe) {
-			//do nothing
-		}
-		if (recint == null) {
-			logInfo("Couldn't parse MongoDB reconnect value to an integer: " +
-					rec + ", using 0");
-			recint = 0;
-		} else if (recint < 0) {
-			logInfo("MongoDB reconnect value is < 0 (" + recint + "), using 0");
-			recint = 0;
-		} else {
-			logInfo("MongoDB reconnect value is " + recint);
-		}
-		return recint;
-	}
-	
+	private class WorkspaceInitReporter extends InitReporter {
 
-	private URL getHandleUrl(String configKey) {
-		final String urlStr = wsConfig.get(configKey);
-		if (urlStr == null || urlStr.isEmpty()) {
-			fail("Must provide param " + configKey + " in config file");
-			return null;
+		@Override
+		public void reportInfo(final String info) {
+			logInfo(info);
+			System.out.println(info);
 		}
-		try {
-			return new URL(urlStr);
-		} catch (MalformedURLException e) {
-			fail("Invalid url for parameter " + configKey + ": " + urlStr);
-		}
-		return null;
-	}
-	
-	private RefreshingToken getHandleToken() {
-		final String user = wsConfig.get(HANDLE_MANAGER_USER);
-		final String pwd =  wsConfig.get(HANDLE_MANAGER_PWD);
-		//TODO make a method that checks for all required params and fails
-		if (user == null || user.isEmpty() || pwd == null || pwd.isEmpty()) {
-			fail("Must provide params " + HANDLE_MANAGER_USER + " and " +
-					HANDLE_MANAGER_PWD + " in config file");
-			return null;
-		}
-		try {
-			return AuthService.getRefreshingToken(
-					user, pwd, TOKEN_REFRESH_INTERVAL);
-		} catch (AuthException e) {
-			fail("Couldn't log in with handle manager credentials for user " +
-					user + ": " + e.getLocalizedMessage());
-		} catch (IOException e) {
-			fail("Couldn't contact the auth service to obtain a token for the handle manager: "
-					+ e.getLocalizedMessage());
-		}
-		return null;
-	}
-	
 
-	private boolean checkHandleServiceConnection() {
-		try {
-			final AbstractHandleClient cli = new AbstractHandleClient(
-					handleServiceUrl, handleMgrToken.getToken());
-			if (handleServiceUrl.getProtocol().equals("http")) {
-				System.out.println("Warning - the Handle Service url uses insecure http. https is recommended.");
-				logInfo("Warning - the Handle Service url uses insecure http. https is recommended.");
-				cli.setIsInsecureHttpConnectionAllowed(true);
-			}
-			cli.areReadable(new LinkedList<String>());
-		} catch (Exception e) {
-			if (!(e instanceof ServerException) ||
-					!e.getMessage().contains(
-							"can not execute select * from Handle")) {
-				fail("Could not establish a connection to the Handle Service at "
-						+ handleServiceUrl + ": " + e.getMessage());
-				return true;
-			}
+		@Override
+		public void handleFail(final String fail) {
+			logErr(fail);
+			System.out.println(fail);
+			startupFailed();
 		}
-		return false;
+		
 	}
 	
-	private boolean checkHandleManagerConnection() {
-		try {
-			final HandleMngrClient cli = new HandleMngrClient(
-					handleManagerUrl, handleMgrToken.getToken());
-			if (handleManagerUrl.getProtocol().equals("http")) {
-				System.out.println("Warning - the Handle Manager url uses insecure http. https is recommended.");
-				logInfo("Warning - the Handle Manager url uses insecure http. https is recommended.");
-				cli.setIsInsecureHttpConnectionAllowed(true);
-			}
-			cli.addReadAcl(Arrays.asList("FAKEHANDLE_-100"), "fakeuser");
-		} catch (Exception e) {
-			if (!(e instanceof ServerException) ||
-					!e.getMessage().contains(
-							"Unable to set acl(s) on handles FAKEHANDLE_-100")) {
-				fail("Could not establish a connection to the Handle Manager Service at "
-						+ handleManagerUrl + ": " + e.getMessage());
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	private ConfigurableAuthService setUpAuthClient(
-			final String kbaseAdminUser,
-			final String kbaseAdminPwd) {
-		AuthConfig c = new AuthConfig();
-		ConfigurableAuthService auth;
-		try {
-			auth = new ConfigurableAuthService(c);
-			c.withRefreshingToken(auth.getRefreshingToken(
-					kbaseAdminUser, kbaseAdminPwd,
-					TOKEN_REFRESH_INTERVAL_SEC));
-			return auth;
-		} catch (AuthException e) {
-			fail("Couldn't log in the KBase administrative user " +
-					kbaseAdminUser + " : " + e.getLocalizedMessage());
-		} catch (IOException e) {
-			fail("Couldn't connect to authorization service at " +
-					c.getAuthServerURL() + " : " + e.getLocalizedMessage());
-		}
-		return null;
-	}
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -458,128 +225,51 @@ public class WorkspaceServer extends JsonServerServlet {
 			wsConfig = new HashMap<String, String>();
 			wsConfig.putAll(super.config);
 		}
-		tfm = initTempFilesManager();
-		boolean failed = tfm == null;
-		final String host = wsConfig.get(HOST);
-		if (host == null || host.isEmpty()) {
-			fail("Must provide param " + HOST + " in config file");
-			failed = true;
-		}
-		final String dbs = wsConfig.get(DB);
-		if (dbs == null || dbs.isEmpty()) {
-			fail("Must provide param " + DB + " in config file");
-			failed = true;
-		}
-		final String secret = wsConfig.get(BACKEND_SECRET);
-		if (secret == null || secret.isEmpty()) {
-			failed = true;
-			fail("Must provide param " + BACKEND_SECRET + " in config file");
-		}
-		final String user = wsConfig.get(USER);
-		final String pwd = wsConfig.get(PWD);
-		final boolean hasUser = user != null && !user.isEmpty();
-		final boolean hasPwd = pwd != null && !pwd.isEmpty();
 		
-		if (hasUser ^ hasPwd) {
-			fail(String.format("Must provide both %s and %s ",
-					USER, PWD) + "params in config file if authentication " + 
-					"is to be used");
-			failed = true;
+		final KBaseWorkspaceConfig cfg = new KBaseWorkspaceConfig(wsConfig);
+		for (final String info: cfg.getInfoMessages()) {
+			logInfo(info);
+			System.out.println(info);
 		}
-		final String ignoreHandle = wsConfig.get(IGNORE_HANDLE_SERVICE);
-		ignoreHandleService = ignoreHandleService ||
-				(ignoreHandle != null && !ignoreHandle.isEmpty());
-		if (ignoreHandleService) {
-			logInfo("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
-			System.out.println("Ignoring Handle Service config. Objects with handle IDs will fail typechecking.");
-			handleServiceUrl = null;
-			handleManagerUrl = null;
-			handleMgrToken = null;
+		for (final String error: cfg.getErrors()) {
+			logErr(error);
+			System.out.println(error);
+		}
+		
+		TempFilesManager tfm = null;
+		Workspace ws = null;
+		WorkspaceServerMethods wsmeth = null;
+		WorkspaceAdministration wsadmin = null;
+		URL handleManagerUrl = null;
+		RefreshingToken handleMgrToken = null;
+		
+		if (cfg.hasErrors()) {
+			logErr("Workspace server configuration has errors - all calls will fail");
+			System.out.println(
+					"Workspace server configuration has errors - all calls will fail");
+			startupFailed();
 		} else {
-			handleServiceUrl = getHandleUrl(HANDLE_SERVICE_URL);
-			failed = failed || handleServiceUrl == null;
-			handleManagerUrl = getHandleUrl(HANDLE_MANAGER_URL);
-			failed = failed || handleManagerUrl == null;
-			handleMgrToken = getHandleToken();
-			failed = failed || handleMgrToken == null;
-			if (!failed) {
-				failed = checkHandleServiceConnection();
-			}
-			if (!failed) {
-				failed = checkHandleManagerConnection();
+
+			final WorkspaceInitReporter rep = new WorkspaceInitReporter();
+			final WorkspaceInitResults res =
+					InitWorkspaceServer.initWorkspaceServer(cfg, rep);
+
+			if (!rep.isFailed()) {
+				tfm = res.getTempFilesManager();
+				ws = res.getWs();
+				wsmeth = res.getWsmeth();
+				wsadmin = res.getWsAdmin();
+				handleManagerUrl = res.getHandleManagerUrl();
+				handleMgrToken = res.getHandleMgrToken();
+				setRpcDiskCacheTempDir(tfm.getTempDir());
 			}
 		}
-		
-		if (!wsConfig.containsKey(KBASE_ADMIN_USER)) {
-			fail("Must provide param " + KBASE_ADMIN_USER + " in config file");
-			failed = true;
-		}
-		final String adminUser = wsConfig.get(KBASE_ADMIN_USER);
-		if (!wsConfig.containsKey(KBASE_ADMIN_PWD)) {
-			fail("Must provide param " + KBASE_ADMIN_PWD + " in config file");
-			failed = true;
-		}
-		final String adminPwd = wsConfig.get(KBASE_ADMIN_PWD);
-		
-		if (failed) {
-			fail("Server startup failed - all calls will error out.");
-			ws = null;
-			wsmeth = null;
-			wsadmin = null;
-		} else {
-			String params = "";
-			final List<String> paramSet = new LinkedList<String>(
-					Arrays.asList(HOST, DB, USER));
-			if (!ignoreHandleService) {
-				paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL,
-						HANDLE_MANAGER_URL, HANDLE_MANAGER_USER));
-			}
-			for (final String s: paramSet) {
-				if (wsConfig.containsKey(s)) {
-					params += s + "=" + wsConfig.get(s) + "\n";
-				}
-			}
-			params += BACKEND_SECRET + "=[redacted for your safety and comfort]\n";
-			if (pwd != null && !pwd.isEmpty()) {
-				params += PWD + "=[redacted for your safety and comfort]\n";
-			}
-			System.out.println("Starting server using connection parameters:\n"
-					+ params);
-			logInfo("Starting server using connection parameters:\n" + params);
-			System.out.println("Temporary file location: "
-					+ tfm.getTempDir());
-			logInfo("Temporary file location: " + tfm.getTempDir());
-			final int mongoConnectRetry = getReconnectCount();
-			final WorkspaceDatabase db = getDB(host, dbs, secret, user, pwd,
-					tfm, mongoConnectRetry);
-			if (db == null) {
-				fail("Server startup failed - all calls will error out.");
-				ws = null;
-				wsmeth = null;
-				wsadmin = null;
-			} else {
-				System.out.println(String.format("Initialized %s backend",
-						db.getBackendType()));
-				logInfo(String.format("Initialized %s backend",
-						db.getBackendType()));
-				ws = new Workspace(db,
-						new ResourceUsageConfigurationBuilder().build(),
-						new KBaseReferenceParser());
-				wsmeth = new WorkspaceServerMethods(ws, handleServiceUrl,
-						maxUniqueIdCountPerCall,
-						setUpAuthClient(adminUser, adminPwd));
-				wsadmin = new WorkspaceAdministration(ws, wsmeth,
-						wsConfig.get(WSADMIN));
-				final String mem = String.format(
-						"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
-						++instanceCount, Runtime.getRuntime().freeMemory(),
-						Runtime.getRuntime().totalMemory(),
-						Runtime.getRuntime().maxMemory());
-				System.out.println(mem);
-				logInfo(mem);
-			}
-			setRpcDiskCacheTempDir(tfm.getTempDir());
-		}
+		this.tfm = tfm;
+		this.ws = ws;
+		this.wsmeth = wsmeth;
+		this.wsadmin = wsadmin;
+		this.handleManagerUrl = handleManagerUrl;
+		this.handleMgrToken = handleMgrToken;
         //END_CONSTRUCTOR
     }
 
@@ -803,6 +493,25 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: get_permissions_mass</p>
+     * <pre>
+     * Get permissions for multiple workspaces.
+     * </pre>
+     * @param   mass   instance of type {@link us.kbase.workspace.GetPermissionsMassParams GetPermissionsMassParams}
+     * @return   parameter "perms" of type {@link us.kbase.workspace.WorkspacePermissions WorkspacePermissions}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_permissions_mass", authOptional=true)
+    public WorkspacePermissions getPermissionsMass(GetPermissionsMassParams mass, AuthToken authPart) throws Exception {
+        WorkspacePermissions returnVal = null;
+        //BEGIN get_permissions_mass
+		checkAddlArgs(mass.getAdditionalProperties(), mass.getClass());
+		returnVal = wsmeth.getPermissions(
+				mass.getWorkspaces(), getUser(authPart));
+        //END get_permissions_mass
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: get_permissions</p>
      * <pre>
      * Get permissions for a workspace.
@@ -810,11 +519,11 @@ public class WorkspaceServer extends JsonServerServlet {
      * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
      * @return   parameter "perms" of mapping from original type "username" (Login name of a KBase user account.) to original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.)
      */
-    @JsonServerMethod(rpc = "Workspace.get_permissions")
+    @JsonServerMethod(rpc = "Workspace.get_permissions", authOptional=true)
     public Map<String,String> getPermissions(WorkspaceIdentity wsi, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
-		returnVal = wsmeth.getPermissions(wsi, getUser(authPart));
+        returnVal = wsmeth.getPermissions(wsi, getUser(authPart));
         //END get_permissions
         return returnVal;
     }
@@ -1016,7 +725,8 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: list_referencing_objects</p>
      * <pre>
-     * List objects that reference one or more objects.
+     * List objects that reference one or more specified objects. References
+     * in the deleted state are not returned.
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "referrers" of list of list of original type "object_info" (Information about an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username saved_by - the user that saved or copied the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta meta - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 11: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "version" of Long, parameter "saved_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "chsum" of String, parameter "size" of Long, parameter "meta" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
@@ -1169,13 +879,17 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getWorkspace(), null);
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
-		final boolean showDeleted = longToBoolean(
-				params.getShowDeletedObject());
-		returnVal = objInfoToMetaTuple(
-				ws.listObjects(getUser(params.getAuth(), authPart),
-						Arrays.asList(wsi), type, null, null, null, null, null,
-						false, showDeleted, false, false, true, false,
-						0, 10000), false);
+		
+		final WorkspaceUser user = getUser(params.getAuth(), authPart);
+		final ListObjectsParameters lop;
+		if (type == null) {
+			lop = new ListObjectsParameters(user, Arrays.asList(wsi));
+		} else {
+			lop = new ListObjectsParameters(user, Arrays.asList(wsi), type);
+		}
+		lop.withShowDeleted(longToBoolean(params.getShowDeletedObject()))
+			.withIncludeMetaData(true);
+		returnVal = objInfoToMetaTuple(ws.listObjects(lop), false);
         //END list_workspace_objects
         return returnVal;
     }
@@ -1206,29 +920,35 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
-		final Permission p = params.getPerm() == null ? null :
-			translatePermission(params.getPerm());
-		final boolean showHidden = longToBoolean(params.getShowHidden());
-		final boolean showDeleted = longToBoolean(params.getShowDeleted());
-		final boolean showOnlyDeleted = longToBoolean(
-				params.getShowOnlyDeleted());
-		final boolean showAllVers = longToBoolean(
-				params.getShowAllVersions());
-		final boolean includeMetadata = longToBoolean(
-				params.getIncludeMetadata());
-		final boolean excludeGlobal = longToBoolean(
-				params.getExcludeGlobal());
-		final int skip = longToInt(params.getSkip(), "Skip", -1);
-		final int limit = longToInt(params.getLimit(), "Limit", -1);
-		returnVal = objInfoToTuple(
-				//this sig is insane
-				ws.listObjects(getUser(authPart), wsis, type, p,
-						ArgUtils.convertUsers(params.getSavedby()),
-						params.getMeta(), parseDate(params.getAfter()),
-						parseDate(params.getBefore()), showHidden,
-						showDeleted, showOnlyDeleted, showAllVers,
-						includeMetadata, excludeGlobal, skip, limit),
-						false);
+		if (type == null && wsis.isEmpty()) {
+			throw new IllegalArgumentException(
+					"At least one filter must be specified.");
+		}
+		final WorkspaceUser user = getUser(authPart);
+		final ListObjectsParameters lop;
+		if (type == null) {
+			lop = new ListObjectsParameters(user, wsis);
+		} else if (wsis.isEmpty()) {
+			lop = new ListObjectsParameters(user, type);
+		} else {
+			lop = new ListObjectsParameters(user, wsis, type);
+		}
+		lop.withMinimumPermission(params.getPerm() == null ? null :
+				translatePermission(params.getPerm()))
+			.withSavers(ArgUtils.convertUsers(params.getSavedby()))
+			.withMetadata(params.getMeta())
+			.withAfter(parseDate(params.getAfter()))
+			.withBefore(parseDate(params.getBefore()))
+			.withShowHidden(longToBoolean(params.getShowHidden()))
+			.withShowDeleted(longToBoolean(params.getShowDeleted()))
+			.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))
+			.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
+			.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
+			.withExcludeGlobal(longToBoolean(params.getExcludeGlobal()))
+			.withSkip(longToInt(params.getSkip(), "Skip", -1))
+			.withLimit(longToInt(params.getLimit(), "Limit", -1));
+		
+		returnVal = objInfoToTuple(ws.listObjects(lop), false);
         //END list_objects
         return returnVal;
     }

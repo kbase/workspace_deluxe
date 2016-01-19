@@ -85,8 +85,10 @@ public class Workspace {
 	
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
 	
+	public static final User ALL_USERS = new AllUsers('*');
+	
 	private final static int MAX_WS_DESCRIPTION = 1000;
-	private final static int MAX_INFO_COUNT = 10000;
+	private final static int MAX_WS_COUNT_PERMS = 1000;
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
 	
@@ -465,23 +467,49 @@ public class Workspace {
 		db.setGlobalPermission(wsid, permission);
 	}
 
-	public Map<User, Permission> getPermissions(final WorkspaceUser user,
-				final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
-				WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null");
+	public List<Map<User, Permission>> getPermissions(
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wslist)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		if (wslist == null) {
+			throw new NullPointerException("wslist cannot be null");
 		}
-		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
-		final PermissionSet perms = db.getPermissions(user, wsid);
-		if (Permission.WRITE.compareTo(perms.getPermission(wsid, true)) > 0) {
-			final Map<User, Permission> ret = new HashMap<User, Permission>();
-			ret.put(perms.getUser(), perms.getUserPermission(wsid, true));
-			if (perms.isWorldReadable(wsid, true)) {
-				ret.put(perms.getGlobalUser(), Permission.READ);
+		if (wslist.size() > MAX_WS_COUNT_PERMS) {
+			throw new IllegalArgumentException(
+					"Maximum number of workspaces allowed for input is " +
+							MAX_WS_COUNT_PERMS);
+		}
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwslist =
+				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wslist));
+		final Map<ResolvedWorkspaceID, Map<User, Permission>> perms =
+				db.getAllPermissions(new HashSet<ResolvedWorkspaceID>(
+						rwslist.values()));
+		final List<Map<User, Permission>> ret =
+				new LinkedList<Map<User,Permission>>();
+		for (final WorkspaceIdentifier wsi: wslist) {
+			final ResolvedWorkspaceID rwsi = rwslist.get(wsi);
+			final Map<User, Permission> wsperm = perms.get(rwsi);
+			final Permission p = wsperm.get(user); // will be null for null user
+			if (p == null || Permission.WRITE.compareTo(p) > 0) { //read or no perms
+				final Map<User, Permission> wsp =
+						new HashMap<User, Permission>();
+				if (wsperm.containsKey(ALL_USERS)) {
+					wsp.put(ALL_USERS, wsperm.get(ALL_USERS));
+				}
+				if (user != null) {
+					if (p == null) {
+						wsp.put(user, Permission.NONE);
+					} else {
+						wsp.put(user, p);
+					}
+				}
+				ret.add(wsp);
+			} else {
+				ret.add(wsperm);
 			}
-			return ret;
 		}
-		return db.getAllPermissions(wsid);
+		return ret;
 	}
 
 	public WorkspaceInformation getWorkspaceInformation(
@@ -838,47 +866,24 @@ public class Workspace {
 				showDeleted, showOnlyDeleted);
 	}
 	
-	//insanely long method signatures get me hot
-	public List<ObjectInformation> listObjects(final WorkspaceUser user,
-			final List<WorkspaceIdentifier> wsis, final TypeDefId type,
-			Permission minPerm, final List<WorkspaceUser> savers,
-			final Map<String, String> meta, final Date after, final Date before,
-			final boolean showHidden, final boolean showDeleted,
-			final boolean showOnlyDeleted, final boolean showAllVers,
-			final boolean includeMetaData, final boolean excludeGlobal,
-			int skip, int limit)
+	public List<ObjectInformation> listObjects(
+			final ListObjectsParameters params)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		if (skip < 0) {
-			skip = 0;
-		}
-		if (limit < 1 || limit > MAX_INFO_COUNT) {
-			limit = MAX_INFO_COUNT;
-		}
-		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
-			minPerm = Permission.READ;
-		}
-		if (wsis.isEmpty() && type == null) {
-			throw new IllegalArgumentException("At least one filter must be specified.");
-		}
-		if (meta != null && meta.size() > 1) {
-			throw new IllegalArgumentException("Only one metadata spec allowed");
-		}
+
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wsis));
+				db.resolveWorkspaces(params.getWorkspaces());
 		final HashSet<ResolvedWorkspaceID> rw =
 				new HashSet<ResolvedWorkspaceID>(rwsis.values());
-		final PermissionSet pset = db.getPermissions(user, rw, minPerm,
-				excludeGlobal);
-		if (!wsis.isEmpty()) {
-			for (final WorkspaceIdentifier wsi: wsis) {
-				comparePermission(user, Permission.READ,
+		final PermissionSet pset = db.getPermissions(params.getUser(), rw,
+				params.getMinimumPermission(), params.isExcludeGlobal(), true);
+		if (!params.getWorkspaces().isEmpty()) {
+			for (final WorkspaceIdentifier wsi: params.getWorkspaces()) {
+				comparePermission(params.getUser(), Permission.READ,
 						pset.getPermission(rwsis.get(wsi), true), wsi, "read");
 			}
 		}
-		return db.getObjectInformation(pset, type, savers, meta, after, before,
-				showHidden, showDeleted, showOnlyDeleted, showAllVers,
-				includeMetaData, skip, limit);
+		return db.getObjectInformation(params.generateParameters(pset));
 	}
 	
 	public List<WorkspaceObjectInformation> getObjectProvenance(

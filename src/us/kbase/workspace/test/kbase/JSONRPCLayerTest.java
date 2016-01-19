@@ -41,6 +41,7 @@ import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListAllTypesParams;
 import us.kbase.workspace.ListModuleVersionsParams;
 import us.kbase.workspace.ListModulesParams;
@@ -63,6 +64,7 @@ import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.WorkspacePermissions;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -312,10 +314,72 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			.withWorkspace("permspriv"));
 		assertThat("Permissions set correctly", perms, is(expected));
 		
+		List<WorkspaceIdentity> wslist = Arrays.asList(
+				new WorkspaceIdentity().withWorkspace("permspriv"),
+				new WorkspaceIdentity().withWorkspace("permsglob"));
+		WorkspacePermissions permsl = CLIENT1.getPermissionsMass(
+				new GetPermissionsMassParams().withWorkspaces(wslist));
+		List<Map<String, String>> exp = new LinkedList<Map<String,String>>();
+		exp.add(expected);
+		Map<String, String> gl = new HashMap<String, String>();
+		gl.put(STARUSER, "r");
+		gl.put(USER1, "a");
+		exp.add(gl);
+		assertThat("Permissions read correctly", permsl.getPerms(),
+				is(exp));
+		
+		GetPermissionsMassParams p = new GetPermissionsMassParams()
+			.withWorkspaces(wslist);
+		p.setAdditionalProperties("foo", "bar");
+		try {
+			CLIENT1.getPermissionsMass(p);
+			fail("passed extra args");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getLocalizedMessage(),
+					is("Unexpected arguments in GetPermissionsMassParams: foo"));
+		}
+				
+		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("permspriv").withNewPermission("n"));
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace("permsglob").withNewPermission("n"));
+	}
+	
+	@Test
+	public void permissionsWithNoCreds() throws Exception {
+		/* Tests the case for getting permissions for a workspace without
+		 * supplying credentials.
+		 */
+		final WorkspaceIdentity privWS = new WorkspaceIdentity()
+				.withWorkspace("PnoCpriv");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("PnoCpriv"));
+		final WorkspaceIdentity globWS = new WorkspaceIdentity()
+				.withWorkspace("PnoCglob");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("PnoCglob").withGlobalread("r"));
+		
+		Map<String, String> expected1 = new HashMap<String, String>();
+		Map<String, String> res = CLIENT_NO_AUTH.getPermissions(privWS);
+		
+		assertThat("No perms for private WS", res, is(expected1));
+		
+		Map<String, String> expected2 = new HashMap<String, String>();
+		expected2.put(STARUSER, "r");
+		res = CLIENT_NO_AUTH.getPermissions(globWS);
+
+		assertThat("Read perm for global WS", res, is(expected2));
+		
+		WorkspacePermissions wpres = CLIENT_NO_AUTH.getPermissionsMass(
+				new GetPermissionsMassParams().withWorkspaces(
+						Arrays.asList(privWS, globWS)));
+		
+		assertThat("Mass perms correct for user w/o creds", wpres.getPerms(),
+				is(Arrays.asList(expected1, expected2)));
+		
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withWorkspace("PnoCglob").withNewPermission("n"));
 	}
 	
 	@Test
@@ -2230,7 +2294,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		lp = lp.withAfter(addSec(o1.getE4())).withBefore(subSec(o3.getE4()));
 		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2), false);
 		
-		failListObjectsByDate("crappy obj date", "Unparseable date: Invalid format: \"crappy obj date\"");
+		failListObjectsByDate(ws, "crappy obj date", "Unparseable date: Invalid format: \"crappy obj date\"");
 	}
 	
 	@Test

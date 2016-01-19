@@ -39,16 +39,6 @@ Interface Description Language (KIDL). It has the following primary features:
 - Sharing workspaces with specific KBase users or the world
 - Freezing and publishing workspaces
 
-Size limits:
-TOs are limited to 1GB
-TO subdata is limited to 15MB
-TO provenance is limited to 1MB
-User provided metadata for workspaces and objects is limited to 16kB
-
-NOTE ON BINARY DATA:
-All binary data must be hex encoded prior to storage in a workspace. 
-Attempting to send binary data via a workspace client will cause errors.
-
 
 =cut
 
@@ -1290,6 +1280,109 @@ sub set_workspace_description
 
 
 
+=head2 get_permissions_mass
+
+  $perms = $obj->get_permissions_mass($mass)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$mass is a Workspace.GetPermissionsMassParams
+$perms is a Workspace.WorkspacePermissions
+GetPermissionsMassParams is a reference to a hash where the following keys are defined:
+	workspaces has a value which is a reference to a list where each element is a Workspace.WorkspaceIdentity
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+WorkspacePermissions is a reference to a hash where the following keys are defined:
+	perms has a value which is a reference to a list where each element is a reference to a hash where the key is a Workspace.username and the value is a Workspace.permission
+username is a string
+permission is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$mass is a Workspace.GetPermissionsMassParams
+$perms is a Workspace.WorkspacePermissions
+GetPermissionsMassParams is a reference to a hash where the following keys are defined:
+	workspaces has a value which is a reference to a list where each element is a Workspace.WorkspaceIdentity
+WorkspaceIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	id has a value which is a Workspace.ws_id
+ws_name is a string
+ws_id is an int
+WorkspacePermissions is a reference to a hash where the following keys are defined:
+	perms has a value which is a reference to a list where each element is a reference to a hash where the key is a Workspace.username and the value is a Workspace.permission
+username is a string
+permission is a string
+
+
+=end text
+
+=item Description
+
+Get permissions for multiple workspaces.
+
+=back
+
+=cut
+
+sub get_permissions_mass
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_permissions_mass (received $n, expecting 1)");
+    }
+    {
+	my($mass) = @args;
+
+	my @_bad_arguments;
+        (ref($mass) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"mass\" (value was \"$mass\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_permissions_mass:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_permissions_mass');
+	}
+    }
+
+    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
+	method => "Workspace.get_permissions_mass",
+	params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'get_permissions_mass',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_permissions_mass",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_permissions_mass',
+				       );
+    }
+}
+
+
+
 =head2 get_permissions
 
   $perms = $obj->get_permissions($wsi)
@@ -1342,7 +1435,7 @@ sub get_permissions
 {
     my($self, @args) = @_;
 
-# Authentication: required
+# Authentication: optional
 
     if ((my $n = @args) != 1)
     {
@@ -2750,7 +2843,8 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 
 =item Description
 
-List objects that reference one or more objects.
+List objects that reference one or more specified objects. References
+in the deleted state are not returned.
 
 =back
 
@@ -7965,10 +8059,10 @@ OR an object reference string:
 AND a subset specification:
         list<object_path> included - the portions of the object to include
                 in the object subset.
-strict_maps - this parameter forbids to use included paths with keys absent in map or
-        object (default value is false)
-strict_arrays - this parameter forbids to use included paths with array positions large than 
-        array size (default value is true)
+strict_maps - if true, throw an exception if the subset specification
+        traverses a non-existant map key (default false)
+strict_arrays - if true, throw an exception if the subset specification
+        exceeds the size of an array (default true)
 
 
 =item Definition
@@ -8683,6 +8777,79 @@ description has a value which is a string
 
 
 
+=head2 GetPermissionsMassParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "get_permissions_mass" function.
+workspaces - the workspaces for which to return the permissions,
+        maximum 1000.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspaces has a value which is a reference to a list where each element is a Workspace.WorkspaceIdentity
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspaces has a value which is a reference to a list where each element is a Workspace.WorkspaceIdentity
+
+
+=end text
+
+=back
+
+
+
+=head2 WorkspacePermissions
+
+=over 4
+
+
+
+=item Description
+
+A set of workspace permissions.
+perms - the list of permissions for each requested workspace
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+perms has a value which is a reference to a list where each element is a reference to a hash where the key is a Workspace.username and the value is a Workspace.permission
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+perms has a value which is a reference to a list where each element is a reference to a hash where the key is a Workspace.username and the value is a Workspace.permission
+
+
+=end text
+
+=back
+
+
+
 =head2 save_object_params
 
 =over 4
@@ -9250,7 +9417,7 @@ string auth - the authentication token of the KBase account requesting
         access. Overrides the client provided authorization credentials if
         they exist.
         
-@deprecated Workspaces.ListWorkspaceInfoParams
+@deprecated Workspace.ListObjectsParams
 
 
 =item Definition
@@ -9329,8 +9496,8 @@ Parameters for the 'list_objects' function.
                         metadata will be null.
                 boolean excludeGlobal - exclude objects in global workspaces. This
                         parameter only has an effect when filtering by types alone.
-                int skip - skip the first X objects. Maximum value is 2^31, skip values
-                        < 0 are treated as 0, the default.
+                int skip - DEPRECATED. skip the first X objects. Maximum value is 2^31,
+                        skip values < 0 are treated as 0, the default.
                 int limit - limit the output to X objects. Default and maximum value
                         is 10000. Limit values < 1 are treated as 10000, the default.
 

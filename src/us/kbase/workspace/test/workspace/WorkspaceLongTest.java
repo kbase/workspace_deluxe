@@ -79,7 +79,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			UObject data = new UObject(tempFile);
 			ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
 					new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
-					getIdFactory(userfoo));
+					getIdFactory());
 		} finally {
 			tempFile.delete();
 		}
@@ -177,10 +177,10 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			refs.put("tenKrefs/auto" + i, "expected " + i);
 			expectedRefs.add(wsid + "/" + i + "/" + 1);
 		}
-		ws.saveObjects(userfoo, wspace, wsos, getIdFactory(userfoo));
+		ws.saveObjects(userfoo, wspace, wsos, getIdFactory());
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(refdata, fromRef, null, emptyprov, false)),
-				getIdFactory(userfoo));
+				getIdFactory());
 		
 		WorkspaceObjectData wod = ws.getObjects(userfoo,
 				Arrays.asList(new ObjectIdentifier(wspace, "auto10001")))
@@ -228,7 +228,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		}
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
-				getIdFactory(userfoo));
+				getIdFactory());
 		@SuppressWarnings("unchecked")
 		Map<String, Object> newdata = (Map<String, Object>) ws.getObjects(
 				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1))).get(0).getData();
@@ -245,7 +245,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		data.put(test, "foo");
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
-				getIdFactory(userfoo));
+				getIdFactory());
 		@SuppressWarnings("unchecked")
 		Map<String, Object> newdata2 = (Map<String, Object>) ws.getObjects(
 				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2))).get(0).getData();
@@ -265,7 +265,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
 				null, new Provenance(user), false));
 		}
-		ws.saveObjects(user, wsi, objs, getIdFactory(user));
+		ws.saveObjects(user, wsi, objs, getIdFactory());
 		
 		//this depends on the natural sort order of mongo
 		checkObjectPagination(user, wsi, -1, 0, 1, 10000);
@@ -320,7 +320,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		Map<String, Object> data = UObject.getMapper().readValue(is, Map.class);
 		List<WorkspaceSaveObject> wsos = new LinkedList<WorkspaceSaveObject>();		
 		wsos.add(new WorkspaceSaveObject(data, daType, null, emptyprov, false));
-		ObjectInformation oi = ws.saveObjects(userfoo, wspace, wsos, getIdFactory(userfoo)).get(0);
+		ObjectInformation oi = ws.saveObjects(userfoo, wspace, wsos, getIdFactory()).get(0);
 		/////////////////////////////////////////// get_objects /////////////////////////////////////////////
 		String contigId = null;
 		int featureCount = -1;
@@ -363,7 +363,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 					wsos2.add(new WorkspaceSaveObject(emptyData, emptyType, null, emptyprov, false));
 					savedObejcts++;
 				}
-				ws.saveObjects(userfoo, wspace, wsos2, getIdFactory(userfoo));
+				ws.saveObjects(userfoo, wspace, wsos2, getIdFactory());
 			}
 			System.out.println("[WorkspaceLongTest] objects saved: " + savedObejcts);
 			estimateGetSubsetTime(userfoo, wspace, oi, contigId, featureCount,

@@ -45,12 +45,6 @@ public interface JsonTokenValidationListener {
 //			throws TooManyIdsException, IdReferenceHandlerException;
 	
 	/**
-	 * Method is for registering searchable ws-subset object.
-	 * @param searchData
-	 */
-	public void addSearchableWsSubsetMessage(JsonNode selection);
-	
-	/**
 	 * Method for registering the selection of metadata extraction.
 	 * @param selection
 	 */

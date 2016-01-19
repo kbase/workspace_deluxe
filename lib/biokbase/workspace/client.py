@@ -216,6 +216,11 @@ class Workspace(object):
         self._call('Workspace.set_workspace_description',
                    [params])
 
+    def get_permissions_mass(self, mass):
+        resp = self._call('Workspace.get_permissions_mass',
+                          [mass])
+        return resp[0]
+
     def get_permissions(self, wsi):
         resp = self._call('Workspace.get_permissions',
                           [wsi])
