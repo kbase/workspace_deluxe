@@ -658,11 +658,25 @@ public class WorkspaceTester {
 	
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
 			Map<String, Object> data, TypeDefId type, Provenance prov,
-			Throwable exception) throws Exception{
+			Throwable exception) throws Exception {
+		failSave(user, wsi, null, data, type, prov, exception);
+	}
+	
+	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
+			String objectName, Map<String, Object> data, TypeDefId type,
+			Provenance prov, Throwable exception) throws Exception {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
+		
+		WorkspaceSaveObject wso;
+		if (objectName == null) {
+			wso = new WorkspaceSaveObject(data, type, null, prov, false);
+		} else {
+			wso = new WorkspaceSaveObject(new ObjectIDNoWSNoVer(objectName),
+					data, type, null, prov, false);
+		}
+		
 		try {
-			ws.saveObjects(user, wsi, Arrays.asList(
-					new WorkspaceSaveObject(data, type, null, prov, false)), fac);
+			ws.saveObjects(user, wsi, Arrays.asList(wso), fac);
 			fail("Saved bad object");
 		} catch (Exception e) {
 			if (e instanceof NullPointerException) {

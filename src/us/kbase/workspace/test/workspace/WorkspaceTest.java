@@ -1164,7 +1164,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	@Test
 	public void metadataExtractedLargeTest() throws Exception {
 		String module = "TestLargeMetadata";
-		String type = "BigMeta";
+		String typeName = "BigMeta";
 		String spec =
 				"module " + module + " {" +
 					"/* @metadata ws val\n" +
@@ -1172,19 +1172,22 @@ public class WorkspaceTest extends WorkspaceTester {
 					"typedef structure {" +
 						"string val;" +
 						"list<int> l;" +
-					"} " + type + ";" +
+					"} " + typeName + ";" +
 				"};";
 		WorkspaceUser user = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(user, module);
 		ws.resolveModuleRegistration(module, true);
-		ws.compileNewTypeSpec(user, spec, Arrays.asList(type), null, null,
+		ws.compileNewTypeSpec(user, spec, Arrays.asList(typeName), null, null,
 				false, null);
-		TypeDefId MyType = new TypeDefId(
-				new TypeDefName(module, type), 0, 1);
-		Provenance emptyprov = new Provenance(user);
+		TypeDefId type = new TypeDefId(
+				new TypeDefName(module, typeName), 0, 1);
+		Provenance mtprov = new Provenance(user);
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(
 				"metadataExtractedLargeTest");
 		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		
+		
 		
 		// test fail when extracted metadata > limit
 		Map<String, Object> dBig = new LinkedHashMap<String, Object>();
@@ -1194,15 +1197,9 @@ public class WorkspaceTest extends WorkspaceTester {
 			bigVal.append(LONG_TEXT); //> 16kb now
 		}
 		dBig.put("val", bigVal.toString());
-		try {
-			ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer("bigextractedmeta"), dBig, MyType, null,
-					emptyprov, false)), getIdFactory());
-			fail("saved object with > 16kb of extracted metadata");
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1, bigextractedmeta: Extracted metadata from object exceeds limit of 16000B"));
-		}
+		failSave(user, wsi, "bigextractedmeta", dBig, type, mtprov,
+				new IllegalArgumentException(
+						"Object #1, bigextractedmeta: Extracted metadata from object exceeds limit of 16000B"));
 	}
 	
 	@Test
