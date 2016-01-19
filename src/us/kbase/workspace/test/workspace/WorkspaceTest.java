@@ -211,21 +211,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		info = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
 		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked", MT_META);
 		
-		//TODO BF these tests should be in the metadata class unit tests
-		/*
-		Map<String, String> bigmeta = new HashMap<String, String>();
-		for (int i = 0; i < 141; i++) {
-			bigmeta.put("thing" + i, TEXT100);
-		}
-		ws.createWorkspace(SOMEUSER, "foo3", false, "eeswaffertheen", new WorkspaceUserMetadata(bigmeta));
-		bigmeta.put("thing", TEXT100);
-		try {
-			ws.createWorkspace(SOMEUSER, "foo4", false, "eeswaffertheen", bigmeta);
-			fail("created ws with > 16kb metadata");
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata size of 16076 is > 16000 bytes"));
-		}*/
 		ws.setGlobalPermission(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"), Permission.NONE);
 		ws.setGlobalPermission(SOMEUSER, new WorkspaceIdentifier("foo2"), Permission.NONE);
 	}
@@ -2713,44 +2698,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 	}
 	
-	//TODO BF this test belongs in the user metadata test
-	/*
-	@Test
-	public void bigUserMetaErrors() throws Exception {
-		WorkspaceUser foo = new WorkspaceUser("foo");
-		WorkspaceIdentifier read = new WorkspaceIdentifier("bigmeta");
-		ws.createWorkspace(foo, read.getIdentifierString(), false, null, null);
-		Map<String, Object> data = new HashMap<String, Object>();
-		Map<String, String> smallmeta = new HashMap<String, String>();
-		smallmeta.put("foo", "bar");
-		Map<String, String> meta = new HashMap<String, String>();
-		data.put("fubar", "bar");
-		JsonNode savedata = MAPPER.valueToTree(data);
-		for (int i = 0; i < 18; i++) {
-			meta.put(Integer.toString(i), LONG_TEXT); //> 16Mb now
-		}
-		try {
-			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer("bigmeta"), savedata, SAFE_TYPE1, meta,
-					new Provenance(foo), false)),
-					getIdFactory());
-			fail("saved object with > 16kb metadata");
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata size of 19413 is > 16000 bytes"));
-		}
-		try {
-			ws.saveObjects(foo, read, Arrays.asList(new WorkspaceSaveObject(
-					new ObjectIDNoWSNoVer(3), savedata, SAFE_TYPE1, meta,
-					new Provenance(foo), false)),
-					getIdFactory());
-			fail("saved object with > 16kb metadata");
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Metadata size of 19413 is > 16000 bytes"));
-		}
-	}*/
-	
 	@Test
 	public void saveWithWrongObjectId() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -3748,17 +3695,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.cloneWorkspace(user1, cp1, clone4.getName(), true, LONG_TEXT, null);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone4), is(LONG_TEXT.subSequence(0, 1000)));
 		
-		//TODO BF this test should go in metadata class unit tests
-		/*
-		Map<String, String> bigmeta = new HashMap<String, String>();
-		for (int i = 0; i < 141; i++) {
-			bigmeta.put("thing" + i, TEXT100);
-		}
-		ws.cloneWorkspace(user1, cp1, "fakename", false, "eeswaffertheen", bigmeta);
-		bigmeta.put("thing", TEXT100);
-		failClone(user1, cp1, "fakename", bigmeta, new IllegalArgumentException(
-				"Metadata size of 16076 is > 16000 bytes"));
-		*/
 		ws.setGlobalPermission(user1, clone2, Permission.NONE);
 		ws.setGlobalPermission(user1, clone4, Permission.NONE);
 	}

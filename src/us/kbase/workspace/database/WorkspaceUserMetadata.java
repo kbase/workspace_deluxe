@@ -10,7 +10,6 @@ import java.util.Map.Entry;
 
 public class WorkspaceUserMetadata {
 	
-	//TODO BF test, unit tests 
 	//TODO BF docs
 	
 	public static final int MAX_METADATA_SIZE = 16000;
@@ -51,6 +50,7 @@ public class WorkspaceUserMetadata {
 	
 	public void addMetadata(final Map<String, String> meta)
 			throws MetadataException {
+		if (meta == null) {return;}
 		checkKeyValueSizes(meta);
 		Map<String, String> m = new HashMap<String, String>();
 		m.putAll(metadata);
@@ -59,17 +59,18 @@ public class WorkspaceUserMetadata {
 		metadata = m;
 	}
 	
+	public void addMetadata(final WorkspaceUserMetadata meta)
+			throws MetadataException {
+		if (meta == null) {return;}
+		addMetadata(meta.getMetadata());
+	}
+
 	public static void checkMetadataSize(final Map<String, String> meta) 
 			throws MetadataException {
 		if (checkJSONSizeInBytes(meta) > MAX_METADATA_SIZE) {
 			throw new MetadataSizeException(String.format(
 					"Metadata exceeds maximum of %sB", MAX_METADATA_SIZE)); 
 		}
-	}
-	
-	public void addMetadata(final WorkspaceUserMetadata meta)
-			throws MetadataException {
-		addMetadata(meta.getMetadata());
 	}
 	
 	public Map<String, String> getMetadata() {
@@ -95,11 +96,7 @@ public class WorkspaceUserMetadata {
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((metadata == null) ? 0 : metadata.hashCode());
-		return result;
+		return 31 + metadata.hashCode();
 	}
 
 	@Override
@@ -110,13 +107,8 @@ public class WorkspaceUserMetadata {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		WorkspaceUserMetadata other = (WorkspaceUserMetadata) obj;
-		if (metadata == null) {
-			if (other.metadata != null)
-				return false;
-		} else if (!metadata.equals(other.metadata))
-			return false;
-		return true;
+		final WorkspaceUserMetadata other = (WorkspaceUserMetadata) obj;
+		return metadata.equals(other.metadata);
 	}
 	
 	public static class MetadataException extends Exception {
