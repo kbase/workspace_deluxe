@@ -2009,6 +2009,7 @@ public class TypeDefinitionDB {
 		 * exception before this point.
 		 * That being said, it's not bad to have a safeguard here. 
 		 */
+		//TODO TYPEDB add tests for this after removing 'both' type tests 
 		TypeDefName.checkTypeName(moduleName, "Module name");
 		for (final KbModuleComp comp: module.getModuleComponents()){
 			if (comp instanceof KbTypedef) {

@@ -7,7 +7,6 @@ import java.util.Map;
 
 public class UncheckedUserMetadata {
 	
-	//TODO BF test, unit tests 
 	//TODO BF docs
 
 	private Map<String, String> metadata;
@@ -43,11 +42,7 @@ public class UncheckedUserMetadata {
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((metadata == null) ? 0 : metadata.hashCode());
-		return result;
+		return 31 + metadata.hashCode();
 	}
 
 	@Override
@@ -58,7 +53,7 @@ public class UncheckedUserMetadata {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		UncheckedUserMetadata other = (UncheckedUserMetadata) obj;
+		final UncheckedUserMetadata other = (UncheckedUserMetadata) obj;
 		return metadata.equals(other.metadata);
 	}
 }
