@@ -11,6 +11,7 @@
   <property name="dist" location="dist"/>
   <property name="test" location="test"/>
   <property name="doc" location="docs/javadoc"/>
+  <property name="doc_server_doc_loc" location="/server_docs"/>
   <property name="tempunpack" location="unpackedjars"/>
   <property name="classes" location="classes"/>
   <property name="client_classes" location="client_classes"/>
@@ -31,7 +32,7 @@
   <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
   <property name="jardir" location="${env.JENKINS_JARS_MODULE_PATH}/lib/jars"/>
 
-  <condition property="commonjar" value="kbase/common/kbase-common-0.0.10.jar">
+  <condition property="commonjar" value="kbase/common/kbase-common-0.0.14.jar">
     <or>
       <equals arg1="${env.JENKINS_JAVA_COMMON_JARFILE}" arg2=""/>
       <not>
@@ -184,6 +185,7 @@
           <include name="**/*.instance.*"/>
           <include name="**/instance.*"/>
           <include name="**/*.instance"/>
+          <include name="**/*.html"/>
         </patternset>
       </fileset>
     </copy>
@@ -201,11 +203,17 @@
     <copy todir="${war.dir}/lib/" flatten="true">
       <union refid="serverside"/>
     </copy>
+    <mkdir dir="workspace_docs/${doc_server_doc_loc}"/>
+    <copy todir="workspace_docs/${doc_server_doc_loc}">
+      <fileset dir="docs"/>
+    </copy>
     <war destfile="${dist}/${war.file}" webxml="${war.dir}/web.xml">
       <classes dir="${classes}"/>
       <lib dir="${war.dir}/lib/"/>
+      <classes dir="workspace_docs"/>
     </war>
     <delete dir="${war.dir}/lib"/>
+    <delete dir="workspace_docs"/>
   </target>
 
   <target name="javadoc" description="build javadocs">
