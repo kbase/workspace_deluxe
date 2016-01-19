@@ -73,6 +73,8 @@ import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
+import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataKeySizeException;
+import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataValueSizeException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
@@ -1086,7 +1088,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
-	public void saveObjectsAndTestExtractedMeta() throws Exception {
+	public void metadataExtracted() throws Exception {
 		String module = "TestMetaData";
 		String spec =
 				"module " + module + " {" +
@@ -1186,12 +1188,32 @@ public class WorkspaceTest extends WorkspaceTester {
 				"metadataExtractedLargeTest");
 		ws.createWorkspace(user, wsi.getName(), false, null, null);
 		
+		Map<String, Object> dBig = new LinkedHashMap<String, Object>();
+		dBig.put("l", Arrays.asList(1,2,3,4,5,6,7,8));
+
+		//test fail on large extracted values
+		dBig.put("val", TEXT1000);
+		saveObject(user, wsi, null, dBig, type, "foo", mtprov); //should work
+		dBig.put("val", TEXT1000 + "f");
+		failSave(user, wsi, "bar", dBig, type, mtprov,
+				new IllegalArgumentException(
+						"Object #1, bar: Value for metadata key val exceeds maximum of 1000B: "
+								+ TEXT1000 + "f"));
 		
+		StringBuilder unicode = new StringBuilder();
+		for (int i = 0; i < 250; i++) {
+			unicode.appendCodePoint(0x1D120);
+		}
+		dBig.put("val", unicode.toString());
+		saveObject(user, wsi, null, dBig, type, "foo", mtprov); //should work
+		dBig.put("val", unicode.toString() + "f");
+		failSave(user, wsi, "bar", dBig, type, mtprov,
+				new IllegalArgumentException(
+						"Object #1, bar: Value for metadata key val exceeds maximum of 1000B: "
+								+ unicode.toString() + "f"));
 		
 		
 		// test fail when extracted metadata > limit
-		Map<String, Object> dBig = new LinkedHashMap<String, Object>();
-		dBig.put("l", Arrays.asList(1,2,3,4,5,6,7,8));
 		StringBuilder bigVal = new StringBuilder();
 		for (int i = 0; i < 18; i++) {
 			bigVal.append(LONG_TEXT); //> 16kb now
