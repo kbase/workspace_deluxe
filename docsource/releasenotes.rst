@@ -6,6 +6,8 @@ VERSION: 0.3.6 (Released TBD)
 NEW FEATURES:
 
 * Added get_permissions_mass function.
+* A documentation server now provides all available workspace documentation at
+  the /docs endpoint.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
