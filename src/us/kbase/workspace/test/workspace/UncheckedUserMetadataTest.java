@@ -2,6 +2,7 @@ package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +47,20 @@ public class UncheckedUserMetadataTest {
 				uum.getMetadata(),
 				is(mt));
 		
+	}
+	
+	@Test
+	public void getMetadata() throws Exception {
+		Map<String, String> m = new HashMap<String, String>();
+		m.put("foo", "bar");
+		UncheckedUserMetadata uum = new UncheckedUserMetadata(m);
+		Map<String, String> out = uum.getMetadata();
+		try {
+			out.put("whee", "whoo");
+			fail("expected unsupported exception");
+		} catch (UnsupportedOperationException uoe) {
+			//pass
+		}
 	}
 	
 	@Test
