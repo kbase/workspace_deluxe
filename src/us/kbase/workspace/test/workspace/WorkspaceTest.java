@@ -3587,6 +3587,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "hide")), true);
 		
 		failClone(null, cp1, "fakename", null, new WorkspaceAuthorizationException("Anonymous users may not read workspace clone1"));
+		failClone(user1, null, "fakename", null, new IllegalArgumentException("Workspace identifier cannot be null"));
 		//workspaceIdentifier used in the workspace method to check ws names tested extensively elsewhere, so just
 		// a couple tests here
 		failClone(user1, cp1, "bar:fakename", null, new IllegalArgumentException(
@@ -3940,6 +3941,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				Arrays.asList(wsi)).get(0).get(new AllUsers('*')),
 				is(Permission.READ));
 		ws.getWorkspaceDescription(user2, wsi);
+		failSetGlobalPerm(user, null, Permission.READ, new IllegalArgumentException(
+				"Workspace identifier cannot be null"));
 		failSetGlobalPerm(user, wsi, Permission.WRITE, new IllegalArgumentException(
 				"Global permissions cannot be greater than read"));
 		failSetGlobalPerm(user2, wsi, Permission.NONE, new WorkspaceAuthorizationException(

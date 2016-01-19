@@ -272,7 +272,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (meta == null) {
 			throw new NullPointerException("meta cannot be null");
 		}
-		//TODO gavin merge check size code from Util and make new max size exception
 		//avoid incrementing the counter if we don't have to
 		try {
 			final List<Map<String, Object>> ws = query.queryCollection(
@@ -314,9 +313,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Fields.WS_NUMOBJ, 0L);
 		ws.put(Fields.WS_DESC, description);
 		ws.put(Fields.WS_LOCKED, false);
-		if (meta != null) { //TODO BF meta can't be null
-			ws.put(Fields.WS_META, metaHashToMongoArray(meta.getMetadata()));
-		}
+		ws.put(Fields.WS_META, metaHashToMongoArray(meta.getMetadata()));
 		try {
 			wsmongo.getCollection(COL_WORKSPACES).insert(ws);
 		} catch (MongoException.DuplicateKey mdk) {
@@ -1439,6 +1436,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Object %s : %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
 						e.getMessage()), e);
+				//TODO BF test exceptions below
 			} catch (MetadataSizeException mse) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s : The user-provided metadata, when " +

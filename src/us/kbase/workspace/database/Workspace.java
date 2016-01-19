@@ -315,12 +315,15 @@ public class Workspace {
 			final WorkspaceIdentifier wsi, final WorkspaceUserMetadata meta)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		if (meta == null || meta.isEmpty()) {
+			throw new IllegalArgumentException(
+					"Metadata cannot be null or empty");
+		}
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
 				"alter metadata for");
 		db.setWorkspaceMeta(wsid, meta);
 	}
 	
-	//TODO BF test create/clone ws with null wsi
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
 			final WorkspaceIdentifier wsi, final String newname,
 			final boolean globalread, final String description,

@@ -40,8 +40,10 @@ public class TypeDefName {
 	/** Checks that a type name or module name is acceptable. Must be a
 	 * non-zero length string of <= 255B with only the ASCII characters a-z, 
 	 * A-Z, 0-9, and _.
-	 * @param name
-	 * @param dataName
+	 * @param name the type name to check.
+	 * @param dataName the type of the type name, e.g. 'Module name' or
+	 * 'Type name', typically. 
+	 * @throws IllegalArgumentException if the name is invalid.
 	 */
 	public static void checkTypeName(final String name, final String dataName) {
 		checkString(name, dataName);
