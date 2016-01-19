@@ -15,7 +15,9 @@ Maximum RPC call size                            1.005GB
 Maximum object size                              1GB
 Maximum total size of returned objects           1GB
 Maximum provenance size                          1MB
-Maximum user metadata size                       16KB
+Maximum user metadata size                       16000B
+Maximum user metadata key / value size           1000B
+Maximum autometadata key / value size            1000B
 Maximum memory use for sorting objects           200MB
 Maximum object_infos returned by list_objects    10000
 Maximum workspace references per save            100000
