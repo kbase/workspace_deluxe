@@ -94,14 +94,21 @@ public class MetadataExtractionHandler {
 	public void saveMetadata(String name, String value) throws ExceededMaxMetadataSizeException {
 		// check the size of what we are adding first
 		try {
-			if(extracted.size()>0) { currentByteSize += ",".getBytes(CHAR_ENCODING_FOR_BYTE_SIZE).length; }
-			currentByteSize += ("\""+name+"\":\""+value+"\"").getBytes(CHAR_ENCODING_FOR_BYTE_SIZE).length;
+			if (extracted.size() > 0) {
+				currentByteSize += ",".getBytes(
+						CHAR_ENCODING_FOR_BYTE_SIZE).length;
+			}
+			currentByteSize += ("\""+name+"\":\""+value+"\"").getBytes(
+					CHAR_ENCODING_FOR_BYTE_SIZE).length;
 		} catch (Exception e) {
-			throw new RuntimeException("This is bad. There is an unexpected error when checking the byte size of metatdata",e);}
-		if(maxMetadataSize>=0) {
+			throw new RuntimeException(
+					"This is bad. There is an unexpected error when checking the byte size of metatdata",e);
+		}
+		if (maxMetadataSize >= 0) {
 			if (currentByteSize > maxMetadataSize) {
-				throw new ExceededMaxMetadataSizeException("Object metadata size ("+currentByteSize+" bytes) after adding metadata "
-						+ "field '"+name+"' exceeds limit of " + maxMetadataSize+" bytes");
+				throw new ExceededMaxMetadataSizeException(
+						"Extracted metadata from object exceeds limit of " +
+								maxMetadataSize + "B");
 			}
 		}
 		extracted.put(name, value);

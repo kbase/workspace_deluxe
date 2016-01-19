@@ -1146,18 +1146,47 @@ public class WorkspaceTest extends WorkspaceTester {
 				oi2.get(0).getUserMetaData().getMetadata());
 		for(Entry<String,String> m : savedUserMetaData.entrySet()) {
 			if(m.getKey().equals("val"))
-				assertThat("Extracted metadata must be correct", m.getValue(), is(val));
+				assertThat("Extracted metadata must be correct", m.getValue(),
+						is(val));
 			if(m.getKey().equals("Length of list"))
-				assertThat("Extracted metadata must be correct", m.getValue(), is("8"));
+				assertThat("Extracted metadata must be correct", m.getValue(),
+						is("8"));
 			if(m.getKey().equals("my_special_metadata"))
-				assertThat("Extracted metadata must be correct", m.getValue(), is("yes"));
+				assertThat("Extracted metadata must be correct", m.getValue(),
+						is("yes"));
 		}
 		savedUserMetaData.remove("val");
 		savedUserMetaData.remove("Length of list");
 		savedUserMetaData.remove("my_special_metadata");
 		Assert.assertEquals("Only metadata we wanted was extracted", 0, savedUserMetaData.size());
+	}
+	
+	@Test
+	public void metadataExtractedLargeTest() throws Exception {
+		String module = "TestLargeMetadata";
+		String type = "BigMeta";
+		String spec =
+				"module " + module + " {" +
+					"/* @metadata ws val\n" +
+					"@metadata ws length(l) as Length of list*/" +
+					"typedef structure {" +
+						"string val;" +
+						"list<int> l;" +
+					"} " + type + ";" +
+				"};";
+		WorkspaceUser user = new WorkspaceUser("foo");
+		ws.requestModuleRegistration(user, module);
+		ws.resolveModuleRegistration(module, true);
+		ws.compileNewTypeSpec(user, spec, Arrays.asList(type), null, null,
+				false, null);
+		TypeDefId MyType = new TypeDefId(
+				new TypeDefName(module, type), 0, 1);
+		Provenance emptyprov = new Provenance(user);
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier(
+				"metadataExtractedLargeTest");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
 		
-		// finally, test that if we exceed the metadata extraction limit, we fail
+		// test fail when extracted metadata > limit
 		Map<String, Object> dBig = new LinkedHashMap<String, Object>();
 		dBig.put("l", Arrays.asList(1,2,3,4,5,6,7,8));
 		StringBuilder bigVal = new StringBuilder();
@@ -1166,13 +1195,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		dBig.put("val", bigVal.toString());
 		try {
-			ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+			ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 					new ObjectIDNoWSNoVer("bigextractedmeta"), dBig, MyType, null,
 					emptyprov, false)), getIdFactory());
 			fail("saved object with > 16kb of extracted metadata");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1, bigextractedmeta : Object metadata size (19309 bytes) after adding metadata field 'val' exceeds limit of 16000 bytes"));
+					is("Object #1, bigextractedmeta: Extracted metadata from object exceeds limit of 16000B"));
 		}
 	}
 	
