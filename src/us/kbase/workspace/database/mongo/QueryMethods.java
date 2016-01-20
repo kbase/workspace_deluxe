@@ -424,7 +424,7 @@ public class QueryMethods {
 		try {
 			final DBCursor im = wsmongo.getCollection(collection)
 					.find(query, projection);
-			if (limit > 1) {
+			if (limit > 0) {
 				im.limit(limit);
 			}
 			for (final DBObject o: im) {
