@@ -4910,6 +4910,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		List<String> wsi2n = Arrays.asList("aca");
 		
+		checkGetByPrefixLimit(u, Arrays.asList(wsi1), 1, 1, Arrays.asList(
+				Arrays.asList("aaa", "aba", "abc")));
 		checkGetByPrefixLimit(u, Arrays.asList(wsi1), 4, 3, Arrays.asList(
 				Arrays.asList("aaa", "aba", "abc")));
 		checkGetByPrefixLimit(u, Arrays.asList(wsi1), 0, 3, Arrays.asList(
