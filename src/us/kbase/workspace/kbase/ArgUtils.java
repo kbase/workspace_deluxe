@@ -586,9 +586,12 @@ public class ArgUtils {
 		return b != 0;
 	}
 	
-	public static int longToInt(final Long l, final String name, final int deflt) {
+	public static int longToInt(
+			final Long l,
+			final String name,
+			final int default_) {
 		if (l == null) {
-			return deflt;
+			return default_;
 		}
 		if (l > Integer.MAX_VALUE) {
 				throw new IllegalArgumentException(

@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -2414,6 +2415,51 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					new MongoReference(roi.getWorkspaceIdentifier().getID(),
 							roi.getId(),
 							(Integer) vers.get(roi).get(Fields.VER_VER))));
+		}
+		return ret;
+	}
+	
+	private static final Set<String> FLDS_NAME_PREFIX = newHashSet(
+			Fields.OBJ_NAME, Fields.OBJ_WS_ID);
+
+	@Override
+	public Map<ResolvedWorkspaceID, List<String>> getNamesByPrefix(
+			final Set<ResolvedWorkspaceID> rwsis,
+			final String prefix,
+			final boolean includeHidden,
+			final int limit)
+			throws WorkspaceCommunicationException {
+		final Map<ResolvedWorkspaceID, List<String>> ret =
+				new HashMap<ResolvedWorkspaceID, List<String>>();
+		if (rwsis.isEmpty()) {
+			return ret;
+		}
+		final Map<Long, ResolvedWorkspaceID> wsIDtoWS =
+				new HashMap<Long, ResolvedWorkspaceID>();
+		for (final ResolvedWorkspaceID rwsid: rwsis) {
+			wsIDtoWS.put(rwsid.getID(), rwsid);
+		}
+		final DBObject q = new BasicDBObject(Fields.OBJ_DEL, false);
+		q.put(Fields.OBJ_WS_ID, new BasicDBObject("$in", wsIDtoWS.keySet()));
+		if (!prefix.isEmpty()) {
+			// escape regex chars
+			q.put(Fields.OBJ_NAME,
+					new BasicDBObject("$regex", "^" + Pattern.quote(prefix)));
+		}
+		if (!includeHidden) {
+			q.put(Fields.OBJ_HIDE, false);
+		}
+		
+		final List<Map<String, Object>> names = query.queryCollection(
+				COL_WORKSPACE_OBJS, q, FLDS_NAME_PREFIX, 0, limit);
+		for (final Map<String, Object> o: names) {
+			final Long wsid = (Long) o.get(Fields.OBJ_WS_ID);
+			final String name = (String) o.get(Fields.OBJ_NAME);
+			final ResolvedWorkspaceID rwsid = wsIDtoWS.get(wsid);
+			if (!ret.containsKey(rwsid)) {
+				ret.put(rwsid, new LinkedList<String>());
+			}
+			ret.get(rwsid).add(name);
 		}
 		return ret;
 	}

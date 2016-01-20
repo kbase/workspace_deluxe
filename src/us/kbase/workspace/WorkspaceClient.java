@@ -854,6 +854,27 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: get_names_by_prefix</p>
+     * <pre>
+     * Get object names matching a prefix. At most 1000 names are returned.
+     * No particular ordering is guaranteed, nor is which names will be
+     * returned if more than 1000 are found.
+     * This function is intended for use as an autocomplete helper function.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetNamesByPrefixParams GetNamesByPrefixParams}
+     * @return   parameter "res" of type {@link us.kbase.workspace.GetNamesByPrefixResults GetNamesByPrefixResults}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public GetNamesByPrefixResults getNamesByPrefix(GetNamesByPrefixParams params) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<GetNamesByPrefixResults>> retType = new TypeReference<List<GetNamesByPrefixResults>>() {};
+        List<GetNamesByPrefixResults> res = caller.jsonrpcCall("Workspace.get_names_by_prefix", args, retType, true, false);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: hide_objects</p>
      * <pre>
      * Hide objects. All versions of an object are hidden, regardless of

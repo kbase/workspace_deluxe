@@ -88,7 +88,8 @@ public class Workspace {
 	public static final User ALL_USERS = new AllUsers('*');
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
-	private final static int MAX_WS_COUNT_PERMS = 1000;
+	private final static int MAX_WS_COUNT = 1000;
+	private final static int NAME_LIMIT = 1000;
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
 	
@@ -205,14 +206,34 @@ public class Workspace {
 			throw new IllegalArgumentException(
 					"Workspace identifier cannot be null");
 		}
-		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi,
-				allowDeletedWorkspace);
-		if (!ignoreLock) {
-			checkLocked(perm, wsid);
+		return checkPermsMass(user, Arrays.asList(wsi), perm, operation,
+				allowDeletedWorkspace, ignoreLock).get(wsi);
+	}
+	
+	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> checkPermsMass(
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wsis,
+			final Permission perm,
+			final String operation,
+			final boolean allowDeletedWorkspace,
+			final boolean ignoreLock)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			WorkspaceAuthorizationException, CorruptWorkspaceDBException {
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
+				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wsis),
+						allowDeletedWorkspace, false);
+		final PermissionSet perms = db.getPermissions(user,
+				new HashSet<ResolvedWorkspaceID>(rwsis.values()));
+		for (final Entry<WorkspaceIdentifier, ResolvedWorkspaceID> e:
+				rwsis.entrySet()) {
+			if (!ignoreLock) {
+				checkLocked(perm, e.getValue());
+			}
+			comparePermission(
+					user, perm, perms.getPermission(e.getValue(), true),
+					e.getKey(), operation);
 		}
-		comparePermission(user, perm, db.getPermission(user, wsid),
-				wsi, operation);
-		return wsid;
+		return rwsis;
 	}
 	
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
@@ -485,10 +506,10 @@ public class Workspace {
 		if (wslist == null) {
 			throw new NullPointerException("wslist cannot be null");
 		}
-		if (wslist.size() > MAX_WS_COUNT_PERMS) {
+		if (wslist.size() > MAX_WS_COUNT) {
 			throw new IllegalArgumentException(
 					"Maximum number of workspaces allowed for input is " +
-							MAX_WS_COUNT_PERMS);
+							MAX_WS_COUNT);
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwslist =
 				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wslist));
@@ -1166,6 +1187,67 @@ public class Workspace {
 				ret.add(null);
 			} else {
 				ret.add(meta.get(ws.get(o)));
+			}
+		}
+		return ret;
+	}
+	
+	/** Get object names based on a provided prefix. Returns at most 1000
+	 * names in no particular order. Intended for use as an auto-completion
+	 * method.
+	 * @param user the user requesting names.
+	 * @param wsis the workspaces in which to look for names.
+	 * @param prefix the prefix returned names must have.
+	 * @param includeHidden include hidden objects in the output.
+	 * @param limit the maximum number of names to return, at most 1000.
+	 * @return list of workspace names, listed by workspace in order of the 
+	 * input workspace list.
+	 * @throws NoSuchWorkspaceException if an input workspace does not exist.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the backend database occurs.
+	 * @throws CorruptWorkspaceDBException if there is a data error in the
+	 * database
+	 * @throws WorkspaceAuthorizationException if the user is not authorized
+	 * to read one of the input workspaces.
+	 */
+	public List<List<String>> getNamesByPrefix(
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wsis,
+			final String prefix,
+			final boolean includeHidden,
+			final int limit)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+			CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+		if (wsis == null) {
+			throw new NullPointerException("Workspace list cannot be null");
+		}
+		if (wsis.size() > MAX_WS_COUNT) {
+			throw new IllegalArgumentException(
+					"Maximum number of workspaces allowed for input is " +
+							MAX_WS_COUNT);
+		}
+		if (prefix == null) {
+			throw new NullPointerException("prefix cannot be null");
+		}
+		if (limit > NAME_LIMIT) {
+			throw new IllegalArgumentException(
+					"limit cannot be greater than " + NAME_LIMIT);
+		}
+		
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
+				checkPermsMass(user, wsis, Permission.READ, "read", false,
+						false);
+		final Map<ResolvedWorkspaceID, List<String>> names =
+				db.getNamesByPrefix(
+						new HashSet<ResolvedWorkspaceID>(rwsis.values()),
+						prefix, includeHidden, limit);
+		final List<List<String>> ret = new LinkedList<List<String>>();
+		for (final WorkspaceIdentifier wi: wsis) {
+			final ResolvedWorkspaceID rwi = rwsis.get(wi);
+			if (!names.containsKey(rwi)) {
+				ret.add(new LinkedList<String>());
+			} else {
+				ret.add(names.get(rwi));
 			}
 		}
 		return ret;

@@ -92,8 +92,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		super(config, backend, maxMemoryUsePerCall);
 	}
 
-	private static final WorkspaceIdentifier lockWS = new WorkspaceIdentifier("lock");
-	
 	@Test
 	public void workspaceDescription() throws Exception {
 		WorkspaceInformation ltinfo = ws.createWorkspace(SOMEUSER, "lt", false, LONG_TEXT, null);
@@ -3703,7 +3701,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void lockWorkspace() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("lockuser");
 		WorkspaceUser user2 = new WorkspaceUser("lockuser2");
-		WorkspaceIdentifier wsi = lockWS;
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("lock");
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("some meta", "for u");
 		long wsid = ws.createWorkspace(user, wsi.getName(), false, null,
@@ -4146,22 +4144,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		expected.put(globalreadable, false);
 		expected.put(listuser3gl, false);
-		WorkspaceInformation locked = null;
-		try {
-			locked = ws.getWorkspaceInformation(user, lockWS);
-		} catch (NoSuchWorkspaceException nswe) {
-			//ignore - means that the locking ws test has not been run yet
-		}
-		if (locked != null) {
-			expected.put(locked, false);
-		}
 		checkWSInfoList(ws.listWorkspaces(user, null, null, null, null, null, false, false, false), expected);
 		
 		expected.put(deletedws, true);
 		checkWSInfoList(ws.listWorkspaces(user, null, null, null, null, null, false, true, false), expected);
 		
 		expected.remove(globalreadable);
-		expected.remove(locked);
 		expected.remove(listuser3gl);
 		checkWSInfoList(ws.listWorkspaces(user, null, null, null, null, null, true, true, false), expected);
 		checkWSInfoList(ws.listWorkspaces(user, Permission.NONE, null, null, null, null, true, true, false), expected);
@@ -4176,9 +4164,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		expected.clear();
 		expected.put(globalreadable, false);
 		expected.put(listuser3gl, false);
-		if (locked != null) {
-			expected.put(locked, false);
-		}
 		WorkspaceUser newb = new WorkspaceUser("listUserAZillion");
 		expected.put(ws.getWorkspaceInformation(newb, new WorkspaceIdentifier("globalws")), false);
 		checkWSInfoList(ws.listWorkspaces(newb, null, null, null, null, null, false, false, false), expected);
@@ -4498,31 +4483,13 @@ public class WorkspaceTest extends WorkspaceTester {
 				new Provenance(user), false)), getIdFactory()).get(0);
 		ws.setObjectsDeleted(user3, Arrays.asList(new ObjectIdentifier(thirdparty, "thirdobjdel")), true);
 		
-		ObjectInformation lock = null;
-		ObjectInformation locknometa = null;
-		try {
-			ListObjectsParameters lop = new ListObjectsParameters(user, Arrays.asList(lockWS))
-				.withIncludeMetaData(true);
-			List<ObjectInformation> foo = ws.listObjects(lop);
-			if (foo.size() > 1) {
-				fail("found more than one object in the locked workspace, this is unexpected");
-			}
-			if (foo.size() == 1) {
-				lock = foo.get(0);
-				locknometa = ws.listObjects(lop.withIncludeMetaData(false)).get(0);
-			}
-		} catch (NoSuchWorkspaceException nswe) {
-			//do nothing, lock workspace wasn't created yet
-		}
-		
 		TypeDefId allType1 = new TypeDefId(SAFE_TYPE1.getType().getTypeString());
 		TypeDefId allType2 = new TypeDefId(SAFE_TYPE2.getType().getTypeString());
 		
 		//test with anon user
 		ListObjectsParameters lop = new ListObjectsParameters(null, SAFE_TYPE1)
 				.withShowDeleted(true).withIncludeMetaData(true);
-		compareObjectInfo(ws.listObjects(lop),
-				setUpListObjectsExpected(Arrays.asList(thirdobj), lock));
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(thirdobj));
 		compareObjectInfo(ws.listObjects(lop.withExcludeGlobal(true)),
 				new LinkedList<ObjectInformation>());
 		
@@ -4563,12 +4530,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		lop = new ListObjectsParameters(user, allType1)
 				.withShowHidden(true).withShowDeleted(true).withShowAllVersions(true)
 				.withIncludeMetaData(true);
-		compareObjectInfo(ws.listObjects(lop),
-				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
-						stdws2, hidden, deleted, readobj, adminobj, thirdobj), lock));
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(std, objstack1,
+				objstack2, stdws2, hidden, deleted, readobj, adminobj,
+				thirdobj));
 		compareObjectInfo(ws.listObjects(lop.withSavers(new ArrayList<WorkspaceUser>())),
-				setUpListObjectsExpected(Arrays.asList(std, objstack1, objstack2,
-						stdws2, hidden, deleted, readobj, adminobj, thirdobj), lock));
+				Arrays.asList(std, objstack1, objstack2, stdws2, hidden,
+						deleted, readobj, adminobj, thirdobj));
 		
 		//exclude globally readable workspaces
 		compareObjectInfo(ws.listObjects(lop.withExcludeGlobal(true)),
@@ -4643,17 +4610,17 @@ public class WorkspaceTest extends WorkspaceTester {
 				.withShowHidden(true).withShowDeleted(true)
 				.withShowAllVersions(true).withIncludeMetaData(true);
 		compareObjectInfo(ws.listObjects(lop),
-				setUpListObjectsExpected(Arrays.asList(std, stdws2, hidden, deleted,
-						readobj, adminobj, thirdobj), lock));
+				Arrays.asList(std, stdws2, hidden, deleted,
+						readobj, adminobj, thirdobj));
 		compareObjectInfo(ws.listObjects(lop.withIncludeMetaData(false)),
-				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
-						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
+				Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
+						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa));
 		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.NONE)),
-				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
-						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
+				Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
+						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa));
 		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.READ)),
-				setUpListObjectsExpected(Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
-						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa), locknometa));
+				Arrays.asList(stdnometa, stdws2nometa, hiddennometa,
+						deletednometa, readobjnometa, adminobjnometa, thirdobjnometa));
 		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.WRITE)),
 				Arrays.asList(stdnometa, stdws2nometa, hiddennometa, deletednometa, adminobjnometa));
 		compareObjectInfo(ws.listObjects(lop.withMinimumPermission(Permission.ADMIN)),
@@ -4694,8 +4661,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user2, allType1)
 				.withShowHidden(true).withShowDeleted(true)
 				.withShowAllVersions(true).withIncludeMetaData(true)),
-				setUpListObjectsExpected(Arrays.asList(stdws2, hidden, deleted, readobj,
-						adminobj, thirdobj), lock));
+				Arrays.asList(stdws2, hidden, deleted, readobj,
+						adminobj, thirdobj));
 		compareObjectInfo(ws.listObjects(new ListObjectsParameters(user2, Arrays.asList(writeable))
 				.withShowHidden(true).withShowDeleted(true)
 				.withShowAllVersions(true).withIncludeMetaData(true)),
@@ -4787,6 +4754,247 @@ public class WorkspaceTest extends WorkspaceTester {
 				new InaccessibleObjectException("Object 3 (name deleted) in workspace " + wsidwrite + " has been deleted"));
 		
 		ws.setGlobalPermission(user3, new WorkspaceIdentifier("thirdparty"), Permission.NONE);
+	}
+
+	@Test
+	public void getNamesByPrefix() throws Exception {
+		WorkspaceUser u = new WorkspaceUser("getNamesByPrefix");
+		WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("getNamesByPrefix1");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("getNamesByPrefix2");
+		WorkspaceIdentifier wsiMT = new WorkspaceIdentifier("getNamesByPrefixMT");
+		WorkspaceIdentifier wsiGR = new WorkspaceIdentifier("getNamesByPrefixGR");
+		for (WorkspaceIdentifier wi: Arrays.asList(wsi1, wsi2, wsiMT, wsiGR)) {
+			ws.createWorkspace(u, wi.getName(), false, null, null);
+		}
+		Map<String, String> mt = new HashMap<String, String>();
+		Provenance p = new Provenance(u);
+		
+		ws.setGlobalPermission(u, wsiGR, Permission.READ);
+		ws.saveObjects(u, wsi1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("aaa"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("aba"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("abc"), mt,
+						SAFE_TYPE1, null, p, true),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("abcdel"), mt,
+						SAFE_TYPE1, null, p, false)
+				), getIdFactory());
+		ws.setObjectsDeleted(u,
+				Arrays.asList(new ObjectIdentifier(wsi1, "abcdel")), true);
+		ws.saveObjects(u, wsi2, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("aca"), mt,
+						SAFE_TYPE1, null, p, false)), getIdFactory());
+		ws.saveObjects(u, wsiGR, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("abd"), mt,
+						SAFE_TYPE1, null, p, false)), getIdFactory());
+		
+		List<String> mtList = new LinkedList<String>();
+		List<String> wsi2n = Arrays.asList("aca");
+		List<String> wsiGRn = Arrays.asList("abd");
+		
+		//check various prefixes
+		checkGetByPrefix(u, Arrays.asList(wsi1, wsi2, wsiMT, wsiGR),
+				"", true, 1000, Arrays.asList(
+				Arrays.asList("aaa", "aba", "abc"), wsi2n, mtList, wsiGRn));
+		checkGetByPrefix(u, Arrays.asList(wsi1, wsi2, wsiMT, wsiGR),
+				"a", true, 10, Arrays.asList(
+				Arrays.asList("aaa", "aba", "abc"), wsi2n, mtList, wsiGRn));
+		checkGetByPrefix(u, Arrays.asList(wsi1, wsi2, wsiGR),
+				"ab", true, 10, Arrays.asList(
+				Arrays.asList("aba", "abc"), mtList, wsiGRn));
+
+		//check no hidden objects
+		checkGetByPrefix(u, Arrays.asList(wsi1, wsi2, wsiGR),
+				"ab", false, 10, Arrays.asList(
+				Arrays.asList("aba"), mtList, wsiGRn));
+		
+		//test with null user
+		checkGetByPrefix(null, Arrays.asList(wsiGR),
+				"", false, 3, Arrays.asList(wsiGRn));
+		
+		//test with no workspaces
+		checkGetByPrefix(u, new LinkedList<WorkspaceIdentifier>(),
+				"", true, 1000, new LinkedList<List<String>> ());
+	}
+	
+	private void checkGetByPrefix(WorkspaceUser user,
+			WorkspaceIdentifier wsi,
+			String prefix,
+			List<String> results)
+			throws Exception {
+		checkGetByPrefix(user, Arrays.asList(wsi), prefix, false, 1000,
+				Arrays.asList(results));
+	}
+	
+	private void checkGetByPrefix(WorkspaceUser user,
+			List<WorkspaceIdentifier> wsis,
+			String prefix,
+			boolean includeHidden,
+			int limit,
+			List<List<String>> results)
+			throws Exception {
+		List<Set<String>> exp = new LinkedList<Set<String>>();
+		for (List<String> r: results) {
+			exp.add(new HashSet<String>(r));
+		}
+		List<Set<String>> got = new LinkedList<Set<String>>();
+		List<List<String>> ret = ws.getNamesByPrefix(
+				user, wsis, prefix, includeHidden, limit);
+		for (List<String> r: ret) {
+			got.add(new HashSet<String>(r));
+		}
+		
+		assertThat("correct returned names", got, is(exp));
+	}
+	
+	@Test
+	public void getNameByPrefixRegex() throws Exception {
+		WorkspaceUser u = new WorkspaceUser("getNamesByPrefix");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("getNamesByPrefix1");
+		ws.createWorkspace(u, wsi.getName(), false, null, null);
+		Map<String, String> mt = new HashMap<String, String>();
+		Provenance p = new Provenance(u);
+		List<String> mtlist = new LinkedList<String>();
+		
+		ws.saveObjects(u, wsi, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("foo|bar.baz-thing_woo"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("aba"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("abc"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("ab."), mt,
+						SAFE_TYPE1, null, p, false)
+				), getIdFactory());
+		
+		checkGetByPrefix(u, wsi, "f",
+				Arrays.asList("foo|bar.baz-thing_woo"));
+		checkGetByPrefix(u, wsi, "foo|bar.baz-thing_",
+				Arrays.asList("foo|bar.baz-thing_woo"));
+		
+		//regex patterns shouldn't work
+		checkGetByPrefix(u, wsi, ".*", mtlist);
+		checkGetByPrefix(u, wsi, "ab.", Arrays.asList("ab."));
+		checkGetByPrefix(u, wsi, "\\w", mtlist);
+		checkGetByPrefix(u, wsi, "ab[a-c]", mtlist);
+		checkGetByPrefix(u, wsi, "ab(a|c)", mtlist);
+		checkGetByPrefix(u, wsi, "aba|abc", mtlist);
+		// end a quote, which is what Pattern.quote does to make a literal sequence
+		checkGetByPrefix(u, wsi, "\\E.*", mtlist);
+		
+	}
+	
+	@Test
+	public void getNamesByPrefixLimit() throws Exception {
+		WorkspaceUser u = new WorkspaceUser("getNamesByPrefix");
+		WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("getNamesByPrefix1");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("getNamesByPrefix2");
+		for (WorkspaceIdentifier wi: Arrays.asList(wsi1, wsi2)) {
+			ws.createWorkspace(u, wi.getName(), false, null, null);
+		}
+		Map<String, String> mt = new HashMap<String, String>();
+		Provenance p = new Provenance(u);
+		
+		ws.saveObjects(u, wsi1, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("aaa"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("aba"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("abc"), mt,
+						SAFE_TYPE1, null, p, false)
+				), getIdFactory());
+		ws.saveObjects(u, wsi2, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("aca"), mt,
+						SAFE_TYPE1, null, p, false)), getIdFactory());
+		
+		List<String> wsi2n = Arrays.asList("aca");
+		
+		checkGetByPrefixLimit(u, Arrays.asList(wsi1), 4, 3, Arrays.asList(
+				Arrays.asList("aaa", "aba", "abc")));
+		checkGetByPrefixLimit(u, Arrays.asList(wsi1), 0, 3, Arrays.asList(
+				Arrays.asList("aaa", "aba", "abc")));
+		checkGetByPrefixLimit(u, Arrays.asList(wsi1), 3, 3, Arrays.asList(
+				Arrays.asList("aaa", "aba", "abc")));
+		checkGetByPrefixLimit(u, Arrays.asList(wsi1), 2, 2, Arrays.asList(
+				Arrays.asList("aaa", "aba", "abc")));
+		checkGetByPrefixLimit(u, Arrays.asList(wsi1, wsi2), 4, 4, Arrays.asList(
+				Arrays.asList("aaa", "aba", "abc"), wsi2n));
+		checkGetByPrefixLimit(u, Arrays.asList(wsi1, wsi2), 5, 4, Arrays.asList(
+				Arrays.asList("aaa", "aba", "abc"), wsi2n));
+		checkGetByPrefixLimit(u, Arrays.asList(wsi1, wsi2), 2, 2, Arrays.asList(
+				Arrays.asList("aaa", "aba", "abc"), wsi2n));
+	}
+	
+	private void checkGetByPrefixLimit(
+			WorkspaceUser u,
+			List<WorkspaceIdentifier> wsis,
+			int limit,
+			int expectedCount,
+			List<List<String>> possibleContents)
+			throws Exception {
+		List<Set<String>> possibles = new LinkedList<Set<String>>();
+		for (List<String> r: possibleContents) {
+			possibles.add(new HashSet<String>(r));
+		}
+		List<Set<String>> got = new LinkedList<Set<String>>();
+		List<List<String>> ret = ws.getNamesByPrefix(
+				u, wsis, "", false, limit);
+		for (List<String> r: ret) {
+			got.add(new HashSet<String>(r));
+		}
+		assertThat("correct number of returned name lists", got.size(),
+				is(possibles.size()));
+		int count = 0;
+		for (int i = 0; i < got.size(); i++) {
+			count += got.get(i).size();
+			for (String name: got.get(i)) {
+				assertThat("returned name " + name + " exists in list of possible names",
+						possibles.get(i).contains(name), is(true));
+			}
+			
+		}
+		assertThat("correct number of objects returned", count, is(expectedCount));
+	}
+
+	@Test
+	public void getNamesByPrefixBadArgs() throws Exception {
+		WorkspaceUser u = new WorkspaceUser("foo");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("foo");
+		ws.createWorkspace(u, wsi.getName(), false, null, null);
+		WorkspaceIdentifier wsidel = new WorkspaceIdentifier("del");
+		ws.createWorkspace(u, wsidel.getName(), false, null, null);
+		ws.setWorkspaceDeleted(u, wsidel, true);
+		List<WorkspaceIdentifier> wsis = Arrays.asList(wsi);
+		
+		List<WorkspaceIdentifier> wsislarge =
+				new LinkedList<WorkspaceIdentifier>();
+		for (int i = 0; i < 1001; i++) {
+			wsislarge.add(new WorkspaceIdentifier("foo" + i));
+		}
+		
+		failGetNamesByPrefix(u, null, null, false, 1000,
+				new NullPointerException("Workspace list cannot be null"));
+		failGetNamesByPrefix(u, wsislarge, null, false, 1000,
+				new IllegalArgumentException(
+						"Maximum number of workspaces allowed for input is 1000"));
+		failGetNamesByPrefix(u, wsis, null, false, 1000,
+				new NullPointerException("prefix cannot be null"));
+		failGetNamesByPrefix(u, wsis, "", false, 1001,
+				new IllegalArgumentException("limit cannot be greater than 1000"));
+		failGetNamesByPrefix(null, wsis, "", false, 1000,
+				new WorkspaceAuthorizationException(
+						"Anonymous users may not read workspace foo"));
+		failGetNamesByPrefix(new WorkspaceUser("bar"), wsis, "", false, 1000,
+				new WorkspaceAuthorizationException(
+						"User bar may not read workspace foo"));
+		failGetNamesByPrefix(u, Arrays.asList(new WorkspaceIdentifier("bar")),
+				"", false, 1000,
+				new NoSuchWorkspaceException("No workspace with name bar exists", wsi));
+		failGetNamesByPrefix(u, Arrays.asList(wsidel),
+				"", false, 1000,
+				new NoSuchWorkspaceException("Workspace del is deleted", wsi));
+		
 	}
 
 	@Test

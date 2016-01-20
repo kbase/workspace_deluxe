@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -85,7 +86,8 @@ public class WorkspaceTester {
 
 	protected static final ObjectMapper MAPPER = new ObjectMapper();
 	
-	protected static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
+	protected static final String LONG_TEXT_PART =
+			"Passersby were amazed by the unusually large amounts of blood. ";
 	protected static String LONG_TEXT = "";
 	static {
 		for (int i = 0; i < 17; i++) {
@@ -114,7 +116,12 @@ public class WorkspaceTester {
 				.setLevel(Level.OFF);
 	}
 	
-	protected static final Map<String, String> MT_META = new HashMap<String, String>();
+	protected static final Map<String, String> MT_META =
+			new HashMap<String, String>();
+	
+	public static final String DB_WS_NAME = "WorkspaceBackendTest";
+	public static final String DB_TYPE_NAME = "WorkspaceBackendTest_types";
+			
 	
 	private static MongoController mongo = null;
 	private static ShockController shock = null;
@@ -182,6 +189,13 @@ public class WorkspaceTester {
 		JsonTokenStreamOCStat.showStat();
 	}
 	
+	@Before
+	public void clearDB() throws Exception {
+		DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
+				DB_WS_NAME);
+		WorkspaceTestCommon.destroyDB(wsdb);
+	}
+	
 	private static final Map<String, Workspace> configs =
 			new HashMap<String, Workspace>();
 	protected final Workspace ws;
@@ -194,12 +208,14 @@ public class WorkspaceTester {
 					Paths.get(WorkspaceTestCommon.getTempDir()),
 					WorkspaceTestCommon.useWiredTigerEngine());
 			System.out.println("Using Mongo temp dir " + mongo.getTempDir());
+			System.out.println("Started test mongo instance at localhost:" +
+					mongo.getServerPort());
 		}
 		if (!configs.containsKey(config)) {
 			DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-					"WorkspaceBackendTest");
+					DB_WS_NAME);
 			WorkspaceTestCommon.destroyWSandTypeDBs(wsdb,
-					"WorkspaceBackendTest_types");
+					DB_TYPE_NAME);
 			System.out.println("Starting test suite with parameters:");
 			System.out.println(String.format(
 					"\tConfig: %s, Backend: %s, MaxMemPerCall: %s",
@@ -253,7 +269,7 @@ public class WorkspaceTester {
 		TypedObjectValidator val = new TypedObjectValidator(
 				new TypeDefinitionDB(new MongoTypeStorage(
 						GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-								"WorkspaceBackendTest_types")),
+								DB_TYPE_NAME)),
 						null, kidlpath, "both"));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
 				bs, tfm, val);
@@ -1283,23 +1299,6 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected List<ObjectInformation> setUpListObjectsExpected(List<ObjectInformation> expec,
-			ObjectInformation possNull) {
-		return setUpListObjectsExpected(expec, Arrays.asList(possNull));
-	}
-	
-	protected List<ObjectInformation> setUpListObjectsExpected(List<ObjectInformation> expec,
-			List<ObjectInformation> possNull) {
-		List<ObjectInformation> ret = new LinkedList<ObjectInformation>(expec);
-		for (ObjectInformation oi: possNull) {
-			if (oi != null) {
-				ret.add(oi);
-			}
-		}
-		return ret;
-		
-	}
-
 	protected void failListObjects(WorkspaceUser user,
 			List<WorkspaceIdentifier> wsis, Map<String, String> meta,
 			Exception e) {
@@ -1307,6 +1306,21 @@ public class WorkspaceTester {
 			ws.listObjects(new ListObjectsParameters(user, wsis)
 					.withMetadata(new WorkspaceUserMetadata(meta)));
 			fail("listed obj when should fail");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+	
+	protected void failGetNamesByPrefix(
+			WorkspaceUser user,
+			List<WorkspaceIdentifier> wsis,
+			String prefix,
+			boolean includeHidden,
+			int limit,
+			Exception e)
+			throws Exception {
+		try {
+			ws.getNamesByPrefix(user, wsis, prefix, includeHidden, limit);
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
