@@ -16,6 +16,7 @@ BACKWARDS INCOMPATIBILITIES:
 NEW FEATURES:
 
 * Added ``get_permissions_mass`` function.
+* Added ``get_names_by_prefix`` function.
 * A documentation server now provides all available workspace documentation at
   the ``/docs`` endpoint.
 * ``list_objects`` output may now be filtered by minimum and maximum object
@@ -32,6 +33,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * Fixed a bug where objects from deleted workspaces could be listed in 
   ``list_objects`` output.
 * ``get_permissions`` no longer requires authentication.
+* the admin user specified in the ``deploy.cfg`` file can no longer be removed
+  by other admins.
 
 VERSION: 0.3.5 (Released 5/15/15)
 ---------------------------------

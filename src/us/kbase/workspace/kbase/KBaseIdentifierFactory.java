@@ -21,6 +21,8 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 
 public class KBaseIdentifierFactory {
 	
+	//TODO unit tests
+	
 	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws\\.(\\d+)");
 	private static final Pattern KB_OBJ_ID = Pattern.compile(
 			"kb\\|ws\\.(\\d+)\\.obj\\.(\\d+)(?:\\.ver\\.(\\d+))?");

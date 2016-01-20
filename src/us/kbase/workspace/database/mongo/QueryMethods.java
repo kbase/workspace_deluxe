@@ -408,7 +408,14 @@ public class QueryMethods {
 	List<Map<String, Object>> queryCollection(final String collection,
 			final DBObject query, final Set<String> fields)
 			throws WorkspaceCommunicationException {
+		return queryCollection(collection, query, fields, -1);
+	}
+	
+	List<Map<String, Object>> queryCollection(final String collection,
+			final DBObject query, final Set<String> fields, final int limit)
+			throws WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
+		projection.put(Fields.MONGO_ID, 0);
 		for (final String field: fields) {
 			projection.put(field, 1);
 		}
@@ -417,6 +424,9 @@ public class QueryMethods {
 		try {
 			final DBCursor im = wsmongo.getCollection(collection)
 					.find(query, projection);
+			if (limit > 1) {
+				im.limit(limit);
+			}
 			for (final DBObject o: im) {
 				result.add(dbObjectToMap(o));
 			}

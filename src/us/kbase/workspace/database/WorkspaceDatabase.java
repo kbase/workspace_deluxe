@@ -226,6 +226,22 @@ public interface WorkspaceDatabase {
 			ObjectIDResolvedWS target)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
+	/** Get object names based on a provided name prefix. Returns at most 1000
+	 * names in no particular order. Intended for use as an auto-completion
+	 * method.
+	 * @param rwsis the workspaces in which to look for names.
+	 * @param prefix the prefix returned names must have.
+	 * @param includeHidden include hidden objects in the output.
+	 * @param limit the maximum number of names to return, at most 1000.
+	 * @return map of workspace to a list of workspace names.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the backend occurs
+	 */
+	public Map<ResolvedWorkspaceID, List<String>> getNamesByPrefix(
+			Set<ResolvedWorkspaceID> rwsis, String prefix,
+			boolean includeHidden, int limit)
+			throws WorkspaceCommunicationException;
+	
 	public WorkspaceInformation renameWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid, String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
@@ -283,5 +299,7 @@ public interface WorkspaceDatabase {
 	
 	public TempFilesManager getTempFilesManager();
 
-	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg);
+	public void setResourceUsageConfiguration(
+			ResourceUsageConfiguration rescfg);
+
 }
