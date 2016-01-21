@@ -10,16 +10,15 @@ import java.util.Map;
 import org.junit.Test;
 
 import us.kbase.workspace.database.WorkspaceUserMetadata;
-import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataKeySizeException;
-import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataValueSizeException;
+import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataKeyValueSizeException;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
 
 public class WorkspaceUserMetadataTest {
 	
-	private static String TEXT1000 = "";
+	private static String TEXT900 = "";
 	static {
-		for (int i = 0; i < 100; i++) {
-			TEXT1000 += "suckmaster";
+		for (int i = 0; i < 90; i++) {
+			TEXT900 += "suckmaster";
 		}
 	}
 	
@@ -110,28 +109,25 @@ public class WorkspaceUserMetadataTest {
 	}
 	
 	@Test
-	public void bigKey() throws Exception {
+	public void bigKeyValue() throws Exception {
 		Map<String, String> m = new HashMap<String, String>();
-		m.put(TEXT1000, "bar");
+		m.put(TEXT900.substring(1), "a");
 		WorkspaceUserMetadata wum = new WorkspaceUserMetadata(m); // should work
 		wum.addMetadata(m); //should work
-		m.put(TEXT1000 + "f", "bar");
-		final MetadataKeySizeException e = new MetadataKeySizeException(
-				"Metadata key exceeds maximum of 1000B: " + TEXT1000 + "f");
+		m.put(TEXT900, "b");
+		MetadataKeyValueSizeException e = new MetadataKeyValueSizeException(
+				"Total size of metadata key + value exceeds maximum of 900B for key "
+						+ TEXT900);
 		failCreateMeta(m, e);
 		failAddMeta(wum, m, e);
-	}
-	
-	@Test
-	public void bigValue() throws Exception {
-		Map<String, String> m = new HashMap<String, String>();
-		m.put("bar", TEXT1000);
-		WorkspaceUserMetadata wum = new WorkspaceUserMetadata(m); // should work
+		
+		m.clear();
+		m.put("a", TEXT900.substring(1));
+		wum = new WorkspaceUserMetadata(m); // should work
 		wum.addMetadata(m); //should work
-		m.put("bar", TEXT1000 + "f");
-		final MetadataValueSizeException e = new MetadataValueSizeException(
-				"Value for metadata key bar exceeds maximum of 1000B: "
-						+ TEXT1000 + "f");
+		m.put("a", TEXT900);
+		e = new MetadataKeyValueSizeException(
+				"Total size of metadata key + value exceeds maximum of 900B for key a");
 		failCreateMeta(m, e);
 		failAddMeta(wum, m, e);
 	}
@@ -139,13 +135,13 @@ public class WorkspaceUserMetadataTest {
 	@Test
 	public void bigMetaAndCheckMetadataSize() throws Exception {
 		Map<String, String> m = new HashMap<String, String>();
-		for (int i = 0; i < 15; i++) {
-			m.put("foo" + i, TEXT1000);
+		for (int i = 0; i < 17; i++) {
+			m.put(i < 10 ? "0" + i : "" + i, TEXT900.substring(2));
 		}
-		m.put("bar", TEXT1000.substring(165));
+		m.put("bar", TEXT900.substring(312));
 		new WorkspaceUserMetadata(m); //should work
 		WorkspaceUserMetadata.checkMetadataSize(m);
-		m.put("bar", TEXT1000.substring(164));
+		m.put("bar", TEXT900.substring(311));
 		final MetadataSizeException e = new MetadataSizeException(
 				"Metadata exceeds maximum of 16000B");
 		failCreateMeta(m, e);
@@ -158,11 +154,10 @@ public class WorkspaceUserMetadataTest {
 		
 		m.remove("bar");
 		Map<String, String> newm = new HashMap<String, String>();
-		newm.put("bar", TEXT1000.substring(165));
+		newm.put("bar", TEXT900.substring(312));
 		new WorkspaceUserMetadata(m).addMetadata(newm); //should work
-		newm.put("bar", TEXT1000.substring(164));
+		newm.put("bar", TEXT900.substring(311));
 		failAddMeta(new WorkspaceUserMetadata(m), newm, e);
-		
 	}
 	
 	private void assertExceptionCorrect(Exception got, Exception expected) {

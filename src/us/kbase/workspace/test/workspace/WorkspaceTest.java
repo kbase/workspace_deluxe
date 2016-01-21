@@ -1067,7 +1067,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setWorkspaceDeleted(foo, read, false);
 		ws.setGlobalPermission(foo, read, Permission.NONE);
 	}
-	
+
 	@Test
 	public void metadataExtracted() throws Exception {
 		String module = "TestMetaData";
@@ -1146,6 +1146,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 	@Test
 	public void metadataExtractedLargeTest() throws Exception {
+		//TODO BF fix tests, save big key & big value
 		String module = "TestLargeMetadata";
 		String typeName = "BigMeta";
 		String nestmeta = "." + TEXT100 + TEXT100.substring(11) + "." +
@@ -1278,6 +1279,16 @@ public class WorkspaceTest extends WorkspaceTester {
 				new IllegalArgumentException(
 						"Object #1, whooop: The user-provided metadata, when updated with object-extracted metadata, exceeds the allowed maximum of 16000B"));
 	}
+	
+	@Test
+	public void metadataSaveLarge() throws Exception {
+		/* Test that large metadata (as allowed by the metadata container class
+		 * actually saves. In mongo 2.4, objects with large metadata would save
+		 * but the metadata wouldn't be indexed. In 2.6, an error is thrown.
+		 */
+		//TODO BF add test, save big key & big value
+	}
+	
 	
 	@Test
 	public void encodings() throws Exception {

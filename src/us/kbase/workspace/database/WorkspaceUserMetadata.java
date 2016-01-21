@@ -20,7 +20,7 @@ public class WorkspaceUserMetadata {
 	 * to JSON.
 	 */
 	public static final int MAX_METADATA_SIZE = 16000;
-	private static final int MAX_KEY_VALUE_SIZE = 1000;
+	private static final int MAX_KEY_VALUE_SIZE = 900;
 	
 	private Map<String, String> metadata;
 	
@@ -51,15 +51,11 @@ public class WorkspaceUserMetadata {
 	private void checkKeyValueSizes(final Map<String, String> meta)
 			throws MetadataException {
 		for (final Entry<String, String> e: meta.entrySet()) {
-			if (checkSizeInBytes(e.getKey()) > MAX_KEY_VALUE_SIZE) {
-				throw new MetadataKeySizeException(String.format(
-						"Metadata key exceeds maximum of %sB: %s",
+			if (checkSizeInBytes(e.getKey()) + checkSizeInBytes(e.getValue()) >
+					MAX_KEY_VALUE_SIZE) {
+				throw new MetadataKeyValueSizeException(String.format(
+						"Total size of metadata key + value exceeds maximum of %sB for key %s",
 						MAX_KEY_VALUE_SIZE, e.getKey()));
-			}
-			if (checkSizeInBytes(e.getValue()) > MAX_KEY_VALUE_SIZE) {
-				throw new MetadataValueSizeException(String.format(
-						"Value for metadata key %s exceeds maximum of %sB: %s",
-						e.getKey(), MAX_KEY_VALUE_SIZE, e.getValue()));
 			}
 		}
 	}
@@ -168,18 +164,11 @@ public class WorkspaceUserMetadata {
 		public MetadataSizeException(final String msg) {super(msg);}
 	}
 	
-	public static class MetadataKeySizeException extends MetadataException {
+	public static class MetadataKeyValueSizeException extends MetadataException {
 		
 		private static final long serialVersionUID = 1L;
 
-		public MetadataKeySizeException(final String msg) {super(msg);}
+		public MetadataKeyValueSizeException(final String msg) {super(msg);}
 	}
 	
-	public static class MetadataValueSizeException extends MetadataException {
-		
-		private static final long serialVersionUID = 1L;
-
-		public MetadataValueSizeException(final String msg) {super(msg);}
-	}
-
 }
