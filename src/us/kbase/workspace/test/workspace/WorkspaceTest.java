@@ -1146,10 +1146,9 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 	@Test
 	public void metadataExtractedLargeTest() throws Exception {
-		//TODO BF fix tests, save big key & big value
 		String module = "TestLargeMetadata";
 		String typeName = "BigMeta";
-		String nestmeta = "." + TEXT100 + TEXT100.substring(11) + "." +
+		String nestmeta = "." + TEXT100.substring(16) + "." +
 				TEXT100 + TEXT100 + "." + TEXT100 + TEXT100 + "." +
 				TEXT100 + TEXT100 + "." + TEXT100 + TEXT100;
 		String oknestmeta = "oknest" + nestmeta;
@@ -1169,7 +1168,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"nested3 " + TEXT100 + TEXT100 + ";" +
 					"} nested4;" +
 					"typedef structure {" +
-						"nested4 " + TEXT100 + TEXT100.substring(11) + ";" +
+						"nested4 " + TEXT100.substring(16) + ";" +
 					"} nested5;" +
 						
 					"/*" +
@@ -1209,25 +1208,23 @@ public class WorkspaceTest extends WorkspaceTester {
 		dBig.put("l", Arrays.asList(1,2,3,4,5,6,7,8));
 
 		//test fail on large extracted values
-		dBig.put("val", TEXT1000);
+		dBig.put("val", TEXT1000.substring(103));
 		saveObject(user, wsi, null, dBig, type, "foo", mtprov); //should work
-		dBig.put("val", TEXT1000 + "f");
+		dBig.put("val", TEXT1000.substring(102));
 		failSave(user, wsi, "bar", dBig, type, mtprov,
 				new IllegalArgumentException(
-						"Object #1, bar: Value for metadata key val exceeds maximum of 1000B: "
-								+ TEXT1000 + "f"));
+						"Object #1, bar: Total size of metadata key + value exceeds maximum of 900B for key val"));
 		
 		StringBuilder unicode = new StringBuilder();
-		for (int i = 0; i < 250; i++) {
+		for (int i = 0; i < 224; i++) {
 			unicode.appendCodePoint(0x1D120);
 		}
-		dBig.put("val", unicode.toString());
+		dBig.put("val", unicode.toString() + "a");
 		saveObject(user, wsi, null, dBig, type, "foo", mtprov); //should work
-		dBig.put("val", unicode.toString() + "f");
-		failSave(user, wsi, "bar", dBig, type, mtprov,
+		dBig.put("val", unicode.toString() + "af");
+		failSave(user, wsi, "whee", dBig, type, mtprov,
 				new IllegalArgumentException(
-						"Object #1, bar: Value for metadata key val exceeds maximum of 1000B: "
-								+ unicode.toString() + "f"));
+						"Object #1, whee: Total size of metadata key + value exceeds maximum of 900B for key val"));
 		
 		// test fail on extracted keys
 		Map<String, String> n1 = new HashMap<String, String>();
@@ -1239,7 +1236,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, Object> n4 = new HashMap<String, Object>();
 		n4.put(TEXT100 + TEXT100, n3);
 		Map<String, Object> n5 = new HashMap<String, Object>();
-		n5.put(TEXT100 + TEXT100.substring(11), n4);
+		n5.put(TEXT100.substring(16), n4);
 		dBig.put("val", "foo");
 		dBig.put("oknest", n5);
 		saveObject(user, wsi, null, dBig, type, "foo", mtprov); //should work
@@ -1247,7 +1244,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		dBig.put("badnest", n5);
 		failSave(user, wsi, "baz", dBig, type, mtprov,
 				new IllegalArgumentException(
-						"Object #1, baz: Metadata key exceeds maximum of 1000B: "
+						"Object #1, baz: Total size of metadata key + value exceeds maximum of 900B for key "
 								+ badnestmeta));
 		dBig.remove("badnest");
 		
@@ -1263,16 +1260,16 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		// test fail when supplied metadata + extracted metadata > limit
 		Map<String, String> meta = new HashMap<String, String>();
-		for (int i = 0; i < 15; i++) {
-			meta.put("k" + i, TEXT1000);
+		for (int i = 0; i < 17; i++) {
+			meta.put("k" + (i < 10 ? "0" + i : i), TEXT1000.substring(103));
 		}
 		meta.put("val2", "wheee");
-		meta.put("val3", TEXT1000.substring(376));
+		meta.put("val3", TEXT1000.substring(653));
 		dBig.put("val", TEXT100);
 		dBig.put("val2", TEXT100);
 		saveObject(user, wsi, meta, dBig, type, "whocares", mtprov); //should work
 		
-		meta.put("val3", TEXT1000.substring(375));
+		meta.put("val3", TEXT1000.substring(652));
 		failSave(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("whooop"), dBig, type,
 				new WorkspaceUserMetadata(meta), mtprov, false)),
@@ -1281,14 +1278,29 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
-	public void metadataSaveLarge() throws Exception {
-		/* Test that large metadata (as allowed by the metadata container class
-		 * actually saves. In mongo 2.4, objects with large metadata would save
-		 * but the metadata wouldn't be indexed. In 2.6, an error is thrown.
+	public void metadataSaveLargeKeyValue() throws Exception {
+		/* Test that large metadata keys & values (as allowed by the metadata
+		 * container class) actually save. In mongo 2.4, objects with large
+		 * metadata would save but the metadata wouldn't be indexed. In 2.6, an
+		 * error is thrown.
 		 */
-		//TODO BF add test, save big key & big value
+		WorkspaceUser user = new WorkspaceUser("foo");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("foo");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		Provenance mtprov = new Provenance(user);
+		
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("a", TEXT1000.substring(101));
+		saveObject(user, wsi, meta, new HashMap<String, String>(), SAFE_TYPE1, "foo", mtprov);
+		
+		meta.clear();
+		meta.put(TEXT1000.substring(101), "b");
+		saveObject(user, wsi, meta, new HashMap<String, String>(), SAFE_TYPE1, "foo", mtprov);
+		
+		meta.clear();
+		meta.put(TEXT1000.substring(500), TEXT1000.substring(600));
+		saveObject(user, wsi, meta, new HashMap<String, String>(), SAFE_TYPE1, "foo", mtprov);
 	}
-	
 	
 	@Test
 	public void encodings() throws Exception {
@@ -4684,6 +4696,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new ArrayList<ObjectInformation>());
 		
 		//TODO move these to unit tests for LOP
+		//TODO you can test the 2 arg constructor, just cast the null idiot
 		// can't test 2 argument constructor with the 2nd constructor argument
 		// null since then constructor is ambiguous
 		try {
