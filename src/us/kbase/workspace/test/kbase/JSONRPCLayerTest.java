@@ -1418,8 +1418,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Map<String, String> meta = new HashMap<String, String>();
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
-		for (int i = 0; i < 16; i++) {
-			meta.put(Integer.toString(i), TEXT1000); //> 16Mb now
+		for (int i = 0; i < 18; i++) {
+			meta.put("" + i, TEXT1000.substring(103)); //> 16Mb now
 		}
 		
 		
