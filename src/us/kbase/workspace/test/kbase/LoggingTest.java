@@ -1,5 +1,8 @@
 package us.kbase.workspace.test.kbase;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -8,7 +11,9 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -22,11 +27,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.productivity.java.syslog4j.SyslogIF;
 
-import us.kbase.auth.AuthService;
-import us.kbase.auth.AuthUser;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
+import us.kbase.common.service.JsonServerSyslog;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.service.JsonServerSyslog.SyslogOutput;
@@ -55,6 +59,9 @@ public class LoggingTest {
 
 	private static final String DB_WS_NAME = "LoggingTest";
 	private static final String DB_TYPE_NAME = "LoggingTest_Types";
+	
+	private static int INFO = JsonServerSyslog.LOG_LEVEL_INFO;
+//	private static int ERR = JsonServerSyslog.LOG_LEVEL_ERR;
 
 	private static final String ATYPE = "SomeModule.AType";
 	private static final String BTYPE = "SomeModule.BType";
@@ -64,8 +71,6 @@ public class LoggingTest {
 	private static WorkspaceServer SERVER;
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
-	private static AuthUser AUTH_USER1;
-	private static AuthUser AUTH_USER2;
 	private static WorkspaceClient CLIENT_NO_AUTH;
 	private static SysLogOutputMock logout;
 
@@ -109,8 +114,6 @@ public class LoggingTest {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
-		AUTH_USER1 = AuthService.login(USER1, p1);
-		AUTH_USER2 = AuthService.login(USER2, p2);
 
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
@@ -266,33 +269,74 @@ public class LoggingTest {
 	private static class ExpectedLog {
 		
 		public int level;
-		public String ip;
 		public String method;
-		public String url;
-		public String fullMessage;
-		public String serviceName = "TestDocServer";
+		public String message;
+		public String user;
+		boolean internal;
 
-		public ExpectedLog(int level, String ip, String method) {
+		public ExpectedLog(int level, String method, String message,
+				String user, boolean internal) {
 			this.level = level;
-			this.ip = ip;
 			this.method = method;
-		}
-		
-		public ExpectedLog withURL(String url) {
-			this.url = url;
-			return this;
-		}
-		
-		public ExpectedLog withFullMsg(String msg) {
-			this.fullMessage = msg;
-			return this;
-		}
-		
-		public ExpectedLog withServiceName(String name) {
-			this.serviceName = name;
-			return this;
+			this.message = message;
+			this.user = user;
+			this.internal = internal;
 		}
 	}
+	
+	private void checkLogging(List<ExpectedLog> expected) throws Exception {
+		checkLogging(expected, expected.size());
+	}
+	
+	private void checkLogging(List<ExpectedLog> expected, int eventCount)
+			throws Exception {
+		assertThat("correct # of logging events", logout.events.size(),
+				is(eventCount));
+		Iterator<ExpectedLog> i = expected.iterator();
+		Iterator<LogEvent> e = logout.events.iterator();
+		String callID = null;
+		while (i.hasNext()) {
+			ExpectedLog exp = i.next();
+			LogEvent got = e.next();
+			assertThat("correct level", got.level, is(exp.level));
+			String call = checkMessage(got.message, exp);
+			if (callID == null) {
+				callID = call;
+			} else {
+				assertThat("same call IDs for all calls", call, is(callID));
+			}
+		}
+		
+	}
+	
+	private String checkMessage(String message, ExpectedLog exp) {
+//		System.out.println(message);
+		String[] parts = message.split(":", 2);
+		String[] headerParts = parts[0].split("]\\s*\\[");
+		assertThat("server name correct", headerParts[0].substring(1),
+				is("Workspace"));
+		assertThat("record type correct", headerParts[1],
+				is(exp.level == INFO ? "INFO" : "ERR"));
+		double epochms = Double.valueOf(headerParts[2]) * 1000;
+		long now = new Date().getTime();
+		assertThat("log date < 1s ago", now - epochms < 1000, is(true));
+		//3 is user running the service
+		assertThat("caller correct", headerParts[4],
+				//TODO this looks like a big in JsonServerServlet
+				is("us.kbase.workspace.WorkspaceServer" +
+						(exp.internal ? "$1" : "")));
+		//5 is pid
+		assertThat("ip correct", headerParts[6], is("127.0.0.1"));
+		assertThat("remote user correct", headerParts[7], is(exp.user));
+		assertThat("module correct", headerParts[8], is("Workspace"));
+		assertThat("method correct", headerParts[9], is(exp.method));
+		String callID = headerParts[10].substring(
+				0, headerParts[10].length() - 1);
+		
+		assertThat("full message correct", parts[1].trim(), is(exp.message));
+		return callID;
+	}
+	
 
 	@Test
 	public void saveObject() throws Exception {
@@ -310,8 +354,17 @@ public class LoggingTest {
 		CLIENT1.saveObjects(new SaveObjectsParams()
 				.withWorkspace(ws)
 				.withObjects(d));
-		for (LogEvent l: logout.events) {
-			System.out.println(l);
-		}
+		checkLogging(Arrays.asList(
+				new ExpectedLog(INFO, "save_objects",
+						"start method", USER1, false),
+				new ExpectedLog(INFO, "save_objects",
+						"Object 1/1/1 SomeModule.AType-1.0", USER1, true),
+				new ExpectedLog(INFO, "save_objects",
+						"Object 1/2/1 SomeModule.BType-1.0", USER1, true),
+				new ExpectedLog(INFO, "save_objects",
+						"Object 1/3/1 SomeModule.AType-1.0", USER1, true),
+				new ExpectedLog(INFO, "save_objects",
+						"end method", USER1, false)));
+		
 	}
 }
