@@ -37,13 +37,17 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.SetGlobalPermissionsParams;
+import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
+import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.kbase.JSONRPCLayerTester.ServerThread;
@@ -659,6 +663,115 @@ public class LoggingTest {
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", false),
 				new AdminExp("listWorkspaceOwners", true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+	}
+	
+	@Test
+	public void adminWorkspaceCommands() throws Exception {
+		final String ws = "myws";
+		Map<String, Object> ac = new HashMap<String, Object>();
+		
+		// create workspace
+		ac.put("command", "createWorkspace");
+		ac.put("user", USER1);
+		ac.put("params", new CreateWorkspaceParams().withWorkspace(ws));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("createWorkspace 1 " + USER1, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// set perms
+		ac.put("command", "setPermissions");
+		ac.remove("user");
+		ac.put("params", new SetPermissionsParams().withWorkspace(ws)
+				.withUsers(Arrays.asList(USER1, USER2))
+				.withNewPermission("w"));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("setPermissions null myws w " + USER1 + " " +
+						USER2, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		ac.put("params", new SetPermissionsParams().withId(1L)
+				.withUsers(Arrays.asList(USER2))
+				.withNewPermission("a"));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("setPermissions 1 null a " + USER2, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// get perms
+		ac.put("command", "getPermissions");
+		ac.put("user", USER1);
+		ac.put("params", new WorkspaceIdentity().withWorkspace(ws));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("getPermissions null myws " + USER1, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		ac.put("params", new WorkspaceIdentity().withId(1L));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("getPermissions 1 null " + USER1, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// set global
+		ac.put("command", "setGlobalPermission");
+		ac.put("user", USER1);
+		ac.put("params", new SetGlobalPermissionsParams().withWorkspace(ws)
+				.withNewPermission("r"));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("setGlobalPermission null myws r " + USER1, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		ac.put("params", new SetGlobalPermissionsParams().withId(1L)
+				.withNewPermission("n"));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("setGlobalPermission 1 null n " + USER1, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// save objs
+		ac.put("command", "saveObjects");
+		ac.put("user", USER1);
+		ac.put("params", new SaveObjectsParams().withWorkspace(ws)
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(new HashMap<String, String>()))
+						.withName("foo")
+						.withType(ATYPE))));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("saveObjects " + USER1, true),
+				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// list ws
+		ac.put("command", "listWorkspaces");
+		ac.put("user", USER1);
+		ac.put("params", new ListWorkspaceInfoParams());
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("listWorkspaces " + USER1, true),
 				new AdminExp("end method", false))));
 		logout.reset();
 		

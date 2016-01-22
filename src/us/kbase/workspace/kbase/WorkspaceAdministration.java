@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JacksonTupleModule;
+import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
@@ -167,34 +169,57 @@ public class WorkspaceAdministration {
 		if (CREATE_WORKSPACE.equals(fn)) {
 			final CreateWorkspaceParams params = getParams(cmd,
 					CreateWorkspaceParams.class);
-			return wsmeth.createWorkspace(params, getUser(cmd));
+			Tuple9<Long, String, String, String, Long, String, String, String,
+			Map<String, String>> ws =  wsmeth.createWorkspace(
+					params, getUser(cmd));
+			getLogger().info(CREATE_WORKSPACE + " " + ws.getE1() + " " +
+					ws.getE3());
+			return ws;
 		}
 		if (SET_PERMISSIONS.equals(fn)) {
 			final SetPermissionsParams params = getParams(cmd,
 					SetPermissionsParams.class);
+			//TODO maybe set perms should return wsinfo so can provide ID vs. name
+			getLogger().info(SET_PERMISSIONS + " " + params.getId() + " " +
+					params.getWorkspace() + " " + params.getNewPermission() +
+					" " + StringUtils.join(params.getUsers(), " "));
 			wsmeth.setPermissions(params, null, true);
 			return null;
 		}
 		if (GET_PERMISSIONS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd,
 					WorkspaceIdentity.class);
-			return wsmeth.getPermissions(params, getUser(cmd));
+			final WorkspaceUser user = getUser(cmd);
+			//TODO would be better if could provide ID vs. name
+			getLogger().info(GET_PERMISSIONS + " " + params.getId() + " " +
+					params.getWorkspace() + " " + user.getUser());
+			return wsmeth.getPermissions(params, user);
 		}
 		if (SET_GLOBAL_PERMISSION.equals(fn)) {
 			final SetGlobalPermissionsParams params = getParams(cmd,
 					SetGlobalPermissionsParams.class);
+			final WorkspaceUser user = getUser(cmd);
+			//TODO would be better if could provide ID vs. name
+			getLogger().info(SET_GLOBAL_PERMISSION + " " + params.getId() +
+					" " + params.getWorkspace() + " " +
+					params.getNewPermission() + " " + user.getUser());
 			wsmeth.setGlobalPermission(params, getUser(cmd));
 			return null;
 		}
 		if (SAVE_OBJECTS.equals(fn)) {
 			final SaveObjectsParams params = getParams(cmd,
 					SaveObjectsParams.class);
-			return wsmeth.saveObjects(params, getUser(cmd), token);
+			final WorkspaceUser user = getUser(cmd);
+			//method has its own logging
+			getLogger().info(SAVE_OBJECTS + " " + user.getUser());
+			return wsmeth.saveObjects(params, user, token);
 		}
 		if (LIST_WORKSPACES.equals(fn)) {
 			final ListWorkspaceInfoParams params = getParams(cmd,
 					ListWorkspaceInfoParams.class);
-			return wsmeth.listWorkspaceInfo(params, getUser(cmd));
+			final WorkspaceUser user = getUser(cmd);
+			getLogger().info(LIST_WORKSPACES + " " + user.getUser());
+			return wsmeth.listWorkspaceInfo(params, user);
 		}
 		if (LIST_WORKSPACE_OWNERS.equals(fn)) {
 			getLogger().info(LIST_WORKSPACE_OWNERS);
