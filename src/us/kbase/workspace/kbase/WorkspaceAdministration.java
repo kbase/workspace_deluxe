@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +37,7 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
+import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -44,6 +48,25 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class WorkspaceAdministration {
 	
+	private static final String REMOVE_MODULE_OWNERSHIP =
+			"removeModuleOwnership";
+	private static final String GRANT_MODULE_OWNERSHIP =
+			"grantModuleOwnership";
+	private static final String LIST_WORKSPACE_OWNERS = "listWorkspaceOwners";
+	private static final String LIST_WORKSPACES = "listWorkspaces";
+	private static final String SAVE_OBJECTS = "saveObjects";
+	private static final String SET_GLOBAL_PERMISSION = "setGlobalPermission";
+	private static final String GET_PERMISSIONS = "getPermissions";
+	private static final String SET_PERMISSIONS = "setPermissions";
+	private static final String CREATE_WORKSPACE = "createWorkspace";
+	private static final String SET_WORKSPACE_OWNER = "setWorkspaceOwner";
+	private static final String REMOVE_ADMIN = "removeAdmin";
+	private static final String ADD_ADMIN = "addAdmin";
+	private static final String LIST_ADMINS = "listAdmins";
+	private static final String DENY_MOD_REQUEST = "denyModRequest";
+	private static final String APPROVE_MOD_REQUEST = "approveModRequest";
+	private static final String LIST_MOD_REQUESTS = "listModRequests";
+
 	private final static ObjectMapper MAPPER = new ObjectMapper()
 			.registerModule(new JacksonTupleModule());
 	
@@ -62,6 +85,10 @@ public class WorkspaceAdministration {
 		if (admin != null && !admin.isEmpty()) {
 			internaladmins.add(admin);
 		}
+	}
+	
+	private static Logger getLogger() {
+		return LoggerFactory.getLogger(WorkspaceAdministration.class);
 	}
 
 	public Object runCommand(AuthToken token, UObject command)
@@ -89,77 +116,103 @@ public class WorkspaceAdministration {
 			throw ioe;
 		}
 		final String fn = (String) cmd.getCommand();
-		if ("listModRequests".equals(fn)) {
+		if (LIST_MOD_REQUESTS.equals(fn)) {
+			getLogger().info(LIST_MOD_REQUESTS);
 			return ws.listModuleRegistrationRequests();
 		}
-		if ("approveModRequest".equals(fn)) {
-			ws.resolveModuleRegistration((String) cmd.getModule(), true);
+		if (APPROVE_MOD_REQUEST.equals(fn)) {
+			final String mod = cmd.getModule();
+			getLogger().info(APPROVE_MOD_REQUEST + " " + mod);
+			ws.resolveModuleRegistration(mod, true);
 			return null;
 		}
-		if ("denyModRequest".equals(fn)) {
-			ws.resolveModuleRegistration((String) cmd.getModule(), false);
+		if (DENY_MOD_REQUEST.equals(fn)) {
+			final String mod = cmd.getModule();
+			getLogger().info(DENY_MOD_REQUEST + " " + mod);
+			ws.resolveModuleRegistration(mod, false);
 			return null;
 		}
-		if ("listAdmins".equals(fn)) {
+		if (LIST_ADMINS.equals(fn)) {
+			getLogger().info(LIST_ADMINS);
 			final Set<String> strAdm = new HashSet<String>();
 			strAdm.addAll(usersToStrings(ws.getAdmins()));
 			strAdm.addAll(internaladmins);
 			return strAdm;
 		}
-		if ("addAdmin".equals(fn)) {
-			ws.addAdmin(getUser(cmd));
+		if (ADD_ADMIN.equals(fn)) {
+			final WorkspaceUser user = getUser(cmd);
+			getLogger().info(ADD_ADMIN + " " + user.getUser());
+			ws.addAdmin(user);
 			return null;
 		}
-		if ("removeAdmin".equals(fn)) {
-			ws.removeAdmin(getUser(cmd));
+		if (REMOVE_ADMIN.equals(fn)) {
+			final WorkspaceUser user = getUser(cmd);
+			getLogger().info(REMOVE_ADMIN + " " + user.getUser());
+			ws.removeAdmin(user);
 			return null;
 		}
-		if ("setWorkspaceOwner".equals(fn)) {
+		if (SET_WORKSPACE_OWNER.equals(fn)) {
 			final SetWorkspaceOwnerParams params =
 					getParams(cmd, SetWorkspaceOwnerParams.class);
 			
 			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 							params.wsi);
-			return wsInfoToTuple(ws.setWorkspaceOwner(null, wsi,
+			final WorkspaceInformation info = ws.setWorkspaceOwner(null, wsi,
 					params.new_user == null ? null :
-					getUser(params.new_user), params.new_name, true));
+					getUser(params.new_user), params.new_name, true);
+			getLogger().info(SET_WORKSPACE_OWNER + " " + info.getId() + " " +
+					info.getOwner().getUser());
+			return wsInfoToTuple(info);
 		}
-		if ("createWorkspace".equals(fn)) {
-			final CreateWorkspaceParams params = getParams(cmd, CreateWorkspaceParams.class);
+		if (CREATE_WORKSPACE.equals(fn)) {
+			final CreateWorkspaceParams params = getParams(cmd,
+					CreateWorkspaceParams.class);
 			return wsmeth.createWorkspace(params, getUser(cmd));
 		}
-		if ("setPermissions".equals(fn)) {
-			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
+		if (SET_PERMISSIONS.equals(fn)) {
+			final SetPermissionsParams params = getParams(cmd,
+					SetPermissionsParams.class);
 			wsmeth.setPermissions(params, null, true);
 			return null;
 		}
-		if ("getPermissions".equals(fn)) {
-			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
+		if (GET_PERMISSIONS.equals(fn)) {
+			final WorkspaceIdentity params = getParams(cmd,
+					WorkspaceIdentity.class);
 			return wsmeth.getPermissions(params, getUser(cmd));
 		}
-		if ("setGlobalPermission".equals(fn)) {
-			final SetGlobalPermissionsParams params = getParams(cmd, SetGlobalPermissionsParams.class);
+		if (SET_GLOBAL_PERMISSION.equals(fn)) {
+			final SetGlobalPermissionsParams params = getParams(cmd,
+					SetGlobalPermissionsParams.class);
 			wsmeth.setGlobalPermission(params, getUser(cmd));
 			return null;
 		}
-		if ("saveObjects".equals(fn)) {
-			final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
+		if (SAVE_OBJECTS.equals(fn)) {
+			final SaveObjectsParams params = getParams(cmd,
+					SaveObjectsParams.class);
 			return wsmeth.saveObjects(params, getUser(cmd), token);
 		}
-		if ("listWorkspaces".equals(fn)) {
-			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
+		if (LIST_WORKSPACES.equals(fn)) {
+			final ListWorkspaceInfoParams params = getParams(cmd,
+					ListWorkspaceInfoParams.class);
 			return wsmeth.listWorkspaceInfo(params, getUser(cmd));
 		}
-		if ("listWorkspaceOwners".equals(fn)) {
+		if (LIST_WORKSPACE_OWNERS.equals(fn)) {
+			getLogger().info(LIST_WORKSPACE_OWNERS);
 			return usersToStrings(ws.getAllWorkspaceOwners());
 		}
-		if ("grantModuleOwnership".equals(fn)) {
-			final GrantModuleOwnershipParams params = getParams(cmd, GrantModuleOwnershipParams.class);
+		if (GRANT_MODULE_OWNERSHIP.equals(fn)) {
+			final GrantModuleOwnershipParams params = getParams(cmd,
+					GrantModuleOwnershipParams.class);
+			getLogger().info(GRANT_MODULE_OWNERSHIP + " " + params.getMod() +
+					" " + params.getNewOwner());
 			wsmeth.grantModuleOwnership(params, null, true);
 			return null;
 		}
-		if ("removeModuleOwnership".equals(fn)) {
-			final RemoveModuleOwnershipParams params = getParams(cmd, RemoveModuleOwnershipParams.class);
+		if (REMOVE_MODULE_OWNERSHIP.equals(fn)) {
+			final RemoveModuleOwnershipParams params = getParams(cmd,
+					RemoveModuleOwnershipParams.class);
+			getLogger().info(REMOVE_MODULE_OWNERSHIP + " " + params.getMod() +
+					" " + params.getOldOwner());
 			wsmeth.removeModuleOwnership(params, null, true);
 			return null;
 		}
@@ -201,8 +254,8 @@ public class WorkspaceAdministration {
 			throws IOException {
 		final UObject p = input.getParams();
 		if (p == null) {
-			throw new NullPointerException("Method parameters " + clazz.getSimpleName()
-					+ " may not be null");
+			throw new NullPointerException("Method parameters " +
+					clazz.getSimpleName() + " may not be null");
 		}
 		try {
 			return MAPPER.readValue(p.getPlacedStream(), clazz);

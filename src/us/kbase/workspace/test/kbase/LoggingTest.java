@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Date;
@@ -28,7 +27,6 @@ import org.junit.Test;
 import org.productivity.java.syslog4j.SyslogIF;
 
 import us.kbase.common.mongo.GetMongoDB;
-import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.JsonServerSyslog;
 import us.kbase.common.service.UObject;
@@ -60,7 +58,7 @@ import com.mongodb.MongoClient;
  */
 public class LoggingTest {
 	
-	//TODO L go through all this crap and cut unnecessary stuff
+	//TODO it'd be nice if JsonServerServlet integrated with slf4j
 
 	private static final String DB_WS_NAME = "LoggingTest";
 	private static final String DB_TYPE_NAME = "LoggingTest_Types";
@@ -78,7 +76,6 @@ public class LoggingTest {
 	private static WorkspaceServer SERVER;
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
-	private static WorkspaceClient CLIENT_NO_AUTH;
 	private static SysLogOutputMock logout;
 
 	@BeforeClass
@@ -110,23 +107,22 @@ public class LoggingTest {
 		int port = SERVER.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
+			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
+					USER1, p1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
+			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
+					USER2, p2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 
-		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
-		CLIENT_NO_AUTH.setIsInsecureHttpConnectionAllowed(true);
-		CLIENT1.setStreamingModeOn(true); //for JSONRPCLayerLongTest
 		
 		//set up a basic type for test use that doesn't worry about type checking
 		CLIENT1.requestModuleOwnership("SomeModule");
@@ -158,7 +154,8 @@ public class LoggingTest {
 	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
 	@SuppressWarnings("unchecked")
 	protected static Map<String, String> getenv() throws NoSuchFieldException,
-			SecurityException, IllegalArgumentException, IllegalAccessException {
+			SecurityException, IllegalArgumentException,
+			IllegalAccessException {
 		Map<String, String> unmodifiable = System.getenv();
 		Class<?> cu = unmodifiable.getClass();
 		Field m = cu.getDeclaredField("m");
@@ -178,9 +175,7 @@ public class LoggingTest {
 	
 	private static WorkspaceServer startupWorkspaceServer(String mongohost,
 			DB db, String typedb, String user1Password)
-			throws InvalidHostException, UnknownHostException, IOException,
-			NoSuchFieldException, IllegalAccessException, Exception,
-			InterruptedException {
+			throws Exception {
 		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
 		
 		//write the server config file:
@@ -189,7 +184,8 @@ public class LoggingTest {
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
-		System.out.println("Created temporary config file: " + iniFile.getAbsolutePath());
+		System.out.println("Created temporary config file: " +
+				iniFile.getAbsolutePath());
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
@@ -198,7 +194,8 @@ public class LoggingTest {
 		ws.add("ws-admin", USER2);
 		ws.add("kbase-admin-user", USER1);
 		ws.add("kbase-admin-pwd", user1Password);
-		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir()).resolve("tempForJSONRPCLayerTester"));
+		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir())
+				.resolve("tempForLoggingTest"));
 		ws.add("ignore-handle-service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
@@ -296,7 +293,7 @@ public class LoggingTest {
 		}
 	}
 	
-	private static class LogObjExp extends ExpectedLog{
+	private static class LogObjExp extends ExpectedLog {
 		
 		public LogObjExp(String method, String message, boolean internal) {
 			super(INFO, method, message, USER1, internal);
@@ -338,7 +335,7 @@ public class LoggingTest {
 				is(exp.level == INFO ? "INFO" : "ERR"));
 		double epochms = Double.valueOf(headerParts[2]) * 1000;
 		long now = new Date().getTime();
-		assertThat("log date < 1s ago", now - epochms < 1000, is(true));
+		assertThat("log date < 5s ago", now - epochms < 5000, is(true));
 		//3 is user running the service
 		assertThat("caller correct", headerParts[4],
 				is("us.kbase.workspace.WorkspaceServer" +
@@ -516,5 +513,154 @@ public class LoggingTest {
 			e.add((ExpectedLog) l);
 		}
 		return e;
+	}
+	
+	private static class AdminExp extends ExpectedLog {
+		
+		public AdminExp(String message, boolean internal) {
+			super(INFO, "administer", message, USER2, internal);
+		}
+	}
+	
+	private List<ExpectedLog> convertAdminExp(List<AdminExp> logobj) {
+		List<ExpectedLog> e = new LinkedList<LoggingTest.ExpectedLog>();
+		for (AdminExp l: logobj) {
+			e.add((ExpectedLog) l);
+		}
+		return e;
+	}
+	
+	
+	@Test
+	public void administrators() throws Exception {
+		Map<String, Object> ac = new HashMap<String, Object>();
+		
+		// add
+		ac.put("command", "addAdmin");
+		ac.put("user", USER1);
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("addAdmin " + USER1, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// remove
+		ac.put("command", "removeAdmin");
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("removeAdmin " + USER1, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// list
+		ac.put("command", "listAdmins");
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("listAdmins", true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+	}
+	
+	@Test
+	public void modules() throws Exception {
+		Map<String, Object> ac = new HashMap<String, Object>();
+		
+		// list
+		ac.put("command", "listModRequests");
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("listModRequests", true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// approve
+		CLIENT1.requestModuleOwnership("suckmaster");
+		logout.reset();
+		ac.put("command", "approveModRequest");
+		ac.put("module", "suckmaster");
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("approveModRequest suckmaster", true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// approve
+		CLIENT1.requestModuleOwnership("burstingfoam");
+		logout.reset();
+		ac.put("command", "denyModRequest");
+		ac.put("module", "burstingfoam");
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("denyModRequest burstingfoam", true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// add owner
+		ac.put("command", "grantModuleOwnership");
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("mod", "suckmaster");
+		params.put("new_owner", USER2);
+		ac.put("params", params);
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("grantModuleOwnership suckmaster " + USER2, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// remove owner
+		ac.put("command", "removeModuleOwnership");
+		params.put("mod", "suckmaster");
+		params.put("old_owner", USER2);
+		params.remove("new_owner");
+		ac.put("params", params);
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("removeModuleOwnership suckmaster " + USER2, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+	}
+	
+	@Test
+	public void workspaceSpecials() throws Exception {
+		String ws = "myws";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace(ws));
+		logout.reset();
+		
+		Map<String, Object> ac = new HashMap<String, Object>();
+		
+		// set owner
+		ac.put("command", "setWorkspaceOwner");
+		Map<String, String> wsi = new HashMap<String, String>();
+		wsi.put("workspace", "myws");
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("wsi", wsi);
+		params.put("new_user", USER2);
+		ac.put("params", params);
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("setWorkspaceOwner 1 " + USER2, true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
+		// list owners
+		ac.put("command", "listWorkspaceOwners");
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", false),
+				new AdminExp("listWorkspaceOwners", true),
+				new AdminExp("end method", false))));
+		logout.reset();
+		
 	}
 }
