@@ -36,10 +36,15 @@ import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.service.JsonServerSyslog.SyslogOutput;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RegisterTypespecParams;
+import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -65,6 +70,8 @@ public class LoggingTest {
 
 	private static final String ATYPE = "SomeModule.AType";
 	private static final String BTYPE = "SomeModule.BType";
+	private static final String REFTYPE = "SomeModule.RefType";
+	
 	private static String USER1;
 	private static String USER2;
 	private static MongoController mongo;
@@ -136,9 +143,14 @@ public class LoggingTest {
 						"typedef structure {" +
 							"string thing;" +
 						"} BType;" +
+						"/* @id ws */" +
+						"typedef string ref;" +
+						"typedef structure {" +
+							"ref r;" +
+						"} RefType;" +
 					"};"
 					)
-			.withNewTypes(Arrays.asList("AType", "BType")));
+			.withNewTypes(Arrays.asList("AType", "BType", "RefType")));
 		CLIENT1.releaseModule("SomeModule");
 	}
 	
@@ -284,6 +296,13 @@ public class LoggingTest {
 		}
 	}
 	
+	private static class LogObjExp extends ExpectedLog{
+		
+		public LogObjExp(String method, String message, boolean internal) {
+			super(INFO, method, message, USER1, internal);
+		}
+	}
+	
 	private void checkLogging(List<ExpectedLog> expected) throws Exception {
 		checkLogging(expected, expected.size());
 	}
@@ -322,7 +341,6 @@ public class LoggingTest {
 		assertThat("log date < 1s ago", now - epochms < 1000, is(true));
 		//3 is user running the service
 		assertThat("caller correct", headerParts[4],
-				//TODO this looks like a big in JsonServerServlet
 				is("us.kbase.workspace.WorkspaceServer" +
 						(exp.internal ? "$1" : "")));
 		//5 is pid
@@ -339,11 +357,16 @@ public class LoggingTest {
 	
 
 	@Test
-	public void saveObject() throws Exception {
+	public void logObjects() throws Exception {
+		/* test various methods that log the object ID and type when run
+		 * Doesn't bother with deprecated fns 
+		 */
 		String ws = "myws";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
 				.withWorkspace(ws));
 		logout.reset();
+		
+		// save objects
 		List<ObjectSaveData> d = new LinkedList<ObjectSaveData>();
 		for (String name: Arrays.asList("foo", "bar", "baz")) {
 			d.add(new ObjectSaveData()
@@ -354,17 +377,144 @@ public class LoggingTest {
 		CLIENT1.saveObjects(new SaveObjectsParams()
 				.withWorkspace(ws)
 				.withObjects(d));
-		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "save_objects",
-						"start method", USER1, false),
-				new ExpectedLog(INFO, "save_objects",
-						"Object 1/1/1 SomeModule.AType-1.0", USER1, true),
-				new ExpectedLog(INFO, "save_objects",
-						"Object 1/2/1 SomeModule.BType-1.0", USER1, true),
-				new ExpectedLog(INFO, "save_objects",
-						"Object 1/3/1 SomeModule.AType-1.0", USER1, true),
-				new ExpectedLog(INFO, "save_objects",
-						"end method", USER1, false)));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("save_objects", "start method", false),
+				new LogObjExp("save_objects",
+						"Object 1/1/1 SomeModule.AType-1.0", true),
+				new LogObjExp("save_objects",
+						"Object 1/2/1 SomeModule.BType-1.0", true),
+				new LogObjExp("save_objects",
+						"Object 1/3/1 SomeModule.AType-1.0", true),
+				new LogObjExp("save_objects", "end method", false))));
+		logout.reset();
 		
+		// rename
+		CLIENT1.renameObject(new RenameObjectParams()
+				.withNewName("bak")
+				.withObj(new ObjectIdentity().withRef("1/1/1")));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("rename_object", "start method", false),
+				new LogObjExp("rename_object",
+						"Object 1/1/1 SomeModule.AType-1.0", true),
+				new LogObjExp("rename_object", "end method", false))));
+		logout.reset();
+		
+		// copy
+		CLIENT1.copyObject(new CopyObjectParams()
+				.withFrom(new ObjectIdentity().withRef("1/2"))
+				.withTo(new ObjectIdentity().withRef("1/1")));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("copy_object", "start method", false),
+				new LogObjExp("copy_object",
+						"Object 1/1/2 SomeModule.BType-1.0", true),
+				new LogObjExp("copy_object", "end method", false))));
+		logout.reset();
+		
+		// revert
+		CLIENT1.revertObject(new ObjectIdentity().withRef("1/1/1"));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("revert_object", "start method", false),
+				new LogObjExp("revert_object",
+						"Object 1/1/3 SomeModule.AType-1.0", true),
+				new LogObjExp("revert_object", "end method", false))));
+		logout.reset();
+		
+		// history
+		CLIENT1.getObjectHistory(new ObjectIdentity().withRef("1/1"));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("get_object_history", "start method", false),
+				new LogObjExp("get_object_history",
+						"Object 1/1/1 SomeModule.AType-1.0", true),
+				new LogObjExp("get_object_history",
+						"Object 1/1/2 SomeModule.BType-1.0", true),
+				new LogObjExp("get_object_history",
+						"Object 1/1/3 SomeModule.AType-1.0", true),
+				new LogObjExp("get_object_history", "end method", false))));
+		logout.reset();
+		
+		// get info
+		CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(Arrays.asList(
+						new ObjectIdentity().withRef("1/1/2"),
+						new ObjectIdentity().withRef("1/1/1"))));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("get_object_info_new", "start method", false),
+				new LogObjExp("get_object_info_new",
+						"Object 1/1/2 SomeModule.BType-1.0", true),
+				new LogObjExp("get_object_info_new",
+						"Object 1/1/1 SomeModule.AType-1.0", true),
+				new LogObjExp("get_object_info_new", "end method", false))));
+		logout.reset();
+		
+		// get objs
+		CLIENT1.getObjects(Arrays.asList(
+				new ObjectIdentity().withRef("1/1/2"),
+				new ObjectIdentity().withRef("1/1/1")));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("get_objects", "start method", false),
+				new LogObjExp("get_objects",
+						"Object 1/1/2 SomeModule.BType-1.0", true),
+				new LogObjExp("get_objects",
+						"Object 1/1/1 SomeModule.AType-1.0", true),
+				new LogObjExp("get_objects", "end method", false))));
+		logout.reset();
+		
+		// get subobjs
+		CLIENT1.getObjectSubset(Arrays.asList(
+				new SubObjectIdentity().withIncluded(Arrays.asList("/"))
+						.withRef("1/1/2"),
+				new SubObjectIdentity().withIncluded(Arrays.asList("/"))
+						.withRef("1/1/1")));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("get_object_subset", "start method", false),
+				new LogObjExp("get_object_subset",
+						"Object 1/1/2 SomeModule.BType-1.0", true),
+				new LogObjExp("get_object_subset",
+						"Object 1/1/1 SomeModule.AType-1.0", true),
+				new LogObjExp("get_object_subset", "end method", false))));
+		logout.reset();
+		
+		// get prov
+		CLIENT1.getObjectProvenance(Arrays.asList(
+				new ObjectIdentity().withRef("1/1/2"),
+				new ObjectIdentity().withRef("1/1/1")));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("get_object_provenance", "start method", false),
+				new LogObjExp("get_object_provenance",
+						"Object 1/1/2 SomeModule.BType-1.0", true),
+				new LogObjExp("get_object_provenance",
+						"Object 1/1/1 SomeModule.AType-1.0", true),
+				new LogObjExp("get_object_provenance", "end method", false))));
+		logout.reset();
+		
+		// get ref'd objects
+		Map<String, String> r = new HashMap<String, String>();
+		r.put("r", "1/1/2");
+		CLIENT1.saveObjects(new SaveObjectsParams()
+				.withWorkspace(ws)
+				.withObjects(Arrays.asList(
+						new ObjectSaveData()
+							.withData(new UObject(r))
+							.withName("ref")
+							.withType(REFTYPE))));
+		logout.reset();
+		CLIENT1.getReferencedObjects(Arrays.asList(Arrays.asList(
+				new ObjectIdentity().withRef("1/ref/1"),
+				new ObjectIdentity().withRef("1/1/2"))));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("get_referenced_objects", "start method", false),
+				new LogObjExp("get_referenced_objects",
+						"Object 1/1/2 SomeModule.BType-1.0", true),
+				new LogObjExp("get_referenced_objects", "end method", false))));
+		logout.reset();
+										
+	}
+
+	private List<ExpectedLog> convertLogObjExp(List<LogObjExp> logobj) {
+		List<ExpectedLog> e = new LinkedList<LoggingTest.ExpectedLog>();
+		for (LogObjExp l: logobj) {
+			e.add((ExpectedLog) l);
+		}
+		return e;
 	}
 }
