@@ -85,6 +85,10 @@ public class Workspace {
 	
 	//TODO use DigestInputStream while sorting object to calculate md5 at the same time
 	
+	//TODO NOW test against shock 0.8.24, 0.9.6, 0.9.12
+	//TODO NOW test against mongo 2.4.max, 2.6.max, 3.0.max, 3.2.max w/ wired tiger
+	//TODO NOW update versions document listing tested shock  mongo versions
+	
 	public static final User ALL_USERS = new AllUsers('*');
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
