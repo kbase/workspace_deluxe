@@ -80,10 +80,10 @@ public class Workspace {
 	//TODO BIG SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
 	//TODO BIG SEARCH separate service - get object changes since date (based on type collection and pointers collection
 	//TODO BIG SEARCH index typespecs
-	//TODO BIG SUBDATA separate service - subdata search interface. Add ability to 'install' queries that certain users can run? Test subdata creation
-	//TODO BIG SUBDATA separate service - subdata search - admin can install and remove indexes.
 	
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
+	
+	//TODO use DigestInputStream while sorting object to calculate md5 at the same time
 	
 	public static final User ALL_USERS = new AllUsers('*');
 	

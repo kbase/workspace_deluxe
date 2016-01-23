@@ -220,6 +220,11 @@ public class ScriptTestRunner {
 				"JSONRPCLayerHandleTest_ShockDB",
 				"foo",
 				"foo");
+		System.out.println("Shock controller version: " + SHOCK.getVersion());
+		if (SHOCK.getVersion() == null) {
+			System.out.println(
+					"Unregistered version - Shock may not start correctly");
+		}
 		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
 
 		MYSQL = new MySQLController(
