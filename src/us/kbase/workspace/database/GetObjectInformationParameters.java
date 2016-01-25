@@ -2,7 +2,6 @@ package us.kbase.workspace.database;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import us.kbase.typedobj.core.TypeDefId;
 
@@ -17,7 +16,7 @@ public class GetObjectInformationParameters {
 	final PermissionSet pset;
 	final TypeDefId type;
 	final List<WorkspaceUser> savers;
-	final Map<String, String> meta;
+	final WorkspaceUserMetadata meta;
 	final Date after;
 	final Date before;
 	final boolean showHidden;
@@ -32,7 +31,7 @@ public class GetObjectInformationParameters {
 			final PermissionSet pset,
 			final TypeDefId type,
 			final List<WorkspaceUser> savers,
-			final Map<String, String> meta,
+			final WorkspaceUserMetadata meta,
 			final Date after,
 			final Date before,
 			final boolean showHidden,
@@ -84,7 +83,7 @@ public class GetObjectInformationParameters {
 	/** Get the metadata by which the object list should be filtered.
 	 * @return the metadata.
 	 */
-	public Map<String, String> getMetadata() {
+	public WorkspaceUserMetadata getMetadata() {
 		return meta;
 	}
 

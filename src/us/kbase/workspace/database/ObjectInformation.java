@@ -1,7 +1,6 @@
 package us.kbase.workspace.database;
 
 import java.util.Date;
-import java.util.Map;
 
 
 public interface ObjectInformation {
@@ -16,7 +15,7 @@ public interface ObjectInformation {
 	public long getWorkspaceId();
 	public String getWorkspaceName();
 	public String getCheckSum();
-	public Map<String, String> getUserMetaData();
+	public UncheckedUserMetadata getUserMetaData();
 	public boolean equals(Object obj);
 	public int hashCode();
 }

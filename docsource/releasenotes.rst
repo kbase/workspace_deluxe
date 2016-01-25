@@ -3,6 +3,13 @@ Workspace service release notes
 
 VERSION: 0.3.6 (Released TBD)
 -----------------------------
+BACKWARDS INCOMPATIBILIES:
+
+* Module names and type names are now limited to 255 characters.
+* Metadata keys and values are limited to 900B for the total of each pair
+  of key and value.
+
+
 NEW FEATURES:
 
 * Added ``get_permissions_mass`` function.
