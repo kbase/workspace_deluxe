@@ -3,6 +3,7 @@ Workspace service release notes
 
 VERSION: 0.4.0 (Released TBD)
 -----------------------------
+
 BACKWARDS INCOMPATIBILITIES:
 
 * the ``list_objects()`` ``skip`` parameter is now deprecated and will be
@@ -12,6 +13,9 @@ BACKWARDS INCOMPATIBILITIES:
   now behaves in an unintuitive way in that the same object may appear in
   ``list_objects`` results even when the ``skip`` parameter setting should
   ensure that each set of returned objects is disjoint with all the others. 
+* Module names and type names are now limited to 255 characters.
+* Metadata keys and values are limited to 900B for the total of each pair
+  of key and value.
 
 NEW FEATURES:
 
@@ -28,6 +32,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   code. No plan to use this code and drastically increases database size and
   codebase complexity. All workspace mongo database ``type_[MD5]`` collections
   may be deleted after upgrading.
+* Improved logging for the ``administer()`` method.
 * Fixed a bug where mongo connections would not be released when redeploying
   the server in an already running glassfish instance.
 * Fixed a bug where objects from deleted workspaces could be listed in 

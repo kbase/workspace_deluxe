@@ -17,6 +17,7 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
+import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
@@ -170,7 +171,7 @@ public class ObjectInfoUtils {
 		if (!params.getMetadata().isEmpty()) {
 			final List<DBObject> andmetaq = new LinkedList<DBObject>();
 			for (final Entry<String, String> e:
-					params.getMetadata().entrySet()) {
+					params.getMetadata().getMetadata().entrySet()) {
 				final DBObject mentry = new BasicDBObject();
 				mentry.put(Fields.META_KEY, e.getKey());
 				mentry.put(Fields.META_VALUE, e.getValue());
@@ -297,7 +298,8 @@ public class ObjectInfoUtils {
 				rwsi,
 				(String) ver.get(Fields.VER_CHKSUM),
 				(Long) ver.get(Fields.VER_SIZE),
-				meta == null ? null : metaMongoArrayToHash(meta));
+				meta == null ? null : new UncheckedUserMetadata(
+						metaMongoArrayToHash(meta)));
 	}
 	
 	static Map<String, String> metaMongoArrayToHash(

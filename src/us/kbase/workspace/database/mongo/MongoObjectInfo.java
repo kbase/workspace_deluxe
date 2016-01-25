@@ -1,9 +1,9 @@
 package us.kbase.workspace.database.mongo;
 
 import java.util.Date;
-import java.util.Map;
 
 import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 
 public class MongoObjectInfo implements ObjectInformation {
@@ -18,13 +18,13 @@ public class MongoObjectInfo implements ObjectInformation {
 	final private String workspaceName;
 	final private String chksum;
 	final private long size;
-	final private Map<String, String> meta;
+	final private UncheckedUserMetadata meta;
 	
 	MongoObjectInfo(final long id, final String name,
 			final String typeString, final Date createdDate, final int version,
 			final WorkspaceUser creator, final ResolvedMongoWSID workspaceid,
 			final String chksum, final long size,
-			final Map<String, String> meta) {
+			final UncheckedUserMetadata meta) {
 		//no error checking for now, add if needed
 		this.id = id;
 		this.name = name;
@@ -91,7 +91,7 @@ public class MongoObjectInfo implements ObjectInformation {
 	}
 	
 	@Override
-	public Map<String, String> getUserMetaData() {
+	public UncheckedUserMetadata getUserMetaData() {
 		return meta;
 	}
 

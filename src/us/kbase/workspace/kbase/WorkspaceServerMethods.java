@@ -52,6 +52,8 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -81,12 +83,14 @@ public class WorkspaceServerMethods {
 			createWorkspace(
 			final CreateWorkspaceParams params, final WorkspaceUser user)
 			throws PreExistingWorkspaceException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+			WorkspaceCommunicationException, CorruptWorkspaceDBException,
+			MetadataException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		Permission p = getGlobalWSPerm(params.getGlobalread());
 		final WorkspaceInformation meta = ws.createWorkspace(user,
 				params.getWorkspace(), p.equals(Permission.READ),
-				params.getDescription(), params.getMeta());
+				params.getDescription(),
+				new WorkspaceUserMetadata(params.getMeta()));
 		return wsInfoToTuple(meta);
 	}
 	
@@ -221,16 +225,20 @@ public class WorkspaceServerMethods {
 			final boolean hidden = longToBoolean(d.getHidden());
 			try {
 				if (oi == null) {
-					woc.add(new WorkspaceSaveObject(d.getData(),
-							t, d.getMeta(), p, hidden));
+					woc.add(new WorkspaceSaveObject(d.getData(), t,
+							new WorkspaceUserMetadata(d.getMeta()), p,
+							hidden));
 				} else {
-					woc.add(new WorkspaceSaveObject(oi,
-							d.getData(), t, d.getMeta(), p,
+					woc.add(new WorkspaceSaveObject(oi, d.getData(), t, 
+							new WorkspaceUserMetadata(d.getMeta()), p,
 							hidden));
 				}
 			} catch (IllegalArgumentException iae) {
 				throw new IllegalArgumentException(errprefix + " save error: "
 						+ iae.getLocalizedMessage(), iae);
+			} catch (MetadataException me) {
+				throw new IllegalArgumentException(errprefix + " save error: "
+						+ me.getLocalizedMessage(), me);
 			}
 			count++;
 		}
@@ -265,12 +273,14 @@ public class WorkspaceServerMethods {
 	public List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>
 			listWorkspaceInfo(final ListWorkspaceInfoParams params,
 			final WorkspaceUser user)
-			throws WorkspaceCommunicationException, CorruptWorkspaceDBException, ParseException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
+			ParseException, MetadataException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final Permission p = params.getPerm() == null ? null :
 				translatePermission(params.getPerm());
 		return wsInfoToTuple(ws.listWorkspaces(user,
-				p, ArgUtils.convertUsers(params.getOwners()), params.getMeta(),
+				p, ArgUtils.convertUsers(params.getOwners()),
+				new WorkspaceUserMetadata(params.getMeta()),
 				parseDate(params.getAfter()),
 				parseDate(params.getBefore()),
 				longToBoolean(params.getExcludeGlobal()),

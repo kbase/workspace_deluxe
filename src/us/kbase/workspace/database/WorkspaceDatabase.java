@@ -41,12 +41,22 @@ public interface WorkspaceDatabase {
 
 	public WorkspaceInformation createWorkspace(WorkspaceUser owner,
 			String wsname, boolean globalread, String description,
-			Map<String, String> meta) throws
+			WorkspaceUserMetadata meta) throws
 			PreExistingWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
 	
-	public void setWorkspaceMetaKey(ResolvedWorkspaceID wsid,
-			Map<String, String> meta)
+	/** Sets metadata for a workspace, overwriting existing keys if a
+	 * duplicate key is supplied.
+	 * 
+	 * @param wsid the workspace for which metadata will be altered.
+	 * @param meta the metadata to add to the workspace.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 * @throws IllegalArgumentException if no metadata is supplied or the 
+	 * updated metadata exceeds the allowed size.
+	 */
+	public void setWorkspaceMeta(ResolvedWorkspaceID wsid,
+			WorkspaceUserMetadata meta)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
@@ -54,7 +64,7 @@ public interface WorkspaceDatabase {
 	
 	public WorkspaceInformation cloneWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid, String newname, boolean globalread,
-			String description, Map<String, String> meta)
+			String description, WorkspaceUserMetadata meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
@@ -263,7 +273,7 @@ public interface WorkspaceDatabase {
 	
 	public List<WorkspaceInformation> getWorkspaceInformation(
 			PermissionSet pset, List<WorkspaceUser> owners,
-			Map<String, String> meta, Date after, Date before,
+			WorkspaceUserMetadata meta, Date after, Date before,
 			boolean showDeleted, boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
