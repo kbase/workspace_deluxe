@@ -12,6 +12,7 @@ NEW FEATURES:
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
+* Updated for compatibility with Shock 0.9.6 (tests only) and 0.9.12.
 * Removed internal data subsetting (intended for indexing of data contents)
   code. No plan to use this code and drastically increases database size and
   codebase complexity. All workspace mongo database type_[MD5] collections may
