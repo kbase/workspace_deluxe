@@ -23,6 +23,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   code. No plan to use this code and drastically increases database size and
   codebase complexity. All workspace mongo database type_[MD5] collections may
   be deleted after upgrading.
+* Improved logging for the ``administer()`` method.
 * Fixed a bug where mongo connections would not be released when redeploying
   the server in an already running glassfish instance.
 * Fixed a bug where objects from deleted workspaces could be listed in 
