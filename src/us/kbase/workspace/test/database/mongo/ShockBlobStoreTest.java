@@ -74,6 +74,7 @@ public class ShockBlobStoreTest {
 		
 		shock = new ShockController(
 				WorkspaceTestCommon.getShockExe(),
+				WorkspaceTestCommon.getShockVersion(),
 				Paths.get(WorkspaceTestCommon.getTempDir()),
 				"***---fakeuser---***",
 				mongohost,

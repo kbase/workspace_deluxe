@@ -214,6 +214,7 @@ public class ScriptTestRunner {
 
 		SHOCK = new ShockController(
 				WorkspaceTestCommon.getShockExe(),
+				WorkspaceTestCommon.getShockVersion(),
 				Paths.get(tempDir),
 				u3,
 				mongohost,

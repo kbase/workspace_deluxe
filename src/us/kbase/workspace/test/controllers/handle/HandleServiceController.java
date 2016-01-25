@@ -220,6 +220,7 @@ public class HandleServiceController {
 				Paths.get("workspacetesttemp"), false); 
 		ShockController sc = new ShockController(
 				"/kb/deployment/bin/shock-server",
+				"0.9.6",
 				Paths.get("workspacetesttemp"),
 				System.getProperty("test.user1"),
 				"localhost:" + monc.getServerPort(),

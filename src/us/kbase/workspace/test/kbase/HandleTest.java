@@ -81,7 +81,7 @@ public class HandleTest {
 
 	private static AbstractHandleClient HANDLE_CLIENT;
 	
-	private static ShockACLType READ_ACL = new ShockACLType("read");
+	private static ShockACLType READ_ACL = ShockACLType.READ;
 	
 	private static String HANDLE_TYPE = "HandleList.HList-0.1";
 	private static String HANDLE_REF_TYPE = "HandleList.HRef-0.1";
@@ -124,6 +124,7 @@ public class HandleTest {
 
 		SHOCK = new ShockController(
 				WorkspaceTestCommon.getShockExe(),
+				WorkspaceTestCommon.getShockVersion(),
 				Paths.get(WorkspaceTestCommon.getTempDir()),
 				u3,
 				mongohost,

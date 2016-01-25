@@ -240,6 +240,7 @@ public class WorkspaceTester {
 		if (shock == null) {
 			shock = new ShockController(
 					WorkspaceTestCommon.getShockExe(),
+					WorkspaceTestCommon.getShockVersion(),
 					Paths.get(WorkspaceTestCommon.getTempDir()),
 					"***---fakeuser---***",
 					"localhost:" + mongo.getServerPort(),

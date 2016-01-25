@@ -1416,7 +1416,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					o.getObjectIdentifier(), objnum, "provenance");
 			
 			try {
-				// TODO: 2 improved handling of new exceptions ExceededMaxSubsetSizeException and ExceededMaxMetadataException
+				// TODO improved handling of ExceededMaxMetadataException - what's actually needed here? Seems ok as is
 				ExtractedMetadata extract = o.getRep()
 						.extractMetadata(MAX_WS_META_SIZE);
 				pkg.wo.addUserMeta(extract.getMetadataAsMap());
