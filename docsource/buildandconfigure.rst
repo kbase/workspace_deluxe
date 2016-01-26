@@ -94,9 +94,9 @@ may optionally use:
   to allow linking workspace objects to Shock nodes (see
   :ref:`shockintegration`).
   
-The WSS has been tested against Shock versions 0.8.23, 0.9.6, and 0.9.12, and
-against MongoDB versions 2.4.14, 2.6.11, 3.0.8, and 3.2.1. 3.0+ versions were
-tested with and without the WiredTiger storage engine.
+The WSS has been tested against Shock versions 0.8.23, 0.9.6, 0.9.12, and
+0.9.13, and against MongoDB versions 2.4.14, 2.6.11, 3.0.8, and 3.2.1. 3.0+
+versions were tested with and without the WiredTiger storage engine.
   
 Please see the respective service documentation to set up and run the services
 required.

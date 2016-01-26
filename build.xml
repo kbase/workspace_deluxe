@@ -66,7 +66,7 @@
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
-    <include name="kbase/shock/shock-client-0.0.9.jar"/>
+    <include name="kbase/shock/shock-client-0.0.10.jar"/>
     <include name="apache_commons/commons-logging-1.1.1.jar"/>
     <include name="apache_commons/http/httpclient-4.3.1.jar"/>
     <include name="apache_commons/http/httpcore-4.3.jar"/>
