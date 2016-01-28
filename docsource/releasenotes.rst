@@ -13,7 +13,7 @@ BACKWARDS INCOMPATIBILITIES:
   now behaves in an unintuitive way in that the same object may appear in
   ``list_objects`` results even when the ``skip`` parameter setting should
   ensure that each set of returned objects is disjoint with all the others. 
-* Module names and type names are now limited to 255 characters.
+* Module names and type names are now limited to 255 bytes.
 * Metadata keys and values are limited to 900B for the total of each pair
   of key and value.
 
