@@ -27,26 +27,72 @@ import com.mongodb.MongoException;
 
 public class QueryMethods {
 	
+	//TODO unit tests
+	//TODO javadocs
+	
 	private final DB wsmongo;
 	private final AllUsers allUsers;
 	private final String workspaceCollection;
-	private final String pointerCollection;
+	private final String objectCollection;
 	private final String versionCollection;
 	private final String workspaceACLCollection;
 	
-	QueryMethods(final DB wsmongo, final AllUsers allUsers,
-			final String workspaceCollection, final String pointerCollection,
+	QueryMethods(
+			final DB wsmongo,
+			final AllUsers allUsers,
+			final String workspaceCollection,
+			final String objectCollection,
 			final String versionCollection,
 			final String workspaceACLCollection) {
+		if (wsmongo == null ||
+				allUsers == null ||
+				workspaceCollection == null ||
+				objectCollection == null ||
+				versionCollection == null ||
+				workspaceACLCollection == null) {
+			throw new NullPointerException("No arguments may be null");
+		}
+		if (workspaceCollection.isEmpty() ||
+				objectCollection.isEmpty() ||
+				versionCollection.isEmpty() ||
+				workspaceACLCollection.isEmpty()) {
+			throw new IllegalArgumentException(
+					"No collection names may be empty strings");
+		}
+				
 		this.wsmongo = wsmongo;
 		this.allUsers = allUsers;
 		this.workspaceCollection = workspaceCollection;
-		this.pointerCollection = pointerCollection;
+		this.objectCollection = objectCollection;
 		this.versionCollection = versionCollection;
 		this.workspaceACLCollection = workspaceACLCollection;
 	}
 	
 	
+	DB getDatabase() {
+		return wsmongo;
+	}
+
+	String getWorkspaceCollection() {
+		return workspaceCollection;
+	}
+
+
+	String getObjectCollection() {
+		return objectCollection;
+	}
+
+
+	String getVersionCollection() {
+		return versionCollection;
+	}
+
+
+	String getWorkspaceACLCollection() {
+		return workspaceACLCollection;
+	}
+
+
 	Map<String, Object> queryWorkspace(final ResolvedMongoWSID rwsi,
 			final Set<String> fields) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
@@ -223,7 +269,7 @@ public class QueryMethods {
 		fields.add(Fields.OBJ_NAME);
 		fields.add(Fields.OBJ_WS_ID);
 		final List<Map<String, Object>> queryres = queryCollection(
-				pointerCollection, new BasicDBObject("$or", orquery), fields);
+				objectCollection, new BasicDBObject("$or", orquery), fields);
 
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ret =
 				new HashMap<ObjectIDResolvedWSNoVer, Map<String, Object>>();
@@ -360,14 +406,13 @@ public class QueryMethods {
 	}
 	
 	List<Map<String, Object>> queryCollection(final String collection,
-			final DBObject query, final Set<String> fields) throws
-			WorkspaceCommunicationException {
-		return queryCollection(collection, query, fields, -1, -1);
+			final DBObject query, final Set<String> fields)
+			throws WorkspaceCommunicationException {
+		return queryCollection(collection, query, fields, -1);
 	}
 	
 	List<Map<String, Object>> queryCollection(final String collection,
-			final DBObject query, final Set<String> fields, final int skip,
-			final int limit)
+			final DBObject query, final Set<String> fields, final int limit)
 			throws WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
 		projection.put(Fields.MONGO_ID, 0);
@@ -379,9 +424,6 @@ public class QueryMethods {
 		try {
 			final DBCursor im = wsmongo.getCollection(collection)
 					.find(query, projection);
-			if (skip > -1) {
-				im.skip(skip);
-			}
 			if (limit > 0) {
 				im.limit(limit);
 			}
@@ -396,7 +438,7 @@ public class QueryMethods {
 	}
 	
 	//since LazyBsonObject.toMap() is not supported
-	private Map<String, Object> dbObjectToMap(final DBObject o) {
+	static Map<String, Object> dbObjectToMap(final DBObject o) {
 		final Map<String, Object> m = new HashMap<String, Object>();
 		for (final String name: o.keySet()) {
 			m.put(name, o.get(name));

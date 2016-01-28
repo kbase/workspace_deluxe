@@ -1,5 +1,9 @@
 package us.kbase.workspace.database.mongo;
 
+import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayToHash;
+import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
+import static us.kbase.workspace.database.mongo.ObjectInfoUtils.LATEST_VERSION;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,7 +12,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +107,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private final Jongo wsjongo;
 	private final BlobStore blob;
 	private final QueryMethods query;
+	private final ObjectInfoUtils objutils;
 	private final FindAndModify updateWScounter;
 	private final TypedObjectValidator typeValidator;
 	
@@ -190,6 +194,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
+		objutils = new ObjectInfoUtils(query);
 		blob = blobStore;
 		updateWScounter = buildCounterQuery(wsjongo);
 		//TODO check a few random types and make sure they exist
@@ -607,8 +612,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		saveObjectVersions(user, toWS, objid, versions, null);
 		final Map<String, Object> info = versions.get(versions.size() - 1);
 		updateWorkspaceModifiedDate(toWS);
-		return generateObjectInfo(toWS, objid, rto == null ? to.getName() :
-				rto.getName(), info);
+		return ObjectInfoUtils.generateObjectInfo(toWS, objid,
+				rto == null ? to.getName() : rto.getName(), info);
 	}
 	
 	final private static String M_RENAME_WS_WTH = String.format(
@@ -1207,20 +1212,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
-	private List<Map<String, String>> metaHashToMongoArray(
-			final Map<String, String> usermeta) {
-		final List<Map<String, String>> meta = 
-				new ArrayList<Map<String, String>>();
-		if (usermeta != null) {
-			for (String key: usermeta.keySet()) {
-				Map<String, String> m = new LinkedHashMap<String, String>(2);
-				m.put(Fields.META_KEY, key);
-				m.put(Fields.META_VALUE, usermeta.get(key));
-				meta.add(m);
-			}
-		}
-		return meta;
-	}
+
 	
 
 	private static final String M_SAVEINS_QRY = String.format("{%s: #, %s: #}",
@@ -1915,7 +1907,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<String, List<String>> extIDs =
 					(Map<String, List<String>>) vers.get(roi).get(
 							Fields.VER_EXT_IDS);
-			final MongoObjectInfo info = generateObjectInfo(
+			final MongoObjectInfo info = ObjectInfoUtils.generateObjectInfo(
 					roi, vers.get(roi));
 			ret.put(o, new WorkspaceObjectInformation(
 					info, prov, refs, copied, extIDs));
@@ -2001,7 +1993,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<String> refs =
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
-			final MongoObjectInfo info = generateObjectInfo(
+			final MongoObjectInfo info = ObjectInfoUtils.generateObjectInfo(
 					roi, vers.get(roi));
 			try {
 				if (paths.get(o) == null || paths.get(o).isEmpty()) {
@@ -2268,7 +2260,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<Map<String, Object>> vers = query.queryCollection(
 				COL_WORKSPACE_VERS, q, FLDS_GETREFOBJ);
 		final Map<Map<String, Object>, ObjectInformation> voi =
-				generateObjectInfo(perms, vers, true, false, false, true);
+				objutils.generateObjectInfo(
+						perms, vers, true, false, false, true);
 		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> ret = 
 				new HashMap<ObjectIDResolvedWS, Set<ObjectInformation>>();
 		for (final ObjectIDResolvedWS o: objs) {
@@ -2366,32 +2359,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private MongoObjectInfo generateObjectInfo(
-			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
-		return generateObjectInfo(roi.getWorkspaceIdentifier(), roi.getId(),
-				roi.getName(), ver);
-	}
-
-	private MongoObjectInfo generateObjectInfo(
-			final ResolvedMongoWSID rwsi, final long objid, final String name,
-			final Map<String, Object> ver) {
-		@SuppressWarnings("unchecked")
-		final List<Map<String, String>> meta =
-				(List<Map<String, String>>) ver.get(Fields.VER_META);
-		return new MongoObjectInfo(
-				objid,
-				name,
-				(String) ver.get(Fields.VER_TYPE),
-				(Date) ver.get(Fields.VER_SAVEDATE),
-				(Integer) ver.get(Fields.VER_VER),
-				new WorkspaceUser((String) ver.get(Fields.VER_SAVEDBY)),
-				rwsi,
-				(String) ver.get(Fields.VER_CHKSUM),
-				(Long) ver.get(Fields.VER_SIZE),
-				meta == null ? null :
-					new UncheckedUserMetadata(metaMongoArrayToHash(meta)));
-	}
-	
 	private static final Set<String> FLDS_VER_TYPE = newHashSet(
 			Fields.VER_TYPE, Fields.VER_VER);
 	
@@ -2451,7 +2418,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		
 		final List<Map<String, Object>> names = query.queryCollection(
-				COL_WORKSPACE_OBJS, q, FLDS_NAME_PREFIX, 0, limit);
+				COL_WORKSPACE_OBJS, q, FLDS_NAME_PREFIX, limit);
 		for (final Map<String, Object> o: names) {
 			final Long wsid = (Long) o.get(Fields.OBJ_WS_ID);
 			final String name = (String) o.get(Fields.OBJ_NAME);
@@ -2464,167 +2431,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private static final Set<String> FLDS_LIST_OBJ_VER = newHashSet(
-			Fields.VER_VER, Fields.VER_TYPE, Fields.VER_SAVEDATE,
-			Fields.VER_SAVEDBY, Fields.VER_VER, Fields.VER_CHKSUM,
-			Fields.VER_SIZE, Fields.VER_ID, Fields.VER_WS_ID);
-	
-	private static final Set<String> FLDS_LIST_OBJ = newHashSet(
-			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_HIDE,
-			Fields.OBJ_LATEST, Fields.OBJ_VCNT, Fields.OBJ_WS_ID);
-	
-	private static final String LATEST_VERSION = "_latestVersion";
-
 	@Override
 	public List<ObjectInformation> getObjectInformation(
 			final GetObjectInformationParameters params)
 			throws WorkspaceCommunicationException {
-		/* Could make this method more efficient by doing different queries
-		 * based on the filters. If there's no filters except the workspace,
-		 * for example, just grab all the objects for the workspaces,
-		 * filtering out hidden and deleted in the query and pull the most
-		 * recent versions for the remaining objects. For now, just go
-		 * with a dumb general method and add smarter heuristics as needed.
-		 */
-		final PermissionSet pset = params.getPermissionSet();
-		if (!(pset instanceof MongoPermissionSet)) {
-			throw new IllegalArgumentException(
-					"Illegal implementation of PermissionSet: " +
-					pset.getClass().getName());
-		}
-		if (pset.isEmpty()) {
-			return new LinkedList<ObjectInformation>();
-		}
-		final Set<Long> ids = new HashSet<Long>();
-		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			ids.add(rwsi.getID());
-		}
-		final DBObject verq = new BasicDBObject();
-		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
-		if (params.getType() != null) {
-			verq.put(Fields.VER_TYPE, new BasicDBObject(
-					"$regex", "^" + params.getType().getTypePrefix()));
-		}
-		if (!params.getSavers().isEmpty()) {
-			verq.put(Fields.VER_SAVEDBY, new BasicDBObject(
-					"$in", convertWorkspaceUsers(params.getSavers())));
-		}
-		if (!params.getMetadata().isEmpty()) {
-			final List<DBObject> andmetaq = new LinkedList<DBObject>();
-			for (final Entry<String, String> e:
-					params.getMetadata().getMetadata().entrySet()) {
-				final DBObject mentry = new BasicDBObject();
-				mentry.put(Fields.META_KEY, e.getKey());
-				mentry.put(Fields.META_VALUE, e.getValue());
-				andmetaq.add(new BasicDBObject(Fields.VER_META, mentry));
-			}
-			verq.put("$and", andmetaq); //note more than one entry is untested
-		}
-		if (params.getBefore() != null || params.getAfter() != null) {
-			final DBObject d = new BasicDBObject();
-			if (params.getBefore() != null) {
-				d.put("$lt", params.getBefore());
-			}
-			if (params.getAfter() != null) {
-				d.put("$gt", params.getAfter());
-			}
-			verq.put(Fields.VER_SAVEDATE, d);
-		}
-		final Set<String> fields;
-		if (params.isIncludeMetaData()) {
-			fields = new HashSet<String>(FLDS_LIST_OBJ_VER);
-			fields.add(Fields.VER_META);
-		} else {
-			fields = FLDS_LIST_OBJ_VER;
-		}
-		//querying on versions directly so no need to worry about race 
-		//condition where the workspace object was saved but no versions
-		//were saved yet
-		final List<Map<String, Object>> verobjs = query.queryCollection(
-				COL_WORKSPACE_VERS, verq, fields,
-				params.getSkip(), params.getLimit());
-		if (verobjs.isEmpty()) {
-			return new LinkedList<ObjectInformation>();
-		}
-		return new LinkedList<ObjectInformation>(generateObjectInfo(
-				pset, verobjs, params.isShowHidden(), params.isShowDeleted(),
-				params.isShowOnlyDeleted(), params.isShowAllVersions())
-				.values());
+		return objutils.filter(params);
 	}
 
-	private Map<Map<String, Object>, ObjectInformation> generateObjectInfo(
-			final PermissionSet pset, final List<Map<String, Object>> verobjs,
-			final boolean includeHidden, final boolean includeDeleted,
-			final boolean onlyIncludeDeleted, final boolean includeAllVers)
-			throws WorkspaceCommunicationException {
-		final Map<Map<String, Object>, ObjectInformation> ret =
-				new HashMap<Map<String, Object>, ObjectInformation>();
-		if (verobjs.isEmpty()) {
-			return ret;
-		}
-		final Map<Long, ResolvedWorkspaceID> ids =
-				new HashMap<Long, ResolvedWorkspaceID>();
-		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			final ResolvedMongoWSID rm = query.convertResolvedWSID(rwsi);
-			ids.put(rm.getID(), rm);
-		}
-		final Map<Long, Set<Long>> verdata = getObjectIDsFromVersions(verobjs);
-		//TODO This $or query might be better as multiple individual queries, test
-		final List<DBObject> orquery = new LinkedList<DBObject>();
-		for (final Long wsid: verdata.keySet()) {
-			final DBObject query = new BasicDBObject(Fields.VER_WS_ID, wsid);
-			query.put(Fields.VER_ID, new BasicDBObject(
-					"$in", verdata.get(wsid)));
-			orquery.add(query);
-		}
-		final DBObject objq = new BasicDBObject("$or", orquery);
-		//could include / exclude hidden and deleted objects here? Prob
-		// not worth the effort
-		//we're querying with known versions, so there's no need to exclude
-		//workspace objects with 0 versions
-		final Map<Long, Map<Long, Map<String, Object>>> objdata =
-				organizeObjData(query.queryCollection(
-						COL_WORKSPACE_OBJS, objq, FLDS_LIST_OBJ));
-		for (final Map<String, Object> vo: verobjs) {
-			final long wsid = (Long) vo.get(Fields.VER_WS_ID);
-			final long id = (Long) vo.get(Fields.VER_ID);
-			final int ver = (Integer) vo.get(Fields.VER_VER);
-			final Map<String, Object> obj = objdata.get(wsid).get(id);
-			final int lastver = (Integer) obj.get(LATEST_VERSION);
-			final ResolvedMongoWSID rwsi = (ResolvedMongoWSID) ids.get(wsid);
-			boolean isDeleted = (Boolean) obj.get(Fields.OBJ_DEL);
-			if (!includeAllVers && lastver != ver) {
-				/* this is tricky. As is, if there's a failure between incrementing
-				 * an object ver count and saving the object version no latest
-				 * ver will be listed. On the other hand, if we just take
-				 * the max ver we'd be adding incorrect latest vers when filters
-				 * exclude the real max ver. To do this correctly we've have to
-				 * get the max ver for all objects which is really expensive.
-				 * Since the failure mode should be very rare and it fixable
-				 * by simply reverting the object do nothing for now.
-				 */
-				continue;
-			}
-			if ((Boolean) obj.get(Fields.OBJ_HIDE) && !includeHidden) {
-				continue;
-			}
-			if (onlyIncludeDeleted) {
-				if (isDeleted && pset.hasPermission(rwsi, Permission.WRITE)) {
-					ret.put(vo, generateObjectInfo(rwsi, id,
-							(String) obj.get(Fields.OBJ_NAME), vo));
-				}
-				continue;
-			}
-			if (isDeleted && (!includeDeleted ||
-					!pset.hasPermission(rwsi, Permission.WRITE))) {
-				continue;
-			}
-			ret.put(vo, generateObjectInfo(rwsi, id,
-					(String) obj.get(Fields.OBJ_NAME), vo));
-		}
-		return ret;
-	}
-	
 	private static final Set<String> FLDS_VER_OBJ_HIST = newHashSet(
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
 			Fields.VER_TYPE, Fields.VER_CHKSUM, Fields.VER_SIZE,
@@ -2644,41 +2457,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final LinkedList<ObjectInformation> ret =
 				new LinkedList<ObjectInformation>();
 		for (final Map<String, Object> v: versions) {
-			ret.add(generateObjectInfo(roi, v));
+			ret.add(ObjectInfoUtils.generateObjectInfo(roi, v));
 		}
 		return ret;
 	}
 	
-	private Map<Long, Map<Long, Map<String, Object>>> organizeObjData(
-			final List<Map<String, Object>> objs) {
-		final Map<Long, Map<Long, Map<String, Object>>> ret =
-				new HashMap<Long, Map<Long,Map<String,Object>>>();
-		for (final Map<String, Object> o: objs) {
-			final long wsid = (Long) o.get(Fields.OBJ_WS_ID);
-			final long objid = (Long) o.get(Fields.OBJ_ID);
-			calcLatestObjVersion(o);
-			if (!ret.containsKey(wsid)) {
-				ret.put(wsid, new HashMap<Long, Map<String, Object>>());
-			}
-			ret.get(wsid).put(objid, o);
-		}
-		return ret;
-	}
-
-	private Map<Long, Set<Long>> getObjectIDsFromVersions(
-			final List<Map<String, Object>> objs) {
-		final Map<Long, Set<Long>> ret = new HashMap<Long, Set<Long>>();
-		for (final Map<String, Object> o: objs) {
-			final long wsid = (Long) o.get(Fields.VER_WS_ID);
-			final long objid = (Long) o.get(Fields.VER_ID);
-			if (!ret.containsKey(wsid)) {
-				ret.put(wsid, new HashSet<Long>());
-			}
-			ret.get(wsid).add(objid);
-		}
-		return ret;
-	}
-
 	private static final Set<String> FLDS_VER_META = newHashSet(
 			Fields.VER_VER, Fields.VER_TYPE,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
@@ -2717,28 +2500,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
 			if (vers.containsKey(roi)) {
-				ret.put(o, generateObjectInfo(roi, vers.get(roi)));
-			}
-		}
-		return ret;
-	}
-	
-	private Map<String, String> metaMongoArrayToHash(
-			final List<? extends Object> meta) {
-		final Map<String, String> ret = new HashMap<String, String>();
-		if (meta != null) {
-			for (final Object o: meta) {
-				//frigging mongo
-				if (o instanceof DBObject) {
-					final DBObject dbo = (DBObject) o;
-					ret.put((String) dbo.get(Fields.META_KEY),
-							(String) dbo.get(Fields.META_VALUE));
-				} else {
-					@SuppressWarnings("unchecked")
-					final Map<String, String> m = (Map<String, String>) o;
-					ret.put(m.get(Fields.META_KEY),
-							m.get(Fields.META_VALUE));
-				}
+				ret.put(o, ObjectInfoUtils.generateObjectInfo(
+						roi, vers.get(roi)));
 			}
 		}
 		return ret;
@@ -2844,7 +2607,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Object %s (name %s) in workspace %s has been deleted",
 						id, name, oid.getWorkspaceIdentifier().getID()), oid);
 			}
-			calcLatestObjVersion(ids.get(o));
+			ObjectInfoUtils.calcLatestObjVersion(ids.get(o));
 			ret.put(oid, ids.get(o));
 		}
 		return ret;
@@ -2904,17 +2667,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
-	private void calcLatestObjVersion(Map<String, Object> m) {
-		final Integer latestVersion;
-		if ((Integer) m.get(Fields.OBJ_LATEST) == null) {
-			latestVersion = (Integer) m.get(Fields.OBJ_VCNT);
-		} else {
-			//TODO check this works with GC
-			latestVersion = (Integer) m.get(Fields.OBJ_LATEST);
-		}
-		m.put(LATEST_VERSION, latestVersion);
-	}
-	
 	private Map<ResolvedMongoObjectID, Boolean> verifyVersions(
 			final Set<ResolvedMongoObjectID> objs)
 			throws NoSuchObjectException, WorkspaceCommunicationException {

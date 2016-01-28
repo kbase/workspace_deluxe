@@ -30,6 +30,8 @@ public class ListObjectsParameters {
 	private WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
 	private Date after = null;
 	private Date before = null;
+	private long minObjectID = -1;
+	private long maxObjectID = -1;
 	private boolean showHidden = false;
 	private boolean showDeleted = false;
 	private boolean showOnlyDeleted = false;
@@ -229,6 +231,38 @@ public class ListObjectsParameters {
 		return this;
 	}
 
+	/** Get the minimum object ID for objects that should be listed.
+	 * @return the minimum object ID.
+	 */
+	public long getMinObjectID() {
+		return minObjectID;
+	}
+
+	/** Set the minimum object ID for objects that should be listed.
+	 * @param minObjectID the minimum object ID.
+	 * @return this ListObjectsParameters instance.
+	 */
+	public ListObjectsParameters withMinObjectID(long minObjectID) {
+		this.minObjectID = minObjectID;
+		return this;
+	}
+
+	/** Get the maximum object ID for objects that should be listed.
+	 * @return the maxium object ID.
+	 */
+	public long getMaxObjectID() {
+		return maxObjectID;
+	}
+
+	/** Set the maximum object ID for objects that should be listed.
+	 * @param maxObjectID the maximum object ID.
+	 * @return this ListObjectsParameters instance.
+	 */
+	public ListObjectsParameters withMaxObjectID(long maxObjectID) {
+		this.maxObjectID = maxObjectID;
+		return this;
+	}
+
 	/** Returns whether hidden objects should be listed
 	 * @return true if hidden objects should be listed.
 	 */
@@ -381,9 +415,9 @@ public class ListObjectsParameters {
 			throw new NullPointerException("perms cannot be null");
 		}
 		return new GetObjectInformationParameters(
-				perms, type, savers, meta, after, before, showHidden,
-				showDeleted, showOnlyDeleted, showAllVers, includeMetaData,
-				skip, limit);
+				perms, type, savers, meta, after, before, minObjectID,
+				maxObjectID, showHidden, showDeleted, showOnlyDeleted,
+				showAllVers, includeMetaData, skip, limit);
 		
 	}
 }
