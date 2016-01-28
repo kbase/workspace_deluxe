@@ -1,14 +1,21 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.3.6 (Released TBD)
+VERSION: 0.4.0 (Released TBD)
 -----------------------------
-BACKWARDS INCOMPATIBILIES:
 
+BACKWARDS INCOMPATIBILITIES:
+
+* the ``list_objects()`` ``skip`` parameter is now deprecated and will be
+  removed in a future version. Additionally, the ``list_objects`` method's
+  behavior has changed. ``list_objects`` is now guaranteed to return either all
+  the remaining objects that match the filters or ``limit`` objects. ``skip``
+  now behaves in an unintuitive way in that the same object may appear in
+  ``list_objects`` results even when the ``skip`` parameter setting should
+  ensure that each set of returned objects is disjoint with all the others. 
 * Module names and type names are now limited to 255 characters.
 * Metadata keys and values are limited to 900B for the total of each pair
   of key and value.
-
 
 NEW FEATURES:
 
@@ -16,21 +23,21 @@ NEW FEATURES:
 * Added ``get_names_by_prefix`` function.
 * A documentation server now provides all available workspace documentation at
   the ``/docs`` endpoint.
+* ``list_objects`` output may now be filtered by minimum and maximum object
+  IDs.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
 * Updated for compatibility with Shock 0.9.6 (tests only), 0.9.12, and 0.9.13.
 * Removed internal data subsetting (intended for indexing of data contents)
   code. No plan to use this code and drastically increases database size and
-  codebase complexity. All workspace mongo database type_[MD5] collections may
-  be deleted after upgrading.
+  codebase complexity. All workspace mongo database ``type_[MD5]`` collections
+  may be deleted after upgrading.
 * Improved logging for the ``administer()`` method.
 * Fixed a bug where mongo connections would not be released when redeploying
   the server in an already running glassfish instance.
 * Fixed a bug where objects from deleted workspaces could be listed in 
   ``list_objects`` output.
-* The ``list_objects`` ``skip`` parameter is deprecated. It will be removed in
-  a future version.
 * ``get_permissions`` no longer requires authentication.
 * the admin user specified in the ``deploy.cfg`` file can no longer be removed
   by other admins.

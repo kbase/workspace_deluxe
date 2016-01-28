@@ -600,6 +600,15 @@ public class ArgUtils {
 		return new Long(l).intValue();
 	}
 	
+	public static long checkLong(
+			final Long l,
+			final long default_) {
+		if (l == null) {
+			return default_;
+		}
+		return l;
+	}
+	
 	public static Permission getGlobalWSPerm(final String globalRead) {
 		Permission p = Permission.NONE;
 		if (globalRead != null) {

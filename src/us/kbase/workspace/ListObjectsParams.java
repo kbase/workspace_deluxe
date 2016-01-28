@@ -40,6 +40,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         date.
  *                 timestamp before - only return objects that were created before this
  *                         date.
+ *                 obj_id minObjectID - only return objects with an object id greater or
+ *                         equal to this value.
+ *                 obj_id maxObjectID - only return objects with an object id less than or
+ *                         equal to this value.
  *                 boolean showDeleted - show deleted objects in workspaces to which the
  *                         user has write access.
  *                 boolean showOnlyDeleted - only show deleted objects in workspaces to
@@ -52,7 +56,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         metadata will be null.
  *                 boolean excludeGlobal - exclude objects in global workspaces. This
  *                         parameter only has an effect when filtering by types alone.
- *                 int skip - DEPRECATED. skip the first X objects. Maximum value is 2^31,
+ *                 int skip - DEPRECATED. Skip the first X objects. Maximum value is 2^31,
  *                         skip values < 0 are treated as 0, the default.
  *                 int limit - limit the output to X objects. Default and maximum value
  *                         is 10000. Limit values < 1 are treated as 10000, the default.
@@ -70,6 +74,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "meta",
     "after",
     "before",
+    "minObjectID",
+    "maxObjectID",
     "showDeleted",
     "showOnlyDeleted",
     "showHidden",
@@ -97,6 +103,10 @@ public class ListObjectsParams {
     private java.lang.String after;
     @JsonProperty("before")
     private java.lang.String before;
+    @JsonProperty("minObjectID")
+    private java.lang.Long minObjectID;
+    @JsonProperty("maxObjectID")
+    private java.lang.Long maxObjectID;
     @JsonProperty("showDeleted")
     private java.lang.Long showDeleted;
     @JsonProperty("showOnlyDeleted")
@@ -235,6 +245,36 @@ public class ListObjectsParams {
         return this;
     }
 
+    @JsonProperty("minObjectID")
+    public java.lang.Long getMinObjectID() {
+        return minObjectID;
+    }
+
+    @JsonProperty("minObjectID")
+    public void setMinObjectID(java.lang.Long minObjectID) {
+        this.minObjectID = minObjectID;
+    }
+
+    public ListObjectsParams withMinObjectID(java.lang.Long minObjectID) {
+        this.minObjectID = minObjectID;
+        return this;
+    }
+
+    @JsonProperty("maxObjectID")
+    public java.lang.Long getMaxObjectID() {
+        return maxObjectID;
+    }
+
+    @JsonProperty("maxObjectID")
+    public void setMaxObjectID(java.lang.Long maxObjectID) {
+        this.maxObjectID = maxObjectID;
+    }
+
+    public ListObjectsParams withMaxObjectID(java.lang.Long maxObjectID) {
+        this.maxObjectID = maxObjectID;
+        return this;
+    }
+
     @JsonProperty("showDeleted")
     public java.lang.Long getShowDeleted() {
         return showDeleted;
@@ -367,7 +407,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", skip=")+ skip)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", minObjectID=")+ minObjectID)+", maxObjectID=")+ maxObjectID)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", skip=")+ skip)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

@@ -276,7 +276,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		checkObjectPagination(user, wsi, 10000, 10000, 10001, 20000);
 		checkObjectPagination(user, wsi, 15000, 10000, 15001, 20000);
 		checkObjectPagination(user, wsi, 15000, 1, 15001, 15001);
-		checkObjectPagination(user, wsi, 20000, -1, 2, 1); //hack
+		checkObjectPagination(user, wsi, 20000, -1, 2, 1); //hack so the method expects 0 objects
 	}
 	
 	//this test takes FOREVER and doesn't actually test anything, it's a performance measurement
