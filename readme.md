@@ -28,7 +28,7 @@ built instance online:
 * [KBase Production](http://kbase.us/services/ws/docs/)
 
 The documentation can also be read on Github as
-[restructured text (reST) files](https://github.com/kbase/workspace_deluxe/docsource).
+[restructured text (reST) files](https://github.com/kbase/workspace_deluxe/tree/master/docsource).
 
 However, Github does not display tables of contents and cross references don't
 work, so navigation isn't particularly friendly. Also, the API documentation

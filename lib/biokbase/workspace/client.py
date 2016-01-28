@@ -331,6 +331,11 @@ class Workspace(object):
                           [object])
         return resp[0]
 
+    def get_names_by_prefix(self, params):
+        resp = self._call('Workspace.get_names_by_prefix',
+                          [params])
+        return resp[0]
+
     def hide_objects(self, object_ids):
         self._call('Workspace.hide_objects',
                    [object_ids])

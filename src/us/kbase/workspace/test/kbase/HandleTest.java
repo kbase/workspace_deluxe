@@ -81,7 +81,7 @@ public class HandleTest {
 
 	private static AbstractHandleClient HANDLE_CLIENT;
 	
-	private static ShockACLType READ_ACL = new ShockACLType("read");
+	private static ShockACLType READ_ACL = ShockACLType.READ;
 	
 	private static String HANDLE_TYPE = "HandleList.HList-0.1";
 	private static String HANDLE_REF_TYPE = "HandleList.HRef-0.1";
@@ -124,12 +124,18 @@ public class HandleTest {
 
 		SHOCK = new ShockController(
 				WorkspaceTestCommon.getShockExe(),
+				WorkspaceTestCommon.getShockVersion(),
 				Paths.get(WorkspaceTestCommon.getTempDir()),
 				u3,
 				mongohost,
 				"JSONRPCLayerHandleTest_ShockDB",
 				"foo",
 				"foo");
+		System.out.println("Shock controller version: " + SHOCK.getVersion());
+		if (SHOCK.getVersion() == null) {
+			System.out.println(
+					"Unregistered version - Shock may not start correctly");
+		}
 		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
 
 		MYSQL = new MySQLController(

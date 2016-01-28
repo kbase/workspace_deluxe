@@ -1,7 +1,5 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.workspace.database.Util.checkSize;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -38,6 +37,7 @@ import us.kbase.typedobj.util.Counter;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
+import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
@@ -51,6 +51,7 @@ import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.TypeAndReference;
+import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
@@ -59,6 +60,8 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
@@ -96,7 +99,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	//TODO these should really be configurable
 	private static final long MAX_PROV_SIZE = 1000000;
-	private static final int MAX_WS_META_SIZE = 16000;
 	
 	private final DB wsmongo;
 	private final Jongo wsjongo;
@@ -265,11 +267,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user,
 			final String wsname, final boolean globalRead,
-			final String description, final Map<String, String> meta)
+			final String description, final WorkspaceUserMetadata meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		//TODO gavin merge check size code from Util and make new max size exception
-		checkSize(meta, "Metadata", MAX_WS_META_SIZE);
+		if (meta == null) {
+			throw new NullPointerException("meta cannot be null");
+		}
 		//avoid incrementing the counter if we don't have to
 		try {
 			final List<Map<String, Object>> ws = query.queryCollection(
@@ -311,9 +314,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Fields.WS_NUMOBJ, 0L);
 		ws.put(Fields.WS_DESC, description);
 		ws.put(Fields.WS_LOCKED, false);
-		if (meta != null) {
-			ws.put(Fields.WS_META, metaHashToMongoArray(meta));
-		}
+		ws.put(Fields.WS_META, metaHashToMongoArray(meta.getMetadata()));
 		try {
 			wsmongo.getCollection(COL_WORKSPACES).insert(ws);
 		} catch (MongoException.DuplicateKey mdk) {
@@ -333,7 +334,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		return new MongoWSInfo(count, wsname, user, moddate, 0L,
 				Permission.OWNER, globalRead, false,
-				meta == null ? new HashMap<String, String>() : meta);
+				new UncheckedUserMetadata(meta));
 	}
 	
 	private static final Set<String> FLDS_WS_META = newHashSet(Fields.WS_META);
@@ -354,24 +355,35 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_MODDATE); 
 	
 	@Override
-	public void setWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
-			final Map<String, String> meta)
+	public void setWorkspaceMeta(final ResolvedWorkspaceID rwsi,
+			final WorkspaceUserMetadata newMeta)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		
-		if (meta == null || meta.isEmpty()) {
+		if (newMeta == null || newMeta.isEmpty()) {
 			throw new IllegalArgumentException(
 					"Metadata cannot be null or empty");
 		}
 		final Map<String, Object> ws = query.queryWorkspace(
 				query.convertResolvedWSID(rwsi), FLDS_WS_META);
 		@SuppressWarnings("unchecked")
-		Map<String, String> currMeta = metaMongoArrayToHash(
+		final Map<String, String> currMeta = metaMongoArrayToHash(
 				(List<Object>) ws.get(Fields.WS_META));
-		currMeta.putAll(meta);
-		checkSize(currMeta, "Updated metadata", MAX_WS_META_SIZE);
+		currMeta.putAll(newMeta.getMetadata());
+		try {
+			WorkspaceUserMetadata.checkMetadataSize(currMeta);
+		} catch (MetadataException me) {
+			throw new IllegalArgumentException(String.format(
+					"Updated metadata exceeds allowed size of %sB",
+					WorkspaceUserMetadata.MAX_METADATA_SIZE));
+		}
 		
-		for (final Entry<String, String> e: meta.entrySet()) {
+		/* it's possible if this is running at the same time on the same object
+		 * that the metadata size could exceed 16k since the size check
+		 * happens once at the beginning of the method. That has virtually no 
+		 * repercussions whatsoever, so meh.
+		 */
+		for (final Entry<String, String> e: newMeta.getMetadata().entrySet()) {
 			final String key = e.getKey();
 			final String value = e.getValue();
 			boolean success = false;
@@ -441,7 +453,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
 			final ResolvedWorkspaceID wsid, final String newname,
 			final boolean globalRead, final String description,
-			final Map<String, String> meta)
+			final WorkspaceUserMetadata meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		
@@ -1011,7 +1023,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
 			final PermissionSet pset, final List<WorkspaceUser> owners,
-			final Map<String, String> meta, final Date after,
+			final WorkspaceUserMetadata meta, final Date after,
 			final Date before, final boolean showDeleted, 
 			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
@@ -1034,7 +1046,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		if (meta != null && !meta.isEmpty()) {
 			final List<DBObject> andmetaq = new LinkedList<DBObject>();
-			for (final Entry<String, String> e: meta.entrySet()) {
+			for (final Entry<String, String> e:
+					meta.getMetadata().entrySet()) {
 				final DBObject mentry = new BasicDBObject();
 				mentry.put(Fields.META_KEY, e.getKey());
 				mentry.put(Fields.META_VALUE, e.getValue());
@@ -1118,7 +1131,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				perms.getUserPermission(rwsi),
 				perms.isWorldReadable(rwsi),
 				(Boolean) wsdata.get(Fields.WS_LOCKED),
-				metaMongoArrayToHash(meta));
+				new UncheckedUserMetadata(metaMongoArrayToHash(meta)));
 	}
 	
 	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> resolveObjectIDs(
@@ -1159,7 +1172,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		version.put(Fields.VER_SAVEDBY, user.getUser());
 		version.put(Fields.VER_CHKSUM, pkg.td.getChksum());
 		version.put(Fields.VER_META, metaHashToMongoArray(
-				pkg.wo.getUserMeta()));
+				pkg.wo.getUserMeta().getMetadata()));
 		version.put(Fields.VER_REF, pkg.refs);
 		version.put(Fields.VER_PROVREF, pkg.provrefs);
 		version.put(Fields.VER_PROV, pkg.mprov.getMongoId());
@@ -1179,8 +1192,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				(Date) version.get(Fields.VER_SAVEDATE),
 				(Integer) version.get(Fields.VER_VER),
 				user, wsid, pkg.td.getChksum(), pkg.td.getSize(),
-				pkg.wo.getUserMeta() == null ? new HashMap<String, String>() :
-						pkg.wo.getUserMeta());
+				new UncheckedUserMetadata(pkg.wo.getUserMeta()));
 	}
 
 	private Map<String, Set<String>> extractedIDsToStrings(
@@ -1415,16 +1427,29 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					o.getObjectIdentifier(), objnum, "provenance");
 			
 			try {
-				// TODO: 2 improved handling of new exceptions ExceededMaxSubsetSizeException and ExceededMaxMetadataException
+				// TODO improved handling of ExceededMaxMetadataException - what's actually needed here? Seems ok as is
 				ExtractedMetadata extract = o.getRep()
-						.extractMetadata(MAX_WS_META_SIZE);
+						.extractMetadata(
+								WorkspaceUserMetadata.MAX_METADATA_SIZE);
 				pkg.wo.addUserMeta(extract.getMetadataAsMap());
 			} catch (ExceededMaxMetadataSizeException e) {
 				throw new IllegalArgumentException(String.format(
-						"Object %s : %s",
+						"Object %s: %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
 						e.getMessage()), e);
-			} 
+			} catch (MetadataSizeException mse) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s: The user-provided metadata, when " +
+						"updated with object-extracted metadata, exceeds " +
+						"the allowed maximum of %sB",
+						getObjectErrorId(o.getObjectIdentifier(), objnum),
+						WorkspaceUserMetadata.MAX_METADATA_SIZE)); 
+			} catch (MetadataException me) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s: %s",
+						getObjectErrorId(o.getObjectIdentifier(), objnum),
+						me.getMessage()), me);
+			}
 			
 			
 //			checkObjectLength(subdata, MAX_SUBDATA_SIZE,
@@ -2363,7 +2388,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				rwsi,
 				(String) ver.get(Fields.VER_CHKSUM),
 				(Long) ver.get(Fields.VER_SIZE),
-				meta == null ? null : metaMongoArrayToHash(meta));
+				meta == null ? null :
+					new UncheckedUserMetadata(metaMongoArrayToHash(meta)));
 	}
 	
 	private static final Set<String> FLDS_VER_TYPE = newHashSet(
@@ -2389,6 +2415,51 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					new MongoReference(roi.getWorkspaceIdentifier().getID(),
 							roi.getId(),
 							(Integer) vers.get(roi).get(Fields.VER_VER))));
+		}
+		return ret;
+	}
+	
+	private static final Set<String> FLDS_NAME_PREFIX = newHashSet(
+			Fields.OBJ_NAME, Fields.OBJ_WS_ID);
+
+	@Override
+	public Map<ResolvedWorkspaceID, List<String>> getNamesByPrefix(
+			final Set<ResolvedWorkspaceID> rwsis,
+			final String prefix,
+			final boolean includeHidden,
+			final int limit)
+			throws WorkspaceCommunicationException {
+		final Map<ResolvedWorkspaceID, List<String>> ret =
+				new HashMap<ResolvedWorkspaceID, List<String>>();
+		if (rwsis.isEmpty()) {
+			return ret;
+		}
+		final Map<Long, ResolvedWorkspaceID> wsIDtoWS =
+				new HashMap<Long, ResolvedWorkspaceID>();
+		for (final ResolvedWorkspaceID rwsid: rwsis) {
+			wsIDtoWS.put(rwsid.getID(), rwsid);
+		}
+		final DBObject q = new BasicDBObject(Fields.OBJ_DEL, false);
+		q.put(Fields.OBJ_WS_ID, new BasicDBObject("$in", wsIDtoWS.keySet()));
+		if (!prefix.isEmpty()) {
+			// escape regex chars
+			q.put(Fields.OBJ_NAME,
+					new BasicDBObject("$regex", "^" + Pattern.quote(prefix)));
+		}
+		if (!includeHidden) {
+			q.put(Fields.OBJ_HIDE, false);
+		}
+		
+		final List<Map<String, Object>> names = query.queryCollection(
+				COL_WORKSPACE_OBJS, q, FLDS_NAME_PREFIX, 0, limit);
+		for (final Map<String, Object> o: names) {
+			final Long wsid = (Long) o.get(Fields.OBJ_WS_ID);
+			final String name = (String) o.get(Fields.OBJ_NAME);
+			final ResolvedWorkspaceID rwsid = wsIDtoWS.get(wsid);
+			if (!ret.containsKey(rwsid)) {
+				ret.put(rwsid, new LinkedList<String>());
+			}
+			ret.get(rwsid).add(name);
 		}
 		return ret;
 	}
@@ -2441,7 +2512,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (!params.getMetadata().isEmpty()) {
 			final List<DBObject> andmetaq = new LinkedList<DBObject>();
 			for (final Entry<String, String> e:
-					params.getMetadata().entrySet()) {
+					params.getMetadata().getMetadata().entrySet()) {
 				final DBObject mentry = new BasicDBObject();
 				mentry.put(Fields.META_KEY, e.getKey());
 				mentry.put(Fields.META_VALUE, e.getValue());

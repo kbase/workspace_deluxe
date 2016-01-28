@@ -2,6 +2,7 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
+
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -73,6 +74,7 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.InitWorkspaceServer.InitReporter;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
@@ -317,20 +319,25 @@ public class WorkspaceServer extends JsonServerServlet {
     public void alterWorkspaceMetadata(AlterWorkspaceMetadataParams params, AuthToken authPart) throws Exception {
         //BEGIN alter_workspace_metadata
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		if (params.getNew() == null && params.getRemove() == null) {
+		final boolean noNew = params.getNew() == null ||
+				params.getNew().isEmpty();
+		final boolean noRemove = params.getRemove() == null ||
+				params.getRemove().isEmpty();
+		if (noNew && noRemove) {
 			throw new IllegalArgumentException(
-					"The new and remove params cannot both be null");
+					"Must provide metadata keys to add or remove");
 		}
 		final WorkspaceIdentifier wsi =
 				processWorkspaceIdentifier(params.getWsi());
 		final WorkspaceUser user = getUser(authPart);
-		if (params.getRemove() != null) {
+		if (!noRemove) {
 			for (final String key: params.getRemove()) {
 				ws.removeWorkspaceMetadata(user, wsi, key);
 			}
 		}
-		if (params.getNew() != null) {
-			ws.setWorkspaceMetadata(user, wsi, params.getNew());
+		if (!noNew) {
+			ws.setWorkspaceMetadata(user, wsi,
+					new WorkspaceUserMetadata(params.getNew()));
 		}
         //END alter_workspace_metadata
     }
@@ -353,7 +360,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				processWorkspaceIdentifier(params.getWsi());
 		final WorkspaceInformation meta = ws.cloneWorkspace(getUser(authPart),
 				wsi, params.getWorkspace(), p.equals(Permission.READ),
-				params.getDescription(), params.getMeta());
+				params.getDescription(),
+				new WorkspaceUserMetadata(params.getMeta()));
 		returnVal = wsInfoToTuple(meta);
         //END clone_workspace
         return returnVal;
@@ -936,7 +944,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		lop.withMinimumPermission(params.getPerm() == null ? null :
 				translatePermission(params.getPerm()))
 			.withSavers(ArgUtils.convertUsers(params.getSavedby()))
-			.withMetadata(params.getMeta())
+			.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
 			.withAfter(parseDate(params.getAfter()))
 			.withBefore(parseDate(params.getBefore()))
 			.withShowHidden(longToBoolean(params.getShowHidden()))
@@ -1107,6 +1115,40 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal = objInfoToTuple(ws.revertObject(getUser(authPart), oi),
 				true);
         //END revert_object
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_names_by_prefix</p>
+     * <pre>
+     * Get object names matching a prefix. At most 1000 names are returned.
+     * No particular ordering is guaranteed, nor is which names will be
+     * returned if more than 1000 are found.
+     * This function is intended for use as an autocomplete helper function.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetNamesByPrefixParams GetNamesByPrefixParams}
+     * @return   parameter "res" of type {@link us.kbase.workspace.GetNamesByPrefixResults GetNamesByPrefixResults}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_names_by_prefix", authOptional=true)
+    public GetNamesByPrefixResults getNamesByPrefix(GetNamesByPrefixParams params, AuthToken authPart) throws Exception {
+        GetNamesByPrefixResults returnVal = null;
+        //BEGIN get_names_by_prefix
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final List<WorkspaceIdentifier> wsil =
+				new LinkedList<WorkspaceIdentifier>();
+		for (final WorkspaceIdentity wsi: params.getWorkspaces()) {
+			wsil.add(processWorkspaceIdentifier(wsi));
+		}
+		returnVal = new GetNamesByPrefixResults().withNames(
+				ws.getNamesByPrefix(
+						getUser(authPart),
+						wsil,
+						params.getPrefix(),
+						longToBoolean(params.getIncludeHidden()),
+						1000
+				)
+		);
+        //END get_names_by_prefix
         return returnVal;
     }
 

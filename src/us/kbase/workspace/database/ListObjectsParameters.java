@@ -3,11 +3,9 @@ package us.kbase.workspace.database;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import us.kbase.typedobj.core.TypeDefId;
@@ -29,7 +27,7 @@ public class ListObjectsParameters {
 	
 	private Permission minPerm = Permission.READ;
 	private List<WorkspaceUser> savers = new LinkedList<WorkspaceUser>();
-	private Map<String, String> meta = new HashMap<String, String>();
+	private WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
 	private Date after = null;
 	private Date before = null;
 	private boolean showHidden = false;
@@ -170,7 +168,7 @@ public class ListObjectsParameters {
 	/** Get the metadata by which the object list should be filtered.
 	 * @return the metadata.
 	 */
-	public Map<String, String> getMetadata() {
+	public WorkspaceUserMetadata getMetadata() {
 		return meta;
 	}
 
@@ -179,16 +177,16 @@ public class ListObjectsParameters {
 	 * @param meta the metadata. If null, set to an empty map.
 	 * @return this ListObjectsParameters instance.
 	 */
-	public ListObjectsParameters withMetadata(final Map<String, String> meta) {
-		if (meta != null && meta.size() > 1) {
-			throw new IllegalArgumentException(
-					"Only one metadata spec allowed");
-		}
-		if (meta == null) {
-			this.meta = Collections.unmodifiableMap(
-					new HashMap<String, String>());
+	public ListObjectsParameters withMetadata(
+			final WorkspaceUserMetadata meta) {
+		if (meta != null) {
+			if (meta.size() > 1) {
+				throw new IllegalArgumentException(
+						"Only one metadata spec allowed");
+			}
+			this.meta = meta;
 		} else {
-			this.meta = Collections.unmodifiableMap(meta);
+			this.meta = new WorkspaceUserMetadata();
 		}
 		return this;
 	}

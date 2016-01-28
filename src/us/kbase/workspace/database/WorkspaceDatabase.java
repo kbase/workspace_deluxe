@@ -41,12 +41,22 @@ public interface WorkspaceDatabase {
 
 	public WorkspaceInformation createWorkspace(WorkspaceUser owner,
 			String wsname, boolean globalread, String description,
-			Map<String, String> meta) throws
+			WorkspaceUserMetadata meta) throws
 			PreExistingWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
 	
-	public void setWorkspaceMetaKey(ResolvedWorkspaceID wsid,
-			Map<String, String> meta)
+	/** Sets metadata for a workspace, overwriting existing keys if a
+	 * duplicate key is supplied.
+	 * 
+	 * @param wsid the workspace for which metadata will be altered.
+	 * @param meta the metadata to add to the workspace.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 * @throws IllegalArgumentException if no metadata is supplied or the 
+	 * updated metadata exceeds the allowed size.
+	 */
+	public void setWorkspaceMeta(ResolvedWorkspaceID wsid,
+			WorkspaceUserMetadata meta)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
@@ -54,7 +64,7 @@ public interface WorkspaceDatabase {
 	
 	public WorkspaceInformation cloneWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid, String newname, boolean globalread,
-			String description, Map<String, String> meta)
+			String description, WorkspaceUserMetadata meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
@@ -226,6 +236,22 @@ public interface WorkspaceDatabase {
 			ObjectIDResolvedWS target)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
+	/** Get object names based on a provided name prefix. Returns at most 1000
+	 * names in no particular order. Intended for use as an auto-completion
+	 * method.
+	 * @param rwsis the workspaces in which to look for names.
+	 * @param prefix the prefix returned names must have.
+	 * @param includeHidden include hidden objects in the output.
+	 * @param limit the maximum number of names to return, at most 1000.
+	 * @return map of workspace to a list of workspace names.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the backend occurs
+	 */
+	public Map<ResolvedWorkspaceID, List<String>> getNamesByPrefix(
+			Set<ResolvedWorkspaceID> rwsis, String prefix,
+			boolean includeHidden, int limit)
+			throws WorkspaceCommunicationException;
+	
 	public WorkspaceInformation renameWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid, String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
@@ -247,7 +273,7 @@ public interface WorkspaceDatabase {
 	
 	public List<WorkspaceInformation> getWorkspaceInformation(
 			PermissionSet pset, List<WorkspaceUser> owners,
-			Map<String, String> meta, Date after, Date before,
+			WorkspaceUserMetadata meta, Date after, Date before,
 			boolean showDeleted, boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
@@ -283,5 +309,7 @@ public interface WorkspaceDatabase {
 	
 	public TempFilesManager getTempFilesManager();
 
-	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg);
+	public void setResourceUsageConfiguration(
+			ResourceUsageConfiguration rescfg);
+
 }

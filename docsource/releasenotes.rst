@@ -3,25 +3,37 @@ Workspace service release notes
 
 VERSION: 0.3.6 (Released TBD)
 -----------------------------
+BACKWARDS INCOMPATIBILIES:
+
+* Module names and type names are now limited to 255 characters.
+* Metadata keys and values are limited to 900B for the total of each pair
+  of key and value.
+
+
 NEW FEATURES:
 
-* Added get_permissions_mass function.
+* Added ``get_permissions_mass`` function.
+* Added ``get_names_by_prefix`` function.
 * A documentation server now provides all available workspace documentation at
-  the /docs endpoint.
+  the ``/docs`` endpoint.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
+* Updated for compatibility with Shock 0.9.6 (tests only), 0.9.12, and 0.9.13.
 * Removed internal data subsetting (intended for indexing of data contents)
   code. No plan to use this code and drastically increases database size and
   codebase complexity. All workspace mongo database type_[MD5] collections may
   be deleted after upgrading.
+* Improved logging for the ``administer()`` method.
 * Fixed a bug where mongo connections would not be released when redeploying
   the server in an already running glassfish instance.
 * Fixed a bug where objects from deleted workspaces could be listed in 
-  list_objects output.
+  ``list_objects`` output.
 * The ``list_objects`` ``skip`` parameter is deprecated. It will be removed in
   a future version.
-* get_permissions no longer requires authentication.
+* ``get_permissions`` no longer requires authentication.
+* the admin user specified in the ``deploy.cfg`` file can no longer be removed
+  by other admins.
 
 VERSION: 0.3.5 (Released 5/15/15)
 ---------------------------------

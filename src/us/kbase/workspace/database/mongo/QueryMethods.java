@@ -370,6 +370,7 @@ public class QueryMethods {
 			final int limit)
 			throws WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
+		projection.put(Fields.MONGO_ID, 0);
 		for (final String field: fields) {
 			projection.put(field, 1);
 		}

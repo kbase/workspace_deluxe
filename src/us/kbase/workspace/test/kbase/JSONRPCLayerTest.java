@@ -40,6 +40,8 @@ import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.GetModuleInfoParams;
+import us.kbase.workspace.GetNamesByPrefixParams;
+import us.kbase.workspace.GetNamesByPrefixResults;
 import us.kbase.workspace.GetObjectInfoNewParams;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListAllTypesParams;
@@ -780,7 +782,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L).withVer(1L));
 		checkSavedObjects(loi, 2, "auto2", SAFE_TYPE, 1, USER1,
 				wsid, "saveget", "36c4f68f2c98971b9736839232eb08f4", 23, meta, data);
-		
 		loi.clear();
 		// w/o versions
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
@@ -1417,8 +1418,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Map<String, String> meta = new HashMap<String, String>();
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
-		for (int i = 0; i < 16; i++) {
-			meta.put(Integer.toString(i), TEXT1000); //> 16Mb now
+		for (int i = 0; i < 18; i++) {
+			meta.put("" + i, TEXT1000.substring(103)); //> 16Mb now
 		}
 		
 		
@@ -1434,7 +1435,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("called save with too large meta");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Object 2 save error: Metadata size of 16119 is > 16000 bytes"));
+					is("Object 2 save error: Metadata exceeds maximum of 16000B"));
 		}
 		try {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta2")
@@ -1442,7 +1443,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("called createWS with too large meta");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Metadata size of 16119 is > 16000 bytes"));
+					is("Metadata exceeds maximum of 16000B"));
 		}
 	}
 
@@ -1739,7 +1740,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		try {
 			CLIENT1.setWorkspaceDescription(new SetWorkspaceDescriptionParams().withDescription("foo")
 					.withWorkspace("lock"));
-			fail("cloned with bad params");
+			fail("locked with bad params");
 		} catch (ServerException se) {
 			assertThat("correct exception msg", se.getLocalizedMessage(),
 					is("The workspace with id " + wsid +
@@ -1907,81 +1908,78 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listadmin"));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()),
-				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+				Arrays.asList(std, globalread, write, admin));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(0L).withShowDeleted(0L).withShowOnlyDeleted(0L)),
-				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+				Arrays.asList(std, globalread, write, admin));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(0L).withShowDeleted(0L).withShowOnlyDeleted(0L)
 				.withOwners(new ArrayList<String>())),
-				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+				Arrays.asList(std, globalread, write, admin));
 		
 		//filter on meta
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withMeta(meta)),
-				Arrays.asList(std), Arrays.asList(deleted,  globalread, write, admin));
+				Arrays.asList(std));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withMeta(meta2)),
-				Arrays.asList(write), Arrays.asList(std, deleted, globalread, admin));
+				Arrays.asList(write));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withOwners(Arrays.asList(USER1))),
-				Arrays.asList(std), Arrays.asList(deleted));
+				Arrays.asList(std));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withOwners(Arrays.asList(USER2))),
-				Arrays.asList(globalread, write, admin), Arrays.asList(deleted));
+				Arrays.asList(globalread, write, admin));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withOwners(Arrays.asList(USER1, USER2))),
-				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+				Arrays.asList(std, globalread, write, admin));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 					.withPerm("n")),
-				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+				Arrays.asList(std, globalread, write, admin));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withPerm("r")),
-				Arrays.asList(std, globalread, write, admin), Arrays.asList(deleted));
+				Arrays.asList(std, globalread, write, admin));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withPerm("w")),
-				Arrays.asList(std, write, admin), Arrays.asList(deleted, globalread));
+				Arrays.asList(std, write, admin));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withPerm("a")),
-				Arrays.asList(std, admin), Arrays.asList(deleted, globalread, write));
+				Arrays.asList(std, admin));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(1L)),
-				Arrays.asList(std, write, admin), Arrays.asList(deleted, globalread));
+				Arrays.asList(std, write, admin));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(1L).withShowDeleted(0L)),
-				Arrays.asList(std, write, admin), Arrays.asList(deleted, globalread));
+				Arrays.asList(std, write, admin));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(1L).withShowDeleted(1L)),
-				Arrays.asList(std, deleted, write, admin), Arrays.asList(globalread));
+				Arrays.asList(std, deleted, write, admin));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withShowDeleted(1L)),
-				Arrays.asList(std, deleted, globalread, write, admin),
-				new ArrayList<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>());
+				Arrays.asList(std, deleted, globalread, write, admin));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(0L).withShowDeleted(1L)),
-				Arrays.asList(std, deleted, globalread, write, admin), 
-				new ArrayList<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>());
+				Arrays.asList(std, deleted, globalread, write, admin));
 		
 		checkWSInfoList(CLIENT2.listWorkspaceInfo(new ListWorkspaceInfoParams()),
 				Arrays.asList(CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listglobalread")),
 						CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listwrite")),
-						CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listadmin"))),
-				Arrays.asList(std, deleted));
+						CLIENT2.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace("listadmin"))));
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(0L).withShowOnlyDeleted(1L)),
-				Arrays.asList(deleted), Arrays.asList(std, globalread, write, admin));
+				Arrays.asList(deleted));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withExcludeGlobal(1L).withShowOnlyDeleted(1L)),
-				Arrays.asList(deleted), Arrays.asList(std, globalread, write, admin));
+				Arrays.asList(deleted));
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withShowDeleted(1L).withShowOnlyDeleted(1L)),
-				Arrays.asList(deleted), Arrays.asList(std, globalread, write, admin));
+				Arrays.asList(deleted));
 		
 		ListWorkspaceInfoParams lwip = new ListWorkspaceInfoParams();
 		lwip.setAdditionalProperties("booga", "booga1");
@@ -2011,22 +2009,22 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		String afterall = addSec(w3.getE4());
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)),
-				Arrays.asList(w1, w2, w3), mt, true);
+				Arrays.asList(w1, w2, w3), true);
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
 				.withAfter(beforeall).withBefore(afterall)),
-				Arrays.asList(w1, w2, w3), mt, true);
+				Arrays.asList(w1, w2, w3), true);
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
 				.withAfter(afterall).withBefore(beforeall)),
-				mt, Arrays.asList(w1, w2, w3), true);
+				mt, true);
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
 				.withAfter(addSec(w1.getE4()))),
-				Arrays.asList(w2, w3), Arrays.asList(w1), true);
+				Arrays.asList(w2, w3), true);
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
 				.withBefore(subSec(w3.getE4()))),
-				Arrays.asList(w1, w2), Arrays.asList(w3), true);
+				Arrays.asList(w1, w2), true);
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
 				.withAfter(addSec(w1.getE4())).withBefore(subSec(w3.getE4()))),
-				Arrays.asList(w2), Arrays.asList(w1, w3), true);
+				Arrays.asList(w2), true);
 		
 		failListWorkspaceByDate("crappy date", "Unparseable date: Invalid format: \"crappy date\"");
 	}
@@ -2298,6 +2296,74 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void getNamesByPrefix() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws1"));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws2")
+				.withGlobalread("r"));
+		List<WorkspaceIdentity> wsis = Arrays.asList(
+				new WorkspaceIdentity().withWorkspace("ws1"),
+				new WorkspaceIdentity().withWorkspace("ws2"));
+		
+		Map<String, String> data = new HashMap<String, String>();
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("ws1")
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withData(new UObject(data))
+							.withType(SAFE_TYPE).withName("aba"),
+						new ObjectSaveData().withData(new UObject(data))
+							.withType(SAFE_TYPE).withName("abc").withHidden(1L)
+						)));
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("ws2")
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withData(new UObject(data))
+							.withType(SAFE_TYPE).withName("adb"))));
+		
+		List<WorkspaceIdentity> mt = new LinkedList<WorkspaceIdentity>();
+		List<List<String>> mtres = new LinkedList<List<String>>(); 
+		checkGetByPrefix(CLIENT1, mt, "", 0L, mtres);
+		checkGetByPrefix(CLIENT1, wsis, "", 0L, Arrays.asList(
+				Arrays.asList("aba"),
+				Arrays.asList("adb")));
+		checkGetByPrefix(CLIENT1, wsis, "a", 1L, Arrays.asList(
+				Arrays.asList("aba", "abc"),
+				Arrays.asList("adb")));
+		checkGetByPrefix(CLIENT1, wsis, "ab", 1L, Arrays.asList(
+				Arrays.asList("aba", "abc"),
+				new LinkedList<String>()));
+		checkGetByPrefix(CLIENT_NO_AUTH, Arrays.asList(wsis.get(1)), "a", 0L,
+				Arrays.asList(Arrays.asList("adb")));
+		
+		try {
+			CLIENT_NO_AUTH.getNamesByPrefix(new GetNamesByPrefixParams()
+					.withPrefix("").withWorkspaces(wsis.subList(0, 1)));
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Anonymous users may not read workspace ws1"));
+		}
+	}
+	
+	private void checkGetByPrefix(
+			WorkspaceClient cli, List<WorkspaceIdentity> wsis,
+			String prefix,
+			long includeHidden,
+			List<List<String>> results)
+			throws Exception {
+		List<Set<String>> exp = new LinkedList<Set<String>>();
+		for (List<String> r: results) {
+			exp.add(new HashSet<String>(r));
+		}
+		List<Set<String>> got = new LinkedList<Set<String>>();
+		GetNamesByPrefixResults ret = cli.getNamesByPrefix(
+				new GetNamesByPrefixParams().withWorkspaces(wsis)
+						.withIncludeHidden(includeHidden)
+						.withPrefix(prefix));
+		for (List<String> r: ret.getNames()) {
+			got.add(new HashSet<String>(r));
+		}
+		
+		assertThat("correct returned names", got, is(exp));
+	}
+	
+	@Test
 	public void getObjectSubset() throws Exception {
 		/* note most tests are performed at the same time as getObjects, so
 		 * only issues specific to subsets are tested here
@@ -2541,14 +2607,27 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT2.administer(new UObject(createData(
 				"{\"command\": \"addAdmin\"," +
 				" \"user\": \"" + USER1 + "\"}")));
+	
+		// since USER2 is set as an admin in the workspace ini file, this
+		// should do nothing
 		CLIENT1.administer(new UObject(createData(
 				"{\"command\": \"removeAdmin\"," +
 				" \"user\": \"" + USER2 + "\"}")));
-		failAdmin(CLIENT2, "{\"command\": \"listAdmins\"}", "User " + USER2 + " is not an admin");
-		checkAdmins(CLIENT1, Arrays.asList(USER1));
+		checkAdmins(CLIENT2, Arrays.asList(USER1, USER2));
+		
+		// add USER3 to admins and check USER3 has creds
 		CLIENT1.administer(new UObject(createData(
 				"{\"command\": \"addAdmin\"," +
-				" \"user\": \"" + USER2 + "\"}")));
+				" \"user\": \"" + USER3 + "\"}")));
+		checkAdmins(CLIENT3, Arrays.asList(USER1, USER2, USER3));
+		
+		//remove USER3 and check fail
+		CLIENT1.administer(new UObject(createData(
+				"{\"command\": \"removeAdmin\"," +
+				" \"user\": \"" + USER3 + "\"}")));
+		checkAdmins(CLIENT1, Arrays.asList(USER1, USER2));
+		failAdmin(CLIENT3, "{\"command\": \"listAdmins\"}", "User " + USER3 + " is not an admin");
+
 		CLIENT2.administer(new UObject(createData(
 				"{\"command\": \"removeAdmin\"," +
 				" \"user\": \"" + USER1 + "\"}")));
@@ -2633,14 +2712,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> notexpected =
 				new ArrayList<Tuple9<Long,String,String,String,Long,String,String,String,Map<String,String>>>();
 		notexpected.add(CLIENT1.getWorkspaceInfo(new WorkspaceIdentity().withWorkspace(USER1 + ":admintest")));
-		checkWSInfoList(CLIENT2.listWorkspaceInfo(new ListWorkspaceInfoParams()), mt, notexpected);
+		checkWSInfoList(CLIENT2.listWorkspaceInfo(new ListWorkspaceInfoParams()), mt);
 		
 		List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> got = 
 				CLIENT2.administer(new UObject(createData(
 						"{\"command\": \"listWorkspaces\"," +
 						" \"user\": \"" + USER1 + "\"," +
 						" \"params\": {}}"))).asClassInstance(listtyperef);
-		checkWSInfoList(got, notexpected, mt);
+		checkWSInfoList(got, notexpected);
 		
 		checkWS(wsinfo, wsinfo.getE1(), wsinfo.getE4(), USER1 + ":admintest", USER1, 0, "a", "n", "unlocked", "mydesc", MT_META);
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams().withWorkspace(USER1 + ":admintest")
@@ -2877,10 +2956,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAlterWSMeta(CLIENT1, new AlterWorkspaceMetadataParams().withRemove(Arrays.asList("foo")),
 				"WorkspaceIdentifier cannot be null");
 		failAlterWSMeta(CLIENT1, new AlterWorkspaceMetadataParams().withWsi(wsi),
-				"The new and remove params cannot both be null");
+				"Must provide metadata keys to add or remove");
 		failAlterWSMeta(CLIENT1, new AlterWorkspaceMetadataParams().withWsi(wsi)
-				.withRemove(Arrays.asList("foo")).withNew(MT_META),
-				"Metadata cannot be null or empty");
+				.withRemove(new LinkedList<String>()).withNew(MT_META),
+				"Must provide metadata keys to add or remove");
 		failAlterWSMeta(CLIENT2, new AlterWorkspaceMetadataParams().withWsi(wsi)
 				.withNew(newmeta),
 				"User " + USER2 + " may not alter metadata for workspace " + wsi.getWorkspace());

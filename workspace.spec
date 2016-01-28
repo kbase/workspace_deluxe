@@ -1250,6 +1250,41 @@ module Workspace {
 	funcdef revert_object(ObjectIdentity object)
 		returns(object_info reverted) authentication required;
 	
+	/* Input parameters for the get_names_by_prefix function.
+	
+		Required arguments:
+		list<WorkspaceIdentity> workspaces - the workspaces to search.
+		string prefix - the prefix of the object names to return.
+		
+		Optional arguments:
+		boolean includeHidden - include names of hidden objects in the results.
+			Default false.
+	*/
+	typedef structure {
+		list<WorkspaceIdentity> workspaces;
+		string prefix;
+		boolean includeHidden;
+	} GetNamesByPrefixParams;
+	
+	/* Results object for the get_names_by_prefix function.
+	
+		list<list<obj_name>> names - the names matching the provided prefix,
+			listed in order of the input workspaces.
+	*/
+	typedef structure {
+		list<list<obj_name>> names;
+	} GetNamesByPrefixResults;
+	
+	/*
+		Get object names matching a prefix. At most 1000 names are returned.
+		No particular ordering is guaranteed, nor is which names will be
+		returned if more than 1000 are found.
+		
+		This function is intended for use as an autocomplete helper function.
+	*/
+	funcdef get_names_by_prefix(GetNamesByPrefixParams params)
+		returns(GetNamesByPrefixResults res) authentication optional;
+	
 	/* 
 		Hide objects. All versions of an object are hidden, regardless of
 		the version specified in the ObjectIdentity. Hidden objects do not

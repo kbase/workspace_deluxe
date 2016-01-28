@@ -8,18 +8,20 @@ This document provides a list of limits of the WSS.
 Limits
 ------
 
-=============================================    =======
-Parameter                                        Limit
-=============================================    =======
-Maximum RPC call size                            1.005GB
-Maximum object size                              1GB
-Maximum total size of returned objects           1GB
-Maximum provenance size                          1MB
-Maximum user metadata size                       16KB
-Maximum memory use for sorting objects           200MB
-Maximum object_infos returned by list_objects    10000
-Maximum workspace references per save            100000
-=============================================    =======
+====================================================    =======
+Parameter                                               Limit
+====================================================    =======
+Maximum RPC call size                                   1.005GB
+Maximum object size                                     1GB
+Maximum total size of returned objects                  1GB
+Maximum provenance size                                 1MB
+Maximum user metadata size                              16000B
+Maximum total size of user metadata key / value pair    900B
+Maximum total size of autometadata key / value pair     900B
+Maximum memory use for sorting objects                  200MB
+Maximum object_infos returned by list_objects           10000
+Maximum workspace references per save                   100000
+====================================================    =======
 
 .. _sorting_notes:
 

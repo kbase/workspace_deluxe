@@ -1,9 +1,9 @@
 package us.kbase.workspace.database.mongo;
 
 import java.util.Date;
-import java.util.Map;
 
 import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 
@@ -21,12 +21,12 @@ public class MongoWSInfo implements WorkspaceInformation {
 	final private Permission userPermission;
 	final private boolean globalRead;
 	final private boolean locked;
-	final private Map<String, String> usermeta;
+	final private UncheckedUserMetadata usermeta;
 	
 	MongoWSInfo(final long id, final String name, final WorkspaceUser owner,
 			final Date modDate, final long approxObjs,
 			final Permission userPermission, final boolean globalRead,
-			final boolean locked, final Map<String, String> usermeta) {
+			final boolean locked, final UncheckedUserMetadata meta) {
 		this.id = id;
 		this.name = name;
 		this.owner = owner;
@@ -35,7 +35,7 @@ public class MongoWSInfo implements WorkspaceInformation {
 		this.userPermission = userPermission;
 		this.globalRead = globalRead;
 		this.locked = locked;
-		this.usermeta = usermeta;
+		this.usermeta = meta;
 	}
 
 	@Override
@@ -80,7 +80,7 @@ public class MongoWSInfo implements WorkspaceInformation {
 	
 
 	@Override
-	public Map<String, String> getUserMeta() {
+	public UncheckedUserMetadata getUserMeta() {
 		return usermeta;
 	}
 	

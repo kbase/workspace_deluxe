@@ -74,12 +74,18 @@ public class ShockBlobStoreTest {
 		
 		shock = new ShockController(
 				WorkspaceTestCommon.getShockExe(),
+				WorkspaceTestCommon.getShockVersion(),
 				Paths.get(WorkspaceTestCommon.getTempDir()),
 				"***---fakeuser---***",
 				mongohost,
 				"ShockBackendTest_ShockDB",
 				"foo",
 				"foo");
+		System.out.println("Shock controller version: " + shock.getVersion());
+		if (shock.getVersion() == null) {
+			System.out.println(
+					"Unregistered version - Shock may not start correctly");
+		}
 		System.out.println("Using Shock temp dir " + shock.getTempDir());
 		URL url = new URL("http://localhost:" + shock.getServerPort());
 		System.out.println("Testing workspace shock backend pointed at: " + url);

@@ -11,18 +11,15 @@ Branches:
 
 * ``dev-candidate`` - work in progress goes here, not stable, tests may not
   pass.
-* ``dev`` - All tests pass. dev-candidate is merged here when features are
-  ready for release. Ready for integration testing.
+* ``develop`` - All tests pass. ``dev-candidate`` is merged here when features
+  are ready for release. Ready for integration testing.
 * ``staging`` - as dev.
 * ``master`` - All tests pass, code is production ready.
 
-.. note::
-   ``dev`` will shortly be renamed to ``develop``.
-   
-``dev`` deploys to ``ci.kbase.us`` while ``staging`` deploys to 
-``next.kbase.us``. Generally speaking, most development would occur on ``dev``,
-but because most of ``ci`` would break if the workspace breaks, ``dev`` must be
-kept stable.
+``develop`` deploys to ``ci.kbase.us`` while ``staging`` deploys to 
+``next.kbase.us``. Generally speaking, most development would occur on
+``develop``, but because most of ``ci`` would break if the workspace breaks,
+``develop`` must be kept stable.
 
 Release checklist
 -----------------
@@ -33,8 +30,8 @@ Release checklist
 * Update documentation if necessary.
 * Ensure tests cover changes. Add new tests if necessary.
 * Tag the release in git with the new version
-* Merge ``dev-candidate`` to ``dev``
-* When satisfied with CI testing (work with devops here), merge ``dev`` to
+* Merge ``dev-candidate`` to ``develop``
+* When satisfied with CI testing (work with devops here), merge ``develop`` to
   ``staging``
 * When satisfied with testing on ``next.kbase.us`` merge ``staging`` to
   ``master``.
