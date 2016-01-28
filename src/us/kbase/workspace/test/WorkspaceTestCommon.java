@@ -11,6 +11,7 @@ import com.mongodb.DBObject;
 public class WorkspaceTestCommon {
 	
 	public static final String SHOCKEXE = "test.shock.exe";
+	public static final String SHOCKVER = "test.shock.version";
 	public static final String MONGOEXE = "test.mongo.exe";
 	public static final String MONGO_USE_WIRED_TIGER = "test.mongo.useWiredTiger";
 	public static final String MYSQLEXE = "test.mysql.exe";
@@ -58,6 +59,10 @@ public class WorkspaceTestCommon {
 	
 	public static String getShockExe() {
 		return getProp(SHOCKEXE);
+	}
+	
+	public static String getShockVersion() {
+		return getProp(SHOCKVER);
 	}
 
 	public static String getMySQLExe() {

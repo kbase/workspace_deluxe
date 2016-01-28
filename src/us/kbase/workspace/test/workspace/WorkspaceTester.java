@@ -241,12 +241,18 @@ public class WorkspaceTester {
 		if (shock == null) {
 			shock = new ShockController(
 					WorkspaceTestCommon.getShockExe(),
+					WorkspaceTestCommon.getShockVersion(),
 					Paths.get(WorkspaceTestCommon.getTempDir()),
 					"***---fakeuser---***",
 					"localhost:" + mongo.getServerPort(),
 					"WorkspaceTester_ShockDB",
 					"foo",
 					"foo");
+			System.out.println("Shock controller version: " + shock.getVersion());
+			if (shock.getVersion() == null) {
+				System.out.println(
+						"Unregistered version - Shock may not start correctly");
+			}
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
