@@ -26,7 +26,6 @@ public class GetObjectInformationParameters {
 	final private boolean showOnlyDeleted;
 	final private boolean showAllVers;
 	final private boolean includeMetaData;
-	final private int skip;
 	final private int limit;
 	
 	GetObjectInformationParameters(
@@ -43,7 +42,6 @@ public class GetObjectInformationParameters {
 			final boolean showOnlyDeleted,
 			final boolean showAllVers,
 			final boolean includeMetaData,
-			final int skip,
 			final int limit) {
 		super();
 		this.pset = pset;
@@ -59,7 +57,6 @@ public class GetObjectInformationParameters {
 		this.showOnlyDeleted = showOnlyDeleted;
 		this.showAllVers = showAllVers;
 		this.includeMetaData = includeMetaData;
-		this.skip = skip;
 		this.limit = limit;
 	}
 
@@ -156,13 +153,6 @@ public class GetObjectInformationParameters {
 	 */
 	public boolean isIncludeMetaData() {
 		return includeMetaData;
-	}
-
-	/** Get the number of objects to skip before listing objects.
-	 * @return the number of objects to skip.
-	 */
-	public int getSkip() {
-		return skip;
 	}
 
 	/** Get the maximum number of objects to list.
