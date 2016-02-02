@@ -5064,11 +5064,10 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
-	public void listObjectsSkipLimit() throws Exception {
-		/* Test the skip and limit parameters on list_objects. In particular,
+	public void listObjectsLimit() throws Exception {
+		/* Test the limit parameters on list_objects. In particular,
 		 * test that hidden/deleted/early version objects are taken into
-		 * account properly, which makes skip act weird, which is one reason
-		 * it needs to be removed.
+		 * account properly.
 		 */
 		
 		WorkspaceUser user = new WorkspaceUser("skiplimitUser");
@@ -5083,13 +5082,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 
 		//simple tests on full object ranges, depends on natural mongo ordering
-		checkObjectPagination(user, wsi, -1, 99, 1, 99);
-		checkObjectPagination(user, wsi, -1, 100, 1, 100);
-		checkObjectPagination(user, wsi, -1, 101, 1, 101);
-		checkObjectPagination(user, wsi, -1, 300, 1, 200);
-		checkObjectPagination(user, wsi, 150, 25, 151, 175);
-		checkObjectPagination(user, wsi, 150, 51, 151, 200);
-		checkObjectPagination(user, wsi, 200, 1, 2, 1); //hack so the method expects 0 objects
+		checkObjectLimit(user, wsi, 0, 1, 200);
+		checkObjectLimit(user, wsi, 1, 1, 1);
+		checkObjectLimit(user, wsi, 99, 1, 99);
+		checkObjectLimit(user, wsi, 100, 1, 100);
+		checkObjectLimit(user, wsi, 101, 1, 101);
+		checkObjectLimit(user, wsi, 300, 1, 200);
 		
 		objs.clear();
 		for (int i = 191; i < 201; i++) {
@@ -5102,11 +5100,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
-		//test the weird skip behavior with old versions
+		//test versions
 		//skips over the old versions internally since they're interleaved in the last 20 objects
-		checkObjectPagination(user, wsi, 190, 100, 191, 200);
-		//skips over the first 5 objects, so only 5 new objects left (e.g. old new old new etc)
-		checkObjectPagination(user, wsi, 200, 100, 196, 200);
+		checkObjectLimit(user, wsi, 195, 1, 195);
+		checkObjectLimit(user, wsi, 200, 1, 200);
+		checkObjectLimit(user, wsi, 210, 1, 200);
+		checkObjectLimit(user, wsi, 220, 1, 200);
+		
 		
 		wsi = new WorkspaceIdentifier("skiplimit2");
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
@@ -5135,15 +5135,17 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
 		//test object pagination with deleted and hidden objects
-		checkObjectPagination(user, wsi, -1, 26, 1, 30, nums(5, 7, 15, 17));
-		checkObjectPagination(user, wsi, 14, 10, 16, 26, nums(17));
-		checkObjectPagination(user, wsi, 15, 10, 16, 26, nums(17));
-		checkObjectPagination(user, wsi, 16, 10, 18, 27);
-		checkObjectPagination(user, wsi, 17, 10, 18, 27);
-		checkObjectPagination(user, wsi, 13, 10, 14, 25, nums(15, 17));
-		checkObjectPagination(user, wsi, 15, 10, 16, 26, nums(17));
-		checkObjectPagination(user, wsi, 13, 30, 14, 30, nums(15, 17));
-		checkObjectPagination(user, wsi, 14, 30, 16, 30, nums(17));
+		checkObjectLimit(user, wsi, 5, 1, 6, nums(5));
+		checkObjectLimit(user, wsi, 6, 1, 8, nums(5, 7));
+		checkObjectLimit(user, wsi, 12, 1, 14, nums(5, 7));
+		checkObjectLimit(user, wsi, 13, 1, 16, nums(5, 7, 15));
+		checkObjectLimit(user, wsi, 14, 1, 18, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 14, 1, 18, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 15, 1, 19, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 16, 1, 20, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 17, 1, 21, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 18, 1, 22, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 26, 1, 30, nums(5, 7, 15, 17));
 		
 		wsi = new WorkspaceIdentifier("skiplimit3");
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
@@ -5171,13 +5173,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
 		//test several rounds of retrieving objects (the minimum # of objects
-		//pulled from mongo at a time is 100
-		checkObjectPagination(user, wsi, 0, 5, 251, 255);
-		checkObjectPagination(user, wsi, 20, 5, 251, 255);
-		checkObjectPagination(user, wsi, 130, 5, 251, 255);
-		checkObjectPagination(user, wsi, 206, 5, 251, 255);
-		checkObjectPagination(user, wsi, 255, 5, 256, 260);
-		checkObjectPagination(user, wsi, 0, 60, 251, 300);
+		//pulled from mongo at a time is 100)
+		checkObjectLimit(user, wsi, 5, 251, 255);
+		checkObjectLimit(user, wsi, 10, 251, 260);
+		checkObjectLimit(user, wsi, 60, 251, 300);
 	}
 	
 	private Set<Long> nums(Integer... nums) {

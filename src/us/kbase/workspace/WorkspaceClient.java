@@ -590,10 +590,13 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: list_referencing_object_counts</p>
      * <pre>
+     * DEPRECATED
+     *         
      * List the number of times objects have been referenced.
      * This count includes both provenance and object-to-object references
      * and, unlike list_referencing_objects, includes objects that are
      * inaccessible to the user.
+     * @deprecated
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "counts" of list of Long
