@@ -11,7 +11,7 @@ use the Python client, but translating to other clients is trivial.
 
 .. warning::
    Objects saved to the WSS cannot contain binary data anywhere within
-   their hierarchy. Binary data must be endoded (e.g. via Base64) prior to
+   their hierarchy. Binary data must be encoded (e.g. via Base64) prior to
    saving to the WSS.
 
 .. _saveobjects:

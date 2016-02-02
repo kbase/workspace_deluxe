@@ -29,6 +29,7 @@ Release checklist
 * Update release notes
 * Update documentation if necessary.
 * Ensure tests cover changes. Add new tests if necessary.
+* Run tests against supported versions of MongoDB and Shock.
 * Tag the release in git with the new version
 * Merge ``dev-candidate`` to ``develop``
 * When satisfied with CI testing (work with devops here), merge ``develop`` to

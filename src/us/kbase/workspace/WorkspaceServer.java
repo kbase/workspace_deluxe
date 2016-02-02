@@ -111,7 +111,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
 	
-	private static final String VER = "0.3.5";
+	private static final String VER = "0.4.0";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
 	private static final int MAX_RPC_PACKAGE_MEM_USE = 100000000;
