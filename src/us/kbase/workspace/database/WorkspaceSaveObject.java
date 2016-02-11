@@ -1,7 +1,5 @@
 package us.kbase.workspace.database;
 
-import static us.kbase.workspace.database.Util.checkSize;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,33 +12,31 @@ import us.kbase.typedobj.idref.RemappedId;
 
 public class WorkspaceSaveObject {
 	
-	private static final int MAX_USER_META_SIZE = 16000;
-	
 	private final ObjectIDNoWSNoVer id;
 	private final UObject data;
 	private final TypeDefId type;
-	private final Map<String, String> userMeta;
+	private final WorkspaceUserMetadata userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
 	
 	public WorkspaceSaveObject(final ObjectIDNoWSNoVer id, final Object data,
-			final TypeDefId type, final Map<String, String> userMeta,
+			final TypeDefId type, final WorkspaceUserMetadata userMeta,
 			final Provenance provenance, final boolean hidden) {
 		if (id == null || data == null || type == null || provenance == null) {
 			throw new IllegalArgumentException(
-					"Neither id, provenance data nor type may be null");
+					"Neither id, provenance data, nor type may be null");
 		}
 		this.id = id;
 		this.data = transformData(data);
 		this.type = type;
-		this.userMeta = userMeta;
+		this.userMeta = userMeta == null ?
+				new WorkspaceUserMetadata() : userMeta;
 		this.provenance = provenance;
 		this.hidden = hidden;
-		checkSize(userMeta, "Metadata", MAX_USER_META_SIZE);
 	}
 	
 	public WorkspaceSaveObject(final Object data, final TypeDefId type,
-			final Map<String, String> userMeta,  final Provenance provenance,
+			final WorkspaceUserMetadata userMeta,  final Provenance provenance,
 			final boolean hidden) {
 		if (data == null || type == null || provenance == null) {
 			throw new IllegalArgumentException(
@@ -49,10 +45,10 @@ public class WorkspaceSaveObject {
 		this.id = null;
 		this.data = transformData(data);
 		this.type = type;
-		this.userMeta = userMeta;
+		this.userMeta = userMeta == null ?
+				new WorkspaceUserMetadata() : userMeta;
 		this.provenance = provenance;
 		this.hidden = hidden;
-		checkSize(userMeta, "Metadata", MAX_USER_META_SIZE);
 	}
 
 	private UObject transformData(final Object data) {
@@ -72,15 +68,10 @@ public class WorkspaceSaveObject {
 		return type;
 	}
 
-	//mutable!
-	public Map<String, String> getUserMeta() {
+	public WorkspaceUserMetadata getUserMeta() {
 		return userMeta;
 	}
 	
-	public static int getMaxUserMetaSize() {
-		return MAX_USER_META_SIZE;
-	}
-
 	public Provenance getProvenance() {
 		return provenance;
 	}

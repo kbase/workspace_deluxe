@@ -23,6 +23,7 @@ import org.nocrala.tools.texttablefmt.Table;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.DB;
 
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -34,7 +35,10 @@ import us.kbase.shock.client.ShockNode;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.Writable;
+import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectIdentity;
@@ -50,17 +54,18 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.mongo.GridFSBackend;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.database.mongo.ShockBackend;
+import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspaceservice.DeleteWorkspaceParams;
-import us.kbase.workspaceservice.GetObjectParams;
-import us.kbase.workspaceservice.SaveObjectParams;
-import us.kbase.workspaceservice.WorkspaceServiceClient;
 
 /* DO NOT run these tests on production workspaces.
+ * WARNING: extensive changes have been made to the workspace initialization
+ * sequence. Read through the code before using, probably doesn't work 
+ * correctly any more. See TODOs
+ * 
+ * Removed all references to the 0.0.5 Perl workspace version 2016/01/23.
  * 
  * Note you must make the SupahFakeKBGA.Genome type available in the workspace
  * before running these tests. 
@@ -71,9 +76,8 @@ public class ConfigurationsAndThreads {
 		int writes = Integer.valueOf(args[0]);
 		String user = args[1];
 		String pwd = args[2];
-		timeReadWrite(writes, user, pwd, "http://localhost:7044", "http://localhost:7058", "http://localhost:7057",
+		timeReadWrite(writes, user, pwd, "http://localhost:7044", "http://localhost:7058",
 				Arrays.asList(
-						"Workspace005",
 						"Shock",
 						"ShockBackend",
 						"GridFSBackend",
@@ -92,7 +96,6 @@ public class ConfigurationsAndThreads {
 		configMap.put("WorkspaceLibShock", WorkspaceLibShock.class);
 		configMap.put("GridFSBackend", GridFSBackendOnly.class);
 		configMap.put("ShockBackend", ShockBackendOnly.class);
-		configMap.put("Workspace005", Workspace005JsonRPCShock.class);
 		configMap.put("WorkspaceLibShockEmptyType", WorkspaceLibShockEmptySpec.class);
 	}
 	
@@ -125,11 +128,10 @@ public class ConfigurationsAndThreads {
 	
 	private static URL shockURL;
 	private static URL workspace0_1_0URL;
-	private static URL workspace0_0_5URL;
 	
 	@SuppressWarnings({ "unchecked"})
 	public static void timeReadWrite(int writes, String user, String pwd, String shockurl,
-			String workspaceURL, String workspace005URL, List<String> configs, List<Integer> threadCounts)
+			String workspaceURL, List<String> configs, List<Integer> threadCounts)
 					throws Exception {
 		
 		
@@ -137,14 +139,12 @@ public class ConfigurationsAndThreads {
 				"Timing read/write against shock and the workspace service");
 		System.out.println("Shock url: " + shockurl);
 		System.out.println("Workspace url: " + workspaceURL);
-		System.out.println("v0.0.5 Workspace url: " + workspace005URL);
 		System.out.println("logging in " + user);
 		
 		password = pwd;
 		token = AuthService.login(user, pwd).getToken();
 		shockURL = new URL(shockurl);
 		workspace0_1_0URL = new URL(workspaceURL);
-		workspace0_0_5URL = new URL(workspace005URL);
 		data = IOUtils.toByteArray(ConfigurationsAndThreads.class.getResourceAsStream(FILE));
 		jsonData = MAP.readTree(data);
 		mapData = MAP.treeToValue(jsonData, Map.class);
@@ -166,8 +166,16 @@ public class ConfigurationsAndThreads {
 		//need to redo set up if this is used again
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, user, null);
-		Workspace ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB,
-				password, tfm, 0),
+		//TODO this setup is just to make it compile, not tested yet
+		DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
+		TypedObjectValidator val = new TypedObjectValidator(
+				new TypeDefinitionDB(new MongoTypeStorage(
+						GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
+						tfm.getTempDir()));
+		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
+				new GridFSBlobStore(db), tfm, val);
+		
+		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new KBaseReferenceParser());
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -307,89 +315,6 @@ public class ConfigurationsAndThreads {
 		};
 	}
 
-	public static class Workspace005JsonRPCShock extends AbstractReadWriteTest {
-
-		private WorkspaceServiceClient wsc;
-		private int id;
-		final List<String> wsids = new LinkedList<String>();
-		private List<Map<String,Object>> objs = new LinkedList<Map<String,Object>>();
-		private String workspace;
-		
-		public Workspace005JsonRPCShock() throws Exception {
-			super();
-			wsc = new WorkspaceServiceClient(workspace0_0_5URL, token);
-			wsc.setAuthAllowedForHttp(true);
-			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
-					.replace("-", ""); //in case it's E-X
-			try {
-				wsc.createWorkspace(new us.kbase.workspaceservice.CreateWorkspaceParams()
-					.withWorkspace(workspace));
-			} catch (ServerException se) {
-				//probably just created already
-			}
-		};
-		
-		public void initialize(int writes, int id) throws Exception {
-			this.id = id;
-			for (int i = 0; i < writes; i++) {
-				objs.add(new HashMap<String, Object>(mapData));
-				String name = "id" + ("" + Math.random()).substring(2).replace("-", "");
-				objs.get(i).put("fakekey", name);
-				wsids.add(name);
-			}
-		}
-
-		@Override
-		public int performReads() throws Exception {
-			int errcount = 0;
-			for (String id: wsids) {
-				boolean error = true;
-				while (error) {
-					try {
-						wsc.getObject(new GetObjectParams().withWorkspace(workspace)
-								.withId(id).withType(M_TYPE));
-						error = false;
-					} catch (Exception e) {
-						errcount++;
-						System.out.println(String.format(
-								"error # %s in read thread w/ id %s on object %s",
-								errcount, this.id, id));
-						e.printStackTrace();
-					}
-				}
-			}
-			return errcount;
-		}
-
-		@Override
-		public int performWrites() throws Exception {
-			int errcount = 0;
-			for (Map<String, Object> o: objs) {
-				boolean error = true;
-				while (error) {
-					String id = (String) o.get("fakekey");
-					try {
-						wsc.saveObject(new SaveObjectParams().withWorkspace(workspace)
-								.withId(id).withType(M_TYPE).withData(new UObject(mapData)));
-						error = false;
-					} catch (Exception e) {
-						errcount++;
-						System.out.println(String.format(
-								"error # %s in write thread w/ id %s on object %s",
-								errcount, this.id, id));
-						e.printStackTrace();
-					}
-				}
-			}
-			return errcount;
-		}
-
-		@Override
-		public void cleanUp() throws Exception {
-			wsc.deleteWorkspace(new DeleteWorkspaceParams().withWorkspace(workspace));
-		}
-	}
-	
 	public static class WorkspaceJsonRPCShock extends AbstractReadWriteTest {
 
 		private WorkspaceClient wsc;
@@ -470,7 +395,16 @@ public class ConfigurationsAndThreads {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			ws = new Workspace(new MongoWorkspaceDB(MONGO_HOST, MONGO_DB, password, tfm, 0),
+			//TODO check this still works
+			DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
+			TypedObjectValidator val = new TypedObjectValidator(
+					new TypeDefinitionDB(new MongoTypeStorage(
+							GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
+							tfm.getTempDir()));
+			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
+					new ShockBlobStore(db.getCollection("shock_map"), shockURL, "baduser", "badpwd"),
+					tfm, val);
+			ws = new Workspace(mwdb,
 					new ResourceUsageConfigurationBuilder().build(),
 					new KBaseReferenceParser());
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
@@ -520,15 +454,15 @@ public class ConfigurationsAndThreads {
 	
 	public static class ShockBackendOnly extends AbstractReadWriteTest {
 		
-		private ShockBackend sb;
+		private ShockBlobStore sb;
 		@SuppressWarnings("unused")
 		private int id;
 		public final List<MD5> md5s = new LinkedList<MD5>();
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.sb = new ShockBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0),
-					"temp_shock_node_map", shockURL, token.getUserName(), password);
+			this.sb = new ShockBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0).getCollection(
+					"temp_shock_node_map"), shockURL, token.getUserName(), password);
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);
@@ -562,14 +496,14 @@ public class ConfigurationsAndThreads {
 	
 	public static class GridFSBackendOnly extends AbstractReadWriteTest {
 		
-		private GridFSBackend gfsb;
+		private GridFSBlobStore gfsb;
 		@SuppressWarnings("unused")
 		private int id;
 		public final List<MD5> md5s = new LinkedList<MD5>();
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.gfsb = new GridFSBackend(GetMongoDB.getDB(MONGO_HOST, MONGO_DB));
+			this.gfsb = new GridFSBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB));
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);

@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -18,11 +19,16 @@ import org.nocrala.tools.texttablefmt.Table;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.DB;
 
+import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -33,6 +39,7 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
@@ -46,7 +53,6 @@ public class GetObjectsLibSpeedTest {
 	};
 	
 	public static void main(String[] args) throws Exception {
-		@SuppressWarnings("unused")
 		String shockuser = args[0];
 		String shockpwd = args[1];
 		Op op = Op.XLATEOPS;
@@ -70,7 +76,16 @@ public class GetObjectsLibSpeedTest {
 //				1, WorkspaceTestCommon.SHOCK, shockuser, null);
 		TempFilesManager tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
-		Workspace ws = new Workspace(new MongoWorkspaceDB(mongohost, wsDB, shockpwd, tfm, 0),
+		
+		DB db = GetMongoDB.getDB(mongohost, wsDB);
+		TypedObjectValidator val = new TypedObjectValidator(
+				new TypeDefinitionDB(new MongoTypeStorage(
+						GetMongoDB.getDB(mongohost, typeDB)),
+						tfm.getTempDir()));
+		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
+				new ShockBlobStore(db.getCollection("shock_map"), new URL(shockurl), shockuser, shockpwd),
+				tfm, val);
+		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new KBaseReferenceParser());
 		

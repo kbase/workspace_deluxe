@@ -216,6 +216,11 @@ class Workspace(object):
         self._call('Workspace.set_workspace_description',
                    [params])
 
+    def get_permissions_mass(self, mass):
+        resp = self._call('Workspace.get_permissions_mass',
+                          [mass])
+        return resp[0]
+
     def get_permissions(self, wsi):
         resp = self._call('Workspace.get_permissions',
                           [wsi])
@@ -324,6 +329,11 @@ class Workspace(object):
     def revert_object(self, object):
         resp = self._call('Workspace.revert_object',
                           [object])
+        return resp[0]
+
+    def get_names_by_prefix(self, params):
+        resp = self._call('Workspace.get_names_by_prefix',
+                          [params])
         return resp[0]
 
     def hide_objects(self, object_ids):

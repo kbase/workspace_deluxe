@@ -59,8 +59,9 @@ import us.kbase.workspace.database.WorkspaceUser;
  */
 public class ArgUtils {
 	
-	private final static Logger LOGGER =
-			LoggerFactory.getLogger(ArgUtils.class);
+	private static Logger getLogger() {
+		return LoggerFactory.getLogger(ArgUtils.class);
+	}
 	
 	private final static DateTimeFormatter DATE_PARSER =
 			new DateTimeFormatterBuilder()
@@ -189,7 +190,7 @@ public class ArgUtils {
 				.withE6(translatePermission(info.getUserPermission())) 
 				.withE7(translatePermission(info.isGloballyReadable()))
 				.withE8(info.getLockState())
-				.withE9(info.getUserMeta());
+				.withE9(info.getUserMeta().getMetadata());
 	}
 	
 	public static List<Tuple7<String, String, String, Long, String, String, Long>> wsInfoToMetaTuple(
@@ -255,7 +256,7 @@ public class ArgUtils {
 				ret.add(null);
 			} else {
 				if (logObjects) {
-					LOGGER.info("Object {}/{}/{} {}", m.getWorkspaceId(),
+					getLogger().info("Object {}/{}/{} {}", m.getWorkspaceId(),
 							m.getObjectId(), m.getVersion(),
 							m.getTypeString());
 				}
@@ -271,7 +272,8 @@ public class ArgUtils {
 						.withE8(m.getWorkspaceName())
 						.withE9(m.getCheckSum())
 						.withE10(m.getSize())
-						.withE11(m.getUserMetaData()));
+						.withE11(m.getUserMetaData() == null ? null :
+							m.getUserMetaData().getMetadata()));
 			}
 		}
 		return ret;
@@ -301,7 +303,7 @@ public class ArgUtils {
 		
 		for (ObjectInformation m: info) {
 			if (logObjects) {
-				LOGGER.info("Object {}/{}/{} {}", m.getWorkspaceId(),
+				getLogger().info("Object {}/{}/{} {}", m.getWorkspaceId(),
 						m.getObjectId(), m.getVersion(), m.getTypeString());
 			}
 			ret.add(new Tuple12<String, String, String, Long, String, String, String,
@@ -316,7 +318,8 @@ public class ArgUtils {
 					.withE8(m.getWorkspaceName())
 					.withE9("")//ref is deprecated
 					.withE10(m.getCheckSum())
-					.withE11(m.getUserMetaData())
+					.withE11(m.getUserMetaData() == null ? null : 
+						m.getUserMetaData().getMetadata())
 					.withE12(m.getObjectId()));
 		}
 		return ret;
@@ -583,15 +586,27 @@ public class ArgUtils {
 		return b != 0;
 	}
 	
-	public static int longToInt(final Long l, final String name, final int deflt) {
+	public static int longToInt(
+			final Long l,
+			final String name,
+			final int default_) {
 		if (l == null) {
-			return deflt;
+			return default_;
 		}
 		if (l > Integer.MAX_VALUE) {
 				throw new IllegalArgumentException(
 						name + " can be no greater than " + Integer.MAX_VALUE);
 		}
 		return new Long(l).intValue();
+	}
+	
+	public static long checkLong(
+			final Long l,
+			final long default_) {
+		if (l == null) {
+			return default_;
+		}
+		return l;
 	}
 	
 	public static Permission getGlobalWSPerm(final String globalRead) {

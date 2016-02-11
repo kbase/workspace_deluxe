@@ -7,7 +7,6 @@ import java.util.Set;
 
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -42,12 +41,22 @@ public interface WorkspaceDatabase {
 
 	public WorkspaceInformation createWorkspace(WorkspaceUser owner,
 			String wsname, boolean globalread, String description,
-			Map<String, String> meta) throws
+			WorkspaceUserMetadata meta) throws
 			PreExistingWorkspaceException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException;
 	
-	public void setWorkspaceMetaKey(ResolvedWorkspaceID wsid,
-			Map<String, String> meta)
+	/** Sets metadata for a workspace, overwriting existing keys if a
+	 * duplicate key is supplied.
+	 * 
+	 * @param wsid the workspace for which metadata will be altered.
+	 * @param meta the metadata to add to the workspace.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 * @throws IllegalArgumentException if no metadata is supplied or the 
+	 * updated metadata exceeds the allowed size.
+	 */
+	public void setWorkspaceMeta(ResolvedWorkspaceID wsid,
+			WorkspaceUserMetadata meta)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
@@ -55,7 +64,7 @@ public interface WorkspaceDatabase {
 	
 	public WorkspaceInformation cloneWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid, String newname, boolean globalread,
-			String description, Map<String, String> meta)
+			String description, WorkspaceUserMetadata meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
@@ -72,28 +81,100 @@ public interface WorkspaceDatabase {
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	public void setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
-			throws 	WorkspaceCommunicationException, CorruptWorkspaceDBException;
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	/** Get the permission for a workspace for one user. Takes global
+	 * permissions into account.
+	 * 
+	 * Will return permissions for deleted workspaces.
+	 * 
+	 * @param user the user for whom to get permissions. If the user is null,
+	 * only the global readability of the workspace will be returned. 
+	 * @param rwsi the workspace to check.
+	 * @return the user's permission for the workspace, taking the workspace's
+	 * global permission into account.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 */
 	public Permission getPermission(WorkspaceUser user,
 			ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	/** Get permissions for a workspace for one user. This method will also
+	 *  return whether the workspace is globally readable.
+	 * 
+	 * Will return permissions for deleted workspaces.
+	 *  
+	 * @param user the user for whom to get permissions. If the user is null,
+	 * only the global readability of the workspace will be returned. 
+	 * @param rwsi the workspace to check.
+	 * @return the user's and global users' permission for the workspace.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 */
 	public PermissionSet getPermissions(WorkspaceUser user,
 			ResolvedWorkspaceID rwsi) throws 
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	/** Get permissions for a set of workspaces for one user. If the user is
+	 * null, only the global readability of the workspaces will be returned.
+	 * 
+	 * Will return permissions for deleted workspaces.
+	 * 
+	 * @param user the user for whom to get permissions. If the user is null,
+	 * only the global readability of the workspaces will be returned. 
+	 * @param rwsis the workspaces to check.
+	 * @return the user's and global users' permission for the workspaces.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 */
 	public PermissionSet getPermissions(WorkspaceUser user,
 			Set<ResolvedWorkspaceID> rwsis)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	/** Returns all the workspaces for which the user has the specified
+	 *  permission. If the user is null, only globally readable workspaces will
+	 *  be returned if specified.
+	 * 
+	 * Will return permissions for deleted workspaces.
+	 * 
+	 * @param user the user for whom to get permissions. If the user is null,
+	 * only the global readability of the workspaces will be returned. 
+	 * @param perm the minimum permission required for a workspace to be
+	 * included in the permission set.
+	 * @param excludeGlobalRead exclude globally readable workspaces.
+	 * @return a set of permissions to workspaces for a user.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 */
+	public PermissionSet getPermissions(WorkspaceUser user,
+			Permission perm, boolean excludeGlobalRead)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
+
+	/** Get permissions for a set of workspaces for one user.
+	 * 
+	 * @param user the user for whom to get permissions. If the user is null,
+	 * only the global readability of the workspaces will be returned. 
+	 * @param rwsis the list of workspaces to check. If empty, all workspaces
+	 * to which the user has permission will be returned.
+	 * @param perm the minimum permission required for a workspace to be
+	 * included in the permission set.
+	 * @param excludeGlobalRead exclude globally readable workspaces.
+	 * @param excludeDeletedWorkspaces exclude deleted workspaces. Deleted
+	 * workspaces in the supplied list are not affected.
+	 * @return a set of permissions to workspaces for a user.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
+	 */
 	public PermissionSet getPermissions(WorkspaceUser user,
 			Set<ResolvedWorkspaceID> rwsis, Permission perm,
-			boolean excludeGlobalRead)
+			boolean excludeGlobalRead, boolean excludeDeletedWorkspaces)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public Map<User, Permission> getAllPermissions(
-			ResolvedWorkspaceID rwsi) throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException;
+	/** Returns all users' permissions for a set of workspaces */
+	public Map<ResolvedWorkspaceID, Map<User, Permission>> getAllPermissions(
+			Set<ResolvedWorkspaceID> rwsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	public WorkspaceInformation getWorkspaceInformation(WorkspaceUser user,
 			ResolvedWorkspaceID rwsi) throws CorruptWorkspaceDBException,
@@ -155,6 +236,22 @@ public interface WorkspaceDatabase {
 			ObjectIDResolvedWS target)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
+	/** Get object names based on a provided name prefix. Returns at most 1000
+	 * names in no particular order. Intended for use as an auto-completion
+	 * method.
+	 * @param rwsis the workspaces in which to look for names.
+	 * @param prefix the prefix returned names must have.
+	 * @param includeHidden include hidden objects in the output.
+	 * @param limit the maximum number of names to return, at most 1000.
+	 * @return map of workspace to a list of workspace names.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the backend occurs
+	 */
+	public Map<ResolvedWorkspaceID, List<String>> getNamesByPrefix(
+			Set<ResolvedWorkspaceID> rwsis, String prefix,
+			boolean includeHidden, int limit)
+			throws WorkspaceCommunicationException;
+	
 	public WorkspaceInformation renameWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid, String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
@@ -173,14 +270,10 @@ public interface WorkspaceDatabase {
 
 	public void setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
 			throws WorkspaceCommunicationException;
-
-	public PermissionSet getPermissions(WorkspaceUser user,
-			Permission perm, boolean excludeGlobal)
-			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
-
+	
 	public List<WorkspaceInformation> getWorkspaceInformation(
 			PermissionSet pset, List<WorkspaceUser> owners,
-			Map<String, String> meta, Date after, Date before,
+			WorkspaceUserMetadata meta, Date after, Date before,
 			boolean showDeleted, boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
@@ -188,10 +281,7 @@ public interface WorkspaceDatabase {
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	public List<ObjectInformation> getObjectInformation(
-			PermissionSet pset, TypeDefId type, List<WorkspaceUser> savers,
-			Map<String, String> meta, Date after, Date before,
-			boolean showHidden, boolean showDeleted, boolean showOnlyDeleted,
-			boolean showAllVers, boolean includeMetaData, int skip, int limit)
+			GetObjectInformationParameters perms)
 			throws WorkspaceCommunicationException;
 
 	public Map<ObjectIDResolvedWS, Boolean> getObjectExists(
@@ -219,5 +309,7 @@ public interface WorkspaceDatabase {
 	
 	public TempFilesManager getTempFilesManager();
 
-	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg);
+	public void setResourceUsageConfiguration(
+			ResourceUsageConfiguration rescfg);
+
 }

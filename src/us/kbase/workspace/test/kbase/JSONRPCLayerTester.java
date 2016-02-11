@@ -30,10 +30,12 @@ import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthUser;
+import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
@@ -65,7 +67,9 @@ import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.FakeObjectInfo;
@@ -87,12 +91,19 @@ import com.mongodb.MongoClient;
  */
 public class JSONRPCLayerTester {
 	
+	private static final String DB_WS_NAME_1 = "JSONRPCLayerTester1";
+	private static final String DB_TYPE_NAME_1 = "JSONRPCLayerTester1_types";
+	private static final String DB_WS_NAME_2 = "JSONRPCLayerTester2";
+	private static final String DB_TYPE_NAME_2 = "JSONRPCLayerTester2_types";
+	
 	protected static WorkspaceServer SERVER1 = null;
 	protected static WorkspaceClient CLIENT1 = null;
 	protected static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well
+	protected static WorkspaceClient CLIENT3 = null;  // This client connects to SERVER1 as well
 	protected static String USER1 = null;
 	protected static String USER2 = null;
 	protected static String USER3 = null;
+	protected static String STARUSER = "*";
 	protected static AuthUser AUTH_USER1 = null;
 	protected static AuthUser AUTH_USER2 = null;
 	protected static WorkspaceServer SERVER2 = null;
@@ -180,18 +191,20 @@ public class JSONRPCLayerTester {
 		}
 		String p1 = System.getProperty("test.pwd1");
 		String p2 = System.getProperty("test.pwd2");
+		String p3 = System.getProperty("test.pwd3");
 		
 		WorkspaceTestCommon.stfuLoggers();
 		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(WorkspaceTestCommon.getTempDir()),
+				WorkspaceTestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 		
 		SERVER1 = startupWorkspaceServer(mongohost,
-				mongoClient.getDB("JSONRPCLayerTester1"), 
-				"JSONRPCLayerTester1_types", p1);
+				mongoClient.getDB(DB_WS_NAME_1), 
+				DB_TYPE_NAME_1, p1);
 		int port = SERVER1.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		try {
@@ -206,15 +219,19 @@ public class JSONRPCLayerTester {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
+		try {
+			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port), USER3, p3);
+		} catch (UnauthorizedException ue) {
+			throw new TestException("Unable to login with test.user3: " + USER3 +
+					"\nPlease check the credentials in the test configuration.", ue);
+		}
 		AUTH_USER1 = AuthService.login(USER1, p1);
 		AUTH_USER2 = AuthService.login(USER2, p2);
-		if (!AuthService.isValidUserName(Arrays.asList(USER3), AUTH_USER1.getToken())
-				.containsKey(USER3)) {
-			throw new TestException(USER3 + " is not a valid kbase user");
-		}
+
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT3.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT_NO_AUTH.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT1.setStreamingModeOn(true); //for JSONRPCLayerLongTest
 		
@@ -244,8 +261,8 @@ public class JSONRPCLayerTester {
 			.withNewTypes(Arrays.asList("Ref")));
 		
 		SERVER2 = startupWorkspaceServer(mongohost,
-				mongoClient.getDB("JSONRPCLayerTester2"), 
-				"JSONRPCLayerTester2_types", p1);
+				mongoClient.getDB(DB_WS_NAME_2), 
+				DB_TYPE_NAME_2, p1);
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
 		WorkspaceClient clientForSrv2 = new WorkspaceClient(new URL("http://localhost:" + 
 				SERVER2.getServerPort()), USER2, p2);
@@ -318,6 +335,7 @@ public class JSONRPCLayerTester {
 		ws.add("kbase-admin-user", USER1);
 		ws.add("kbase-admin-pwd", user1Password);
 		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir()).resolve("tempForJSONRPCLayerTester"));
+		ws.add("ignore-handle-service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		
@@ -326,9 +344,9 @@ public class JSONRPCLayerTester {
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
-		WorkspaceServer.setIgnoreHandleServiceForTests(true);
 		WorkspaceServer.clearConfigForTests();
-		WorkspaceServer.setMaximumUniqueIdCountForTests(MAX_UNIQUE_IDS_PER_CALL);
+		InitWorkspaceServer.setMaximumUniqueIdCountForTests(
+				MAX_UNIQUE_IDS_PER_CALL);
 		WorkspaceServer server = new WorkspaceServer();
 		//as of 3/10/14 out of 64 objects this would force 15 to be written as temp files
 		server.setResourceUsageConfiguration(
@@ -359,9 +377,18 @@ public class JSONRPCLayerTester {
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
-			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 		JsonTokenStreamOCStat.showStat();
+	}
+	@Before
+	public void clearDB() throws Exception {
+		DB wsdb1 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
+				DB_WS_NAME_1);
+		DB wsdb2 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
+				DB_WS_NAME_2);
+		WorkspaceTestCommon.destroyDB(wsdb1);
+		WorkspaceTestCommon.destroyDB(wsdb2);
 	}
 	
 	public static void assertNoTempFilesExist(TempFilesManager tfm)
@@ -970,39 +997,26 @@ public class JSONRPCLayerTester {
 
 	protected void checkWSInfoList(
 			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> got,
-			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expected,
-			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> notexpected) {
-		checkWSInfoList(got, expected, notexpected, false);
+			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expected) {
+		checkWSInfoList(got, expected, false);
 	}
 	
 	protected void checkWSInfoList(
 			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> got,
 			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expected,
-			List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> notexpected,
 			boolean testDates) {
+		
+		assertThat("got expected number of workspaces", got.size(), is(expected.size()));
 		Map<Long, Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> expecmap = 
 				new HashMap<Long, Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>();
 		for (Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> inf: expected) {
 			expecmap.put(inf.getE1(), inf);
 		}
 		Set<Long> seen = new HashSet<Long>();
-		Set<Long> seenexp = new HashSet<Long>();
-		Set<Long> notexp = new HashSet<Long>();
-		for (Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> inf: notexpected) {
-			notexp.add(inf.getE1());
-		}
 		for (Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info: got) {
 			if (seen.contains(info.getE1())) {
 				fail("Saw same workspace twice");
 			}
-			if (notexp.contains(info.getE1())) {
-				fail("Got unexpected workspace id " + info.getE1());
-			}
-			if (!expecmap.containsKey(info.getE1())) {
-				continue; // only two users so really impossible to list a controlled set of ws
-				// if this is important add a 3rd user and client
-			}
-			seenexp.add(info.getE1());
 			Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> exp =
 					expecmap.get(info.getE1());
 			assertThat("ids correct", info.getE1(), is(exp.getE1()));
@@ -1011,13 +1025,12 @@ public class JSONRPCLayerTester {
 			}
 			assertThat("ws name correct", info.getE2(), is(exp.getE2()));
 			assertThat("user name correct", info.getE3(), is(exp.getE3()));
-			assertThat("obj counts are 0", info.getE5(), is(exp.getE5()));
+			assertThat("obj counts correct", info.getE5(), is(exp.getE5()));
 			assertThat("permission correct", info.getE6(), is(exp.getE6()));
 			assertThat("global read correct", info.getE7(), is(exp.getE7()));
 			assertThat("lockstate correct", info.getE8(), is(exp.getE8()));
 			
 		}
-		assertThat("got same ws ids", seenexp, is(expecmap.keySet()));
 	}
 
 	protected void checkObjectPagination(String wsname,
@@ -1037,16 +1050,16 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
-	protected void failListObjectsByDate(String date, String exception) throws Exception {
+	protected void failListObjectsByDate(String ws, String date, String exception) throws Exception {
 		try {
-			CLIENT1.listObjects(new ListObjectsParams().withAfter(date));
+			CLIENT1.listObjects(new ListObjectsParams().withAfter(date).withWorkspaces(Arrays.asList(ws)));
 			fail("listed obj info with bad date");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exception));
 		}
 		try {
-			CLIENT1.listObjects(new ListObjectsParams().withBefore(date));
+			CLIENT1.listObjects(new ListObjectsParams().withBefore(date).withWorkspaces(Arrays.asList(ws)));
 			fail("listed obj info with bad date");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
@@ -1091,7 +1104,7 @@ public class JSONRPCLayerTester {
 			s.add(new FakeObjectInfo(t.getE1(), t.getE2(), t.getE3(), DATE_FORMAT.parse(t.getE4()),
 					t.getE5().intValue(), new WorkspaceUser(t.getE6()), 
 					new FakeResolvedWSID(t.getE8(), t.getE7()), t.getE9(),
-					t.getE10(), t.getE11()));
+					t.getE10(), new UncheckedUserMetadata(t.getE11())));
 		}
 		return s;
 	}

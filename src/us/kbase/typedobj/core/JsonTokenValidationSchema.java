@@ -37,7 +37,6 @@ public class JsonTokenValidationSchema {
 	private Type type;									// For all: type
 	private String originalType;						// For all: original-type
 	private IdRefDescr idReference;						// For scalars and mappings: id-reference
-	private JsonNode searchableWsSubset;				// For structures: searchable-ws-subset
 	private JsonNode metadataWs;						// For structures: metadata-ws
 	private Map<String, JsonTokenValidationSchema> objectProperties;	// For structures: properties
 	private JsonTokenValidationSchema objectAdditionalPropertiesType;	// For mapping value type: additionalProperties
@@ -116,8 +115,6 @@ public class JsonTokenValidationSchema {
 					attributes);
 		}
 		if (ret.type == Type.object) {
-			if (data.containsKey("searchable-ws-subset"))
-				ret.searchableWsSubset = UObject.transformObjectToJackson(data.get("searchable-ws-subset"));
 			if (data.containsKey("metadata-ws"))
 				ret.metadataWs = UObject.transformObjectToJackson(data.get("metadata-ws"));
 			
@@ -210,11 +207,6 @@ public class JsonTokenValidationSchema {
 		// visit now in json schema).
 		if (type == Type.object) { 
 			// mapping (object) is expected in json schema
-			if (searchableWsSubset != null) {
-				// seachable ws-subset description is defined for this object/mapping
-				lst.addSearchableWsSubsetMessage(searchableWsSubset);
-			}
-			
 			if (metadataWs != null) {
 				// metadata ws description is defined for this object/mapping
 				lst.addMetadataWsMessage(metadataWs);
@@ -523,10 +515,6 @@ public class JsonTokenValidationSchema {
 		return idReference == null ? null : idReference.attributes;
 	}
 
-	public JsonNode getSearchableWsSubset() {
-		return searchableWsSubset;
-	}
-	
 	public Map<String, JsonTokenValidationSchema> getObjectProperties() {
 		return objectProperties;
 	}
