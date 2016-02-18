@@ -2,7 +2,7 @@ Workspace service release notes
 ===============================
 
 VERSION: 0.4.0 (Released 2/2/16)
------------------------------
+--------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
 

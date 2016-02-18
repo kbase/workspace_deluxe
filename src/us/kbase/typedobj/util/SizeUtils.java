@@ -53,8 +53,9 @@ public class SizeUtils {
 	 * @return the size of the String in UTF-8.
 	 */
 	public static long checkSizeInBytes(final String s) {
-		CountingOutputStream cos = new CountingOutputStream();
+		final CountingOutputStream cos = new CountingOutputStream();
 		try {
+			//TODO Writer copies the string into a char array, doubling memory. Use better implementation.
 			Writer writer = new OutputStreamWriter(cos,
 					StandardCharsets.UTF_8);
 			try {

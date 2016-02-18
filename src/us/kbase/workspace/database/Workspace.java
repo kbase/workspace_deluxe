@@ -75,8 +75,7 @@ public class Workspace {
 	//TODO deprecate skip
 	
 	//TODO general unit tests
-	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
-	//TODO BIG SHOCK shock node pointer objects that return pointer and set ACLS on pointer.
+	//TODO BIG GC garbage collection - see WOR-45
 	//TODO BIG SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
 	//TODO BIG SEARCH separate service - get object changes since date (based on type collection and pointers collection
 	//TODO BIG SEARCH index typespecs
@@ -113,6 +112,8 @@ public class Workspace {
 			throw new NullPointerException("cfg cannot be null");
 		}
 		this.db = db;
+		//TODO no need for the mongoworkspacedb to have a TV. pass into Workspace.java. 
+		//TODO check that a few object types exist to make sure the type provider is ok.
 		typedb = db.getTypeValidator().getDB();
 		tfm = db.getTempFilesManager();
 		rescfg = cfg;

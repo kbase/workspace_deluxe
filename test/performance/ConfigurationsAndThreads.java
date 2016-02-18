@@ -166,7 +166,7 @@ public class ConfigurationsAndThreads {
 		//need to redo set up if this is used again
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, user, null);
-		//TODO this setup is just to make it compile, not tested yet
+		//NOTE this setup is just to make it compile, not tested yet
 		DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
 		TypedObjectValidator val = new TypedObjectValidator(
 				new TypeDefinitionDB(new MongoTypeStorage(
@@ -395,7 +395,7 @@ public class ConfigurationsAndThreads {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			//TODO check this still works
+			//NOTE check this still works
 			DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
 			TypedObjectValidator val = new TypedObjectValidator(
 					new TypeDefinitionDB(new MongoTypeStorage(
