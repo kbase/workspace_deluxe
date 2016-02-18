@@ -97,14 +97,14 @@ public class MongoInternalsTest {
 		
 		TempFilesManager tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
-		TypedObjectValidator val = new TypedObjectValidator(
-				new TypeDefinitionDB(new MongoTypeStorage(
-						GetMongoDB.getDB(mongohost, typedb)),
-						null, kidlpath, "both"));
-		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm, val);
+		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
+				new MongoTypeStorage(GetMongoDB.getDB(mongohost, typedb)),
+					null, kidlpath, "both");
+		TypedObjectValidator val = new TypedObjectValidator(typeDefDB);
+		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
-				new DefaultReferenceParser());
+				new DefaultReferenceParser(), typeDefDB, val);
 		assertTrue("GridFS backend setup failed",
 				ws.getBackendType().equals("GridFS"));
 

@@ -272,16 +272,17 @@ public class WorkspaceTester {
 		tfm.cleanup();
 		final String kidlpath = new Util().getKIDLpath();
 		
+		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
+				new MongoTypeStorage(GetMongoDB.getDB(
+						"localhost:" + mongo.getServerPort(),
+						DB_TYPE_NAME)),
+				null, kidlpath, "both");
 		TypedObjectValidator val = new TypedObjectValidator(
-				new TypeDefinitionDB(new MongoTypeStorage(
-						GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-								DB_TYPE_NAME)),
-						null, kidlpath, "both"));
-		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-				bs, tfm, val);
+				typeDefDB);
+		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, bs, tfm);
 		Workspace work = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
-				new DefaultReferenceParser());
+				new DefaultReferenceParser(), typeDefDB, val);
 		if (maxMemoryUsePerCall != null) {
 			final ResourceUsageConfigurationBuilder build =
 					new ResourceUsageConfigurationBuilder(work.getResourceConfig());

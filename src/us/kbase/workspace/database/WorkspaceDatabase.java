@@ -7,7 +7,6 @@ import java.util.Set;
 
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -20,8 +19,6 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 public interface WorkspaceDatabase {
 	
 	public String getBackendType();
-	
-	public TypedObjectValidator getTypeValidator();
 	
 	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;

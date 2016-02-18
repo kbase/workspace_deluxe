@@ -78,16 +78,18 @@ public class GetObjectsLibSpeedTest {
 				new File(WorkspaceTestCommon.getTempDir()));
 		
 		DB db = GetMongoDB.getDB(mongohost, wsDB);
+		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(
+				GetMongoDB.getDB(mongohost, typeDB)),
+				tfm.getTempDir());
 		TypedObjectValidator val = new TypedObjectValidator(
-				new TypeDefinitionDB(new MongoTypeStorage(
-						GetMongoDB.getDB(mongohost, typeDB)),
-						tfm.getTempDir()));
+				typeDefDB);
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-				new ShockBlobStore(db.getCollection("shock_map"), new URL(shockurl), shockuser, shockpwd),
-				tfm, val);
+				new ShockBlobStore(db.getCollection("shock_map"),
+						new URL(shockurl), shockuser, shockpwd),
+				tfm);
 		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser());
+				new KBaseReferenceParser(), typeDefDB, val);
 		
 		WorkspaceUser user = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(user, module);

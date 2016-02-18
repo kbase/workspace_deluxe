@@ -155,11 +155,12 @@ public class InitWorkspaceServer {
 				cfg.getParamReport());
 		rep.reportInfo("Temporary file location: " + tfm.getTempDir());
 
-		final WorkspaceDatabase db;
+		final WorkspaceDependencies wsdeps;
 		try {
-			db = getDB(cfg.getHost(), cfg.getDBname(), cfg.getBackendSecret(),
-				cfg.getMongoUser(), cfg.getMongoPassword(), tfm,
-				cfg.getMongoReconnectAttempts());
+			wsdeps = getDependencies(cfg.getHost(), cfg.getDBname(),
+					cfg.getBackendSecret(), cfg.getMongoUser(),
+					cfg.getMongoPassword(), tfm,
+					cfg.getMongoReconnectAttempts());
 		} catch (WorkspaceInitException wie) {
 			rep.reportFail(wie.getLocalizedMessage());
 			rep.reportFail(
@@ -167,10 +168,10 @@ public class InitWorkspaceServer {
 			return null;
 		}
 		rep.reportInfo(String.format("Initialized %s backend",
-				db.getBackendType()));
-		Workspace ws = new Workspace(db,
+				wsdeps.mongoWS.getBackendType()));
+		Workspace ws = new Workspace(wsdeps.mongoWS,
 				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser());
+				new KBaseReferenceParser(), wsdeps.typeDB, wsdeps.validator);
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
 				ws, cfg.getHandleServiceURL(),
 				maxUniqueIdCountPerCall, auth);
@@ -187,10 +188,19 @@ public class InitWorkspaceServer {
 				handleMgrToken);
 	}
 	
-	private static WorkspaceDatabase getDB(final String host, final String dbs,
-			final String secret, final String user, final String pwd,
-			final TempFilesManager tfm, final int mongoReconnectRetry)
+	private static class WorkspaceDependencies {
+		public TypeDefinitionDB typeDB;
+		public TypedObjectValidator validator;
+		public WorkspaceDatabase mongoWS;
+	}
+	
+	private static WorkspaceDependencies getDependencies(final String host,
+			final String dbs, final String secret, final String user,
+			final String pwd, final TempFilesManager tfm,
+			final int mongoReconnectRetry)
 			throws WorkspaceInitException {
+		
+		final WorkspaceDependencies deps = new WorkspaceDependencies();
 		
 		final DB db = getMongoDBInstance(host, dbs, user, pwd,
 				mongoReconnectRetry);
@@ -204,16 +214,15 @@ public class InitWorkspaceServer {
 		final DB typeDB = getMongoDBInstance(host, settings.getTypeDatabase(),
 				user, pwd, mongoReconnectRetry);
 		
-		final TypedObjectValidator typeValidator;
 		try {
-			typeValidator = new TypedObjectValidator(new TypeDefinitionDB(
-					new MongoTypeStorage(typeDB)));
+			deps.typeDB = new TypeDefinitionDB(new MongoTypeStorage(typeDB));
 		} catch (TypeStorageException e) {
 			throw new WorkspaceInitException("Couldn't set up the type database: "
 					+ e.getLocalizedMessage(), e);
 		}
-		
-		return new MongoWorkspaceDB(db, bs, tfm, typeValidator);
+		deps.validator = new TypedObjectValidator(deps.typeDB);
+		deps.mongoWS = new MongoWorkspaceDB(db, bs, tfm);
+		return deps;
 	}
 	
 	private static BlobStore setupBlobStore(

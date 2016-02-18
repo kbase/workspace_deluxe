@@ -97,11 +97,14 @@ public class Workspace {
 	private final TempFilesManager tfm;
 	private ResourceUsageConfiguration rescfg;
 	private final ReferenceParser parser;
+	private final TypedObjectValidator validator;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
-			final ReferenceParser parser) {
+			final ReferenceParser parser,
+			final TypeDefinitionDB typeDB,
+			final TypedObjectValidator validator) {
 		if (db == null) {
 			throw new NullPointerException("db cannot be null");
 		}
@@ -111,10 +114,16 @@ public class Workspace {
 		if (cfg == null) {
 			throw new NullPointerException("cfg cannot be null");
 		}
+		if (typeDB == null) {
+			throw new NullPointerException("typeDB cannot be null");
+		}
+		if (validator == null) {
+			throw new NullPointerException("validator cannot be null");
+		}
 		this.db = db;
-		//TODO no need for the mongoworkspacedb to have a TV. pass into Workspace.java. 
 		//TODO check that a few object types exist to make sure the type provider is ok.
-		typedb = db.getTypeValidator().getDB();
+		this.typedb = typeDB;
+		this.validator = validator;
 		tfm = db.getTempFilesManager();
 		rescfg = cfg;
 		this.parser = parser;
@@ -723,14 +732,13 @@ public class Workspace {
 			final IdReferenceHandlerSet<IDAssociation> idhandler)
 			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
-		final TypedObjectValidator val = db.getTypeValidator();
 		final Map<WorkspaceSaveObject, TypedObjectValidationReport> reports = 
 				new HashMap<WorkspaceSaveObject, TypedObjectValidationReport>();
 		int objcount = 1;
 		for (final WorkspaceSaveObject wo: objects) {
 			idhandler.associateObject(new IDAssociation(objcount, false));
-			final TypedObjectValidationReport rep = validate(wo, val,
-					idhandler, objcount);
+			final TypedObjectValidationReport rep = validate(wo, idhandler,
+					objcount);
 			reports.put(wo, rep);
 			idhandler.associateObject(new IDAssociation(objcount, true));
 			try {
@@ -825,14 +833,13 @@ public class Workspace {
 
 	private TypedObjectValidationReport validate(
 			final WorkspaceSaveObject wo,
-			final TypedObjectValidator val,
 			final IdReferenceHandlerSet<IDAssociation> idhandler,
 			final int objcount)
 			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
 		final TypedObjectValidationReport rep;
 		try {
-			rep = val.validate(wo.getData(), wo.getType(), idhandler);
+			rep = validator.validate(wo.getData(), wo.getType(), idhandler);
 		} catch (NoSuchTypeException nste) {
 			throw new TypedObjectValidationException(String.format(
 					"Object %s failed type checking:\n",

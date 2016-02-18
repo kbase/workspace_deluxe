@@ -168,16 +168,17 @@ public class ConfigurationsAndThreads {
 //				1, WorkspaceTestCommon.SHOCK, user, null);
 		//NOTE this setup is just to make it compile, not tested yet
 		DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
+		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
+				new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
+					tfm.getTempDir());
 		TypedObjectValidator val = new TypedObjectValidator(
-				new TypeDefinitionDB(new MongoTypeStorage(
-						GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
-						tfm.getTempDir()));
+				typeDefDB);
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-				new GridFSBlobStore(db), tfm, val);
+				new GridFSBlobStore(db), tfm);
 		
 		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser());
+				new KBaseReferenceParser(), typeDefDB, val);
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		ws.requestModuleRegistration(foo, MODULE);
 		ws.resolveModuleRegistration(MODULE, true);
@@ -397,16 +398,18 @@ public class ConfigurationsAndThreads {
 			super();
 			//NOTE check this still works
 			DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
+			final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
+					new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
+							tfm.getTempDir());
 			TypedObjectValidator val = new TypedObjectValidator(
-					new TypeDefinitionDB(new MongoTypeStorage(
-							GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
-							tfm.getTempDir()));
+					typeDefDB);
 			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-					new ShockBlobStore(db.getCollection("shock_map"), shockURL, "baduser", "badpwd"),
-					tfm, val);
+					new ShockBlobStore(db.getCollection("shock_map"),
+							shockURL, "baduser", "badpwd"),
+					tfm);
 			ws = new Workspace(mwdb,
 					new ResourceUsageConfigurationBuilder().build(),
-					new KBaseReferenceParser());
+					new KBaseReferenceParser(), typeDefDB, val);
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
 			ws.createWorkspace(foo, workspace, false, null, null);
