@@ -49,6 +49,7 @@ import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
@@ -72,6 +73,7 @@ public class MongoInternalsTest {
 	private static Jongo jdb;
 	private static MongoWorkspaceDB mwdb;
 	private static Workspace ws;
+	private static Types types;
 	private static MongoController mongo;
 	
 	private static final IdReferenceHandlerSetFactory fac =
@@ -106,19 +108,20 @@ public class MongoInternalsTest {
 		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
-				new DefaultReferenceParser(), typeDefDB, val);
+				new DefaultReferenceParser(), val);
 		assertTrue("GridFS backend setup failed",
 				ws.getBackendType().equals("GridFS"));
 
 		//make a general spec that tests that don't worry about typechecking can use
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		//simple spec
-		ws.requestModuleRegistration(foo, "SomeModule");
-		ws.resolveModuleRegistration("SomeModule", true);
-		ws.compileNewTypeSpec(foo, 
+		types = new Types(typeDefDB);
+		types.requestModuleRegistration(foo, "SomeModule");
+		types.resolveModuleRegistration("SomeModule", true);
+		types.compileNewTypeSpec(foo, 
 				"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
 				Arrays.asList("AType"), null, null, false, null);
-		ws.releaseTypes(foo, "SomeModule");
+		types.releaseTypes(foo, "SomeModule");
 	}
 	
 	@AfterClass
@@ -427,9 +430,9 @@ public class MongoInternalsTest {
 		
 		String mod = "RefCount";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, refcntspec, Arrays.asList("RefType"), null, null, false, null);
+		types.requestModuleRegistration(userfoo, mod);
+		types.resolveModuleRegistration(mod, true);
+		types.compileNewTypeSpec(userfoo, refcntspec, Arrays.asList("RefType"), null, null, false, null);
 		TypeDefId refcounttype = new TypeDefId(new TypeDefName(mod, "RefType"), 0, 1);
 		
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("refcount");

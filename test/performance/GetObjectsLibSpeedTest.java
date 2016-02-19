@@ -35,6 +35,7 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
@@ -90,14 +91,15 @@ public class GetObjectsLibSpeedTest {
 				tfm);
 		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser(), typeDefDB, val);
+				new KBaseReferenceParser(), val);
+		Types types = new Types(typeDefDB);
 		
 		WorkspaceUser user = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(user, module);
-		ws.resolveModuleRegistration(module, true);
-		ws.compileNewTypeSpec(user, FileUtils.readFileToString(new File(specfile)),
+		types.requestModuleRegistration(user, module);
+		types.resolveModuleRegistration(module, true);
+		types.compileNewTypeSpec(user, FileUtils.readFileToString(new File(specfile)),
 				Arrays.asList(type), null, null, false, null);
-		ws.releaseTypes(user, module);
+		types.releaseTypes(user, module);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> o = MAP.readValue(new File(objfile), Map.class);
 		

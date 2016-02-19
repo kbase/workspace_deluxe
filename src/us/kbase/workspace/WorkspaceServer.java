@@ -68,6 +68,7 @@ import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.SubObjectIdentifier;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Permission;
@@ -118,9 +119,9 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private static Map<String, String> wsConfig = null;
 	
-	private final TempFilesManager tfm;
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
+	private final Types types;
 	private final WorkspaceAdministration wsadmin;
 	
 	private final URL handleManagerUrl;
@@ -140,7 +141,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	}
 	
 	public TempFilesManager getTempFilesManager() {
-		return tfm;
+		return ws.getTempFilesManager();
 	}
 
 	@Override
@@ -239,9 +240,9 @@ public class WorkspaceServer extends JsonServerServlet {
 			System.out.println(error);
 		}
 		
-		TempFilesManager tfm = null;
 		Workspace ws = null;
 		WorkspaceServerMethods wsmeth = null;
+		Types types = null;
 		WorkspaceAdministration wsadmin = null;
 		URL handleManagerUrl = null;
 		RefreshingToken handleMgrToken = null;
@@ -258,18 +259,18 @@ public class WorkspaceServer extends JsonServerServlet {
 					InitWorkspaceServer.initWorkspaceServer(cfg, rep);
 
 			if (!rep.isFailed()) {
-				tfm = res.getTempFilesManager();
 				ws = res.getWs();
 				wsmeth = res.getWsmeth();
+				types = res.getTypes();
 				wsadmin = res.getWsAdmin();
 				handleManagerUrl = res.getHandleManagerUrl();
 				handleMgrToken = res.getHandleMgrToken();
-				setRpcDiskCacheTempDir(tfm.getTempDir());
+				setRpcDiskCacheTempDir(ws.getTempFilesManager().getTempDir());
 			}
 		}
-		this.tfm = tfm;
 		this.ws = ws;
 		this.wsmeth = wsmeth;
+		this.types = types;
 		this.wsadmin = wsadmin;
 		this.handleManagerUrl = handleManagerUrl;
 		this.handleMgrToken = handleMgrToken;
@@ -1265,7 +1266,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public void requestModuleOwnership(String mod, AuthToken authPart) throws Exception {
         //BEGIN request_module_ownership
 		final WorkspaceUser u = getUser(authPart);
-		ws.requestModuleRegistration(u, mod);
+		types.requestModuleRegistration(u, mod);
 		//bail on this, there's no mail daemon running on magellean AFAIK
 //		wsadmin.notifyOnModuleRegRequest(authPart, u, mod);
         //END request_module_ownership
@@ -1300,11 +1301,11 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getDependencies() : new HashMap<String, Long>();
 		final Map<TypeDefName, TypeChange> res;
 		if (params.getMod() != null) {
-			 res = ws.compileTypeSpec(getUser(authPart), params.getMod(),
+			 res = types.compileTypeSpec(getUser(authPart), params.getMod(),
 					add, rem, deps, params.getDryrun() == null ? true :
 						params.getDryrun() != 0);
 		} else {
-			res = ws.compileNewTypeSpec(getUser(authPart), params.getSpec(),
+			res = types.compileNewTypeSpec(getUser(authPart), params.getSpec(),
 					add, rem, deps, params.getDryrun() == null ? true :
 						params.getDryrun() != 0, params.getPrevVer());
 		}
@@ -1367,7 +1368,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final Set<String> extTypeSet = new LinkedHashSet<String>();
 		for (final String typeDef : extInfo.getTypes().keySet())
 			extTypeSet.add(TypeDefId.fromTypeString(typeDef).getType().getName());
-		returnVal = ws.compileTypeSpecCopy(params.getMod(), specDocument,
+		returnVal = types.compileTypeSpecCopy(params.getMod(), specDocument,
 				extTypeSet, userId, includesToMd5, 
 				extInfo.getIncludedSpecVersion());
         //END register_typespec_copy
@@ -1398,8 +1399,8 @@ public class WorkspaceServer extends JsonServerServlet {
         List<String> returnVal = null;
         //BEGIN release_module
 		returnVal = new LinkedList<String>();
-		final List<AbsoluteTypeDefId> ret = ws.releaseTypes(getUser(authPart),
-				mod);
+		final List<AbsoluteTypeDefId> ret =
+				types.releaseTypes(getUser(authPart), mod);
 		for (final AbsoluteTypeDefId t: ret) {
 			returnVal.add(t.getTypeString());
 		}
@@ -1424,7 +1425,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (params.getOwner() != null) {
 			user = new WorkspaceUser(params.getOwner());
 		}
-		returnVal = ws.listModules(user);
+		returnVal = types.listModules(user);
         //END list_modules
         return returnVal;
     }
@@ -1449,11 +1450,11 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<Long> vers;
 		final String module;
 		if (params.getMod() != null) {
-			vers = ws.getModuleVersions(params.getMod(), getUser(authPart));
+			vers = types.getModuleVersions(params.getMod(), getUser(authPart));
 			module = params.getMod();
 		} else {
 			final TypeDefId type = TypeDefId.fromTypeString(params.getType());
-			vers = ws.getModuleVersions(type, getUser(authPart));
+			vers = types.getModuleVersions(type, getUser(authPart));
 			module = type.getType().getModule();
 		}
 		returnVal = new ModuleVersions().withMod(module).withVers(vers);
@@ -1485,7 +1486,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		WorkspaceUser user = getUser(authPart);
 		final us.kbase.workspace.database.ModuleInfo mi =
-				ws.getModuleInfo(user, module);
+				types.getModuleInfo(user, module);
 		final Map<String, String> types = new HashMap<String, String>();
 		for (final AbsoluteTypeDefId t: mi.getTypes().keySet()) {
 			types.put(t.getTypeString(), mi.getTypes().get(t));
@@ -1516,7 +1517,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getJsonschema(String type, AuthToken authPart) throws Exception {
         String returnVal = null;
         //BEGIN get_jsonschema
-		returnVal = ws.getJsonSchema(TypeDefId.fromTypeString(type), getUser(authPart));
+		returnVal = types.getJsonSchema(TypeDefId.fromTypeString(type),
+				getUser(authPart));
         //END get_jsonschema
         return returnVal;
     }
@@ -1533,7 +1535,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,List<String>> translateFromMD5Types(List<String> md5Types) throws Exception {
         Map<String,List<String>> returnVal = null;
         //BEGIN translate_from_MD5_types
-        returnVal = ws.translateFromMd5Types(md5Types);
+        returnVal = types.translateFromMd5Types(md5Types);
         //END translate_from_MD5_types
         return returnVal;
     }
@@ -1550,7 +1552,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> translateToMD5Types(List<String> semTypes, AuthToken authPart) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN translate_to_MD5_types
-        returnVal = ws.translateToMd5Types(semTypes, getUser(authPart));
+        returnVal = types.translateToMd5Types(semTypes, getUser(authPart));
         //END translate_to_MD5_types
         return returnVal;
     }
@@ -1566,7 +1568,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public TypeInfo getTypeInfo(String type, AuthToken authPart) throws Exception {
         TypeInfo returnVal = null;
         //BEGIN get_type_info
-        TypeDetailedInfo tdi = ws.getTypeInfo(type, true, getUser(authPart));
+        TypeDetailedInfo tdi = types.getTypeInfo(
+        		type, true, getUser(authPart));
         returnVal = new TypeInfo().withTypeDef(tdi.getTypeDefId())
         		.withDescription(tdi.getDescription())
         		.withSpecDef(tdi.getSpecDef())
@@ -1613,7 +1616,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public FuncInfo getFuncInfo(String func, AuthToken authPart) throws Exception {
         FuncInfo returnVal = null;
         //BEGIN get_func_info
-        FuncDetailedInfo fdi = ws.getFuncInfo(func, true, getUser(authPart));
+        FuncDetailedInfo fdi = types.getFuncInfo(
+        		func, true, getUser(authPart));
         returnVal = new FuncInfo().withFuncDef(fdi.getFuncDefId())
         		.withDescription(fdi.getDescription())
         		.withSpecDef(fdi.getSpecDef())
@@ -1691,7 +1695,8 @@ public class WorkspaceServer extends JsonServerServlet {
         Map<String,Map<String,String>> returnVal = null;
         //BEGIN list_all_types
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		returnVal = ws.listAllTypes(params.getWithEmptyModules() != null && params.getWithEmptyModules() != 0L);
+		returnVal = types.listAllTypes(params.getWithEmptyModules() != null &&
+				params.getWithEmptyModules() != 0L);
         //END list_all_types
         return returnVal;
     }

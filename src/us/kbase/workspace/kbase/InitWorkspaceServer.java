@@ -32,6 +32,7 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -77,7 +78,7 @@ public class InitWorkspaceServer {
 		private Workspace ws;
 		private WorkspaceServerMethods wsmeth;
 		private WorkspaceAdministration wsadmin;
-		private TempFilesManager tfm;
+		private Types types;
 		private URL handleManagerUrl;
 		private RefreshingToken handleMgrToken;
 		
@@ -85,14 +86,14 @@ public class InitWorkspaceServer {
 				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
-				final TempFilesManager tfm,
+				final Types types,
 				final URL handleManagerUrl,
 				final RefreshingToken handleMgrToken) {
 			super();
 			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
-			this.tfm = tfm;
+			this.types = types;
 			this.handleManagerUrl = handleManagerUrl;
 			this.handleMgrToken = handleMgrToken;
 		}
@@ -108,9 +109,9 @@ public class InitWorkspaceServer {
 		public WorkspaceAdministration getWsAdmin() {
 			return wsadmin;
 		}
-
-		public TempFilesManager getTempFilesManager() {
-			return tfm;
+		
+		public Types getTypes() {
+			return types;
 		}
 
 		public URL getHandleManagerUrl() {
@@ -172,12 +173,13 @@ public class InitWorkspaceServer {
 				wsdeps.mongoWS.getBackendType()));
 		Workspace ws = new Workspace(wsdeps.mongoWS,
 				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser(), wsdeps.typeDB, wsdeps.validator);
+				new KBaseReferenceParser(), wsdeps.validator);
+		Types types = new Types(wsdeps.typeDB);
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
-				ws, cfg.getHandleServiceURL(),
+				ws, types, cfg.getHandleServiceURL(),
 				maxUniqueIdCountPerCall, auth);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				ws, wsmeth, cfg.getWorkspaceAdmin());
+				ws, wsmeth, types, cfg.getWorkspaceAdmin());
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),
@@ -185,7 +187,7 @@ public class InitWorkspaceServer {
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
 		return new WorkspaceInitResults(
-				ws, wsmeth, wsadmin, tfm, cfg.getHandleManagerURL(),
+				ws, wsmeth, wsadmin, types, cfg.getHandleManagerURL(),
 				handleMgrToken);
 	}
 	

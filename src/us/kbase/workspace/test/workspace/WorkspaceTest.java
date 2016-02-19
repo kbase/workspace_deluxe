@@ -1077,9 +1077,9 @@ public class WorkspaceTest extends WorkspaceTester {
 					"typedef structure { string val; list<int> l; } MyType;" +
 				"};";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, module);
-		ws.resolveModuleRegistration(module, true);
-		ws.compileNewTypeSpec(userfoo, spec, Arrays.asList("MyType"), null, null, false, null);
+		types.requestModuleRegistration(userfoo, module);
+		types.resolveModuleRegistration(module, true);
+		types.compileNewTypeSpec(userfoo, spec, Arrays.asList("MyType"), null, null, false, null);
 		TypeDefId MyType = new TypeDefId(new TypeDefName(module, "MyType"), 0, 1);
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("metadatatest");
 		ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
@@ -1193,9 +1193,9 @@ public class WorkspaceTest extends WorkspaceTester {
 					"} " + typeName + ";" +
 				"};";
 		WorkspaceUser user = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(user, module);
-		ws.resolveModuleRegistration(module, true);
-		ws.compileNewTypeSpec(user, spec, Arrays.asList(typeName), null, null,
+		types.requestModuleRegistration(user, module);
+		types.resolveModuleRegistration(module, true);
+		types.compileNewTypeSpec(user, spec, Arrays.asList(typeName), null, null,
 				false, null);
 		TypeDefId type = new TypeDefId(
 				new TypeDefName(module, typeName), 0, 1);
@@ -1364,9 +1364,9 @@ public class WorkspaceTest extends WorkspaceTester {
 					"typedef structure { string val; } type5;" +
 				"};";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, module);
-		ws.resolveModuleRegistration(module, true);
-		ws.compileNewTypeSpec(userfoo, spec, Arrays.asList(
+		types.requestModuleRegistration(userfoo, module);
+		types.resolveModuleRegistration(module, true);
+		types.compileNewTypeSpec(userfoo, spec, Arrays.asList(
 				"type1", "type2", "type3", "type4", "type5"), 
 				null, null, false, null);
 		TypeDefId abstype1 = new TypeDefId(new TypeDefName(module, "type1"), 0, 1);
@@ -1444,9 +1444,9 @@ public class WorkspaceTest extends WorkspaceTester {
 					"} type6;" +
 				"};";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, module);
-		ws.resolveModuleRegistration(module, true);
-		ws.compileNewTypeSpec(userfoo, spec, Arrays.asList(
+		types.requestModuleRegistration(userfoo, module);
+		types.resolveModuleRegistration(module, true);
+		types.compileNewTypeSpec(userfoo, spec, Arrays.asList(
 				"type1", "type2", "type3", "type4", "type5", "type6"), 
 				null, null, false, null);
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("nulls");
@@ -1597,9 +1597,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		String mod = "TestTypeChecking";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, specTypeCheck1, Arrays.asList("CheckType"), null, null, false, null);
+		types.requestModuleRegistration(userfoo, mod);
+		types.resolveModuleRegistration(mod, true);
+		types.compileNewTypeSpec(userfoo, specTypeCheck1, Arrays.asList("CheckType"), null, null, false, null);
 		TypeDefId abstype0 = new TypeDefId(new TypeDefName(mod, "CheckType"), 0, 1);
 		TypeDefId abstype1 = new TypeDefId(new TypeDefName(mod, "CheckType"), 1, 0);
 		TypeDefId abstype2 = new TypeDefId(new TypeDefName(mod, "CheckType"), 2, 0);
@@ -1641,7 +1641,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
 		
-		ws.releaseTypes(userfoo, mod);
+		types.releaseTypes(userfoo, mod);
 		
 		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
 				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)),
@@ -1662,7 +1662,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
 		
-		ws.compileNewTypeSpec(userfoo, specTypeCheck2, null, null, null, false, null);
+		types.compileNewTypeSpec(userfoo, specTypeCheck2, null, null, null, false, null);
 		
 		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
 				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)),
@@ -1705,7 +1705,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new TypedObjectValidationException(
 						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
 		
-		ws.releaseTypes(userfoo, mod);
+		types.releaseTypes(userfoo, mod);
 		
 		failSave(userfoo, wspace, data1, relmaxtype, emptyprov, 
 				new TypedObjectValidationException(
@@ -1909,9 +1909,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//test reference type checking
 		String refmod = "TestTypeCheckingRefType";
-		ws.requestModuleRegistration(userfoo, refmod);
-		ws.resolveModuleRegistration(refmod, true);
-		ws.compileNewTypeSpec(userfoo, specTypeCheckRefs, Arrays.asList("CheckRefType"), null, null, false, null);
+		types.requestModuleRegistration(userfoo, refmod);
+		types.resolveModuleRegistration(refmod, true);
+		types.compileNewTypeSpec(userfoo, specTypeCheckRefs, Arrays.asList("CheckRefType"), null, null, false, null);
 		TypeDefId absreftype0 = new TypeDefId(new TypeDefName(refmod, "CheckRefType"), 0, 1);
 
 		ws.createWorkspace(userfoo, "referencetypecheck", false, null, null);
@@ -2110,9 +2110,9 @@ public class WorkspaceTest extends WorkspaceTester {
 					"} " + type + ";\n" +
 				"};\n";
 		WorkspaceUser user = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(user, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(user, idSpec, Arrays.asList(type),
+		types.requestModuleRegistration(user, mod);
+		types.resolveModuleRegistration(mod, true);
+		types.compileNewTypeSpec(user, idSpec, Arrays.asList(type),
 				null, null, false, null);
 		TypeDefId idtype = new TypeDefId(new TypeDefName(mod, type), 0, 1);
 		
@@ -2267,9 +2267,9 @@ public class WorkspaceTest extends WorkspaceTester {
 					"} " + type + ";\n" +
 				"};\n";
 		WorkspaceUser user = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(user, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(user, idSpec, Arrays.asList(type, "Type1", "Type2", "Type3"),
+		types.requestModuleRegistration(user, mod);
+		types.resolveModuleRegistration(mod, true);
+		types.compileNewTypeSpec(user, idSpec, Arrays.asList(type, "Type1", "Type2", "Type3"),
 				null, null, false, null);
 		TypeDefId type1 = new TypeDefId(new TypeDefName(mod, "Type1"), 0, 1);
 		TypeDefId type2 = new TypeDefId(new TypeDefName(mod, "Type2"), 0, 1);
@@ -2408,9 +2408,9 @@ public class WorkspaceTest extends WorkspaceTester {
 					"} " + listtype + ";\n" +
 				"};\n";
 		WorkspaceUser user = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(user, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(user, idSpec, Arrays.asList(listtype),
+		types.requestModuleRegistration(user, mod);
+		types.resolveModuleRegistration(mod, true);
+		types.compileNewTypeSpec(user, idSpec, Arrays.asList(listtype),
 				null, null, false, null);
 		TypeDefId listidtype = new TypeDefId(new TypeDefName(mod, listtype), 0, 1);
 		
@@ -2503,10 +2503,10 @@ public class WorkspaceTest extends WorkspaceTester {
 				"};";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
 		Provenance emptyprov = new Provenance(userfoo);
-		ws.requestModuleRegistration(userfoo, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, specTypeCheck1, Arrays.asList("CheckType"), null, null, false, null);
-		ws.releaseTypes(userfoo, mod);
+		types.requestModuleRegistration(userfoo, mod);
+		types.resolveModuleRegistration(mod, true);
+		types.compileNewTypeSpec(userfoo, specTypeCheck1, Arrays.asList("CheckType"), null, null, false, null);
+		types.releaseTypes(userfoo, mod);
 		TypeDefId abstype0 = new TypeDefId(new TypeDefName(mod, "CheckType"), 1, 0);
 		String wsName = "reftypecheckerror";
 		ws.createWorkspace(userfoo, wsName, false, null, null);
@@ -2532,10 +2532,10 @@ public class WorkspaceTest extends WorkspaceTester {
 						"mapping<reference, string> refmap;" + 
 					"} CheckRefType;" +
 				"};";
-		ws.requestModuleRegistration(userfoo, refmod);
-		ws.resolveModuleRegistration(refmod, true);
-		ws.compileNewTypeSpec(userfoo, specTypeCheckRefs, Arrays.asList("CheckRefType"), null, null, false, null);
-		ws.releaseTypes(userfoo, refmod);
+		types.requestModuleRegistration(userfoo, refmod);
+		types.resolveModuleRegistration(refmod, true);
+		types.compileNewTypeSpec(userfoo, specTypeCheckRefs, Arrays.asList("CheckRefType"), null, null, false, null);
+		types.releaseTypes(userfoo, refmod);
 		TypeDefId absreftype0 = new TypeDefId(new TypeDefName(refmod, "CheckRefType"), 1, 0);
 		long reftypewsid = ws.getWorkspaceInformation(userfoo, reftypecheck).getId();
 		//test the edge case where two keys in a hash resolve to the same reference
@@ -3015,11 +3015,11 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void testTypeMd5s() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		String typeDefName = "SomeModule.AType";
-		Map<String,String> type2md5 = ws.translateToMd5Types(Arrays.asList(typeDefName + "-1.0"),null);
+		Map<String,String> type2md5 = types.translateToMd5Types(Arrays.asList(typeDefName + "-1.0"),null);
 		Assert.assertEquals(1, type2md5.size());
 		String md5TypeDef = type2md5.get(typeDefName + "-1.0");
 		Assert.assertNotNull(md5TypeDef);
-		Map<String, List<String>> md52semantic = ws.translateFromMd5Types(Arrays.asList(md5TypeDef));
+		Map<String, List<String>> md52semantic = types.translateFromMd5Types(Arrays.asList(md5TypeDef));
 		Assert.assertEquals(1, md52semantic.size());
 		List<String> semList = md52semantic.get(md5TypeDef);
 		Assert.assertNotNull(semList);
@@ -3036,7 +3036,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void testListModules() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		Map<String,String> moduleNamesInList = new HashMap<String,String>();
-		for(String mod:ws.listModules(null)) {
+		for(String mod:types.listModules(null)) {
 			moduleNamesInList.put(mod, "");
 		}
 		Assert.assertTrue(moduleNamesInList.containsKey("SomeModule"));
@@ -3046,16 +3046,16 @@ public class WorkspaceTest extends WorkspaceTester {
 	@Test
 	public void testListModuleVersions() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
-		Assert.assertEquals(3, ws.getModuleVersions("SomeModule", null).size());
-		Assert.assertEquals(4, ws.getModuleVersions("SomeModule", new WorkspaceUser("foo")).size());
-		Assert.assertEquals(2, ws.getModuleVersions("TestModule", null).size());
-		Assert.assertEquals(5, ws.getModuleVersions("TestModule", new WorkspaceUser("foo")).size());
+		Assert.assertEquals(3, types.getModuleVersions("SomeModule", null).size());
+		Assert.assertEquals(4, types.getModuleVersions("SomeModule", new WorkspaceUser("foo")).size());
+		Assert.assertEquals(2, types.getModuleVersions("TestModule", null).size());
+		Assert.assertEquals(5, types.getModuleVersions("TestModule", new WorkspaceUser("foo")).size());
 	}
 	
 	@Test
 	public void testGetModuleInfo() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
-		ModuleInfo m = ws.getModuleInfo(null, new ModuleDefId("TestModule"));
+		ModuleInfo m = types.getModuleInfo(null, new ModuleDefId("TestModule"));
 		Assert.assertTrue(m.isReleased());
 		Map<String,String> funcNamesInList = new HashMap<String,String>();
 		for(String func : m.getFunctions() ){
@@ -3072,13 +3072,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		Assert.assertTrue(typeNamesInList.containsKey("TestModule.Feature-1.0"));
 		
 		try {
-			ws.getModuleInfo(null, new ModuleDefId("MadeUpModuleThatIsNotThere"));
+			types.getModuleInfo(null, new ModuleDefId("MadeUpModuleThatIsNotThere"));
 			fail("getModuleInfo of non existant module should throw a NoSuchModuleException");
 		} catch (NoSuchModuleException e) {}
-		ModuleInfo m2 = ws.getModuleInfo(new WorkspaceUser("foo"), new ModuleDefId("UnreleasedModule"));
+		ModuleInfo m2 = types.getModuleInfo(new WorkspaceUser("foo"), new ModuleDefId("UnreleasedModule"));
 		Assert.assertEquals("foo", m2.getOwners().get(0));
 		Assert.assertFalse(m2.isReleased());
-		List<Long> verList = ws.getModuleVersions("UnreleasedModule", new WorkspaceUser("foo"));
+		List<Long> verList = types.getModuleVersions("UnreleasedModule", new WorkspaceUser("foo"));
 		Assert.assertEquals(1, verList.size());
 		Assert.assertEquals(m2.getVersion(), verList.get(0));
 	}
@@ -3087,21 +3087,21 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void testGetJsonSchema() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		try {
-			ws.getJsonSchema(new TypeDefId("TestModule.NonExistantType"), null);
+			types.getJsonSchema(new TypeDefId("TestModule.NonExistantType"), null);
 			fail("getJsonSchema of non existant type should throw a NoSuchTypeException");
 		} catch (NoSuchTypeException e) {}
 		
 		// get several different schemas, make sure that no exceptions are thrown and it is valid json!
-		String schema = ws.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2,0), null);
+		String schema = types.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2,0), null);
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode schemaNode = mapper.readTree(schema);
 		Assert.assertEquals("Genome", schemaNode.get("id").asText());
 		
-		schema = ws.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2), null);
+		schema = types.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2), null);
 		schemaNode = mapper.readTree(schema);
 		Assert.assertEquals("Genome", schemaNode.get("id").asText());
 		
-		schema = ws.getJsonSchema(new TypeDefId("TestModule.Genome"), null);
+		schema = types.getJsonSchema(new TypeDefId("TestModule.Genome"), null);
 		schemaNode = mapper.readTree(schema);
 		Assert.assertEquals("Genome", schemaNode.get("id").asText());
 	}
@@ -3109,15 +3109,15 @@ public class WorkspaceTest extends WorkspaceTester {
 	@Test
 	public void testGetTypeInfo() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
-		TypeDetailedInfo info = ws.getTypeInfo("TestModule.Genome", false, null);
+		TypeDetailedInfo info = types.getTypeInfo("TestModule.Genome", false, null);
 		Assert.assertEquals("TestModule.Genome-2.0",info.getTypeDefId());
 		Assert.assertEquals(1, info.getReleasedModuleVersions().size());
 		Assert.assertEquals(2, info.getReleasedTypeVersions().size());
-		info = ws.getTypeInfo("TestModule.Feature", false, null);
+		info = types.getTypeInfo("TestModule.Feature", false, null);
 		Assert.assertEquals("TestModule.Feature-1.0",info.getTypeDefId());
 		Assert.assertEquals(2, info.getReleasedModuleVersions().size());
 		Assert.assertEquals(1, info.getReleasedTypeVersions().size());
-		TypeDetailedInfo info2 = ws.getTypeInfo("UnreleasedModule.AType-0.1", false, new WorkspaceUser("foo"));
+		TypeDetailedInfo info2 = types.getTypeInfo("UnreleasedModule.AType-0.1", false, new WorkspaceUser("foo"));
 		Assert.assertEquals(1, info2.getUsingFuncDefIds().size());
 		Assert.assertEquals(1, info2.getModuleVersions().size());
 		Assert.assertEquals(1, info2.getTypeVersions().size());
@@ -3131,22 +3131,22 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void testGetFuncInfo() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		try {
-			ws.getFuncInfo("NoModuleThatExists.getFeature", false, null);
+			types.getFuncInfo("NoModuleThatExists.getFeature", false, null);
 			fail("getFuncInfo of non existant module should throw a NoSuchModuleException");
 		} catch (NoSuchModuleException e) {}
 		try {
-			ws.getFuncInfo("TestModule.noFunctionThatIKnowOf", false, null);
+			types.getFuncInfo("TestModule.noFunctionThatIKnowOf", false, null);
 			fail("getFuncInfo of non existant module should throw a NoSuchFuncException");
 		} catch (NoSuchFuncException e) {}
-		FuncDetailedInfo info = ws.getFuncInfo("TestModule.getFeature", false, null);
+		FuncDetailedInfo info = types.getFuncInfo("TestModule.getFeature", false, null);
 		Assert.assertEquals("TestModule.getFeature-2.0",info.getFuncDefId());
 		Assert.assertEquals(1, info.getReleasedModuleVersions().size());
 		Assert.assertEquals(2, info.getReleasedFuncVersions().size());
-		info = ws.getFuncInfo("TestModule.getGenome-1.0", false, null);
+		info = types.getFuncInfo("TestModule.getGenome-1.0", false, null);
 		Assert.assertEquals("TestModule.getGenome-1.0",info.getFuncDefId());
 		Assert.assertEquals(1, info.getReleasedModuleVersions().size());
 		Assert.assertEquals(1, info.getReleasedFuncVersions().size());
-		FuncDetailedInfo info2 = ws.getFuncInfo("UnreleasedModule.aFunc-0.1", false, new WorkspaceUser("foo"));
+		FuncDetailedInfo info2 = types.getFuncInfo("UnreleasedModule.aFunc-0.1", false, new WorkspaceUser("foo"));
 		Assert.assertEquals(1, info2.getUsedTypeDefIds().size());
 		Assert.assertEquals(1, info2.getModuleVersions().size());
 		Assert.assertEquals(1, info2.getFuncVersions().size());
@@ -5944,35 +5944,35 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void grantRemoveOwnership() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("foo");
 		String moduleName = "SharedModule";
-		ws.requestModuleRegistration(user, moduleName);
-		ws.resolveModuleRegistration(moduleName, true);
-		ws.compileNewTypeSpec(user, "module " + moduleName + " {typedef int MainType;};", 
+		types.requestModuleRegistration(user, moduleName);
+		types.resolveModuleRegistration(moduleName, true);
+		types.compileNewTypeSpec(user, "module " + moduleName + " {typedef int MainType;};", 
 				Arrays.asList("MainType"), null, null, false, null);
-		ws.releaseTypes(user, moduleName);
+		types.releaseTypes(user, moduleName);
 		WorkspaceUser user2 = new WorkspaceUser("bar");
 		try {
-			ws.compileNewTypeSpec(user2, "module " + moduleName + " {typedef string MainType;};", 
+			types.compileNewTypeSpec(user2, "module " + moduleName + " {typedef string MainType;};", 
 					Collections.<String>emptyList(), null, null, false, null);
 			Assert.fail();
 		} catch (NoSuchPrivilegeException ex) {
 			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("not in list of owners"));
 		}
-		ws.grantModuleOwnership(moduleName, user2.getUser(), false, user, false);
-		ws.compileNewTypeSpec(user2, "module " + moduleName + " {typedef string MainType;};", 
+		types.grantModuleOwnership(moduleName, user2.getUser(), false, user, false);
+		types.compileNewTypeSpec(user2, "module " + moduleName + " {typedef string MainType;};", 
 				Collections.<String>emptyList(), null, null, false, null);
 		WorkspaceUser user3 = new WorkspaceUser("baz");
 		try {
-			ws.grantModuleOwnership(moduleName, user3.getUser(), false, user2, false);
+			types.grantModuleOwnership(moduleName, user3.getUser(), false, user2, false);
 			Assert.fail();
 		} catch (NoSuchPrivilegeException ex) {
 			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("can not change privileges"));
 		}
-		ws.grantModuleOwnership(moduleName, user2.getUser(), true, user, false);
-		ws.grantModuleOwnership(moduleName, user3.getUser(), false, user2, false);
-		ws.removeModuleOwnership(moduleName, user3.getUser(), user2, false);
-		ws.removeModuleOwnership(moduleName, user2.getUser(), user, false);
+		types.grantModuleOwnership(moduleName, user2.getUser(), true, user, false);
+		types.grantModuleOwnership(moduleName, user3.getUser(), false, user2, false);
+		types.removeModuleOwnership(moduleName, user3.getUser(), user2, false);
+		types.removeModuleOwnership(moduleName, user2.getUser(), user, false);
 		try {
-			ws.compileNewTypeSpec(user2, "module " + moduleName + " {typedef float MainType;};", 
+			types.compileNewTypeSpec(user2, "module " + moduleName + " {typedef float MainType;};", 
 					Collections.<String>emptyList(), null, null, false, null);
 			Assert.fail();
 		} catch (NoSuchPrivilegeException ex) {
@@ -5984,23 +5984,23 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void removeTypeTest() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("foo");
 		String moduleName = "MyMod3";
-		ws.requestModuleRegistration(user, moduleName);
-		ws.resolveModuleRegistration(moduleName, true);
-		ws.compileNewTypeSpec(user, "module " + moduleName + " {" +
+		types.requestModuleRegistration(user, moduleName);
+		types.resolveModuleRegistration(moduleName, true);
+		types.compileNewTypeSpec(user, "module " + moduleName + " {" +
 				"typedef structure {string foo; list<int> bar; int baz;} AType; " +
 				"typedef structure {string whooo;} BType;};", 
 				Arrays.asList("AType", "BType"), null, null, false, null);
-		ws.compileTypeSpec(user, moduleName, Collections.<String>emptyList(),
+		types.compileTypeSpec(user, moduleName, Collections.<String>emptyList(),
 				Arrays.asList("BType"), Collections.<String, Long>emptyMap(), false);
-		List<Long> vers = ws.getModuleVersions(moduleName, user);
+		List<Long> vers = types.getModuleVersions(moduleName, user);
 		Collections.sort(vers);
 		Assert.assertEquals(2, vers.size());
-		Assert.assertEquals(2, ws.getModuleInfo(user, new ModuleDefId(moduleName, vers.get(0))).getTypes().size());
-		Assert.assertEquals(1, ws.getModuleInfo(user, new ModuleDefId(moduleName, vers.get(1))).getTypes().size());
-		Assert.assertEquals(Arrays.asList(vers.get(0)), ws.getModuleVersions(new TypeDefId(moduleName + ".BType", "0.1"), user));
-		ws.releaseTypes(user, moduleName);
-		Assert.assertEquals(1, ws.getModuleVersions(new TypeDefId(moduleName + ".AType"), null).size());
-		Assert.assertEquals(moduleName + ".AType-1.0", ws.getTypeInfo(moduleName + ".AType", false, null).getTypeDefId());
+		Assert.assertEquals(2, types.getModuleInfo(user, new ModuleDefId(moduleName, vers.get(0))).getTypes().size());
+		Assert.assertEquals(1, types.getModuleInfo(user, new ModuleDefId(moduleName, vers.get(1))).getTypes().size());
+		Assert.assertEquals(Arrays.asList(vers.get(0)), types.getModuleVersions(new TypeDefId(moduleName + ".BType", "0.1"), user));
+		types.releaseTypes(user, moduleName);
+		Assert.assertEquals(1, types.getModuleVersions(new TypeDefId(moduleName + ".AType"), null).size());
+		Assert.assertEquals(moduleName + ".AType-1.0", types.getTypeInfo(moduleName + ".AType", false, null).getTypeDefId());
 	}
 	
 	@Test

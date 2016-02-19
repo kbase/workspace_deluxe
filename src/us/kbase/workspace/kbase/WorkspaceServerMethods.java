@@ -46,6 +46,7 @@ import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -64,16 +65,19 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 public class WorkspaceServerMethods {
 	
 	final private Workspace ws;
+	final private Types types;
 	final private URL handleServiceUrl;
 	final private int maximumIDCount;
 	final private ConfigurableAuthService auth;
 	
 	public WorkspaceServerMethods(
 			final Workspace ws,
+			final Types types,
 			final URL handleServiceUrl,
 			final int maximumIDCount,
 			final ConfigurableAuthService auth) {
 		this.ws = ws;
+		this.types = types;
 		this.handleServiceUrl = handleServiceUrl;
 		this.maximumIDCount = maximumIDCount;
 		this.auth = auth;
@@ -257,7 +261,7 @@ public class WorkspaceServerMethods {
 			throws TypeStorageException, NoSuchPrivilegeException {
 		checkAddlArgs(params.getAdditionalProperties(),
 				GrantModuleOwnershipParams.class);
-		ws.grantModuleOwnership(params.getMod(), params.getNewOwner(),
+		types.grantModuleOwnership(params.getMod(), params.getNewOwner(),
 				longToBoolean(params.getWithGrantOption()), user, asAdmin);
 	}
 
@@ -266,7 +270,7 @@ public class WorkspaceServerMethods {
 			throws NoSuchPrivilegeException, TypeStorageException {
 		checkAddlArgs(params.getAdditionalProperties(),
 				RemoveModuleOwnershipParams.class);
-		ws.removeModuleOwnership(params.getMod(), params.getOldOwner(),
+		types.removeModuleOwnership(params.getMod(), params.getOldOwner(),
 				user, asAdmin);
 	}
 
