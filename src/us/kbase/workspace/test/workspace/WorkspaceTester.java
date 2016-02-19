@@ -69,7 +69,6 @@ import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import ch.qos.logback.classic.Level;
@@ -288,13 +287,11 @@ public class WorkspaceTester {
 		tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
 		tfm.cleanup();
-		final String kidlpath = new Util().getKIDLpath();
 		
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
 				new MongoTypeStorage(GetMongoDB.getDB(
 						"localhost:" + mongo.getServerPort(),
-						DB_TYPE_NAME)),
-				null, kidlpath, "both");
+						DB_TYPE_NAME)));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, bs, tfm);

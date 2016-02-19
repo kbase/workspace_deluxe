@@ -81,8 +81,7 @@ public class GetObjectsLibSpeedTest {
 		
 		DB db = GetMongoDB.getDB(mongohost, wsDB);
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(
-				GetMongoDB.getDB(mongohost, typeDB)),
-				tfm.getTempDir());
+				GetMongoDB.getDB(mongohost, typeDB)));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,

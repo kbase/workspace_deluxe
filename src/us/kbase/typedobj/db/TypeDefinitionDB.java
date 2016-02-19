@@ -1,8 +1,6 @@
 package us.kbase.typedobj.db;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
@@ -65,10 +63,6 @@ import us.kbase.typedobj.exceptions.*;
  */
 public class TypeDefinitionDB {
 
-	public enum KidlSource {
-		external, internal, both
-	}
-
 	private enum Change {
 		noChange, backwardCompatible, notCompatible;
 		
@@ -83,13 +77,9 @@ public class TypeDefinitionDB {
 	protected ObjectMapper mapper;
 		
 	private final TypeStorage storage;
-	private final File parentTempDir;
-	private final Object tempDirLock = new Object(); 
 	private final Object moduleStateLock = new Object(); 
 	private final Map<String, ModuleState> moduleStates = new HashMap<String, ModuleState>();
 	private final ThreadLocal<Map<String,Integer>> localReadLocks = new ThreadLocal<Map<String,Integer>>(); 
-	private final String kbTopPath;
-	private final KidlSource kidlSource;
 	private final LoadingCache<String, ModuleInfo> moduleInfoCache;
 	private final LoadingCache<AbsoluteTypeDefId, String> typeJsonSchemaCache;
 	
@@ -101,60 +91,17 @@ public class TypeDefinitionDB {
 	/**
 	 * Set up a new DB pointing to the specified storage object
 	 * @param storage
-	 * @param uip
 	 * @throws TypeStorageException 
 	 */
 	public TypeDefinitionDB(TypeStorage storage)
 			throws TypeStorageException {
-		this(storage, null);
+		this(storage, 100);
 	}
 
-	public TypeDefinitionDB(TypeStorage storage, File tempDir) throws TypeStorageException {
-		this(storage, tempDir, null, null);
-	}
-	
-	/**
-	 * Setup a new DB handle pointing to the specified storage object, using the
-	 * specified location when processing temporary type compiler files.
-	 * @param storage
-	 * @param tempDir
-	 * @param uip
-	 * @param kbTopPath
-	 * @param kidlSource
-	 * @throws TypeStorageException 
-	 */
-	public TypeDefinitionDB(TypeStorage storage, File tempDir,
-			String kbTopPath, String kidlSource) throws TypeStorageException {
-		this(storage, tempDir, kbTopPath, kidlSource, 100);
-	}
-
-	public TypeDefinitionDB(TypeStorage storage, File tempDir, 
-			String kbTopPath, String kidlSource, int cacheSize) throws TypeStorageException {
+	public TypeDefinitionDB(TypeStorage storage, int cacheSize)
+			throws TypeStorageException {
 		this.mapper = new ObjectMapper();
 		this.storage = storage;
-		if (tempDir == null) {
-			this.parentTempDir = new File(".");
-		} else {
-			this.parentTempDir = tempDir;
-			if (parentTempDir.exists()) {
-				if (!parentTempDir.isDirectory()) {
-					throw new TypeStorageException("Requested temp dir "
-							+ parentTempDir + " is not a directory");
-				}
-			} else {
-				boolean success = parentTempDir.mkdirs();
-				if (!success) {
-					if (!parentTempDir.isDirectory()) {
-						throw new TypeStorageException(
-								"Could not create requested temp dir "
-						+ parentTempDir);
-					}
-				}
-			}
-		}
-		this.kbTopPath = kbTopPath;
-		this.kidlSource = kidlSource == null || kidlSource.isEmpty() ? KidlSource.internal : 
-			KidlSource.valueOf(kidlSource);
 		moduleInfoCache = CacheBuilder.newBuilder().maximumSize(cacheSize).build(
 				new CacheLoader<String, ModuleInfo>() {
 					@Override
@@ -1676,21 +1623,6 @@ public class TypeDefinitionDB {
 		return false;
 	}
 
-	private File createTempDir() {
-		synchronized (tempDirLock) {
-			long suffix = System.currentTimeMillis();
-			File ret;
-			while (true) {
-				ret = new File(parentTempDir, "temp_" + suffix);
-				if (!ret.exists())
-					break;
-				suffix++;
-			}
-			ret.mkdirs();
-			return ret;
-		}
-	}
-	
 	public void requestModuleRegistration(String moduleName, String ownerUserId)
 			throws TypeStorageException {
 		TypeDefName.checkTypeName(moduleName, "Module name");
@@ -1917,59 +1849,21 @@ public class TypeDefinitionDB {
 			Map<String, Map<String, String>> moduleToTypeToSchema,
 			Map<String, ModuleInfo> moduleToInfo, Map<String, Long> moduleVersionRestrictions) 
 					throws SpecParseException, NoSuchModuleException {
-		File tempDir = kidlSource == KidlSource.internal ? null : createTempDir();
 		try {
 			Map<String, IncludeDependentPath> moduleToPath = new HashMap<String, IncludeDependentPath>();
-			StaticIncludeProvider sip = kidlSource == KidlSource.internal ? new StaticIncludeProvider() : null;
+			StaticIncludeProvider sip = new StaticIncludeProvider();
 			for (String iModule : includedModules) {
 				Long iVersion = moduleVersionRestrictions.get(iModule);
 				if (iVersion == null)
 					iVersion = getLatestModuleVersion(iModule);
-				saveIncludedModuleRecusive(tempDir, new IncludeDependentPath(), iModule, iVersion, 
+				saveIncludedModuleRecusive(new IncludeDependentPath(), iModule, iVersion, 
 						moduleToPath, moduleVersionRestrictions, sip);
 			}
 			for (IncludeDependentPath path : moduleToPath.values())
 				moduleToInfo.put(path.info.getModuleName(), path.info);
-			List<KbService> services;
-			if (kidlSource == KidlSource.external) {
-				File specFile = new File(tempDir, "currentlyCompiled.spec");
-				writeFile(specDocument, specFile);
-				services = KidlParser.parseSpec(specFile, tempDir, moduleToTypeToSchema, kbTopPath, false);
-			} else if (kidlSource == KidlSource.both) {
-				File specFile = new File(tempDir, "currentlyCompiled.spec");
-				writeFile(specDocument, specFile);
-				Map<String, Map<String, String>> jsonSchemasExt = new TreeMap<String, Map<String, String>>();
-				Map<?,?> parseMapExt = null;
-				Exception extErr = null;
-				try {
-					parseMapExt = KidlParser.parseSpecExt(specFile, tempDir, jsonSchemasExt, kbTopPath);
-				} catch (Exception ex) {
-					extErr = ex;
-				}
-				Map<String, Map<String, String>> jsonSchemasInt = new TreeMap<String, Map<String, String>>();
-				Map<?,?> parseMapInt = null;
-				try {
-					parseMapInt = KidlParser.parseSpecInt(specFile, jsonSchemasInt);
-				} catch (Exception intErr) {
-					if (extErr == null)
-						System.out.println("Warning: external parser didn't throw an exception");
-					throw intErr;
-				}
-				if (extErr != null) {
-					System.out.println("Warning: internal parser didn't throw an exception");
-					throw extErr;
-				}
-				boolean ok = KidlUtil.compareJson(parseMapExt, parseMapInt, "Parsing schema");
-				ok = ok & KidlUtil.compareJsonSchemas(jsonSchemasExt, jsonSchemasInt, "Json schemas");
-				if (!ok)
-					throw new SpecParseException("Output of KIDL parsers is different");
-				services = KidlParser.parseSpec(parseMapExt);
-				moduleToTypeToSchema.putAll(jsonSchemasExt);
-			} else {
-				StringReader r = new StringReader(specDocument);
-				Map<?,?> parseMap = KidlParser.parseSpecInt(r, moduleToTypeToSchema, sip);
-				services = KidlParser.parseSpec(parseMap);
-			}
+			StringReader r = new StringReader(specDocument);
+			Map<?,?> parseMap = KidlParser.parseSpecInt(r, moduleToTypeToSchema, sip);
+			List<KbService> services = KidlParser.parseSpec(parseMap);
 			if (services.size() != 1)
 				throw new SpecParseException("Spec-file should consist of only one service");
 			if (services.get(0).getModules().size() != 1)
@@ -1981,9 +1875,6 @@ public class TypeDefinitionDB {
 			throw ex;
 		} catch (Exception ex) {
 			throw new SpecParseException("Unexpected error during spec-file parsing: " + ex.getMessage(), ex);			
-		} finally {
-			if (tempDir != null)
-				deleteTempDir(tempDir);
 		}
 	}
 
@@ -2009,7 +1900,7 @@ public class TypeDefinitionDB {
 		 * exception before this point.
 		 * That being said, it's not bad to have a safeguard here. 
 		 */
-		//TODO TYPEDB add tests for this after removing 'both' type tests 
+		//TODO NOW TYPEDB add tests for this after removing 'both' type tests 
 		TypeDefName.checkTypeName(moduleName, "Module name");
 		for (final KbModuleComp comp: module.getModuleComponents()){
 			if (comp instanceof KbTypedef) {
@@ -2395,7 +2286,7 @@ public class TypeDefinitionDB {
 		}
 	}
 	
-	private void saveIncludedModuleRecusive(File workDir, IncludeDependentPath parent, 
+	private void saveIncludedModuleRecusive(IncludeDependentPath parent, 
 			String moduleName, long version, Map<String, IncludeDependentPath> savedModules, 
 			Map<String, Long> moduleVersionRestrictions, StaticIncludeProvider sip) 
 			throws NoSuchModuleException, IOException, TypeStorageException, SpecParseException {
@@ -2413,36 +2304,17 @@ public class TypeDefinitionDB {
 			return;
 		}
 		String spec = getModuleSpecDocument(moduleName, version);
-		if (workDir != null)
-			writeFile(spec, new File(workDir, moduleName + ".types"));
 		if (sip != null)
 			sip.addSpecFile(moduleName, spec);
 		savedModules.put(moduleName, currentPath);
 		for (Map.Entry<String, Long> entry : info.getIncludedModuleNameToVersion().entrySet()) {
 			String includedModule = entry.getKey();
 			long includedVersion = entry.getValue();
-			saveIncludedModuleRecusive(workDir, currentPath, includedModule, includedVersion, 
+			saveIncludedModuleRecusive(currentPath, includedModule, includedVersion, 
 					savedModules, moduleVersionRestrictions, sip);
 		}
 	}
 	
-	private static void writeFile(String text, File f) throws IOException {
-		FileWriter fw = new FileWriter(f);
-		fw.write(text);
-		fw.close();
-	}
-	
-	private void deleteTempDir(File dir) {
-		for (File f : dir.listFiles()) {
-			if (f.isFile()) {
-				f.delete();
-			} else {
-				deleteTempDir(f);
-			}
-		}
-		dir.delete();
-	}
-		
 	public void addOwnerToModule(String knownOwnerUserId, String moduleName, String newOwnerUserId, 
 			boolean withChangeOwnersPrivilege, boolean isAdmin) throws TypeStorageException, NoSuchPrivilegeException {
 		checkUserCanChangePrivileges(knownOwnerUserId, moduleName, isAdmin);

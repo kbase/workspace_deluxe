@@ -51,7 +51,6 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
-import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /**
@@ -161,12 +160,10 @@ public class IdProcessingTest {
 		
 		System.out.println("setting up the typed obj database");
 		// point the type definition db to point there
-		File tempdir = Paths.get(dir.toString()).resolve("temp_files").toFile();
 		if (!dir.exists())
 			dir.mkdir();
 		
-		db = new TypeDefinitionDB(new FileTypeStorage(dir.toString()), tempdir,
-				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
+		db = new TypeDefinitionDB(new FileTypeStorage(dir.toString()));
 		
 		// create a validator that uses the type def db
 		validator = new TypedObjectValidator(new LocalTypeProvider(db));

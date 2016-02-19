@@ -62,7 +62,6 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
 import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
 import us.kbase.workspace.database.mongo.TypeData;
-import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 import com.mongodb.DB;
@@ -96,13 +95,11 @@ public class MongoInternalsTest {
 		String typedb = "MongoInternalsTest_types";
 		WorkspaceTestCommon.destroyWSandTypeDBs(db, typedb);
 		jdb = new Jongo(db);
-		final String kidlpath = new Util().getKIDLpath();
 		
 		TempFilesManager tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
-				new MongoTypeStorage(GetMongoDB.getDB(mongohost, typedb)),
-					null, kidlpath, "both");
+				new MongoTypeStorage(GetMongoDB.getDB(mongohost, typedb)));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
 		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);

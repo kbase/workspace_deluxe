@@ -170,8 +170,7 @@ public class ConfigurationsAndThreads {
 //				1, WorkspaceTestCommon.SHOCK, user, null);
 		//NOTE this setup is just to make it compile, not tested yet
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
-				new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
-					tfm.getTempDir());
+				new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)));
 		
 		Types types = new Types(typeDefDB);
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -394,8 +393,7 @@ public class ConfigurationsAndThreads {
 			//NOTE check this still works
 			DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
 			final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
-					new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
-							tfm.getTempDir());
+					new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)));
 			TypedObjectValidator val = new TypedObjectValidator(
 					new LocalTypeProvider(typeDefDB));
 			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,

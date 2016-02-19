@@ -60,7 +60,6 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
-import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 @RunWith(Parameterized.class)
@@ -134,8 +133,7 @@ public class TypeRegisteringTest {
 			innerStorage = new FileTypeStorage(d.toFile().getAbsolutePath());
 		}
 		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
-		db = new TypeDefinitionDB(storage, d.toFile(), new Util().getKIDLpath(),
-				WorkspaceTestCommon.getKidlSource());
+		db = new TypeDefinitionDB(storage);
 	}
 	
 	public static DB createMongoDbConnection() throws Exception {

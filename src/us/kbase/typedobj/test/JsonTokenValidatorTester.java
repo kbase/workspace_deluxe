@@ -26,18 +26,16 @@ import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.test.TypeRegisteringTest;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
-import us.kbase.workspace.kbase.Util;
 
 public class JsonTokenValidatorTester {
 	private static final long seed = 1234567890L;
 	private static final Random rnd = new Random(seed);
 
 	public static void main(String[] args) throws Exception {
-		File dir = new File(".");
 		// point the type definition db to point there
 		TypeStorage storage = new MongoTypeStorage(TypeRegisteringTest.createMongoDbConnection());
 		storage.removeAllData();
-		TypeDefinitionDB db = new TypeDefinitionDB(storage, dir, new Util().getKIDLpath(), null);
+		TypeDefinitionDB db = new TypeDefinitionDB(storage);
 		// create a validator that uses the type def db
 		String username = "wstester1";
 		String moduleName = "KBaseNetworks";

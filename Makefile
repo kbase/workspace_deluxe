@@ -42,7 +42,7 @@ BIN_PERL = $(addprefix $(BIN_DIR)/,$(basename $(notdir $(SRC_PERL))))
 # make sure our make test works
 .PHONY : test
 
-default: init build-libs build-docs scriptbin
+default: build-libs build-docs scriptbin
 
 # fake deploy-cfg target for when this is run outside the dev_container
 deploy-cfg:
@@ -52,17 +52,6 @@ include $(TOP_DIR)/tools/Makefile.common.rules
 else
 	$(warning Warning! Running outside the dev_container - scripts will not be deployed or tested.)
 endif
-
-init:
-	git submodule init
-	git submodule update
-	mkdir -p bin
-	mkdir -p classes
-	echo "export PATH=$(DEPLOY_RUNTIME)/bin" > bin/compile_typespec
-	echo "export PERL5LIB=$(DIR)/typecomp/lib" >> bin/compile_typespec
-	echo "perl $(DIR)/typecomp/scripts/compile_typespec.pl \"\$$@\"" >> bin/compile_typespec 
-	echo $(DIR) > classes/kidlinit
-	chmod a+x bin/compile_typespec
 
 build-libs:
 	@#TODO at some point make dependent on compile - checked in for now.
