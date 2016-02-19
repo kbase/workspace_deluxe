@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import us.kbase.common.test.TestException;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -168,7 +169,7 @@ public class IdProcessingTest {
 				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
 		
 		// create a validator that uses the type def db
-		validator = new TypedObjectValidator(db);
+		validator = new TypedObjectValidator(new LocalTypeProvider(db));
 	
 		
 		System.out.println("loading db with types");

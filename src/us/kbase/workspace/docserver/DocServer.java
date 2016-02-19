@@ -215,7 +215,8 @@ public class DocServer extends HttpServlet {
 	}
 	
 	/**
-	 * Get the jetty test server port. Returns null if the server is not running or starting up.
+	 * Get the jetty test server port. Returns null if the server is not
+	 * running or starting up.
 	 * @return the port
 	 */
 	public Integer getServerPort() {

@@ -25,6 +25,7 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.io.FileUtils;
 
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -66,7 +67,7 @@ public class ProfileBasicValidation {
 		
 		
 		// create a validator that uses the type def db
-		validator = new TypedObjectValidator(db);
+		validator = new TypedObjectValidator(new LocalTypeProvider(db));
 	
 		
 		String username = "wstester1";

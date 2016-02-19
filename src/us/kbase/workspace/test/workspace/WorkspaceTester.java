@@ -32,6 +32,7 @@ import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -278,7 +279,7 @@ public class WorkspaceTester {
 						DB_TYPE_NAME)),
 				null, kidlpath, "both");
 		TypedObjectValidator val = new TypedObjectValidator(
-				typeDefDB);
+				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, bs, tfm);
 		Workspace work = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),

@@ -26,6 +26,7 @@ import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.JsonDocumentLocation;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -101,7 +102,7 @@ public class TypedObjectValidationReportTest {
 		db.approveModuleRegistrationRequest(USER, module, true);
 		db.registerModule(spec, Arrays.asList(name), USER);
 		db.releaseModule(module, USER, false);
-		validator = new TypedObjectValidator(db);
+		validator = new TypedObjectValidator(new LocalTypeProvider(db));
 		
 	}
 

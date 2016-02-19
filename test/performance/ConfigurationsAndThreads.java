@@ -32,6 +32,7 @@ import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -172,7 +173,7 @@ public class ConfigurationsAndThreads {
 				new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
 					tfm.getTempDir());
 		TypedObjectValidator val = new TypedObjectValidator(
-				typeDefDB);
+				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
 				new GridFSBlobStore(db), tfm);
 		
@@ -402,7 +403,7 @@ public class ConfigurationsAndThreads {
 					new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
 							tfm.getTempDir());
 			TypedObjectValidator val = new TypedObjectValidator(
-					typeDefDB);
+					new LocalTypeProvider(typeDefDB));
 			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
 					new ShockBlobStore(db.getCollection("shock_map"),
 							shockURL, "baduser", "badpwd"),

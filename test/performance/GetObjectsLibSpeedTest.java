@@ -23,6 +23,7 @@ import com.mongodb.DB;
 
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonTokenStream;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -82,7 +83,7 @@ public class GetObjectsLibSpeedTest {
 				GetMongoDB.getDB(mongohost, typeDB)),
 				tfm.getTempDir());
 		TypedObjectValidator val = new TypedObjectValidator(
-				typeDefDB);
+				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
 				new ShockBlobStore(db.getCollection("shock_map"),
 						new URL(shockurl), shockuser, shockpwd),

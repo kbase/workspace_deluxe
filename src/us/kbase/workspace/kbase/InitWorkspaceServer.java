@@ -25,6 +25,7 @@ import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.service.ServerException;
 import us.kbase.handlemngr.HandleMngrClient;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
@@ -220,7 +221,8 @@ public class InitWorkspaceServer {
 			throw new WorkspaceInitException("Couldn't set up the type database: "
 					+ e.getLocalizedMessage(), e);
 		}
-		deps.validator = new TypedObjectValidator(deps.typeDB);
+		deps.validator = new TypedObjectValidator(
+				new LocalTypeProvider(deps.typeDB));
 		deps.mongoWS = new MongoWorkspaceDB(db, bs, tfm);
 		return deps;
 	}

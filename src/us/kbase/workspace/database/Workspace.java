@@ -92,9 +92,9 @@ public class Workspace {
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
 	
+	//TODO split typeDB fns into separate class
 	private final WorkspaceDatabase db;
 	private final TypeDefinitionDB typedb;
-	private final TempFilesManager tfm;
 	private ResourceUsageConfiguration rescfg;
 	private final ReferenceParser parser;
 	private final TypedObjectValidator validator;
@@ -124,7 +124,6 @@ public class Workspace {
 		//TODO check that a few object types exist to make sure the type provider is ok.
 		this.typedb = typeDB;
 		this.validator = validator;
-		tfm = db.getTempFilesManager();
 		rescfg = cfg;
 		this.parser = parser;
 		db.setResourceUsageConfiguration(rescfg);
@@ -143,7 +142,7 @@ public class Workspace {
 	}
 	
 	public TempFilesManager getTempFilesManager() {
-		return tfm;
+		return db.getTempFilesManager();
 	}
 	
 	private void comparePermission(final WorkspaceUser user,

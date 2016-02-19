@@ -33,6 +33,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import us.kbase.common.test.TestException;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -167,7 +168,7 @@ public class BasicValidationTest {
 		
 		
 		// create a validator that uses the type def db
-		validator = new TypedObjectValidator(db);
+		validator = new TypedObjectValidator(new LocalTypeProvider(db));
 	
 		
 		if(VERBOSE) System.out.println("loading db with types");

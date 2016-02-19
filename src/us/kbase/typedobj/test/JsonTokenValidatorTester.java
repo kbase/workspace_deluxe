@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -69,7 +70,8 @@ public class JsonTokenValidatorTester {
 					new IdReferenceHandlerSetFactory(6);
 			IdReferenceHandlerSet<String> han = fac.createHandlers(String.class);
 			han.associateObject("foo");
-			TypedObjectValidationReport report = new TypedObjectValidator(db).validate(new UObject(jp, null), 
+			TypedObjectValidationReport report = new TypedObjectValidator(
+					new LocalTypeProvider(db)).validate(new UObject(jp, null), 
 					new TypeDefId(new TypeDefName(moduleName, typeName)), han);
 			Assert.assertTrue(report.isInstanceValid());
 			System.out.println(buffer + "\t" + f.length() + "\t" + (System.currentTimeMillis() - time) + " ms");

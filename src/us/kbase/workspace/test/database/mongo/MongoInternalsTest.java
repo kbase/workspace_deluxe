@@ -29,6 +29,7 @@ import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -100,7 +101,8 @@ public class MongoInternalsTest {
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
 				new MongoTypeStorage(GetMongoDB.getDB(mongohost, typedb)),
 					null, kidlpath, "both");
-		TypedObjectValidator val = new TypedObjectValidator(typeDefDB);
+		TypedObjectValidator val = new TypedObjectValidator(
+				new LocalTypeProvider(typeDefDB));
 		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
