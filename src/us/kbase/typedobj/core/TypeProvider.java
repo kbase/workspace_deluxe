@@ -4,6 +4,11 @@ import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
+/** Provides type definitions to the TypedObjectValidator.
+ * 
+ * @author gaprice@lbl.gov
+ *
+ */
 public interface TypeProvider {
 
 	/** Translates a potentially unresolved type id (e.g. missing a minor

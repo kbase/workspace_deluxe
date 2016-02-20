@@ -18,8 +18,6 @@ TOP_DIR = $(shell python -c "import os.path as p; print p.abspath('../..')")
 
 TOP_DIR_NAME = $(shell basename $(TOP_DIR))
 
-DIR = $(shell pwd)
-
 ifeq ($(TOP_DIR_NAME), dev_container)
 include $(TOP_DIR)/tools/Makefile.common
 endif
