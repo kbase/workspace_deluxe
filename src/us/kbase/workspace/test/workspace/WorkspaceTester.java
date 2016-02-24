@@ -21,22 +21,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.text.WordUtils;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
+import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.db.MongoTypeStorage;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
+import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -45,20 +50,23 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.SubObjectIdentifier;
-import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.mongo.BlobStore;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -69,7 +77,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
-import com.mongodb.MongoClient;
 
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
@@ -79,7 +86,8 @@ public class WorkspaceTester {
 
 	protected static final ObjectMapper MAPPER = new ObjectMapper();
 	
-	protected static final String LONG_TEXT_PART = "Passersby were amazed by the unusually large amounts of blood. ";
+	protected static final String LONG_TEXT_PART =
+			"Passersby were amazed by the unusually large amounts of blood. ";
 	protected static String LONG_TEXT = "";
 	static {
 		for (int i = 0; i < 17; i++) {
@@ -108,7 +116,12 @@ public class WorkspaceTester {
 				.setLevel(Level.OFF);
 	}
 	
-	protected static final Map<String, String> MT_META = new HashMap<String, String>();
+	protected static final Map<String, String> MT_META =
+			new HashMap<String, String>();
+	
+	public static final String DB_WS_NAME = "WorkspaceBackendTest";
+	public static final String DB_TYPE_NAME = "WorkspaceBackendTest_types";
+			
 	
 	private static MongoController mongo = null;
 	private static ShockController shock = null;
@@ -166,14 +179,21 @@ public class WorkspaceTester {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			shock.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
 		System.out.println("deleting temporary files");
 		tfm.cleanup();
 		JsonTokenStreamOCStat.showStat();
+	}
+	
+	@Before
+	public void clearDB() throws Exception {
+		DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
+				DB_WS_NAME);
+		WorkspaceTestCommon.destroyDB(wsdb);
 	}
 	
 	private static final Map<String, Workspace> configs =
@@ -185,18 +205,25 @@ public class WorkspaceTester {
 			throws Exception {
 		if (mongo == null) {
 			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-					Paths.get(WorkspaceTestCommon.getTempDir()));
+					Paths.get(WorkspaceTestCommon.getTempDir()),
+					WorkspaceTestCommon.useWiredTigerEngine());
 			System.out.println("Using Mongo temp dir " + mongo.getTempDir());
+			System.out.println("Started test mongo instance at localhost:" +
+					mongo.getServerPort());
 		}
 		if (!configs.containsKey(config)) {
+			DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
+					DB_WS_NAME);
+			WorkspaceTestCommon.destroyWSandTypeDBs(wsdb,
+					DB_TYPE_NAME);
 			System.out.println("Starting test suite with parameters:");
 			System.out.println(String.format(
 					"\tConfig: %s, Backend: %s, MaxMemPerCall: %s",
 					config, backend, maxMemoryUsePerCall));
 			if ("shock".equals(backend)) {
-				configs.put(config, setUpShock(maxMemoryUsePerCall));
+				configs.put(config, setUpShock(wsdb, maxMemoryUsePerCall));
 			} else if("mongo".equals(backend)) {
-				configs.put(config, setUpMongo(maxMemoryUsePerCall));
+				configs.put(config, setUpMongo(wsdb, maxMemoryUsePerCall));
 			} else {
 				throw new TestException("Unknown backend: " + config);
 			}
@@ -204,54 +231,55 @@ public class WorkspaceTester {
 		ws = configs.get(config);
 	}
 	
-	private Workspace setUpMongo(Integer maxMemoryUsePerCall) throws Exception {
-		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
-		DB mongo = mongoClient.getDB("WorkspaceBackendTest");
-		WorkspaceTestCommon.initializeGridFSWorkspaceDB(mongo,
-				"WorkspaceBackendTest_types");
-		return setUpWorkspaces("gridFS", "foo", maxMemoryUsePerCall);
+	private Workspace setUpMongo(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
+		return setUpWorkspaces(wsdb, new GridFSBlobStore(wsdb), maxMemoryUsePerCall);
 	}
 	
-	private Workspace setUpShock(Integer maxMemoryUsePerCall) throws Exception {
+	private Workspace setUpShock(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
 		String shockuser = System.getProperty("test.user1");
 		String shockpwd = System.getProperty("test.pwd1");
 		if (shock == null) {
 			shock = new ShockController(
 					WorkspaceTestCommon.getShockExe(),
+					WorkspaceTestCommon.getShockVersion(),
 					Paths.get(WorkspaceTestCommon.getTempDir()),
 					"***---fakeuser---***",
 					"localhost:" + mongo.getServerPort(),
 					"WorkspaceTester_ShockDB",
 					"foo",
 					"foo");
+			System.out.println("Shock controller version: " + shock.getVersion());
+			if (shock.getVersion() == null) {
+				System.out.println(
+						"Unregistered version - Shock may not start correctly");
+			}
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
-		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
-		DB mongo = mongoClient.getDB("WorkspaceBackendTest");
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		WorkspaceTestCommon.initializeShockWorkspaceDB(mongo, shockuser,
-				shockUrl, "WorkspaceBackendTest_types");
-		return setUpWorkspaces("shock", shockpwd, maxMemoryUsePerCall);
+		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"), shockUrl,
+				shockuser, shockpwd);
+		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
 	
 	private Workspace setUpWorkspaces(
-			String type,
-			String shockpwd,
+			DB db,
+			BlobStore bs,
 			Integer maxMemoryUsePerCall)
 					throws Exception {
 		
 		tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
 		tfm.cleanup();
-//		Code to create wsdb without checking against perl typecomp 
-//		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(),
-//				"WorkspaceBackendTest", shockpwd, "foo", "foo", tfm, 0);
-//		code to create wsdb with checking against perl typecomp
 		final String kidlpath = new Util().getKIDLpath();
-		WorkspaceDatabase wsdb = new MongoWorkspaceDB("localhost:" + mongo.getServerPort(), 
-				"WorkspaceBackendTest", shockpwd, "foo", "foo",
-				kidlpath, null, tfm);
-		Workspace work = new Workspace(wsdb,
+		
+		TypedObjectValidator val = new TypedObjectValidator(
+				new TypeDefinitionDB(new MongoTypeStorage(
+						GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
+								DB_TYPE_NAME)),
+						null, kidlpath, "both"));
+		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
+				bs, tfm, val);
+		Workspace work = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
 				new DefaultReferenceParser());
 		if (maxMemoryUsePerCall != null) {
@@ -260,7 +288,6 @@ public class WorkspaceTester {
 			work.setResourceConfig(build.withMaxIncomingDataMemoryUsage(maxMemoryUsePerCall)
 					.withMaxReturnedDataMemoryUsage(maxMemoryUsePerCall).build());
 		}
-		assertTrue("Backend setup failed", work.getBackendType().equals(WordUtils.capitalize(type)));
 		installSpecs(work);
 		return work;
 	}
@@ -371,7 +398,7 @@ public class WorkspaceTester {
 		System.out.println(" ttl mem: " + Runtime.getRuntime().maxMemory());
 	}
 	
-	protected IdReferenceHandlerSetFactory getIdFactory(WorkspaceUser user) {
+	protected IdReferenceHandlerSetFactory getIdFactory() {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		return fac;
 	}
@@ -421,7 +448,7 @@ public class WorkspaceTester {
 		assertThat("ws permissions correct", info.getUserPermission(), is(perm));
 		assertThat("ws global read correct", info.isGloballyReadable(), is(globalread));
 		assertThat("ws lockstate correct", info.getLockState(), is(lockstate));
-		assertThat("ws meta correct", info.getUserMeta(), is(meta));
+		assertThat("ws meta correct", info.getUserMeta().getMetadata(), is(meta));
 	}
 	
 	protected void assertDatesAscending(Date... dates) {
@@ -451,7 +478,7 @@ public class WorkspaceTester {
 	protected void failWSSetMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
 			Map<String, String> meta, Exception e) {
 		try {
-			ws.setWorkspaceMetadata(user, wsi, meta);
+			ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(meta));
 			fail("expected set ws meta to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -468,7 +495,8 @@ public class WorkspaceTester {
 			boolean global, Map<String,String> meta, String description, Exception e)
 			throws Exception {
 		try {
-			ws.createWorkspace(user, name, global, description, meta);
+			ws.createWorkspace(user, name, global, description,
+					new WorkspaceUserMetadata(meta));
 			fail("created workspace w/ bad args");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -480,6 +508,16 @@ public class WorkspaceTester {
 		try {
 			ws.setPermissions(user, wsi, users, perm);
 			fail("set perms when should fail");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+	
+	protected void failGetPermissions(WorkspaceUser user, List<WorkspaceIdentifier> wsis,
+			Exception e) throws Exception {
+		try {
+			ws.getPermissions(user, wsis);
+			fail("get perms when should fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
@@ -500,7 +538,10 @@ public class WorkspaceTester {
 		assertThat("Object workspace name is correct", info.getWorkspaceName(), is(wsname));
 		assertThat("Object chksum is correct", info.getCheckSum(), is(chksum));
 		assertThat("Object size is correct", info.getSize(), is(size));
-		assertThat("Object user meta is correct", info.getUserMetaData(), is(usermeta));
+		Map<String, String> meta = info.getUserMetaData() == null ? null :
+			info.getUserMetaData().getMetadata();
+		assertThat("Object user meta is correct",
+				meta, is(usermeta));
 	}
 	
 	protected void assertDateisRecent(Date orig) {
@@ -522,7 +563,7 @@ public class WorkspaceTester {
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
 			List<WorkspaceSaveObject> wso, Exception exp)
 			throws Exception {
-		failSave(user, wsi, wso, getIdFactory(user), exp);
+		failSave(user, wsi, wso, getIdFactory(), exp);
 	}
 	
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
@@ -560,7 +601,7 @@ public class WorkspaceTester {
 			checkObjInfo(woi.getObjectInfo(), inf.getObjectId(), inf.getObjectName(),
 					inf.getTypeString(), inf.getVersion(), inf.getSavedBy(),
 					inf.getWorkspaceId(), inf.getWorkspaceName(), inf.getCheckSum(),
-					inf.getSize(), inf.getUserMetaData());
+					inf.getSize(), inf.getUserMetaData().getMetadata());
 		}
 		if (ret2.hasNext() || info.hasNext() || dataiter.hasNext() || infd.hasNext()) {
 			fail("mismatched iter counts");
@@ -572,7 +613,7 @@ public class WorkspaceTester {
 		checkObjInfo(wod.getObjectInfo(), info.getObjectId(), info.getObjectName(),
 				info.getTypeString(), info.getVersion(), info.getSavedBy(),
 				info.getWorkspaceId(), info.getWorkspaceName(), info.getCheckSum(),
-				info.getSize(), info.getUserMetaData());
+				info.getSize(), info.getUserMetaData().getMetadata());
 		assertThat("correct data", wod.getData(), is((Object) data));
 		
 	}
@@ -639,11 +680,25 @@ public class WorkspaceTester {
 	
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
 			Map<String, Object> data, TypeDefId type, Provenance prov,
-			Throwable exception) throws Exception{
+			Throwable exception) throws Exception {
+		failSave(user, wsi, null, data, type, prov, exception);
+	}
+	
+	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
+			String objectName, Map<String, Object> data, TypeDefId type,
+			Provenance prov, Throwable exception) throws Exception {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
+		
+		WorkspaceSaveObject wso;
+		if (objectName == null) {
+			wso = new WorkspaceSaveObject(data, type, null, prov, false);
+		} else {
+			wso = new WorkspaceSaveObject(new ObjectIDNoWSNoVer(objectName),
+					data, type, null, prov, false);
+		}
+		
 		try {
-			ws.saveObjects(user, wsi, Arrays.asList(
-					new WorkspaceSaveObject(data, type, null, prov, false)), fac);
+			ws.saveObjects(user, wsi, Arrays.asList(wso), fac);
 			fail("Saved bad object");
 		} catch (Exception e) {
 			if (e instanceof NullPointerException) {
@@ -1105,18 +1160,21 @@ public class WorkspaceTester {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		if (name == null) {
 			return ws.saveObjects(user, wsi, Arrays.asList(
-					new WorkspaceSaveObject(data, type, meta, prov, hide)), fac)
+					new WorkspaceSaveObject(data, type,
+							new WorkspaceUserMetadata(meta), prov, hide)), fac)
 					.get(0);
 		}
 		return ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), data,
-						type, meta, prov, hide)), fac).get(0);
+						type, new WorkspaceUserMetadata(meta), prov, hide)), fac)
+				.get(0);
 	}
 
 	protected void failClone(WorkspaceUser user, WorkspaceIdentifier wsi,
 			String name, Map<String, String> meta, Exception e) {
 		try {
-			ws.cloneWorkspace(user, wsi, name, false, null, meta);
+			ws.cloneWorkspace(user, wsi, name, false, null,
+					new WorkspaceUserMetadata(meta));
 			fail("expected clone to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -1222,16 +1280,31 @@ public class WorkspaceTester {
 		
 	}
 	
+	/* depends on inherent mongo ordering */
 	protected void checkObjectPagination(WorkspaceUser user, WorkspaceIdentifier wsi,
-			int skip, int limit, int minid, int maxid) 
+			int skip, int limit, int minid, int maxid)
 			throws Exception {
-		List<ObjectInformation> res = ws.listObjects(user, Arrays.asList(wsi), null, null, null, 
-				null, null, null, false, false, false, false, false, false, skip, limit);
-		assertThat("correct number of objects returned", res.size(), is(maxid - minid + 1));
+		checkObjectPagination(user, wsi, skip, limit, minid, maxid,
+				new HashSet<Long>());
+	}
+	
+	/* depends on inherent mongo ordering */
+	protected void checkObjectPagination(WorkspaceUser user, WorkspaceIdentifier wsi,
+			int skip, int limit, int minid, int maxid, Set<Long> exlude) 
+			throws Exception {
+		List<ObjectInformation> res = ws.listObjects(
+				new ListObjectsParameters(user, Arrays.asList(wsi))
+				.withSkip(skip).withLimit(limit));
+		assertThat("correct number of objects returned", res.size(),
+				is(maxid - minid + 1 - exlude.size()));
 		for (ObjectInformation oi: res) {
 			if (oi.getObjectId() < minid || oi.getObjectId() > maxid) {
 				fail(String.format("ObjectID out of test bounds: %s min %s max %s",
 						oi.getObjectId(), minid, maxid));
+			}
+			if (exlude.contains(oi.getObjectId())) {
+				fail("Got object ID that should have been exluded: "
+						+ oi.getObjectId());
 			}
 		}
 	}
@@ -1246,32 +1319,28 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected List<ObjectInformation> setUpListObjectsExpected(List<ObjectInformation> expec,
-			ObjectInformation possNull) {
-		return setUpListObjectsExpected(expec, Arrays.asList(possNull));
-	}
-	
-	protected List<ObjectInformation> setUpListObjectsExpected(List<ObjectInformation> expec,
-			List<ObjectInformation> possNull) {
-		List<ObjectInformation> ret = new LinkedList<ObjectInformation>(expec);
-		for (ObjectInformation oi: possNull) {
-			if (oi != null) {
-				ret.add(oi);
-			}
-		}
-		return ret;
-		
-	}
-
 	protected void failListObjects(WorkspaceUser user,
-			List<WorkspaceIdentifier> wsis, TypeDefId type, Map<String, String> meta,
-			boolean showHidden, boolean showDeleted, boolean showAllDeleted,
-			boolean showAllVers, boolean includeMetaData,
+			List<WorkspaceIdentifier> wsis, Map<String, String> meta,
 			Exception e) {
 		try {
-			ws.listObjects(user, wsis, type, null, null, meta, null, null, showHidden, showDeleted, showAllDeleted,
-					showAllVers, includeMetaData, false, -1, -1);
+			ws.listObjects(new ListObjectsParameters(user, wsis)
+					.withMetadata(new WorkspaceUserMetadata(meta)));
 			fail("listed obj when should fail");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+	
+	protected void failGetNamesByPrefix(
+			WorkspaceUser user,
+			List<WorkspaceIdentifier> wsis,
+			String prefix,
+			boolean includeHidden,
+			int limit,
+			Exception e)
+			throws Exception {
+		try {
+			ws.getNamesByPrefix(user, wsis, prefix, includeHidden, limit);
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}

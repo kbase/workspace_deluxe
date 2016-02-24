@@ -6,12 +6,6 @@ public class Fields {
 
 	public static final String MONGO_ID = "_id";
 
-	// settings fields
-	public static final String SET_TYPE_DB = "type_db";
-	public static final String SET_BACKEND = "backend";
-	public static final String SET_SHOCK_USER = "shock_user";
-	public static final String SET_SHOCK_LOC = "shock_location";
-
 	// workspace counter fields
 	public static final String CNT_ID = "id";
 	public static final String CNT_ID_VAL = "wscounter";

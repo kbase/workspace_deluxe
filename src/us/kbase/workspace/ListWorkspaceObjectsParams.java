@@ -29,7 +29,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         access. Overrides the client provided authorization credentials if
  *         they exist.
  *         
- * @deprecated Workspaces.ListWorkspaceInfoParams
+ * @deprecated Workspace.ListObjectsParams
  * </pre>
  * 
  */

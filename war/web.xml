@@ -1,11 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app>
+    <listener>
+        <listener-class>us.kbase.workspace.kbase.AppEventListener</listener-class>
+    </listener>
     <servlet>
-    <servlet-name>RootServlet</servlet-name>
-    <servlet-class>us.kbase.workspace.WorkspaceServer</servlet-class>
+        <servlet-name>RootServlet</servlet-name>
+        <servlet-class>us.kbase.workspace.WorkspaceServer</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>DocServlet</servlet-name>
+        <servlet-class>us.kbase.workspace.docserver.DocServer</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>RootServlet</servlet-name>
         <url-pattern>/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>DocServlet</servlet-name>
+        <url-pattern>/docs/*</url-pattern>
     </servlet-mapping>
 </web-app>

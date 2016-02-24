@@ -182,7 +182,6 @@ public final class TypedObjectValidator {
 				JsonTokenValidationSchema.parseJsonSchema(schemaText);
 		
 		// these must be arrays to get the inner class def override to work
-		final JsonNode [] wsSubsetSelection = new JsonNode[] {null}; // was renamed from searchDataWrap
 		final JsonNode [] metadataSelection = new JsonNode[] {null};
 		try {
 			if (!schema.getOriginalType().equals("kidl-structure"))
@@ -245,11 +244,6 @@ public final class TypedObjectValidator {
 //					}
 
 					@Override
-					public void addSearchableWsSubsetMessage(JsonNode selection) {
-						wsSubsetSelection[0] = selection;
-					}
-
-					@Override
 					public void addMetadataWsMessage(JsonNode selection) {
 						metadataSelection[0] = selection;
 					}
@@ -278,7 +272,6 @@ public final class TypedObjectValidator {
 									obj,
 									absoluteTypeDefId,
 									errors, 
-									wsSubsetSelection[0], 
 									metadataSelection[0],
 									schema,
 									handlers);

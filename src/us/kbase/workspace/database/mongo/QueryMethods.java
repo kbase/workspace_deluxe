@@ -10,9 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
-import org.jongo.Jongo;
-
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
@@ -30,29 +27,72 @@ import com.mongodb.MongoException;
 
 public class QueryMethods {
 	
+	//TODO unit tests
+	//TODO javadocs
+	
 	private final DB wsmongo;
-	private final Jongo wsjongo;
 	private final AllUsers allUsers;
 	private final String workspaceCollection;
-	private final String pointerCollection;
+	private final String objectCollection;
 	private final String versionCollection;
 	private final String workspaceACLCollection;
 	
-	
-	QueryMethods(final DB wsmongo, final AllUsers allUsers,
-			final String workspaceCollection, final String pointerCollection,
+	QueryMethods(
+			final DB wsmongo,
+			final AllUsers allUsers,
+			final String workspaceCollection,
+			final String objectCollection,
 			final String versionCollection,
 			final String workspaceACLCollection) {
+		if (wsmongo == null ||
+				allUsers == null ||
+				workspaceCollection == null ||
+				objectCollection == null ||
+				versionCollection == null ||
+				workspaceACLCollection == null) {
+			throw new NullPointerException("No arguments may be null");
+		}
+		if (workspaceCollection.isEmpty() ||
+				objectCollection.isEmpty() ||
+				versionCollection.isEmpty() ||
+				workspaceACLCollection.isEmpty()) {
+			throw new IllegalArgumentException(
+					"No collection names may be empty strings");
+		}
+				
 		this.wsmongo = wsmongo;
-		wsjongo = new Jongo(wsmongo);
 		this.allUsers = allUsers;
 		this.workspaceCollection = workspaceCollection;
-		this.pointerCollection = pointerCollection;
+		this.objectCollection = objectCollection;
 		this.versionCollection = versionCollection;
 		this.workspaceACLCollection = workspaceACLCollection;
 	}
 	
 	
+	DB getDatabase() {
+		return wsmongo;
+	}
+
+	String getWorkspaceCollection() {
+		return workspaceCollection;
+	}
+
+
+	String getObjectCollection() {
+		return objectCollection;
+	}
+
+
+	String getVersionCollection() {
+		return versionCollection;
+	}
+
+
+	String getWorkspaceACLCollection() {
+		return workspaceACLCollection;
+	}
+
+
 	Map<String, Object> queryWorkspace(final ResolvedMongoWSID rwsi,
 			final Set<String> fields) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
@@ -71,7 +111,7 @@ public class QueryMethods {
 			ids.put(r.getID(), r);
 		}
 		final Map<Long, Map<String, Object>> idres =
-				queryWorkspacesByID(ids.keySet(), fields);
+				queryWorkspacesByID(ids.keySet(), fields, false);
 		final Map<ResolvedMongoWSID, Map<String, Object>> ret =
 				new HashMap<ResolvedMongoWSID, Map<String,Object>>();
 		for (final Long id: ids.keySet()) {
@@ -144,16 +184,21 @@ public class QueryMethods {
 	}
 	
 	private Map<Long, Map<String, Object>> queryWorkspacesByID(
-			final Set<Long> wsids, final Set<String> fields)
+			final Set<Long> wsids,
+			final Set<String> fields,
+			final boolean excludeDeletedWorkspaces)
 			throws WorkspaceCommunicationException {
 		if (wsids.isEmpty()) {
 			return new HashMap<Long, Map<String, Object>>();
 		}
 		fields.add(Fields.WS_ID);
+		final DBObject q = new BasicDBObject(Fields.WS_ID,
+				new BasicDBObject("$in", wsids));
+		if (excludeDeletedWorkspaces) {
+			q.put(Fields.WS_DEL, false);
+		}
 		final List<Map<String, Object>> queryres =
-				queryCollection(workspaceCollection, String.format(
-				"{%s: {$in: [%s]}}", Fields.WS_ID,
-				StringUtils.join(wsids, ", ")), fields);
+				queryCollection(workspaceCollection, q, fields);
 		final Map<Long, Map<String, Object>> result =
 				new HashMap<Long, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
@@ -224,7 +269,7 @@ public class QueryMethods {
 		fields.add(Fields.OBJ_NAME);
 		fields.add(Fields.OBJ_WS_ID);
 		final List<Map<String, Object>> queryres = queryCollection(
-				pointerCollection, new BasicDBObject("$or", orquery), fields);
+				objectCollection, new BasicDBObject("$or", orquery), fields);
 
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ret =
 				new HashMap<ObjectIDResolvedWSNoVer, Map<String, Object>>();
@@ -361,42 +406,16 @@ public class QueryMethods {
 	}
 	
 	List<Map<String, Object>> queryCollection(final String collection,
-			final String query, final Set<String> fields) throws
-			WorkspaceCommunicationException {
-		final DBObject projection = new BasicDBObject();
-		for (final String field: fields) {
-			projection.put(field, 1);
-		}
-		final List<Map<String, Object>> result =
-				new ArrayList<Map<String,Object>>();
-		try {
-			@SuppressWarnings({ "rawtypes" })
-			final Iterable<Map> res = wsjongo.getCollection(collection)
-					.find(query).projection(projection.toString())
-					.as(Map.class);
-			for (@SuppressWarnings("rawtypes") Map m: res) {
-				@SuppressWarnings("unchecked")
-				final Map<String, Object> castmap = (Map<String, Object>) m; 
-				result.add(castmap);
-			}
-		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
-		}
-		return result;
+			final DBObject query, final Set<String> fields)
+			throws WorkspaceCommunicationException {
+		return queryCollection(collection, query, fields, -1);
 	}
 	
 	List<Map<String, Object>> queryCollection(final String collection,
-			final DBObject query, final Set<String> fields) throws
-			WorkspaceCommunicationException {
-		return queryCollection(collection, query, fields, -1, -1);
-	}
-	
-	List<Map<String, Object>> queryCollection(final String collection,
-			final DBObject query, final Set<String> fields, final int skip,
-			final int limit)
+			final DBObject query, final Set<String> fields, final int limit)
 			throws WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
+		projection.put(Fields.MONGO_ID, 0);
 		for (final String field: fields) {
 			projection.put(field, 1);
 		}
@@ -405,9 +424,6 @@ public class QueryMethods {
 		try {
 			final DBCursor im = wsmongo.getCollection(collection)
 					.find(query, projection);
-			if (skip > -1) {
-				im.skip(skip);
-			}
 			if (limit > 0) {
 				im.limit(limit);
 			}
@@ -422,7 +438,7 @@ public class QueryMethods {
 	}
 	
 	//since LazyBsonObject.toMap() is not supported
-	private Map<String, Object> dbObjectToMap(final DBObject o) {
+	static Map<String, Object> dbObjectToMap(final DBObject o) {
 		final Map<String, Object> m = new HashMap<String, Object>();
 		for (final String name: o.keySet()) {
 			m.put(name, o.get(name));
@@ -447,13 +463,13 @@ public class QueryMethods {
 	Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
 			final Set<ResolvedMongoWSID> rwsis, final Set<User> users) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return queryPermissions(rwsis, users, Permission.NONE);
+		return queryPermissions(rwsis, users, Permission.NONE, false);
 	}
 	
 	Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
 			final Set<User> users, final Permission minPerm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return queryPermissions(null, users, minPerm);
+		return queryPermissions(null, users, minPerm, false);
 	}
 	
 	private final static HashSet<String> PROJ_WS_ID_NAME_LOCK_DEL = 
@@ -461,9 +477,12 @@ public class QueryMethods {
 					Fields.WS_LOCKED, Fields.WS_DEL));
 	
 	Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
-			final Set<ResolvedMongoWSID> rwsis, final Set<User> users,
-			final Permission minPerm) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+			final Set<ResolvedMongoWSID> rwsis,
+			final Set<User> users,
+			final Permission minPerm,
+			final boolean excludeDeletedWorkspaces)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
 		final DBObject query = new BasicDBObject();
 		final Map<Long, ResolvedMongoWSID> idToWS =
 				new HashMap<Long, ResolvedMongoWSID>();
@@ -524,7 +543,8 @@ public class QueryMethods {
 		}
 		if (!noWS.isEmpty()) {
 			final Map<Long, Map<String, Object>> ws =
-					queryWorkspacesByID(noWS.keySet(), PROJ_WS_ID_NAME_LOCK_DEL);
+					queryWorkspacesByID(noWS.keySet(), PROJ_WS_ID_NAME_LOCK_DEL,
+							excludeDeletedWorkspaces);
 			for (final Long id: ws.keySet()) {
 				final ResolvedMongoWSID wsid = new ResolvedMongoWSID(
 						(String) ws.get(id).get(Fields.WS_NAME),

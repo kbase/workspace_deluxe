@@ -207,19 +207,25 @@ public class ScriptTestRunner {
 							.resolve(TMP_FILE_SUBDIR).toString();
 		
 		MONGO = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(tempDir));
+				Paths.get(tempDir), WorkspaceTestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 
 		SHOCK = new ShockController(
 				WorkspaceTestCommon.getShockExe(),
+				WorkspaceTestCommon.getShockVersion(),
 				Paths.get(tempDir),
 				u3,
 				mongohost,
 				"JSONRPCLayerHandleTest_ShockDB",
 				"foo",
 				"foo");
+		System.out.println("Shock controller version: " + SHOCK.getVersion());
+		if (SHOCK.getVersion() == null) {
+			System.out.println(
+					"Unregistered version - Shock may not start correctly");
+		}
 		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
 
 		MYSQL = new MySQLController(
@@ -332,22 +338,22 @@ public class ScriptTestRunner {
 		}
 		if (HANDLE != null) {
 			System.out.print("Destroying handle service... ");
-			HANDLE.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			HANDLE.destroy(WorkspaceTestCommon.deleteTempFiles());
 			System.out.println("Done");
 		}
 		if (SHOCK != null) {
 			System.out.print("Destroying shock service... ");
-			SHOCK.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			SHOCK.destroy(WorkspaceTestCommon.deleteTempFiles());
 			System.out.println("Done");
 		}
 		if (MONGO != null) {
 			System.out.print("Destroying mongo test service... ");
-			MONGO.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			MONGO.destroy(WorkspaceTestCommon.deleteTempFiles());
 			System.out.println("Done");
 		}
 		if (MYSQL != null) {
 			System.out.print("Destroying mysql test service... ");
-			MYSQL.destroy(WorkspaceTestCommon.getDeleteTempFiles());
+			MYSQL.destroy(WorkspaceTestCommon.deleteTempFiles());
 			System.out.println("Done");
 		}
 	}

@@ -1693,6 +1693,7 @@ public class TypeDefinitionDB {
 	
 	public void requestModuleRegistration(String moduleName, String ownerUserId)
 			throws TypeStorageException {
+		TypeDefName.checkTypeName(moduleName, "Module name");
 		requestReadLockNM(moduleName);
 		try {
 			storage.addNewModuleRegistrationRequest(moduleName, ownerUserId);
@@ -1993,13 +1994,34 @@ public class TypeDefinitionDB {
 			NoSuchPrivilegeException, NoSuchModuleException {
 		List<String> includedModules = new ArrayList<String>();
 		specDocument = correctSpecIncludes(specDocument, includedModules);
-		String moduleName = null;
 		long transactionStartTime = -1;
 		Map<String, Map<String, String>> moduleToTypeToSchema = new HashMap<String, Map<String, String>>();
 		Map<String, ModuleInfo> moduleToInfo = new HashMap<String, ModuleInfo>();
 		KbModule module = compileSpecFile(specDocument, includedModules, moduleToTypeToSchema, moduleToInfo, 
 				moduleVersionRestrictions);
-		moduleName = module.getModuleName();
+		final String moduleName = module.getModuleName();
+		/* There's not really any way to test the next 11 lines.
+		 * Module name requests check for bad module names.
+		 * The Perl TC chokes on type names > 250 chars so any test with
+		 * type names > than that fails (if this is fixed or we stop running
+		 * 'both' type tests then add the test back).
+		 * The TCs should catch missing names or bad characters and throw an
+		 * exception before this point.
+		 * That being said, it's not bad to have a safeguard here. 
+		 */
+		//TODO TYPEDB add tests for this after removing 'both' type tests 
+		TypeDefName.checkTypeName(moduleName, "Module name");
+		for (final KbModuleComp comp: module.getModuleComponents()){
+			if (comp instanceof KbTypedef) {
+				TypeDefName.checkTypeName(((KbTypedef) comp).getName(),
+						"Type name");
+			}
+			if (comp instanceof KbFuncdef) {
+				TypeDefName.checkTypeName(((KbFuncdef) comp).getName(),
+						"Function name");
+			}
+		}
+		
 		checkModuleRegistered(moduleName);
 		checkModuleSupported(moduleName);
 		checkUserIsOwnerOrAdmin(moduleName, userId, isAdmin);
