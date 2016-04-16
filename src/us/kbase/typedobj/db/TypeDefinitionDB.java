@@ -1984,7 +1984,7 @@ public class TypeDefinitionDB {
 							if (change == Change.noChange) {
 								String prevJsonSchema = storage.getTypeSchemaRecord(moduleName, type.getName(), 
 										info.getTypes().get(type.getName()).getTypeVersion());
-								if (jsonSchemaDocument.equals(prevJsonSchema)) {
+								if (jsonSchemaDocument.trim().equals(prevJsonSchema.trim())) {
 									continue;
 								}
 								change = Change.backwardCompatible;
