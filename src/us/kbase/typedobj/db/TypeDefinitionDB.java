@@ -1891,25 +1891,32 @@ public class TypeDefinitionDB {
 		KbModule module = compileSpecFile(specDocument, includedModules, moduleToTypeToSchema, moduleToInfo, 
 				moduleVersionRestrictions);
 		final String moduleName = module.getModuleName();
-		/* There's not really any way to test the next 11 lines.
+		/* There's not really any way to test most of the next 21 lines.
 		 * Module name requests check for bad module names.
-		 * The Perl TC chokes on type names > 250 chars so any test with
-		 * type names > than that fails (if this is fixed or we stop running
-		 * 'both' type tests then add the test back).
-		 * The TCs should catch missing names or bad characters and throw an
-		 * exception before this point.
-		 * That being said, it's not bad to have a safeguard here. 
+		 * The type compiler should catch missing names or bad characters and
+		 * throw an exception before this point.
+		 * That being said, it's not bad to have a safeguard here, and the
+		 * type name length check can be triggered.
 		 */
-		//TODO NOW TYPEDB add tests for this after removing 'both' type tests 
 		TypeDefName.checkTypeName(moduleName, "Module name");
 		for (final KbModuleComp comp: module.getModuleComponents()){
 			if (comp instanceof KbTypedef) {
-				TypeDefName.checkTypeName(((KbTypedef) comp).getName(),
-						"Type name");
+				try {
+					TypeDefName.checkTypeName(((KbTypedef) comp).getName(),
+							"Type name");
+				} catch (IllegalArgumentException iae) {
+					throw new SpecParseException(iae.getLocalizedMessage(),
+							iae);
+				}
 			}
 			if (comp instanceof KbFuncdef) {
-				TypeDefName.checkTypeName(((KbFuncdef) comp).getName(),
-						"Function name");
+				try {
+					TypeDefName.checkTypeName(((KbFuncdef) comp).getName(),
+							"Function name");
+				} catch (IllegalArgumentException iae) {
+					throw new SpecParseException(iae.getLocalizedMessage(),
+							iae);
+				}
 			}
 		}
 		
