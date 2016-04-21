@@ -26,6 +26,7 @@ import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.JsonDocumentLocation;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -37,7 +38,6 @@ import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
-import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class TypedObjectValidationReportTest {
@@ -66,9 +66,7 @@ public class TypedObjectValidationReportTest {
 		final Path storagedir = tempdir.resolve("typestorage");
 		Files.createDirectories(storagedir);
 		db = new TypeDefinitionDB(
-				new FileTypeStorage(storagedir.toFile().getAbsolutePath()),
-				tempdir.toFile(), new Util().getKIDLpath(),
-				WorkspaceTestCommon.getKidlSource());
+				new FileTypeStorage(storagedir.toFile().getAbsolutePath()));
 		addSpecs();
 	}
 	
@@ -101,7 +99,7 @@ public class TypedObjectValidationReportTest {
 		db.approveModuleRegistrationRequest(USER, module, true);
 		db.registerModule(spec, Arrays.asList(name), USER);
 		db.releaseModule(module, USER, false);
-		validator = new TypedObjectValidator(db);
+		validator = new TypedObjectValidator(new LocalTypeProvider(db));
 		
 	}
 

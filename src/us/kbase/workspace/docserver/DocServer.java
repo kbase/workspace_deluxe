@@ -66,7 +66,7 @@ public class DocServer extends HttpServlet {
 	// http://www.eclipse.org/jetty/documentation/current/custom-error-pages.html
 	
 	/**
-	 * Creates a new document server for the Workspace service
+	 * Creates a new document server
 	 */
 	public DocServer() {
 		super();
@@ -136,6 +136,8 @@ public class DocServer extends HttpServlet {
 		if (path.endsWith("/")) { // e.g. /docs/
 			path = path + "index.html";
 		}
+		// the path is already normalized by the framework, so no need to
+		// normalize here
 		path = docsLoc + path;
 		final InputStream is = getClass().getResourceAsStream(path);
 		if (is == null) {
@@ -215,7 +217,8 @@ public class DocServer extends HttpServlet {
 	}
 	
 	/**
-	 * Get the jetty test server port. Returns null if the server is not running or starting up.
+	 * Get the jetty test server port. Returns null if the server is not
+	 * running or starting up.
 	 * @return the port
 	 */
 	public Integer getServerPort() {

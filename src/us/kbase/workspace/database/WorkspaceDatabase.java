@@ -7,7 +7,6 @@ import java.util.Set;
 
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -21,8 +20,7 @@ public interface WorkspaceDatabase {
 	
 	public String getBackendType();
 	
-	public TypedObjectValidator getTypeValidator();
-	
+	//TODO return workspace info insted of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
 	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	

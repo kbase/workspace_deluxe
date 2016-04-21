@@ -29,6 +29,7 @@ import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -48,6 +49,7 @@ import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
@@ -60,7 +62,6 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
 import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
 import us.kbase.workspace.database.mongo.TypeData;
-import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 import com.mongodb.DB;
@@ -71,6 +72,7 @@ public class MongoInternalsTest {
 	private static Jongo jdb;
 	private static MongoWorkspaceDB mwdb;
 	private static Workspace ws;
+	private static Types types;
 	private static MongoController mongo;
 	
 	private static final IdReferenceHandlerSetFactory fac =
@@ -93,30 +95,30 @@ public class MongoInternalsTest {
 		String typedb = "MongoInternalsTest_types";
 		WorkspaceTestCommon.destroyWSandTypeDBs(db, typedb);
 		jdb = new Jongo(db);
-		final String kidlpath = new Util().getKIDLpath();
 		
 		TempFilesManager tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
+		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
+				new MongoTypeStorage(GetMongoDB.getDB(mongohost, typedb)));
 		TypedObjectValidator val = new TypedObjectValidator(
-				new TypeDefinitionDB(new MongoTypeStorage(
-						GetMongoDB.getDB(mongohost, typedb)),
-						null, kidlpath, "both"));
-		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm, val);
+				new LocalTypeProvider(typeDefDB));
+		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 		ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
-				new DefaultReferenceParser());
+				new DefaultReferenceParser(), val);
 		assertTrue("GridFS backend setup failed",
 				ws.getBackendType().equals("GridFS"));
 
 		//make a general spec that tests that don't worry about typechecking can use
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		//simple spec
-		ws.requestModuleRegistration(foo, "SomeModule");
-		ws.resolveModuleRegistration("SomeModule", true);
-		ws.compileNewTypeSpec(foo, 
+		types = new Types(typeDefDB);
+		types.requestModuleRegistration(foo, "SomeModule");
+		types.resolveModuleRegistration("SomeModule", true);
+		types.compileNewTypeSpec(foo, 
 				"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
 				Arrays.asList("AType"), null, null, false, null);
-		ws.releaseTypes(foo, "SomeModule");
+		types.releaseTypes(foo, "SomeModule");
 	}
 	
 	@AfterClass
@@ -425,9 +427,9 @@ public class MongoInternalsTest {
 		
 		String mod = "RefCount";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, refcntspec, Arrays.asList("RefType"), null, null, false, null);
+		types.requestModuleRegistration(userfoo, mod);
+		types.resolveModuleRegistration(mod, true);
+		types.compileNewTypeSpec(userfoo, refcntspec, Arrays.asList("RefType"), null, null, false, null);
 		TypeDefId refcounttype = new TypeDefId(new TypeDefName(mod, "RefType"), 0, 1);
 		
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("refcount");

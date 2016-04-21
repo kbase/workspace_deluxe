@@ -25,12 +25,14 @@ import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.service.ServerException;
 import us.kbase.handlemngr.HandleMngrClient;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -76,7 +78,7 @@ public class InitWorkspaceServer {
 		private Workspace ws;
 		private WorkspaceServerMethods wsmeth;
 		private WorkspaceAdministration wsadmin;
-		private TempFilesManager tfm;
+		private Types types;
 		private URL handleManagerUrl;
 		private RefreshingToken handleMgrToken;
 		
@@ -84,14 +86,14 @@ public class InitWorkspaceServer {
 				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
-				final TempFilesManager tfm,
+				final Types types,
 				final URL handleManagerUrl,
 				final RefreshingToken handleMgrToken) {
 			super();
 			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
-			this.tfm = tfm;
+			this.types = types;
 			this.handleManagerUrl = handleManagerUrl;
 			this.handleMgrToken = handleMgrToken;
 		}
@@ -107,9 +109,9 @@ public class InitWorkspaceServer {
 		public WorkspaceAdministration getWsAdmin() {
 			return wsadmin;
 		}
-
-		public TempFilesManager getTempFilesManager() {
-			return tfm;
+		
+		public Types getTypes() {
+			return types;
 		}
 
 		public URL getHandleManagerUrl() {
@@ -155,11 +157,12 @@ public class InitWorkspaceServer {
 				cfg.getParamReport());
 		rep.reportInfo("Temporary file location: " + tfm.getTempDir());
 
-		final WorkspaceDatabase db;
+		final WorkspaceDependencies wsdeps;
 		try {
-			db = getDB(cfg.getHost(), cfg.getDBname(), cfg.getBackendSecret(),
-				cfg.getMongoUser(), cfg.getMongoPassword(), tfm,
-				cfg.getMongoReconnectAttempts());
+			wsdeps = getDependencies(cfg.getHost(), cfg.getDBname(),
+					cfg.getBackendSecret(), cfg.getMongoUser(),
+					cfg.getMongoPassword(), tfm,
+					cfg.getMongoReconnectAttempts());
 		} catch (WorkspaceInitException wie) {
 			rep.reportFail(wie.getLocalizedMessage());
 			rep.reportFail(
@@ -167,15 +170,16 @@ public class InitWorkspaceServer {
 			return null;
 		}
 		rep.reportInfo(String.format("Initialized %s backend",
-				db.getBackendType()));
-		Workspace ws = new Workspace(db,
+				wsdeps.mongoWS.getBackendType()));
+		Workspace ws = new Workspace(wsdeps.mongoWS,
 				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser());
+				new KBaseReferenceParser(), wsdeps.validator);
+		Types types = new Types(wsdeps.typeDB);
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
-				ws, cfg.getHandleServiceURL(),
+				ws, types, cfg.getHandleServiceURL(),
 				maxUniqueIdCountPerCall, auth);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				ws, wsmeth, cfg.getWorkspaceAdmin());
+				ws, wsmeth, types, cfg.getWorkspaceAdmin());
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),
@@ -183,14 +187,23 @@ public class InitWorkspaceServer {
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
 		return new WorkspaceInitResults(
-				ws, wsmeth, wsadmin, tfm, cfg.getHandleManagerURL(),
+				ws, wsmeth, wsadmin, types, cfg.getHandleManagerURL(),
 				handleMgrToken);
 	}
 	
-	private static WorkspaceDatabase getDB(final String host, final String dbs,
-			final String secret, final String user, final String pwd,
-			final TempFilesManager tfm, final int mongoReconnectRetry)
+	private static class WorkspaceDependencies {
+		public TypeDefinitionDB typeDB;
+		public TypedObjectValidator validator;
+		public WorkspaceDatabase mongoWS;
+	}
+	
+	private static WorkspaceDependencies getDependencies(final String host,
+			final String dbs, final String secret, final String user,
+			final String pwd, final TempFilesManager tfm,
+			final int mongoReconnectRetry)
 			throws WorkspaceInitException {
+		
+		final WorkspaceDependencies deps = new WorkspaceDependencies();
 		
 		final DB db = getMongoDBInstance(host, dbs, user, pwd,
 				mongoReconnectRetry);
@@ -204,16 +217,16 @@ public class InitWorkspaceServer {
 		final DB typeDB = getMongoDBInstance(host, settings.getTypeDatabase(),
 				user, pwd, mongoReconnectRetry);
 		
-		final TypedObjectValidator typeValidator;
 		try {
-			typeValidator = new TypedObjectValidator(new TypeDefinitionDB(
-					new MongoTypeStorage(typeDB)));
+			deps.typeDB = new TypeDefinitionDB(new MongoTypeStorage(typeDB));
 		} catch (TypeStorageException e) {
 			throw new WorkspaceInitException("Couldn't set up the type database: "
 					+ e.getLocalizedMessage(), e);
 		}
-		
-		return new MongoWorkspaceDB(db, bs, tfm, typeValidator);
+		deps.validator = new TypedObjectValidator(
+				new LocalTypeProvider(deps.typeDB));
+		deps.mongoWS = new MongoWorkspaceDB(db, bs, tfm);
+		return deps;
 	}
 	
 	private static BlobStore setupBlobStore(

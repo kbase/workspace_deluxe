@@ -7815,8 +7815,8 @@ Information about a workspace.
         ws_name workspace - name of the workspace.
         username owner - name of the user who owns (e.g. created) this workspace.
         timestamp moddate - date when the workspace was last modified.
-        int objects - the approximate number of objects currently stored in
-                the workspace.
+        int objects - the number of objects created in this workspace,
+                including objects that have been deleted.
         permission user_permission - permissions for the authenticated user of
                 this workspace.
         permission globalread - whether this workspace is globally readable.
