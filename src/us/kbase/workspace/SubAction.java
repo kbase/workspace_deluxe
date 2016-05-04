@@ -31,8 +31,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         
  *         string name - the name of the SA.
  *         string ver - the version of SA.
- *         string url - a url pointing to the SA's codebase.
+ *         string code_url - a url pointing to the SA's codebase.
  *         string commit - a version control commit ID for the SA.
+ *         string endpoint_url - a url pointing to the access point for the SA -
+ *                 a server url, for instance.
  * </pre>
  * 
  */
@@ -41,8 +43,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({
     "name",
     "ver",
-    "url",
-    "commit"
+    "code_url",
+    "commit",
+    "endpoint_url"
 })
 public class SubAction {
 
@@ -50,10 +53,12 @@ public class SubAction {
     private String name;
     @JsonProperty("ver")
     private String ver;
-    @JsonProperty("url")
-    private String url;
+    @JsonProperty("code_url")
+    private String codeUrl;
     @JsonProperty("commit")
     private String commit;
+    @JsonProperty("endpoint_url")
+    private String endpointUrl;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("name")
@@ -86,18 +91,18 @@ public class SubAction {
         return this;
     }
 
-    @JsonProperty("url")
-    public String getUrl() {
-        return url;
+    @JsonProperty("code_url")
+    public String getCodeUrl() {
+        return codeUrl;
     }
 
-    @JsonProperty("url")
-    public void setUrl(String url) {
-        this.url = url;
+    @JsonProperty("code_url")
+    public void setCodeUrl(String codeUrl) {
+        this.codeUrl = codeUrl;
     }
 
-    public SubAction withUrl(String url) {
-        this.url = url;
+    public SubAction withCodeUrl(String codeUrl) {
+        this.codeUrl = codeUrl;
         return this;
     }
 
@@ -116,6 +121,21 @@ public class SubAction {
         return this;
     }
 
+    @JsonProperty("endpoint_url")
+    public String getEndpointUrl() {
+        return endpointUrl;
+    }
+
+    @JsonProperty("endpoint_url")
+    public void setEndpointUrl(String endpointUrl) {
+        this.endpointUrl = endpointUrl;
+    }
+
+    public SubAction withEndpointUrl(String endpointUrl) {
+        this.endpointUrl = endpointUrl;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -128,7 +148,7 @@ public class SubAction {
 
     @Override
     public String toString() {
-        return ((((((((((("SubAction"+" [name=")+ name)+", ver=")+ ver)+", url=")+ url)+", commit=")+ commit)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((("SubAction"+" [name=")+ name)+", ver=")+ ver)+", codeUrl=")+ codeUrl)+", commit=")+ commit)+", endpointUrl=")+ endpointUrl)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

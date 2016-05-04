@@ -354,14 +354,17 @@ module Workspace {
 		
 		string name - the name of the SA.
 		string ver - the version of SA.
-		string url - a url pointing to the SA's codebase.
+		string code_url - a url pointing to the SA's codebase.
 		string commit - a version control commit ID for the SA.
+		string endpoint_url - a url pointing to the access point for the SA -
+			a server url, for instance.
 	*/
 	typedef structure {
 		string name;
 		string ver;
-		string url;
+		string code_url;
 		string commit;
+		string endpoint_url;
 	} SubAction;
 	
 	/* A provenance action.

@@ -1679,8 +1679,9 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 SubAction is a reference to a hash where the following keys are defined:
 	name has a value which is a string
 	ver has a value which is a string
-	url has a value which is a string
+	code_url has a value which is a string
 	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -1753,8 +1754,9 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 SubAction is a reference to a hash where the following keys are defined:
 	name has a value which is a string
 	ver has a value which is a string
-	url has a value which is a string
+	code_url has a value which is a string
 	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -2052,8 +2054,9 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 SubAction is a reference to a hash where the following keys are defined:
 	name has a value which is a string
 	ver has a value which is a string
-	url has a value which is a string
+	code_url has a value which is a string
 	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2135,8 +2138,9 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 SubAction is a reference to a hash where the following keys are defined:
 	name has a value which is a string
 	ver has a value which is a string
-	url has a value which is a string
+	code_url has a value which is a string
 	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2282,8 +2286,9 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 SubAction is a reference to a hash where the following keys are defined:
 	name has a value which is a string
 	ver has a value which is a string
-	url has a value which is a string
+	code_url has a value which is a string
 	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2366,8 +2371,9 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 SubAction is a reference to a hash where the following keys are defined:
 	name has a value which is a string
 	ver has a value which is a string
-	url has a value which is a string
+	code_url has a value which is a string
 	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2518,8 +2524,9 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 SubAction is a reference to a hash where the following keys are defined:
 	name has a value which is a string
 	ver has a value which is a string
-	url has a value which is a string
+	code_url has a value which is a string
 	commit has a value which is a string
+	endpoint_url has a value which is a string
 id_type is a string
 extracted_id is a string
 
@@ -2606,8 +2613,9 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 SubAction is a reference to a hash where the following keys are defined:
 	name has a value which is a string
 	ver has a value which is a string
-	url has a value which is a string
+	code_url has a value which is a string
 	commit has a value which is a string
+	endpoint_url has a value which is a string
 id_type is a string
 extracted_id is a string
 
@@ -3156,8 +3164,9 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 SubAction is a reference to a hash where the following keys are defined:
 	name has a value which is a string
 	ver has a value which is a string
-	url has a value which is a string
+	code_url has a value which is a string
 	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -3241,8 +3250,9 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 SubAction is a reference to a hash where the following keys are defined:
 	name has a value which is a string
 	ver has a value which is a string
-	url has a value which is a string
+	code_url has a value which is a string
 	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -8528,8 +8538,10 @@ Information about a subaction that is invoked by a provenance action.
         
         string name - the name of the SA.
         string ver - the version of SA.
-        string url - a url pointing to the SA's codebase.
+        string code_url - a url pointing to the SA's codebase.
         string commit - a version control commit ID for the SA.
+        string endpoint_url - a url pointing to the access point for the SA -
+                a server url, for instance.
 
 
 =item Definition
@@ -8540,8 +8552,9 @@ Information about a subaction that is invoked by a provenance action.
 a reference to a hash where the following keys are defined:
 name has a value which is a string
 ver has a value which is a string
-url has a value which is a string
+code_url has a value which is a string
 commit has a value which is a string
+endpoint_url has a value which is a string
 
 </pre>
 
@@ -8552,8 +8565,9 @@ commit has a value which is a string
 a reference to a hash where the following keys are defined:
 name has a value which is a string
 ver has a value which is a string
-url has a value which is a string
+code_url has a value which is a string
 commit has a value which is a string
+endpoint_url has a value which is a string
 
 
 =end text
