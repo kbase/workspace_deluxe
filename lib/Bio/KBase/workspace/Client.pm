@@ -148,7 +148,7 @@ Returns the version of the workspace service.
 
 =cut
 
-sub ver
+ sub ver
 {
     my($self, @args) = @_;
 
@@ -181,7 +181,7 @@ sub ver
 				       );
     }
 }
-
+ 
 
 
 =head2 create_workspace
@@ -262,7 +262,7 @@ Creates a new workspace.
 
 =cut
 
-sub create_workspace
+ sub create_workspace
 {
     my($self, @args) = @_;
 
@@ -306,7 +306,7 @@ sub create_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 alter_workspace_metadata
@@ -361,7 +361,7 @@ Change the metadata associated with a workspace.
 
 =cut
 
-sub alter_workspace_metadata
+ sub alter_workspace_metadata
 {
     my($self, @args) = @_;
 
@@ -405,7 +405,7 @@ sub alter_workspace_metadata
 				       );
     }
 }
-
+ 
 
 
 =head2 clone_workspace
@@ -494,7 +494,7 @@ Clones a workspace.
 
 =cut
 
-sub clone_workspace
+ sub clone_workspace
 {
     my($self, @args) = @_;
 
@@ -538,7 +538,7 @@ sub clone_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 lock_workspace
@@ -623,7 +623,7 @@ Lock a workspace, preventing further changes.
 
 =cut
 
-sub lock_workspace
+ sub lock_workspace
 {
     my($self, @args) = @_;
 
@@ -667,7 +667,7 @@ sub lock_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 get_workspacemeta
@@ -740,7 +740,7 @@ Provided for backwards compatibility.
 
 =cut
 
-sub get_workspacemeta
+ sub get_workspacemeta
 {
     my($self, @args) = @_;
 
@@ -784,7 +784,7 @@ sub get_workspacemeta
 				       );
     }
 }
-
+ 
 
 
 =head2 get_workspace_info
@@ -861,7 +861,7 @@ Get information associated with a workspace.
 
 =cut
 
-sub get_workspace_info
+ sub get_workspace_info
 {
     my($self, @args) = @_;
 
@@ -905,7 +905,7 @@ sub get_workspace_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_workspace_description
@@ -952,7 +952,7 @@ Get a workspace's description.
 
 =cut
 
-sub get_workspace_description
+ sub get_workspace_description
 {
     my($self, @args) = @_;
 
@@ -996,7 +996,7 @@ sub get_workspace_description
 				       );
     }
 }
-
+ 
 
 
 =head2 set_permissions
@@ -1049,7 +1049,7 @@ Set permissions for a workspace.
 
 =cut
 
-sub set_permissions
+ sub set_permissions
 {
     my($self, @args) = @_;
 
@@ -1093,7 +1093,7 @@ sub set_permissions
 				       );
     }
 }
-
+ 
 
 
 =head2 set_global_permission
@@ -1142,7 +1142,7 @@ Set the global permission for a workspace.
 
 =cut
 
-sub set_global_permission
+ sub set_global_permission
 {
     my($self, @args) = @_;
 
@@ -1186,7 +1186,7 @@ sub set_global_permission
 				       );
     }
 }
-
+ 
 
 
 =head2 set_workspace_description
@@ -1233,7 +1233,7 @@ Set the description for a workspace.
 
 =cut
 
-sub set_workspace_description
+ sub set_workspace_description
 {
     my($self, @args) = @_;
 
@@ -1277,7 +1277,7 @@ sub set_workspace_description
 				       );
     }
 }
-
+ 
 
 
 =head2 get_permissions_mass
@@ -1336,7 +1336,7 @@ Get permissions for multiple workspaces.
 
 =cut
 
-sub get_permissions_mass
+ sub get_permissions_mass
 {
     my($self, @args) = @_;
 
@@ -1380,7 +1380,7 @@ sub get_permissions_mass
 				       );
     }
 }
-
+ 
 
 
 =head2 get_permissions
@@ -1431,7 +1431,7 @@ Get permissions for a workspace.
 
 =cut
 
-sub get_permissions
+ sub get_permissions
 {
     my($self, @args) = @_;
 
@@ -1475,7 +1475,7 @@ sub get_permissions
 				       );
     }
 }
-
+ 
 
 
 =head2 save_object
@@ -1561,16 +1561,16 @@ obj_id is an int
 =item Description
 
 Saves the input object data and metadata into the selected workspace,
-        returning the object_metadata of the saved object. Provided
-        for backwards compatibility.
-        
+returning the object_metadata of the saved object. Provided
+for backwards compatibility.
+
 @deprecated Workspace.save_objects
 
 =back
 
 =cut
 
-sub save_object
+ sub save_object
 {
     my($self, @args) = @_;
 
@@ -1614,7 +1614,7 @@ sub save_object
 				       );
     }
 }
-
+ 
 
 
 =head2 save_objects
@@ -1766,7 +1766,7 @@ it.
 
 =cut
 
-sub save_objects
+ sub save_objects
 {
     my($self, @args) = @_;
 
@@ -1810,7 +1810,7 @@ sub save_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object
@@ -1907,7 +1907,7 @@ Provided for backwards compatibility.
 
 =cut
 
-sub get_object
+ sub get_object
 {
     my($self, @args) = @_;
 
@@ -1951,7 +1951,7 @@ sub get_object
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object_provenance
@@ -2120,7 +2120,7 @@ Get object provenance from the workspace.
 
 =cut
 
-sub get_object_provenance
+ sub get_object_provenance
 {
     my($self, @args) = @_;
 
@@ -2164,7 +2164,7 @@ sub get_object_provenance
 				       );
     }
 }
-
+ 
 
 
 =head2 get_objects
@@ -2335,7 +2335,7 @@ Get objects from the workspace.
 
 =cut
 
-sub get_objects
+ sub get_objects
 {
     my($self, @args) = @_;
 
@@ -2379,7 +2379,7 @@ sub get_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object_subset
@@ -2570,7 +2570,7 @@ original array.
 
 =cut
 
-sub get_object_subset
+ sub get_object_subset
 {
     my($self, @args) = @_;
 
@@ -2614,7 +2614,7 @@ sub get_object_subset
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object_history
@@ -2710,7 +2710,7 @@ ignored.
 
 =cut
 
-sub get_object_history
+ sub get_object_history
 {
     my($self, @args) = @_;
 
@@ -2754,7 +2754,7 @@ sub get_object_history
 				       );
     }
 }
-
+ 
 
 
 =head2 list_referencing_objects
@@ -2850,7 +2850,7 @@ in the deleted state are not returned.
 
 =cut
 
-sub list_referencing_objects
+ sub list_referencing_objects
 {
     my($self, @args) = @_;
 
@@ -2894,7 +2894,7 @@ sub list_referencing_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 list_referencing_object_counts
@@ -2961,7 +2961,7 @@ inaccessible to the user.
 
 =cut
 
-sub list_referencing_object_counts
+ sub list_referencing_object_counts
 {
     my($self, @args) = @_;
 
@@ -3005,7 +3005,7 @@ sub list_referencing_object_counts
 				       );
     }
 }
-
+ 
 
 
 =head2 get_referenced_objects
@@ -3191,7 +3191,7 @@ Get objects by references from other objects.
 
 =cut
 
-sub get_referenced_objects
+ sub get_referenced_objects
 {
     my($self, @args) = @_;
 
@@ -3235,7 +3235,7 @@ sub get_referenced_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 list_workspaces
@@ -3310,7 +3310,7 @@ list_workspace_info
 
 =cut
 
-sub list_workspaces
+ sub list_workspaces
 {
     my($self, @args) = @_;
 
@@ -3354,7 +3354,7 @@ sub list_workspaces
 				       );
     }
 }
-
+ 
 
 
 =head2 list_workspace_info
@@ -3445,7 +3445,7 @@ List workspaces viewable by the user.
 
 =cut
 
-sub list_workspace_info
+ sub list_workspace_info
 {
     my($self, @args) = @_;
 
@@ -3489,7 +3489,7 @@ sub list_workspace_info
 				       );
     }
 }
-
+ 
 
 
 =head2 list_workspace_objects
@@ -3581,7 +3581,7 @@ specified type (or with any type). Provided for backwards compatibility.
 
 =cut
 
-sub list_workspace_objects
+ sub list_workspace_objects
 {
     my($self, @args) = @_;
 
@@ -3625,7 +3625,7 @@ sub list_workspace_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 list_objects
@@ -3744,7 +3744,7 @@ List objects in one or more workspaces.
 
 =cut
 
-sub list_objects
+ sub list_objects
 {
     my($self, @args) = @_;
 
@@ -3788,7 +3788,7 @@ sub list_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 get_objectmeta
@@ -3879,7 +3879,7 @@ via the instance parameter. Provided for backwards compatibility.
 
 =cut
 
-sub get_objectmeta
+ sub get_objectmeta
 {
     my($self, @args) = @_;
 
@@ -3923,7 +3923,7 @@ sub get_objectmeta
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object_info
@@ -4030,7 +4030,7 @@ in the future.
 
 =cut
 
-sub get_object_info
+ sub get_object_info
 {
     my($self, @args) = @_;
 
@@ -4075,7 +4075,7 @@ sub get_object_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object_info_new
@@ -4180,7 +4180,7 @@ Get information about objects from the workspace.
 
 =cut
 
-sub get_object_info_new
+ sub get_object_info_new
 {
     my($self, @args) = @_;
 
@@ -4224,7 +4224,7 @@ sub get_object_info_new
 				       );
     }
 }
-
+ 
 
 
 =head2 rename_workspace
@@ -4307,7 +4307,7 @@ Rename a workspace.
 
 =cut
 
-sub rename_workspace
+ sub rename_workspace
 {
     my($self, @args) = @_;
 
@@ -4351,7 +4351,7 @@ sub rename_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 rename_object
@@ -4452,7 +4452,7 @@ Rename an object. User meta data is always returned as null.
 
 =cut
 
-sub rename_object
+ sub rename_object
 {
     my($self, @args) = @_;
 
@@ -4496,7 +4496,7 @@ sub rename_object
 				       );
     }
 }
-
+ 
 
 
 =head2 copy_object
@@ -4597,7 +4597,7 @@ Copy an object. Returns the object_info for the newest version.
 
 =cut
 
-sub copy_object
+ sub copy_object
 {
     my($self, @args) = @_;
 
@@ -4641,7 +4641,7 @@ sub copy_object
 				       );
     }
 }
-
+ 
 
 
 =head2 revert_object
@@ -4739,7 +4739,7 @@ Revert an object.
 
 =cut
 
-sub revert_object
+ sub revert_object
 {
     my($self, @args) = @_;
 
@@ -4783,7 +4783,7 @@ sub revert_object
 				       );
     }
 }
-
+ 
 
 
 =head2 get_names_by_prefix
@@ -4850,7 +4850,7 @@ This function is intended for use as an autocomplete helper function.
 
 =cut
 
-sub get_names_by_prefix
+ sub get_names_by_prefix
 {
     my($self, @args) = @_;
 
@@ -4894,7 +4894,7 @@ sub get_names_by_prefix
 				       );
     }
 }
-
+ 
 
 
 =head2 hide_objects
@@ -4957,7 +4957,7 @@ appear in the list_objects method.
 
 =cut
 
-sub hide_objects
+ sub hide_objects
 {
     my($self, @args) = @_;
 
@@ -5001,7 +5001,7 @@ sub hide_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 unhide_objects
@@ -5063,7 +5063,7 @@ of the version specified in the ObjectIdentity.
 
 =cut
 
-sub unhide_objects
+ sub unhide_objects
 {
     my($self, @args) = @_;
 
@@ -5107,7 +5107,7 @@ sub unhide_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 delete_objects
@@ -5169,7 +5169,7 @@ the version specified in the ObjectIdentity.
 
 =cut
 
-sub delete_objects
+ sub delete_objects
 {
     my($self, @args) = @_;
 
@@ -5213,7 +5213,7 @@ sub delete_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 undelete_objects
@@ -5276,7 +5276,7 @@ deleted, no error is thrown.
 
 =cut
 
-sub undelete_objects
+ sub undelete_objects
 {
     my($self, @args) = @_;
 
@@ -5320,7 +5320,7 @@ sub undelete_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 delete_workspace
@@ -5365,7 +5365,7 @@ Delete a workspace. All objects contained in the workspace are deleted.
 
 =cut
 
-sub delete_workspace
+ sub delete_workspace
 {
     my($self, @args) = @_;
 
@@ -5409,7 +5409,7 @@ sub delete_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 undelete_workspace
@@ -5456,7 +5456,7 @@ deleted.
 
 =cut
 
-sub undelete_workspace
+ sub undelete_workspace
 {
     my($self, @args) = @_;
 
@@ -5500,7 +5500,7 @@ sub undelete_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 request_module_ownership
@@ -5538,7 +5538,7 @@ must approve the request.
 
 =cut
 
-sub request_module_ownership
+ sub request_module_ownership
 {
     my($self, @args) = @_;
 
@@ -5582,7 +5582,7 @@ sub request_module_ownership
 				       );
     }
 }
-
+ 
 
 
 =head2 register_typespec
@@ -5652,7 +5652,7 @@ Also see the release_types function.
 
 =cut
 
-sub register_typespec
+ sub register_typespec
 {
     my($self, @args) = @_;
 
@@ -5696,7 +5696,7 @@ sub register_typespec
 				       );
     }
 }
-
+ 
 
 
 =head2 register_typespec_copy
@@ -5749,7 +5749,7 @@ Also see the release_types function.
 
 =cut
 
-sub register_typespec_copy
+ sub register_typespec_copy
 {
     my($self, @args) = @_;
 
@@ -5793,7 +5793,7 @@ sub register_typespec_copy
 				       );
     }
 }
-
+ 
 
 
 =head2 release_module
@@ -5846,7 +5846,7 @@ two things to the module's types:
 
 =cut
 
-sub release_module
+ sub release_module
 {
     my($self, @args) = @_;
 
@@ -5890,7 +5890,7 @@ sub release_module
 				       );
     }
 }
-
+ 
 
 
 =head2 list_modules
@@ -5935,7 +5935,7 @@ List typespec modules.
 
 =cut
 
-sub list_modules
+ sub list_modules
 {
     my($self, @args) = @_;
 
@@ -5979,7 +5979,7 @@ sub list_modules
 				       );
     }
 }
-
+ 
 
 
 =head2 list_module_versions
@@ -6036,7 +6036,7 @@ List typespec module versions.
 
 =cut
 
-sub list_module_versions
+ sub list_module_versions
 {
     my($self, @args) = @_;
 
@@ -6080,7 +6080,7 @@ sub list_module_versions
 				       );
     }
 }
-
+ 
 
 
 =head2 get_module_info
@@ -6159,7 +6159,7 @@ boolean is an int
 
 =cut
 
-sub get_module_info
+ sub get_module_info
 {
     my($self, @args) = @_;
 
@@ -6203,7 +6203,7 @@ sub get_module_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_jsonschema
@@ -6244,7 +6244,7 @@ Get JSON schema for a type.
 
 =cut
 
-sub get_jsonschema
+ sub get_jsonschema
 {
     my($self, @args) = @_;
 
@@ -6288,7 +6288,7 @@ sub get_jsonschema
 				       );
     }
 }
-
+ 
 
 
 =head2 translate_from_MD5_types
@@ -6327,7 +6327,7 @@ Translation from types qualified with MD5 to their semantic versions
 
 =cut
 
-sub translate_from_MD5_types
+ sub translate_from_MD5_types
 {
     my($self, @args) = @_;
 
@@ -6371,7 +6371,7 @@ sub translate_from_MD5_types
 				       );
     }
 }
-
+ 
 
 
 =head2 translate_to_MD5_types
@@ -6410,7 +6410,7 @@ Translation from types qualified with semantic versions to their MD5'ed versions
 
 =cut
 
-sub translate_to_MD5_types
+ sub translate_to_MD5_types
 {
     my($self, @args) = @_;
 
@@ -6454,7 +6454,7 @@ sub translate_to_MD5_types
 				       );
     }
 }
-
+ 
 
 
 =head2 get_type_info
@@ -6525,7 +6525,7 @@ func_string is a string
 
 =cut
 
-sub get_type_info
+ sub get_type_info
 {
     my($self, @args) = @_;
 
@@ -6569,7 +6569,7 @@ sub get_type_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_all_type_info
@@ -6642,7 +6642,7 @@ func_string is a string
 
 =cut
 
-sub get_all_type_info
+ sub get_all_type_info
 {
     my($self, @args) = @_;
 
@@ -6686,7 +6686,7 @@ sub get_all_type_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_func_info
@@ -6749,7 +6749,7 @@ type_string is a string
 
 =cut
 
-sub get_func_info
+ sub get_func_info
 {
     my($self, @args) = @_;
 
@@ -6793,7 +6793,7 @@ sub get_func_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_all_func_info
@@ -6858,7 +6858,7 @@ type_string is a string
 
 =cut
 
-sub get_all_func_info
+ sub get_all_func_info
 {
     my($self, @args) = @_;
 
@@ -6902,7 +6902,7 @@ sub get_all_func_info
 				       );
     }
 }
-
+ 
 
 
 =head2 grant_module_ownership
@@ -6952,7 +6952,7 @@ module.
 
 =cut
 
-sub grant_module_ownership
+ sub grant_module_ownership
 {
     my($self, @args) = @_;
 
@@ -6996,7 +6996,7 @@ sub grant_module_ownership
 				       );
     }
 }
-
+ 
 
 
 =head2 remove_module_ownership
@@ -7042,7 +7042,7 @@ on the module.
 
 =cut
 
-sub remove_module_ownership
+ sub remove_module_ownership
 {
     my($self, @args) = @_;
 
@@ -7086,7 +7086,7 @@ sub remove_module_ownership
 				       );
     }
 }
-
+ 
 
 
 =head2 list_all_types
@@ -7137,7 +7137,7 @@ version.
 
 =cut
 
-sub list_all_types
+ sub list_all_types
 {
     my($self, @args) = @_;
 
@@ -7181,7 +7181,7 @@ sub list_all_types
 				       );
     }
 }
-
+ 
 
 
 =head2 administer
@@ -7218,7 +7218,7 @@ The administration interface.
 
 =cut
 
-sub administer
+ sub administer
 {
     my($self, @args) = @_;
 
@@ -7262,8 +7262,8 @@ sub administer
 				       );
     }
 }
-
-
+ 
+  
 
 sub version {
     my ($self) = @_;
