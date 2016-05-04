@@ -107,9 +107,12 @@ import us.kbase.workspace.kbase.WorkspaceServerMethods;
  */
 public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
-    private static final String version = "0.0.1";
-    private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "8c9b3e7dcb193f891019cf4ecfb2e7f119408460";
+    @SuppressWarnings("unused")
+	private static final String version = "0.0.1";
+    @SuppressWarnings("unused")
+	private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
+    @SuppressWarnings("unused")
+	private static final String gitCommitHash = "8c9b3e7dcb193f891019cf4ecfb2e7f119408460";
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
@@ -117,7 +120,9 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
 	
-	private static final String VER = "0.4.0";
+	private static final String VER = "0.4.1";
+	private static final String GIT =
+			"https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
 	private static final int MAX_RPC_PACKAGE_MEM_USE = 100000000;
@@ -1730,11 +1735,11 @@ public class WorkspaceServer extends JsonServerServlet {
         Map<String, Object> returnVal = null;
         //BEGIN_STATUS
         returnVal = new LinkedHashMap<String, Object>();
+        //TODO check mongo and shock?
         returnVal.put("state", "OK");
         returnVal.put("message", "");
-        returnVal.put("version", version);
-        returnVal.put("git_url", gitUrl);
-        returnVal.put("git_commit_hash", gitCommitHash);
+        returnVal.put("version", VER);
+        returnVal.put("git_url", GIT);
         //END_STATUS
         return returnVal;
     }
