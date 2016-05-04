@@ -49,6 +49,7 @@ public class MongoProvenance extends Provenance {
 
 		MongoProvenanceAction(final ProvenanceAction pa) {
 			setTime(pa.getTime());
+			setCaller(pa.getCaller());
 			setServiceName(pa.getServiceName());
 			setServiceVersion(pa.getServiceVersion());
 			setMethod(pa.getMethod());
@@ -60,6 +61,8 @@ public class MongoProvenance extends Provenance {
 			setIncomingArgs(pa.getIncomingArgs());
 			setOutgoingArgs(pa.getOutgoingArgs());
 			setExternalData(pa.getExternalData());
+			setSubActions(pa.getSubActions());
+			setCustom(pa.getCustom());
 			setDescription(pa.getDescription());
 		}
 		
@@ -86,6 +89,8 @@ public class MongoProvenance extends Provenance {
 			builder.append(resolvedObjs);
 			builder.append(", time=");
 			builder.append(time);
+			builder.append(", caller=");
+			builder.append(caller);
 			builder.append(", service=");
 			builder.append(service);
 			builder.append(", serviceVersion=");
@@ -110,6 +115,10 @@ public class MongoProvenance extends Provenance {
 			builder.append(description);
 			builder.append(", externalData=");
 			builder.append(externalData);
+			builder.append(", custom=");
+			builder.append(custom);
+			builder.append(", subActions=");
+			builder.append(subActions);
 			builder.append("]");
 			return builder.toString();
 		}

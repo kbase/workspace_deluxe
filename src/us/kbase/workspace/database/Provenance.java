@@ -2,15 +2,19 @@ package us.kbase.workspace.database;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import us.kbase.common.exceptions.UnimplementedException;
 
 //TODO unit tests
+//TODO this should keep track of its size & punt if it gets too large
+//TODO consider checking the syntax of urls
 
 public class Provenance {
 	
@@ -188,9 +192,107 @@ public class Provenance {
 		}
 	}
 	
+	public static class SubAction {
+		private String  name;
+		private String  ver;
+		private String  codeUrl;
+		private String  commit;
+		private String  endpointUrl;
+		
+		public SubAction() {}
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
+		public String getVer() {
+			return ver;
+		}
+
+		public void setVer(String ver) {
+			this.ver = ver;
+		}
+
+		public String getCodeUrl() {
+			return codeUrl;
+		}
+
+		public void setCodeUrl(String codeUrl) {
+			this.codeUrl = codeUrl;
+		}
+
+		public String getCommit() {
+			return commit;
+		}
+
+		public void setCommit(String commit) {
+			this.commit = commit;
+		}
+
+		public String getEndpointUrl() {
+			return endpointUrl;
+		}
+
+		public void setEndpointUrl(String endpointUrl) {
+			this.endpointUrl = endpointUrl;
+		}
+		
+		public SubAction withName(String name) {
+			this.name = name;
+			return this;
+		}
+
+		public SubAction withVer(String ver) {
+			this.ver = ver;
+			return this;
+		}
+
+		public SubAction withCodeUrl(String codeUrl) {
+			this.codeUrl = codeUrl;
+			return this;
+		}
+
+		public SubAction withCommit(String commit) {
+			this.commit = commit;
+			return this;
+		}
+
+		public SubAction withEndpointUrl(String endpointUrl) {
+			this.endpointUrl = endpointUrl;
+			return this;
+		}
+
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("SubAction [name=");
+			builder.append(name);
+			builder.append(", ver=");
+			builder.append(ver);
+			builder.append(", codeUrl=");
+			builder.append(codeUrl);
+			builder.append(", commit=");
+			builder.append(commit);
+			builder.append(", endpointUrl=");
+			builder.append(endpointUrl);
+			builder.append("]");
+			return builder.toString();
+		}
+		
+	}
+	
 	public static class ProvenanceAction {
 		
+		// TODO PROV test caller, custom, subactions
+		// TODO PROV add wsid to provenance as orig wsid + expose
+		// TODO PROV test wsid exposure
+		
 		protected Date time;
+		protected String caller;
 		protected String service;
 		protected String serviceVersion;
 		protected String method;
@@ -201,15 +303,18 @@ public class Provenance {
 		protected List<String> wsobjs = new LinkedList<String>();
 		protected List<String> incomingArgs;
 		protected List<String> outgoingArgs;
-		protected String description;
 		protected List<ExternalData> externalData =
 				new LinkedList<ExternalData>();
+		protected List<SubAction> subActions = new LinkedList<SubAction>();
+		protected Map<String, String> custom = new HashMap<String, String>();
+		protected String description;
 		
 		public ProvenanceAction() {}
 		
 		//copy constructor - shallow copy
 		public ProvenanceAction(final ProvenanceAction action) {
 			time = action.time;
+			caller = action.caller;
 			service = action.service;
 			serviceVersion = action.serviceVersion;
 			method = action.method;
@@ -220,8 +325,10 @@ public class Provenance {
 			wsobjs = action.wsobjs;
 			incomingArgs = action.incomingArgs;
 			outgoingArgs = action.outgoingArgs;
-			description = action.description;
 			externalData = action.externalData;
+			subActions = action.subActions;
+			custom = action.custom;
+			description = action.description;
 		}
 		
 		public Date getTime() {
@@ -234,6 +341,19 @@ public class Provenance {
 
 		public ProvenanceAction withTime(final Date time) {
 			this.time = time;
+			return this;
+		}
+		
+		public String getCaller() {
+			return caller;
+		}
+
+		public void setCaller(final String caller) {
+			this.caller = caller;
+		}
+		
+		public ProvenanceAction withCaller(final String caller) {
+			this.caller = caller;
 			return this;
 		}
 		
@@ -403,6 +523,34 @@ public class Provenance {
 			this.externalData = externalData;
 			return this;
 		}
+		
+		public List<SubAction> getSubActions() {
+			return subActions;
+		}
+
+		public void setSubActions(final List<SubAction> subActions) {
+			this.subActions = subActions;
+		}
+		
+		public ProvenanceAction withSubActions(
+				final List<SubAction> subActions) {
+			this.subActions = subActions;
+			return this;
+		}
+		
+		public Map<String, String> getCustom() {
+			return custom;
+		}
+
+		public void setCustom(final Map<String, String> custom) {
+			this.custom = custom;
+		}
+		
+		public ProvenanceAction withCustom(
+				final Map<String, String> custom) {
+			this.custom = custom;
+			return this;
+		}
 
 		// would prefer to make this abstract but Jackson doesn't like it
 		// and want to keep this class as unaware of the backend implementation
@@ -417,6 +565,8 @@ public class Provenance {
 			StringBuilder builder = new StringBuilder();
 			builder.append("ProvenanceAction [time=");
 			builder.append(time);
+			builder.append(", caller=");
+			builder.append(caller);
 			builder.append(", service=");
 			builder.append(service);
 			builder.append(", serviceVersion=");
@@ -437,10 +587,14 @@ public class Provenance {
 			builder.append(incomingArgs);
 			builder.append(", outgoingArgs=");
 			builder.append(outgoingArgs);
-			builder.append(", description=");
-			builder.append(description);
 			builder.append(", externalData=");
 			builder.append(externalData);
+			builder.append(", subActions=");
+			builder.append(subActions);
+			builder.append(", custom=");
+			builder.append(custom);
+			builder.append(", description=");
+			builder.append(description);
 			builder.append("]");
 			return builder.toString();
 		}

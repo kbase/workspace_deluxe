@@ -58,6 +58,7 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ExternalData;
+import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.UncheckedUserMetadata;
@@ -2592,8 +2593,22 @@ public class WorkspaceTest extends WorkspaceTester {
 				);
 		ed.add(new ExternalData().withDataId("data id2"));
 		
+		Map<String, String> custom = new HashMap<String, String>();
+		custom.put("foo", "bar");
+		custom.put("baz", "whee");
+		
+		List<SubAction> sa = new ArrayList<SubAction>();
+		sa.add(new SubAction()
+				.withCodeUrl("http://github.com/animeweirdo/tentaclegen")
+				.withCommit("aaaaaaaaaaaaaaaaaaaaaaaa")
+				.withEndpointUrl("http://tentacool.com/tentaclegen")
+				.withName("Tentacle Generator")
+				.withVer("102.1.0")
+				);
+		
 		Provenance p = new Provenance(foo);
 		p.addAction(new ProvenanceAction()
+				.withCaller("A caller")
 				.withCommandLine("A command line")
 				.withDescription("descrip")
 				.withIncomingArgs(Arrays.asList("a", "b", "c"))
@@ -2606,6 +2621,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				.withServiceVersion("3")
 				.withTime(new Date(45))
 				.withExternalData(ed)
+				.withCustom(custom)
+				.withSubActions(sa)
 				.withWorkspaceObjects(Arrays.asList("provenance/auto3", "provenance/auto1/2")));
 		p.addAction(new ProvenanceAction()
 				.withWorkspaceObjects(Arrays.asList("provenance/auto2/1", "provenance/auto1")));
@@ -2715,7 +2732,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1 provenance size 1000290 exceeds limit of 1000000"));
+					is("Object #1 provenance size 1000332 exceeds limit of 1000000"));
 		}
 	}
 	

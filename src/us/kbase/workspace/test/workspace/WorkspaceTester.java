@@ -51,6 +51,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.Provenance.ExternalData;
@@ -757,6 +758,7 @@ public class WorkspaceTester {
 		while (gotAct.hasNext()) {
 			ProvenanceAction gotpa = gotAct.next();
 			ProvenanceAction exppa = expAct.next();
+			assertThat("caller equal", gotpa.getCaller(), is(exppa.getCaller()));
 			assertThat("cmd line equal", gotpa.getCommandLine(), is(exppa.getCommandLine()));
 			assertThat("desc equal", gotpa.getDescription(), is(exppa.getDescription()));
 			assertThat("inc args equal", gotpa.getIncomingArgs(), is(exppa.getIncomingArgs()));
@@ -768,7 +770,9 @@ public class WorkspaceTester {
 			assertThat("service equal", gotpa.getServiceName(), is(exppa.getServiceName()));
 			assertThat("serv ver equal", gotpa.getServiceVersion(), is(exppa.getServiceVersion()));
 			assertThat("time equal", gotpa.getTime(), is(exppa.getTime()));
+			assertThat("custom fields equal", gotpa.getCustom(), is(exppa.getCustom()));
 			checkProvenanceExternalData(gotpa.getExternalData(), exppa.getExternalData());
+			checkProvenanceSubActions(gotpa.getSubActions(), exppa.getSubActions());
 			assertThat("refs equal", gotpa.getWorkspaceObjects(), is(exppa.getWorkspaceObjects()));
 			assertThat("correct number resolved refs", gotpa.getResolvedObjects().size(),
 					is(gotpa.getWorkspaceObjects().size()));
@@ -783,6 +787,22 @@ public class WorkspaceTester {
 				assertThat("resolved refs equal", gotpa.getResolvedObjects(),
 						is(exppa.getResolvedObjects()));
 			}
+		}
+	}
+
+	private void checkProvenanceSubActions(
+			List<SubAction> got, List<SubAction> exp) {
+		assertThat("prov subactions same size", got.size(), is(exp.size()));
+		Iterator<SubAction> giter = got.iterator();
+		Iterator<SubAction> eiter = exp.iterator();
+		while (giter.hasNext()) {
+			SubAction g = giter.next();
+			SubAction e = eiter.next();
+			assertThat("same code url", g.getCodeUrl(), is (e.getCodeUrl()));
+			assertThat("same commit", g.getCommit(), is (e.getCommit()));
+			assertThat("same endpoint", g.getEndpointUrl(), is (e.getEndpointUrl()));
+			assertThat("same name", g.getName(), is (e.getName()));
+			assertThat("same ver", g.getVer(), is (e.getVer()));
 		}
 	}
 
