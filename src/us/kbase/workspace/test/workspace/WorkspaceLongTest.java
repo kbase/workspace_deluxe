@@ -142,9 +142,9 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				"};\n";
 		String mod = "Test10KRefs";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, specRef,
+		types.requestModuleRegistration(userfoo, mod);
+		types.resolveModuleRegistration(mod, true);
+		types.compileNewTypeSpec(userfoo, specRef,
 				Arrays.asList("ToRefType", "FromRefType"), null, null, false, null);
 		TypeDefId toRef = new TypeDefId(new TypeDefName(mod, "ToRefType"), 0, 1);
 		TypeDefId fromRef = new TypeDefId(new TypeDefName(mod, "FromRefType"), 0, 1);
@@ -307,9 +307,9 @@ public class WorkspaceLongTest extends WorkspaceTester {
 					"} " + type2 + ";\n" +
 				"};\n";
 		WorkspaceUser userfoo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(userfoo, mod);
-		ws.resolveModuleRegistration(mod, true);
-		ws.compileNewTypeSpec(userfoo, specRef,
+		types.requestModuleRegistration(userfoo, mod);
+		types.resolveModuleRegistration(mod, true);
+		types.compileNewTypeSpec(userfoo, specRef,
 				Arrays.asList(typeName, type2), null, null, false, null);
 		TypeDefId daType = new TypeDefId(new TypeDefName(mod, typeName), 0, 1);
 		TypeDefId emptyType = new TypeDefId(new TypeDefName(mod, type2), 0, 1);

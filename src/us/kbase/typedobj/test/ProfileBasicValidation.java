@@ -25,6 +25,7 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.io.FileUtils;
 
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -35,8 +36,6 @@ import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.test.TypeRegisteringTest;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
-import us.kbase.workspace.kbase.Util;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class ProfileBasicValidation {
 	private final static String TEST_DB_LOCATION = "test/typedobj_test_files/t1";
@@ -56,17 +55,13 @@ public class ProfileBasicValidation {
 		}
 		
 		// point the type definition db to point there
-		File tempdir = new File("temp_files");
-		if (!tempdir.exists())
-			tempdir.mkdir();
 		TypeStorage storage = new MongoTypeStorage(TypeRegisteringTest.createMongoDbConnection());
 		storage.removeAllData();
-		db = new TypeDefinitionDB(storage, tempdir, 
-				new Util().getKIDLpath(), WorkspaceTestCommon.getKidlSource());
+		db = new TypeDefinitionDB(storage);
 		
 		
 		// create a validator that uses the type def db
-		validator = new TypedObjectValidator(db);
+		validator = new TypedObjectValidator(new LocalTypeProvider(db));
 	
 		
 		String username = "wstester1";

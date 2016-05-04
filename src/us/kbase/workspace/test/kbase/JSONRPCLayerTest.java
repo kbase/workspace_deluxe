@@ -63,6 +63,7 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
+import us.kbase.workspace.SubAction;
 import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
@@ -84,7 +85,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.4.0"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.4.1"));
 	}
 	
 	@Test
@@ -553,9 +554,23 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				);
 		edu.add(new ExternalDataUnit().withDataId("foo"));
 		
+		Map<String, String> cs = new HashMap<String, String>();
+		cs.put("The", "Donald");
+		cs.put("TedCruz", "ElbowToFace");
+		
+		List<SubAction> sa = new LinkedList<SubAction>();
+		sa.add(new SubAction()
+				.withCodeUrl("https://github.com/woot/woot")
+				.withCommit("aaaa")
+				.withEndpointUrl("http://myserver.com/")
+				.withName("name")
+				.withVer("0.1.2")
+				);
+		
 		List<ProvenanceAction> prov = Arrays.asList(
 				new ProvenanceAction()
 					.withDescription("desc")
+					.withCaller("a caller")
 					.withInputWsObjects(Arrays.asList("provenance/auto1/1"))
 					.withIntermediateIncoming(Arrays.asList("a", "b", "c"))
 					.withIntermediateOutgoing(Arrays.asList("d", "e", "f"))
@@ -570,6 +585,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					.withService("serv")
 					.withServiceVer("2")
 					.withExternalData(edu)
+					.withCustom(cs)
+					.withSubactions(sa)
 					.withTime("2013-04-26T12:52:06-0800"),
 				new ProvenanceAction());
 		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE)
@@ -579,7 +596,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		refmap.put("provenance/auto1/1", wsid + "/1/1");
 		Map<String, String> timemap = new HashMap<String, String>();
 		timemap.put("2013-04-26T12:52:06-0800", "2013-04-26T20:52:06+0000");
-		ObjectIdentity id = new ObjectIdentity().withWorkspace("provenance").withObjid(2L);
+		ObjectIdentity id = new ObjectIdentity().withWsid(wsid).withObjid(2L);
 		checkProvenance(USER1, id, prov, refmap, timemap);
 		
 		ProvenanceAction pa = new ProvenanceAction();
@@ -644,11 +661,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(data)
 						.withType(SAFE_TYPE).withName("whoops"))));
 		checkProvenance(USER2, new ObjectIdentity().withName("whoops")
-				.withWorkspace("provenance"), new ArrayList<ProvenanceAction>(),
+				.withWsid(wsid), new ArrayList<ProvenanceAction>(),
 				new HashMap<String, String>(), new HashMap<String, String>());
-		
-		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
-				.withWorkspace("provenance").withNewPermission("n"));
 	}
 
 	private void saveProvWithGoodTime(String workspace, String inputTime,
@@ -665,11 +679,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withProvenance(prov));
 		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace(workspace)
 				.withObjects(objects);
-		Long objid = CLIENT1.saveObjects(sop).get(0).getE1();
+		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> oi =
+				CLIENT1.saveObjects(sop).get(0);
+		Long objid = oi.getE1();
+		Long wsid = oi.getE7();
 		Map<String, String> refmap = new HashMap<String, String>();
 		Map<String, String> timemap = new HashMap<String, String>();
 		timemap.put(inputTime, expectedTime);
-		ObjectIdentity id = new ObjectIdentity().withWorkspace(workspace).withObjid(objid);
+		ObjectIdentity id = new ObjectIdentity().withWsid(wsid).withObjid(objid);
 		checkProvenance(USER1, id, prov, refmap, timemap);
 		
 	}

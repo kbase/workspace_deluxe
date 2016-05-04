@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.*;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
@@ -75,23 +74,23 @@ public final class TypedObjectValidator {
 	 * This object is used to fetch the typed object Json Schema documents and
 	 * JsonSchema objects which are used for validation
 	 */
-	protected TypeDefinitionDB typeDefDB;
+	protected TypeProvider typeProvider;
 	
 	
 	/**
-	 * Get the type database the validator validates typed object instances against.
-	 * @return the database.
+	 * Get the type provider the validator validates typed object instances against.
+	 * @return the provider.
 	 */
-	public TypeDefinitionDB getDB() {
-		return typeDefDB;
+	public TypeProvider getTypeProvider() {
+		return typeProvider;
 	}
 	
 	
 	/**
-	 * Construct a TypedObjectValidator set to the specified Typed Object Definition DB
+	 * Construct a TypedObjectValidator set to the specified Typed Provider
 	 */
-	public TypedObjectValidator(TypeDefinitionDB typeDefDB) {
-		this.typeDefDB = typeDefDB;
+	public TypedObjectValidator(TypeProvider typeProvider) {
+		this.typeProvider = typeProvider;
 	}
 	
 	
@@ -173,11 +172,12 @@ public final class TypedObjectValidator {
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException,
 			TooManyIdsException, JsonParseException, IOException {
-		AbsoluteTypeDefId absoluteTypeDefId = typeDefDB.resolveTypeDefId(typeDefId);
+		AbsoluteTypeDefId absoluteTypeDefId = typeProvider.resolveTypeDef(
+				typeDefId);
 		
 		// Actually perform the validation and return the report
 		final List<String> errors = new ArrayList<String>();
-		String schemaText = typeDefDB.getJsonSchemaDocument(absoluteTypeDefId);
+		String schemaText = typeProvider.getTypeJsonSchema(absoluteTypeDefId);
 		final JsonTokenValidationSchema schema =
 				JsonTokenValidationSchema.parseJsonSchema(schemaText);
 		

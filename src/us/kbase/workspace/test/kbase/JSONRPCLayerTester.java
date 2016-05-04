@@ -62,6 +62,7 @@ import us.kbase.workspace.RenameWorkspaceParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
+import us.kbase.workspace.SubAction;
 import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
@@ -466,26 +467,31 @@ public class JSONRPCLayerTester {
 	protected void checkProvenance(String user, ObjectIdentity id,
 			List<ProvenanceAction> prov, Map<String, String> refmap,
 			Map<String, String> timemap) throws Exception {
-		List<ObjectData> ret = CLIENT1.getObjects(Arrays.asList(id));
-		assertThat("user correct", ret.get(0).getCreator(), is(user));
+		ObjectData ret = CLIENT1.getObjects(Arrays.asList(id)).get(0);
+		assertThat("user correct", ret.getCreator(), is(user));
+		assertThat("wsid correct", ret.getOrigWsid(), is(id.getWsid()));
 		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(ret.get(0).getCreated())
+				DATE_FORMAT.parse(ret.getCreated())
 				.after(getOlderDate(10 * 60 * 1000)));
-		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
+		checkProvenance(prov, ret.getProvenance(), refmap, timemap);
 		
-		List<ObjectProvenanceInfo> p = CLIENT1.getObjectProvenance(Arrays.asList(id));
-		assertThat("user correct", p.get(0).getCreator(), is(user));
+		ObjectProvenanceInfo p = CLIENT1.getObjectProvenance(
+				Arrays.asList(id)).get(0);
+		assertThat("user correct", p.getCreator(), is(user));
+		assertThat("wsid correct", ret.getOrigWsid(), is(id.getWsid()));
 		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(p.get(0).getCreated())
+				DATE_FORMAT.parse(p.getCreated())
 				.after(getOlderDate(10 * 60 * 1000)));
-		checkProvenance(prov, p.get(0).getProvenance(), refmap, timemap);
+		checkProvenance(prov, p.getProvenance(), refmap, timemap);
 		
-		ret = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(id)));
-		assertThat("user correct", ret.get(0).getCreator(), is(user));
+		ret = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(id)))
+				.get(0);
+		assertThat("user correct", ret.getCreator(), is(user));
+		assertThat("wsid correct", ret.getOrigWsid(), is(id.getWsid()));
 		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(ret.get(0).getCreated())
+				DATE_FORMAT.parse(ret.getCreated())
 				.after(getOlderDate(10 * 60 * 1000)));
-		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
+		checkProvenance(prov, ret.getProvenance(), refmap, timemap);
 	}
 	
 	protected Date getOlderDate(long ms) {
@@ -558,6 +564,13 @@ public class JSONRPCLayerTester {
 			assertThat("service equal", gotpa.getService(), is(exppa.getService()));
 			assertThat("serv ver equal", gotpa.getServiceVer(), is(exppa.getServiceVer()));
 			checkProvenanceExternalData(gotpa.getExternalData(), exppa.getExternalData(), timemap);
+			checkProvenanceSubActions(gotpa.getSubactions(), exppa.getSubactions());
+			if (exppa.getCustom() == null) {
+				assertTrue("custom fields empty", gotpa.getCustom().isEmpty()); 
+			} else {
+				assertThat("custom equal", gotpa.getCustom(), is(exppa.getCustom()));
+			}
+			assertThat("caller equal", gotpa.getCaller(), is(exppa.getCaller()));
 			assertThat("time equal", gotpa.getTime(), is(timemap.get(exppa.getTime())));
 			assertThat("refs equal", gotpa.getInputWsObjects(),
 					is(exppa.getInputWsObjects() == null ? new ArrayList<String>() :
@@ -573,11 +586,34 @@ public class JSONRPCLayerTester {
 		}
 	}
 
+	private void checkProvenanceSubActions(
+			List<SubAction> got,
+			List<SubAction> exp) {
+		if (exp == null) {
+			assertThat("prov subactions empty", got.size(), is(0));
+			return;
+		}
+		assertThat("prov subactions same size", got.size(), is(exp.size()));
+		Iterator<SubAction> giter = got.iterator();
+		Iterator<SubAction> eiter = exp.iterator();
+		while (giter.hasNext()) {
+			SubAction g = giter.next();
+			SubAction e = eiter.next();
+			assertThat("same code url", g.getCodeUrl(), is(e.getCodeUrl()));
+			assertThat("same commit", g.getCommit(), is(e.getCommit()));
+			assertThat("same endpoint url", g.getEndpointUrl(),
+					is(e.getEndpointUrl()));
+			assertThat("same name", g.getName(), is(e.getName()));
+			assertThat("same version", g.getVer(), is(e.getVer()));
+		}
+		
+	}
+	
 	private void checkProvenanceExternalData(
 			List<ExternalDataUnit> got,
 			List<ExternalDataUnit> exp, Map<String, String> timemap) {
 		if (exp == null) {
-			assertThat("prov eternal data empty", got.size(), is(0));
+			assertThat("prov external data empty", got.size(), is(0));
 			return;
 		}
 		assertThat("prov external data same size", got.size(), is(exp.size()));

@@ -130,8 +130,8 @@ module Workspace {
 		ws_name workspace - name of the workspace.
 		username owner - name of the user who owns (e.g. created) this workspace.
 		timestamp moddate - date when the workspace was last modified.
-		int objects - the approximate number of objects currently stored in
-			the workspace.
+		int objects - the number of objects created in this workspace,
+			including objects that have been deleted.
 		permission user_permission - permissions for the authenticated user of
 			this workspace.
 		permission globalread - whether this workspace is globally readable.
@@ -335,15 +335,45 @@ module Workspace {
 		string data_id;
 		string description;
 	} ExternalDataUnit;
+	
+	/* Information about a subaction that is invoked by a provenance action.
+	
+		A provenance action (PA) may invoke subactions (SA), e.g. calling a
+		separate piece of code, a service, or a script. In most cases these
+		calls are the same from PA to PA and so do not need to be listed in
+		the provenance since providing information about the PA alone provides
+		reproducibility.
 		
+		In some cases, however, SAs may change over time, such that invoking
+		the same PA with the same parameters may produce different results.
+		For example, if a PA calls a remote server, that server may be updated
+		between a PA invoked on day T and another PA invoked on day T+1.
+		
+		The SubAction structure allows for specifying information about SAs
+		that may dynamically change from PA invocation to PA invocation.
+		
+		string name - the name of the SA.
+		string ver - the version of SA.
+		string code_url - a url pointing to the SA's codebase.
+		string commit - a version control commit ID for the SA.
+		string endpoint_url - a url pointing to the access point for the SA -
+			a server url, for instance.
+	*/
+	typedef structure {
+		string name;
+		string ver;
+		string code_url;
+		string commit;
+		string endpoint_url;
+	} SubAction;
 	
 	/* A provenance action.
 	
-		A provenance action is an action taken while transforming one data
-		object to another. There may be several provenance actions taken in
-		series. An action is typically running a script, running an api
-		command, etc. All of the following are optional, but more information
-		provided equates to better data provenance.
+		A provenance action (PA) is an action taken while transforming one data
+		object to another. There may be several PAs taken in series. A PA is
+		typically running a script, running an api command, etc. All of the
+		following fields are optional, but more information provided equates to
+		better data provenance.
 		
 		resolved_ws_objects should never be set by the user; it is set by the
 		workspace service when returning data.
@@ -352,6 +382,8 @@ module Workspace {
 		is 1MB.
 		
 		timestamp time - the time the action was started.
+		string caller - the name or id of the invoker of this provenance
+			action. In most cases, this will be the same for all PAs.
 		string service - the name of the service that performed this action.
 		string service_ver - the version of the service that performed this action.
 		string method - the method of the service that performed this action.
@@ -386,10 +418,15 @@ module Workspace {
 		list<ExternalDataUnit> external_data - data external to the workspace
 			that was either imported to the workspace or used to create a
 			workspace object.
+		list<SubAction> subactions - the subactions taken as a part of this
+			action.
+		mapping<string, string> custom - user definable custom provenance
+			fields and their values.
 		string description - a free text description of this action.
 	*/
 	typedef structure {
 		timestamp time;
+		string caller;
 		string service;
 		string service_ver;
 		string method;
@@ -402,6 +439,8 @@ module Workspace {
 		list<string> intermediate_incoming;
 		list<string> intermediate_outgoing;
 		list<ExternalDataUnit> external_data;
+		list<SubAction> subactions;
+		mapping<string, string> custom;
 		string description;
 	} ProvenanceAction;
 	
@@ -799,6 +838,9 @@ module Workspace {
 		list<ProvenanceAction> provenance - the object's provenance.
 		username creator - the user that first saved the object to the
 			workspace.
+		ws_id orig_wsid - the id of the workspace in which this object was
+				originally saved. Null for objects saved prior to version
+				0.4.1.
 		timestamp created - the date the object was first saved to the
 			workspace.
 		list<obj_ref> - the references contained within the object.
@@ -818,6 +860,7 @@ module Workspace {
 		object_info info;
 		list<ProvenanceAction> provenance;
 		username creator;
+		ws_id orig_wsid;
 		timestamp created;
 		list<obj_ref> refs;
 		obj_ref copied;
@@ -840,6 +883,9 @@ module Workspace {
 		list<ProvenanceAction> provenance - the object's provenance.
 		username creator - the user that first saved the object to the
 			workspace.
+		ws_id orig_wsid - the id of the workspace in which this object was
+				originally saved. Null for objects saved prior to version
+				0.4.1.
 		timestamp created - the date the object was first saved to the
 			workspace.
 		list<obj_ref> - the references contained within the object.
@@ -861,6 +907,7 @@ module Workspace {
 		object_info info;
 		list<ProvenanceAction> provenance;
 		username creator;
+		ws_id orig_wsid;
 		timestamp created;
 		list<obj_ref> refs;
 		obj_ref copied;

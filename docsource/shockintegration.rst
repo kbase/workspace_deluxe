@@ -296,12 +296,12 @@ Workspace object are shared as the object is shared.
       u'data': {u'handle': {u'hid': u'KBH_8',
                             u’id': u'e9f1b8b2-0012-47a9-89ef-fb8fad5a2a5e',
                             u'type': u'shock',
-                            u'url': [shock url]
+                            u'url': [shock_url]
                             },
                 u'handles': [{u'hid': u'KBH_5',
                               u'id': u'ed732169-31a6-4acb-a59c-401d95cc7e3e',
                               u'type': u'shock',
-                              u'url': [shock url]
+                              u'url': [shock_url]
                               }
                              ],
                 u'veryimportantint': 42,

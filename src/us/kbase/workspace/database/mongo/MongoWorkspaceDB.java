@@ -30,7 +30,6 @@ import us.kbase.typedobj.core.ExtractedMetadata;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
@@ -109,7 +108,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private final QueryMethods query;
 	private final ObjectInfoUtils objutils;
 	private final FindAndModify updateWScounter;
-	private final TypedObjectValidator typeValidator;
 	
 	private final TempFilesManager tfm;
 	
@@ -183,9 +181,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	public MongoWorkspaceDB(final DB workspaceDB, final BlobStore blobStore,
-			final TempFilesManager tfm, final TypedObjectValidator validator) {
-		if (workspaceDB == null || blobStore == null || tfm == null ||
-				validator == null) {
+			final TempFilesManager tfm) {
+		if (workspaceDB == null || blobStore == null || tfm == null) {
 			throw new NullPointerException("No arguments can be null");
 		}
 		rescfg = new ResourceUsageConfigurationBuilder().build();
@@ -198,7 +195,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		blob = blobStore;
 		updateWScounter = buildCounterQuery(wsjongo);
 		//TODO check a few random types and make sure they exist
-		this.typeValidator = validator;
 		ensureIndexes();
 	}
 	
@@ -239,11 +235,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				.with("{$inc: {" + Fields.CNT_NUM + ": #}}", 1L)
 				.projection(String.format("{%s: 1, %s: 0}",
 						Fields.CNT_NUM, Fields.MONGO_ID));
-	}
-
-	@Override
-	public TypedObjectValidator getTypeValidator() {
-		return typeValidator;
 	}
 
 	@Override

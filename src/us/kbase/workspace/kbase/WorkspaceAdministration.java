@@ -37,6 +37,7 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
@@ -75,14 +76,19 @@ public class WorkspaceAdministration {
 	
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
+	private final Types types;
 	//TODO remove hard coded admin
 	private static final String ROOT = "workspaceadmin";
 	
 	private final Set<String> internaladmins = new HashSet<String>(); 
 	
-	public WorkspaceAdministration(final Workspace ws, 
-			final WorkspaceServerMethods wsmeth, final String admin) {
+	public WorkspaceAdministration(
+			final Workspace ws, 
+			final WorkspaceServerMethods wsmeth,
+			final Types types,
+			final String admin) {
 		this.ws = ws;
+		this.types = types;
 		this.wsmeth = wsmeth;
 		internaladmins.add(ROOT);
 		if (admin != null && !admin.isEmpty()) {
@@ -122,18 +128,18 @@ public class WorkspaceAdministration {
 		final String fn = (String) cmd.getCommand();
 		if (LIST_MOD_REQUESTS.equals(fn)) {
 			getLogger().info(LIST_MOD_REQUESTS);
-			return ws.listModuleRegistrationRequests();
+			return types.listModuleRegistrationRequests();
 		}
 		if (APPROVE_MOD_REQUEST.equals(fn)) {
 			final String mod = cmd.getModule();
 			getLogger().info(APPROVE_MOD_REQUEST + " " + mod);
-			ws.resolveModuleRegistration(mod, true);
+			types.resolveModuleRegistration(mod, true);
 			return null;
 		}
 		if (DENY_MOD_REQUEST.equals(fn)) {
 			final String mod = cmd.getModule();
 			getLogger().info(DENY_MOD_REQUEST + " " + mod);
-			ws.resolveModuleRegistration(mod, false);
+			types.resolveModuleRegistration(mod, false);
 			return null;
 		}
 		if (LIST_ADMINS.equals(fn)) {

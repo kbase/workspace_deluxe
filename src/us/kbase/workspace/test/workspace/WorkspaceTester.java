@@ -32,6 +32,7 @@ import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -50,6 +51,8 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Provenance.SubAction;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -67,7 +70,6 @@ import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import ch.qos.logback.classic.Level;
@@ -196,9 +198,10 @@ public class WorkspaceTester {
 		WorkspaceTestCommon.destroyDB(wsdb);
 	}
 	
-	private static final Map<String, Workspace> configs =
-			new HashMap<String, Workspace>();
+	private static final Map<String, WSandTypes> CONFIGS =
+			new HashMap<String, WSandTypes>();
 	protected final Workspace ws;
+	protected final Types types;
 	
 	public WorkspaceTester(String config, String backend,
 			Integer maxMemoryUsePerCall)
@@ -211,7 +214,7 @@ public class WorkspaceTester {
 			System.out.println("Started test mongo instance at localhost:" +
 					mongo.getServerPort());
 		}
-		if (!configs.containsKey(config)) {
+		if (!CONFIGS.containsKey(config)) {
 			DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 					DB_WS_NAME);
 			WorkspaceTestCommon.destroyWSandTypeDBs(wsdb,
@@ -221,21 +224,35 @@ public class WorkspaceTester {
 					"\tConfig: %s, Backend: %s, MaxMemPerCall: %s",
 					config, backend, maxMemoryUsePerCall));
 			if ("shock".equals(backend)) {
-				configs.put(config, setUpShock(wsdb, maxMemoryUsePerCall));
+				CONFIGS.put(config, setUpShock(wsdb, maxMemoryUsePerCall));
 			} else if("mongo".equals(backend)) {
-				configs.put(config, setUpMongo(wsdb, maxMemoryUsePerCall));
+				CONFIGS.put(config, setUpMongo(wsdb, maxMemoryUsePerCall));
 			} else {
 				throw new TestException("Unknown backend: " + config);
 			}
 		}
-		ws = configs.get(config);
+		ws = CONFIGS.get(config).ws;
+		types = CONFIGS.get(config).types;
 	}
 	
-	private Workspace setUpMongo(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
-		return setUpWorkspaces(wsdb, new GridFSBlobStore(wsdb), maxMemoryUsePerCall);
+	private static class WSandTypes {
+		public Workspace ws;
+		public Types types;
+		public WSandTypes(Workspace ws, Types types) {
+			super();
+			this.ws = ws;
+			this.types = types;
+		}
 	}
 	
-	private Workspace setUpShock(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
+	private WSandTypes setUpMongo(DB wsdb, Integer maxMemoryUsePerCall)
+			throws Exception {
+		return setUpWorkspaces(wsdb, new GridFSBlobStore(wsdb),
+				maxMemoryUsePerCall);
+	}
+	
+	private WSandTypes setUpShock(DB wsdb, Integer maxMemoryUsePerCall)
+			throws Exception {
 		String shockuser = System.getProperty("test.user1");
 		String shockpwd = System.getProperty("test.pwd1");
 		if (shock == null) {
@@ -248,7 +265,8 @@ public class WorkspaceTester {
 					"WorkspaceTester_ShockDB",
 					"foo",
 					"foo");
-			System.out.println("Shock controller version: " + shock.getVersion());
+			System.out.println("Shock controller version: " +
+					shock.getVersion());
 			if (shock.getVersion() == null) {
 				System.out.println(
 						"Unregistered version - Shock may not start correctly");
@@ -256,12 +274,12 @@ public class WorkspaceTester {
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"), shockUrl,
-				shockuser, shockpwd);
+		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"),
+				shockUrl, shockuser, shockpwd);
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
 	
-	private Workspace setUpWorkspaces(
+	private WSandTypes setUpWorkspaces(
 			DB db,
 			BlobStore bs,
 			Integer maxMemoryUsePerCall)
@@ -270,35 +288,35 @@ public class WorkspaceTester {
 		tfm = new TempFilesManager(
 				new File(WorkspaceTestCommon.getTempDir()));
 		tfm.cleanup();
-		final String kidlpath = new Util().getKIDLpath();
 		
+		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
+				new MongoTypeStorage(GetMongoDB.getDB(
+						"localhost:" + mongo.getServerPort(),
+						DB_TYPE_NAME)));
 		TypedObjectValidator val = new TypedObjectValidator(
-				new TypeDefinitionDB(new MongoTypeStorage(
-						GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-								DB_TYPE_NAME)),
-						null, kidlpath, "both"));
-		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-				bs, tfm, val);
+				new LocalTypeProvider(typeDefDB));
+		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, bs, tfm);
 		Workspace work = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
-				new DefaultReferenceParser());
+				new DefaultReferenceParser(), val);
+		Types t = new Types(typeDefDB);
 		if (maxMemoryUsePerCall != null) {
 			final ResourceUsageConfigurationBuilder build =
 					new ResourceUsageConfigurationBuilder(work.getResourceConfig());
 			work.setResourceConfig(build.withMaxIncomingDataMemoryUsage(maxMemoryUsePerCall)
 					.withMaxReturnedDataMemoryUsage(maxMemoryUsePerCall).build());
 		}
-		installSpecs(work);
-		return work;
+		installSpecs(t);
+		return new WSandTypes(work, t);
 	}
 		
-	private void installSpecs(Workspace work) throws Exception {
+	private void installSpecs(Types t) throws Exception {
 		//make a general spec that tests that don't worry about typechecking can use
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		//simple spec
-		work.requestModuleRegistration(foo, "SomeModule");
-		work.resolveModuleRegistration("SomeModule", true);
-		work.compileNewTypeSpec(foo, 
+		t.requestModuleRegistration(foo, "SomeModule");
+		t.resolveModuleRegistration("SomeModule", true);
+		t.compileNewTypeSpec(foo, 
 				"module SomeModule {" +
 					"/* @optional thing */" +
 					"typedef structure {" +
@@ -310,8 +328,8 @@ public class WorkspaceTester {
 					"} AType2;" +
 				"};",
 				Arrays.asList("AType", "AType2"), null, null, false, null);
-		work.releaseTypes(foo, "SomeModule");
-		work.compileNewTypeSpec(foo, 
+		t.releaseTypes(foo, "SomeModule");
+		t.compileNewTypeSpec(foo, 
 				"module SomeModule {" +
 					"typedef structure {" +
 						"string thing;" +
@@ -321,8 +339,8 @@ public class WorkspaceTester {
 					"} AType2;" +
 				"};",
 				null, null, null, false, null);
-		work.releaseTypes(foo, "SomeModule");
-		work.compileNewTypeSpec(foo, 
+		t.releaseTypes(foo, "SomeModule");
+		t.compileNewTypeSpec(foo, 
 				"module SomeModule {" +
 					"typedef structure {" +
 						"string thing;" +
@@ -334,7 +352,7 @@ public class WorkspaceTester {
 					"} AType2;" +
 				"};",
 				null, null, null, false, null);
-		work.releaseTypes(foo, "SomeModule");
+		t.releaseTypes(foo, "SomeModule");
 		
 		//spec that simply references another object
 		final String specRefType =
@@ -347,16 +365,16 @@ public class WorkspaceTester {
 				"};";
 		
 		String mod = "CopyRev";
-		work.requestModuleRegistration(foo, mod);
-		work.resolveModuleRegistration(mod, true);
-		work.compileNewTypeSpec(foo, specRefType, Arrays.asList("RefType"), null, null, false, null);
-		work.releaseTypes(foo, mod);
+		t.requestModuleRegistration(foo, mod);
+		t.resolveModuleRegistration(mod, true);
+		t.compileNewTypeSpec(foo, specRefType, Arrays.asList("RefType"), null, null, false, null);
+		t.releaseTypes(foo, mod);
 
 		// more complicated spec with two released versions and 1 unreleased version for type
 		// registration tests
-		work.requestModuleRegistration(foo, "TestModule");
-		work.resolveModuleRegistration("TestModule", true);
-		work.compileNewTypeSpec(foo, 
+		t.requestModuleRegistration(foo, "TestModule");
+		t.resolveModuleRegistration("TestModule", true);
+		t.compileNewTypeSpec(foo, 
 				"module TestModule { " +
 						"typedef structure {string name; string seq;} Feature; "+
 						"typedef structure {string name; list<Feature> features;} Genome; "+
@@ -364,8 +382,8 @@ public class WorkspaceTester {
 						"funcdef getFeature(string fid, string pattern) returns (Feature);" +
 						"};",
 						Arrays.asList("Feature","Genome"), null, null, false, null);
-		work.releaseTypes(foo, "TestModule");
-		work.compileNewTypeSpec(foo, 
+		t.releaseTypes(foo, "TestModule");
+		t.compileNewTypeSpec(foo, 
 				"module TestModule { " +
 						"typedef structure {string name; string seq;} Feature; "+
 						"typedef structure {string name; list<Feature> feature_list;} Genome; "+
@@ -373,7 +391,7 @@ public class WorkspaceTester {
 						"funcdef getFeature(string fid) returns (Feature);" +
 						"};",
 						null, null, null, false, null);
-		work.compileNewTypeSpec(foo, 
+		t.compileNewTypeSpec(foo, 
 				"module TestModule { " +
 						"typedef structure {string name; string seq;} Feature; "+
 						"typedef structure {string name; list<Feature> feature_list;} Genome; "+
@@ -382,11 +400,11 @@ public class WorkspaceTester {
 						"funcdef getGenome(string gid) returns (Genome);" +
 						"};",
 						null, null, null, false, null);
-		work.releaseTypes(foo, "TestModule");
+		t.releaseTypes(foo, "TestModule");
 
-		work.requestModuleRegistration(foo, "UnreleasedModule");
-		work.resolveModuleRegistration("UnreleasedModule", true);
-		work.compileNewTypeSpec(foo, 
+		t.requestModuleRegistration(foo, "UnreleasedModule");
+		t.resolveModuleRegistration("UnreleasedModule", true);
+		t.compileNewTypeSpec(foo, 
 				"module UnreleasedModule {/* @optional thing */ typedef structure {string thing;} AType; funcdef aFunc(AType param) returns ();};",
 				Arrays.asList("AType"), null, null, false, null);
 	}
@@ -713,22 +731,23 @@ public class WorkspaceTester {
 	protected List<Date> checkProvenanceCorrect(WorkspaceUser foo, Provenance prov,
 			ObjectIdentifier obj, Map<String, String> refmap) throws Exception {
 		Provenance pgot = ws.getObjects(foo, Arrays.asList(obj)).get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot, refmap);
+		checkProvenanceCorrect(prov, pgot, refmap, obj.getWorkspaceIdentifier().getId());
 		Provenance pgot2 = ws.getObjectsSubSet(foo, objIDToSubObjID(Arrays.asList(obj)))
 				.get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot2,refmap);
+		checkProvenanceCorrect(prov, pgot2,refmap, obj.getWorkspaceIdentifier().getId());
 		Provenance pgot3 = ws.getObjectProvenance(foo, Arrays.asList(obj)).get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot3,refmap);
+		checkProvenanceCorrect(prov, pgot3,refmap, obj.getWorkspaceIdentifier().getId());
 		return Arrays.asList(pgot.getDate(), pgot2.getDate(), pgot3.getDate());
 	}
 	
 	//if refmap != null expected is a Provenance object. Otherwise it's a subclass
 	// with an implemented getResolvedObjects method.
 	protected void checkProvenanceCorrect(Provenance expected, Provenance got,
-			Map<String, String> refmap) {
+			Map<String, String> refmap, long wsid) {
 		assertThat("user equal", got.getUser(), is(expected.getUser()));
 		assertThat("same number actions", got.getActions().size(),
 				is(expected.getActions().size()));
+		assertThat("wsid correct", got.getWorkspaceID(), is(wsid));
 		if (refmap == null) {
 			assertThat("dates are the same", got.getDate(), is(expected.getDate()));
 		} else {
@@ -740,6 +759,7 @@ public class WorkspaceTester {
 		while (gotAct.hasNext()) {
 			ProvenanceAction gotpa = gotAct.next();
 			ProvenanceAction exppa = expAct.next();
+			assertThat("caller equal", gotpa.getCaller(), is(exppa.getCaller()));
 			assertThat("cmd line equal", gotpa.getCommandLine(), is(exppa.getCommandLine()));
 			assertThat("desc equal", gotpa.getDescription(), is(exppa.getDescription()));
 			assertThat("inc args equal", gotpa.getIncomingArgs(), is(exppa.getIncomingArgs()));
@@ -751,7 +771,9 @@ public class WorkspaceTester {
 			assertThat("service equal", gotpa.getServiceName(), is(exppa.getServiceName()));
 			assertThat("serv ver equal", gotpa.getServiceVersion(), is(exppa.getServiceVersion()));
 			assertThat("time equal", gotpa.getTime(), is(exppa.getTime()));
+			assertThat("custom fields equal", gotpa.getCustom(), is(exppa.getCustom()));
 			checkProvenanceExternalData(gotpa.getExternalData(), exppa.getExternalData());
+			checkProvenanceSubActions(gotpa.getSubActions(), exppa.getSubActions());
 			assertThat("refs equal", gotpa.getWorkspaceObjects(), is(exppa.getWorkspaceObjects()));
 			assertThat("correct number resolved refs", gotpa.getResolvedObjects().size(),
 					is(gotpa.getWorkspaceObjects().size()));
@@ -766,6 +788,22 @@ public class WorkspaceTester {
 				assertThat("resolved refs equal", gotpa.getResolvedObjects(),
 						is(exppa.getResolvedObjects()));
 			}
+		}
+	}
+
+	private void checkProvenanceSubActions(
+			List<SubAction> got, List<SubAction> exp) {
+		assertThat("prov subactions same size", got.size(), is(exp.size()));
+		Iterator<SubAction> giter = got.iterator();
+		Iterator<SubAction> eiter = exp.iterator();
+		while (giter.hasNext()) {
+			SubAction g = giter.next();
+			SubAction e = eiter.next();
+			assertThat("same code url", g.getCodeUrl(), is (e.getCodeUrl()));
+			assertThat("same commit", g.getCommit(), is (e.getCommit()));
+			assertThat("same endpoint", g.getEndpointUrl(), is (e.getEndpointUrl()));
+			assertThat("same name", g.getName(), is (e.getName()));
+			assertThat("same ver", g.getVer(), is (e.getVer()));
 		}
 	}
 
@@ -1078,7 +1116,8 @@ public class WorkspaceTester {
 		assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
 		assertThat("copy ref correct", new TestReference(copy.getCopyReference()),
 				is(expectedCopyRef));
-		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(), null);
+		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(),
+				null, original.getWorkspaceId());
 		
 		//getObjectProvenance
 		WorkspaceObjectInformation originfo = ws.getObjectProvenance(original.getSavedBy(),
@@ -1094,7 +1133,8 @@ public class WorkspaceTester {
 		assertThat("returned refs same", copyinfo.getReferences(), is(originfo.getReferences()));
 		assertThat("copy ref correct", new TestReference(copyinfo.getCopyReference()),
 				is(expectedCopyRef));
-		checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(), null);
+		checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(),
+				null, original.getWorkspaceId());
 		
 		
 		//getObjectsSubSet
@@ -1112,7 +1152,8 @@ public class WorkspaceTester {
 		assertThat("returned refs same", copysub.getReferences(), is(origsub.getReferences()));
 		assertThat("copy ref correct", new TestReference(copysub.getCopyReference()),
 				is(expectedCopyRef));
-		checkProvenanceCorrect(origsub.getProvenance(), copysub.getProvenance(), null);
+		checkProvenanceCorrect(origsub.getProvenance(), copysub.getProvenance(),
+				null, original.getWorkspaceId());
 	}
 	
 	protected void compareObjectAndInfo(WorkspaceObjectData got,
@@ -1125,7 +1166,7 @@ public class WorkspaceTester {
 				is(new ObjectMapper().valueToTree(data)));
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));
-		checkProvenanceCorrect(prov, got.getProvenance(), refmap);
+		checkProvenanceCorrect(prov, got.getProvenance(), refmap, info.getWorkspaceId());
 	}
 
 	protected void compareObjectInfo(ObjectInformation original,
