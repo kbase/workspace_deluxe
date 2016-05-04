@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -134,7 +135,8 @@ public class MongoInternalsTest {
 		
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("ws");
 		WorkspaceUser user = new WorkspaceUser("u");
-		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null)
+				.getId();
 		
 		final Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, String> meta = new HashMap<String, String>();
@@ -143,6 +145,7 @@ public class MongoInternalsTest {
 		data.put("fubar", moredata);
 		meta.put("metastuff", "meta");
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
+		setWsidOnProvenance(wsid, p);
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		AbsoluteTypeDefId at = new AbsoluteTypeDefId(
 				new TypeDefName("SomeModule", "AType"), 0, 1);
@@ -183,6 +186,15 @@ public class MongoInternalsTest {
 				mwdb, new WorkspaceUser("u"), rwsi, idid.get(r), pkg);
 		assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
 	}
+
+	private void setWsidOnProvenance(long wsid, Provenance p)
+			throws NoSuchMethodException, IllegalAccessException,
+			InvocationTargetException {
+		Method setWsid = p.getClass().getDeclaredMethod("setWorkspaceID",
+				Long.class);
+		setWsid.setAccessible(true);
+		setWsid.invoke(p, new Long(wsid));
+	}
 	
 	@Test
 	public void setGetRaceCondition() throws Exception {
@@ -193,10 +205,12 @@ public class MongoInternalsTest {
 		WorkspaceIdentifier wsi3 = new WorkspaceIdentifier("setGetRace3");
 		
 		WorkspaceUser user = new WorkspaceUser("u");
-		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null)
+				.getId();
 		
 		final Map<String, Object> data = new HashMap<String, Object>();
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
+		setWsidOnProvenance(wsid, p);
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		AbsoluteTypeDefId at = new AbsoluteTypeDefId(
 				new TypeDefName("SomeModule", "AType"), 0, 1);

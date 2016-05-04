@@ -51,6 +51,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.Provenance.ExternalData;
@@ -730,22 +731,23 @@ public class WorkspaceTester {
 	protected List<Date> checkProvenanceCorrect(WorkspaceUser foo, Provenance prov,
 			ObjectIdentifier obj, Map<String, String> refmap) throws Exception {
 		Provenance pgot = ws.getObjects(foo, Arrays.asList(obj)).get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot, refmap);
+		checkProvenanceCorrect(prov, pgot, refmap, obj.getWorkspaceIdentifier().getId());
 		Provenance pgot2 = ws.getObjectsSubSet(foo, objIDToSubObjID(Arrays.asList(obj)))
 				.get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot2,refmap);
+		checkProvenanceCorrect(prov, pgot2,refmap, obj.getWorkspaceIdentifier().getId());
 		Provenance pgot3 = ws.getObjectProvenance(foo, Arrays.asList(obj)).get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot3,refmap);
+		checkProvenanceCorrect(prov, pgot3,refmap, obj.getWorkspaceIdentifier().getId());
 		return Arrays.asList(pgot.getDate(), pgot2.getDate(), pgot3.getDate());
 	}
 	
 	//if refmap != null expected is a Provenance object. Otherwise it's a subclass
 	// with an implemented getResolvedObjects method.
 	protected void checkProvenanceCorrect(Provenance expected, Provenance got,
-			Map<String, String> refmap) {
+			Map<String, String> refmap, long wsid) {
 		assertThat("user equal", got.getUser(), is(expected.getUser()));
 		assertThat("same number actions", got.getActions().size(),
 				is(expected.getActions().size()));
+		assertThat("wsid correct", got.getWorkspaceID(), is(wsid));
 		if (refmap == null) {
 			assertThat("dates are the same", got.getDate(), is(expected.getDate()));
 		} else {
@@ -757,6 +759,7 @@ public class WorkspaceTester {
 		while (gotAct.hasNext()) {
 			ProvenanceAction gotpa = gotAct.next();
 			ProvenanceAction exppa = expAct.next();
+			assertThat("caller equal", gotpa.getCaller(), is(exppa.getCaller()));
 			assertThat("cmd line equal", gotpa.getCommandLine(), is(exppa.getCommandLine()));
 			assertThat("desc equal", gotpa.getDescription(), is(exppa.getDescription()));
 			assertThat("inc args equal", gotpa.getIncomingArgs(), is(exppa.getIncomingArgs()));
@@ -768,7 +771,9 @@ public class WorkspaceTester {
 			assertThat("service equal", gotpa.getServiceName(), is(exppa.getServiceName()));
 			assertThat("serv ver equal", gotpa.getServiceVersion(), is(exppa.getServiceVersion()));
 			assertThat("time equal", gotpa.getTime(), is(exppa.getTime()));
+			assertThat("custom fields equal", gotpa.getCustom(), is(exppa.getCustom()));
 			checkProvenanceExternalData(gotpa.getExternalData(), exppa.getExternalData());
+			checkProvenanceSubActions(gotpa.getSubActions(), exppa.getSubActions());
 			assertThat("refs equal", gotpa.getWorkspaceObjects(), is(exppa.getWorkspaceObjects()));
 			assertThat("correct number resolved refs", gotpa.getResolvedObjects().size(),
 					is(gotpa.getWorkspaceObjects().size()));
@@ -783,6 +788,22 @@ public class WorkspaceTester {
 				assertThat("resolved refs equal", gotpa.getResolvedObjects(),
 						is(exppa.getResolvedObjects()));
 			}
+		}
+	}
+
+	private void checkProvenanceSubActions(
+			List<SubAction> got, List<SubAction> exp) {
+		assertThat("prov subactions same size", got.size(), is(exp.size()));
+		Iterator<SubAction> giter = got.iterator();
+		Iterator<SubAction> eiter = exp.iterator();
+		while (giter.hasNext()) {
+			SubAction g = giter.next();
+			SubAction e = eiter.next();
+			assertThat("same code url", g.getCodeUrl(), is (e.getCodeUrl()));
+			assertThat("same commit", g.getCommit(), is (e.getCommit()));
+			assertThat("same endpoint", g.getEndpointUrl(), is (e.getEndpointUrl()));
+			assertThat("same name", g.getName(), is (e.getName()));
+			assertThat("same ver", g.getVer(), is (e.getVer()));
 		}
 	}
 
@@ -1095,7 +1116,8 @@ public class WorkspaceTester {
 		assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
 		assertThat("copy ref correct", new TestReference(copy.getCopyReference()),
 				is(expectedCopyRef));
-		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(), null);
+		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(),
+				null, original.getWorkspaceId());
 		
 		//getObjectProvenance
 		WorkspaceObjectInformation originfo = ws.getObjectProvenance(original.getSavedBy(),
@@ -1111,7 +1133,8 @@ public class WorkspaceTester {
 		assertThat("returned refs same", copyinfo.getReferences(), is(originfo.getReferences()));
 		assertThat("copy ref correct", new TestReference(copyinfo.getCopyReference()),
 				is(expectedCopyRef));
-		checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(), null);
+		checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(),
+				null, original.getWorkspaceId());
 		
 		
 		//getObjectsSubSet
@@ -1129,7 +1152,8 @@ public class WorkspaceTester {
 		assertThat("returned refs same", copysub.getReferences(), is(origsub.getReferences()));
 		assertThat("copy ref correct", new TestReference(copysub.getCopyReference()),
 				is(expectedCopyRef));
-		checkProvenanceCorrect(origsub.getProvenance(), copysub.getProvenance(), null);
+		checkProvenanceCorrect(origsub.getProvenance(), copysub.getProvenance(),
+				null, original.getWorkspaceId());
 	}
 	
 	protected void compareObjectAndInfo(WorkspaceObjectData got,
@@ -1142,7 +1166,7 @@ public class WorkspaceTester {
 				is(new ObjectMapper().valueToTree(data)));
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));
-		checkProvenanceCorrect(prov, got.getProvenance(), refmap);
+		checkProvenanceCorrect(prov, got.getProvenance(), refmap, info.getWorkspaceId());
 	}
 
 	protected void compareObjectInfo(ObjectInformation original,

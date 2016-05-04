@@ -11,6 +11,7 @@ import java.util.Map;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientCaller;
 import us.kbase.common.service.JsonClientException;
+import us.kbase.common.service.RpcContext;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
@@ -147,7 +148,7 @@ public class WorkspaceClient {
         caller.setInsecureHttpConnectionAllowed(allowed);
     }
 
-    /** Deprecated. Use setInsecureHttpConnectionAllowed().
+    /** Deprecated. Use setIsInsecureHttpConnectionAllowed().
      * @deprecated
      */
     public void setAuthAllowedForHttp(boolean isAuthAllowedForHttp) {
@@ -198,10 +199,10 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public String ver() throws IOException, JsonClientException {
+    public String ver(RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
-        List<String> res = caller.jsonrpcCall("Workspace.ver", args, retType, true, false);
+        List<String> res = caller.jsonrpcCall("Workspace.ver", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -215,11 +216,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> createWorkspace(CreateWorkspaceParams params) throws IOException, JsonClientException {
+    public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> createWorkspace(CreateWorkspaceParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> retType = new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>() {};
-        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.create_workspace", args, retType, true, true);
+        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.create_workspace", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -232,11 +233,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void alterWorkspaceMetadata(AlterWorkspaceMetadataParams params) throws IOException, JsonClientException {
+    public void alterWorkspaceMetadata(AlterWorkspaceMetadataParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.alter_workspace_metadata", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.alter_workspace_metadata", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -249,11 +250,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> cloneWorkspace(CloneWorkspaceParams params) throws IOException, JsonClientException {
+    public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> cloneWorkspace(CloneWorkspaceParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> retType = new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>() {};
-        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.clone_workspace", args, retType, true, true);
+        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.clone_workspace", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -274,11 +275,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> lockWorkspace(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+    public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> lockWorkspace(WorkspaceIdentity wsi, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> retType = new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>() {};
-        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.lock_workspace", args, retType, true, true);
+        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.lock_workspace", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -294,11 +295,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple7<String, String, String, Long, String, String, Long> getWorkspacemeta(GetWorkspacemetaParams params) throws IOException, JsonClientException {
+    public Tuple7<String, String, String, Long, String, String, Long> getWorkspacemeta(GetWorkspacemetaParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple7<String, String, String, Long, String, String, Long>>> retType = new TypeReference<List<Tuple7<String, String, String, Long, String, String, Long>>>() {};
-        List<Tuple7<String, String, String, Long, String, String, Long>> res = caller.jsonrpcCall("Workspace.get_workspacemeta", args, retType, true, false);
+        List<Tuple7<String, String, String, Long, String, String, Long>> res = caller.jsonrpcCall("Workspace.get_workspacemeta", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -312,11 +313,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> getWorkspaceInfo(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+    public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> getWorkspaceInfo(WorkspaceIdentity wsi, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> retType = new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>() {};
-        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.get_workspace_info", args, retType, true, false);
+        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.get_workspace_info", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -330,11 +331,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public String getWorkspaceDescription(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+    public String getWorkspaceDescription(WorkspaceIdentity wsi, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
-        List<String> res = caller.jsonrpcCall("Workspace.get_workspace_description", args, retType, true, false);
+        List<String> res = caller.jsonrpcCall("Workspace.get_workspace_description", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -347,11 +348,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void setPermissions(SetPermissionsParams params) throws IOException, JsonClientException {
+    public void setPermissions(SetPermissionsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.set_permissions", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.set_permissions", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -363,11 +364,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void setGlobalPermission(SetGlobalPermissionsParams params) throws IOException, JsonClientException {
+    public void setGlobalPermission(SetGlobalPermissionsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.set_global_permission", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.set_global_permission", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -379,11 +380,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void setWorkspaceDescription(SetWorkspaceDescriptionParams params) throws IOException, JsonClientException {
+    public void setWorkspaceDescription(SetWorkspaceDescriptionParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.set_workspace_description", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.set_workspace_description", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -396,11 +397,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public WorkspacePermissions getPermissionsMass(GetPermissionsMassParams mass) throws IOException, JsonClientException {
+    public WorkspacePermissions getPermissionsMass(GetPermissionsMassParams mass, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(mass);
         TypeReference<List<WorkspacePermissions>> retType = new TypeReference<List<WorkspacePermissions>>() {};
-        List<WorkspacePermissions> res = caller.jsonrpcCall("Workspace.get_permissions_mass", args, retType, true, false);
+        List<WorkspacePermissions> res = caller.jsonrpcCall("Workspace.get_permissions_mass", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -414,11 +415,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Map<String,String> getPermissions(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+    public Map<String,String> getPermissions(WorkspaceIdentity wsi, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
-        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, false);
+        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -436,11 +437,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> saveObject(SaveObjectParams params) throws IOException, JsonClientException {
+    public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> saveObject(SaveObjectParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>> retType = new TypeReference<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>() {};
-        List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> res = caller.jsonrpcCall("Workspace.save_object", args, retType, true, false);
+        List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> res = caller.jsonrpcCall("Workspace.save_object", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -455,11 +456,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> saveObjects(SaveObjectsParams params) throws IOException, JsonClientException {
+    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> saveObjects(SaveObjectsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
-        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true);
+        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -476,11 +477,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public GetObjectOutput getObject(GetObjectParams params) throws IOException, JsonClientException {
+    public GetObjectOutput getObject(GetObjectParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<GetObjectOutput>> retType = new TypeReference<List<GetObjectOutput>>() {};
-        List<GetObjectOutput> res = caller.jsonrpcCall("Workspace.get_object", args, retType, true, false);
+        List<GetObjectOutput> res = caller.jsonrpcCall("Workspace.get_object", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -494,11 +495,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<ObjectProvenanceInfo> getObjectProvenance(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+    public List<ObjectProvenanceInfo> getObjectProvenance(List<ObjectIdentity> objectIds, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<List<List<ObjectProvenanceInfo>>> retType = new TypeReference<List<List<ObjectProvenanceInfo>>>() {};
-        List<List<ObjectProvenanceInfo>> res = caller.jsonrpcCall("Workspace.get_object_provenance", args, retType, true, false);
+        List<List<ObjectProvenanceInfo>> res = caller.jsonrpcCall("Workspace.get_object_provenance", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -512,11 +513,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<ObjectData> getObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+    public List<ObjectData> getObjects(List<ObjectIdentity> objectIds, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<List<List<ObjectData>>> retType = new TypeReference<List<List<ObjectData>>>() {};
-        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_objects", args, retType, true, false);
+        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_objects", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -541,11 +542,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<ObjectData> getObjectSubset(List<SubObjectIdentity> subObjectIds) throws IOException, JsonClientException {
+    public List<ObjectData> getObjectSubset(List<SubObjectIdentity> subObjectIds, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(subObjectIds);
         TypeReference<List<List<ObjectData>>> retType = new TypeReference<List<List<ObjectData>>>() {};
-        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_object_subset", args, retType, true, false);
+        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_object_subset", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -560,11 +561,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> getObjectHistory(ObjectIdentity object) throws IOException, JsonClientException {
+    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> getObjectHistory(ObjectIdentity object, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(object);
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
-        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_history", args, retType, true, false);
+        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_history", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -579,11 +580,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> listReferencingObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+    public List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> listReferencingObjects(List<ObjectIdentity> objectIds, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<List<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>> retType = new TypeReference<List<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>>() {};
-        List<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> res = caller.jsonrpcCall("Workspace.list_referencing_objects", args, retType, true, false);
+        List<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> res = caller.jsonrpcCall("Workspace.list_referencing_objects", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -600,11 +601,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Long> listReferencingObjectCounts(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+    public List<Long> listReferencingObjectCounts(List<ObjectIdentity> objectIds, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<List<List<Long>>> retType = new TypeReference<List<List<Long>>>() {};
-        List<List<Long>> res = caller.jsonrpcCall("Workspace.list_referencing_object_counts", args, retType, true, false);
+        List<List<Long>> res = caller.jsonrpcCall("Workspace.list_referencing_object_counts", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -630,11 +631,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<ObjectData> getReferencedObjects(List<List<ObjectIdentity>> refChains) throws IOException, JsonClientException {
+    public List<ObjectData> getReferencedObjects(List<List<ObjectIdentity>> refChains, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(refChains);
         TypeReference<List<List<ObjectData>>> retType = new TypeReference<List<List<ObjectData>>>() {};
-        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_referenced_objects", args, retType, true, false);
+        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_referenced_objects", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -651,11 +652,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple7<String, String, String, Long, String, String, Long>> listWorkspaces(ListWorkspacesParams params) throws IOException, JsonClientException {
+    public List<Tuple7<String, String, String, Long, String, String, Long>> listWorkspaces(ListWorkspacesParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple7<String, String, String, Long, String, String, Long>>>> retType = new TypeReference<List<List<Tuple7<String, String, String, Long, String, String, Long>>>>() {};
-        List<List<Tuple7<String, String, String, Long, String, String, Long>>> res = caller.jsonrpcCall("Workspace.list_workspaces", args, retType, true, false);
+        List<List<Tuple7<String, String, String, Long, String, String, Long>>> res = caller.jsonrpcCall("Workspace.list_workspaces", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -669,11 +670,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> listWorkspaceInfo(ListWorkspaceInfoParams params) throws IOException, JsonClientException {
+    public List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> listWorkspaceInfo(ListWorkspaceInfoParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>>() {};
-        List<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.list_workspace_info", args, retType, true, false);
+        List<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.list_workspace_info", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -689,11 +690,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> listWorkspaceObjects(ListWorkspaceObjectsParams params) throws IOException, JsonClientException {
+    public List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> listWorkspaceObjects(ListWorkspaceObjectsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>> retType = new TypeReference<List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>>() {};
-        List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>> res = caller.jsonrpcCall("Workspace.list_workspace_objects", args, retType, true, false);
+        List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>> res = caller.jsonrpcCall("Workspace.list_workspace_objects", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -707,11 +708,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> listObjects(ListObjectsParams params) throws IOException, JsonClientException {
+    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> listObjects(ListObjectsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
-        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.list_objects", args, retType, true, false);
+        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.list_objects", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -728,11 +729,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> getObjectmeta(GetObjectmetaParams params) throws IOException, JsonClientException {
+    public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> getObjectmeta(GetObjectmetaParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>> retType = new TypeReference<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>() {};
-        List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> res = caller.jsonrpcCall("Workspace.get_objectmeta", args, retType, true, false);
+        List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> res = caller.jsonrpcCall("Workspace.get_objectmeta", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -752,12 +753,12 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> getObjectInfo(List<ObjectIdentity> objectIds, Long includeMetadata) throws IOException, JsonClientException {
+    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> getObjectInfo(List<ObjectIdentity> objectIds, Long includeMetadata, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         args.add(includeMetadata);
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
-        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_info", args, retType, true, false);
+        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_info", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -771,11 +772,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> getObjectInfoNew(GetObjectInfoNewParams params) throws IOException, JsonClientException {
+    public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> getObjectInfoNew(GetObjectInfoNewParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
-        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_info_new", args, retType, true, false);
+        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_info_new", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -789,11 +790,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> renameWorkspace(RenameWorkspaceParams params) throws IOException, JsonClientException {
+    public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> renameWorkspace(RenameWorkspaceParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> retType = new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>() {};
-        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.rename_workspace", args, retType, true, true);
+        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.rename_workspace", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -807,11 +808,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> renameObject(RenameObjectParams params) throws IOException, JsonClientException {
+    public Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> renameObject(RenameObjectParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> retType = new TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>() {};
-        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.rename_object", args, retType, true, true);
+        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.rename_object", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -825,11 +826,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> copyObject(CopyObjectParams params) throws IOException, JsonClientException {
+    public Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> copyObject(CopyObjectParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> retType = new TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>() {};
-        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.copy_object", args, retType, true, true);
+        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.copy_object", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -845,11 +846,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> revertObject(ObjectIdentity object) throws IOException, JsonClientException {
+    public Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> revertObject(ObjectIdentity object, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(object);
         TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> retType = new TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>() {};
-        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.revert_object", args, retType, true, true);
+        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.revert_object", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -866,11 +867,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public GetNamesByPrefixResults getNamesByPrefix(GetNamesByPrefixParams params) throws IOException, JsonClientException {
+    public GetNamesByPrefixResults getNamesByPrefix(GetNamesByPrefixParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<GetNamesByPrefixResults>> retType = new TypeReference<List<GetNamesByPrefixResults>>() {};
-        List<GetNamesByPrefixResults> res = caller.jsonrpcCall("Workspace.get_names_by_prefix", args, retType, true, false);
+        List<GetNamesByPrefixResults> res = caller.jsonrpcCall("Workspace.get_names_by_prefix", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -885,11 +886,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void hideObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+    public void hideObjects(List<ObjectIdentity> objectIds, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.hide_objects", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.hide_objects", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -902,11 +903,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void unhideObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+    public void unhideObjects(List<ObjectIdentity> objectIds, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.unhide_objects", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.unhide_objects", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -919,11 +920,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void deleteObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+    public void deleteObjects(List<ObjectIdentity> objectIds, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.delete_objects", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.delete_objects", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -937,11 +938,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void undeleteObjects(List<ObjectIdentity> objectIds) throws IOException, JsonClientException {
+    public void undeleteObjects(List<ObjectIdentity> objectIds, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.undelete_objects", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.undelete_objects", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -953,11 +954,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void deleteWorkspace(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+    public void deleteWorkspace(WorkspaceIdentity wsi, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.delete_workspace", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.delete_workspace", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -971,11 +972,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void undeleteWorkspace(WorkspaceIdentity wsi) throws IOException, JsonClientException {
+    public void undeleteWorkspace(WorkspaceIdentity wsi, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.undelete_workspace", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.undelete_workspace", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -988,11 +989,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void requestModuleOwnership(String mod) throws IOException, JsonClientException {
+    public void requestModuleOwnership(String mod, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(mod);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.request_module_ownership", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.request_module_ownership", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -1008,11 +1009,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Map<String,String> registerTypespec(RegisterTypespecParams params) throws IOException, JsonClientException {
+    public Map<String,String> registerTypespec(RegisterTypespecParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
-        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.register_typespec", args, retType, true, true);
+        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.register_typespec", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1029,11 +1030,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Long registerTypespecCopy(RegisterTypespecCopyParams params) throws IOException, JsonClientException {
+    public Long registerTypespecCopy(RegisterTypespecCopyParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Long>> retType = new TypeReference<List<Long>>() {};
-        List<Long> res = caller.jsonrpcCall("Workspace.register_typespec_copy", args, retType, true, true);
+        List<Long> res = caller.jsonrpcCall("Workspace.register_typespec_copy", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1058,11 +1059,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<String> releaseModule(String mod) throws IOException, JsonClientException {
+    public List<String> releaseModule(String mod, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(mod);
         TypeReference<List<List<String>>> retType = new TypeReference<List<List<String>>>() {};
-        List<List<String>> res = caller.jsonrpcCall("Workspace.release_module", args, retType, true, true);
+        List<List<String>> res = caller.jsonrpcCall("Workspace.release_module", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1076,11 +1077,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<String> listModules(ListModulesParams params) throws IOException, JsonClientException {
+    public List<String> listModules(ListModulesParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<String>>> retType = new TypeReference<List<List<String>>>() {};
-        List<List<String>> res = caller.jsonrpcCall("Workspace.list_modules", args, retType, true, false);
+        List<List<String>> res = caller.jsonrpcCall("Workspace.list_modules", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1094,11 +1095,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public ModuleVersions listModuleVersions(ListModuleVersionsParams params) throws IOException, JsonClientException {
+    public ModuleVersions listModuleVersions(ListModuleVersionsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<ModuleVersions>> retType = new TypeReference<List<ModuleVersions>>() {};
-        List<ModuleVersions> res = caller.jsonrpcCall("Workspace.list_module_versions", args, retType, true, false);
+        List<ModuleVersions> res = caller.jsonrpcCall("Workspace.list_module_versions", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1111,11 +1112,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public ModuleInfo getModuleInfo(GetModuleInfoParams params) throws IOException, JsonClientException {
+    public ModuleInfo getModuleInfo(GetModuleInfoParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<ModuleInfo>> retType = new TypeReference<List<ModuleInfo>>() {};
-        List<ModuleInfo> res = caller.jsonrpcCall("Workspace.get_module_info", args, retType, true, false);
+        List<ModuleInfo> res = caller.jsonrpcCall("Workspace.get_module_info", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1129,11 +1130,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public String getJsonschema(String type) throws IOException, JsonClientException {
+    public String getJsonschema(String type, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(type);
         TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
-        List<String> res = caller.jsonrpcCall("Workspace.get_jsonschema", args, retType, true, false);
+        List<String> res = caller.jsonrpcCall("Workspace.get_jsonschema", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1147,11 +1148,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Map<String,List<String>> translateFromMD5Types(List<String> md5Types) throws IOException, JsonClientException {
+    public Map<String,List<String>> translateFromMD5Types(List<String> md5Types, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(md5Types);
         TypeReference<List<Map<String,List<String>>>> retType = new TypeReference<List<Map<String,List<String>>>>() {};
-        List<Map<String,List<String>>> res = caller.jsonrpcCall("Workspace.translate_from_MD5_types", args, retType, true, false);
+        List<Map<String,List<String>>> res = caller.jsonrpcCall("Workspace.translate_from_MD5_types", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1165,11 +1166,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Map<String,String> translateToMD5Types(List<String> semTypes) throws IOException, JsonClientException {
+    public Map<String,String> translateToMD5Types(List<String> semTypes, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(semTypes);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
-        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.translate_to_MD5_types", args, retType, true, false);
+        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.translate_to_MD5_types", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1182,11 +1183,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public TypeInfo getTypeInfo(String type) throws IOException, JsonClientException {
+    public TypeInfo getTypeInfo(String type, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(type);
         TypeReference<List<TypeInfo>> retType = new TypeReference<List<TypeInfo>>() {};
-        List<TypeInfo> res = caller.jsonrpcCall("Workspace.get_type_info", args, retType, true, false);
+        List<TypeInfo> res = caller.jsonrpcCall("Workspace.get_type_info", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1199,11 +1200,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<TypeInfo> getAllTypeInfo(String mod) throws IOException, JsonClientException {
+    public List<TypeInfo> getAllTypeInfo(String mod, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(mod);
         TypeReference<List<List<TypeInfo>>> retType = new TypeReference<List<List<TypeInfo>>>() {};
-        List<List<TypeInfo>> res = caller.jsonrpcCall("Workspace.get_all_type_info", args, retType, true, false);
+        List<List<TypeInfo>> res = caller.jsonrpcCall("Workspace.get_all_type_info", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1216,11 +1217,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public FuncInfo getFuncInfo(String func) throws IOException, JsonClientException {
+    public FuncInfo getFuncInfo(String func, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(func);
         TypeReference<List<FuncInfo>> retType = new TypeReference<List<FuncInfo>>() {};
-        List<FuncInfo> res = caller.jsonrpcCall("Workspace.get_func_info", args, retType, true, false);
+        List<FuncInfo> res = caller.jsonrpcCall("Workspace.get_func_info", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1233,11 +1234,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public List<FuncInfo> getAllFuncInfo(String mod) throws IOException, JsonClientException {
+    public List<FuncInfo> getAllFuncInfo(String mod, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(mod);
         TypeReference<List<List<FuncInfo>>> retType = new TypeReference<List<List<FuncInfo>>>() {};
-        List<List<FuncInfo>> res = caller.jsonrpcCall("Workspace.get_all_func_info", args, retType, true, false);
+        List<List<FuncInfo>> res = caller.jsonrpcCall("Workspace.get_all_func_info", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1251,11 +1252,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void grantModuleOwnership(GrantModuleOwnershipParams params) throws IOException, JsonClientException {
+    public void grantModuleOwnership(GrantModuleOwnershipParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.grant_module_ownership", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.grant_module_ownership", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -1268,11 +1269,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public void removeModuleOwnership(RemoveModuleOwnershipParams params) throws IOException, JsonClientException {
+    public void removeModuleOwnership(RemoveModuleOwnershipParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.remove_module_ownership", args, retType, false, true);
+        caller.jsonrpcCall("Workspace.remove_module_ownership", args, retType, false, true, jsonRpcContext);
     }
 
     /**
@@ -1287,11 +1288,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public Map<String,Map<String,String>> listAllTypes(ListAllTypesParams params) throws IOException, JsonClientException {
+    public Map<String,Map<String,String>> listAllTypes(ListAllTypesParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Map<String,Map<String,String>>>> retType = new TypeReference<List<Map<String,Map<String,String>>>>() {};
-        List<Map<String,Map<String,String>>> res = caller.jsonrpcCall("Workspace.list_all_types", args, retType, true, false);
+        List<Map<String,Map<String,String>>> res = caller.jsonrpcCall("Workspace.list_all_types", args, retType, true, false, jsonRpcContext);
         return res.get(0);
     }
 
@@ -1305,11 +1306,11 @@ public class WorkspaceClient {
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public UObject administer(UObject command) throws IOException, JsonClientException {
+    public UObject administer(UObject command, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(command);
         TypeReference<List<UObject>> retType = new TypeReference<List<UObject>>() {};
-        List<UObject> res = caller.jsonrpcCall("Workspace.administer", args, retType, true, true);
+        List<UObject> res = caller.jsonrpcCall("Workspace.administer", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 }

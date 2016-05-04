@@ -23,6 +23,9 @@ import us.kbase.common.service.UObject;
  *         list<ProvenanceAction> provenance - the object's provenance.
  *         username creator - the user that first saved the object to the
  *                 workspace.
+ *         ws_id orig_wsid - the id of the workspace in which this object was
+ *                         originally saved. Null for objects saved prior to version
+ *                         0.4.1.
  *         timestamp created - the date the object was first saved to the
  *                 workspace.
  *         list<obj_ref> - the references contained within the object.
@@ -47,6 +50,7 @@ import us.kbase.common.service.UObject;
     "info",
     "provenance",
     "creator",
+    "orig_wsid",
     "created",
     "refs",
     "copied",
@@ -65,6 +69,8 @@ public class ObjectData {
     private List<ProvenanceAction> provenance;
     @JsonProperty("creator")
     private java.lang.String creator;
+    @JsonProperty("orig_wsid")
+    private java.lang.Long origWsid;
     @JsonProperty("created")
     private java.lang.String created;
     @JsonProperty("refs")
@@ -138,6 +144,21 @@ public class ObjectData {
 
     public ObjectData withCreator(java.lang.String creator) {
         this.creator = creator;
+        return this;
+    }
+
+    @JsonProperty("orig_wsid")
+    public java.lang.Long getOrigWsid() {
+        return origWsid;
+    }
+
+    @JsonProperty("orig_wsid")
+    public void setOrigWsid(java.lang.Long origWsid) {
+        this.origWsid = origWsid;
+    }
+
+    public ObjectData withOrigWsid(java.lang.Long origWsid) {
+        this.origWsid = origWsid;
         return this;
     }
 
@@ -258,7 +279,7 @@ public class ObjectData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", created=")+ created)+", refs=")+ refs)+", copied=")+ copied)+", copySourceInaccessible=")+ copySourceInaccessible)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", origWsid=")+ origWsid)+", created=")+ created)+", refs=")+ refs)+", copied=")+ copied)+", copySourceInaccessible=")+ copySourceInaccessible)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
