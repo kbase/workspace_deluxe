@@ -15,11 +15,13 @@ import us.kbase.common.exceptions.UnimplementedException;
 //TODO unit tests
 //TODO this should keep track of its size & punt if it gets too large
 //TODO consider checking the syntax of urls
+//TODO PROV check data with old provenance missing fields
 
 public class Provenance {
 	
 	private String user;
 	private Date date;
+	private Long wsid = null;
 	protected List<ProvenanceAction> actions =
 			new ArrayList<ProvenanceAction>();
 	
@@ -48,6 +50,17 @@ public class Provenance {
 	public Date getDate() {
 		return date;
 	}
+	
+	protected void setWorkspaceID(final Long wsid) {
+		if (wsid < 1) {
+			throw new IllegalArgumentException("wsid must be > 0");
+		}
+		this.wsid = wsid;
+	}
+	// will be null if not set yet 
+	public Long getWorkspaceID() {
+		return wsid;
+	}
 
 	public List<ProvenanceAction> getActions() {
 		return new ArrayList<ProvenanceAction>(actions);
@@ -60,6 +73,8 @@ public class Provenance {
 		builder.append(user);
 		builder.append(", date=");
 		builder.append(date);
+		builder.append(", wsid=");
+		builder.append(wsid);
 		builder.append(", actions=");
 		builder.append(actions);
 		builder.append("]");

@@ -15,6 +15,7 @@ public class MongoProvenance extends Provenance {
 	
 	MongoProvenance(final Provenance p) {
 		super(p.getUser());
+		setWorkspaceID(p.getWorkspaceID());
 		for (final Provenance.ProvenanceAction pa: p.getActions()) {
 			addAction(pa);
 		}

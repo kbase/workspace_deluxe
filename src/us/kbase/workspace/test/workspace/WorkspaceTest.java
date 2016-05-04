@@ -2558,6 +2558,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceIdentifier prov = new WorkspaceIdentifier("provenance");
 		ws.createWorkspace(foo, prov.getName(), false, null, null);
 		long wsid = ws.getWorkspaceInformation(foo, prov).getId();
+		WorkspaceIdentifier provid = new WorkspaceIdentifier(wsid);
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("foo", "bar");
 		Provenance emptyprov = new Provenance(foo);
@@ -2636,7 +2637,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		refmap.put("provenance/auto2/1", wsid + "/2/1");
 		refmap.put("provenance/auto1", wsid + "/1/3");
 		
-		checkProvenanceCorrect(foo, p, new ObjectIdentifier(prov, 4), refmap);
+		checkProvenanceCorrect(foo, p, new ObjectIdentifier(provid, 4), refmap);
 		
 		try {
 			new WorkspaceSaveObject(data, SAFE_TYPE1, null, null, false);
@@ -2671,7 +2672,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(foo, prov, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p2, false)),
 				getIdFactory());
-		List<Date> dates = checkProvenanceCorrect(foo, p2, new ObjectIdentifier(prov, 5),
+		List<Date> dates = checkProvenanceCorrect(foo, p2, new ObjectIdentifier(provid, 5),
 				new HashMap<String, String>());
 		Provenance got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
 		assertThat("Prov date constant", got2.getDate(), is(dates.get(0)));
@@ -2689,7 +2690,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(foo, prov, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p3, false)),
 				getIdFactory());
-		checkProvenanceCorrect(foo, p3, new ObjectIdentifier(prov, 6),
+		checkProvenanceCorrect(foo, p3, new ObjectIdentifier(provid, 6),
 				new HashMap<String, String>());
 		
 		Provenance p4 = new Provenance(foo);
@@ -2700,7 +2701,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(foo, prov, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p4, false)),
 				getIdFactory());
-		checkProvenanceCorrect(foo, p4, new ObjectIdentifier(prov, 7),
+		checkProvenanceCorrect(foo, p4, new ObjectIdentifier(provid, 7),
 				new HashMap<String, String>());
 	}
 	
@@ -2732,7 +2733,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1 provenance size 1000332 exceeds limit of 1000000"));
+					is("Object #1 provenance size 1000348 exceeds limit of 1000000"));
 		}
 	}
 	
