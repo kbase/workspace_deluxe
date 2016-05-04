@@ -2002,6 +2002,7 @@ ObjectProvenanceInfo is a reference to a hash where the following keys are defin
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
@@ -2086,6 +2087,7 @@ ObjectProvenanceInfo is a reference to a hash where the following keys are defin
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
@@ -2234,6 +2236,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
@@ -2319,6 +2322,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
@@ -2472,6 +2476,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
@@ -2561,6 +2566,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
@@ -3112,6 +3118,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
@@ -3198,6 +3205,7 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
@@ -9425,6 +9433,9 @@ The provenance and supplemental info for an object.
         list<ProvenanceAction> provenance - the object's provenance.
         username creator - the user that first saved the object to the
                 workspace.
+        ws_id orig_wsid - the id of the workspace in which this object was
+                        originally saved. Null for objects saved prior to version
+                        0.4.1.
         timestamp created - the date the object was first saved to the
                 workspace.
         list<obj_ref> - the references contained within the object.
@@ -9450,6 +9461,7 @@ a reference to a hash where the following keys are defined:
 info has a value which is a Workspace.object_info
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
+orig_wsid has a value which is a Workspace.ws_id
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
@@ -9468,6 +9480,7 @@ a reference to a hash where the following keys are defined:
 info has a value which is a Workspace.object_info
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
+orig_wsid has a value which is a Workspace.ws_id
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
@@ -9498,6 +9511,9 @@ The data and supplemental info for an object.
         list<ProvenanceAction> provenance - the object's provenance.
         username creator - the user that first saved the object to the
                 workspace.
+        ws_id orig_wsid - the id of the workspace in which this object was
+                        originally saved. Null for objects saved prior to version
+                        0.4.1.
         timestamp created - the date the object was first saved to the
                 workspace.
         list<obj_ref> - the references contained within the object.
@@ -9524,6 +9540,7 @@ data has a value which is an UnspecifiedObject, which can hold any non-null obje
 info has a value which is a Workspace.object_info
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
+orig_wsid has a value which is a Workspace.ws_id
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
@@ -9543,6 +9560,7 @@ data has a value which is an UnspecifiedObject, which can hold any non-null obje
 info has a value which is a Workspace.object_info
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
+orig_wsid has a value which is a Workspace.ws_id
 created has a value which is a Workspace.timestamp
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref

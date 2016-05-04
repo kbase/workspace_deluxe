@@ -47,6 +47,7 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ExternalData;
+import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectInformation;
@@ -84,6 +85,7 @@ public class ArgUtils {
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
 			p.addAction(new Provenance.ProvenanceAction()
 					.withTime(parseDate(a.getTime()))
+					.withCaller(a.getCaller())
 					.withServiceName(a.getService())
 					.withServiceVersion(a.getServiceVer())
 					.withMethod(a.getMethod())
@@ -96,12 +98,33 @@ public class ArgUtils {
 					.withIncomingArgs(a.getIntermediateIncoming())
 					.withOutgoingArgs(a.getIntermediateOutgoing())
 					.withExternalData(processExternalData(a.getExternalData()))
+					.withSubActions(processSubActions(a.getSubactions()))
+					.withCustom(a.getCustom())
 					.withDescription(a.getDescription())
 					);
 		}
 		return p;
 	}
 	
+	private static List<SubAction> processSubActions(
+			List<us.kbase.workspace.SubAction> subactions) {
+		final List<SubAction> ret = new LinkedList<SubAction>();
+		if (subactions == null) {
+			return ret;
+		}
+		for (final us.kbase.workspace.SubAction sa: subactions) {
+			checkAddlArgs(sa.getAdditionalProperties(), sa.getClass());
+			ret.add(new SubAction()
+					.withCodeUrl(sa.getCodeUrl())
+					.withCommit(sa.getCommit())
+					.withEndpointUrl(sa.getEndpointUrl())
+					.withName(sa.getName())
+					.withVer(sa.getVer())
+					);
+		}
+		return ret;
+	}
+
 	private static List<ExternalData> processExternalData(
 			final List<ExternalDataUnit> externalData) throws ParseException {
 		final List<ExternalData> ret = new LinkedList<ExternalData>();
@@ -388,6 +411,7 @@ public class ArgUtils {
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
+					.withOrigWsid(o.getProvenance().getWorkspaceID())
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences())
@@ -419,6 +443,7 @@ public class ArgUtils {
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
+					.withOrigWsid(o.getProvenance().getWorkspaceID())
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
 					.withRefs(o.getReferences())
@@ -538,6 +563,7 @@ public class ArgUtils {
 		for (final Provenance.ProvenanceAction a: actions) {
 			pas.add(new ProvenanceAction()
 					.withTime(formatDate(a.getTime()))
+					.withCaller(a.getCaller())
 					.withService(a.getServiceName())
 					.withServiceVer(a.getServiceVersion())
 					.withMethod(a.getMethod())
@@ -552,12 +578,33 @@ public class ArgUtils {
 					.withIntermediateOutgoing(a.getOutgoingArgs())
 					.withExternalData(
 							translateExternalDataUnits(a.getExternalData()))
+					.withCustom(a.getCustom())
+					.withSubactions(translateSubActions(a.getSubActions()))
 					.withDescription(a.getDescription())
 					);
 		}
 		return pas;
 	}
 	
+	private static List<us.kbase.workspace.SubAction> translateSubActions(
+			List<SubAction> subActions) {
+		final List<us.kbase.workspace.SubAction> ret =
+				new LinkedList<us.kbase.workspace.SubAction>();
+		if (subActions == null) {
+			return ret;
+		}
+		for (final SubAction sa: subActions) {
+			ret.add(new us.kbase.workspace.SubAction()
+					.withCodeUrl(sa.getCodeUrl())
+					.withCommit(sa.getCommit())
+					.withEndpointUrl(sa.getEndpointUrl())
+					.withName(sa.getName())
+					.withVer(sa.getVer())
+					);
+		}
+		return ret;
+	}
+
 	private static List<ExternalDataUnit> translateExternalDataUnits(
 			List<ExternalData> externalData) {
 		final List<ExternalDataUnit> ret = new LinkedList<ExternalDataUnit>();

@@ -838,6 +838,9 @@ module Workspace {
 		list<ProvenanceAction> provenance - the object's provenance.
 		username creator - the user that first saved the object to the
 			workspace.
+		ws_id orig_wsid - the id of the workspace in which this object was
+				originally saved. Null for objects saved prior to version
+				0.4.1.
 		timestamp created - the date the object was first saved to the
 			workspace.
 		list<obj_ref> - the references contained within the object.
@@ -857,6 +860,7 @@ module Workspace {
 		object_info info;
 		list<ProvenanceAction> provenance;
 		username creator;
+		ws_id orig_wsid;
 		timestamp created;
 		list<obj_ref> refs;
 		obj_ref copied;
@@ -879,6 +883,9 @@ module Workspace {
 		list<ProvenanceAction> provenance - the object's provenance.
 		username creator - the user that first saved the object to the
 			workspace.
+		ws_id orig_wsid - the id of the workspace in which this object was
+				originally saved. Null for objects saved prior to version
+				0.4.1.
 		timestamp created - the date the object was first saved to the
 			workspace.
 		list<obj_ref> - the references contained within the object.
@@ -900,6 +907,7 @@ module Workspace {
 		object_info info;
 		list<ProvenanceAction> provenance;
 		username creator;
+		ws_id orig_wsid;
 		timestamp created;
 		list<obj_ref> refs;
 		obj_ref copied;

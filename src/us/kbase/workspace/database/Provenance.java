@@ -15,7 +15,6 @@ import us.kbase.common.exceptions.UnimplementedException;
 //TODO unit tests
 //TODO this should keep track of its size & punt if it gets too large
 //TODO consider checking the syntax of urls
-//TODO PROV check data with old provenance missing fields
 
 public class Provenance {
 	
@@ -301,10 +300,6 @@ public class Provenance {
 	}
 	
 	public static class ProvenanceAction {
-		
-		// TODO PROV test caller, custom, subactions
-		// TODO PROV add wsid to provenance as orig wsid + expose
-		// TODO PROV test wsid exposure
 		
 		protected Date time;
 		protected String caller;
