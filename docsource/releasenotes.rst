@@ -1,6 +1,18 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.4.1 (Released TBD)
+--------------------------------
+
+NEW FEATURES:
+
+N/A
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* Added the ``custom``, ``subactions``, and ``caller`` fields to
+  ``ProvenanceAction``.
+
 VERSION: 0.4.0 (Released 2/2/16)
 --------------------------------
 

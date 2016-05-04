@@ -1650,6 +1650,7 @@ obj_id is an int
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -1662,6 +1663,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 timestamp is a string
 obj_ref is a string
@@ -1673,6 +1676,11 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	url has a value which is a string
+	commit has a value which is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -1716,6 +1724,7 @@ obj_id is an int
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -1728,6 +1737,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 timestamp is a string
 obj_ref is a string
@@ -1739,6 +1750,11 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	url has a value which is a string
+	commit has a value which is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -2009,6 +2025,7 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2021,6 +2038,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
@@ -2030,6 +2049,11 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	url has a value which is a string
+	commit has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2084,6 +2108,7 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2096,6 +2121,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
@@ -2105,6 +2132,11 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	url has a value which is a string
+	commit has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2223,6 +2255,7 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2235,6 +2268,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
@@ -2244,6 +2279,11 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	url has a value which is a string
+	commit has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2299,6 +2339,7 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2311,6 +2352,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
@@ -2320,6 +2363,11 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	url has a value which is a string
+	commit has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2443,6 +2491,7 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2455,6 +2504,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
@@ -2464,6 +2515,11 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	url has a value which is a string
+	commit has a value which is a string
 id_type is a string
 extracted_id is a string
 
@@ -2523,6 +2579,7 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2535,6 +2592,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
@@ -2544,6 +2603,11 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	url has a value which is a string
+	commit has a value which is a string
 id_type is a string
 extracted_id is a string
 
@@ -3065,6 +3129,7 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -3077,6 +3142,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
@@ -3086,6 +3153,11 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	url has a value which is a string
+	commit has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -3142,6 +3214,7 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -3154,6 +3227,8 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
@@ -3163,6 +3238,11 @@ ExternalDataUnit is a reference to a hash where the following keys are defined:
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	url has a value which is a string
+	commit has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -8422,6 +8502,66 @@ description has a value which is a string
 
 
 
+=head2 SubAction
+
+=over 4
+
+
+
+=item Description
+
+Information about a subaction that is invoked by a provenance action.
+
+        A provenance action (PA) may invoke subactions (SA), e.g. calling a
+        separate piece of code, a service, or a script. In most cases these
+        calls are the same from PA to PA and so do not need to be listed in
+        the provenance since providing information about the PA alone provides
+        reproducibility.
+        
+        In some cases, however, SAs may change over time, such that invoking
+        the same PA with the same parameters may produce different results.
+        For example, if a PA calls a remote server, that server may be updated
+        between a PA invoked on day T and another PA invoked on day T+1.
+        
+        The SubAction structure allows for specifying information about SAs
+        that may dynamically change from PA invocation to PA invocation.
+        
+        string name - the name of the SA.
+        string ver - the version of SA.
+        string url - a url pointing to the SA's codebase.
+        string commit - a version control commit ID for the SA.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+name has a value which is a string
+ver has a value which is a string
+url has a value which is a string
+commit has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+name has a value which is a string
+ver has a value which is a string
+url has a value which is a string
+commit has a value which is a string
+
+
+=end text
+
+=back
+
+
+
 =head2 ProvenanceAction
 
 =over 4
@@ -8432,11 +8572,11 @@ description has a value which is a string
 
 A provenance action.
 
-        A provenance action is an action taken while transforming one data
-        object to another. There may be several provenance actions taken in
-        series. An action is typically running a script, running an api
-        command, etc. All of the following are optional, but more information
-        provided equates to better data provenance.
+        A provenance action (PA) is an action taken while transforming one data
+        object to another. There may be several PAs taken in series. A PA is
+        typically running a script, running an api command, etc. All of the
+        following fields are optional, but more information provided equates to
+        better data provenance.
         
         resolved_ws_objects should never be set by the user; it is set by the
         workspace service when returning data.
@@ -8445,6 +8585,8 @@ A provenance action.
         is 1MB.
         
         timestamp time - the time the action was started.
+        string caller - the name or id of the invoker of this provenance
+                action. In most cases, this will be the same for all PAs.
         string service - the name of the service that performed this action.
         string service_ver - the version of the service that performed this action.
         string method - the method of the service that performed this action.
@@ -8479,6 +8621,10 @@ A provenance action.
         list<ExternalDataUnit> external_data - data external to the workspace
                 that was either imported to the workspace or used to create a
                 workspace object.
+        list<SubAction> subactions - the subactions taken as a part of this
+                action.
+        mapping<string, string> custom - user definable custom provenance
+                fields and their values.
         string description - a free text description of this action.
 
 
@@ -8489,6 +8635,7 @@ A provenance action.
 <pre>
 a reference to a hash where the following keys are defined:
 time has a value which is a Workspace.timestamp
+caller has a value which is a string
 service has a value which is a string
 service_ver has a value which is a string
 method has a value which is a string
@@ -8501,6 +8648,8 @@ resolved_ws_objects has a value which is a reference to a list where each elemen
 intermediate_incoming has a value which is a reference to a list where each element is a string
 intermediate_outgoing has a value which is a reference to a list where each element is a string
 external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+custom has a value which is a reference to a hash where the key is a string and the value is a string
 description has a value which is a string
 
 </pre>
@@ -8511,6 +8660,7 @@ description has a value which is a string
 
 a reference to a hash where the following keys are defined:
 time has a value which is a Workspace.timestamp
+caller has a value which is a string
 service has a value which is a string
 service_ver has a value which is a string
 method has a value which is a string
@@ -8523,6 +8673,8 @@ resolved_ws_objects has a value which is a reference to a list where each elemen
 intermediate_incoming has a value which is a reference to a list where each element is a string
 intermediate_outgoing has a value which is a reference to a list where each element is a string
 external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+custom has a value which is a reference to a hash where the key is a string and the value is a string
 description has a value which is a string
 
 
