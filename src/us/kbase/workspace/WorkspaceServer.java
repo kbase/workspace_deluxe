@@ -112,7 +112,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @SuppressWarnings("unused")
 	private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
     @SuppressWarnings("unused")
-	private static final String gitCommitHash = "8c9b3e7dcb193f891019cf4ecfb2e7f119408460";
+	private static final String gitCommitHash = "26c8545cfcdf6818ee8cd18b728a697d549f1ea9";
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry

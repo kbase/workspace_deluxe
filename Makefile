@@ -69,22 +69,18 @@ compile-java-client:
 	$(ANT) compile_client
 
 compile-typespec-java:
-	gen_java_types -S -o . -u $(URL) $(SERVICE).spec
-	-rm lib/*.jar
+	kb-sdk compile  --java --javasrc src --javasrv --out . \
+		--url $(URL) $(SERVICE).spec
+
 
 compile-typespec:
-	mkdir -p lib/biokbase/$(SERVICE)
-	touch lib/biokbase/__init__.py # do not include code in biokbase/__init__.py
-	touch lib/biokbase/$(SERVICE)/__init__.py 
-	mkdir -p lib/javascript/$(SERVICE)
-	compile_typespec \
-		--client Bio::KBase::$(SERVICE)::Client \
-		--py biokbase.$(SERVICE).client \
-		--js javascript/$(SERVICE)/Client \
+	kb-sdk compile \
+		--out lib \
+		--jsclname javascript/$(SERVICE)/Client \
+		--plclname Bio::KBase::$(SERVICE)::Client \
+		--pyclname biokbase.$(SERVICE).client \
 		--url $(URL) \
-		$(SERVICE).spec lib
-	-rm lib/$(SERVICE_CAPS)Server.p?
-	-rm lib/$(SERVICE_CAPS)Impl.p?
+		$(SERVICE).spec
 
 # configure endpoints used by scripts, and possibly other script runtime options in the future
 configure-scripts:

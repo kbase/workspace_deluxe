@@ -839,7 +839,7 @@ module Workspace {
 		username creator - the user that first saved the object to the
 			workspace.
 		ws_id orig_wsid - the id of the workspace in which this object was
-				originally saved. Null for objects saved prior to version
+				originally saved. Missing for objects saved prior to version
 				0.4.1.
 		timestamp created - the date the object was first saved to the
 			workspace.
@@ -884,7 +884,7 @@ module Workspace {
 		username creator - the user that first saved the object to the
 			workspace.
 		ws_id orig_wsid - the id of the workspace in which this object was
-				originally saved. Null for objects saved prior to version
+				originally saved. Missing for objects saved prior to version
 				0.4.1.
 		timestamp created - the date the object was first saved to the
 			workspace.
