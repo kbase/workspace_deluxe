@@ -83,7 +83,13 @@ public class ArgUtils {
 		}
 		for (final ProvenanceAction a: actions) {
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
-			p.addAction(new Provenance.ProvenanceAction()
+			if (a.getTime() != null && a.getEpoch() != null) {
+				throw new IllegalArgumentException(
+						"Cannot specify both time and epoch in provenance " +
+						"action");
+			}
+			final Provenance.ProvenanceAction pa =
+					new Provenance.ProvenanceAction()
 					.withTime(parseDate(a.getTime()))
 					.withCaller(a.getCaller())
 					.withServiceName(a.getService())
@@ -100,8 +106,11 @@ public class ArgUtils {
 					.withExternalData(processExternalData(a.getExternalData()))
 					.withSubActions(processSubActions(a.getSubactions()))
 					.withCustom(a.getCustom())
-					.withDescription(a.getDescription())
-					);
+					.withDescription(a.getDescription());
+			if (a.getEpoch() != null) {
+				pa.setTime(new Date(a.getEpoch()));
+			}
+			p.addAction(pa);
 		}
 		return p;
 	}
@@ -132,8 +141,14 @@ public class ArgUtils {
 			return ret;
 		}
 		for (final ExternalDataUnit edu: externalData) {
+			if (edu.getResourceReleaseDate() != null &&
+					edu.getResourceReleaseEpoch() != null) {
+				throw new IllegalArgumentException(
+						"Cannot specify both time and epoch in external " +
+						"data unit");
+			}
 			checkAddlArgs(edu.getAdditionalProperties(), edu.getClass());
-			ret.add(new ExternalData()
+			final ExternalData ed = new ExternalData()
 					.withDataId(edu.getDataId())
 					.withDataUrl(edu.getDataUrl())
 					.withDescription(edu.getDescription())
@@ -141,8 +156,12 @@ public class ArgUtils {
 					.withResourceReleaseDate(
 							parseDate(edu.getResourceReleaseDate()))
 					.withResourceUrl(edu.getResourceUrl())
-					.withResourceVersion(edu.getResourceVersion())
-					);
+					.withResourceVersion(edu.getResourceVersion());
+			if (edu.getResourceReleaseEpoch() != null) {
+				ed.setResourceReleaseDate(
+						new Date(edu.getResourceReleaseEpoch()));
+			}
+			ret.add(ed);
 		}
 		return ret;
 	}
@@ -414,6 +433,7 @@ public class ArgUtils {
 					.withOrigWsid(o.getProvenance().getWorkspaceID())
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
+					.withEpoch(o.getProvenance().getDate().getTime())
 					.withRefs(o.getReferences())
 					.withCopied(o.getCopyReference() == null ? null :
 						o.getCopyReference().getId())
@@ -446,6 +466,7 @@ public class ArgUtils {
 					.withOrigWsid(o.getProvenance().getWorkspaceID())
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
+					.withEpoch(o.getProvenance().getDate().getTime())
 					.withRefs(o.getReferences())
 					.withCopied(o.getCopyReference() == null ? null :
 						o.getCopyReference().getId())
@@ -561,8 +582,10 @@ public class ArgUtils {
 			final List<Provenance.ProvenanceAction> actions) {
 		final List<ProvenanceAction> pas = new LinkedList<ProvenanceAction>();
 		for (final Provenance.ProvenanceAction a: actions) {
+			final Date d = a.getTime();
 			pas.add(new ProvenanceAction()
-					.withTime(formatDate(a.getTime()))
+					.withTime(formatDate(d))
+					.withEpoch(d == null ? null : d.getTime())
 					.withCaller(a.getCaller())
 					.withService(a.getServiceName())
 					.withServiceVer(a.getServiceVersion())
@@ -612,13 +635,14 @@ public class ArgUtils {
 			return ret; //this should never happen, but just in case
 		}
 		for (final ExternalData ed: externalData) {
+			final Date d = ed.getResourceReleaseDate();
 			ret.add(new ExternalDataUnit()
 					.withDataId(ed.getDataId())
 					.withDataUrl(ed.getDataUrl())
 					.withDescription(ed.getDescription())
 					.withResourceName(ed.getResourceName())
-					.withResourceReleaseDate(
-							formatDate(ed.getResourceReleaseDate()))
+					.withResourceReleaseDate(formatDate(d))
+					.withResourceReleaseEpoch(d == null ? null : d.getTime())
 					.withResourceUrl(ed.getResourceUrl())
 					.withResourceVersion(ed.getResourceVersion())
 					);

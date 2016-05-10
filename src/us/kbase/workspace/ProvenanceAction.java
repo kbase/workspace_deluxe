@@ -26,10 +26,14 @@ import us.kbase.common.service.UObject;
  *         resolved_ws_objects should never be set by the user; it is set by the
  *         workspace service when returning data.
  *         
+ *         On input, only one of the resource_release_date or
+ *         resource_release_epoch may be supplied. Both are supplied on output.
+ *         
  *         The maximum size of the entire provenance object, including all actions,
  *         is 1MB.
  *         
- *         timestamp time - the time the action was started.
+ *         timestamp time - the time the action was started
+ *         epoch epoch - the time the action was started.
  *         string caller - the name or id of the invoker of this provenance
  *                 action. In most cases, this will be the same for all PAs.
  *         string service - the name of the service that performed this action.
@@ -78,6 +82,7 @@ import us.kbase.common.service.UObject;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "time",
+    "epoch",
     "caller",
     "service",
     "service_ver",
@@ -99,6 +104,8 @@ public class ProvenanceAction {
 
     @JsonProperty("time")
     private java.lang.String time;
+    @JsonProperty("epoch")
+    private Long epoch;
     @JsonProperty("caller")
     private java.lang.String caller;
     @JsonProperty("service")
@@ -145,6 +152,21 @@ public class ProvenanceAction {
 
     public ProvenanceAction withTime(java.lang.String time) {
         this.time = time;
+        return this;
+    }
+
+    @JsonProperty("epoch")
+    public Long getEpoch() {
+        return epoch;
+    }
+
+    @JsonProperty("epoch")
+    public void setEpoch(Long epoch) {
+        this.epoch = epoch;
+    }
+
+    public ProvenanceAction withEpoch(Long epoch) {
+        this.epoch = epoch;
         return this;
     }
 
@@ -400,7 +422,7 @@ public class ProvenanceAction {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", caller=")+ caller)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", inputWsObjects=")+ inputWsObjects)+", resolvedWsObjects=")+ resolvedWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", externalData=")+ externalData)+", subactions=")+ subactions)+", custom=")+ custom)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", epoch=")+ epoch)+", caller=")+ caller)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", inputWsObjects=")+ inputWsObjects)+", resolvedWsObjects=")+ resolvedWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", externalData=")+ externalData)+", subactions=")+ subactions)+", custom=")+ custom)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

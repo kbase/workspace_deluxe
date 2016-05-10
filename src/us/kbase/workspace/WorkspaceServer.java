@@ -107,12 +107,9 @@ import us.kbase.workspace.kbase.WorkspaceServerMethods;
  */
 public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
-    @SuppressWarnings("unused")
-	private static final String version = "0.0.1";
-    @SuppressWarnings("unused")
-	private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    @SuppressWarnings("unused")
-	private static final String gitCommitHash = "26c8545cfcdf6818ee8cd18b728a697d549f1ea9";
+    private static final String version = "0.0.1";
+    private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
+    private static final String gitCommitHash = "1742eae96c6804c847a63f85140e81a0d13cca27";
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
@@ -1740,6 +1737,12 @@ public class WorkspaceServer extends JsonServerServlet {
         returnVal.put("message", "");
         returnVal.put("version", VER);
         returnVal.put("git_url", GIT);
+        @SuppressWarnings("unused")
+        String v = version;
+        @SuppressWarnings("unused")
+        String h = gitCommitHash;
+        @SuppressWarnings("unused")
+        String u = gitUrl;
         //END_STATUS
         return returnVal;
     }

@@ -16,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: ListWorkspaceInfoParams</p>
  * <pre>
  * Input parameters for the "list_workspace_info" function.
+ * Only one of each timestamp/epoch pair may be supplied.
  * Optional parameters:
  * permission perm - filter workspaces by minimum permission level. 'None'
  *         and 'readable' are ignored.
@@ -27,6 +28,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * timestamp after - only return workspaces that were modified after this
  *         date.
  * timestamp before - only return workspaces that were modified before
+ *         this date.
+ * epoch after_epoch - only return workspaces that were modified after
+ *         this date.
+ * epoch before_epoch - only return workspaces that were modified before
  *         this date.
  * boolean excludeGlobal - if excludeGlobal is true exclude world
  *         readable workspaces. Defaults to false.
@@ -45,6 +50,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "meta",
     "after",
     "before",
+    "after_epoch",
+    "before_epoch",
     "excludeGlobal",
     "showDeleted",
     "showOnlyDeleted"
@@ -61,6 +68,10 @@ public class ListWorkspaceInfoParams {
     private java.lang.String after;
     @JsonProperty("before")
     private java.lang.String before;
+    @JsonProperty("after_epoch")
+    private Long afterEpoch;
+    @JsonProperty("before_epoch")
+    private Long beforeEpoch;
     @JsonProperty("excludeGlobal")
     private Long excludeGlobal;
     @JsonProperty("showDeleted")
@@ -144,6 +155,36 @@ public class ListWorkspaceInfoParams {
         return this;
     }
 
+    @JsonProperty("after_epoch")
+    public Long getAfterEpoch() {
+        return afterEpoch;
+    }
+
+    @JsonProperty("after_epoch")
+    public void setAfterEpoch(Long afterEpoch) {
+        this.afterEpoch = afterEpoch;
+    }
+
+    public ListWorkspaceInfoParams withAfterEpoch(Long afterEpoch) {
+        this.afterEpoch = afterEpoch;
+        return this;
+    }
+
+    @JsonProperty("before_epoch")
+    public Long getBeforeEpoch() {
+        return beforeEpoch;
+    }
+
+    @JsonProperty("before_epoch")
+    public void setBeforeEpoch(Long beforeEpoch) {
+        this.beforeEpoch = beforeEpoch;
+    }
+
+    public ListWorkspaceInfoParams withBeforeEpoch(Long beforeEpoch) {
+        this.beforeEpoch = beforeEpoch;
+        return this;
+    }
+
     @JsonProperty("excludeGlobal")
     public Long getExcludeGlobal() {
         return excludeGlobal;
@@ -201,7 +242,7 @@ public class ListWorkspaceInfoParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((("ListWorkspaceInfoParams"+" [perm=")+ perm)+", owners=")+ owners)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((("ListWorkspaceInfoParams"+" [perm=")+ perm)+", owners=")+ owners)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", afterEpoch=")+ afterEpoch)+", beforeEpoch=")+ beforeEpoch)+", excludeGlobal=")+ excludeGlobal)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

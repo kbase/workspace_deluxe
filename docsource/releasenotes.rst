@@ -12,7 +12,9 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 
 * Added the ``custom``, ``subactions``, and ``caller`` fields to
   ``ProvenanceAction``.
-* Added original workspace ID to the data returned by get_objects* methdos.
+* Added original workspace ID to the data returned by get_objects* methods.
+* Unix epoch times are now accepted and emitted where possible (e.g. not in 
+  tuples) as well as string timestamps.
 
 VERSION: 0.4.0 (Released 2/2/16)
 --------------------------------

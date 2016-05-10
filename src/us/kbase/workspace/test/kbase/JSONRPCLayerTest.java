@@ -594,8 +594,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.saveObjects(sop);
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("provenance/auto1/1", wsid + "/1/1");
-		Map<String, String> timemap = new HashMap<String, String>();
-		timemap.put("2013-04-26T12:52:06-0800", "2013-04-26T20:52:06+0000");
+		Map<StringEpoch, StringEpoch> timemap =
+				new HashMap<StringEpoch, StringEpoch>();
+		timemap.put(new StringEpoch("2013-04-26T12:52:06-0800"),
+				new StringEpoch(1367009526000L, "2013-04-26T20:52:06+0000"));
 		ObjectIdentity id = new ObjectIdentity().withWsid(wsid).withObjid(2L);
 		checkProvenance(USER1, id, prov, refmap, timemap);
 		
@@ -625,18 +627,49 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					is("Unexpected arguments in ExternalDataUnit: baz"));
 		}
 		
-		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06-0800",
-				"2013-04-27T07:52:06+0000");
-		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06Z",
-				"2013-04-26T23:52:06+0000");
-		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06.145Z",
-				"2013-04-26T23:52:06+0000");
-		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06.14Z",
-				"2013-04-26T23:52:06+0000");
-		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06.1Z",
-				"2013-04-26T23:52:06+0000");
-		saveProvWithGoodTime("provenance", "2013-04-26T23:52:06.14-0800",
-				"2013-04-27T07:52:06+0000");
+		edusingle.getAdditionalProperties().clear();
+		edusingle.withResourceReleaseDate("2013-04-26T12:52:06-0800")
+			.withResourceReleaseEpoch(1L);
+		
+		try {
+			CLIENT1.saveObjects(sop);
+			fail("save prov external data w/ ambiguous time");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Cannot specify both time and epoch in external data unit"));
+		}
+		
+		pa.withExternalData(null).withTime("2013-04-26T12:52:06-0800")
+			.withEpoch(1L);
+		try {
+			CLIENT1.saveObjects(sop);
+			fail("save prov w/ ambiguous time");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Cannot specify both time and epoch in provenance action"));
+		}
+		
+		saveProvWithGoodTime("provenance",
+				new StringEpoch("2013-04-26T23:52:06-0800"),
+				new StringEpoch(1367049126000L, "2013-04-27T07:52:06+0000"));
+		saveProvWithGoodTime("provenance",
+				new StringEpoch("2013-04-26T23:52:06Z"),
+				new StringEpoch(1367020326000L, "2013-04-26T23:52:06+0000"));
+		saveProvWithGoodTime("provenance",
+				new StringEpoch("2013-04-26T23:52:06.145Z"),
+				new StringEpoch(1367020326145L, "2013-04-26T23:52:06+0000"));
+		saveProvWithGoodTime("provenance",
+				new StringEpoch("2013-04-26T23:52:06.14Z"),
+				new StringEpoch(1367020326140L, "2013-04-26T23:52:06+0000"));
+		saveProvWithGoodTime("provenance",
+				new StringEpoch("2013-04-26T23:52:06.1Z"),
+				new StringEpoch(1367020326100L, "2013-04-26T23:52:06+0000"));
+		saveProvWithGoodTime("provenance",
+				new StringEpoch("2013-04-26T23:52:06.14-0800"),
+				new StringEpoch(1367049126140L, "2013-04-27T07:52:06+0000"));
+		saveProvWithGoodTime("provenance",
+				new StringEpoch(1367049126140L),
+				new StringEpoch(1367049126140L, "2013-04-27T07:52:06+0000"));
 		
 		saveProvWithBadTime("2013-04-26T25:52:06-0800",
 				"Unparseable date: Cannot parse \"2013-04-26T25:52:06-0800\": Value 25 for hourOfDay must be in the range [0,23]");
@@ -662,18 +695,26 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						.withType(SAFE_TYPE).withName("whoops"))));
 		checkProvenance(USER2, new ObjectIdentity().withName("whoops")
 				.withWsid(wsid), new ArrayList<ProvenanceAction>(),
-				new HashMap<String, String>(), new HashMap<String, String>());
+				new HashMap<String, String>(),
+				new HashMap<StringEpoch, StringEpoch>());
 	}
 
-	private void saveProvWithGoodTime(String workspace, String inputTime,
-			String expectedTime) throws Exception {
+	private void saveProvWithGoodTime(String workspace, StringEpoch inputTime,
+			StringEpoch expectedTime) throws Exception {
 		UObject data = new UObject(new HashMap<String, Object>());
 		
-		List<ExternalDataUnit> edu = Arrays.asList(
-				new ExternalDataUnit().withResourceReleaseDate(inputTime));
-		List<ProvenanceAction> prov = Arrays.asList(
-				new ProvenanceAction().withTime(inputTime)
-				.withExternalData(edu));
+		List<ProvenanceAction> prov = new LinkedList<ProvenanceAction>();;
+		if (inputTime.time != null) {
+			prov.add(new ProvenanceAction().withTime(inputTime.time)
+					.withExternalData(Arrays.asList(
+							new ExternalDataUnit()
+								.withResourceReleaseDate(inputTime.time))));
+		} else {
+			prov.add(new ProvenanceAction().withEpoch(inputTime.epoch)
+					.withExternalData(Arrays.asList(
+							new ExternalDataUnit()
+								.withResourceReleaseEpoch(inputTime.epoch))));
+		}
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE)
 				.withProvenance(prov));
@@ -684,7 +725,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Long objid = oi.getE1();
 		Long wsid = oi.getE7();
 		Map<String, String> refmap = new HashMap<String, String>();
-		Map<String, String> timemap = new HashMap<String, String>();
+		Map<StringEpoch, StringEpoch> timemap =
+				new HashMap<StringEpoch, StringEpoch>();
 		timemap.put(inputTime, expectedTime);
 		ObjectIdentity id = new ObjectIdentity().withWsid(wsid).withObjid(objid);
 		checkProvenance(USER1, id, prov, refmap, timemap);

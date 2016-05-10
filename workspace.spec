@@ -52,6 +52,9 @@ module Workspace {
 	*/
 	typedef string timestamp;
 	
+	/* A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in milliseconds. */
+	typedef int epoch; 
+	
 	/* A type string.
 		Specifies the type and its version in a single string in the format
 		[module].[typename]-[major].[minor]:
@@ -313,11 +316,15 @@ module Workspace {
 	/* An external data unit. A piece of data from a source outside the
 		Workspace.
 		
+		On input, only one of the resource_release_date or
+		resource_release_epoch may be supplied. Both are supplied on output.
+		
 		string resource_name - the name of the resource, for example JGI.
 		string resource_url - the url of the resource, for example
 			http://genome.jgi.doe.gov
 		string resource_version - version of the resource
 		timestamp resource_release_date - the release date of the resource
+		epoch resource_release_epoch - the release date of the resource
 		string data_url - the url of the data, for example
 			http://genome.jgi.doe.gov/pages/dynamicOrganismDownload.jsf?
 				organism=BlaspURHD0036
@@ -331,6 +338,7 @@ module Workspace {
 		string resource_url;
 		string resource_version;
 		timestamp resource_release_date;
+		epoch resource_release_epoch;
 		string data_url;
 		string data_id;
 		string description;
@@ -378,10 +386,14 @@ module Workspace {
 		resolved_ws_objects should never be set by the user; it is set by the
 		workspace service when returning data.
 		
+		On input, only one of the time or epoch may be supplied. Both are
+		supplied on output.
+		
 		The maximum size of the entire provenance object, including all actions,
 		is 1MB.
 		
-		timestamp time - the time the action was started.
+		timestamp time - the time the action was started
+		epoch epoch - the time the action was started.
 		string caller - the name or id of the invoker of this provenance
 			action. In most cases, this will be the same for all PAs.
 		string service - the name of the service that performed this action.
@@ -426,6 +438,7 @@ module Workspace {
 	*/
 	typedef structure {
 		timestamp time;
+		epoch epoch;
 		string caller;
 		string service;
 		string service_ver;
@@ -843,6 +856,8 @@ module Workspace {
 				0.4.1.
 		timestamp created - the date the object was first saved to the
 			workspace.
+		epoch epoch - the date the object was first saved to the
+			workspace.
 		list<obj_ref> - the references contained within the object.
 		obj_ref copied - the reference of the source object if this object is
 			a copy and the copy source exists and is accessible.
@@ -862,6 +877,7 @@ module Workspace {
 		username creator;
 		ws_id orig_wsid;
 		timestamp created;
+		epoch epoch;
 		list<obj_ref> refs;
 		obj_ref copied;
 		boolean copy_source_inaccessible;
@@ -888,6 +904,8 @@ module Workspace {
 				0.4.1.
 		timestamp created - the date the object was first saved to the
 			workspace.
+		epoch epoch - the date the object was first saved to the
+			workspace.
 		list<obj_ref> - the references contained within the object.
 		obj_ref copied - the reference of the source object if this object is
 			a copy and the copy source exists and is accessible.
@@ -909,6 +927,7 @@ module Workspace {
 		username creator;
 		ws_id orig_wsid;
 		timestamp created;
+		epoch epoch;
 		list<obj_ref> refs;
 		obj_ref copied;
 		boolean copy_source_inaccessible;
@@ -1015,6 +1034,8 @@ module Workspace {
 	/* 
 		Input parameters for the "list_workspace_info" function.
 		
+		Only one of each timestamp/epoch pair may be supplied.
+		
 		Optional parameters:
 		permission perm - filter workspaces by minimum permission level. 'None'
 			and 'readable' are ignored.
@@ -1026,6 +1047,10 @@ module Workspace {
 		timestamp after - only return workspaces that were modified after this
 			date.
 		timestamp before - only return workspaces that were modified before
+			this date.
+		epoch after_epoch - only return workspaces that were modified after
+			this date.
+		epoch before_epoch - only return workspaces that were modified before
 			this date.
 		boolean excludeGlobal - if excludeGlobal is true exclude world
 			readable workspaces. Defaults to false.
@@ -1041,6 +1066,8 @@ module Workspace {
 		usermeta meta;
 		timestamp after;
 		timestamp before;
+		epoch after_epoch;
+		epoch before_epoch;
 		boolean excludeGlobal;
 		boolean showDeleted;
 		boolean showOnlyDeleted;
@@ -1100,6 +1127,8 @@ module Workspace {
 			type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
 			existing version.
 		
+		Only one of each timestamp/epoch pair may be supplied.
+		
 		Optional arguments:
 		permission perm - filter objects by minimum permission level. 'None'
 			and 'readable' are ignored.
@@ -1112,6 +1141,10 @@ module Workspace {
 		timestamp after - only return objects that were created after this
 			date.
 		timestamp before - only return objects that were created before this
+			date.
+		epoch after_epoch - only return objects that were created after this
+			date.
+		epoch before_epoch - only return objects that were created before this
 			date.
 		obj_id minObjectID - only return objects with an object id greater or
 			equal to this value.
@@ -1144,6 +1177,8 @@ module Workspace {
 		usermeta meta;
 		timestamp after;
 		timestamp before;
+		epoch after_epoch;
+		epoch before_epoch;
 		obj_id minObjectID;
 		obj_id maxObjectID;
 		boolean showDeleted;
