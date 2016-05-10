@@ -74,6 +74,23 @@ public class ArgUtils {
 	private final static DateTimeFormatter DATE_FORMATTER =
 			DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZoneUTC();
 	
+	public static Date chooseDate(
+			final String timestamp,
+			final Long epochInMilliSec,
+			final String error)
+			throws ParseException {
+		if (timestamp != null && epochInMilliSec != null) {
+			throw new IllegalArgumentException(error);
+		}
+		if (timestamp != null) {
+			return parseDate(timestamp);
+		}
+		if (epochInMilliSec != null) {
+			return new Date(epochInMilliSec);
+		}
+		return null;
+	}
+	
 	public static Provenance processProvenance(final WorkspaceUser user,
 			final List<ProvenanceAction> actions) throws ParseException {
 		
@@ -83,14 +100,11 @@ public class ArgUtils {
 		}
 		for (final ProvenanceAction a: actions) {
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
-			if (a.getTime() != null && a.getEpoch() != null) {
-				throw new IllegalArgumentException(
-						"Cannot specify both time and epoch in provenance " +
-						"action");
-			}
-			final Provenance.ProvenanceAction pa =
-					new Provenance.ProvenanceAction()
-					.withTime(parseDate(a.getTime()))
+			final Date d = chooseDate(a.getTime(), a.getEpoch(),
+					"Cannot specify both time and epoch in provenance " +
+							"action");
+			p.addAction(new Provenance.ProvenanceAction()
+					.withTime(d)
 					.withCaller(a.getCaller())
 					.withServiceName(a.getService())
 					.withServiceVersion(a.getServiceVer())
@@ -106,11 +120,8 @@ public class ArgUtils {
 					.withExternalData(processExternalData(a.getExternalData()))
 					.withSubActions(processSubActions(a.getSubactions()))
 					.withCustom(a.getCustom())
-					.withDescription(a.getDescription());
-			if (a.getEpoch() != null) {
-				pa.setTime(new Date(a.getEpoch()));
-			}
-			p.addAction(pa);
+					.withDescription(a.getDescription())
+			);
 		}
 		return p;
 	}
@@ -141,27 +152,20 @@ public class ArgUtils {
 			return ret;
 		}
 		for (final ExternalDataUnit edu: externalData) {
-			if (edu.getResourceReleaseDate() != null &&
-					edu.getResourceReleaseEpoch() != null) {
-				throw new IllegalArgumentException(
-						"Cannot specify both time and epoch in external " +
-						"data unit");
-			}
+			final Date d = chooseDate(edu.getResourceReleaseDate(),
+					edu.getResourceReleaseEpoch(),
+					"Cannot specify both time and epoch in external " +
+							"data unit");
 			checkAddlArgs(edu.getAdditionalProperties(), edu.getClass());
-			final ExternalData ed = new ExternalData()
+			ret.add(new ExternalData()
 					.withDataId(edu.getDataId())
 					.withDataUrl(edu.getDataUrl())
 					.withDescription(edu.getDescription())
 					.withResourceName(edu.getResourceName())
-					.withResourceReleaseDate(
-							parseDate(edu.getResourceReleaseDate()))
+					.withResourceReleaseDate(d)
 					.withResourceUrl(edu.getResourceUrl())
-					.withResourceVersion(edu.getResourceVersion());
-			if (edu.getResourceReleaseEpoch() != null) {
-				ed.setResourceReleaseDate(
-						new Date(edu.getResourceReleaseEpoch()));
-			}
-			ret.add(ed);
+					.withResourceVersion(edu.getResourceVersion())
+			);
 		}
 		return ret;
 	}
