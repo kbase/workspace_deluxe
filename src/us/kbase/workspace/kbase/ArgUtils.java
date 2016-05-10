@@ -170,7 +170,7 @@ public class ArgUtils {
 		return ret;
 	}
 
-	public static Date parseDate(final String date) throws ParseException {
+	private static Date parseDate(final String date) throws ParseException {
 		if (date == null) {
 			return null;
 		}

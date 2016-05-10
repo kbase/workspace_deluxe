@@ -1120,12 +1120,12 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
-	protected String addSec(String time) throws Exception {
-		return DATE_FORMAT.format(DATE_FORMAT.parse(time).getTime() + 1000);
+	protected long addSec(String time) throws Exception {
+		return DATE_FORMAT.parse(time).getTime() + 1000;
 	}
 	
-	protected String subSec(String time) throws Exception {
-		return DATE_FORMAT.format(DATE_FORMAT.parse(time).getTime() - 1000);
+	protected long subSec(String time) throws Exception {
+		return DATE_FORMAT.parse(time).getTime() - 1000;
 	}
 
 	protected void checkWSInfoList(

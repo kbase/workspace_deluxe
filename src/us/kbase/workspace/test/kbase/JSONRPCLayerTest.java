@@ -2064,8 +2064,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Thread.sleep(2000);
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> w3 =
 				CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("listWSByDate3"));
-		String beforeall = subSec(w1.getE4()); //max res is 1s
-		String afterall = addSec(w3.getE4());
+		long beforeallEpoch = subSec(w1.getE4()); //max res is 1s
+		long afterallEpoch = addSec(w3.getE4());
+		String beforeall = DATE_FORMAT.format(beforeallEpoch);
+		String afterall = DATE_FORMAT.format(afterallEpoch);
 		
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)),
 				Arrays.asList(w1, w2, w3), true);
@@ -2073,19 +2075,55 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withAfter(beforeall).withBefore(afterall)),
 				Arrays.asList(w1, w2, w3), true);
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfterEpoch(beforeallEpoch).withBeforeEpoch(afterallEpoch)),
+				Arrays.asList(w1, w2, w3), true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
 				.withAfter(afterall).withBefore(beforeall)),
 				mt, true);
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
-				.withAfter(addSec(w1.getE4()))),
+				.withAfterEpoch(afterallEpoch).withBeforeEpoch(beforeallEpoch)),
+				mt, true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfter(DATE_FORMAT.format(addSec(w1.getE4())))),
 				Arrays.asList(w2, w3), true);
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
-				.withBefore(subSec(w3.getE4()))),
+				.withAfterEpoch(addSec(w1.getE4()))),
+				Arrays.asList(w2, w3), true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withBefore(DATE_FORMAT.format(subSec(w3.getE4())))),
 				Arrays.asList(w1, w2), true);
 		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
-				.withAfter(addSec(w1.getE4())).withBefore(subSec(w3.getE4()))),
+				.withBeforeEpoch(subSec(w3.getE4()))),
+				Arrays.asList(w1, w2), true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfter(DATE_FORMAT.format(addSec(w1.getE4())))
+				.withBefore(DATE_FORMAT.format(subSec(w3.getE4())))),
+				Arrays.asList(w2), true);
+		checkWSInfoList(CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams().withExcludeGlobal(1L)
+				.withAfterEpoch(addSec(w1.getE4()))
+				.withBeforeEpoch(subSec(w3.getE4()))),
 				Arrays.asList(w2), true);
 		
-		failListWorkspaceByDate("crappy date", "Unparseable date: Invalid format: \"crappy date\"");
+		failListWorkspaceByDate("crappy date",
+				"Unparseable date: Invalid format: \"crappy date\"");
+		try {
+			CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withAfter(beforeall).withAfterEpoch(1L));
+			fail("Ran list ws with time & epoch");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Cannot specify both timestamp and epoch for after " +
+							"parameter"));
+		}
+		try {
+			CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
+				.withBefore(beforeall).withBeforeEpoch(1L));
+			fail("Ran list ws with time & epoch");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Cannot specify both timestamp and epoch for before " +
+							"parameter"));
+		}
 	}
 	
 	@Test
@@ -2334,24 +2372,73 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Thread.sleep(2000);
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> o3 =
 				CLIENT1.saveObjects(p).get(0);
-		String beforeall = subSec(o1.getE4()); //max res is 1s
-		String afterall = addSec(o3.getE4());
+		long beforeallEpoch = subSec(o1.getE4()); //max res is 1s
+		long afterallEpoch = addSec(o3.getE4());
+		String beforeall = DATE_FORMAT.format(beforeallEpoch);
+		String afterall = DATE_FORMAT.format(afterallEpoch);
 		
-		ListObjectsParams lp = new ListObjectsParams().withWorkspaces(Arrays.asList(ws))
+		ListObjectsParams lop = new ListObjectsParams().withWorkspaces(Arrays.asList(ws))
 				.withIncludeMetadata(1L);
-		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o1, o2, o3), false);
-		lp = lp.withAfter(beforeall).withBefore(afterall);
-		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o1, o2, o3), false);
-		lp = lp.withAfter(afterall).withBefore(beforeall);
-		compareObjectInfo(CLIENT1.listObjects(lp), mt, false);
-		lp = lp.withAfter(addSec(o1.getE4())).withBefore(null);
-		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2, o3), false);
-		lp = lp.withAfter(null).withBefore(subSec(o3.getE4()));
-		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o1, o2), false);
-		lp = lp.withAfter(addSec(o1.getE4())).withBefore(subSec(o3.getE4()));
-		compareObjectInfo(CLIENT1.listObjects(lp), Arrays.asList(o2), false);
+		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o1, o2, o3), false);
 		
-		failListObjectsByDate(ws, "crappy obj date", "Unparseable date: Invalid format: \"crappy obj date\"");
+		setDates(lop, beforeall, afterall);
+		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o1, o2, o3), false);
+		setDates(lop, beforeallEpoch, afterallEpoch);
+		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o1, o2, o3), false);
+		
+		setDates(lop, afterall, beforeall);
+		compareObjectInfo(CLIENT1.listObjects(lop), mt, false);
+		setDates(lop, afterallEpoch, beforeallEpoch);
+		compareObjectInfo(CLIENT1.listObjects(lop), mt, false);
+		
+		setDates(lop, DATE_FORMAT.format(addSec(o1.getE4())), null);
+		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o2, o3), false);
+		setDates(lop, addSec(o1.getE4()), null);
+		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o2, o3), false);
+		
+		setDates(lop, null, DATE_FORMAT.format(subSec(o3.getE4())));
+		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o1, o2), false);
+		setDates(lop, null, subSec(o3.getE4()));
+		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o1, o2), false);
+		
+		setDates(lop, DATE_FORMAT.format(addSec(o1.getE4())),
+				DATE_FORMAT.format(subSec(o3.getE4())));
+		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o2), false);
+		setDates(lop, addSec(o1.getE4()), subSec(o3.getE4()));
+		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o2), false);
+		
+		failListObjectsByDate(ws, "crappy obj date",
+				"Unparseable date: Invalid format: \"crappy obj date\"");
+		try {
+			CLIENT1.listObjects(new ListObjectsParams()
+				.withWorkspaces(Arrays.asList(ws))
+				.withAfter(beforeall).withAfterEpoch(1L));
+			fail("Ran list ojb with time & epoch");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Cannot specify both timestamp and epoch for after " +
+							"parameter"));
+		}
+		try {
+			CLIENT1.listObjects(new ListObjectsParams()
+				.withWorkspaces(Arrays.asList(ws))
+				.withBefore(beforeall).withBeforeEpoch(1L));
+			fail("Ran list obj with time & epoch");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(),
+					is("Cannot specify both timestamp and epoch for before " +
+							"parameter"));
+		}
+	}
+	
+	private void setDates(ListObjectsParams lop, Long after, Long before) {
+		lop.withBefore(null).withAfter(null).withAfterEpoch(after)
+				.withBeforeEpoch(before);
+	}
+	
+	private void setDates(ListObjectsParams lop, String after, String before) {
+		lop.withAfterEpoch(null).withBeforeEpoch(null).withBefore(before)
+				.withAfter(after);
 	}
 	
 	@Test
