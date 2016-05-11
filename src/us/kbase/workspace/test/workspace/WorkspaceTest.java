@@ -5609,7 +5609,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						oiset(stdref2, hiddenref),
 						oiset(stdref2, hiddenref),
 						oiset(stdref1))));
-		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+		@SuppressWarnings("deprecation")
+		List<Integer> d = ws.getReferencingObjectCounts(user1, objs);
+		assertThat("got correct refcounts", d,
 				is(Arrays.asList(3, 3, 1)));
 		
 		Set<ObjectInformation> mtoiset = new HashSet<ObjectInformation>();
@@ -5623,7 +5625,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						mtoiset,
 						mtoiset,
 						oiset(globalrd))));
-		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+		@SuppressWarnings("deprecation")
+		List<Integer> d2 = ws.getReferencingObjectCounts(user1, objs);
+		assertThat("got correct refcounts", d2,
 				is(Arrays.asList(2, 2, 1)));
 		
 		objs = Arrays.asList(
@@ -5637,7 +5641,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						oiset(readable, globalrd),
 						mtoiset,
 						mtoiset)));
-		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+		@SuppressWarnings("deprecation")
+		List<Integer> d3 = ws.getReferencingObjectCounts(user1, objs);
+		assertThat("got correct refcounts", d3,
 				is(Arrays.asList(2, 2, 1, 1)));
 		
 		
@@ -5703,7 +5709,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						oiset(stdref2, hiddenref, pstdref2, phiddenref),
 						oiset(stdref2, hiddenref, pstdref2, phiddenref),
 						oiset(stdref1, pstdref1))));
-		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+		@SuppressWarnings("deprecation")
+		List<Integer> d4 = ws.getReferencingObjectCounts(user1, objs);
+		assertThat("got correct refcounts", d4,
 				is(Arrays.asList(5, 5, 2)));
 		
 		objs = Arrays.asList(
@@ -5715,7 +5723,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						mtoiset,
 						mtoiset,
 						oiset(globalrd, pglobalrd))));
-		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+		@SuppressWarnings("deprecation")
+		List<Integer> d5 = ws.getReferencingObjectCounts(user1, objs);
+		assertThat("got correct refcounts", d5,
 				is(Arrays.asList(4, 4, 2)));
 		
 		objs = Arrays.asList(
@@ -5729,7 +5739,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						oiset(readable, globalrd, preadable),
 						mtoiset,
 						mtoiset)));
-		assertThat("got correct refcounts", ws.getReferencingObjectCounts(user1, objs),
+		@SuppressWarnings("deprecation")
+		List<Integer> d6 = ws.getReferencingObjectCounts(user1, objs);
+		assertThat("got correct refcounts", d6,
 				is(Arrays.asList(3, 3, 2, 2)));
 		
 		try {
@@ -5743,7 +5755,9 @@ public class WorkspaceTest extends WorkspaceTester {
 					is(new ObjectIdentifier(wsisrc1, 1)));
 		}
 		try {
-			ws.getReferencingObjectCounts(user2, Arrays.asList(
+			
+			@SuppressWarnings({ "deprecation", "unused" })
+			List<Integer> d7 = ws.getReferencingObjectCounts(user2, Arrays.asList(
 					new ObjectIdentifier(wsisrc1, 1)));
 			fail("Able to get ref obj count from private workspace");
 		} catch (InaccessibleObjectException ioe) {
@@ -5754,7 +5768,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		
 		try {
-			ws.getReferencingObjectCounts(user1, Arrays.asList(
+			@SuppressWarnings({ "deprecation", "unused" })
+			List<Integer> d8 = ws.getReferencingObjectCounts(user1, Arrays.asList(
 					new ObjectIdentifier(wsitar1, "single", 2)));
 			fail("Able to get ref obj count for non-existant obj version");
 		} catch (NoSuchObjectException ioe) {

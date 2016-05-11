@@ -2678,12 +2678,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("one obj list returned", retrefs.size(), is(1));
 		assertThat("two refs returned", retrefs.get(0).size(), is(2));
 		compareObjectInfo(retrefs.get(0), Arrays.asList(ref, prov), false);
+		@SuppressWarnings("deprecation")
 		List<Long> refcnts = CLIENT1.listReferencingObjectCounts(loi);
 		assertThat("got correct refcounts", refcnts, is(Arrays.asList(2L)));
 		
 		loi.set(0, new ObjectIdentity().withRef("referingobjs/std/2"));
 		try {
-			refcnts = CLIENT1.listReferencingObjectCounts(loi);
+			@SuppressWarnings({ "deprecation", "unused" })
+			List<Long> refcnts2 = CLIENT1.listReferencingObjectCounts(loi);
 			fail("got ref counts with bad obj id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
