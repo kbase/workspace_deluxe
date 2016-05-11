@@ -16,11 +16,14 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <pre>
  * An external data unit. A piece of data from a source outside the
  * Workspace.
+ * On input, only one of the resource_release_date or
+ * resource_release_epoch may be supplied. Both are supplied on output.
  * string resource_name - the name of the resource, for example JGI.
  * string resource_url - the url of the resource, for example
  *         http://genome.jgi.doe.gov
  * string resource_version - version of the resource
  * timestamp resource_release_date - the release date of the resource
+ * epoch resource_release_epoch - the release date of the resource
  * string data_url - the url of the data, for example
  *         http://genome.jgi.doe.gov/pages/dynamicOrganismDownload.jsf?
  *                 organism=BlaspURHD0036
@@ -37,6 +40,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "resource_url",
     "resource_version",
     "resource_release_date",
+    "resource_release_epoch",
     "data_url",
     "data_id",
     "description"
@@ -51,6 +55,8 @@ public class ExternalDataUnit {
     private String resourceVersion;
     @JsonProperty("resource_release_date")
     private String resourceReleaseDate;
+    @JsonProperty("resource_release_epoch")
+    private Long resourceReleaseEpoch;
     @JsonProperty("data_url")
     private String dataUrl;
     @JsonProperty("data_id")
@@ -119,6 +125,21 @@ public class ExternalDataUnit {
         return this;
     }
 
+    @JsonProperty("resource_release_epoch")
+    public Long getResourceReleaseEpoch() {
+        return resourceReleaseEpoch;
+    }
+
+    @JsonProperty("resource_release_epoch")
+    public void setResourceReleaseEpoch(Long resourceReleaseEpoch) {
+        this.resourceReleaseEpoch = resourceReleaseEpoch;
+    }
+
+    public ExternalDataUnit withResourceReleaseEpoch(Long resourceReleaseEpoch) {
+        this.resourceReleaseEpoch = resourceReleaseEpoch;
+        return this;
+    }
+
     @JsonProperty("data_url")
     public String getDataUrl() {
         return dataUrl;
@@ -176,7 +197,7 @@ public class ExternalDataUnit {
 
     @Override
     public String toString() {
-        return ((((((((((((((((("ExternalDataUnit"+" [resourceName=")+ resourceName)+", resourceUrl=")+ resourceUrl)+", resourceVersion=")+ resourceVersion)+", resourceReleaseDate=")+ resourceReleaseDate)+", dataUrl=")+ dataUrl)+", dataId=")+ dataId)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((("ExternalDataUnit"+" [resourceName=")+ resourceName)+", resourceUrl=")+ resourceUrl)+", resourceVersion=")+ resourceVersion)+", resourceReleaseDate=")+ resourceReleaseDate)+", resourceReleaseEpoch=")+ resourceReleaseEpoch)+", dataUrl=")+ dataUrl)+", dataId=")+ dataId)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

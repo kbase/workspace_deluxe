@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import us.kbase.common.exceptions.UnimplementedException;
 
 //TODO unit tests
+//TODO javadocs
 //TODO this should keep track of its size & punt if it gets too large
 //TODO consider checking the syntax of urls
 

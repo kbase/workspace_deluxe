@@ -29,7 +29,7 @@ import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectDataList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
-import static us.kbase.workspace.kbase.ArgUtils.parseDate;
+import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectIdentifiers;
@@ -39,6 +39,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -107,12 +108,9 @@ import us.kbase.workspace.kbase.WorkspaceServerMethods;
  */
 public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
-    @SuppressWarnings("unused")
-	private static final String version = "0.0.1";
-    @SuppressWarnings("unused")
-	private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    @SuppressWarnings("unused")
-	private static final String gitCommitHash = "8c9b3e7dcb193f891019cf4ecfb2e7f119408460";
+    private static final String version = "0.0.1";
+    private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
+    private static final String gitCommitHash = "1742eae96c6804c847a63f85140e81a0d13cca27";
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
@@ -954,12 +952,19 @@ public class WorkspaceServer extends JsonServerServlet {
 		} else {
 			lop = new ListObjectsParameters(user, wsis, type);
 		}
+		final Date after = chooseDate(params.getAfter(),
+				params.getAfterEpoch(),
+				"Cannot specify both timestamp and epoch for after parameter");
+		final Date before = chooseDate(params.getBefore(),
+				params.getBeforeEpoch(),
+				"Cannot specify both timestamp and epoch for before " +
+				"parameter");
 		lop.withMinimumPermission(params.getPerm() == null ? null :
 				translatePermission(params.getPerm()))
 			.withSavers(ArgUtils.convertUsers(params.getSavedby()))
 			.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
-			.withAfter(parseDate(params.getAfter()))
-			.withBefore(parseDate(params.getBefore()))
+			.withAfter(after)
+			.withBefore(before)
 			.withMinObjectID(checkLong(params.getMinObjectID(), -1))
 			.withMaxObjectID(checkLong(params.getMaxObjectID(), -1))
 			.withShowHidden(longToBoolean(params.getShowHidden()))
@@ -1740,6 +1745,12 @@ public class WorkspaceServer extends JsonServerServlet {
         returnVal.put("message", "");
         returnVal.put("version", VER);
         returnVal.put("git_url", GIT);
+        @SuppressWarnings("unused")
+        String v = version;
+        @SuppressWarnings("unused")
+        String h = gitCommitHash;
+        @SuppressWarnings("unused")
+        String u = gitUrl;
         //END_STATUS
         return returnVal;
     }
