@@ -15,6 +15,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * Added original workspace ID to the data returned by get_objects* methods.
 * Unix epoch times are now accepted and emitted where possible (e.g. not in 
   tuples) as well as string timestamps.
+* ``list_referencing_object_counts`` has been deprecated.
 
 VERSION: 0.4.0 (Released 2/2/16)
 --------------------------------
