@@ -53,6 +53,7 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
+import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
@@ -149,6 +150,15 @@ public class MongoInternalsTest {
 				is("config"));
 		assertThat("not in update", (Boolean)cd.get("inupdate"), is(false));
 		assertThat("schema v1", (Integer)cd.get("schemaver"), is(1));
+		
+		//check startup works with the config object in place
+		MongoWorkspaceDB m = new MongoWorkspaceDB(
+				db,  new GridFSBlobStore(db), tfm);
+		WorkspaceInformation ws = m.createWorkspace(
+				new WorkspaceUser("foo"), "bar", false, null,
+				new WorkspaceUserMetadata());
+		assertThat("check a ws field", ws.getName(), is("bar"));
+		
 	}
 	
 	@Test
