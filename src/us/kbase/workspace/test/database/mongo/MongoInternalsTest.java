@@ -31,12 +31,14 @@ import us.kbase.common.service.UObject;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.LocalTypeProvider;
+import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
@@ -56,7 +58,9 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
@@ -223,21 +227,15 @@ public class MongoInternalsTest {
 		startSaveObject(rwsi, rso, 1, at);
 		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2));
 
-		
 		//possible race condition 1 - no version provided, version not yet
 		//saved, version count not yet incremented
 		ObjectIDResolvedWS oidrw = new ObjectIDResolvedWS(rwsi,
 				rso.getObjectIdentifier().getName());
 		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw));
-		try {
-			mwdb.getObjects(oidset);
-			fail("got objects with no version");
-		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
-							objname, rwsi.getID())));
-		}
+		failGetObjectsNoSuchObjectExcp(oidset,
+				String.format("No object with name %s exists in workspace %s",
+						objname, rwsi.getID()));
 		
 		try {
 			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
@@ -254,15 +252,11 @@ public class MongoInternalsTest {
 				wsi2);
 		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
 				rso.getObjectIdentifier().getName());
-		try {
-			mwdb.getObjects(new HashSet<ObjectIDResolvedWS>(
-					Arrays.asList(oidrw2_1)));
-			fail("cloned object with no version");
-		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
-							objname, rwsi2.getID())));
-		}
+		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
+					Arrays.asList(oidrw2_1)),
+					String.format("No object with name %s exists in workspace %s",
+							objname, rwsi2.getID()));
+
 		ObjectIDResolvedWS oidrw2_2 = new ObjectIDResolvedWS(rwsi2,
 				rso2.getObjectIdentifier().getName());
 		
@@ -276,14 +270,9 @@ public class MongoInternalsTest {
 				rso.getObjectIdentifier().getName(), 1);
 		Set<ObjectIDResolvedWS> oidsetver = new HashSet<ObjectIDResolvedWS>();
 		oidsetver.add(oidrwWithVer);
-		try {
-			mwdb.getObjects(oidsetver);
-			fail("got objects with no version");
-		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
-							objname, rwsi.getID())));
-		}
+		failGetObjectsNoSuchObjectExcp(oidsetver,
+				String.format("No object with name %s exists in workspace %s",
+						objname, rwsi.getID()));
 		
 		try {
 			mwdb.copyObject(user, oidrwWithVer, new ObjectIDResolvedWS(rwsi, "foo"));
@@ -309,15 +298,11 @@ public class MongoInternalsTest {
 				wsi3);
 		ObjectIDResolvedWS oidrw3_1 = new ObjectIDResolvedWS(rwsi3,
 				rso.getObjectIdentifier().getName());
-		try {
-			mwdb.getObjects(new HashSet<ObjectIDResolvedWS>(
-					Arrays.asList(oidrw3_1)));
-			fail("cloned object with no version");
-		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
-							objname, rwsi3.getID())));
-		}
+		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
+				Arrays.asList(oidrw3_1)),
+				String.format("No object with name %s exists in workspace %s",
+						objname, rwsi3.getID()));
+
 		ObjectIDResolvedWS oidrw3_2 = new ObjectIDResolvedWS(rwsi3,
 				rso2.getObjectIdentifier().getName());
 		id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
@@ -342,14 +327,10 @@ public class MongoInternalsTest {
 							objname, rwsi.getID())));
 		}
 		
-		try {
-			mwdb.getObjects(oidsetver);
-			fail("got object with no version");
-		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
-							objname, rwsi.getID())));
-		}
+		String msg = String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
+				objname, rwsi.getID());
+		
+		failGetObjectsNoSuchObjectExcp(oidsetver, msg);
 		
 		try {
 			mwdb.getObjectProvenance(oidsetver);
@@ -368,6 +349,24 @@ public class MongoInternalsTest {
 			assertThat("correct exception message", nsoe.getMessage(),
 					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
 							objname, rwsi.getID())));
+		}
+	}
+
+	private void failGetObjectsNoSuchObjectExcp(
+			Set<ObjectIDResolvedWS> oidsetver, String msg)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException, TypedObjectExtractionException {
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
+				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		for (final ObjectIDResolvedWS o: oidsetver) {
+			paths.put(o, null);
+		}
+		try {
+			mwdb.getObjects(paths);
+			fail("operated on object with no version");
+		} catch (NoSuchObjectException nsoe) {
+			assertThat("correct exception message", nsoe.getMessage(),
+					is(msg));
 		}
 	}
 

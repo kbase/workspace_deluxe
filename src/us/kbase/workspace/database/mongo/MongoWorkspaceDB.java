@@ -1908,24 +1908,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
-			getObjects(final Set<ObjectIDResolvedWS> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
-		for (final ObjectIDResolvedWS o: objectIDs) {
-			paths.put(o, null);
-		}
-		try {
-			return getObjects(paths);
-		} catch (TypedObjectExtractionException toee) {
-			throw new RuntimeException(
-					"No extraction done, so something's very wrong here", toee);
-		}
-	}
-	
-	@Override
-	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
 			getObjects(final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects)
 			throws NoSuchObjectException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException {

@@ -929,10 +929,21 @@ public class Workspace {
 			InaccessibleObjectException {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
+				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		for (final ObjectIDResolvedWS o: ws.values()) {
+			paths.put(o, null);
+		}
 		//this is pretty gross, think about a better api here
 		final Map<ObjectIDResolvedWS,
-				Map<ObjectPaths, WorkspaceObjectData>> data = 
-				db.getObjects(new HashSet<ObjectIDResolvedWS>(ws.values()));
+				Map<ObjectPaths, WorkspaceObjectData>> data;
+		try {
+			data = db.getObjects(paths);
+		} catch (TypedObjectExtractionException toee) {
+			throw new RuntimeException(
+					"There was an extraction exception even though " +
+					"extraction wasn't requested. GG programmers", toee);
+		}
 		final List<WorkspaceObjectData> ret =
 				new ArrayList<WorkspaceObjectData>();
 		

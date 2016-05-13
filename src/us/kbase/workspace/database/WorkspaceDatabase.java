@@ -194,11 +194,6 @@ public interface WorkspaceDatabase {
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
-			getObjects(Set<ObjectIDResolvedWS> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException;
-
-	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
 			getObjects(final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects)
 			throws NoSuchObjectException, WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException;
