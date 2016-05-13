@@ -2,7 +2,6 @@ package us.kbase.workspace;
 
 import java.util.List;
 import java.util.Map;
-
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonServerMethod;
 import us.kbase.common.service.JsonServerServlet;
@@ -754,10 +753,13 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: list_referencing_object_counts</p>
      * <pre>
+     * DEPRECATED
+     *         
      * List the number of times objects have been referenced.
      * This count includes both provenance and object-to-object references
      * and, unlike list_referencing_objects, includes objects that are
      * inaccessible to the user.
+     * @deprecated
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "counts" of list of Long
@@ -956,7 +958,6 @@ public class WorkspaceServer extends JsonServerServlet {
 			.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
 			.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
 			.withExcludeGlobal(longToBoolean(params.getExcludeGlobal()))
-			.withSkip(longToInt(params.getSkip(), "Skip", -1))
 			.withLimit(longToInt(params.getLimit(), "Limit", -1));
 		
 		returnVal = objInfoToTuple(ws.listObjects(lop), false);

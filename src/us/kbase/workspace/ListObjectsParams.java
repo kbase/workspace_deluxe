@@ -56,8 +56,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         metadata will be null.
  *                 boolean excludeGlobal - exclude objects in global workspaces. This
  *                         parameter only has an effect when filtering by types alone.
- *                 int skip - DEPRECATED. Skip the first X objects. Maximum value is 2^31,
- *                         skip values < 0 are treated as 0, the default.
  *                 int limit - limit the output to X objects. Default and maximum value
  *                         is 10000. Limit values < 1 are treated as 10000, the default.
  * </pre>
@@ -82,7 +80,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "showAllVersions",
     "includeMetadata",
     "excludeGlobal",
-    "skip",
     "limit"
 })
 public class ListObjectsParams {
@@ -119,8 +116,6 @@ public class ListObjectsParams {
     private java.lang.Long includeMetadata;
     @JsonProperty("excludeGlobal")
     private java.lang.Long excludeGlobal;
-    @JsonProperty("skip")
-    private java.lang.Long skip;
     @JsonProperty("limit")
     private java.lang.Long limit;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
@@ -365,21 +360,6 @@ public class ListObjectsParams {
         return this;
     }
 
-    @JsonProperty("skip")
-    public java.lang.Long getSkip() {
-        return skip;
-    }
-
-    @JsonProperty("skip")
-    public void setSkip(java.lang.Long skip) {
-        this.skip = skip;
-    }
-
-    public ListObjectsParams withSkip(java.lang.Long skip) {
-        this.skip = skip;
-        return this;
-    }
-
     @JsonProperty("limit")
     public java.lang.Long getLimit() {
         return limit;
@@ -407,7 +387,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", minObjectID=")+ minObjectID)+", maxObjectID=")+ maxObjectID)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", skip=")+ skip)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", minObjectID=")+ minObjectID)+", maxObjectID=")+ maxObjectID)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

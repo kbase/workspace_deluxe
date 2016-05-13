@@ -72,7 +72,6 @@ public class Workspace {
 	
 	//TODO limit all methods that return a set or list or map
 	//TODO generalize descent into DAG for all methods
-	//TODO deprecate skip
 	
 	//TODO general unit tests
 	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?

@@ -1,6 +1,21 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.5.0 (Released TBD)
+-----------------------------
+
+BACKWARDS INCOMPATIBILITIES:
+
+* The ``skip`` parameter of ``list_objects`` has been removed.
+
+NEW FEATURES:
+
+* None
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* ``list_referencing_object_counts`` has been deprecated.
+
 VERSION: 0.4.0 (Released 2/2/16)
 -----------------------------
 
