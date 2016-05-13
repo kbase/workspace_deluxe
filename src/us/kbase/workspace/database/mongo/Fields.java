@@ -76,8 +76,15 @@ public class Fields {
 	// GridFS fields
 	// since 0.2.0, if missing assume false
 	public static final String GFS_SORTED = "sorted";
-		
 	
 	// admin fields
 	public static final String ADMIN_NAME = "user";
+	
+	// configuration fields, since 0.4.1
+	public static final String CONFIG_KEY = "config";
+	public static final String CONFIG_VALUE = "config";
+	public static final String CONFIG_UPDATE = "inupdate";
+	public static final String CONFIG_SCHEMA_VERSION = "schemaver";
+	
+	
 }

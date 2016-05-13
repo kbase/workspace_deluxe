@@ -36,6 +36,7 @@ import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
@@ -225,7 +226,13 @@ public class InitWorkspaceServer {
 		}
 		deps.validator = new TypedObjectValidator(
 				new LocalTypeProvider(deps.typeDB));
-		deps.mongoWS = new MongoWorkspaceDB(db, bs, tfm);
+		try {
+			deps.mongoWS = new MongoWorkspaceDB(db, bs, tfm);
+		} catch (WorkspaceDBException wde) {
+			throw new WorkspaceInitException(
+					"Error initializing the workspace database: " +
+					wde.getLocalizedMessage(), wde);
+		}
 		return deps;
 	}
 	
