@@ -1128,6 +1128,7 @@ public class Workspace {
 		return ret;
 	}
 	
+	/** @deprecated */
 	public List<Integer> getReferencingObjectCounts(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,

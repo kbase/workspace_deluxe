@@ -53,10 +53,13 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
+import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
@@ -65,7 +68,10 @@ import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
 public class MongoInternalsTest {
@@ -75,6 +81,7 @@ public class MongoInternalsTest {
 	private static Workspace ws;
 	private static Types types;
 	private static MongoController mongo;
+	private static MongoClient mongoClient;
 	
 	private static final IdReferenceHandlerSetFactory fac =
 			new IdReferenceHandlerSetFactory(100);
@@ -91,7 +98,7 @@ public class MongoInternalsTest {
 				mongo.getTempDir());
 		WorkspaceTestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();
-		MongoClient mongoClient = new MongoClient(mongohost);
+		mongoClient = new MongoClient(mongohost);
 		final DB db = mongoClient.getDB("MongoInternalsTest");
 		String typedb = "MongoInternalsTest_types";
 		WorkspaceTestCommon.destroyWSandTypeDBs(db, typedb);
@@ -127,6 +134,95 @@ public class MongoInternalsTest {
 		if (mongo != null) {
 			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
 		}
+	}
+	
+	@Test
+	public void startUpAndCheckConfigDoc() throws Exception {
+		final DB db = mongoClient.getDB("startUpAndCheckConfigDoc");
+		TempFilesManager tfm = new TempFilesManager(
+				new File(WorkspaceTestCommon.getTempDir()));
+		new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
+		
+		DBCursor c = db.getCollection("config").find();
+		assertThat("Only one config doc", c.size(), is(1));
+		DBObject cd = c.next();
+		assertThat("correct config key & value", (String)cd.get("config"),
+				is("config"));
+		assertThat("not in update", (Boolean)cd.get("inupdate"), is(false));
+		assertThat("schema v1", (Integer)cd.get("schemaver"), is(1));
+		
+		//check startup works with the config object in place
+		MongoWorkspaceDB m = new MongoWorkspaceDB(
+				db,  new GridFSBlobStore(db), tfm);
+		WorkspaceInformation ws = m.createWorkspace(
+				new WorkspaceUser("foo"), "bar", false, null,
+				new WorkspaceUserMetadata());
+		assertThat("check a ws field", ws.getName(), is("bar"));
+		
+	}
+	
+	@Test
+	public void startUpWith2ConfigDocs() throws Exception {
+		final DB db = mongoClient.getDB("startUpWith2ConfigDocs");
+		
+		final Map<String, Object> m = new HashMap<String, Object>();
+		m.put("config", "config");
+		m.put("inupdate", false);
+		m.put("schemaver", 1);
+		
+		db.getCollection("config").insert(Arrays.asList(
+				(DBObject) new BasicDBObject(m), new BasicDBObject(m)));
+		
+		failMongoWSStart(db, new CorruptWorkspaceDBException(
+				"Found duplicate index keys in the database, " +
+						"aborting startup"));
+	}
+	
+	@Test
+	public void startUpWithBadSchemaVersion() throws Exception {
+		final DB db = mongoClient.getDB("startUpWithBadSchemaVersion");
+		
+		final DBObject cfg = new BasicDBObject("config", "config");
+		cfg.put("inupdate", false);
+		cfg.put("schemaver", 4);
+		
+		db.getCollection("config").insert(cfg);
+		
+		failMongoWSStart(db, new WorkspaceDBInitializationException(
+				"Incompatible database schema. Server is v1, DB is v4"));
+	}
+	
+	@Test
+	public void startUpWithUpdateInProgress() throws Exception {
+		final DB db = mongoClient.getDB("startUpWithUpdateInProgress");
+		
+		final DBObject cfg = new BasicDBObject("config", "config");
+		cfg.put("inupdate", true);
+		cfg.put("schemaver", 1);
+		
+		db.getCollection("config").insert(cfg);
+		
+		failMongoWSStart(db, new CorruptWorkspaceDBException(
+				"The database is in the middle of an update from v1 of the " +
+				"schema. Aborting startup."));
+	}
+
+	private void failMongoWSStart(final DB db, final Exception exp)
+			throws Exception {
+		TempFilesManager tfm = new TempFilesManager(
+				new File(WorkspaceTestCommon.getTempDir()));
+		try {
+			new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
+			fail("started mongo with bad config");
+		} catch (Exception e) {
+			assertExceptionCorrect(e, exp);
+		}
+	}
+	
+	private void assertExceptionCorrect(Exception got, Exception expected) {
+		assertThat("correct exception", got.getLocalizedMessage(),
+				is(expected.getLocalizedMessage()));
+		assertThat("correct exception type", got, is(expected.getClass()));
 	}
 	
 	@Test

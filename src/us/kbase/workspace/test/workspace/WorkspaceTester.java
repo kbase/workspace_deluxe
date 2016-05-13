@@ -680,7 +680,8 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 		try {
-			ws.getReferencingObjectCounts(user, objs);
+			@SuppressWarnings({ "deprecation", "unused" })
+			List<Integer> f = ws.getReferencingObjectCounts(user, objs);
 			fail("called get refing objects with bad args");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);

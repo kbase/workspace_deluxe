@@ -72,6 +72,7 @@ import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
+import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
@@ -95,13 +96,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public static final String COL_WORKSPACE_OBJS = "workspaceObjects";
 	public static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
 	public static final String COL_PROVENANCE = "provenance";
+	public static final String COL_CONFIG = "config";
 	public static final User ALL_USERS = Workspace.ALL_USERS;
 	
-	private ResourceUsageConfiguration rescfg;
 
-	//TODO these should really be configurable
+	//TODO this should really be configurable
 	private static final long MAX_PROV_SIZE = 1000000;
+	private static final int SCHEMA_VERSION = 1;
 	
+	private ResourceUsageConfiguration rescfg;
 	private final DB wsmongo;
 	private final Jongo wsjongo;
 	private final BlobStore blob;
@@ -111,8 +114,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private final TempFilesManager tfm;
 	
-	//TODO constants class
-
 	private static final Map<String, Map<List<String>, List<String>>> INDEXES;
 	private static final String IDX_UNIQ = "unique";
 	private static final String IDX_SPARSE = "sparse";
@@ -178,10 +179,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//find admins by name
 		admin.put(Arrays.asList(Fields.ADMIN_NAME), Arrays.asList(IDX_UNIQ));
 		INDEXES.put(COL_ADMINS, admin);
+		
+		//config indexes
+		Map<List<String>, List<String>> cfg =
+				new HashMap<List<String>, List<String>>();
+		//ensure only one config object
+		cfg.put(Arrays.asList(Fields.CONFIG_KEY), Arrays.asList(IDX_UNIQ));
+		INDEXES.put(COL_CONFIG, cfg);
+
 	}
 	
 	public MongoWorkspaceDB(final DB workspaceDB, final BlobStore blobStore,
-			final TempFilesManager tfm) {
+			final TempFilesManager tfm)
+			throws WorkspaceCommunicationException,
+			WorkspaceDBInitializationException, CorruptWorkspaceDBException {
 		if (workspaceDB == null || blobStore == null || tfm == null) {
 			throw new NullPointerException("No arguments can be null");
 		}
@@ -196,10 +207,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		updateWScounter = buildCounterQuery(wsjongo);
 		//TODO check a few random types and make sure they exist
 		ensureIndexes();
+		checkConfig();
 	}
 	
 	@Override
-	public void setResourceUsageConfiguration(ResourceUsageConfiguration rescfg) {
+	public void setResourceUsageConfiguration(
+			final ResourceUsageConfiguration rescfg) {
 		this.rescfg = rescfg;
 	}
 	
@@ -208,7 +221,46 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return tfm;
 	}
 	
-	private void ensureIndexes() {
+	private void checkConfig() throws WorkspaceCommunicationException,
+			WorkspaceDBInitializationException, CorruptWorkspaceDBException {
+		final DBObject cfg = new BasicDBObject(
+				Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
+		cfg.put(Fields.CONFIG_UPDATE, false);
+		cfg.put(Fields.CONFIG_SCHEMA_VERSION, SCHEMA_VERSION);
+		try {
+			wsmongo.getCollection(COL_CONFIG).insert(cfg);
+		} catch (MongoException.DuplicateKey dk) {
+			//ok, the version doc is already there, this isn't the first
+			//startup
+			final DBCursor cur = wsmongo.getCollection(COL_CONFIG)
+					.find(new BasicDBObject(
+							Fields.CONFIG_KEY, Fields.CONFIG_VALUE));
+			if (cur.size() != 1) {
+				throw new CorruptWorkspaceDBException(
+						"Multiple config objects found in the database. " +
+						"This should not happen, something is very wrong.");
+			}
+			final DBObject storedCfg = cur.next();
+			if ((Integer)storedCfg.get(Fields.CONFIG_SCHEMA_VERSION) !=
+					SCHEMA_VERSION) {
+				throw new WorkspaceDBInitializationException(String.format(
+						"Incompatible database schema. Server is v%s, DB is v%s",
+						SCHEMA_VERSION,
+						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+			}
+			if ((Boolean)storedCfg.get(Fields.CONFIG_UPDATE)) {
+				throw new CorruptWorkspaceDBException(String.format(
+						"The database is in the middle of an update from " +
+						"v%s of the schema. Aborting startup.", 
+						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+			}
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+	}
+	
+	private void ensureIndexes() throws CorruptWorkspaceDBException {
 		for (String col: INDEXES.keySet()) {
 			wsmongo.getCollection(col).resetIndexCache();
 			for (List<String> idx: INDEXES.get(col).keySet()) {
@@ -222,7 +274,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						opts.put(option, 1);
 					}
 				}
-				wsmongo.getCollection(col).ensureIndex(index, opts);
+				try {
+					wsmongo.getCollection(col).ensureIndex(index, opts);
+				} catch (MongoException.DuplicateKey dk) {
+					throw new CorruptWorkspaceDBException(
+							"Found duplicate index keys in the database, " +
+							"aborting startup", dk);
+				}
 			}
 		}
 	}
@@ -2281,7 +2339,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_REF_CNT = newHashSet(
 			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL,
 			Fields.OBJ_LATEST, Fields.OBJ_VCNT, Fields.OBJ_REFCOUNTS);
-	
+
+	/** @deprecated */
 	@Override
 	public Map<ObjectIDResolvedWS, Integer> getReferencingObjectCounts(
 			final Set<ObjectIDResolvedWS> objects)

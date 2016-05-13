@@ -3059,11 +3059,15 @@ obj_ref is a string
 
 =item Description
 
+DEPRECATED
+
 List the number of times objects have been referenced.
 
 This count includes both provenance and object-to-object references
 and, unlike list_referencing_objects, includes objects that are
 inaccessible to the user.
+
+@deprecated
 
 =back
 
@@ -8690,8 +8694,8 @@ A provenance action.
         resolved_ws_objects should never be set by the user; it is set by the
         workspace service when returning data.
         
-        On input, only one of the resource_release_date or
-        resource_release_epoch may be supplied. Both are supplied on output.
+        On input, only one of the time or epoch may be supplied. Both are
+        supplied on output.
         
         The maximum size of the entire provenance object, including all actions,
         is 1MB.

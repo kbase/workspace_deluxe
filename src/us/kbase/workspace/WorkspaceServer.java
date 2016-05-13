@@ -110,7 +110,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "1742eae96c6804c847a63f85140e81a0d13cca27";
+    private static final String gitCommitHash = "d276e03997a51ddb6055a66dbd4efd26733c8410";
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
@@ -764,10 +764,12 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: list_referencing_object_counts</p>
      * <pre>
+     * DEPRECATED
      * List the number of times objects have been referenced.
      * This count includes both provenance and object-to-object references
      * and, unlike list_referencing_objects, includes objects that are
      * inaccessible to the user.
+     * @deprecated
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "counts" of list of Long
