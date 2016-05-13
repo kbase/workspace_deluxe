@@ -53,10 +53,6 @@ public class WorkspaceTestCommon {
 		return getProp(MONGOEXE);
 	}
 	
-	public static String getKidlSource() {
-		return "both";
-	}
-	
 	public static String getShockExe() {
 		return getProp(SHOCKEXE);
 	}

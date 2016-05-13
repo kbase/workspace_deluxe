@@ -17,19 +17,25 @@ import us.kbase.common.service.UObject;
  * <p>Original spec-file type: ProvenanceAction</p>
  * <pre>
  * A provenance action.
- *         A provenance action is an action taken while transforming one data
- *         object to another. There may be several provenance actions taken in
- *         series. An action is typically running a script, running an api
- *         command, etc. All of the following are optional, but more information
- *         provided equates to better data provenance.
+ *         A provenance action (PA) is an action taken while transforming one data
+ *         object to another. There may be several PAs taken in series. A PA is
+ *         typically running a script, running an api command, etc. All of the
+ *         following fields are optional, but more information provided equates to
+ *         better data provenance.
  *         
  *         resolved_ws_objects should never be set by the user; it is set by the
  *         workspace service when returning data.
  *         
+ *         On input, only one of the time or epoch may be supplied. Both are
+ *         supplied on output.
+ *         
  *         The maximum size of the entire provenance object, including all actions,
  *         is 1MB.
  *         
- *         timestamp time - the time the action was started.
+ *         timestamp time - the time the action was started
+ *         epoch epoch - the time the action was started.
+ *         string caller - the name or id of the invoker of this provenance
+ *                 action. In most cases, this will be the same for all PAs.
  *         string service - the name of the service that performed this action.
  *         string service_ver - the version of the service that performed this action.
  *         string method - the method of the service that performed this action.
@@ -64,6 +70,10 @@ import us.kbase.common.service.UObject;
  *         list<ExternalDataUnit> external_data - data external to the workspace
  *                 that was either imported to the workspace or used to create a
  *                 workspace object.
+ *         list<SubAction> subactions - the subactions taken as a part of this
+ *                 action.
+ *         mapping<string, string> custom - user definable custom provenance
+ *                 fields and their values.
  *         string description - a free text description of this action.
  * </pre>
  * 
@@ -72,6 +82,8 @@ import us.kbase.common.service.UObject;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "time",
+    "epoch",
+    "caller",
     "service",
     "service_ver",
     "method",
@@ -84,12 +96,18 @@ import us.kbase.common.service.UObject;
     "intermediate_incoming",
     "intermediate_outgoing",
     "external_data",
+    "subactions",
+    "custom",
     "description"
 })
 public class ProvenanceAction {
 
     @JsonProperty("time")
     private java.lang.String time;
+    @JsonProperty("epoch")
+    private Long epoch;
+    @JsonProperty("caller")
+    private java.lang.String caller;
     @JsonProperty("service")
     private java.lang.String service;
     @JsonProperty("service_ver")
@@ -114,6 +132,10 @@ public class ProvenanceAction {
     private List<String> intermediateOutgoing;
     @JsonProperty("external_data")
     private List<ExternalDataUnit> externalData;
+    @JsonProperty("subactions")
+    private List<SubAction> subactions;
+    @JsonProperty("custom")
+    private Map<String, String> custom;
     @JsonProperty("description")
     private java.lang.String description;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
@@ -130,6 +152,36 @@ public class ProvenanceAction {
 
     public ProvenanceAction withTime(java.lang.String time) {
         this.time = time;
+        return this;
+    }
+
+    @JsonProperty("epoch")
+    public Long getEpoch() {
+        return epoch;
+    }
+
+    @JsonProperty("epoch")
+    public void setEpoch(Long epoch) {
+        this.epoch = epoch;
+    }
+
+    public ProvenanceAction withEpoch(Long epoch) {
+        this.epoch = epoch;
+        return this;
+    }
+
+    @JsonProperty("caller")
+    public java.lang.String getCaller() {
+        return caller;
+    }
+
+    @JsonProperty("caller")
+    public void setCaller(java.lang.String caller) {
+        this.caller = caller;
+    }
+
+    public ProvenanceAction withCaller(java.lang.String caller) {
+        this.caller = caller;
         return this;
     }
 
@@ -313,6 +365,36 @@ public class ProvenanceAction {
         return this;
     }
 
+    @JsonProperty("subactions")
+    public List<SubAction> getSubactions() {
+        return subactions;
+    }
+
+    @JsonProperty("subactions")
+    public void setSubactions(List<SubAction> subactions) {
+        this.subactions = subactions;
+    }
+
+    public ProvenanceAction withSubactions(List<SubAction> subactions) {
+        this.subactions = subactions;
+        return this;
+    }
+
+    @JsonProperty("custom")
+    public Map<String, String> getCustom() {
+        return custom;
+    }
+
+    @JsonProperty("custom")
+    public void setCustom(Map<String, String> custom) {
+        this.custom = custom;
+    }
+
+    public ProvenanceAction withCustom(Map<String, String> custom) {
+        this.custom = custom;
+        return this;
+    }
+
     @JsonProperty("description")
     public java.lang.String getDescription() {
         return description;
@@ -340,7 +422,7 @@ public class ProvenanceAction {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", inputWsObjects=")+ inputWsObjects)+", resolvedWsObjects=")+ resolvedWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", externalData=")+ externalData)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((((((((((("ProvenanceAction"+" [time=")+ time)+", epoch=")+ epoch)+", caller=")+ caller)+", service=")+ service)+", serviceVer=")+ serviceVer)+", method=")+ method)+", methodParams=")+ methodParams)+", script=")+ script)+", scriptVer=")+ scriptVer)+", scriptCommandLine=")+ scriptCommandLine)+", inputWsObjects=")+ inputWsObjects)+", resolvedWsObjects=")+ resolvedWsObjects)+", intermediateIncoming=")+ intermediateIncoming)+", intermediateOutgoing=")+ intermediateOutgoing)+", externalData=")+ externalData)+", subactions=")+ subactions)+", custom=")+ custom)+", description=")+ description)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

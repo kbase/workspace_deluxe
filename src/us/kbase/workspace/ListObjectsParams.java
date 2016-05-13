@@ -27,6 +27,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
  *                         existing version.
  *                 
+ *                 Only one of each timestamp/epoch pair may be supplied.
+ *                 
  *                 Optional arguments:
  *                 permission perm - filter objects by minimum permission level. 'None'
  *                         and 'readable' are ignored.
@@ -39,6 +41,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 timestamp after - only return objects that were created after this
  *                         date.
  *                 timestamp before - only return objects that were created before this
+ *                         date.
+ *                 epoch after_epoch - only return objects that were created after this
+ *                         date.
+ *                 epoch before_epoch - only return objects that were created before this
  *                         date.
  *                 obj_id minObjectID - only return objects with an object id greater or
  *                         equal to this value.
@@ -72,6 +78,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "meta",
     "after",
     "before",
+    "after_epoch",
+    "before_epoch",
     "minObjectID",
     "maxObjectID",
     "showDeleted",
@@ -100,6 +108,10 @@ public class ListObjectsParams {
     private java.lang.String after;
     @JsonProperty("before")
     private java.lang.String before;
+    @JsonProperty("after_epoch")
+    private java.lang.Long afterEpoch;
+    @JsonProperty("before_epoch")
+    private java.lang.Long beforeEpoch;
     @JsonProperty("minObjectID")
     private java.lang.Long minObjectID;
     @JsonProperty("maxObjectID")
@@ -237,6 +249,36 @@ public class ListObjectsParams {
 
     public ListObjectsParams withBefore(java.lang.String before) {
         this.before = before;
+        return this;
+    }
+
+    @JsonProperty("after_epoch")
+    public java.lang.Long getAfterEpoch() {
+        return afterEpoch;
+    }
+
+    @JsonProperty("after_epoch")
+    public void setAfterEpoch(java.lang.Long afterEpoch) {
+        this.afterEpoch = afterEpoch;
+    }
+
+    public ListObjectsParams withAfterEpoch(java.lang.Long afterEpoch) {
+        this.afterEpoch = afterEpoch;
+        return this;
+    }
+
+    @JsonProperty("before_epoch")
+    public java.lang.Long getBeforeEpoch() {
+        return beforeEpoch;
+    }
+
+    @JsonProperty("before_epoch")
+    public void setBeforeEpoch(java.lang.Long beforeEpoch) {
+        this.beforeEpoch = beforeEpoch;
+    }
+
+    public ListObjectsParams withBeforeEpoch(java.lang.Long beforeEpoch) {
+        this.beforeEpoch = beforeEpoch;
         return this;
     }
 
@@ -387,7 +429,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", minObjectID=")+ minObjectID)+", maxObjectID=")+ maxObjectID)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", afterEpoch=")+ afterEpoch)+", beforeEpoch=")+ beforeEpoch)+", minObjectID=")+ minObjectID)+", maxObjectID=")+ maxObjectID)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

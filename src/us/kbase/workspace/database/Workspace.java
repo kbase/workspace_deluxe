@@ -7,13 +7,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -24,22 +22,11 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
-import us.kbase.typedobj.db.FuncDetailedInfo;
-import us.kbase.typedobj.db.FuncInfo;
-import us.kbase.typedobj.db.ModuleDefId;
-import us.kbase.typedobj.db.OwnerInfo;
-import us.kbase.typedobj.db.TypeChange;
-import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.db.TypeDetailedInfo;
-import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
-import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
-import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
@@ -74,13 +61,12 @@ public class Workspace {
 	//TODO generalize descent into DAG for all methods
 	
 	//TODO general unit tests
-	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
-	//TODO BIG SHOCK shock node pointer objects that return pointer and set ACLS on pointer.
+	//TODO BIG GC garbage collection - see WOR-45
 	//TODO BIG SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
 	//TODO BIG SEARCH separate service - get object changes since date (based on type collection and pointers collection
 	//TODO BIG SEARCH index typespecs
 	
-	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
+	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists? Uh, why is this needed? Probably can drop.
 	
 	//TODO use DigestInputStream while sorting object to calculate md5 at the same time
 	
@@ -93,15 +79,15 @@ public class Workspace {
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
 	
 	private final WorkspaceDatabase db;
-	private final TypeDefinitionDB typedb;
-	private final TempFilesManager tfm;
 	private ResourceUsageConfiguration rescfg;
 	private final ReferenceParser parser;
+	private final TypedObjectValidator validator;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
-			final ReferenceParser parser) {
+			final ReferenceParser parser,
+			final TypedObjectValidator validator) {
 		if (db == null) {
 			throw new NullPointerException("db cannot be null");
 		}
@@ -111,9 +97,12 @@ public class Workspace {
 		if (cfg == null) {
 			throw new NullPointerException("cfg cannot be null");
 		}
+		if (validator == null) {
+			throw new NullPointerException("validator cannot be null");
+		}
 		this.db = db;
-		typedb = db.getTypeValidator().getDB();
-		tfm = db.getTempFilesManager();
+		//TODO check that a few object types exist to make sure the type provider is ok.
+		this.validator = validator;
 		rescfg = cfg;
 		this.parser = parser;
 		db.setResourceUsageConfiguration(rescfg);
@@ -132,7 +121,7 @@ public class Workspace {
 	}
 	
 	public TempFilesManager getTempFilesManager() {
-		return tfm;
+		return db.getTempFilesManager();
 	}
 	
 	private void comparePermission(final WorkspaceUser user,
@@ -639,8 +628,8 @@ public class Workspace {
 		long ttlObjSize = 0;
 		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
-			
 			//maintain ordering
+			wo.getProvenance().setWorkspaceID(new Long(rwsi.getID()));
 			final List<Reference> provrefs = new LinkedList<Reference>();
 			for (final Provenance.ProvenanceAction action:
 					wo.getProvenance().getActions()) {
@@ -721,14 +710,13 @@ public class Workspace {
 			final IdReferenceHandlerSet<IDAssociation> idhandler)
 			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
-		final TypedObjectValidator val = db.getTypeValidator();
 		final Map<WorkspaceSaveObject, TypedObjectValidationReport> reports = 
 				new HashMap<WorkspaceSaveObject, TypedObjectValidationReport>();
 		int objcount = 1;
 		for (final WorkspaceSaveObject wo: objects) {
 			idhandler.associateObject(new IDAssociation(objcount, false));
-			final TypedObjectValidationReport rep = validate(wo, val,
-					idhandler, objcount);
+			final TypedObjectValidationReport rep = validate(wo, idhandler,
+					objcount);
 			reports.put(wo, rep);
 			idhandler.associateObject(new IDAssociation(objcount, true));
 			try {
@@ -823,14 +811,13 @@ public class Workspace {
 
 	private TypedObjectValidationReport validate(
 			final WorkspaceSaveObject wo,
-			final TypedObjectValidator val,
 			final IdReferenceHandlerSet<IDAssociation> idhandler,
 			final int objcount)
 			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
 		final TypedObjectValidationReport rep;
 		try {
-			rep = val.validate(wo.getData(), wo.getType(), idhandler);
+			rep = validator.validate(wo.getData(), wo.getType(), idhandler);
 		} catch (NoSuchTypeException nste) {
 			throw new TypedObjectValidationException(String.format(
 					"Object %s failed type checking:\n",
@@ -1140,6 +1127,7 @@ public class Workspace {
 		return ret;
 	}
 	
+	/** @deprecated */
 	public List<Integer> getReferencingObjectCounts(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
@@ -1323,221 +1311,6 @@ public class Workspace {
 		db.setWorkspaceDeleted(wsid, delete);
 	}
 
-	private String getUser(WorkspaceUser user) {
-		return user == null ? null : user.getUser();
-	}
-	
-	public void requestModuleRegistration(final WorkspaceUser user,
-			final String module) throws TypeStorageException {
-		if (typedb.isValidModule(module)) {
-			throw new IllegalArgumentException(module +
-					" module already exists");
-		}
-		typedb.requestModuleRegistration(module, user.getUser());
-	}
-	
-	public List<OwnerInfo> listModuleRegistrationRequests() throws
-			TypeStorageException {
-		try {
-			return typedb.getNewModuleRegistrationRequests(null, true);
-		} catch (NoSuchPrivilegeException nspe) {
-			throw new RuntimeException(
-					"Something is broken in the administration system", nspe);
-		}
-	}
-	
-	public void resolveModuleRegistration(final String module,
-			final boolean approve)
-			throws TypeStorageException {
-		try {
-			if (approve) {
-				typedb.approveModuleRegistrationRequest(null, module, true);
-			} else {
-				typedb.refuseModuleRegistrationRequest(null, module, true);
-			}
-		} catch (NoSuchPrivilegeException nspe) {
-			throw new RuntimeException(
-					"Something is broken in the administration system", nspe);
-		}
-	}
-	
-	//TODO should return the version as well?
-	public Map<TypeDefName, TypeChange> compileNewTypeSpec(
-			final WorkspaceUser user, final String typespec,
-			final List<String> newtypes, final List<String> removeTypes,
-			final Map<String, Long> moduleVers, final boolean dryRun,
-			final Long previousVer)
-			throws SpecParseException, TypeStorageException,
-			NoSuchPrivilegeException, NoSuchModuleException {
-		return typedb.registerModule(typespec, newtypes, removeTypes,
-				getUser(user), dryRun, moduleVers, previousVer);
-	}
-	
-	public Map<TypeDefName, TypeChange> compileTypeSpec(
-			final WorkspaceUser user, final String module,
-			final List<String> newtypes, final List<String> removeTypes,
-			final Map<String, Long> moduleVers, boolean dryRun)
-			throws SpecParseException, TypeStorageException,
-			NoSuchPrivilegeException, NoSuchModuleException {
-		return typedb.refreshModule(module, newtypes, removeTypes,
-				user.getUser(), dryRun, moduleVers);
-	}
-	
-	public List<AbsoluteTypeDefId> releaseTypes(final WorkspaceUser user,
-			final String module)
-			throws NoSuchModuleException, TypeStorageException,
-			NoSuchPrivilegeException {
-		return typedb.releaseModule(module, user.getUser(), false);
-	}
-	
-	public String getJsonSchema(final TypeDefId type, WorkspaceUser user) throws
-			NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		return typedb.getJsonSchemaDocument(type, getUser(user));
-	}
-	
-	public List<String> listModules(WorkspaceUser user)
-			throws TypeStorageException {
-		if (user == null) {
-			return typedb.getAllRegisteredModules();
-		}
-		return typedb.getModulesByOwner(user.getUser());
-	}
-	
-	public ModuleInfo getModuleInfo(final WorkspaceUser user, final ModuleDefId module)
-			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		String userId = getUser(user);
-		final us.kbase.typedobj.db.ModuleInfo moduleInfo =
-				typedb.getModuleInfo(module, userId, false);
-		List<String> functions = new ArrayList<String>();
-		for (FuncInfo fi : moduleInfo.getFuncs().values())
-			functions.add(module.getModuleName() + "." + fi.getFuncName() + "-" + 
-					fi.getFuncVersion());
-		return new ModuleInfo(typedb.getModuleSpecDocument(module, userId, false),
-				typedb.getModuleOwners(module.getModuleName()),
-				moduleInfo.getVersionTime(),  moduleInfo.getDescription(),
-				typedb.getJsonSchemasForAllTypes(module, userId, false), 
-				moduleInfo.getIncludedModuleNameToVersion(), moduleInfo.getMd5hash(), 
-				new ArrayList<String>(functions), moduleInfo.isReleased());
-	}
-	
-	public List<Long> getModuleVersions(final String module, WorkspaceUser user)
-			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		if (user != null && typedb.isOwnerOfModule(module, user.getUser()))
-			return typedb.getAllModuleVersionsWithUnreleased(module, user.getUser(), false);
-		return typedb.getAllModuleVersions(module);
-	}
-	
-	public List<Long> getModuleVersions(final TypeDefId type, WorkspaceUser user) 
-			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
-		final List<ModuleDefId> mods =
-				typedb.findModuleVersionsByTypeVersion(type, getUser(user));
-		final List<Long> vers = new ArrayList<Long>();
-		for (final ModuleDefId m: mods) {
-			vers.add(m.getVersion());
-		}
-		return vers;
-	}
-
-	public HashMap<String, List<String>> translateFromMd5Types(List<String> md5TypeList) 
-			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
-		//return typedb.getTypeVersionsForMd5(md5TypeDef);
-		HashMap<String, List<String>> ret = new LinkedHashMap<String, List<String>>();
-		for (String md5TypeDef : md5TypeList) {
-			List<AbsoluteTypeDefId> semantList = typedb.getTypeVersionsForMd5(TypeDefId.fromTypeString(md5TypeDef));
-			List<String> retList = new ArrayList<String>();
-			for (AbsoluteTypeDefId semantTypeDef : semantList)
-				retList.add(semantTypeDef.getTypeString());
-			ret.put(md5TypeDef, retList);
-		}
-		return ret;
-	}
-
-	public Map<String,String> translateToMd5Types(List<String> semanticTypeList,
-			WorkspaceUser user) 
-			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
-		HashMap<String, String> ret = new LinkedHashMap<String, String>();
-		for (String semantString : semanticTypeList) {
-			TypeDefId semantTypeDef = TypeDefId.fromTypeString(semantString);
-			ret.put(semantString, typedb.getTypeMd5Version(semantTypeDef, getUser(user)).getTypeString());
-		}
-		return ret;
-	}
-	
-	public long compileTypeSpecCopy(String moduleName, String specDocument, Set<String> extTypeSet,
-			String userId, Map<String, String> includesToMd5, Map<String, Long> extIncludedSpecVersions) 
-					throws NoSuchModuleException, TypeStorageException, SpecParseException, NoSuchPrivilegeException {
-		long lastLocalVer = typedb.getLatestModuleVersionWithUnreleased(moduleName, userId, false);
-		Map<String, Long> moduleVersionRestrictions = new HashMap<String, Long>();
-		for (Map.Entry<String, String> entry : includesToMd5.entrySet()) {
-			String includedModule = entry.getKey();
-			String md5 = entry.getValue();
-			long extIncludedVer = extIncludedSpecVersions.get(includedModule);
-			List<ModuleDefId> localIncludeVersions = new ArrayList<ModuleDefId>(
-					typedb.findModuleVersionsByMD5(includedModule, md5));
-			if (localIncludeVersions.size() == 0)
-				throw new NoSuchModuleException("Can not find local module " + includedModule + " synchronized " +
-						"with external version " + extIncludedVer + " (md5=" + md5 + ")");
-			us.kbase.typedobj.db.ModuleInfo localIncludedInfo =  typedb.getModuleInfo(includedModule, 
-					localIncludeVersions.get(0).getVersion());
-			moduleVersionRestrictions.put(localIncludedInfo.getModuleName(), localIncludedInfo.getVersionTime());
-		}
-		Set<String> prevTypes = new HashSet<String>(typedb.getModuleInfo(moduleName, lastLocalVer).getTypes().keySet());
-		Set<String> typesToSave = new HashSet<String>(extTypeSet);
-		List<String> allTypes = new ArrayList<String>(prevTypes);
-		allTypes.addAll(typesToSave);
-		List<String> typesToUnregister = new ArrayList<String>();
-		for (String typeName : allTypes) {
-			if (prevTypes.contains(typeName)) {
-				if (typesToSave.contains(typeName)) {
-					typesToSave.remove(typeName);
-				} else {
-					typesToUnregister.add(typeName);
-				}
-			}
-		}
-		typedb.registerModule(specDocument, new ArrayList<String>(typesToSave), typesToUnregister, 
-				userId, false, moduleVersionRestrictions);
-		return typedb.getLatestModuleVersionWithUnreleased(moduleName, userId, false);
-	}
-	
-	public TypeDetailedInfo getTypeInfo(String typeDef, boolean markTypeLinks, WorkspaceUser user) 
-			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
-		String userId = getUser(user);
-		return typedb.getTypeDetailedInfo(TypeDefId.fromTypeString(typeDef), markTypeLinks, userId);
-	}
-	
-	public FuncDetailedInfo getFuncInfo(String funcDef, boolean markTypeLinks, WorkspaceUser user) 
-			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
-		TypeDefId tempDef = TypeDefId.fromTypeString(funcDef);
-		String userId = getUser(user);
-		return typedb.getFuncDetailedInfo(tempDef.getType().getModule(), 
-				tempDef.getType().getName(), tempDef.getVerString(), markTypeLinks, userId);
-	}
-
-	public void grantModuleOwnership(String moduleName, String newOwner, boolean withGrantOption,
-			WorkspaceUser user, boolean isAdmin) throws TypeStorageException, NoSuchPrivilegeException {
-		typedb.addOwnerToModule(getUser(user), moduleName, newOwner, withGrantOption, isAdmin);
-	}
-	
-	public void removeModuleOwnership(String moduleName, String oldOwner, WorkspaceUser user, 
-			boolean isAdmin) throws NoSuchPrivilegeException, TypeStorageException {
-		typedb.removeOwnerFromModule(getUser(user), moduleName, oldOwner, isAdmin);
-	}
-	
-	public Map<String, Map<String, String>> listAllTypes(boolean withEmptyModules) 
-			throws TypeStorageException, NoSuchModuleException {
-		Map<String, Map<String, String>> ret = new TreeMap<String, Map<String, String>>();
-		for (String moduleName : typedb.getAllRegisteredModules()) {
-			Map<String, String> typeMap = new TreeMap<String, String>();
-			for (String key : typedb.getModuleInfo(moduleName).getTypes().keySet())
-				typeMap.put(typedb.getModuleInfo(moduleName).getTypes().get(key).getTypeName(), 
-						typedb.getModuleInfo(moduleName).getTypes().get(key).getTypeVersion());
-			if (withEmptyModules || !typeMap.isEmpty())
-				ret.put(moduleName, typeMap);
-		}
-		return ret;
-	}
-	
 	/* admin method only, should not be exposed in public API
 	 */
 	public Set<WorkspaceUser> getAllWorkspaceOwners()
