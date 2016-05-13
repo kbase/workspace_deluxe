@@ -162,7 +162,7 @@ public class GetObjectsLibSpeedTest {
 
 			long start = System.nanoTime();
 			ByteArrayFileCache bafc = ws.getObjects(user, Arrays.asList(oi))
-					.get(0).getDataAsTokens();
+					.get(0).getSerializedData();
 			long gotbytes = System.nanoTime();
 			
 			Reader r = bafc.getJSON();

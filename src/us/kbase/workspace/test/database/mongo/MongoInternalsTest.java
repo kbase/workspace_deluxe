@@ -327,19 +327,9 @@ public class MongoInternalsTest {
 							objname, rwsi.getID())));
 		}
 		
-		String msg = String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
-				objname, rwsi.getID());
-		
-		failGetObjectsNoSuchObjectExcp(oidsetver, msg);
-		
-		try {
-			mwdb.getObjectProvenance(oidsetver);
-			fail("got object with no version");
-		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
-							objname, rwsi.getID())));
-		}
+		failGetObjectsNoSuchObjectExcp(oidsetver,
+				String.format("No object with id 1 (name %s) and version 1 exists in workspace %s",
+						objname, rwsi.getID()));
 		
 		assertNull("can't get object mid save", mwdb.getObjectInformation(oidsetver, false, true).get(0));
 		try {
@@ -362,7 +352,7 @@ public class MongoInternalsTest {
 			paths.put(o, null);
 		}
 		try {
-			mwdb.getObjects(paths);
+			mwdb.getObjects(paths, false);
 			fail("operated on object with no version");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception message", nsoe.getMessage(),

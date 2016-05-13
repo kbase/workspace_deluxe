@@ -63,7 +63,6 @@ import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.BlobStore;
@@ -602,32 +601,32 @@ public class WorkspaceTester {
 			List<Map<String, Object>> data) throws Exception {
 		List<WorkspaceObjectData> retdata = ws.getObjects(user, ids);
 		List<WorkspaceObjectData> retdata2 = ws.getObjectsSubSet(user, objIDToSubObjID(ids));
-		List<WorkspaceObjectInformation> infdata = ws.getObjectProvenance(user, ids);
+		List<WorkspaceObjectData> provdata = ws.getObjectProvenance(user, ids);
 		Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
 		Iterator<WorkspaceObjectData> ret2 = retdata2.iterator();
-		Iterator<WorkspaceObjectInformation> infd = infdata.iterator();
+		Iterator<WorkspaceObjectData> provi = provdata.iterator();
 		Iterator<FakeObjectInfo> info = fakeinfo.iterator();
 		Iterator<Map<String, Object>> dataiter = data.iterator();
 		while (ret1.hasNext()) {
 			FakeObjectInfo inf = info.next();
 			Map<String, Object> d = dataiter.next();
-			WorkspaceObjectInformation woi = infd.next();
+			WorkspaceObjectData woprov = provi.next();
 			WorkspaceObjectData wod1 = ret1.next();
 			WorkspaceObjectData wod2 = ret2.next();
 			checkObjectAndInfo(wod1, inf , d);
 			checkObjectAndInfo(wod2, inf , d);
-			checkObjInfo(woi.getObjectInfo(), inf.getObjectId(), inf.getObjectName(),
+			checkObjInfo(woprov.getObjectInfo(), inf.getObjectId(), inf.getObjectName(),
 					inf.getTypeString(), inf.getVersion(), inf.getSavedBy(),
 					inf.getWorkspaceId(), inf.getWorkspaceName(), inf.getCheckSum(),
 					inf.getSize(), inf.getUserMetaData().getMetadata());
 		}
-		if (ret2.hasNext() || info.hasNext() || dataiter.hasNext() || infd.hasNext()) {
+		if (ret2.hasNext() || info.hasNext() || dataiter.hasNext() || provi.hasNext()) {
 			fail("mismatched iter counts");
 		}
 	}
 
 	protected void checkObjectAndInfo(WorkspaceObjectData wod,
-			FakeObjectInfo info, Map<String, Object> data) {
+			FakeObjectInfo info, Map<String, Object> data) throws IOException {
 		checkObjInfo(wod.getObjectInfo(), info.getObjectId(), info.getObjectName(),
 				info.getTypeString(), info.getVersion(), info.getSavedBy(),
 				info.getWorkspaceId(), info.getWorkspaceName(), info.getCheckSum(),
@@ -1121,11 +1120,11 @@ public class WorkspaceTester {
 				null, original.getWorkspaceId());
 		
 		//getObjectProvenance
-		WorkspaceObjectInformation originfo = ws.getObjectProvenance(original.getSavedBy(),
+		WorkspaceObjectData originfo = ws.getObjectProvenance(original.getSavedBy(),
 				Arrays.asList(
 						new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
 						original.getObjectId(), original.getVersion()))).get(0);
-		WorkspaceObjectInformation copyinfo = ws.getObjectProvenance(copied.getSavedBy(),
+		WorkspaceObjectData copyinfo = ws.getObjectProvenance(copied.getSavedBy(),
 				Arrays.asList(
 				new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
 						copied.getObjectId(), copied.getVersion()))).get(0);
@@ -1163,7 +1162,7 @@ public class WorkspaceTester {
 			throws Exception {
 		assertThat("object info same", got.getObjectInfo(), is(info));
 		assertThat("returned data same", got.getData(), is((Object)data));
-		assertThat("returned data jsonnode same", got.getDataAsTokens().getAsJsonNode(),
+		assertThat("returned data jsonnode same", got.getSerializedData().getAsJsonNode(),
 				is(new ObjectMapper().valueToTree(data)));
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));
@@ -1472,7 +1471,7 @@ public class WorkspaceTester {
 		List<ObjectIdentifier> o = Arrays.asList(obj);
 		WorkspaceObjectData wod = ws.getObjects(user, o).get(0);
 		WorkspaceObjectData swod = ws.getObjectsSubSet(user, objIDToSubObjID(o)).get(0);
-		WorkspaceObjectInformation woi = ws.getObjectProvenance(user, o).get(0);
+		WorkspaceObjectData woi = ws.getObjectProvenance(user, o).get(0);
 		
 		assertThat("get objs correct ext ids", wod.getExtractedIds(), is(expected));
 		assertThat("get sub objs correct ext ids", swod.getExtractedIds(), is(expected));

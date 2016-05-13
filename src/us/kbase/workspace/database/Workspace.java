@@ -904,22 +904,36 @@ public class Workspace {
 		return db.getObjectInformation(params.generateParameters(pset));
 	}
 	
-	public List<WorkspaceObjectInformation> getObjectProvenance(
+	public List<WorkspaceObjectData> getObjectProvenance(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi)
 			throws CorruptWorkspaceDBException,
 			WorkspaceCommunicationException, InaccessibleObjectException {
+		
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
-		final Map<ObjectIDResolvedWS, WorkspaceObjectInformation> prov =
-				db.getObjectProvenance(
-						new HashSet<ObjectIDResolvedWS>(ws.values()));
-		final List<WorkspaceObjectInformation> ret =
-				new ArrayList<WorkspaceObjectInformation>();
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
+				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		for (final ObjectIDResolvedWS o: ws.values()) {
+			paths.put(o, null);
+		}
+		//this is pretty gross, think about a better api here
+		final Map<ObjectIDResolvedWS,
+				Map<ObjectPaths, WorkspaceObjectData>> prov;
+		try {
+			prov = db.getObjects(paths, true);
+		} catch (TypedObjectExtractionException toee) {
+			throw new RuntimeException(
+					"There was an extraction exception even though " +
+					"extraction wasn't requested. GG programmers", toee);
+		}
+		
+		final List<WorkspaceObjectData> ret =
+				new ArrayList<WorkspaceObjectData>();
 		
 		for (final ObjectIdentifier o: loi) {
-			ret.add(prov.get(ws.get(o)));
+			ret.add(prov.get(ws.get(o)).get(null));
 		}
-		removeInaccessibleProvenanceCopyReferences(user, ret);
+		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
 	}
 
@@ -938,7 +952,7 @@ public class Workspace {
 		final Map<ObjectIDResolvedWS,
 				Map<ObjectPaths, WorkspaceObjectData>> data;
 		try {
-			data = db.getObjects(paths);
+			data = db.getObjects(paths, false);
 		} catch (TypedObjectExtractionException toee) {
 			throw new RuntimeException(
 					"There was an extraction exception even though " +
@@ -978,7 +992,7 @@ public class Workspace {
 		//this is kind of disgusting, think about the api here
 		final Map<ObjectIDResolvedWS,
 				Map<ObjectPaths, WorkspaceObjectData>> data = 
-				db.getObjects(objpaths);
+				db.getObjects(objpaths, false);
 		
 		final List<WorkspaceObjectData> ret =
 				new ArrayList<WorkspaceObjectData>();
@@ -1039,23 +1053,9 @@ public class Workspace {
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		
-		final List<WorkspaceObjectInformation> newdata =
-				new LinkedList<WorkspaceObjectInformation>();
-		for (final WorkspaceObjectData d: data) {
-			newdata.add((WorkspaceObjectInformation) d);
-		}
-		removeInaccessibleProvenanceCopyReferences(user, newdata);
-	}
-	
-	private void removeInaccessibleProvenanceCopyReferences(
-			final WorkspaceUser user,
-			final List<WorkspaceObjectInformation> info)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		
 		final Set<WorkspaceIdentifier> wsis =
 				new HashSet<WorkspaceIdentifier>();
-		for (final WorkspaceObjectInformation d: info) {
+		for (final WorkspaceObjectData d: data) {
 			if (d.getCopyReference() != null) {
 				wsis.add(new WorkspaceIdentifier(
 						d.getCopyReference().getWorkspaceID()));
@@ -1089,9 +1089,9 @@ public class Workspace {
 			}
 		}
 		
-		final Map<WorkspaceObjectInformation, ObjectIDResolvedWS> rois =
-				new HashMap<WorkspaceObjectInformation, ObjectIDResolvedWS>();
-		for (final WorkspaceObjectInformation d: info) {
+		final Map<WorkspaceObjectData, ObjectIDResolvedWS> rois =
+				new HashMap<WorkspaceObjectData, ObjectIDResolvedWS>();
+		for (final WorkspaceObjectData d: data) {
 			final Reference cref = d.getCopyReference();
 			if (cref == null) {
 				continue;
@@ -1110,7 +1110,7 @@ public class Workspace {
 				db.getObjectExists(
 						new HashSet<ObjectIDResolvedWS>(rois.values())); 
 		
-		for (final Entry<WorkspaceObjectInformation, ObjectIDResolvedWS> e:
+		for (final Entry<WorkspaceObjectData, ObjectIDResolvedWS> e:
 				rois.entrySet()) {
 			if (!objexists.get(e.getValue())) {
 				e.getKey().setCopySourceInaccessible();

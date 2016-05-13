@@ -633,7 +633,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getInstance());
 		final WorkspaceObjectData ret = ws.getObjects(
 				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
-		final ByteArrayFileCache resource = ret.getDataAsTokens();
+		final ByteArrayFileCache resource = ret.getSerializedData();
 		returnVal = new GetObjectOutput()
 			.withData(resource.getUObject())
 			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo(), true));

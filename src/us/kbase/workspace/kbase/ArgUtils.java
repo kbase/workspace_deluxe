@@ -23,6 +23,8 @@ import org.joda.time.format.DateTimeFormatterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonParseException;
+
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
@@ -50,11 +52,9 @@ import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 
 /**
- * not thread safe
  * @author gaprice@lbl.gov
  *
  */
@@ -422,12 +422,13 @@ public class ArgUtils {
 			final Set<ByteArrayFileCache> resourcesToDestroy,
 			final URL handleManagerURl,
 			final RefreshingToken handleManagertoken,
-			final boolean logObjects) {
+			final boolean logObjects)
+			throws JsonParseException, IOException {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
 			final HandleError error = makeHandlesReadable(
 					o, user, handleManagerURl, handleManagertoken);
-			final ByteArrayFileCache resource = o.getDataAsTokens();
+			final ByteArrayFileCache resource = o.getSerializedData();
 			ret.add(new ObjectData()
 					.withData(resource.getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
@@ -452,14 +453,14 @@ public class ArgUtils {
 	}
 	
 	public static List<ObjectProvenanceInfo> translateObjectProvInfo(
-			final List<WorkspaceObjectInformation> objects,
+			final List<WorkspaceObjectData> objects,
 			final WorkspaceUser user,
 			final URL handleManagerURl,
 			final RefreshingToken handleManagertoken,
 			final boolean logObjects) {
 		final List<ObjectProvenanceInfo> ret =
 				new ArrayList<ObjectProvenanceInfo>();
-		for (final WorkspaceObjectInformation o: objects) {
+		for (final WorkspaceObjectData o: objects) {
 			final HandleError error = makeHandlesReadable(
 					o, user, handleManagerURl, handleManagertoken);
 			ret.add(new ObjectProvenanceInfo()
@@ -508,7 +509,7 @@ public class ArgUtils {
 	}
 
 	private static HandleError makeHandlesReadable(
-			final WorkspaceObjectInformation o,
+			final WorkspaceObjectData o,
 			final WorkspaceUser user,
 			final URL handleManagerURL,
 			final RefreshingToken handleManagertoken) {

@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,7 +46,6 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 
 public class WorkspaceLongTest extends WorkspaceTester {
@@ -100,7 +100,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		//printMem("*** released refs ***");
 		
 		ByteArrayFileCache newdata = ws.getObjects(userfoo, 
-				Arrays.asList(new ObjectIdentifier(bigdataws, 1))).get(0).getDataAsTokens();
+				Arrays.asList(new ObjectIdentifier(bigdataws, 1))).get(0).getSerializedData();
 //		printMem("*** retrieved object ***");
 //		System.gc();
 //		printMem("*** ran gc after retrieve ***");
@@ -376,7 +376,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			int featureCount, Random rnd, int numberOfIncludedPaths, String caller)
 			throws CorruptWorkspaceDBException,
 			WorkspaceCommunicationException, InaccessibleObjectException,
-			TypedObjectExtractionException, JsonProcessingException {
+			TypedObjectExtractionException, IOException {
 		double avgTime2 = 0;
 		double avgLen = 0;
 		int iterCount2 = 100;
