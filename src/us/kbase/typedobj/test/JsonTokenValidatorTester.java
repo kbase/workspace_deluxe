@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -25,18 +26,16 @@ import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.test.TypeRegisteringTest;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
-import us.kbase.workspace.kbase.Util;
 
 public class JsonTokenValidatorTester {
 	private static final long seed = 1234567890L;
 	private static final Random rnd = new Random(seed);
 
 	public static void main(String[] args) throws Exception {
-		File dir = new File(".");
 		// point the type definition db to point there
 		TypeStorage storage = new MongoTypeStorage(TypeRegisteringTest.createMongoDbConnection());
 		storage.removeAllData();
-		TypeDefinitionDB db = new TypeDefinitionDB(storage, dir, new Util().getKIDLpath(), null);
+		TypeDefinitionDB db = new TypeDefinitionDB(storage);
 		// create a validator that uses the type def db
 		String username = "wstester1";
 		String moduleName = "KBaseNetworks";
@@ -69,7 +68,8 @@ public class JsonTokenValidatorTester {
 					new IdReferenceHandlerSetFactory(6);
 			IdReferenceHandlerSet<String> han = fac.createHandlers(String.class);
 			han.associateObject("foo");
-			TypedObjectValidationReport report = new TypedObjectValidator(db).validate(new UObject(jp, null), 
+			TypedObjectValidationReport report = new TypedObjectValidator(
+					new LocalTypeProvider(db)).validate(new UObject(jp, null), 
 					new TypeDefId(new TypeDefName(moduleName, typeName)), han);
 			Assert.assertTrue(report.isInstanceValid());
 			System.out.println(buffer + "\t" + f.length() + "\t" + (System.currentTimeMillis() - time) + " ms");

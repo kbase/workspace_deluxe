@@ -1,12 +1,12 @@
 package us.kbase.workspace.kbase;
 
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
+import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.processProvenance;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
-import static us.kbase.workspace.kbase.ArgUtils.parseDate;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
@@ -16,6 +16,7 @@ import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -46,6 +47,7 @@ import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -64,16 +66,19 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 public class WorkspaceServerMethods {
 	
 	final private Workspace ws;
+	final private Types types;
 	final private URL handleServiceUrl;
 	final private int maximumIDCount;
 	final private ConfigurableAuthService auth;
 	
 	public WorkspaceServerMethods(
 			final Workspace ws,
+			final Types types,
 			final URL handleServiceUrl,
 			final int maximumIDCount,
 			final ConfigurableAuthService auth) {
 		this.ws = ws;
+		this.types = types;
 		this.handleServiceUrl = handleServiceUrl;
 		this.maximumIDCount = maximumIDCount;
 		this.auth = auth;
@@ -257,7 +262,7 @@ public class WorkspaceServerMethods {
 			throws TypeStorageException, NoSuchPrivilegeException {
 		checkAddlArgs(params.getAdditionalProperties(),
 				GrantModuleOwnershipParams.class);
-		ws.grantModuleOwnership(params.getMod(), params.getNewOwner(),
+		types.grantModuleOwnership(params.getMod(), params.getNewOwner(),
 				longToBoolean(params.getWithGrantOption()), user, asAdmin);
 	}
 
@@ -266,7 +271,7 @@ public class WorkspaceServerMethods {
 			throws NoSuchPrivilegeException, TypeStorageException {
 		checkAddlArgs(params.getAdditionalProperties(),
 				RemoveModuleOwnershipParams.class);
-		ws.removeModuleOwnership(params.getMod(), params.getOldOwner(),
+		types.removeModuleOwnership(params.getMod(), params.getOldOwner(),
 				user, asAdmin);
 	}
 
@@ -278,11 +283,17 @@ public class WorkspaceServerMethods {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final Permission p = params.getPerm() == null ? null :
 				translatePermission(params.getPerm());
+		final Date after = chooseDate(params.getAfter(),
+				params.getAfterEpoch(),
+				"Cannot specify both timestamp and epoch for after parameter");
+		final Date before = chooseDate(params.getBefore(),
+				params.getBeforeEpoch(),
+				"Cannot specify both timestamp and epoch for before " +
+				"parameter");
 		return wsInfoToTuple(ws.listWorkspaces(user,
 				p, ArgUtils.convertUsers(params.getOwners()),
 				new WorkspaceUserMetadata(params.getMeta()),
-				parseDate(params.getAfter()),
-				parseDate(params.getBefore()),
+				after, before,
 				longToBoolean(params.getExcludeGlobal()),
 				longToBoolean(params.getShowDeleted()),
 				longToBoolean(params.getShowOnlyDeleted())));

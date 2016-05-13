@@ -148,7 +148,7 @@ Returns the version of the workspace service.
 
 =cut
 
-sub ver
+ sub ver
 {
     my($self, @args) = @_;
 
@@ -181,7 +181,7 @@ sub ver
 				       );
     }
 }
-
+ 
 
 
 =head2 create_workspace
@@ -262,7 +262,7 @@ Creates a new workspace.
 
 =cut
 
-sub create_workspace
+ sub create_workspace
 {
     my($self, @args) = @_;
 
@@ -306,7 +306,7 @@ sub create_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 alter_workspace_metadata
@@ -361,7 +361,7 @@ Change the metadata associated with a workspace.
 
 =cut
 
-sub alter_workspace_metadata
+ sub alter_workspace_metadata
 {
     my($self, @args) = @_;
 
@@ -405,7 +405,7 @@ sub alter_workspace_metadata
 				       );
     }
 }
-
+ 
 
 
 =head2 clone_workspace
@@ -494,7 +494,7 @@ Clones a workspace.
 
 =cut
 
-sub clone_workspace
+ sub clone_workspace
 {
     my($self, @args) = @_;
 
@@ -538,7 +538,7 @@ sub clone_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 lock_workspace
@@ -623,7 +623,7 @@ Lock a workspace, preventing further changes.
 
 =cut
 
-sub lock_workspace
+ sub lock_workspace
 {
     my($self, @args) = @_;
 
@@ -667,7 +667,7 @@ sub lock_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 get_workspacemeta
@@ -740,7 +740,7 @@ Provided for backwards compatibility.
 
 =cut
 
-sub get_workspacemeta
+ sub get_workspacemeta
 {
     my($self, @args) = @_;
 
@@ -784,7 +784,7 @@ sub get_workspacemeta
 				       );
     }
 }
-
+ 
 
 
 =head2 get_workspace_info
@@ -861,7 +861,7 @@ Get information associated with a workspace.
 
 =cut
 
-sub get_workspace_info
+ sub get_workspace_info
 {
     my($self, @args) = @_;
 
@@ -905,7 +905,7 @@ sub get_workspace_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_workspace_description
@@ -952,7 +952,7 @@ Get a workspace's description.
 
 =cut
 
-sub get_workspace_description
+ sub get_workspace_description
 {
     my($self, @args) = @_;
 
@@ -996,7 +996,7 @@ sub get_workspace_description
 				       );
     }
 }
-
+ 
 
 
 =head2 set_permissions
@@ -1049,7 +1049,7 @@ Set permissions for a workspace.
 
 =cut
 
-sub set_permissions
+ sub set_permissions
 {
     my($self, @args) = @_;
 
@@ -1093,7 +1093,7 @@ sub set_permissions
 				       );
     }
 }
-
+ 
 
 
 =head2 set_global_permission
@@ -1142,7 +1142,7 @@ Set the global permission for a workspace.
 
 =cut
 
-sub set_global_permission
+ sub set_global_permission
 {
     my($self, @args) = @_;
 
@@ -1186,7 +1186,7 @@ sub set_global_permission
 				       );
     }
 }
-
+ 
 
 
 =head2 set_workspace_description
@@ -1233,7 +1233,7 @@ Set the description for a workspace.
 
 =cut
 
-sub set_workspace_description
+ sub set_workspace_description
 {
     my($self, @args) = @_;
 
@@ -1277,7 +1277,7 @@ sub set_workspace_description
 				       );
     }
 }
-
+ 
 
 
 =head2 get_permissions_mass
@@ -1336,7 +1336,7 @@ Get permissions for multiple workspaces.
 
 =cut
 
-sub get_permissions_mass
+ sub get_permissions_mass
 {
     my($self, @args) = @_;
 
@@ -1380,7 +1380,7 @@ sub get_permissions_mass
 				       );
     }
 }
-
+ 
 
 
 =head2 get_permissions
@@ -1431,7 +1431,7 @@ Get permissions for a workspace.
 
 =cut
 
-sub get_permissions
+ sub get_permissions
 {
     my($self, @args) = @_;
 
@@ -1475,7 +1475,7 @@ sub get_permissions
 				       );
     }
 }
-
+ 
 
 
 =head2 save_object
@@ -1561,16 +1561,16 @@ obj_id is an int
 =item Description
 
 Saves the input object data and metadata into the selected workspace,
-        returning the object_metadata of the saved object. Provided
-        for backwards compatibility.
-        
+returning the object_metadata of the saved object. Provided
+for backwards compatibility.
+
 @deprecated Workspace.save_objects
 
 =back
 
 =cut
 
-sub save_object
+ sub save_object
 {
     my($self, @args) = @_;
 
@@ -1614,7 +1614,7 @@ sub save_object
 				       );
     }
 }
-
+ 
 
 
 =head2 save_objects
@@ -1650,6 +1650,8 @@ obj_id is an int
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -1662,17 +1664,27 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 timestamp is a string
+epoch is an int
 obj_ref is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
 	resource_version has a value which is a string
 	resource_release_date has a value which is a Workspace.timestamp
+	resource_release_epoch has a value which is a Workspace.epoch
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	code_url has a value which is a string
+	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -1716,6 +1728,8 @@ obj_id is an int
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -1728,17 +1742,27 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 timestamp is a string
+epoch is an int
 obj_ref is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
 	resource_version has a value which is a string
 	resource_release_date has a value which is a Workspace.timestamp
+	resource_release_epoch has a value which is a Workspace.epoch
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	code_url has a value which is a string
+	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
@@ -1766,7 +1790,7 @@ it.
 
 =cut
 
-sub save_objects
+ sub save_objects
 {
     my($self, @args) = @_;
 
@@ -1810,7 +1834,7 @@ sub save_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object
@@ -1907,7 +1931,7 @@ Provided for backwards compatibility.
 
 =cut
 
-sub get_object
+ sub get_object
 {
     my($self, @args) = @_;
 
@@ -1951,7 +1975,7 @@ sub get_object
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object_provenance
@@ -1984,7 +2008,9 @@ ObjectProvenanceInfo is a reference to a hash where the following keys are defin
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
 	copy_source_inaccessible has a value which is a Workspace.boolean
@@ -2009,6 +2035,8 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2021,15 +2049,25 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
+epoch is an int
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
 	resource_version has a value which is a string
 	resource_release_date has a value which is a Workspace.timestamp
+	resource_release_epoch has a value which is a Workspace.epoch
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	code_url has a value which is a string
+	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2059,7 +2097,9 @@ ObjectProvenanceInfo is a reference to a hash where the following keys are defin
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
 	copy_source_inaccessible has a value which is a Workspace.boolean
@@ -2084,6 +2124,8 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2096,15 +2138,25 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
+epoch is an int
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
 	resource_version has a value which is a string
 	resource_release_date has a value which is a Workspace.timestamp
+	resource_release_epoch has a value which is a Workspace.epoch
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	code_url has a value which is a string
+	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2120,7 +2172,7 @@ Get object provenance from the workspace.
 
 =cut
 
-sub get_object_provenance
+ sub get_object_provenance
 {
     my($self, @args) = @_;
 
@@ -2164,7 +2216,7 @@ sub get_object_provenance
 				       );
     }
 }
-
+ 
 
 
 =head2 get_objects
@@ -2198,7 +2250,9 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
 	copy_source_inaccessible has a value which is a Workspace.boolean
@@ -2223,6 +2277,8 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2235,15 +2291,25 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
+epoch is an int
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
 	resource_version has a value which is a string
 	resource_release_date has a value which is a Workspace.timestamp
+	resource_release_epoch has a value which is a Workspace.epoch
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	code_url has a value which is a string
+	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2274,7 +2340,9 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
 	copy_source_inaccessible has a value which is a Workspace.boolean
@@ -2299,6 +2367,8 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2311,15 +2381,25 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
+epoch is an int
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
 	resource_version has a value which is a string
 	resource_release_date has a value which is a Workspace.timestamp
+	resource_release_epoch has a value which is a Workspace.epoch
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	code_url has a value which is a string
+	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -2335,7 +2415,7 @@ Get objects from the workspace.
 
 =cut
 
-sub get_objects
+ sub get_objects
 {
     my($self, @args) = @_;
 
@@ -2379,7 +2459,7 @@ sub get_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object_subset
@@ -2418,7 +2498,9 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
 	copy_source_inaccessible has a value which is a Workspace.boolean
@@ -2443,6 +2525,8 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2455,15 +2539,25 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
+epoch is an int
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
 	resource_version has a value which is a string
 	resource_release_date has a value which is a Workspace.timestamp
+	resource_release_epoch has a value which is a Workspace.epoch
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	code_url has a value which is a string
+	commit has a value which is a string
+	endpoint_url has a value which is a string
 id_type is a string
 extracted_id is a string
 
@@ -2498,7 +2592,9 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
 	copy_source_inaccessible has a value which is a Workspace.boolean
@@ -2523,6 +2619,8 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -2535,15 +2633,25 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
+epoch is an int
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
 	resource_version has a value which is a string
 	resource_release_date has a value which is a Workspace.timestamp
+	resource_release_epoch has a value which is a Workspace.epoch
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	code_url has a value which is a string
+	commit has a value which is a string
+	endpoint_url has a value which is a string
 id_type is a string
 extracted_id is a string
 
@@ -2570,7 +2678,7 @@ original array.
 
 =cut
 
-sub get_object_subset
+ sub get_object_subset
 {
     my($self, @args) = @_;
 
@@ -2614,7 +2722,7 @@ sub get_object_subset
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object_history
@@ -2710,7 +2818,7 @@ ignored.
 
 =cut
 
-sub get_object_history
+ sub get_object_history
 {
     my($self, @args) = @_;
 
@@ -2754,7 +2862,7 @@ sub get_object_history
 				       );
     }
 }
-
+ 
 
 
 =head2 list_referencing_objects
@@ -2850,7 +2958,7 @@ in the deleted state are not returned.
 
 =cut
 
-sub list_referencing_objects
+ sub list_referencing_objects
 {
     my($self, @args) = @_;
 
@@ -2894,7 +3002,7 @@ sub list_referencing_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 list_referencing_object_counts
@@ -2951,17 +3059,21 @@ obj_ref is a string
 
 =item Description
 
+DEPRECATED
+
 List the number of times objects have been referenced.
 
 This count includes both provenance and object-to-object references
 and, unlike list_referencing_objects, includes objects that are
 inaccessible to the user.
 
+@deprecated
+
 =back
 
 =cut
 
-sub list_referencing_object_counts
+ sub list_referencing_object_counts
 {
     my($self, @args) = @_;
 
@@ -3005,7 +3117,7 @@ sub list_referencing_object_counts
 				       );
     }
 }
-
+ 
 
 
 =head2 get_referenced_objects
@@ -3040,7 +3152,9 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
 	copy_source_inaccessible has a value which is a Workspace.boolean
@@ -3065,6 +3179,8 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -3077,15 +3193,25 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
+epoch is an int
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
 	resource_version has a value which is a string
 	resource_release_date has a value which is a Workspace.timestamp
+	resource_release_epoch has a value which is a Workspace.epoch
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	code_url has a value which is a string
+	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -3117,7 +3243,9 @@ ObjectData is a reference to a hash where the following keys are defined:
 	info has a value which is a Workspace.object_info
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
+	orig_wsid has a value which is a Workspace.ws_id
 	created has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
 	refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 	copied has a value which is a Workspace.obj_ref
 	copy_source_inaccessible has a value which is a Workspace.boolean
@@ -3142,6 +3270,8 @@ username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 ProvenanceAction is a reference to a hash where the following keys are defined:
 	time has a value which is a Workspace.timestamp
+	epoch has a value which is a Workspace.epoch
+	caller has a value which is a string
 	service has a value which is a string
 	service_ver has a value which is a string
 	method has a value which is a string
@@ -3154,15 +3284,25 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
 	external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+	subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
+epoch is an int
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
 	resource_version has a value which is a string
 	resource_release_date has a value which is a Workspace.timestamp
+	resource_release_epoch has a value which is a Workspace.epoch
 	data_url has a value which is a string
 	data_id has a value which is a string
 	description has a value which is a string
+SubAction is a reference to a hash where the following keys are defined:
+	name has a value which is a string
+	ver has a value which is a string
+	code_url has a value which is a string
+	commit has a value which is a string
+	endpoint_url has a value which is a string
 boolean is an int
 id_type is a string
 extracted_id is a string
@@ -3191,7 +3331,7 @@ Get objects by references from other objects.
 
 =cut
 
-sub get_referenced_objects
+ sub get_referenced_objects
 {
     my($self, @args) = @_;
 
@@ -3235,7 +3375,7 @@ sub get_referenced_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 list_workspaces
@@ -3310,7 +3450,7 @@ list_workspace_info
 
 =cut
 
-sub list_workspaces
+ sub list_workspaces
 {
     my($self, @args) = @_;
 
@@ -3354,7 +3494,7 @@ sub list_workspaces
 				       );
     }
 }
-
+ 
 
 
 =head2 list_workspace_info
@@ -3376,6 +3516,8 @@ ListWorkspaceInfoParams is a reference to a hash where the following keys are de
 	meta has a value which is a Workspace.usermeta
 	after has a value which is a Workspace.timestamp
 	before has a value which is a Workspace.timestamp
+	after_epoch has a value which is a Workspace.epoch
+	before_epoch has a value which is a Workspace.epoch
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
@@ -3383,6 +3525,7 @@ permission is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 timestamp is a string
+epoch is an int
 boolean is an int
 workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
@@ -3412,6 +3555,8 @@ ListWorkspaceInfoParams is a reference to a hash where the following keys are de
 	meta has a value which is a Workspace.usermeta
 	after has a value which is a Workspace.timestamp
 	before has a value which is a Workspace.timestamp
+	after_epoch has a value which is a Workspace.epoch
+	before_epoch has a value which is a Workspace.epoch
 	excludeGlobal has a value which is a Workspace.boolean
 	showDeleted has a value which is a Workspace.boolean
 	showOnlyDeleted has a value which is a Workspace.boolean
@@ -3419,6 +3564,7 @@ permission is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 timestamp is a string
+epoch is an int
 boolean is an int
 workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
@@ -3445,7 +3591,7 @@ List workspaces viewable by the user.
 
 =cut
 
-sub list_workspace_info
+ sub list_workspace_info
 {
     my($self, @args) = @_;
 
@@ -3489,7 +3635,7 @@ sub list_workspace_info
 				       );
     }
 }
-
+ 
 
 
 =head2 list_workspace_objects
@@ -3581,7 +3727,7 @@ specified type (or with any type). Provided for backwards compatibility.
 
 =cut
 
-sub list_workspace_objects
+ sub list_workspace_objects
 {
     my($self, @args) = @_;
 
@@ -3625,7 +3771,7 @@ sub list_workspace_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 list_objects
@@ -3650,6 +3796,8 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	meta has a value which is a Workspace.usermeta
 	after has a value which is a Workspace.timestamp
 	before has a value which is a Workspace.timestamp
+	after_epoch has a value which is a Workspace.epoch
+	before_epoch has a value which is a Workspace.epoch
 	minObjectID has a value which is a Workspace.obj_id
 	maxObjectID has a value which is a Workspace.obj_id
 	showDeleted has a value which is a Workspace.boolean
@@ -3658,7 +3806,6 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	excludeGlobal has a value which is a Workspace.boolean
-	skip has a value which is an int
 	limit has a value which is an int
 ws_name is a string
 ws_id is an int
@@ -3667,6 +3814,7 @@ permission is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 timestamp is a string
+epoch is an int
 obj_id is an int
 boolean is an int
 object_info is a reference to a list containing 11 items:
@@ -3700,6 +3848,8 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	meta has a value which is a Workspace.usermeta
 	after has a value which is a Workspace.timestamp
 	before has a value which is a Workspace.timestamp
+	after_epoch has a value which is a Workspace.epoch
+	before_epoch has a value which is a Workspace.epoch
 	minObjectID has a value which is a Workspace.obj_id
 	maxObjectID has a value which is a Workspace.obj_id
 	showDeleted has a value which is a Workspace.boolean
@@ -3708,7 +3858,6 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	excludeGlobal has a value which is a Workspace.boolean
-	skip has a value which is an int
 	limit has a value which is an int
 ws_name is a string
 ws_id is an int
@@ -3717,6 +3866,7 @@ permission is a string
 username is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
 timestamp is a string
+epoch is an int
 obj_id is an int
 boolean is an int
 object_info is a reference to a list containing 11 items:
@@ -3744,7 +3894,7 @@ List objects in one or more workspaces.
 
 =cut
 
-sub list_objects
+ sub list_objects
 {
     my($self, @args) = @_;
 
@@ -3788,7 +3938,7 @@ sub list_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 get_objectmeta
@@ -3879,7 +4029,7 @@ via the instance parameter. Provided for backwards compatibility.
 
 =cut
 
-sub get_objectmeta
+ sub get_objectmeta
 {
     my($self, @args) = @_;
 
@@ -3923,7 +4073,7 @@ sub get_objectmeta
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object_info
@@ -4030,7 +4180,7 @@ in the future.
 
 =cut
 
-sub get_object_info
+ sub get_object_info
 {
     my($self, @args) = @_;
 
@@ -4075,7 +4225,7 @@ sub get_object_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_object_info_new
@@ -4180,7 +4330,7 @@ Get information about objects from the workspace.
 
 =cut
 
-sub get_object_info_new
+ sub get_object_info_new
 {
     my($self, @args) = @_;
 
@@ -4224,7 +4374,7 @@ sub get_object_info_new
 				       );
     }
 }
-
+ 
 
 
 =head2 rename_workspace
@@ -4307,7 +4457,7 @@ Rename a workspace.
 
 =cut
 
-sub rename_workspace
+ sub rename_workspace
 {
     my($self, @args) = @_;
 
@@ -4351,7 +4501,7 @@ sub rename_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 rename_object
@@ -4452,7 +4602,7 @@ Rename an object. User meta data is always returned as null.
 
 =cut
 
-sub rename_object
+ sub rename_object
 {
     my($self, @args) = @_;
 
@@ -4496,7 +4646,7 @@ sub rename_object
 				       );
     }
 }
-
+ 
 
 
 =head2 copy_object
@@ -4597,7 +4747,7 @@ Copy an object. Returns the object_info for the newest version.
 
 =cut
 
-sub copy_object
+ sub copy_object
 {
     my($self, @args) = @_;
 
@@ -4641,7 +4791,7 @@ sub copy_object
 				       );
     }
 }
-
+ 
 
 
 =head2 revert_object
@@ -4739,7 +4889,7 @@ Revert an object.
 
 =cut
 
-sub revert_object
+ sub revert_object
 {
     my($self, @args) = @_;
 
@@ -4783,7 +4933,7 @@ sub revert_object
 				       );
     }
 }
-
+ 
 
 
 =head2 get_names_by_prefix
@@ -4850,7 +5000,7 @@ This function is intended for use as an autocomplete helper function.
 
 =cut
 
-sub get_names_by_prefix
+ sub get_names_by_prefix
 {
     my($self, @args) = @_;
 
@@ -4894,7 +5044,7 @@ sub get_names_by_prefix
 				       );
     }
 }
-
+ 
 
 
 =head2 hide_objects
@@ -4957,7 +5107,7 @@ appear in the list_objects method.
 
 =cut
 
-sub hide_objects
+ sub hide_objects
 {
     my($self, @args) = @_;
 
@@ -5001,7 +5151,7 @@ sub hide_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 unhide_objects
@@ -5063,7 +5213,7 @@ of the version specified in the ObjectIdentity.
 
 =cut
 
-sub unhide_objects
+ sub unhide_objects
 {
     my($self, @args) = @_;
 
@@ -5107,7 +5257,7 @@ sub unhide_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 delete_objects
@@ -5169,7 +5319,7 @@ the version specified in the ObjectIdentity.
 
 =cut
 
-sub delete_objects
+ sub delete_objects
 {
     my($self, @args) = @_;
 
@@ -5213,7 +5363,7 @@ sub delete_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 undelete_objects
@@ -5276,7 +5426,7 @@ deleted, no error is thrown.
 
 =cut
 
-sub undelete_objects
+ sub undelete_objects
 {
     my($self, @args) = @_;
 
@@ -5320,7 +5470,7 @@ sub undelete_objects
 				       );
     }
 }
-
+ 
 
 
 =head2 delete_workspace
@@ -5365,7 +5515,7 @@ Delete a workspace. All objects contained in the workspace are deleted.
 
 =cut
 
-sub delete_workspace
+ sub delete_workspace
 {
     my($self, @args) = @_;
 
@@ -5409,7 +5559,7 @@ sub delete_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 undelete_workspace
@@ -5456,7 +5606,7 @@ deleted.
 
 =cut
 
-sub undelete_workspace
+ sub undelete_workspace
 {
     my($self, @args) = @_;
 
@@ -5500,7 +5650,7 @@ sub undelete_workspace
 				       );
     }
 }
-
+ 
 
 
 =head2 request_module_ownership
@@ -5538,7 +5688,7 @@ must approve the request.
 
 =cut
 
-sub request_module_ownership
+ sub request_module_ownership
 {
     my($self, @args) = @_;
 
@@ -5582,7 +5732,7 @@ sub request_module_ownership
 				       );
     }
 }
-
+ 
 
 
 =head2 register_typespec
@@ -5652,7 +5802,7 @@ Also see the release_types function.
 
 =cut
 
-sub register_typespec
+ sub register_typespec
 {
     my($self, @args) = @_;
 
@@ -5696,7 +5846,7 @@ sub register_typespec
 				       );
     }
 }
-
+ 
 
 
 =head2 register_typespec_copy
@@ -5749,7 +5899,7 @@ Also see the release_types function.
 
 =cut
 
-sub register_typespec_copy
+ sub register_typespec_copy
 {
     my($self, @args) = @_;
 
@@ -5793,7 +5943,7 @@ sub register_typespec_copy
 				       );
     }
 }
-
+ 
 
 
 =head2 release_module
@@ -5846,7 +5996,7 @@ two things to the module's types:
 
 =cut
 
-sub release_module
+ sub release_module
 {
     my($self, @args) = @_;
 
@@ -5890,7 +6040,7 @@ sub release_module
 				       );
     }
 }
-
+ 
 
 
 =head2 list_modules
@@ -5935,7 +6085,7 @@ List typespec modules.
 
 =cut
 
-sub list_modules
+ sub list_modules
 {
     my($self, @args) = @_;
 
@@ -5979,7 +6129,7 @@ sub list_modules
 				       );
     }
 }
-
+ 
 
 
 =head2 list_module_versions
@@ -6036,7 +6186,7 @@ List typespec module versions.
 
 =cut
 
-sub list_module_versions
+ sub list_module_versions
 {
     my($self, @args) = @_;
 
@@ -6080,7 +6230,7 @@ sub list_module_versions
 				       );
     }
 }
-
+ 
 
 
 =head2 get_module_info
@@ -6159,7 +6309,7 @@ boolean is an int
 
 =cut
 
-sub get_module_info
+ sub get_module_info
 {
     my($self, @args) = @_;
 
@@ -6203,7 +6353,7 @@ sub get_module_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_jsonschema
@@ -6244,7 +6394,7 @@ Get JSON schema for a type.
 
 =cut
 
-sub get_jsonschema
+ sub get_jsonschema
 {
     my($self, @args) = @_;
 
@@ -6288,7 +6438,7 @@ sub get_jsonschema
 				       );
     }
 }
-
+ 
 
 
 =head2 translate_from_MD5_types
@@ -6327,7 +6477,7 @@ Translation from types qualified with MD5 to their semantic versions
 
 =cut
 
-sub translate_from_MD5_types
+ sub translate_from_MD5_types
 {
     my($self, @args) = @_;
 
@@ -6371,7 +6521,7 @@ sub translate_from_MD5_types
 				       );
     }
 }
-
+ 
 
 
 =head2 translate_to_MD5_types
@@ -6410,7 +6560,7 @@ Translation from types qualified with semantic versions to their MD5'ed versions
 
 =cut
 
-sub translate_to_MD5_types
+ sub translate_to_MD5_types
 {
     my($self, @args) = @_;
 
@@ -6454,7 +6604,7 @@ sub translate_to_MD5_types
 				       );
     }
 }
-
+ 
 
 
 =head2 get_type_info
@@ -6525,7 +6675,7 @@ func_string is a string
 
 =cut
 
-sub get_type_info
+ sub get_type_info
 {
     my($self, @args) = @_;
 
@@ -6569,7 +6719,7 @@ sub get_type_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_all_type_info
@@ -6642,7 +6792,7 @@ func_string is a string
 
 =cut
 
-sub get_all_type_info
+ sub get_all_type_info
 {
     my($self, @args) = @_;
 
@@ -6686,7 +6836,7 @@ sub get_all_type_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_func_info
@@ -6749,7 +6899,7 @@ type_string is a string
 
 =cut
 
-sub get_func_info
+ sub get_func_info
 {
     my($self, @args) = @_;
 
@@ -6793,7 +6943,7 @@ sub get_func_info
 				       );
     }
 }
-
+ 
 
 
 =head2 get_all_func_info
@@ -6858,7 +7008,7 @@ type_string is a string
 
 =cut
 
-sub get_all_func_info
+ sub get_all_func_info
 {
     my($self, @args) = @_;
 
@@ -6902,7 +7052,7 @@ sub get_all_func_info
 				       );
     }
 }
-
+ 
 
 
 =head2 grant_module_ownership
@@ -6952,7 +7102,7 @@ module.
 
 =cut
 
-sub grant_module_ownership
+ sub grant_module_ownership
 {
     my($self, @args) = @_;
 
@@ -6996,7 +7146,7 @@ sub grant_module_ownership
 				       );
     }
 }
-
+ 
 
 
 =head2 remove_module_ownership
@@ -7042,7 +7192,7 @@ on the module.
 
 =cut
 
-sub remove_module_ownership
+ sub remove_module_ownership
 {
     my($self, @args) = @_;
 
@@ -7086,7 +7236,7 @@ sub remove_module_ownership
 				       );
     }
 }
-
+ 
 
 
 =head2 list_all_types
@@ -7137,7 +7287,7 @@ version.
 
 =cut
 
-sub list_all_types
+ sub list_all_types
 {
     my($self, @args) = @_;
 
@@ -7181,7 +7331,7 @@ sub list_all_types
 				       );
     }
 }
-
+ 
 
 
 =head2 administer
@@ -7218,7 +7368,7 @@ The administration interface.
 
 =cut
 
-sub administer
+ sub administer
 {
     my($self, @args) = @_;
 
@@ -7262,8 +7412,8 @@ sub administer
 				       );
     }
 }
-
-
+ 
+  
 
 sub version {
     my ($self) = @_;
@@ -7515,6 +7665,37 @@ a string
 =begin text
 
 a string
+
+=end text
+
+=back
+
+
+
+=head2 epoch
+
+=over 4
+
+
+
+=item Description
+
+A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in milliseconds.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+an int
+</pre>
+
+=end html
+
+=begin text
+
+an int
 
 =end text
 
@@ -7815,8 +7996,8 @@ Information about a workspace.
         ws_name workspace - name of the workspace.
         username owner - name of the user who owns (e.g. created) this workspace.
         timestamp moddate - date when the workspace was last modified.
-        int objects - the approximate number of objects currently stored in
-                the workspace.
+        int objects - the number of objects created in this workspace,
+                including objects that have been deleted.
         permission user_permission - permissions for the authenticated user of
                 this workspace.
         permission globalread - whether this workspace is globally readable.
@@ -8373,11 +8554,15 @@ a reference to a list containing 11 items:
 An external data unit. A piece of data from a source outside the
 Workspace.
 
+On input, only one of the resource_release_date or
+resource_release_epoch may be supplied. Both are supplied on output.
+
 string resource_name - the name of the resource, for example JGI.
 string resource_url - the url of the resource, for example
         http://genome.jgi.doe.gov
 string resource_version - version of the resource
 timestamp resource_release_date - the release date of the resource
+epoch resource_release_epoch - the release date of the resource
 string data_url - the url of the data, for example
         http://genome.jgi.doe.gov/pages/dynamicOrganismDownload.jsf?
                 organism=BlaspURHD0036
@@ -8396,6 +8581,7 @@ resource_name has a value which is a string
 resource_url has a value which is a string
 resource_version has a value which is a string
 resource_release_date has a value which is a Workspace.timestamp
+resource_release_epoch has a value which is a Workspace.epoch
 data_url has a value which is a string
 data_id has a value which is a string
 description has a value which is a string
@@ -8411,9 +8597,74 @@ resource_name has a value which is a string
 resource_url has a value which is a string
 resource_version has a value which is a string
 resource_release_date has a value which is a Workspace.timestamp
+resource_release_epoch has a value which is a Workspace.epoch
 data_url has a value which is a string
 data_id has a value which is a string
 description has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 SubAction
+
+=over 4
+
+
+
+=item Description
+
+Information about a subaction that is invoked by a provenance action.
+
+        A provenance action (PA) may invoke subactions (SA), e.g. calling a
+        separate piece of code, a service, or a script. In most cases these
+        calls are the same from PA to PA and so do not need to be listed in
+        the provenance since providing information about the PA alone provides
+        reproducibility.
+        
+        In some cases, however, SAs may change over time, such that invoking
+        the same PA with the same parameters may produce different results.
+        For example, if a PA calls a remote server, that server may be updated
+        between a PA invoked on day T and another PA invoked on day T+1.
+        
+        The SubAction structure allows for specifying information about SAs
+        that may dynamically change from PA invocation to PA invocation.
+        
+        string name - the name of the SA.
+        string ver - the version of SA.
+        string code_url - a url pointing to the SA's codebase.
+        string commit - a version control commit ID for the SA.
+        string endpoint_url - a url pointing to the access point for the SA -
+                a server url, for instance.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+name has a value which is a string
+ver has a value which is a string
+code_url has a value which is a string
+commit has a value which is a string
+endpoint_url has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+name has a value which is a string
+ver has a value which is a string
+code_url has a value which is a string
+commit has a value which is a string
+endpoint_url has a value which is a string
 
 
 =end text
@@ -8432,19 +8683,25 @@ description has a value which is a string
 
 A provenance action.
 
-        A provenance action is an action taken while transforming one data
-        object to another. There may be several provenance actions taken in
-        series. An action is typically running a script, running an api
-        command, etc. All of the following are optional, but more information
-        provided equates to better data provenance.
+        A provenance action (PA) is an action taken while transforming one data
+        object to another. There may be several PAs taken in series. A PA is
+        typically running a script, running an api command, etc. All of the
+        following fields are optional, but more information provided equates to
+        better data provenance.
         
         resolved_ws_objects should never be set by the user; it is set by the
         workspace service when returning data.
         
+        On input, only one of the time or epoch may be supplied. Both are
+        supplied on output.
+        
         The maximum size of the entire provenance object, including all actions,
         is 1MB.
         
-        timestamp time - the time the action was started.
+        timestamp time - the time the action was started
+        epoch epoch - the time the action was started.
+        string caller - the name or id of the invoker of this provenance
+                action. In most cases, this will be the same for all PAs.
         string service - the name of the service that performed this action.
         string service_ver - the version of the service that performed this action.
         string method - the method of the service that performed this action.
@@ -8479,6 +8736,10 @@ A provenance action.
         list<ExternalDataUnit> external_data - data external to the workspace
                 that was either imported to the workspace or used to create a
                 workspace object.
+        list<SubAction> subactions - the subactions taken as a part of this
+                action.
+        mapping<string, string> custom - user definable custom provenance
+                fields and their values.
         string description - a free text description of this action.
 
 
@@ -8489,6 +8750,8 @@ A provenance action.
 <pre>
 a reference to a hash where the following keys are defined:
 time has a value which is a Workspace.timestamp
+epoch has a value which is a Workspace.epoch
+caller has a value which is a string
 service has a value which is a string
 service_ver has a value which is a string
 method has a value which is a string
@@ -8501,6 +8764,8 @@ resolved_ws_objects has a value which is a reference to a list where each elemen
 intermediate_incoming has a value which is a reference to a list where each element is a string
 intermediate_outgoing has a value which is a reference to a list where each element is a string
 external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+custom has a value which is a reference to a hash where the key is a string and the value is a string
 description has a value which is a string
 
 </pre>
@@ -8511,6 +8776,8 @@ description has a value which is a string
 
 a reference to a hash where the following keys are defined:
 time has a value which is a Workspace.timestamp
+epoch has a value which is a Workspace.epoch
+caller has a value which is a string
 service has a value which is a string
 service_ver has a value which is a string
 method has a value which is a string
@@ -8523,6 +8790,8 @@ resolved_ws_objects has a value which is a reference to a list where each elemen
 intermediate_incoming has a value which is a reference to a list where each element is a string
 intermediate_outgoing has a value which is a reference to a list where each element is a string
 external_data has a value which is a reference to a list where each element is a Workspace.ExternalDataUnit
+subactions has a value which is a reference to a list where each element is a Workspace.SubAction
+custom has a value which is a reference to a hash where the key is a string and the value is a string
 description has a value which is a string
 
 
@@ -9259,7 +9528,12 @@ The provenance and supplemental info for an object.
         list<ProvenanceAction> provenance - the object's provenance.
         username creator - the user that first saved the object to the
                 workspace.
+        ws_id orig_wsid - the id of the workspace in which this object was
+                        originally saved. Missing for objects saved prior to version
+                        0.4.1.
         timestamp created - the date the object was first saved to the
+                workspace.
+        epoch epoch - the date the object was first saved to the
                 workspace.
         list<obj_ref> - the references contained within the object.
         obj_ref copied - the reference of the source object if this object is
@@ -9284,7 +9558,9 @@ a reference to a hash where the following keys are defined:
 info has a value which is a Workspace.object_info
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
+orig_wsid has a value which is a Workspace.ws_id
 created has a value which is a Workspace.timestamp
+epoch has a value which is a Workspace.epoch
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
 copy_source_inaccessible has a value which is a Workspace.boolean
@@ -9302,7 +9578,9 @@ a reference to a hash where the following keys are defined:
 info has a value which is a Workspace.object_info
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
+orig_wsid has a value which is a Workspace.ws_id
 created has a value which is a Workspace.timestamp
+epoch has a value which is a Workspace.epoch
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
 copy_source_inaccessible has a value which is a Workspace.boolean
@@ -9332,7 +9610,12 @@ The data and supplemental info for an object.
         list<ProvenanceAction> provenance - the object's provenance.
         username creator - the user that first saved the object to the
                 workspace.
+        ws_id orig_wsid - the id of the workspace in which this object was
+                        originally saved. Missing for objects saved prior to version
+                        0.4.1.
         timestamp created - the date the object was first saved to the
+                workspace.
+        epoch epoch - the date the object was first saved to the
                 workspace.
         list<obj_ref> - the references contained within the object.
         obj_ref copied - the reference of the source object if this object is
@@ -9358,7 +9641,9 @@ data has a value which is an UnspecifiedObject, which can hold any non-null obje
 info has a value which is a Workspace.object_info
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
+orig_wsid has a value which is a Workspace.ws_id
 created has a value which is a Workspace.timestamp
+epoch has a value which is a Workspace.epoch
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
 copy_source_inaccessible has a value which is a Workspace.boolean
@@ -9377,7 +9662,9 @@ data has a value which is an UnspecifiedObject, which can hold any non-null obje
 info has a value which is a Workspace.object_info
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
+orig_wsid has a value which is a Workspace.ws_id
 created has a value which is a Workspace.timestamp
+epoch has a value which is a Workspace.epoch
 refs has a value which is a reference to a list where each element is a Workspace.obj_ref
 copied has a value which is a Workspace.obj_ref
 copy_source_inaccessible has a value which is a Workspace.boolean
@@ -9449,6 +9736,8 @@ excludeGlobal has a value which is a Workspace.boolean
 
 Input parameters for the "list_workspace_info" function.
 
+Only one of each timestamp/epoch pair may be supplied.
+
 Optional parameters:
 permission perm - filter workspaces by minimum permission level. 'None'
         and 'readable' are ignored.
@@ -9460,6 +9749,10 @@ usermeta meta - filter workspaces by the user supplied metadata. NOTE:
 timestamp after - only return workspaces that were modified after this
         date.
 timestamp before - only return workspaces that were modified before
+        this date.
+epoch after_epoch - only return workspaces that were modified after
+        this date.
+epoch before_epoch - only return workspaces that were modified before
         this date.
 boolean excludeGlobal - if excludeGlobal is true exclude world
         readable workspaces. Defaults to false.
@@ -9480,6 +9773,8 @@ owners has a value which is a reference to a list where each element is a Worksp
 meta has a value which is a Workspace.usermeta
 after has a value which is a Workspace.timestamp
 before has a value which is a Workspace.timestamp
+after_epoch has a value which is a Workspace.epoch
+before_epoch has a value which is a Workspace.epoch
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
@@ -9496,6 +9791,8 @@ owners has a value which is a reference to a list where each element is a Worksp
 meta has a value which is a Workspace.usermeta
 after has a value which is a Workspace.timestamp
 before has a value which is a Workspace.timestamp
+after_epoch has a value which is a Workspace.epoch
+before_epoch has a value which is a Workspace.epoch
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
@@ -9586,6 +9883,8 @@ Parameters for the 'list_objects' function.
                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
                         existing version.
                 
+                Only one of each timestamp/epoch pair may be supplied.
+                
                 Optional arguments:
                 permission perm - filter objects by minimum permission level. 'None'
                         and 'readable' are ignored.
@@ -9598,6 +9897,10 @@ Parameters for the 'list_objects' function.
                 timestamp after - only return objects that were created after this
                         date.
                 timestamp before - only return objects that were created before this
+                        date.
+                epoch after_epoch - only return objects that were created after this
+                        date.
+                epoch before_epoch - only return objects that were created before this
                         date.
                 obj_id minObjectID - only return objects with an object id greater or
                         equal to this value.
@@ -9615,8 +9918,6 @@ Parameters for the 'list_objects' function.
                         metadata will be null.
                 boolean excludeGlobal - exclude objects in global workspaces. This
                         parameter only has an effect when filtering by types alone.
-                int skip - DEPRECATED. Skip the first X objects. Maximum value is 2^31,
-                        skip values < 0 are treated as 0, the default.
                 int limit - limit the output to X objects. Default and maximum value
                         is 10000. Limit values < 1 are treated as 10000, the default.
 
@@ -9635,6 +9936,8 @@ savedby has a value which is a reference to a list where each element is a Works
 meta has a value which is a Workspace.usermeta
 after has a value which is a Workspace.timestamp
 before has a value which is a Workspace.timestamp
+after_epoch has a value which is a Workspace.epoch
+before_epoch has a value which is a Workspace.epoch
 minObjectID has a value which is a Workspace.obj_id
 maxObjectID has a value which is a Workspace.obj_id
 showDeleted has a value which is a Workspace.boolean
@@ -9643,7 +9946,6 @@ showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 excludeGlobal has a value which is a Workspace.boolean
-skip has a value which is an int
 limit has a value which is an int
 
 </pre>
@@ -9661,6 +9963,8 @@ savedby has a value which is a reference to a list where each element is a Works
 meta has a value which is a Workspace.usermeta
 after has a value which is a Workspace.timestamp
 before has a value which is a Workspace.timestamp
+after_epoch has a value which is a Workspace.epoch
+before_epoch has a value which is a Workspace.epoch
 minObjectID has a value which is a Workspace.obj_id
 maxObjectID has a value which is a Workspace.obj_id
 showDeleted has a value which is a Workspace.boolean
@@ -9669,7 +9973,6 @@ showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 excludeGlobal has a value which is a Workspace.boolean
-skip has a value which is an int
 limit has a value which is an int
 
 

@@ -60,7 +60,6 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
-import us.kbase.workspace.kbase.Util;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 @RunWith(Parameterized.class)
@@ -134,8 +133,7 @@ public class TypeRegisteringTest {
 			innerStorage = new FileTypeStorage(d.toFile().getAbsolutePath());
 		}
 		storage = TestTypeStorageFactory.createTypeStorageWrapper(innerStorage);
-		db = new TypeDefinitionDB(storage, d.toFile(), new Util().getKIDLpath(),
-				WorkspaceTestCommon.getKidlSource());
+		db = new TypeDefinitionDB(storage);
 	}
 	
 	public static DB createMongoDbConnection() throws Exception {
@@ -532,10 +530,13 @@ public class TypeRegisteringTest {
 
 	@Test
 	public void testError() throws Exception {
-		//this doesn't work - the perl TC chokes on type names > 250, so there's no way to test 256
-		//the parser should catch any other type or module name errors
-//		List<String> mttypes = new LinkedList<String>();
-//		failRegister("LongTypeName", mttypes, adminUser, "error", "foobar");
+		// bad module names will be caught at module registration
+		
+		List<String> mttypes = new ArrayList<String>();
+		failRegister("LongTypeName", mttypes, adminUser, "error",
+				"Type name size is > 255 bytes");
+		failRegister("LongFuncName", mttypes, adminUser, "error",
+				"Function name size is > 255 bytes");
 		
 		initModule("Test", adminUser);
 		try {
@@ -594,7 +595,6 @@ public class TypeRegisteringTest {
 		}
 	}
 
-	@SuppressWarnings("unused")
 	private void failRegister(String mod, List<String> types, String user,
 			String test, String exp) throws Exception {
 		initModule(mod, user);

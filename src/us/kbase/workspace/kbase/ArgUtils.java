@@ -47,6 +47,7 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ExternalData;
+import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceObjectInformation;
@@ -73,6 +74,23 @@ public class ArgUtils {
 	private final static DateTimeFormatter DATE_FORMATTER =
 			DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZoneUTC();
 	
+	public static Date chooseDate(
+			final String timestamp,
+			final Long epochInMilliSec,
+			final String error)
+			throws ParseException {
+		if (timestamp != null && epochInMilliSec != null) {
+			throw new IllegalArgumentException(error);
+		}
+		if (timestamp != null) {
+			return parseDate(timestamp);
+		}
+		if (epochInMilliSec != null) {
+			return new Date(epochInMilliSec);
+		}
+		return null;
+	}
+	
 	public static Provenance processProvenance(final WorkspaceUser user,
 			final List<ProvenanceAction> actions) throws ParseException {
 		
@@ -82,8 +100,12 @@ public class ArgUtils {
 		}
 		for (final ProvenanceAction a: actions) {
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
+			final Date d = chooseDate(a.getTime(), a.getEpoch(),
+					"Cannot specify both time and epoch in provenance " +
+							"action");
 			p.addAction(new Provenance.ProvenanceAction()
-					.withTime(parseDate(a.getTime()))
+					.withTime(d)
+					.withCaller(a.getCaller())
 					.withServiceName(a.getService())
 					.withServiceVersion(a.getServiceVer())
 					.withMethod(a.getMethod())
@@ -96,12 +118,33 @@ public class ArgUtils {
 					.withIncomingArgs(a.getIntermediateIncoming())
 					.withOutgoingArgs(a.getIntermediateOutgoing())
 					.withExternalData(processExternalData(a.getExternalData()))
+					.withSubActions(processSubActions(a.getSubactions()))
+					.withCustom(a.getCustom())
 					.withDescription(a.getDescription())
-					);
+			);
 		}
 		return p;
 	}
 	
+	private static List<SubAction> processSubActions(
+			List<us.kbase.workspace.SubAction> subactions) {
+		final List<SubAction> ret = new LinkedList<SubAction>();
+		if (subactions == null) {
+			return ret;
+		}
+		for (final us.kbase.workspace.SubAction sa: subactions) {
+			checkAddlArgs(sa.getAdditionalProperties(), sa.getClass());
+			ret.add(new SubAction()
+					.withCodeUrl(sa.getCodeUrl())
+					.withCommit(sa.getCommit())
+					.withEndpointUrl(sa.getEndpointUrl())
+					.withName(sa.getName())
+					.withVer(sa.getVer())
+					);
+		}
+		return ret;
+	}
+
 	private static List<ExternalData> processExternalData(
 			final List<ExternalDataUnit> externalData) throws ParseException {
 		final List<ExternalData> ret = new LinkedList<ExternalData>();
@@ -109,22 +152,25 @@ public class ArgUtils {
 			return ret;
 		}
 		for (final ExternalDataUnit edu: externalData) {
+			final Date d = chooseDate(edu.getResourceReleaseDate(),
+					edu.getResourceReleaseEpoch(),
+					"Cannot specify both time and epoch in external " +
+							"data unit");
 			checkAddlArgs(edu.getAdditionalProperties(), edu.getClass());
 			ret.add(new ExternalData()
 					.withDataId(edu.getDataId())
 					.withDataUrl(edu.getDataUrl())
 					.withDescription(edu.getDescription())
 					.withResourceName(edu.getResourceName())
-					.withResourceReleaseDate(
-							parseDate(edu.getResourceReleaseDate()))
+					.withResourceReleaseDate(d)
 					.withResourceUrl(edu.getResourceUrl())
 					.withResourceVersion(edu.getResourceVersion())
-					);
+			);
 		}
 		return ret;
 	}
 
-	public static Date parseDate(final String date) throws ParseException {
+	private static Date parseDate(final String date) throws ParseException {
 		if (date == null) {
 			return null;
 		}
@@ -388,8 +434,10 @@ public class ArgUtils {
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
+					.withOrigWsid(o.getProvenance().getWorkspaceID())
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
+					.withEpoch(o.getProvenance().getDate().getTime())
 					.withRefs(o.getReferences())
 					.withCopied(o.getCopyReference() == null ? null :
 						o.getCopyReference().getId())
@@ -419,8 +467,10 @@ public class ArgUtils {
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
+					.withOrigWsid(o.getProvenance().getWorkspaceID())
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
+					.withEpoch(o.getProvenance().getDate().getTime())
 					.withRefs(o.getReferences())
 					.withCopied(o.getCopyReference() == null ? null :
 						o.getCopyReference().getId())
@@ -536,8 +586,11 @@ public class ArgUtils {
 			final List<Provenance.ProvenanceAction> actions) {
 		final List<ProvenanceAction> pas = new LinkedList<ProvenanceAction>();
 		for (final Provenance.ProvenanceAction a: actions) {
+			final Date d = a.getTime();
 			pas.add(new ProvenanceAction()
-					.withTime(formatDate(a.getTime()))
+					.withTime(formatDate(d))
+					.withEpoch(d == null ? null : d.getTime())
+					.withCaller(a.getCaller())
 					.withService(a.getServiceName())
 					.withServiceVer(a.getServiceVersion())
 					.withMethod(a.getMethod())
@@ -552,12 +605,33 @@ public class ArgUtils {
 					.withIntermediateOutgoing(a.getOutgoingArgs())
 					.withExternalData(
 							translateExternalDataUnits(a.getExternalData()))
+					.withCustom(a.getCustom())
+					.withSubactions(translateSubActions(a.getSubActions()))
 					.withDescription(a.getDescription())
 					);
 		}
 		return pas;
 	}
 	
+	private static List<us.kbase.workspace.SubAction> translateSubActions(
+			List<SubAction> subActions) {
+		final List<us.kbase.workspace.SubAction> ret =
+				new LinkedList<us.kbase.workspace.SubAction>();
+		if (subActions == null) {
+			return ret;
+		}
+		for (final SubAction sa: subActions) {
+			ret.add(new us.kbase.workspace.SubAction()
+					.withCodeUrl(sa.getCodeUrl())
+					.withCommit(sa.getCommit())
+					.withEndpointUrl(sa.getEndpointUrl())
+					.withName(sa.getName())
+					.withVer(sa.getVer())
+					);
+		}
+		return ret;
+	}
+
 	private static List<ExternalDataUnit> translateExternalDataUnits(
 			List<ExternalData> externalData) {
 		final List<ExternalDataUnit> ret = new LinkedList<ExternalDataUnit>();
@@ -565,13 +639,14 @@ public class ArgUtils {
 			return ret; //this should never happen, but just in case
 		}
 		for (final ExternalData ed: externalData) {
+			final Date d = ed.getResourceReleaseDate();
 			ret.add(new ExternalDataUnit()
 					.withDataId(ed.getDataId())
 					.withDataUrl(ed.getDataUrl())
 					.withDescription(ed.getDescription())
 					.withResourceName(ed.getResourceName())
-					.withResourceReleaseDate(
-							formatDate(ed.getResourceReleaseDate()))
+					.withResourceReleaseDate(formatDate(d))
+					.withResourceReleaseEpoch(d == null ? null : d.getTime())
 					.withResourceUrl(ed.getResourceUrl())
 					.withResourceVersion(ed.getResourceVersion())
 					);

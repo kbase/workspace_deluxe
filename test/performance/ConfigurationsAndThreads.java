@@ -32,6 +32,7 @@ import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -50,6 +51,7 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
@@ -166,29 +168,22 @@ public class ConfigurationsAndThreads {
 		//need to redo set up if this is used again
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, user, null);
-		//TODO this setup is just to make it compile, not tested yet
-		DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
-		TypedObjectValidator val = new TypedObjectValidator(
-				new TypeDefinitionDB(new MongoTypeStorage(
-						GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
-						tfm.getTempDir()));
-		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-				new GridFSBlobStore(db), tfm, val);
+		//NOTE this setup is just to make it compile, not tested yet
+		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
+				new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)));
 		
-		Workspace ws = new Workspace(mwdb,
-				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser());
+		Types types = new Types(typeDefDB);
 		WorkspaceUser foo = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(foo, MODULE);
-		ws.resolveModuleRegistration(MODULE, true);
-		ws.compileNewTypeSpec(foo, spec, Arrays.asList(M_TYPE), null, null, false, null);
-		ws.releaseTypes(foo, MODULE);
+		types.requestModuleRegistration(foo, MODULE);
+		types.resolveModuleRegistration(MODULE, true);
+		types.compileNewTypeSpec(foo, spec, Arrays.asList(M_TYPE), null, null, false, null);
+		types.releaseTypes(foo, MODULE);
 		
-		ws.requestModuleRegistration(foo, SIMPLE_MODULE);
-		ws.resolveModuleRegistration(SIMPLE_MODULE, true);
-		ws.compileNewTypeSpec(foo, SIMPLE_SPEC,
+		types.requestModuleRegistration(foo, SIMPLE_MODULE);
+		types.resolveModuleRegistration(SIMPLE_MODULE, true);
+		types.compileNewTypeSpec(foo, SIMPLE_SPEC,
 				Arrays.asList(SIMPLE_M_TYPE), null, null, false, null);
-		ws.releaseTypes(foo, SIMPLE_MODULE);
+		types.releaseTypes(foo, SIMPLE_MODULE);
 		
 		Map<String, Map<Integer, Perf>> results =
 				new HashMap<String, Map<Integer, ConfigurationsAndThreads.Perf>>();
@@ -395,18 +390,19 @@ public class ConfigurationsAndThreads {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			//TODO check this still works
+			//NOTE check this still works
 			DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
+			final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
+					new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)));
 			TypedObjectValidator val = new TypedObjectValidator(
-					new TypeDefinitionDB(new MongoTypeStorage(
-							GetMongoDB.getDB(MONGO_HOST, TYPE_DB)),
-							tfm.getTempDir()));
+					new LocalTypeProvider(typeDefDB));
 			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-					new ShockBlobStore(db.getCollection("shock_map"), shockURL, "baduser", "badpwd"),
-					tfm, val);
+					new ShockBlobStore(db.getCollection("shock_map"),
+							shockURL, "baduser", "badpwd"),
+					tfm);
 			ws = new Workspace(mwdb,
 					new ResourceUsageConfigurationBuilder().build(),
-					new KBaseReferenceParser());
+					new KBaseReferenceParser(), val);
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
 			ws.createWorkspace(foo, workspace, false, null, null);

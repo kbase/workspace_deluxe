@@ -47,7 +47,7 @@ public class HighLoadParallelTester {
 		if (useTestStorage)
 			storage = TestTypeStorageFactory.createTypeStorageWrapper(storage);
 		storage.removeAllData();
-		db = new TypeDefinitionDB(storage, dir);
+		db = new TypeDefinitionDB(storage);
 		for (int i = 0; i < threadCount * modulePerThreadCount; i++) {
 			String moduleName = "TestModule" + (i + 1);
 			String specDocument = "module " + moduleName + "{\n};\n";

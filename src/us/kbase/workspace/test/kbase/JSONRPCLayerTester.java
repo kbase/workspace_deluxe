@@ -62,6 +62,7 @@ import us.kbase.workspace.RenameWorkspaceParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
+import us.kbase.workspace.SubAction;
 import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
@@ -463,34 +464,110 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
+	protected static class StringEpoch {
+		public final Long epoch;
+		public final String time;
+		
+		public StringEpoch(long epoch) {
+			this.epoch = epoch;
+			this.time = null;
+		}
+		
+		public StringEpoch(String time) {
+			this.time = time;
+			this.epoch = null;
+		}
+		public StringEpoch(long epoch, String time) {
+			this.time = time;
+			this.epoch = epoch;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((epoch == null) ? 0 : epoch.hashCode());
+			result = prime * result + ((time == null) ? 0 : time.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			StringEpoch other = (StringEpoch) obj;
+			if (epoch == null) {
+				if (other.epoch != null)
+					return false;
+			} else if (!epoch.equals(other.epoch))
+				return false;
+			if (time == null) {
+				if (other.time != null)
+					return false;
+			} else if (!time.equals(other.time))
+				return false;
+			return true;
+		}
+	}
+	
 	protected void checkProvenance(String user, ObjectIdentity id,
 			List<ProvenanceAction> prov, Map<String, String> refmap,
-			Map<String, String> timemap) throws Exception {
-		List<ObjectData> ret = CLIENT1.getObjects(Arrays.asList(id));
-		assertThat("user correct", ret.get(0).getCreator(), is(user));
-		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(ret.get(0).getCreated())
-				.after(getOlderDate(10 * 60 * 1000)));
-		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
+			Map<StringEpoch, StringEpoch> timemap) throws Exception {
+		Date tenback = getOlderDate(10 * 60 * 1000);
+		Date tenfor = getNewerDate(10 * 60 * 1000);
+		ObjectData ret = CLIENT1.getObjects(Arrays.asList(id)).get(0);
+		assertThat("user correct", ret.getCreator(), is(user));
+		assertThat("wsid correct", ret.getOrigWsid(), is(id.getWsid()));
+		Date created = DATE_FORMAT.parse(ret.getCreated());
+		assertTrue("created within last 10 mins", created.after(tenback));
+		assertTrue("epoch within last 10 mins", new Date(ret.getEpoch())
+				.after(tenback));
+		assertTrue("not saved in future", created.before(tenfor));
+		assertTrue("epoch not in future", new Date(ret.getEpoch())
+				.before(tenfor));
+		checkProvenance(prov, ret.getProvenance(), refmap, timemap);
+		ret = null;
 		
-		List<ObjectProvenanceInfo> p = CLIENT1.getObjectProvenance(Arrays.asList(id));
-		assertThat("user correct", p.get(0).getCreator(), is(user));
-		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(p.get(0).getCreated())
-				.after(getOlderDate(10 * 60 * 1000)));
-		checkProvenance(prov, p.get(0).getProvenance(), refmap, timemap);
+		ObjectProvenanceInfo p = CLIENT1.getObjectProvenance(
+				Arrays.asList(id)).get(0);
+		assertThat("user correct", p.getCreator(), is(user));
+		assertThat("wsid correct", p.getOrigWsid(), is(id.getWsid()));
+		created = DATE_FORMAT.parse(p.getCreated());
+		assertTrue("created within last 10 mins", created.after(tenback));
+		assertTrue("epoch within last 10 mins", new Date(p.getEpoch())
+				.after(tenback));
+		assertTrue("not saved in future", created.before(tenfor));
+		assertTrue("epoch not in future", new Date(p.getEpoch())
+				.before(tenfor));
+		checkProvenance(prov, p.getProvenance(), refmap, timemap);
+		p = null;
 		
-		ret = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(id)));
-		assertThat("user correct", ret.get(0).getCreator(), is(user));
-		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(ret.get(0).getCreated())
-				.after(getOlderDate(10 * 60 * 1000)));
-		checkProvenance(prov, ret.get(0).getProvenance(), refmap, timemap);
+		ret = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(id)))
+				.get(0);
+		assertThat("user correct", ret.getCreator(), is(user));
+		assertThat("wsid correct", ret.getOrigWsid(), is(id.getWsid()));
+		created = DATE_FORMAT.parse(ret.getCreated());
+		assertTrue("created within last 10 mins", created.after(tenback));
+		assertTrue("epoch within last 10 mins", new Date(ret.getEpoch())
+				.after(tenback));
+		assertTrue("not saved in future", created.before(tenfor));
+		assertTrue("epoch not in future", new Date(ret.getEpoch())
+				.before(tenfor));
+		checkProvenance(prov, ret.getProvenance(), refmap, timemap);
 	}
 	
 	protected Date getOlderDate(long ms) {
 		long now = new Date().getTime();
 		return new Date(now - ms);
+	}
+	
+	protected Date getNewerDate(long ms) {
+		long now = new Date().getTime();
+		return new Date(now + ms);
 	}
 	
 	protected void saveProvWithBadTime(String time, String exception) throws Exception {
@@ -526,7 +603,7 @@ public class JSONRPCLayerTester {
 	
 	protected void checkProvenance(List<ProvenanceAction> expected,
 			List<ProvenanceAction> got, Map<String, String> refmap,
-			Map<String, String> timemap) {
+			Map<StringEpoch, StringEpoch> timemap) throws Exception {
 		assertThat("same number actions", got.size(),
 				is(expected.size()));
 		
@@ -558,7 +635,16 @@ public class JSONRPCLayerTester {
 			assertThat("service equal", gotpa.getService(), is(exppa.getService()));
 			assertThat("serv ver equal", gotpa.getServiceVer(), is(exppa.getServiceVer()));
 			checkProvenanceExternalData(gotpa.getExternalData(), exppa.getExternalData(), timemap);
-			assertThat("time equal", gotpa.getTime(), is(timemap.get(exppa.getTime())));
+			checkProvenanceSubActions(gotpa.getSubactions(), exppa.getSubactions());
+			if (exppa.getCustom() == null) {
+				assertTrue("custom fields empty", gotpa.getCustom().isEmpty()); 
+			} else {
+				assertThat("custom equal", gotpa.getCustom(), is(exppa.getCustom()));
+			}
+			assertThat("caller equal", gotpa.getCaller(), is(exppa.getCaller()));
+			StringEpoch se = getStringEpoch(exppa, timemap);
+			assertThat("time equal", gotpa.getTime(), is(se.time));
+			assertThat("epoch equal", gotpa.getEpoch(), is(se.epoch));
 			assertThat("refs equal", gotpa.getInputWsObjects(),
 					is(exppa.getInputWsObjects() == null ? new ArrayList<String>() :
 						exppa.getInputWsObjects()));
@@ -573,11 +659,35 @@ public class JSONRPCLayerTester {
 		}
 	}
 
-	private void checkProvenanceExternalData(
-			List<ExternalDataUnit> got,
-			List<ExternalDataUnit> exp, Map<String, String> timemap) {
+	private void checkProvenanceSubActions(
+			List<SubAction> got,
+			List<SubAction> exp) {
 		if (exp == null) {
-			assertThat("prov eternal data empty", got.size(), is(0));
+			assertThat("prov subactions empty", got.size(), is(0));
+			return;
+		}
+		assertThat("prov subactions same size", got.size(), is(exp.size()));
+		Iterator<SubAction> giter = got.iterator();
+		Iterator<SubAction> eiter = exp.iterator();
+		while (giter.hasNext()) {
+			SubAction g = giter.next();
+			SubAction e = eiter.next();
+			assertThat("same code url", g.getCodeUrl(), is(e.getCodeUrl()));
+			assertThat("same commit", g.getCommit(), is(e.getCommit()));
+			assertThat("same endpoint url", g.getEndpointUrl(),
+					is(e.getEndpointUrl()));
+			assertThat("same name", g.getName(), is(e.getName()));
+			assertThat("same version", g.getVer(), is(e.getVer()));
+		}
+		
+	}
+	
+	private void checkProvenanceExternalData (
+			List<ExternalDataUnit> got,
+			List<ExternalDataUnit> exp, Map<StringEpoch, StringEpoch> timemap)
+			throws Exception {
+		if (exp == null) {
+			assertThat("prov external data empty", got.size(), is(0));
 			return;
 		}
 		assertThat("prov external data same size", got.size(), is(exp.size()));
@@ -590,12 +700,35 @@ public class JSONRPCLayerTester {
 			assertThat("same data url", g.getDataUrl(), is (e.getDataUrl()));
 			assertThat("same description", g.getDescription(), is (e.getDescription()));
 			assertThat("same resource name", g.getResourceName(), is (e.getResourceName()));
+			StringEpoch se = getStringEpoch(e, timemap);
 			assertThat("same resource rel date", g.getResourceReleaseDate(),
-					is (timemap.get(e.getResourceReleaseDate())));
+					is(se.time));
+			assertThat("same resource rel epoch", g.getResourceReleaseEpoch(),
+					is(se.epoch));
 			assertThat("same resource url", g.getResourceUrl(), is (e.getResourceUrl()));
 			assertThat("same resource ver", g.getResourceVersion(), is (e.getResourceVersion()));
 		}
 		
+	}
+	
+	private StringEpoch getStringEpoch(ExternalDataUnit edu,
+			Map<StringEpoch, StringEpoch> timemap) {
+		if (edu.getResourceReleaseDate() != null) {
+			return timemap.get(new StringEpoch(edu.getResourceReleaseDate()));
+		} else if (edu.getResourceReleaseEpoch() != null){
+			return timemap.get(new StringEpoch(edu.getResourceReleaseEpoch()));
+		}
+		return new StringEpoch(null);
+	}
+	
+	private StringEpoch getStringEpoch(ProvenanceAction edu,
+			Map<StringEpoch, StringEpoch> timemap) {
+		if (edu.getTime() != null) {
+			return timemap.get(new StringEpoch(edu.getTime()));
+		} else if (edu.getEpoch() != null){
+			return timemap.get(new StringEpoch(edu.getEpoch()));
+		}
+		return new StringEpoch(null);
 	}
 
 	protected void failGetObjectInfoNew(GetObjectInfoNewParams params, String exception)
@@ -987,12 +1120,12 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
-	protected String addSec(String time) throws Exception {
-		return DATE_FORMAT.format(DATE_FORMAT.parse(time).getTime() + 1000);
+	protected long addSec(String time) throws Exception {
+		return DATE_FORMAT.parse(time).getTime() + 1000;
 	}
 	
-	protected String subSec(String time) throws Exception {
-		return DATE_FORMAT.format(DATE_FORMAT.parse(time).getTime() - 1000);
+	protected long subSec(String time) throws Exception {
+		return DATE_FORMAT.parse(time).getTime() - 1000;
 	}
 
 	protected void checkWSInfoList(
