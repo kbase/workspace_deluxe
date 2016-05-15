@@ -6,7 +6,10 @@ import static us.kbase.common.utils.StringUtils.checkString;
 
 public class ObjectIdentifier {
 	
-	public final static String REFERENCE_SEP = "/"; //this cannot be a legal object/workspace char
+	//TODO unittests
+	
+	//this cannot be a legal object/workspace char
+	public final static String REFERENCE_SEP = "/";
 	
 	private final WorkspaceIdentifier wsi;
 	private final String name;
@@ -92,6 +95,16 @@ public class ObjectIdentifier {
 
 	public String getWorkspaceIdentifierString() {
 		return wsi.getIdentifierString();
+	}
+	
+	public String getReferenceString() {
+		return getWorkspaceIdentifierString() + REFERENCE_SEP +
+				getIdentifierString() + (version == null ? "" :
+					REFERENCE_SEP + version);
+	}
+	
+	public boolean isAbsolute() {
+		return version != null && id != null && wsi.getId() != null;
 	}
 	
 	public ObjectIDResolvedWS resolveWorkspace(ResolvedWorkspaceID rwsi) {

@@ -2697,10 +2697,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	@Test
 	public void getReferencedObjects() throws Exception {
 		
-		long wsid1 = CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("referenced")).getE1();
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("referenced")).getE1();
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("referenced")
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
-		long wsid2 = CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("referencedPriv")).getE1();
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("referencedPriv")).getE1();
 		
 		Map<String, Object> data1 = createData("{\"foobar\": \"somestuff\"}");
 		Map<String, Object> data2 = createData("{\"foobar\": \"somestuff2\"}");
@@ -2754,9 +2754,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referencedPriv").withName("one"),
 				new ObjectIdentity().withRef("referencedPriv/two"))), "Object one cannot be accessed: User " + USER1 + " may not read workspace referencedPriv");
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referenced").withName("ref"),
-				new ObjectIdentity().withRef("referencedPrivfake/two"))), "Object two cannot be accessed: No workspace with name referencedPrivfake exists");
+				new ObjectIdentity().withRef("referencedPrivfake/two"))),
+				"Object ref in workspace referenced does not contain a reference to object two in workspace referencedPrivfake");
+		
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referenced").withName("ref"),
-				new ObjectIdentity().withRef("referencedPriv/three"))), "No object with name three exists in workspace " + wsid2);
+				new ObjectIdentity().withRef("referencedPriv/three"))),
+				"Object ref in workspace referenced does not contain a reference to object three in workspace referencedPriv");
 
 		CLIENT2.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"),
 				new ObjectIdentity().withRef("referencedPriv/two")));
@@ -2766,7 +2769,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("referenced/ref")));
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
 				new ObjectIdentity().withRef("referencedPriv/one"))),
-				"Object 1 (name ref) in workspace " + wsid1 + " has been deleted");
+				"Object ref in workspace referenced has been deleted");
 		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("referenced"));
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
 				new ObjectIdentity().withRef("referencedPriv/one"))),

@@ -45,6 +45,7 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.DeletedObjectException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
@@ -547,8 +548,7 @@ public class Workspace {
 	
 	private static String getObjectErrorId(final WorkspaceSaveObject wo,
 			final int objcount) {
-		final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
-		return getObjectErrorId(oid, objcount);
+		return getObjectErrorId(wo.getObjectIdentifier(), objcount);
 	}
 	
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
@@ -920,7 +920,7 @@ public class Workspace {
 		final Map<ObjectIDResolvedWS,
 				Map<ObjectPaths, WorkspaceObjectData>> prov;
 		try {
-			prov = db.getObjects(paths, true);
+			prov = db.getObjects(paths, true, true);
 		} catch (TypedObjectExtractionException toee) {
 			throw new RuntimeException(
 					"There was an extraction exception even though " +
@@ -952,7 +952,7 @@ public class Workspace {
 		final Map<ObjectIDResolvedWS,
 				Map<ObjectPaths, WorkspaceObjectData>> data;
 		try {
-			data = db.getObjects(paths, false);
+			data = db.getObjects(paths, false, true);
 		} catch (TypedObjectExtractionException toee) {
 			throw new RuntimeException(
 					"There was an extraction exception even though " +
@@ -992,7 +992,7 @@ public class Workspace {
 		//this is kind of disgusting, think about the api here
 		final Map<ObjectIDResolvedWS,
 				Map<ObjectPaths, WorkspaceObjectData>> data = 
-				db.getObjects(objpaths, false);
+				db.getObjects(objpaths, false, true);
 		
 		final List<WorkspaceObjectData> ret =
 				new ArrayList<WorkspaceObjectData>();
@@ -1003,7 +1003,11 @@ public class Workspace {
 		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
 	}
-
+	
+	//TODO REFS make static empty object path
+	//TODO REFS ObjectChain merge into ObjectIdentity
+	//TODO REFS Update docs
+	//TODO REFS release notes
 	public List<WorkspaceObjectData> getReferencedObjects(
 			final WorkspaceUser user,
 			final List<ObjectChain> refchains)
@@ -1011,40 +1015,144 @@ public class Workspace {
 			InaccessibleObjectException, NoSuchReferenceException {
 		final LinkedList<ObjectIdentifier> first =
 				new LinkedList<ObjectIdentifier>();
-		final LinkedList<ObjectIdentifier> rest =
+		final LinkedList<ObjectIdentifier> chains =
 				new LinkedList<ObjectIdentifier>();
 		for (final ObjectChain oc: refchains) {
 			first.add(oc.getHead());
-			rest.addAll(oc.getChain());
+			chains.addAll(oc.getChain());
 		}
+		
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resheads = 
 				checkPerms(user, first, Permission.READ, "read");
-		Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
-				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
-		if (!rest.isEmpty()) {
-			reschains = checkPerms(user, rest, Permission.NONE, "foo", true);
-		}
-		final Map<ObjectChain, ObjectChainResolvedWS> objs =
-				new HashMap<ObjectChain, ObjectChainResolvedWS>();
-		for (final ObjectChain oc: refchains) {
-			final ObjectIDResolvedWS head = resheads.get(oc.getHead());
-			final List<ObjectIDResolvedWS> chain =
-					new LinkedList<ObjectIDResolvedWS>();
-			for (final ObjectIdentifier oi: oc.getChain()) {
-				chain.add(reschains.get(oi));
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> headrefs =
+				getObjectOutGoingReferences(resheads, true);
+		/* ignore all errors when getting chain objects until actually getting
+		 * to the point where we need the data. Otherwise a clever hacker can
+		 * explore what objects exist in arbitrary workspaces.
+		 */
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
+				checkPerms(user, chains, Permission.NONE, "somthinsbroke",
+						true, true, true);
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> chainrefs =
+				getObjectOutGoingReferences(reschains, false);
+		
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> toGet =
+				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		// TODO NOW numbers
+		// TODO NOW test ability to specify any object ID (coverage of this method & throwNoSuchRef)
+		for (final ObjectChain chain: refchains) {
+			ObjectIdentifier pos = chain.getHead();
+			ObjectReferenceSet refs = headrefs.get(resheads.get(pos));
+			for (final ObjectIdentifier oi: chain.getChain()) {
+				// refs are guaranteed to exist, so if the db didn't find it
+				// the user specified it incorrectly
+				if (!reschains.containsKey(oi) ||
+						!(chainrefs.containsKey(reschains.get(oi)))) {
+					throwNoSuchRefException(pos, oi);
+				}
+				final ObjectReferenceSet current =
+						chainrefs.get(reschains.get(oi));
+				if (!refs.contains(current.getObjectReference())) {
+					throwNoSuchRefException(pos, oi);
+				}
+				pos = oi;
+				refs = current;
 			}
-			objs.put(oc, new ObjectChainResolvedWS(head, chain));
+			toGet.put(reschains.get(chain.getLast()), null);
 		}
-		final Map<ObjectChainResolvedWS, WorkspaceObjectData> res =
-				db.getReferencedObjects(
-						new HashSet<ObjectChainResolvedWS>(objs.values()));
+		// GC time
+		headrefs.clear();
+		chainrefs.clear();
+		resheads.clear();
+		
+		//this is kind of disgusting, think about the api here
+		final Map<ObjectIDResolvedWS,
+				Map<ObjectPaths, WorkspaceObjectData>> data;
+		try {
+			data = db.getObjects(toGet, false, false);
+		} catch (TypedObjectExtractionException toee) {
+			throw new RuntimeException(
+					"There was an extraction exception even though " +
+					"extraction wasn't requested. GG programmers", toee);
+		}
+		toGet.clear();
 		final List<WorkspaceObjectData> ret =
-				new LinkedList<WorkspaceObjectData>();
+				new ArrayList<WorkspaceObjectData>();
 		for (final ObjectChain oc: refchains) {
-			ret.add(res.get(objs.get(oc)));
+			ret.add(data.get(reschains.get(oc.getLast())).get(null));
 		}
 		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
+	}
+
+	private void throwNoSuchRefException(
+			final ObjectIdentifier from,
+			final ObjectIdentifier to)
+			throws NoSuchReferenceException {
+		throw new NoSuchReferenceException(
+				String.format(
+				"Object %s %sin workspace %s does not " +
+				"contain a reference to object %s %sin " +
+				"workspace %s",
+				from.getIdentifierString(),
+				from.getVersion() == null ? "" :
+					"with version " + from.getVersion() + " ",
+				from.getWorkspaceIdentifierString(),
+				to.getIdentifierString(),
+				to.getVersion() == null ? "" :
+					"with version " + to.getVersion() + " ",
+				to.getWorkspaceIdentifierString()),
+				from, to);
+	}
+
+	private Map<ObjectIDResolvedWS, ObjectReferenceSet>
+			getObjectOutGoingReferences(
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> objs,
+				final boolean exceptIfMissingOrDeleted)
+				throws WorkspaceCommunicationException, NoSuchObjectException {
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> refs;
+		try {
+			refs = db.getObjectOutgoingReferences(
+					new HashSet<ObjectIDResolvedWS>(objs.values()),
+					exceptIfMissingOrDeleted, exceptIfMissingOrDeleted);
+		} catch (NoSuchObjectException nsoe) {
+			final ObjectIDResolvedWS e = nsoe.getResolvedInaccessibleObject();
+			for (Entry<ObjectIdentifier, ObjectIDResolvedWS> entry:
+					objs.entrySet()) {
+				if (entry.getValue().equals(e)) {
+					throw new NoSuchObjectException(
+							formatInaccessibleObjectException(
+									entry.getKey(), nsoe),
+							entry.getValue(), nsoe);
+				}
+				
+			}
+			throw new RuntimeException("Something went very wrong here", nsoe);
+		}
+		return refs;
+	}
+	
+	private static String formatInaccessibleObjectException(
+			final ObjectIdentifier oi,
+			final InaccessibleObjectException nsoe) {
+		final StringBuilder sb = new StringBuilder("Object ");
+		sb.append(oi.getIdentifierString());
+		sb.append(oi.getVersion() == null ? "" :
+			" with version " + oi.getVersion());
+		if (nsoe instanceof DeletedObjectException) {
+			sb.append(" in workspace ");
+		} else if (nsoe instanceof NoSuchObjectException) {
+			sb.append(" does not exist in workspace ");
+		} else {
+			sb.append(" in workspace ");
+		}
+		sb.append(oi.getWorkspaceIdentifierString());
+		if (nsoe instanceof DeletedObjectException) {
+			sb.append(" has been deleted");
+		} else if (!(nsoe instanceof NoSuchObjectException)) {
+			sb.append(" is inaccessible");
+		}
+		return sb.toString();
 	}
 	
 	private void removeInaccessibleDataCopyReferences(

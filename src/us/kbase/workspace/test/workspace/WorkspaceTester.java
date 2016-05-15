@@ -16,11 +16,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -44,7 +44,6 @@ import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectChain;
-import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -503,9 +502,11 @@ public class WorkspaceTester {
 	}
 	
 	private void assertExceptionCorrect(Exception got, Exception expected) {
-		assertThat("correct exception", got.getLocalizedMessage(),
+		assertThat("incorrect exception. trace:\n" +
+				ExceptionUtils.getStackTrace(got),
+				got.getLocalizedMessage(),
 				is(expected.getLocalizedMessage()));
-		assertThat("correct exception type", got, is(expected.getClass()));
+		assertThat("incorrect exception type", got, is(expected.getClass()));
 	}
 	
 	protected void failCreateWorkspace(WorkspaceUser user, String name,
@@ -1436,23 +1437,6 @@ public class WorkspaceTester {
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
-		ObjectIDResolvedWS roi = oi == null ? null : oi.resolveWorkspace(new FakeResolvedWSID(1));
-		
-		List<ObjectIDResolvedWS> loi = null;
-		if (chain != null) {
-			loi = new LinkedList<ObjectIDResolvedWS>();
-			for (ObjectIdentifier o: chain) {
-				loi.add(o == null ? null : o.resolveWorkspace(new FakeResolvedWSID(1)));
-			}
-		}
-		try {
-			new ObjectChainResolvedWS(roi, loi);
-			fail("bad args to resolved object chain");
-		} catch (Exception exp) {
-			assertExceptionCorrect(exp, e);
-		}
-		
-		
 	}
 	
 	protected Set<ObjectInformation> oiset(ObjectInformation... ois) {

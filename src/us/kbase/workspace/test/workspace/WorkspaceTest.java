@@ -3493,6 +3493,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		long wsid2 = ws.createWorkspace(user1, wsiSource2.getName(), false, null, null).getId();
 		ws.setPermissions(user1, wsiSource2, Arrays.asList(user2), Permission.READ);
 		ws.createWorkspace(user2, wsiCopied.getName(), false, null, null);
+		WorkspaceIdentifier wsiCid = new WorkspaceIdentifier(3);
 		
 		Provenance emptyprov1 = new Provenance(user1);
 		Provenance emptyprov2 = new Provenance(user2);
@@ -3503,13 +3504,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user1, wsiSource2, data, new IdReferenceHandlerSetFactory(0));
 		final ObjectIdentifier source1 = new ObjectIdentifier(wsiSource1, 1);
 		final ObjectIdentifier source2 = new ObjectIdentifier(wsiSource2, 1);
-		final ObjectIdentifier copied1 = new ObjectIdentifier(wsiCopied, "foo");
-		final ObjectIdentifier copied2 = new ObjectIdentifier(wsiCopied, "foo1");
+		ObjectIdentifier copied1 = new ObjectIdentifier(wsiCid, "foo");
+		ObjectIdentifier copied2 = new ObjectIdentifier(wsiCid, "foo1");
 		ws.copyObject(user2, source1, copied1);
 		ws.copyObject(user2, source2, copied2);
+		copied1 = new ObjectIdentifier(wsiCid, 1, 1);
+		copied2 = new ObjectIdentifier(wsiCid, 2, 1);
 		
 		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(0));
-		final ObjectIdentifier nocopy = new ObjectIdentifier(wsiCopied, 3L);
+		final ObjectIdentifier nocopy = new ObjectIdentifier(wsiCid, 3, 1);
 
 		data.clear();
 		Map<String, Object> ref = new HashMap<String, Object>();
@@ -5785,18 +5788,23 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void getReferencedObjects() throws Exception {
 		WorkspaceUser user1 = new WorkspaceUser("refedUser");
 		WorkspaceUser user2 = new WorkspaceUser("refedUser2");
-		WorkspaceIdentifier wsiacc1 = new WorkspaceIdentifier("refedaccessible");
-		WorkspaceIdentifier wsiacc2 = new WorkspaceIdentifier("refedaccessible2");
-		WorkspaceIdentifier wsiun1 = new WorkspaceIdentifier("refedunacc");
-		WorkspaceIdentifier wsiun2 = new WorkspaceIdentifier("refedunacc2");
-		WorkspaceIdentifier wsidel = new WorkspaceIdentifier("refeddel");
+		WorkspaceIdentifier wsiacc1n = new WorkspaceIdentifier("refedaccessible");
+		WorkspaceIdentifier wsiacc2n = new WorkspaceIdentifier("refedaccessible2");
+		WorkspaceIdentifier wsiun1n = new WorkspaceIdentifier("refedunacc");
+		WorkspaceIdentifier wsiun2n = new WorkspaceIdentifier("refedunacc2");
+		WorkspaceIdentifier wsideln = new WorkspaceIdentifier("refeddel");
 		
-		ws.createWorkspace(user1, wsiacc1.getName(), false, null, null);
+		ws.createWorkspace(user1, wsiacc1n.getName(), false, null, null);
+		WorkspaceIdentifier wsiacc1 = new WorkspaceIdentifier(1);
 		ws.setPermissions(user1, wsiacc1, Arrays.asList(user2), Permission.WRITE);
-		ws.createWorkspace(user2, wsiacc2.getName(), true, null, null);
-		long wsidun1 = ws.createWorkspace(user2, wsiun1.getName(), false, null, null).getId();
-		long wsidun2 = ws.createWorkspace(user2, wsiun2.getName(), false, null, null).getId();
-		ws.createWorkspace(user2, wsidel.getName(), false, null, null);
+		ws.createWorkspace(user2, wsiacc2n.getName(), true, null, null);
+		WorkspaceIdentifier wsiacc2 = new WorkspaceIdentifier(2);
+		long wsidun1 = ws.createWorkspace(user2, wsiun1n.getName(), false, null, null).getId();
+		WorkspaceIdentifier wsiun1 = new WorkspaceIdentifier(3);
+		long wsidun2 = ws.createWorkspace(user2, wsiun2n.getName(), false, null, null).getId();
+		WorkspaceIdentifier wsiun2 = new WorkspaceIdentifier(4);
+		ws.createWorkspace(user2, wsideln.getName(), false, null, null);
+		WorkspaceIdentifier wsidel = new WorkspaceIdentifier(5);
 		
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		
@@ -5813,140 +5821,239 @@ public class WorkspaceTest extends WorkspaceTester {
 				"{\"thing3\": \"whoop whoop\"," +
 				" \"thing4\": \"aroooga\"}");
 		
-		ObjectInformation leaf1 = saveObject(user2, wsiun1, meta1, data1, SAFE_TYPE1, "leaf1", new Provenance(user2));
-		ObjectIdentifier leaf1oi = new ObjectIdentifier(wsiun1, "leaf1");
-		failGetObjects(user1, Arrays.asList(leaf1oi), new InaccessibleObjectException(
+		// save objects and basic accessibility checks
+		ObjectInformation leaf1_1 = saveObject(user2, wsiun1, meta1, data1, SAFE_TYPE1, "leaf1", new Provenance(user2));
+		ObjectInformation leaf1_2 = saveObject(user2, wsiun1, meta1, data1, SAFE_TYPE1, "leaf1", new Provenance(user2));
+		ObjectIdentifier leaf1oi1 = new ObjectIdentifier(wsiun1, 1, 1);
+		ObjectIdentifier leaf1oi2 = new ObjectIdentifier(wsiun1, 1, 2);
+		failGetObjects(user1, Arrays.asList(new ObjectIdentifier(wsiun1n, "leaf1")),
+				new InaccessibleObjectException(
 				"Object leaf1 cannot be accessed: User refedUser may not read workspace refedunacc"));
+		failGetObjects(user1, Arrays.asList(leaf1oi1), new InaccessibleObjectException(
+				"Object 1 cannot be accessed: User refedUser may not read workspace 3"));
 		ObjectInformation leaf2 = saveObject(user2, wsiun2, meta2, data2, SAFE_TYPE1, "leaf2", new Provenance(user2));
-		ObjectIdentifier leaf2oi = new ObjectIdentifier(wsiun2, "leaf2");
-		failGetObjects(user1, Arrays.asList(leaf2oi), new InaccessibleObjectException(
+		ObjectIdentifier leaf2oi = new ObjectIdentifier(wsiun2, 1, 1);
+		failGetObjects(user1, Arrays.asList(new ObjectIdentifier(wsiun2n, "leaf2")),
+				new InaccessibleObjectException(
 				"Object leaf2 cannot be accessed: User refedUser may not read workspace refedunacc2"));
+		failGetObjects(user1, Arrays.asList(leaf2oi), new InaccessibleObjectException(
+				"Object 1 cannot be accessed: User refedUser may not read workspace 4"));
 		saveObject(user2, wsiun2, meta2, data2, SAFE_TYPE1, "unlinked", new Provenance(user2));
-		ObjectIdentifier unlinkedoi = new ObjectIdentifier(wsiun2, "unlinked");
-		failGetObjects(user1, Arrays.asList(unlinkedoi), new InaccessibleObjectException(
+		ObjectIdentifier unlinkedoi = new ObjectIdentifier(wsiun2, 2, 1);
+		failGetObjects(user1, Arrays.asList(new ObjectIdentifier(wsiun2n, "unlinked")),
+				new InaccessibleObjectException(
 				"Object unlinked cannot be accessed: User refedUser may not read workspace refedunacc2"));
+		failGetObjects(user1, Arrays.asList(unlinkedoi), new InaccessibleObjectException(
+				"Object 2 cannot be accessed: User refedUser may not read workspace 4"));
 		
-		final String leaf1r = "refedunacc/leaf1";
-		saveObject(user2, wsiacc1, MT_META, makeRefData(leaf1r),reftype,
+		final String leaf1r1 = "refedunacc/leaf1/1";
+		saveObject(user2, wsiacc1, MT_META, makeRefData(leaf1r1),reftype,
+				"simpleref", new Provenance(user2));
+		final String leaf1r2 = "refedunacc/leaf1/2";
+		saveObject(user2, wsiacc1, MT_META, makeRefData(leaf1r2),reftype,
 				"simpleref", new Provenance(user2));
 		final String leaf2r = "refedunacc2/leaf2";
 		saveObject(user2, wsiacc2, MT_META, makeRefData(leaf2r),reftype,
 				"simpleref2", new Provenance(user2));
 		
+		/*
+		 * At this point:
+		 * wsiun1 (3): 
+		 *   leaf1 (1) v 1 & 2
+		 *   
+		 * wsiun2 (4):
+		 *   leaf2 (1)
+		 *   unlinked (2)
+		 *   
+		 * wsiacc1 (1):
+		 *   simpleref (1) v1 -> wsiun1/leaf1 v1
+		 *                 v2 -> wsiun1/leaf1 v2
+		 *   provref (2) v1 -> wsiun1/leaf1 v1
+		 * 
+		 * wsiacc2 (2):
+		 *   simpleref (1) -> wsiun2/leaf2 v1
+		 *   provref2 (2) v1 -> wsiun2/leaf2 v1
+		 */
+		
 		saveObject(user2, wsiacc1, MT_META, mtdata, SAFE_TYPE1, "provref", new Provenance(user2)
 				.addAction(new ProvenanceAction().withWorkspaceObjects(
-						Arrays.asList(leaf1r))));
+						Arrays.asList(leaf1r1))));
 		saveObject(user2, wsiacc2, MT_META, mtdata, SAFE_TYPE1, "provref2", new Provenance(user2)
 				.addAction(new ProvenanceAction().withWorkspaceObjects(
 						Arrays.asList(leaf2r))));
 		
+		// check one hop reference dive works
 		final HashMap<String, String> mtmap = new HashMap<String, String>();
 		final LinkedList<String> mtlist = new LinkedList<String>();
-		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, "simpleref"),
-				Arrays.asList(leaf1oi)), leaf1, new Provenance(user2), data1, mtlist, mtmap);
+		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, "simpleref", 1),
+				Arrays.asList(leaf1oi1)), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
+		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1n, "simpleref", 2),
+				Arrays.asList(leaf1oi2)), leaf1_2, new Provenance(user2), data1, mtlist, mtmap);
+		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, 1),
+				Arrays.asList(leaf1oi2)), leaf1_2, new Provenance(user2), data1, mtlist, mtmap);
 		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc2, "simpleref2"),
 				Arrays.asList(leaf2oi)), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, "provref"),
-				Arrays.asList(leaf1oi)), leaf1, new Provenance(user2), data1, mtlist, mtmap);
+				Arrays.asList(leaf1oi1)), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
 		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc2, "provref2"),
 				Arrays.asList(leaf2oi)), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc2, "simpleref2"),
-				Arrays.asList(leaf1oi))), new NoSuchReferenceException(
-				"The object simpleref2 in workspace refedaccessible2 does not contain the reference " +
-				wsidun1 + "/1/1", null, null));
+		//fail on one hop bad reference chains
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc2n, "simpleref2"),
+				Arrays.asList(leaf1oi1))), new NoSuchReferenceException(
+				"Object simpleref2 in workspace refedaccessible2 does " +
+				"not contain a reference to object 1 with version 1 in workspace 3", null, null));
 		
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc1, "simpleref"),
+				Arrays.asList(leaf1oi1))), new NoSuchReferenceException(
+				"Object simpleref in workspace 1 does " +
+				"not contain a reference to object 1 with version 1 in workspace 3", null, null));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc1n, "simpleref", 2),
+				Arrays.asList(leaf1oi1))), new NoSuchReferenceException(
+				"Object simpleref with version 2 in workspace refedaccessible does " +
+				"not contain a reference to object 1 with version 1 in workspace 3", null, null));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc1n, 1, 1),
+				Arrays.asList(leaf1oi2))), new NoSuchReferenceException(
+				"Object 1 with version 1 in workspace refedaccessible does " +
+				"not contain a reference to object 1 with version 2 in workspace 3", null, null));
+		
+		// set up 2 hop reference chains with deleted objects & ws in the mix
 		ObjectInformation del1 = saveObject(user2, wsiun1, meta2,
-				makeRefData(leaf1r, leaf2r), reftype, "del1", new Provenance(user2));
-		ObjectIdentifier del1oi = new ObjectIdentifier(wsiun1, "del1");
+				makeRefData(leaf1r1, leaf2r), reftype, "del1", new Provenance(user2));
+		ObjectIdentifier del1oi = new ObjectIdentifier(wsiun1, 2, 1);
 		final Provenance p = new Provenance(user2).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList(leaf1r, leaf2r)));
+				.withWorkspaceObjects(Arrays.asList(leaf1r1, leaf2r)));
 		ObjectInformation del2 = saveObject(user2, wsiun2, meta1, makeRefData(),
 				reftype, "del2", p);
-		ObjectIdentifier del2oi = new ObjectIdentifier(wsiun2, "del2");
+		ObjectIdentifier del2oi = new ObjectIdentifier(wsiun2, 3, 1);
 		saveObject(user2, wsidel, meta1, makeRefData(leaf2r), reftype, "delws", new Provenance(user2));
-		ObjectIdentifier delwsoi = new ObjectIdentifier(wsidel, "delws");
+		ObjectIdentifier delwsoi = new ObjectIdentifier(wsidel, 1, 1);
 		
 		saveObject(user2, wsiacc1, MT_META, makeRefData("refedunacc/del1", "refedunacc2/del2"),
 				reftype, "delptr12", new Provenance(user2));
-		ObjectIdentifier delptr12oi = new ObjectIdentifier(wsiacc1, "delptr12");
+		ObjectIdentifier delptr12oi = new ObjectIdentifier(wsiacc1, 3);
 		saveObject(user2, wsiacc2, MT_META, makeRefData("refedunacc2/del2"),
 				reftype, "delptr2", new Provenance(user2));
-		ObjectIdentifier delptr2oi = new ObjectIdentifier(wsiacc2, "delptr2");
+		ObjectIdentifier delptr2oi = new ObjectIdentifier(wsiacc2, 3);
 		saveObject(user2, wsiacc2, MT_META, makeRefData("refeddel/delws"),
 				reftype, "delptrws", new Provenance(user2));
-		ObjectIdentifier delptrwsoi = new ObjectIdentifier(wsiacc2, "delptrws");
+		ObjectIdentifier delptrwsoi = new ObjectIdentifier(wsiacc2, 4);
 		ws.setObjectsDeleted(user2, Arrays.asList(del1oi, del2oi), true);
 		ws.setWorkspaceDeleted(user2, wsidel, true);
 		
+		/*
+		 * At this point:
+		 * wsiun1 (3): 
+		 *   leaf1 (1) v 1 & 2
+		 *   del1 (deleted) (2) -> wsiun1/leaf1 v1
+		 *                      -> wsiun2/leaf2 v1 
+		 *   
+		 * wsiun2 (4):
+		 *   leaf2 (1)
+		 *   unlinked (2)
+		 *   del2 (deleted, prov refs) (3) -> wsiun1/leaf1 v1
+		 *                                 -> wsiun2/leaf2 v1
+		 * 
+		 * wsidel (5) (deleted):
+		 *   delws (1) -> wsiun2/leaf2 v1
+		 * 
+		 * wsiacc1 (1):
+		 *   simpleref (1) v1 -> wsiun1/leaf1 v1
+		 *                 v2 -> wsiun1/leaf1 v2
+		 *   provref (2) v1 -> wsiun1/leaf1 v1
+		 *   delptr12 (3) -> wssun1/del1 v1
+		 *                -> wssun2/del2 v1
+		 * 
+		 * wsiacc2 (2):
+		 *   simpleref (1) -> wsiun2/leaf2 v1
+		 *   provref2 (2) v1 -> wsiun2/leaf2 v1
+		 *   delptr2 (3) -> wsiun2/del2 v1
+		 *   delptrws (4) -> wsidel/delws v1
+		 *   
+		 * Not listing the earlier prov refs here, they're simple
+		 */
+		
+		
+		// test 2 hop reference chains
 		List<WorkspaceObjectData> lwod = ws.getReferencedObjects(user1, Arrays.asList(
-				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf1oi)),
+				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf1oi1)),
 				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf2oi)),
-				new ObjectChain(delptr12oi, Arrays.asList(del2oi, leaf1oi)),
+				new ObjectChain(delptr12oi, Arrays.asList(del2oi, leaf1oi1)),
 				new ObjectChain(delptrwsoi, Arrays.asList(delwsoi, leaf2oi)),
 				new ObjectChain(delptr12oi, Arrays.asList(del2oi, leaf2oi)),
-				new ObjectChain(delptr2oi, Arrays.asList(del2oi, leaf1oi)),
+				new ObjectChain(delptr2oi, Arrays.asList(del2oi, leaf1oi1)),
 				new ObjectChain(delptr2oi, Arrays.asList(del2oi, leaf2oi))
 				));
 		assertThat("correct list size", lwod.size(), is(7));
-		compareObjectAndInfo(lwod.get(0), leaf1, new Provenance(user2), data1, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(0), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(1), leaf2, new Provenance(user2), data2, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(2), leaf1, new Provenance(user2), data1, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(2), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(3), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(4), leaf2, new Provenance(user2), data2, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(5), leaf1, new Provenance(user2), data1, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(5), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(6), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		
 		checkReferencedObject(user1, new ObjectChain(delptr12oi, Arrays.asList(del1oi)),
 				del1, new Provenance(user2), makeRefData(wsidun1 + "/1/1", wsidun2 + "/1/1"),
 				Arrays.asList(wsidun1 + "/1/1", wsidun2 + "/1/1"),  mtmap);
 		Map<String, String> provmap = new HashMap<String, String>();
-		provmap.put(leaf1r, wsidun1 + "/1/1");
+		provmap.put(leaf1r1, wsidun1 + "/1/1");
 		provmap.put(leaf2r, wsidun2 + "/1/1");
 		checkReferencedObject(user1, new ObjectChain(delptr12oi, Arrays.asList(del2oi)),
 				del2, p, makeRefData(), mtlist, provmap);
 		
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr2oi,
-				Arrays.asList(del1oi, leaf1oi))), new NoSuchReferenceException(
-				"The object delptr2 in workspace refedaccessible2 does not contain the reference " +
-				wsidun1 + "/2/1", null, null));
+		// fail on 2 hop chains
+		failGetReferencedObjects(user1, Arrays.asList(
+				new ObjectChain(new ObjectIdentifier(wsiacc2n, "delptr2"),
+				Arrays.asList(del1oi, leaf1oi1))), new NoSuchReferenceException(
+				"Object delptr2 in workspace refedaccessible2 does not " +
+				"contain a reference to object 2 with version 1 in workspace 3",
+				null, null));
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
 				Arrays.asList(del1oi, unlinkedoi))), new NoSuchReferenceException(
-				"The object del1 in workspace refedunacc does not contain the reference " +
-				wsidun2 + "/2/1", null, null));
+				"Object 2 with version 1 in workspace 3 does not contain a " +
+				"reference to object 2 with version 1 in workspace 4",
+				null, null));
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
-				Arrays.asList(del1oi, new ObjectIdentifier(wsiun1, "leaf2")))), new NoSuchObjectException(
-				"No object with name leaf2 exists in workspace " + wsidun1, null, null));
+				Arrays.asList(del1oi, new ObjectIdentifier(wsiun2, 3, 1)))),
+				new NoSuchReferenceException(
+				"Object 2 with version 1 in workspace 3 does not contain a " +
+				"reference to object 3 with version 1 in workspace 4",
+				null, null));
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
-				Arrays.asList(del1oi, new ObjectIdentifier(wsiun1, "leaf1", 2)))), new NoSuchObjectException(
-				"No object with id 1 (name leaf1) and version 2 exists in workspace " + wsidun1, null, null));
+				Arrays.asList(del2oi, new ObjectIdentifier(wsiun1, 1, 3)))),
+				new NoSuchReferenceException(
+				"Object 3 with version 1 in workspace 4 does not contain a " +
+				"reference to object 1 with version 3 in workspace 3", null, null));
 		
+		// test various ways the root object could be inaccessible
 		failGetReferencedObjects(user2, new ArrayList<ObjectChain>(),
 				new IllegalArgumentException("No object identifiers provided"));
 		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf3"),
-				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
-				new InaccessibleObjectException("No object with name leaf3 exists in workspace " + wsidun1));
+				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
+				new InaccessibleObjectException("Object leaf3 does not exist in workspace 3"));
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1", 3),
+				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
+				new InaccessibleObjectException("Object leaf1 with version 3 does not exist in workspace 3"));
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(new WorkspaceIdentifier("fakefakefake"), "leaf1"),
-				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
+				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: No workspace with name fakefakefake exists"));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1"),
-				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1n, "leaf1"),
+				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: User refedUser may not read workspace refedunacc"));
 		failGetReferencedObjects(null, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1"),
-				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
-				new InaccessibleObjectException("Object leaf1 cannot be accessed: Anonymous users may not read workspace refedunacc"));
+				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
+				new InaccessibleObjectException("Object leaf1 cannot be accessed: Anonymous users may not read workspace 3"));
 		ws.setObjectsDeleted(user2, Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")), true);
-		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1"),
-				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
-				new InaccessibleObjectException("Object 1 (name leaf1) in workspace " + 
-				wsidun1 + " has been deleted"));
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1n, "leaf1"),
+				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
+				new InaccessibleObjectException(
+						"Object leaf1 in workspace refedunacc has been deleted"));
 		ws.setObjectsDeleted(user2, Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")), false);
 		ws.setWorkspaceDeleted(user2, wsiun1, true);
-		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1"),
-				Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")))),
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1n, "leaf1"),
+				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: Workspace refedunacc is deleted"));
-		
-		ws.setGlobalPermission(user2, wsiacc2, Permission.NONE);
 	}
 
 	@Test
@@ -6134,21 +6241,24 @@ public class WorkspaceTest extends WorkspaceTester {
 
 		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		WorkspaceUser user = new WorkspaceUser("MROSuser");
-		WorkspaceIdentifier wsi = new WorkspaceIdentifier("maxReturnedObjectSize");
-		ws.createWorkspace(user, wsi.getIdentifierString(), false, null, null);
+		WorkspaceIdentifier wsiorig = new WorkspaceIdentifier("maxReturnedObjectSize");
+		ws.createWorkspace(user, wsiorig.getIdentifierString(),
+				false, null, null).getId();
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("fo", "90");
 		data.put("ba", "3");
-		saveObject(user, wsi, null, data, SAFE_TYPE1, "foo", new Provenance(user));
-		ObjectIdentifier oi1 = new ObjectIdentifier(wsi, "foo", 1);
+		saveObject(user, wsi, null, data, SAFE_TYPE1,
+				"foo", new Provenance(user));
+		ObjectIdentifier oi1 = new ObjectIdentifier(wsi, 1, 1);
 		saveObject(user, wsi, null, data, SAFE_TYPE1, "foo2", new Provenance(user));
-		ObjectIdentifier oi2 = new ObjectIdentifier(wsi, "foo2", 1);
+		ObjectIdentifier oi2 = new ObjectIdentifier(wsi, 2, 1);
 		List<ObjectIdentifier> oi1l = Arrays.asList(oi1);
 		List<ObjectIdentifier> oi2l = Arrays.asList(oi2);
 		Map<String, Object> refdata = new HashMap<String, Object>();
-		refdata.put("refs", Arrays.asList(wsi.getName() + "/foo/1"));
+		refdata.put("refs", Arrays.asList(wsiorig.getName() + "/foo/1"));
 		saveObject(user, wsi, null, refdata, reftype, "ref", new Provenance(user));
-		refdata.put("refs", Arrays.asList(wsi.getName() + "/foo2/1"));
+		refdata.put("refs", Arrays.asList(wsiorig.getName() + "/foo2/1"));
 		saveObject(user, wsi, null, refdata, reftype, "ref2", new Provenance(user));
 		ObjectIdentifier ref = new ObjectIdentifier(wsi, "ref", 1);
 		ObjectIdentifier ref2 = new ObjectIdentifier(wsi, "ref2", 1);
