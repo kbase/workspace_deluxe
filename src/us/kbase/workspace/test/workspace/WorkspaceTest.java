@@ -5901,20 +5901,20 @@ public class WorkspaceTest extends WorkspaceTester {
 		//fail on one hop bad reference chains
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc2n, "simpleref2"),
 				Arrays.asList(leaf1oi1))), new NoSuchReferenceException(
-				"Object simpleref2 in workspace refedaccessible2 does " +
+				"Reference chain #1, position 1: Object simpleref2 in workspace refedaccessible2 does " +
 				"not contain a reference to object 1 with version 1 in workspace 3", null, null));
 		
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc1, "simpleref"),
 				Arrays.asList(leaf1oi1))), new NoSuchReferenceException(
-				"Object simpleref in workspace 1 does " +
+				"Reference chain #1, position 1: Object simpleref in workspace 1 does " +
 				"not contain a reference to object 1 with version 1 in workspace 3", null, null));
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc1n, "simpleref", 2),
 				Arrays.asList(leaf1oi1))), new NoSuchReferenceException(
-				"Object simpleref with version 2 in workspace refedaccessible does " +
+				"Reference chain #1, position 1: Object simpleref with version 2 in workspace refedaccessible does " +
 				"not contain a reference to object 1 with version 1 in workspace 3", null, null));
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc1n, 1, 1),
 				Arrays.asList(leaf1oi2))), new NoSuchReferenceException(
-				"Object 1 with version 1 in workspace refedaccessible does " +
+				"Reference chain #1, position 1: Object 1 with version 1 in workspace refedaccessible does " +
 				"not contain a reference to object 1 with version 2 in workspace 3", null, null));
 		
 		// set up 2 hop reference chains with deleted objects & ws in the mix
@@ -6003,27 +6003,30 @@ public class WorkspaceTest extends WorkspaceTester {
 				del2, p, makeRefData(), mtlist, provmap);
 		
 		// fail on 2 hop chains
+		ObjectChain goodchain = new ObjectChain(delptr12oi, Arrays.asList(
+				del1oi, leaf1oi1));
+		
 		failGetReferencedObjects(user1, Arrays.asList(
 				new ObjectChain(new ObjectIdentifier(wsiacc2n, "delptr2"),
 				Arrays.asList(del1oi, leaf1oi1))), new NoSuchReferenceException(
-				"Object delptr2 in workspace refedaccessible2 does not " +
+				"Reference chain #1, position 1: Object delptr2 in workspace refedaccessible2 does not " +
 				"contain a reference to object 2 with version 1 in workspace 3",
 				null, null));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+		failGetReferencedObjects(user1, Arrays.asList(goodchain, goodchain, new ObjectChain(delptr12oi,
 				Arrays.asList(del1oi, unlinkedoi))), new NoSuchReferenceException(
-				"Object 2 with version 1 in workspace 3 does not contain a " +
+				"Reference chain #3, position 2: Object 2 with version 1 in workspace 3 does not contain a " +
 				"reference to object 2 with version 1 in workspace 4",
 				null, null));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+		failGetReferencedObjects(user1, Arrays.asList(goodchain, new ObjectChain(delptr12oi,
 				Arrays.asList(del1oi, new ObjectIdentifier(wsiun2, 3, 1)))),
 				new NoSuchReferenceException(
-				"Object 2 with version 1 in workspace 3 does not contain a " +
+				"Reference chain #2, position 2: Object 2 with version 1 in workspace 3 does not contain a " +
 				"reference to object 3 with version 1 in workspace 4",
 				null, null));
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
 				Arrays.asList(del2oi, new ObjectIdentifier(wsiun1, 1, 3)))),
 				new NoSuchReferenceException(
-				"Object 3 with version 1 in workspace 4 does not contain a " +
+				"Reference chain #1, position 2: Object 3 with version 1 in workspace 4 does not contain a " +
 				"reference to object 1 with version 3 in workspace 3", null, null));
 		
 		// test various ways the root object could be inaccessible

@@ -1038,27 +1038,30 @@ public class Workspace {
 		
 		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> toGet =
 				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
-		// TODO NOW numbers
 		// TODO NOW test ability to specify any object ID (coverage of this method & throwNoSuchRef)
+		int chnum = 1;
 		for (final ObjectChain chain: refchains) {
 			ObjectIdentifier pos = chain.getHead();
 			ObjectReferenceSet refs = headrefs.get(resheads.get(pos));
+			int posnum = 1;
 			for (final ObjectIdentifier oi: chain.getChain()) {
 				// refs are guaranteed to exist, so if the db didn't find it
 				// the user specified it incorrectly
 				if (!reschains.containsKey(oi) ||
 						!(chainrefs.containsKey(reschains.get(oi)))) {
-					throwNoSuchRefException(pos, oi);
+					throwNoSuchRefException(pos, oi, chnum, posnum);
 				}
 				final ObjectReferenceSet current =
 						chainrefs.get(reschains.get(oi));
 				if (!refs.contains(current.getObjectReference())) {
-					throwNoSuchRefException(pos, oi);
+					throwNoSuchRefException(pos, oi, chnum, posnum);
 				}
 				pos = oi;
 				refs = current;
+				posnum++;
 			}
 			toGet.put(reschains.get(chain.getLast()), null);
+			chnum++;
 		}
 		// GC time
 		headrefs.clear();
@@ -1087,13 +1090,14 @@ public class Workspace {
 
 	private void throwNoSuchRefException(
 			final ObjectIdentifier from,
-			final ObjectIdentifier to)
+			final ObjectIdentifier to, int chnum, int posnum)
 			throws NoSuchReferenceException {
 		throw new NoSuchReferenceException(
 				String.format(
-				"Object %s %sin workspace %s does not " +
-				"contain a reference to object %s %sin " +
-				"workspace %s",
+				"Reference chain #%s, position %s: Object %s %sin " +
+				"workspace %s does not contain a reference to " +
+				"object %s %sin workspace %s",
+				chnum, posnum,
 				from.getIdentifierString(),
 				from.getVersion() == null ? "" :
 					"with version " + from.getVersion() + " ",

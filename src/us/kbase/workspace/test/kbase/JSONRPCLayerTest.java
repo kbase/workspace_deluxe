@@ -2755,11 +2755,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new ObjectIdentity().withRef("referencedPriv/two"))), "Object one cannot be accessed: User " + USER1 + " may not read workspace referencedPriv");
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referenced").withName("ref"),
 				new ObjectIdentity().withRef("referencedPrivfake/two"))),
-				"Object ref in workspace referenced does not contain a reference to object two in workspace referencedPrivfake");
+				"Reference chain #1, position 1: Object ref in workspace referenced does not contain a reference to object two in workspace referencedPrivfake");
 		
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referenced").withName("ref"),
 				new ObjectIdentity().withRef("referencedPriv/three"))),
-				"Object ref in workspace referenced does not contain a reference to object three in workspace referencedPriv");
+				"Reference chain #1, position 1: Object ref in workspace referenced does not contain a reference to object three in workspace referencedPriv");
 
 		CLIENT2.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"),
 				new ObjectIdentity().withRef("referencedPriv/two")));
