@@ -1036,8 +1036,8 @@ public class Workspace {
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> chainrefs =
 				getObjectOutGoingReferences(reschains, false);
 		
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> toGet =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		final Map<ObjectChain, ObjectIDResolvedWS> resolvedChains =
+				new HashMap<ObjectChain, ObjectIDResolvedWS>();
 		int chnum = 1;
 		for (final ObjectChain chain: refchains) {
 			ObjectIdentifier pos = chain.getHead();
@@ -1059,13 +1059,20 @@ public class Workspace {
 				refs = current;
 				posnum++;
 			}
-			toGet.put(reschains.get(chain.getLast()), null);
+			resolvedChains.put(chain, reschains.get(chain.getLast()));
 			chnum++;
 		}
 		// GC time
 		headrefs.clear();
 		chainrefs.clear();
 		resheads.clear();
+		reschains.clear();
+		
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> toGet =
+				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		for (final ObjectIDResolvedWS o: resolvedChains.values()) {
+			toGet.put(o, null);
+		}
 		
 		//this is kind of disgusting, think about the api here
 		final Map<ObjectIDResolvedWS,
@@ -1081,7 +1088,7 @@ public class Workspace {
 		final List<WorkspaceObjectData> ret =
 				new ArrayList<WorkspaceObjectData>();
 		for (final ObjectChain oc: refchains) {
-			ret.add(data.get(reschains.get(oc.getLast())).get(null));
+			ret.add(data.get(resolvedChains.get(oc)).get(null));
 		}
 		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
