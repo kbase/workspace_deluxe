@@ -1973,14 +1973,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					roi, vers.get(roi));
 			if (noData) {
 				ret.put(o, new HashMap<ObjectPaths, WorkspaceObjectData>());
-				ret.get(o).put(null, new WorkspaceObjectData(
+				ret.get(o).put(ObjectPaths.EMPTY, new WorkspaceObjectData(
 						info, prov, refs, copied, extIDs));
 			} else {
 				try {
-					if (objs.get(o) == null || objs.get(o).isEmpty()) {
+					if (objs.get(o).isEmpty()) {
 						buildReturnedObjectData(
-								o, null, prov, refs, copied, extIDs, info,
-								chksumToData, bafcMan, ret);
+								o, ObjectPaths.EMPTY, prov, refs, copied,
+								extIDs, info, chksumToData, bafcMan, ret);
 					} else {
 						for (final ObjectPaths op: objs.get(o)) {
 							buildReturnedObjectData(
@@ -2010,7 +2010,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		long size = 0;
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			final Set<ObjectPaths> ops = paths.get(o);
-			final long mult = ops == null || ops.size() < 1 ? 1 : ops.size();
+			final long mult = ops.size() < 1 ? 1 : ops.size();
 			size += mult * (Long) vers.get(resobjs.get(o))
 					.get(Fields.VER_SIZE);
 		}
@@ -2018,7 +2018,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException(String.format(
 					"Too much data requested from the workspace at once; " +
 					"data requested including potential subsets is %sB " + 
-					"which  exceeds maximum of %s.", size,
+					"which exceeds maximum of %s.", size,
 					rescfg.getMaxReturnedDataSize()));
 		}
 	}
@@ -2100,7 +2100,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectPaths paths, final ByteArrayFileCacheManager bafcMan)
 			throws TypedObjectExtractionException,
 			WorkspaceCommunicationException {
-		if (paths == null || paths.isEmpty()) {
+		if (paths.isEmpty()) {
 			return data;
 		}
 		try {

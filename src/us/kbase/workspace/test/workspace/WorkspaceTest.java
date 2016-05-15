@@ -6307,57 +6307,59 @@ public class WorkspaceTest extends WorkspaceTester {
 				new ObjectChain(ref2, oi2l));
 		
 		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
-		ResourceUsageConfigurationBuilder build =
-				new ResourceUsageConfigurationBuilder(
-						oldcfg).withMaxObjectSize(1);
-		
-		ws.setResourceConfig(build.withMaxReturnedDataSize(20).build());
-		List<SubObjectIdentifier> ois1l = Arrays.asList(new SubObjectIdentifier(oi1,
-				new ObjectPaths(Arrays.asList("/fo"))));
-		List<SubObjectIdentifier> ois1lmt = Arrays.asList(new SubObjectIdentifier(oi1,
-				new ObjectPaths(new ArrayList<String>())));
-		successGetObjects(user, oi1l);
-		ws.getObjectsSubSet(user, ois1l);
-		ws.getObjectsSubSet(user, ois1lmt);
-		ws.getReferencedObjects(user, refchain);
-		ws.setResourceConfig(build.withMaxReturnedDataSize(19).build());
-		String errstr = "Too much data requested from the workspace at once; data requested " + 
-				"including potential subsets is %sB which  exceeds maximum of %s.";
-		IllegalArgumentException err = new IllegalArgumentException(String.format(errstr, 20, 19));
-		failGetObjects(user, oi1l, err, true);
-		failGetSubset(user, ois1l, err);
-		failGetSubset(user, ois1lmt, err);
-		failGetReferencedObjects(user, refchain, err);
-		
-		ws.setResourceConfig(build.withMaxReturnedDataSize(40).build());
-		List<ObjectIdentifier> two = Arrays.asList(oi1, oi2);
-		List<SubObjectIdentifier> ois1l2 = Arrays.asList(
-				new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/fo"))),
-				new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/ba"))));
-		List<SubObjectIdentifier> bothoi = Arrays.asList(
-				new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/fo"))),
-				new SubObjectIdentifier(oi2, new ObjectPaths(Arrays.asList("/ba"))));
-		successGetObjects(user, two);
-		ws.getObjectsSubSet(user, ois1l2);
-		ws.getObjectsSubSet(user, bothoi);
-		ws.getReferencedObjects(user, refchain2);
-		ws.setResourceConfig(build.withMaxReturnedDataSize(39).build());
-		err = new IllegalArgumentException(String.format(errstr, 40, 39));
-		failGetObjects(user, two, err, true);
-		failGetSubset(user, ois1l2, err);
-		failGetSubset(user, bothoi, err);
-		failGetReferencedObjects(user, refchain2, err);
-		
-		List<SubObjectIdentifier> all = new LinkedList<SubObjectIdentifier>();
-		all.addAll(ois1l2);
-		all.addAll(bothoi);
-		ws.setResourceConfig(build.withMaxReturnedDataSize(60).build());
-		ws.getObjectsSubSet(user, all);
-		ws.setResourceConfig(build.withMaxReturnedDataSize(59).build());
-		err = new IllegalArgumentException(String.format(errstr, 60, 59));
-		failGetSubset(user, all, err);
-		
-		ws.setResourceConfig(oldcfg);
+		try {
+			ResourceUsageConfigurationBuilder build =
+					new ResourceUsageConfigurationBuilder(
+							oldcfg).withMaxObjectSize(1);
+			
+			ws.setResourceConfig(build.withMaxReturnedDataSize(20).build());
+			List<SubObjectIdentifier> ois1l = Arrays.asList(new SubObjectIdentifier(oi1,
+					new ObjectPaths(Arrays.asList("/fo"))));
+			List<SubObjectIdentifier> ois1lmt = Arrays.asList(new SubObjectIdentifier(oi1,
+					new ObjectPaths(new ArrayList<String>())));
+			successGetObjects(user, oi1l);
+			ws.getObjectsSubSet(user, ois1l);
+			ws.getObjectsSubSet(user, ois1lmt);
+			ws.getReferencedObjects(user, refchain);
+			ws.setResourceConfig(build.withMaxReturnedDataSize(19).build());
+			String errstr = "Too much data requested from the workspace at once; data requested " + 
+					"including potential subsets is %sB which exceeds maximum of %s.";
+			IllegalArgumentException err = new IllegalArgumentException(String.format(errstr, 20, 19));
+			failGetObjects(user, oi1l, err, true);
+			failGetSubset(user, ois1l, err);
+			failGetSubset(user, ois1lmt, err);
+			failGetReferencedObjects(user, refchain, err);
+			
+			ws.setResourceConfig(build.withMaxReturnedDataSize(40).build());
+			List<ObjectIdentifier> two = Arrays.asList(oi1, oi2);
+			List<SubObjectIdentifier> ois1l2 = Arrays.asList(
+					new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/fo"))),
+					new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/ba"))));
+			List<SubObjectIdentifier> bothoi = Arrays.asList(
+					new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/fo"))),
+					new SubObjectIdentifier(oi2, new ObjectPaths(Arrays.asList("/ba"))));
+			successGetObjects(user, two);
+			ws.getObjectsSubSet(user, ois1l2);
+			ws.getObjectsSubSet(user, bothoi);
+			ws.getReferencedObjects(user, refchain2);
+			ws.setResourceConfig(build.withMaxReturnedDataSize(39).build());
+			err = new IllegalArgumentException(String.format(errstr, 40, 39));
+			failGetObjects(user, two, err, true);
+			failGetSubset(user, ois1l2, err);
+			failGetSubset(user, bothoi, err);
+			failGetReferencedObjects(user, refchain2, err);
+			
+			List<SubObjectIdentifier> all = new LinkedList<SubObjectIdentifier>();
+			all.addAll(ois1l2);
+			all.addAll(bothoi);
+			ws.setResourceConfig(build.withMaxReturnedDataSize(60).build());
+			ws.getObjectsSubSet(user, all);
+			ws.setResourceConfig(build.withMaxReturnedDataSize(59).build());
+			err = new IllegalArgumentException(String.format(errstr, 60, 59));
+			failGetSubset(user, all, err);
+		} finally {
+			ws.setResourceConfig(oldcfg);
+		}
 	}
 	
 	@Test

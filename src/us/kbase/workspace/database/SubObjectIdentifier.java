@@ -10,8 +10,11 @@ public class SubObjectIdentifier {
 	public SubObjectIdentifier(final ObjectIdentifier oi,
 			final ObjectPaths paths) {
 		super();
+		if (oi == null) {
+			throw new IllegalArgumentException("oi cannot be null");
+		}
 		this.oi = oi;
-		this.paths = paths;
+		this.paths = paths == null ? ObjectPaths.EMPTY : paths;
 	}
 
 	public ObjectIdentifier getObjectIdentifer() {

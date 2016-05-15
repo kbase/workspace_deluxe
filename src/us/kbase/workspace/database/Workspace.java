@@ -3,6 +3,7 @@ package us.kbase.workspace.database;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -904,6 +905,9 @@ public class Workspace {
 		return db.getObjectInformation(params.generateParameters(pset));
 	}
 	
+	final static private Set<ObjectPaths> EMPTY_PATHS =
+			Collections.unmodifiableSet(new HashSet<ObjectPaths>());
+	
 	public List<WorkspaceObjectData> getObjectProvenance(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi)
 			throws CorruptWorkspaceDBException,
@@ -914,7 +918,7 @@ public class Workspace {
 		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
 				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
 		for (final ObjectIDResolvedWS o: ws.values()) {
-			paths.put(o, null);
+			paths.put(o, EMPTY_PATHS);
 		}
 		//this is pretty gross, think about a better api here
 		final Map<ObjectIDResolvedWS,
@@ -931,7 +935,7 @@ public class Workspace {
 				new ArrayList<WorkspaceObjectData>();
 		
 		for (final ObjectIdentifier o: loi) {
-			ret.add(prov.get(ws.get(o)).get(null));
+			ret.add(prov.get(ws.get(o)).get(ObjectPaths.EMPTY));
 		}
 		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
@@ -946,7 +950,7 @@ public class Workspace {
 		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
 				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
 		for (final ObjectIDResolvedWS o: ws.values()) {
-			paths.put(o, null);
+			paths.put(o, EMPTY_PATHS);
 		}
 		//this is pretty gross, think about a better api here
 		final Map<ObjectIDResolvedWS,
@@ -962,7 +966,7 @@ public class Workspace {
 				new ArrayList<WorkspaceObjectData>();
 		
 		for (final ObjectIdentifier o: loi) {
-			ret.add(data.get(ws.get(o)).get(null));
+			ret.add(data.get(ws.get(o)).get(ObjectPaths.EMPTY));
 		}
 		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
@@ -1020,8 +1024,9 @@ public class Workspace {
 		
 		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> toGet =
 				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		
 		for (final ObjectIDResolvedWS o: resolvedChains.values()) {
-			toGet.put(o, null);
+			toGet.put(o, EMPTY_PATHS);
 		}
 		
 		//this is kind of disgusting, think about the api here
@@ -1038,7 +1043,7 @@ public class Workspace {
 		final List<WorkspaceObjectData> ret =
 				new ArrayList<WorkspaceObjectData>();
 		for (final ObjectChain oc: refchains) {
-			ret.add(data.get(resolvedChains.get(oc)).get(null));
+			ret.add(data.get(resolvedChains.get(oc)).get(ObjectPaths.EMPTY));
 		}
 		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
@@ -1057,8 +1062,10 @@ public class Workspace {
 				new LinkedList<ObjectIdentifier>();
 		for (final ObjectChain oc: refchains) {
 			if (oc != null) {
-				//allow nulls in list to maintain object count in the case
-				// that input includes objectIDs with and without chains 
+				/* allow nulls in list to maintain object count in the case
+				 * calling method input includes objectIDs with and without
+				 * chains
+				 */
 				first.add(oc.getHead());
 				chains.addAll(oc.getChain());
 			}
