@@ -1038,7 +1038,6 @@ public class Workspace {
 		
 		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> toGet =
 				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
-		// TODO NOW test ability to specify any object ID (coverage of this method & throwNoSuchRef)
 		int chnum = 1;
 		for (final ObjectChain chain: refchains) {
 			ObjectIdentifier pos = chain.getHead();

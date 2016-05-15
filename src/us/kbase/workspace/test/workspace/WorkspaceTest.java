@@ -5974,7 +5974,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		 */
 		
 		
-		// test 2 hop reference chains
+		// test 2 hop reference chains with absolute references
 		List<WorkspaceObjectData> lwod = ws.getReferencedObjects(user1, Arrays.asList(
 				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf1oi1)),
 				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf2oi)),
@@ -6002,7 +6002,19 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkReferencedObject(user1, new ObjectChain(delptr12oi, Arrays.asList(del2oi)),
 				del2, p, makeRefData(), mtlist, provmap);
 		
-		// fail on 2 hop chains
+		// test 2 hop reference chains with temporary references
+		ObjectIdentifier leaf2tempWS = new ObjectIdentifier(wsiun2n, 1, 1);
+		ObjectIdentifier leaf2tempID = new ObjectIdentifier(wsiun2, "leaf2", 1);
+		ObjectIdentifier leaf2nover = new ObjectIdentifier(wsiun2, 1);
+		lwod = ws.getReferencedObjects(user1, Arrays.asList(
+				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf2tempWS)),
+				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf2tempID)),
+				new ObjectChain(delptr12oi, Arrays.asList(del2oi, leaf2nover))));
+		compareObjectAndInfo(lwod.get(0), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(1), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(2), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		
+		// fail on 2 hop chains with absolute references
 		ObjectChain goodchain = new ObjectChain(delptr12oi, Arrays.asList(
 				del1oi, leaf1oi1));
 		
@@ -6028,6 +6040,31 @@ public class WorkspaceTest extends WorkspaceTester {
 				new NoSuchReferenceException(
 				"Reference chain #1, position 2: Object 3 with version 1 in workspace 4 does not contain a " +
 				"reference to object 1 with version 3 in workspace 3", null, null));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+				Arrays.asList(del2oi, new ObjectIdentifier(new WorkspaceIdentifier(6), 1, 3)))),
+				new NoSuchReferenceException(
+				"Reference chain #1, position 2: Object 3 with version 1 in workspace 4 does not contain a " +
+				"reference to object 1 with version 3 in workspace 6", null, null));
+		
+		// fail on 2 hop chains with temporary references
+		ObjectIdentifier leaf1badTempWs = new ObjectIdentifier(new WorkspaceIdentifier("foo"), 1, 1);
+		ObjectIdentifier leaf1badTempID = new ObjectIdentifier(wsiun1, "leaf2", 1);
+		ObjectIdentifier leaf1nover = new ObjectIdentifier(wsiun1, 1);
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+				Arrays.asList(del1oi, leaf1badTempWs))),
+				new NoSuchReferenceException(
+				"Reference chain #1, position 2: Object 2 with version 1 in workspace 3 does not contain a " +
+				"reference to object 1 with version 1 in workspace foo", null, null));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+				Arrays.asList(del2oi, leaf1badTempID))),
+				new NoSuchReferenceException(
+				"Reference chain #1, position 2: Object 3 with version 1 in workspace 4 does not contain a " +
+				"reference to object leaf2 with version 1 in workspace 3", null, null));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+				Arrays.asList(del2oi, leaf1nover))),
+				new NoSuchReferenceException(
+				"Reference chain #1, position 2: Object 3 with version 1 in workspace 4 does not contain a " +
+				"reference to object 1 in workspace 3", null, null));
 		
 		// test various ways the root object could be inaccessible
 		failGetReferencedObjects(user2, new ArrayList<ObjectChain>(),
