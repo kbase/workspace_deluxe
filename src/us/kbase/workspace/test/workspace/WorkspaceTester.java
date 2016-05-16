@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -1162,9 +1163,15 @@ public class WorkspaceTester {
 			List<String> refs, Map<String, String> refmap)
 			throws Exception {
 		assertThat("object info same", got.getObjectInfo(), is(info));
-		assertThat("returned data same", got.getData(), is((Object)data));
-		assertThat("returned data jsonnode same", got.getSerializedData().getAsJsonNode(),
-				is(new ObjectMapper().valueToTree(data)));
+		if (data == null) {
+			assertNull("returned data when requested provenance only",
+					got.getSerializedData());
+		} else {
+			assertThat("returned data same", got.getData(), is((Object)data));
+			assertThat("returned data jsonnode same",
+					got.getSerializedData().getAsJsonNode(),
+					is(new ObjectMapper().valueToTree(data)));
+		}
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));
 		checkProvenanceCorrect(prov, got.getProvenance(), refmap, info.getWorkspaceId());

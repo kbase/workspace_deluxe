@@ -54,6 +54,7 @@ import us.kbase.workspace.database.ObjIDWithChainAndSubset;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIDWithRefChain;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -5784,6 +5785,158 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		
 		ws.setGlobalPermission(user2, wsisrc2gl, Permission.NONE);
+	}
+	
+	@Test
+	public void getObjectsMixedCalls() throws Exception {
+		WorkspaceUser user1 = new WorkspaceUser("u1");
+		WorkspaceUser user2 = new WorkspaceUser("u2");
+		WorkspaceIdentifier wsaccessible =
+				new WorkspaceIdentifier("accessible");
+		WorkspaceIdentifier wshidden = new WorkspaceIdentifier("hidden");
+		ws.createWorkspace(user1, wsaccessible.getName(), false, null, null);
+		ws.setPermissions(user1, wsaccessible, Arrays.asList(user2),
+				Permission.WRITE);
+		ws.createWorkspace(user2, wshidden.getName(), true, null, null);
+		
+		Map<String, Object> data1 = createData(
+				"{\"map\": {\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id2\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}," +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}" +
+				"}"
+				);
+		Map<String, Object> data1id1 = createData(
+				"{\"map\": {" +
+				"			\"id1\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}" +
+				"			}" +
+				"}"
+				);
+		Map<String, Object> data1id3 = createData(
+				"{\"map\": {" +
+				"			\"id3\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}" +
+				"}"
+				);
+		
+		String data2string =
+				"{\"map\": {\"id21\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id22\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}," +
+				"			\"id23\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}," +
+				" \"refs\": [\"hidden/leaf1\"]" +
+				"}";
+		Map<String, Object> data2 = createData(data2string);
+		Map<String, Object> data2resolved = createData(
+				data2string.replace("hidden/leaf1", "2/1/1"));
+		
+		
+		Map<String, Object> data2id22 = createData(
+				"{\"map\": {" +
+				"			\"id22\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}" +
+				"			}" +
+				"}"
+				);
+		Map<String, Object> data2id23 = createData(
+				"{\"map\": {" +
+				"			\"id23\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}" +
+				"}"
+				);
+		Map<String, Object> data2map = createData(
+				"{\"map\": {\"id21\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}," +
+				"			\"id22\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}," +
+				"			\"id23\": {\"id\": 3," +
+				"					  \"thing\": \"foo3\"}" +
+				"			}" +
+				"}");
+		
+		Provenance pU2_1 = new Provenance(user2);
+		pU2_1.addAction(new ProvenanceAction().withCaller("random data"));
+		
+		Provenance pU1_1 = new Provenance(user2);
+		pU1_1.addAction(new ProvenanceAction().withMethod("method"));
+		
+		Provenance pU2_2 = new Provenance(user2);
+		pU2_2.addAction(new ProvenanceAction().withDescription("a desc"));
+		
+		Map<String, String> meta1 = new HashMap<String, String>();
+		meta1.put("some", "very special metadata");
+		Map<String, String> meta2 = new HashMap<String, String>();
+		meta2.put("some", "very special metadata2");
+		
+		ObjectInformation leaf1 = saveObject(user2, wshidden, meta1, data1,
+				SAFE_TYPE1, "leaf1", pU2_1);
+		ObjectIdentifier leaf1oi = new ObjectIdentifier(wshidden, "leaf1");
+		ObjectInformation leaf2 = saveObject(user1, wsaccessible, meta2, data2,
+				SAFE_TYPE1, "leaf2", pU1_1);
+		ObjectIdentifier leaf2oi = new ObjectIdentifier(wsaccessible, "leaf2");
+		
+		TypeDefId reftype = new TypeDefId(
+				new TypeDefName("CopyRev", "RefType"), 1, 0);
+		
+		
+		ObjectInformation simpleref = saveObject(user2, wsaccessible, meta2,
+				data2, reftype, "simpleref", pU2_2);
+		ObjectIdentifier simplerefoi = new ObjectIdentifier(
+				wsaccessible, "simpleref");
+		
+		// test single call with different types of operations
+		final List<String> refs = Arrays.asList("2/1/1");
+		final Map<String, String> refmap = new HashMap<String, String>();
+		refmap.put("hidden/leaf1", "2/1/1");
+		List<WorkspaceObjectData> lwod = ws.getObjects(user1, Arrays.asList(
+				leaf2oi,
+				simplerefoi,
+				(ObjectIdentifier) new ObjectIDWithRefChain(
+						simplerefoi, Arrays.asList(leaf1oi)),
+				(ObjectIdentifier) new ObjIDWithChainAndSubset(leaf2oi, null,
+						new ObjectPaths(Arrays.asList("/map/id22"))),
+				(ObjectIdentifier) new ObjIDWithChainAndSubset(leaf2oi, null,
+						new ObjectPaths(Arrays.asList("/map"))),
+				(ObjectIdentifier) new ObjIDWithChainAndSubset(simplerefoi, null,
+						new ObjectPaths(Arrays.asList("/map/id23"))),
+				(ObjectIdentifier) new ObjIDWithChainAndSubset(simplerefoi,
+						Arrays.asList(leaf1oi),
+						new ObjectPaths(Arrays.asList("/map/id1"))),
+				(ObjectIdentifier) new ObjIDWithChainAndSubset(simplerefoi,
+						Arrays.asList(leaf1oi),
+						new ObjectPaths(Arrays.asList("/map/id3")))
+				));
+		assertThat("correct list size", lwod.size(), is(8));
+		List<String> mtlist = new LinkedList<String>();
+		Map<String, String> mtmap = new HashMap<String, String>();
+		compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, data2, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, data2resolved, refs, refmap);
+		compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, data1, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(3), leaf2, pU1_1, data2id22, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(4), leaf2, pU1_1, data2map, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(5), simpleref, pU2_2, data2id23, refs, refmap);
+		compareObjectAndInfo(lwod.get(6), leaf1, pU2_1, data1id1, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(7), leaf1, pU2_1, data1id3, mtlist, mtmap);
+		
+		// test getting provenance only
+		lwod = ws.getObjects(user1, Arrays.asList(
+				leaf2oi,
+				simplerefoi,
+				(ObjectIdentifier) new ObjectIDWithRefChain(
+						simplerefoi, Arrays.asList(leaf1oi))
+				), true);
+		compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, null, mtlist, mtmap);
+		compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, null, refs, refmap);
+		compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, null, mtlist, mtmap);
 	}
 	
 	@Test

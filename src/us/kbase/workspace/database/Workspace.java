@@ -957,10 +957,6 @@ public class Workspace {
 		return getObjects(user, loi, false);
 	}
 	
-	//TODO NOW test provenance, subset, and refchain individually in same call
-	//TODO NOW test getting provenance & subset via refchain in same call
-	//TODO NOW test getting object & referenced object in same call
-	//TODO NOW test getting different subsets of same object in same call
 	public List<WorkspaceObjectData> getObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> loi,
