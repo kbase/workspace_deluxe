@@ -972,16 +972,16 @@ public class Workspace {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
 		
-		final List<ObjectIDWithRefChains> chains =
-				new LinkedList<ObjectIDWithRefChains>();
+		final List<ObjectIDWithRefChain> chains =
+				new LinkedList<ObjectIDWithRefChain>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads =
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> std =
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		for (final ObjectIdentifier o: loi) {
-			if (o instanceof ObjectIDWithRefChains && 
-					((ObjectIDWithRefChains) o).hasChain()) {
-				chains.add((ObjectIDWithRefChains) o);
+			if (o instanceof ObjectIDWithRefChain && 
+					((ObjectIDWithRefChain) o).hasChain()) {
+				chains.add((ObjectIDWithRefChain) o);
 				heads.put(o, ws.get(o));
 			} else {
 				chains.add(null); // maintain count for error reporting
@@ -1115,7 +1115,7 @@ public class Workspace {
 
 		final List<ObjectIdentifier> loi = new LinkedList<ObjectIdentifier>();
 		for (final ObjectChain c: refchains) {
-			loi.add(new ObjectIDWithRefChains(c.getHead(), c.getChain()));
+			loi.add(new ObjectIDWithRefChain(c.getHead(), c.getChain()));
 		}
 		
 		try {
@@ -1156,7 +1156,7 @@ public class Workspace {
 
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveReferenceChains(
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefChains> refchains,
+			final List<ObjectIDWithRefChain> refchains,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads)
 			throws WorkspaceCommunicationException,
 			InaccessibleObjectException, CorruptWorkspaceDBException,
@@ -1170,7 +1170,7 @@ public class Workspace {
 		
 		final List<ObjectIdentifier> chains =
 				new LinkedList<ObjectIdentifier>();
-		for (final ObjectIDWithRefChains oc: refchains) {
+		for (final ObjectIDWithRefChain oc: refchains) {
 			if (oc != null) {
 				/* allow nulls in list to maintain object count in the case
 				 * calling method input includes objectIDs with and without
@@ -1195,7 +1195,7 @@ public class Workspace {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedChains =
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		int chnum = 1;
-		for (final ObjectIDWithRefChains chain: refchains) {
+		for (final ObjectIDWithRefChain chain: refchains) {
 			if (chain != null) {
 				ObjectIdentifier pos = chain;
 				ObjectReferenceSet refs = headrefs.get(heads.get(pos));
