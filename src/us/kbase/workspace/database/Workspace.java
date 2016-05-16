@@ -905,47 +905,6 @@ public class Workspace {
 	}
 	
 	//TODO NOW add reference fetching to getObjectInfo, allow ignore errors
-	//TODO NOW remove
-	public List<WorkspaceObjectData> getObjectProvenance(
-			final WorkspaceUser user, final List<ObjectIdentifier> loi)
-			throws CorruptWorkspaceDBException,
-			WorkspaceCommunicationException, InaccessibleObjectException {
-		
-		try {
-			return getObjects(user, loi, true);
-		} catch (NoSuchReferenceException e) {
-			throw new RuntimeException("no ref crap", e);
-		} catch (TypedObjectExtractionException e) {
-			throw new RuntimeException("extraction crap", e);
-		}
-		
-//		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-//				checkPerms(user, loi, Permission.READ, "read");
-//		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
-//				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
-//		for (final ObjectIDResolvedWS o: ws.values()) {
-//			paths.put(o, EMPTY_PATHS);
-//		}
-//		//this is pretty gross, think about a better api here
-//		final Map<ObjectIDResolvedWS,
-//				Map<ObjectPaths, WorkspaceObjectData>> prov;
-//		try {
-//			prov = db.getObjects(paths, true, true);
-//		} catch (TypedObjectExtractionException toee) {
-//			throw new RuntimeException(
-//					"There was an extraction exception even though " +
-//					"extraction wasn't requested. GG programmers", toee);
-//		}
-//		
-//		final List<WorkspaceObjectData> ret =
-//				new ArrayList<WorkspaceObjectData>();
-//		
-//		for (final ObjectIdentifier o: loi) {
-//			ret.add(prov.get(ws.get(o)).get(ObjectPaths.EMPTY));
-//		}
-//		removeInaccessibleDataCopyReferences(user, ret);
-//		return ret;
-	}
 
 	public List<WorkspaceObjectData> getObjects(
 			final WorkspaceUser user,
@@ -1049,106 +1008,8 @@ public class Workspace {
 		return paths;
 	}
 	
-	//TODO NOW remove
-	public List<WorkspaceObjectData> getObjectsSubSet(final WorkspaceUser user,
-			final List<SubObjectIdentifier> loi) throws
-			CorruptWorkspaceDBException, WorkspaceCommunicationException,
-			InaccessibleObjectException, TypedObjectExtractionException {
-		
-		final List<ObjectIdentifier> objs = new LinkedList<ObjectIdentifier>();
-		for (final SubObjectIdentifier soi: loi) {
-			objs.add(new ObjIDWithChainAndSubset(
-					soi.getObjectIdentifer(), null, soi.getPaths()));
-		}
-		try {
-			return getObjects(user, objs, false);
-		} catch (NoSuchReferenceException nsre) {
-			throw new RuntimeException("crap", nsre);
-		}
-		
-		
-//		for (final SubObjectIdentifier soi: loi) {
-//			objs.add(soi.getObjectIdentifer());
-//		}
-//		
-//		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-//				checkPerms(user, objs, Permission.READ, "read");
-//		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objpaths =
-//				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
-//		for (final SubObjectIdentifier soi: loi) {
-//			final ObjectIDResolvedWS o = ws.get(soi.getObjectIdentifer());
-//			if (!objpaths.containsKey(o)) {
-//				objpaths.put(o, new HashSet<ObjectPaths>());
-//			}
-//			objpaths.get(o).add(soi.getPaths());
-//		}
-//		
-//		//this is kind of disgusting, think about the api here
-//		final Map<ObjectIDResolvedWS,
-//				Map<ObjectPaths, WorkspaceObjectData>> data = 
-//				db.getObjects(objpaths, false, true);
-//		
-//		final List<WorkspaceObjectData> ret =
-//				new ArrayList<WorkspaceObjectData>();
-//		for (final SubObjectIdentifier soi: loi) {
-//			ret.add(data.get(ws.get(soi.getObjectIdentifer()))
-//					.get(soi.getPaths()));
-//		}
-//		removeInaccessibleDataCopyReferences(user, ret);
-//		return ret;
-	}
-	
-	//TODO REFS remove ObjectChain and SubObjectID
 	//TODO REFS Update docs
 	//TODO REFS release notes
-	//TODO NOW remove
-	public List<WorkspaceObjectData> getReferencedObjects(
-			final WorkspaceUser user,
-			final List<ObjectChain> refchains)
-			throws CorruptWorkspaceDBException,
-			WorkspaceCommunicationException,
-			InaccessibleObjectException, NoSuchReferenceException {
-
-		final List<ObjectIdentifier> loi = new LinkedList<ObjectIdentifier>();
-		for (final ObjectChain c: refchains) {
-			loi.add(new ObjectIDWithRefChain(c.getHead(), c.getChain()));
-		}
-		
-		try {
-			return getObjects(user, loi, false);
-		} catch (TypedObjectExtractionException e) {
-			throw new RuntimeException("crap", e);
-		}
-		
-//		final Map<ObjectChain, ObjectIDResolvedWS> resolvedChains = null;
-////				= resolveReferenceChains(user, refchains);
-//		
-//		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> toGet =
-//				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
-//		
-//		for (final ObjectIDResolvedWS o: resolvedChains.values()) {
-//			toGet.put(o, EMPTY_PATHS);
-//		}
-//		
-//		//this is kind of disgusting, think about the api here
-//		final Map<ObjectIDResolvedWS,
-//				Map<ObjectPaths, WorkspaceObjectData>> data;
-//		try {
-//			data = db.getObjects(toGet, false, false);
-//		} catch (TypedObjectExtractionException toee) {
-//			throw new RuntimeException(
-//					"There was an extraction exception even though " +
-//					"extraction wasn't requested. GG programmers", toee);
-//		}
-//		toGet.clear();
-//		final List<WorkspaceObjectData> ret =
-//				new ArrayList<WorkspaceObjectData>();
-//		for (final ObjectChain oc: refchains) {
-//			ret.add(data.get(resolvedChains.get(oc)).get(ObjectPaths.EMPTY));
-//		}
-//		removeInaccessibleDataCopyReferences(user, ret);
-//		return ret;
-	}
 
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveReferenceChains(
 			final WorkspaceUser user,

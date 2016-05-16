@@ -16,8 +16,8 @@ import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.database.ObjIDWithChainAndSubset;
 import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 
 public class KBaseIdentifierFactory {
@@ -151,10 +151,10 @@ public class KBaseIdentifierFactory {
 		return ObjectIdentifier.parseObjectReference(ref);
 	}
 
-	public static List<SubObjectIdentifier> processSubObjectIdentifiers(
+	public static List<ObjectIdentifier> processSubObjectIdentifiers(
 			List<SubObjectIdentity> subObjectIds) {
-		final List<SubObjectIdentifier> objs =
-				new LinkedList<SubObjectIdentifier>();
+		final List<ObjectIdentifier> objs =
+				new LinkedList<ObjectIdentifier>();
 		int objcount = 1;
 		for (final SubObjectIdentity soi: subObjectIds) {
 			final ObjectIdentifier oi;
@@ -178,7 +178,7 @@ public class KBaseIdentifierFactory {
 							ObjectPaths.STRICT_MAPS_DEFAULT),
 					longToBoolean(soi.getStrictArrays(),
 							ObjectPaths.STRICT_ARRAYS_DEFAULT));
-			objs.add(new SubObjectIdentifier(oi, paths));
+			objs.add(new ObjIDWithChainAndSubset(oi, null, paths));
 			objcount++;
 		}
 		return objs;

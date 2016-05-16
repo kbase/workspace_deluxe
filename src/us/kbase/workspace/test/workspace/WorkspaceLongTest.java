@@ -4,7 +4,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,20 +27,16 @@ import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.ObjIDWithChainAndSubset;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
-import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
-import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -374,9 +369,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 	private void estimateGetSubsetTime(WorkspaceUser userfoo,
 			WorkspaceIdentifier wspace, ObjectInformation oi, String contigId,
 			int featureCount, Random rnd, int numberOfIncludedPaths, String caller)
-			throws CorruptWorkspaceDBException,
-			WorkspaceCommunicationException, InaccessibleObjectException,
-			TypedObjectExtractionException, IOException {
+			throws Exception {
 		double avgTime2 = 0;
 		double avgLen = 0;
 		int iterCount2 = 100;
@@ -385,8 +378,11 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			for (int i = 0; i < numberOfIncludedPaths; i++)
 				included.add("data/" + contigId + "/" + rnd.nextInt(featureCount));
 			long time2 = System.currentTimeMillis();
-			WorkspaceObjectData wod2 = ws.getObjectsSubSet(userfoo, Arrays.asList(new SubObjectIdentifier(
-					new ObjectIdentifier(wspace, oi.getObjectId()), new ObjectPaths(included)))).get(0);
+			List<ObjectIdentifier> a = new LinkedList<ObjectIdentifier>();
+			a.add(new ObjIDWithChainAndSubset(
+					new ObjectIdentifier(wspace, oi.getObjectId()), null,
+						new ObjectPaths(included)));
+			WorkspaceObjectData wod2 = ws.getObjects(userfoo, a).get(0);
 			String data2 = UObject.getMapper().writeValueAsString(wod2.getData());
 			time2 = System.currentTimeMillis() - time2;
 			avgTime2 += time2;

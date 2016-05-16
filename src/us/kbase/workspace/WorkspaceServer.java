@@ -69,8 +69,7 @@ import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.ObjectChain;
-import us.kbase.workspace.database.SubObjectIdentifier;
+import us.kbase.workspace.database.ObjectIDWithRefChain;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -657,7 +656,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_provenance
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = translateObjectProvInfo(
-				ws.getObjectProvenance(getUser(authPart), loi),
+				ws.getObjects(getUser(authPart), loi, true),
 					getUser(authPart), handleManagerUrl, handleMgrToken, true);
         //END get_object_provenance
         return returnVal;
@@ -709,12 +708,12 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<ObjectData> getObjectSubset(List<SubObjectIdentity> subObjectIds, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<ObjectData> returnVal = null;
         //BEGIN get_object_subset
-		final List<SubObjectIdentifier> loi = processSubObjectIdentifiers(
+		final List<ObjectIdentifier> loi = processSubObjectIdentifiers(
 				subObjectIds);
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(
-				ws.getObjectsSubSet(getUser(authPart), loi), getUser(authPart),
+				ws.getObjects(getUser(authPart), loi), getUser(authPart),
 						resources, handleManagerUrl, handleMgrToken, true);
 		resourcesToDelete.set(resources);
         //END get_object_subset
@@ -814,7 +813,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (refChains == null) {
 			throw new IllegalArgumentException("refChains may not be null");
 		}
-		final List<ObjectChain> chains = new LinkedList<ObjectChain>();
+		final List<ObjectIdentifier> chains =
+				new LinkedList<ObjectIdentifier>();
 		int count = 1;
 		for (List<ObjectIdentity> loy: refChains) {
 			final List<ObjectIdentifier> lor;
@@ -830,12 +830,13 @@ public class WorkspaceServer extends JsonServerServlet {
 						"Error on object chain #%s: The minimum size of a reference chain is 2 ObjectIdentities",
 						count));
 			}
-			chains.add(new ObjectChain(lor.get(0), lor.subList(1, lor.size())));
+			chains.add(new ObjectIDWithRefChain(
+					lor.get(0), lor.subList(1, lor.size())));
 			count++;
 		}
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
-		returnVal = translateObjectData(ws.getReferencedObjects(
+		returnVal = translateObjectData(ws.getObjects(
 				getUser(authPart), chains), getUser(authPart), resources,
 					handleManagerUrl, handleMgrToken, true);
 		resourcesToDelete.set(resources);	

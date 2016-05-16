@@ -44,9 +44,10 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ListObjectsParameters;
-import us.kbase.workspace.database.ObjectChain;
+import us.kbase.workspace.database.ObjIDWithChainAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIDWithRefChain;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -59,7 +60,6 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
-import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
@@ -602,10 +602,8 @@ public class WorkspaceTester {
 			List<ObjectIdentifier> ids, List<FakeObjectInfo> fakeinfo,
 			List<Map<String, Object>> data) throws Exception {
 		List<WorkspaceObjectData> retdata = ws.getObjects(user, ids);
-		List<WorkspaceObjectData> retdata2 = ws.getObjectsSubSet(user, objIDToSubObjID(ids));
-		List<WorkspaceObjectData> provdata = ws.getObjectProvenance(user, ids);
+		List<WorkspaceObjectData> provdata = ws.getObjects(user, ids, false);
 		Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
-		Iterator<WorkspaceObjectData> ret2 = retdata2.iterator();
 		Iterator<WorkspaceObjectData> provi = provdata.iterator();
 		Iterator<FakeObjectInfo> info = fakeinfo.iterator();
 		Iterator<Map<String, Object>> dataiter = data.iterator();
@@ -614,15 +612,13 @@ public class WorkspaceTester {
 			Map<String, Object> d = dataiter.next();
 			WorkspaceObjectData woprov = provi.next();
 			WorkspaceObjectData wod1 = ret1.next();
-			WorkspaceObjectData wod2 = ret2.next();
 			checkObjectAndInfo(wod1, inf , d);
-			checkObjectAndInfo(wod2, inf , d);
 			checkObjInfo(woprov.getObjectInfo(), inf.getObjectId(), inf.getObjectName(),
 					inf.getTypeString(), inf.getVersion(), inf.getSavedBy(),
 					inf.getWorkspaceId(), inf.getWorkspaceName(), inf.getCheckSum(),
 					inf.getSize(), inf.getUserMetaData().getMetadata());
 		}
-		if (ret2.hasNext() || info.hasNext() || dataiter.hasNext() || provi.hasNext()) {
+		if (info.hasNext() || dataiter.hasNext() || provi.hasNext()) {
 			fail("mismatched iter counts");
 		}
 	}
@@ -640,18 +636,19 @@ public class WorkspaceTester {
 	protected void successGetObjects(WorkspaceUser user,
 			List<ObjectIdentifier> objs) throws Exception {
 		ws.getObjects(user, objs);
-		ws.getObjectsSubSet(user, objIDToSubObjID(objs));
-		ws.getObjectProvenance(user, objs);
+		ws.getObjects(user, objs, false);
 	}
 	
-	protected void failGetObjects(WorkspaceUser user, List<ObjectIdentifier> objs,
+	protected void failGetObjects(WorkspaceUser user,
+			List<ObjectIdentifier> objs,
 			Exception e) 
 			throws Exception {
 		failGetObjects(user, objs, e, false);
 	}
 	
-	protected void failGetObjects(WorkspaceUser user, List<ObjectIdentifier> objs,
-			Exception e, boolean failExpectedOnlyForObjectSize) 
+	protected void failGetObjects(WorkspaceUser user,
+			List<ObjectIdentifier> objs, Exception e,
+			boolean onlyCheckReturningData) 
 			throws Exception {
 		try {
 			ws.getObjects(user, objs);
@@ -659,24 +656,12 @@ public class WorkspaceTester {
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
-		try {
-			ws.getObjectsSubSet(user, objIDToSubObjID(objs));
-			fail("called get subobjects with bad args");
-		} catch (Exception exp) {
-			assertExceptionCorrect(exp, e);
-		}
-		if (failExpectedOnlyForObjectSize) {
-			return; //don't call the referencing methods
+		if (onlyCheckReturningData) {
+			return;
 		}
 		try {
-			ws.getObjectProvenance(user, objs);
-			fail("called get object prov with bad args");
-		} catch (Exception exp) {
-			assertExceptionCorrect(exp, e);
-		}
-		try {
-			ws.getReferencingObjects(user, objs);
-			fail("called get refing objects with bad args");
+			ws.getObjects(user, objs, true);
+			fail("called get objects with bad args");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
@@ -688,16 +673,30 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 	}
-
-	protected List<SubObjectIdentifier> objIDToSubObjID(
-			List<ObjectIdentifier> objs) {
-		List<SubObjectIdentifier> soi = new ArrayList<SubObjectIdentifier>();
-		for (ObjectIdentifier oi: objs) {
-			soi.add(new SubObjectIdentifier(oi, null));
+	
+	@SuppressWarnings("unchecked")
+	protected void failGetReferencedObjects(WorkspaceUser user,
+			List<ObjectIDWithRefChain> objs, Exception e) {
+		try {
+			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) objs);
+			fail("called get objects with bad args");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
 		}
-		return soi;
 	}
 	
+	@SuppressWarnings("unchecked")
+	protected void failGetSubset(WorkspaceUser user, List<ObjIDWithChainAndSubset> objs,
+			Exception e)
+			throws Exception {
+		try {
+			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) objs);
+			fail("got subobjs obj when should fail");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+
 	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
 			Map<String, Object> data, TypeDefId type, Provenance prov,
 			Throwable exception) throws Exception {
@@ -734,12 +733,9 @@ public class WorkspaceTester {
 			ObjectIdentifier obj, Map<String, String> refmap) throws Exception {
 		Provenance pgot = ws.getObjects(foo, Arrays.asList(obj)).get(0).getProvenance();
 		checkProvenanceCorrect(prov, pgot, refmap, obj.getWorkspaceIdentifier().getId());
-		Provenance pgot2 = ws.getObjectsSubSet(foo, objIDToSubObjID(Arrays.asList(obj)))
-				.get(0).getProvenance();
+		Provenance pgot2 = ws.getObjects(foo, Arrays.asList(obj), true).get(0).getProvenance();
 		checkProvenanceCorrect(prov, pgot2,refmap, obj.getWorkspaceIdentifier().getId());
-		Provenance pgot3 = ws.getObjectProvenance(foo, Arrays.asList(obj)).get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot3,refmap, obj.getWorkspaceIdentifier().getId());
-		return Arrays.asList(pgot.getDate(), pgot2.getDate(), pgot3.getDate());
+		return Arrays.asList(pgot.getDate(), pgot2.getDate());
 	}
 	
 	//if refmap != null expected is a Provenance object. Otherwise it's a subclass
@@ -1047,11 +1043,6 @@ public class WorkspaceTester {
 			assertThat("can get correct data from undeleted objects",
 					d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
 		}
-		d = ws.getObjectsSubSet(foo, objIDToSubObjID(objs));
-		for (int i = 0; i < d.size(); i++) {
-			assertThat("can get correct data from undeleted objects",
-					d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
-		}
 	}
 
 	protected void failToGetDeletedObjects(WorkspaceUser user,
@@ -1122,39 +1113,20 @@ public class WorkspaceTester {
 				null, original.getWorkspaceId());
 		
 		//getObjectProvenance
-		WorkspaceObjectData originfo = ws.getObjectProvenance(original.getSavedBy(),
+		WorkspaceObjectData originfo = ws.getObjects(original.getSavedBy(),
 				Arrays.asList(
 						new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
-						original.getObjectId(), original.getVersion()))).get(0);
-		WorkspaceObjectData copyinfo = ws.getObjectProvenance(copied.getSavedBy(),
+						original.getObjectId(), original.getVersion())), true).get(0);
+		WorkspaceObjectData copyinfo = ws.getObjects(copied.getSavedBy(),
 				Arrays.asList(
 				new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
-						copied.getObjectId(), copied.getVersion()))).get(0);
+						copied.getObjectId(), copied.getVersion())), true).get(0);
 		compareObjectInfo(originfo.getObjectInfo(), copyinfo.getObjectInfo(), user, wsid, wsname, objectid,
 				objname, version);
 		assertThat("returned refs same", copyinfo.getReferences(), is(originfo.getReferences()));
 		assertThat("copy ref correct", new TestReference(copyinfo.getCopyReference()),
 				is(expectedCopyRef));
 		checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(),
-				null, original.getWorkspaceId());
-		
-		
-		//getObjectsSubSet
-		WorkspaceObjectData origsub = ws.getObjectsSubSet(original.getSavedBy(), Arrays.asList(
-				new SubObjectIdentifier(new ObjectIdentifier(new WorkspaceIdentifier(
-						original.getWorkspaceId()),
-						original.getObjectId(), original.getVersion()), null))).get(0);
-		WorkspaceObjectData copysub = ws.getObjectsSubSet(copied.getSavedBy(), Arrays.asList(
-				new SubObjectIdentifier(new ObjectIdentifier(new WorkspaceIdentifier(
-						copied.getWorkspaceId()),
-						copied.getObjectId(), copied.getVersion()), null))).get(0);
-		compareObjectInfo(origsub.getObjectInfo(), copysub.getObjectInfo(), user, wsid, wsname, objectid,
-				objname, version);
-		assertThat("returned data same", copysub.getData(), is(origsub.getData()));
-		assertThat("returned refs same", copysub.getReferences(), is(origsub.getReferences()));
-		assertThat("copy ref correct", new TestReference(copysub.getCopyReference()),
-				is(expectedCopyRef));
-		checkProvenanceCorrect(origsub.getProvenance(), copysub.getProvenance(),
 				null, original.getWorkspaceId());
 	}
 	
@@ -1407,39 +1379,18 @@ public class WorkspaceTester {
 		assertThat("listed correct objects", g, is(new HashSet<ObjectInformation>(expected)));
 	}
 	
-	protected void failGetSubset(WorkspaceUser user, List<SubObjectIdentifier> objs,
-			Exception e)
-			throws Exception {
-		try {
-			ws.getObjectsSubSet(user, objs);
-			fail("got subobjs obj when should fail");
-		} catch (Exception exp) {
-			assertExceptionCorrect(exp, e);
-		}
-	}
-	
-	protected void failGetReferencedObjects(WorkspaceUser user, List<ObjectChain> chains,
-			Exception e) throws Exception {
-		try {
-			ws.getReferencedObjects(user, chains);
-			fail("called getReferencedObjects with bad args");
-		} catch (Exception exp) {
-			assertExceptionCorrect(exp, e);
-		}
-	}
-	
-	protected void checkReferencedObject(WorkspaceUser user, ObjectChain chain,
+	protected void checkReferencedObject(WorkspaceUser user, ObjectIDWithRefChain chain,
 			ObjectInformation oi, Provenance p, Map<String, ? extends Object> data,
 			List<String> refs, Map<String, String> refmap) throws Exception {
-		WorkspaceObjectData wod = ws.getReferencedObjects(user,
-				Arrays.asList(chain)).get(0);
+		WorkspaceObjectData wod = ws.getObjects(user,
+				Arrays.asList((ObjectIdentifier)chain)).get(0);
 		compareObjectAndInfo(wod, oi, p, data, refs, refmap);
 	}
 	
 	protected void failCreateObjectChain(ObjectIdentifier oi, List<ObjectIdentifier> chain,
 			Exception e) {
 		try {
-			new ObjectChain(oi, chain);
+			new ObjectIDWithRefChain(oi, chain);
 			fail("bad args to object chain");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -1461,11 +1412,9 @@ public class WorkspaceTester {
 			throws Exception {
 		List<ObjectIdentifier> o = Arrays.asList(obj);
 		WorkspaceObjectData wod = ws.getObjects(user, o).get(0);
-		WorkspaceObjectData swod = ws.getObjectsSubSet(user, objIDToSubObjID(o)).get(0);
-		WorkspaceObjectData woi = ws.getObjectProvenance(user, o).get(0);
+		WorkspaceObjectData woi = ws.getObjects(user, o, true).get(0);
 		
 		assertThat("get objs correct ext ids", wod.getExtractedIds(), is(expected));
-		assertThat("get sub objs correct ext ids", swod.getExtractedIds(), is(expected));
 		assertThat("get prov correct ext ids", woi.getExtractedIds(), is(expected));
 	}
 }

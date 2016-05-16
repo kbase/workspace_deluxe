@@ -51,7 +51,6 @@ import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ModuleInfo;
 import us.kbase.workspace.database.ObjIDWithChainAndSubset;
-import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIDWithRefChain;
@@ -67,7 +66,6 @@ import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.SubObjectIdentifier;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
@@ -2014,23 +2012,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		for (int i = 3; i < 11; i++) {
 			WorkspaceObjectData wod = ws.getObjects(userfoo, Arrays.asList(
 					new ObjectIdentifier(reftypecheck, i))).get(0);
-			WorkspaceObjectData wodsub = ws.getObjectsSubSet(userfoo, Arrays.asList(
-					new SubObjectIdentifier(new ObjectIdentifier(reftypecheck, i), null))).get(0);
 			@SuppressWarnings("unchecked")
 			Map<String, Object> obj = (Map<String, Object>) wod.getData();
-			@SuppressWarnings("unchecked")
-			Map<String, Object> subobj = (Map<String, Object>) wodsub.getData();
 			assertThat("reference rewritten correctly", (String) obj.get("ref"),
 					is(reftypewsid + "/2/1"));
 			assertThat("reference included correctly", wod.getReferences(),
 					is(Arrays.asList(reftypewsid + "/2/1")));
-			assertThat("sub obj reference rewritten correctly", (String) subobj.get("ref"),
-					is(reftypewsid + "/2/1"));
-			assertThat("sub obj reference included correctly", wodsub.getReferences(),
-					is(Arrays.asList(reftypewsid + "/2/1")));
 			
-			WorkspaceObjectData inf = ws.getObjectProvenance(userfoo, Arrays.asList(
-					new ObjectIdentifier(reftypecheck, i))).get(0);
+			WorkspaceObjectData inf = ws.getObjects(userfoo, Arrays.asList(
+					new ObjectIdentifier(reftypecheck, i)), true).get(0);
 			assertThat("sub obj reference included correctly", inf.getReferences(),
 					is(Arrays.asList(reftypewsid + "/2/1")));
 		}
@@ -2677,13 +2667,9 @@ public class WorkspaceTest extends WorkspaceTester {
 				new HashMap<String, String>());
 		Provenance got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
 		assertThat("Prov date constant", got2.getDate(), is(dates.get(0)));
-		Provenance gotsub2 = ws.getObjectsSubSet(foo, Arrays.asList(new SubObjectIdentifier(
-				new ObjectIdentifier(prov, 5), null))).get(0).getProvenance();
-		assertThat("Prov date constant", gotsub2.getDate(), is(dates.get(1)));
-		assertThat("Prov dates same", got2.getDate(), is(gotsub2.getDate()));
-		Provenance gotProv2 = ws.getObjectProvenance(foo, Arrays.asList(
-				new ObjectIdentifier(prov, 5))).get(0).getProvenance();
-		assertThat("Prov date constant", gotProv2.getDate(), is(dates.get(2)));
+		Provenance gotProv2 = ws.getObjects(foo, Arrays.asList(
+				new ObjectIdentifier(prov, 5)), true).get(0).getProvenance();
+		assertThat("Prov date constant", gotProv2.getDate(), is(dates.get(1)));
 		assertThat("Prov dates same", got2.getDate(), is(gotProv2.getDate()));
 		//make sure passing nulls for ws obj lists doesn't kill anything
 		Provenance p3 = new Provenance(foo);
@@ -3261,10 +3247,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ObjectInformation save13 = objs.get(2);
 		
 		WorkspaceObjectData wod = ws.getObjects(user1, Arrays.asList(oihide)).get(0);
-		WorkspaceObjectData swod = ws.getObjectsSubSet(user1, objIDToSubObjID(Arrays.asList(oihide))).get(0);
-		WorkspaceObjectData woi = ws.getObjectProvenance(user1, Arrays.asList(oihide)).get(0);
+		WorkspaceObjectData woi = ws.getObjects(user1, Arrays.asList(oihide), true).get(0);
 		assertThat("copy ref for obj is null", wod.getCopyReference(), is((Reference) null));
-		assertThat("copy ref for sub obj is null", swod.getCopyReference(), is((Reference) null));
 		assertThat("copy ref for prov is null", woi.getCopyReference(), is((Reference) null));
 		
 		//copy entire stack of hidden objects
@@ -3521,24 +3505,25 @@ public class WorkspaceTest extends WorkspaceTester {
 		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/foo"));
 		data.add(new WorkspaceSaveObject(ref, REF_TYPE, null, emptyprov2, false));
 		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(1));
-		ObjectChain copyoc1 = new ObjectChain(new ObjectIdentifier(wsiCopied, 4L),
+		ObjectIDWithRefChain copyoc1 = new ObjectIDWithRefChain(new ObjectIdentifier(wsiCopied, 4L),
 				Arrays.asList(copied1));
 		
 		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/foo1"));
 		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(1));
-		ObjectChain copyoc2 = new ObjectChain(new ObjectIdentifier(wsiCopied, 5L),
+		ObjectIDWithRefChain copyoc2 = new ObjectIDWithRefChain(new ObjectIdentifier(wsiCopied, 5L),
 				Arrays.asList(copied2));
 		
 		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/3"));
 		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(1));
-		ObjectChain nocopyoc = new ObjectChain(new ObjectIdentifier(wsiCopied, 6L),
+		ObjectIDWithRefChain nocopyoc = new ObjectIDWithRefChain(new ObjectIdentifier(wsiCopied, 6L),
 				Arrays.asList(nocopy));
 		
 		
 		final TestReference expectedRef1 = new TestReference(wsid1, 1, 1);
 		final TestReference expectedRef2 = new TestReference(wsid2, 1, 1);
 		List<ObjectIdentifier> testobjs = Arrays.asList(copied1, nocopy, copied2);
-		List<ObjectChain> testocs = Arrays.asList(copyoc1, nocopyoc, copyoc2);
+		List<ObjectIdentifier> testocs = new LinkedList<ObjectIdentifier>(
+				Arrays.asList(copyoc1, nocopyoc, copyoc2));
 		
 		List<TestReference> refnullref = Arrays.asList(
 				expectedRef1, (TestReference) null, expectedRef2);
@@ -3586,16 +3571,17 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
 	}
 
-	private void checkCopyReference(WorkspaceUser user, List<ObjectIdentifier> testobjs,
-			List<ObjectChain> testocs, List<TestReference> testRef, List<Boolean> copyAccessible) throws Exception {
+	private void checkCopyReference(WorkspaceUser user,
+			List<ObjectIdentifier> testobjs,
+			List<ObjectIdentifier> testocs, List<TestReference> testRef,
+			List<Boolean> copyAccessible) throws Exception {
 		
 		List<List<WorkspaceObjectData>> infos =
 				new LinkedList<List<WorkspaceObjectData>>();
 		
-		infos.add(ws.getObjectProvenance(user, testobjs));
+		infos.add(ws.getObjects(user, testobjs, true));
 		infos.add(ws.getObjects(user, testobjs));
-		infos.add(ws.getObjectsSubSet(user, objIDToSubObjID(testobjs)));
-		infos.add(ws.getReferencedObjects(user, testocs));
+		infos.add(ws.getObjects(user, testocs));
 		
 		for (List<WorkspaceObjectData> info: infos) {
 			for (int i = 0; i < info.size(); i++) {
@@ -5340,15 +5326,16 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, String> refmap2 = new HashMap<String, String>();
 		refmap2.put("subData/auto2", wsid1 + "/2/1");
 		
-		List<WorkspaceObjectData> got = ws.getObjectsSubSet(user, Arrays.asList(
-				new SubObjectIdentifier(oident1, new ObjectPaths(
+		List<WorkspaceObjectData> got = ws.getObjects(user, 
+				new LinkedList<ObjectIdentifier>(Arrays.asList(
+				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
 						Arrays.asList("/map/id3", "/map/id1"))),
-				new SubObjectIdentifier(oident1, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
 						Arrays.asList("/map/id2"))),
-				new SubObjectIdentifier(oident2, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident2, null, new ObjectPaths(
 						Arrays.asList("/array/2", "/array/0"))),
-				new SubObjectIdentifier(oident3, new ObjectPaths(
-						Arrays.asList("/array/2", "/array/0", "/array/3")))));
+				new ObjIDWithChainAndSubset(oident3, null, new ObjectPaths(
+						Arrays.asList("/array/2", "/array/0", "/array/3"))))));
 		Map<String, Object> expdata1 = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
 				"					  \"thing\": \"foo\"}," +
@@ -5387,16 +5374,16 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		// new test for extractor that fails on an array OOB
 		failGetSubset(user, Arrays.asList(
-				new SubObjectIdentifier(oident2, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident2, null, new ObjectPaths(
 						Arrays.asList("/array/3", "/array/0")))),
 				new TypedObjectExtractionException(
 						"Invalid selection: no array element exists at position '3', at: /array/3"));
 		
-		got = ws.getObjectsSubSet(user, Arrays.asList(
-				new SubObjectIdentifier(oident1, new ObjectPaths(
+		got = ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
+				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
 						Arrays.asList("/map/*/thing"))),
-				new SubObjectIdentifier(oident2, new ObjectPaths(
-						Arrays.asList("/array/[*]/thing")))));
+				new ObjIDWithChainAndSubset(oident2, null, new ObjectPaths(
+						Arrays.asList("/array/[*]/thing"))))));
 		expdata1 = createData(
 				"{\"map\": {\"id1\": {\"thing\": \"foo\"}," +
 				"			\"id2\": {\"thing\": \"foo2\"}," +
@@ -5416,20 +5403,21 @@ public class WorkspaceTest extends WorkspaceTester {
 		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
 		
 		failGetSubset(user, Arrays.asList(
-				new SubObjectIdentifier(oident1, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
 						Arrays.asList("/map/id1/id/5")))),
 				new TypedObjectExtractionException(
 						"Invalid selection: the path given specifies fields or elements that do not exist "
 						+ "because data at this location is a scalar value (i.e. string, integer, float), at: /map/id1/id"));
 		failGetSubset(user2, Arrays.asList(
-				new SubObjectIdentifier(oident1, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
 						Arrays.asList("/map/*/thing")))),
 				new InaccessibleObjectException(
 						"Object o1 cannot be accessed: User subUser2 may not read workspace subData"));
 		
 		try {
-			ws.getObjectsSubSet(user2, Arrays.asList(new SubObjectIdentifier(
-					new ObjectIdentifier(wsi, 2), null)));
+			ws.getObjects(user2, new LinkedList<ObjectIdentifier>(
+					Arrays.asList(new ObjIDWithChainAndSubset(
+					new ObjectIdentifier(wsi, 2), null, null))));
 			fail("Able to get obj data from private workspace");
 		} catch (InaccessibleObjectException ioe) {
 			assertThat("correct exception message", ioe.getLocalizedMessage(),
@@ -6040,34 +6028,34 @@ public class WorkspaceTest extends WorkspaceTester {
 		// check one hop reference dive works
 		final HashMap<String, String> mtmap = new HashMap<String, String>();
 		final LinkedList<String> mtlist = new LinkedList<String>();
-		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, "simpleref", 1),
+		checkReferencedObject(user1, new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc1, "simpleref", 1),
 				Arrays.asList(leaf1oi1)), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
-		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1n, "simpleref", 2),
+		checkReferencedObject(user1, new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc1n, "simpleref", 2),
 				Arrays.asList(leaf1oi2)), leaf1_2, new Provenance(user2), data1, mtlist, mtmap);
-		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, 1),
+		checkReferencedObject(user1, new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc1, 1),
 				Arrays.asList(leaf1oi2)), leaf1_2, new Provenance(user2), data1, mtlist, mtmap);
-		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc2, "simpleref2"),
+		checkReferencedObject(user1, new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc2, "simpleref2"),
 				Arrays.asList(leaf2oi)), leaf2, new Provenance(user2), data2, mtlist, mtmap);
-		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc1, "provref"),
+		checkReferencedObject(user1, new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc1, "provref"),
 				Arrays.asList(leaf1oi1)), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
-		checkReferencedObject(user1, new ObjectChain(new ObjectIdentifier(wsiacc2, "provref2"),
+		checkReferencedObject(user1, new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc2, "provref2"),
 				Arrays.asList(leaf2oi)), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		
 		//fail on one hop bad reference chains
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc2n, "simpleref2"),
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc2n, "simpleref2"),
 				Arrays.asList(leaf1oi1))), new NoSuchReferenceException(
 				"Reference chain #1, position 1: Object simpleref2 in workspace refedaccessible2 does " +
 				"not contain a reference to object 1 with version 1 in workspace 3", null, null));
 		
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc1, "simpleref"),
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc1, "simpleref"),
 				Arrays.asList(leaf1oi1))), new NoSuchReferenceException(
 				"Reference chain #1, position 1: Object simpleref in workspace 1 does " +
 				"not contain a reference to object 1 with version 1 in workspace 3", null, null));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc1n, "simpleref", 2),
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc1n, "simpleref", 2),
 				Arrays.asList(leaf1oi1))), new NoSuchReferenceException(
 				"Reference chain #1, position 1: Object simpleref with version 2 in workspace refedaccessible does " +
 				"not contain a reference to object 1 with version 1 in workspace 3", null, null));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiacc1n, 1, 1),
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc1n, 1, 1),
 				Arrays.asList(leaf1oi2))), new NoSuchReferenceException(
 				"Reference chain #1, position 1: Object 1 with version 1 in workspace refedaccessible does " +
 				"not contain a reference to object 1 with version 2 in workspace 3", null, null));
@@ -6130,15 +6118,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		
 		// test 2 hop reference chains with absolute references
-		List<WorkspaceObjectData> lwod = ws.getReferencedObjects(user1, Arrays.asList(
-				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf1oi1)),
-				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf2oi)),
-				new ObjectChain(delptr12oi, Arrays.asList(del2oi, leaf1oi1)),
-				new ObjectChain(delptrwsoi, Arrays.asList(delwsoi, leaf2oi)),
-				new ObjectChain(delptr12oi, Arrays.asList(del2oi, leaf2oi)),
-				new ObjectChain(delptr2oi, Arrays.asList(del2oi, leaf1oi1)),
-				new ObjectChain(delptr2oi, Arrays.asList(del2oi, leaf2oi))
-				));
+		List<ObjectIdentifier> a = new LinkedList<ObjectIdentifier>();
+		a.add(new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del1oi, leaf1oi1)));
+		a.add(new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del1oi, leaf2oi)));
+		a.add(new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del2oi, leaf1oi1)));
+		a.add(new ObjectIDWithRefChain(delptrwsoi, Arrays.asList(delwsoi, leaf2oi)));
+		a.add(new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del2oi, leaf2oi)));
+		a.add(new ObjectIDWithRefChain(delptr2oi, Arrays.asList(del2oi, leaf1oi1)));
+		a.add(new ObjectIDWithRefChain(delptr2oi, Arrays.asList(del2oi, leaf2oi)));
+		List<WorkspaceObjectData> lwod = ws.getObjects(user1, a);
 		assertThat("correct list size", lwod.size(), is(7));
 		compareObjectAndInfo(lwod.get(0), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(1), leaf2, new Provenance(user2), data2, mtlist, mtmap);
@@ -6148,54 +6136,55 @@ public class WorkspaceTest extends WorkspaceTester {
 		compareObjectAndInfo(lwod.get(5), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(6), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		
-		checkReferencedObject(user1, new ObjectChain(delptr12oi, Arrays.asList(del1oi)),
+		checkReferencedObject(user1, new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del1oi)),
 				del1, new Provenance(user2), makeRefData(wsidun1 + "/1/1", wsidun2 + "/1/1"),
 				Arrays.asList(wsidun1 + "/1/1", wsidun2 + "/1/1"),  mtmap);
 		Map<String, String> provmap = new HashMap<String, String>();
 		provmap.put(leaf1r1, wsidun1 + "/1/1");
 		provmap.put(leaf2r, wsidun2 + "/1/1");
-		checkReferencedObject(user1, new ObjectChain(delptr12oi, Arrays.asList(del2oi)),
+		checkReferencedObject(user1, new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del2oi)),
 				del2, p, makeRefData(), mtlist, provmap);
 		
 		// test 2 hop reference chains with temporary references
 		ObjectIdentifier leaf2tempWS = new ObjectIdentifier(wsiun2n, 1, 1);
 		ObjectIdentifier leaf2tempID = new ObjectIdentifier(wsiun2, "leaf2", 1);
 		ObjectIdentifier leaf2nover = new ObjectIdentifier(wsiun2, 1);
-		lwod = ws.getReferencedObjects(user1, Arrays.asList(
-				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf2tempWS)),
-				new ObjectChain(delptr12oi, Arrays.asList(del1oi, leaf2tempID)),
-				new ObjectChain(delptr12oi, Arrays.asList(del2oi, leaf2nover))));
+		a.clear();
+		a.add(new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del1oi, leaf2tempWS)));
+		a.add(new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del1oi, leaf2tempID)));
+		a.add(new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del2oi, leaf2nover)));
+		lwod = ws.getObjects(user1, a);
 		compareObjectAndInfo(lwod.get(0), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(1), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(2), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		
 		// fail on 2 hop chains with absolute references
-		ObjectChain goodchain = new ObjectChain(delptr12oi, Arrays.asList(
+		ObjectIDWithRefChain goodchain = new ObjectIDWithRefChain(delptr12oi, Arrays.asList(
 				del1oi, leaf1oi1));
 		
 		failGetReferencedObjects(user1, Arrays.asList(
-				new ObjectChain(new ObjectIdentifier(wsiacc2n, "delptr2"),
+				new ObjectIDWithRefChain(new ObjectIdentifier(wsiacc2n, "delptr2"),
 				Arrays.asList(del1oi, leaf1oi1))), new NoSuchReferenceException(
 				"Reference chain #1, position 1: Object delptr2 in workspace refedaccessible2 does not " +
 				"contain a reference to object 2 with version 1 in workspace 3",
 				null, null));
-		failGetReferencedObjects(user1, Arrays.asList(goodchain, goodchain, new ObjectChain(delptr12oi,
+		failGetReferencedObjects(user1, Arrays.asList(goodchain, goodchain, new ObjectIDWithRefChain(delptr12oi,
 				Arrays.asList(del1oi, unlinkedoi))), new NoSuchReferenceException(
 				"Reference chain #3, position 2: Object 2 with version 1 in workspace 3 does not contain a " +
 				"reference to object 2 with version 1 in workspace 4",
 				null, null));
-		failGetReferencedObjects(user1, Arrays.asList(goodchain, new ObjectChain(delptr12oi,
+		failGetReferencedObjects(user1, Arrays.asList(goodchain, new ObjectIDWithRefChain(delptr12oi,
 				Arrays.asList(del1oi, new ObjectIdentifier(wsiun2, 3, 1)))),
 				new NoSuchReferenceException(
 				"Reference chain #2, position 2: Object 2 with version 1 in workspace 3 does not contain a " +
 				"reference to object 3 with version 1 in workspace 4",
 				null, null));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(delptr12oi,
 				Arrays.asList(del2oi, new ObjectIdentifier(wsiun1, 1, 3)))),
 				new NoSuchReferenceException(
 				"Reference chain #1, position 2: Object 3 with version 1 in workspace 4 does not contain a " +
 				"reference to object 1 with version 3 in workspace 3", null, null));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(delptr12oi,
 				Arrays.asList(del2oi, new ObjectIdentifier(new WorkspaceIdentifier(6), 1, 3)))),
 				new NoSuchReferenceException(
 				"Reference chain #1, position 2: Object 3 with version 1 in workspace 4 does not contain a " +
@@ -6205,48 +6194,48 @@ public class WorkspaceTest extends WorkspaceTester {
 		ObjectIdentifier leaf1badTempWs = new ObjectIdentifier(new WorkspaceIdentifier("foo"), 1, 1);
 		ObjectIdentifier leaf1badTempID = new ObjectIdentifier(wsiun1, "leaf2", 1);
 		ObjectIdentifier leaf1nover = new ObjectIdentifier(wsiun1, 1);
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(delptr12oi,
 				Arrays.asList(del1oi, leaf1badTempWs))),
 				new NoSuchReferenceException(
 				"Reference chain #1, position 2: Object 2 with version 1 in workspace 3 does not contain a " +
 				"reference to object 1 with version 1 in workspace foo", null, null));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(delptr12oi,
 				Arrays.asList(del2oi, leaf1badTempID))),
 				new NoSuchReferenceException(
 				"Reference chain #1, position 2: Object 3 with version 1 in workspace 4 does not contain a " +
 				"reference to object leaf2 with version 1 in workspace 3", null, null));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(delptr12oi,
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(delptr12oi,
 				Arrays.asList(del2oi, leaf1nover))),
 				new NoSuchReferenceException(
 				"Reference chain #1, position 2: Object 3 with version 1 in workspace 4 does not contain a " +
 				"reference to object 1 in workspace 3", null, null));
 		
 		// test various ways the root object could be inaccessible
-		failGetReferencedObjects(user2, new ArrayList<ObjectChain>(),
+		failGetReferencedObjects(user2, new ArrayList<ObjectIDWithRefChain>(),
 				new IllegalArgumentException("No object identifiers provided"));
-		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf3"),
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(wsiun1, "leaf3"),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf3 does not exist in workspace 3"));
-		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1", 3),
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(wsiun1, "leaf1", 3),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf1 with version 3 does not exist in workspace 3"));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(new WorkspaceIdentifier("fakefakefake"), "leaf1"),
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(new WorkspaceIdentifier("fakefakefake"), "leaf1"),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: No workspace with name fakefakefake exists"));
-		failGetReferencedObjects(user1, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1n, "leaf1"),
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(wsiun1n, "leaf1"),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: User refedUser may not read workspace refedunacc"));
-		failGetReferencedObjects(null, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1, "leaf1"),
+		failGetReferencedObjects(null, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(wsiun1, "leaf1"),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: Anonymous users may not read workspace 3"));
 		ws.setObjectsDeleted(user2, Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")), true);
-		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1n, "leaf1"),
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(wsiun1n, "leaf1"),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException(
 						"Object leaf1 in workspace refedunacc has been deleted"));
 		ws.setObjectsDeleted(user2, Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")), false);
 		ws.setWorkspaceDeleted(user2, wsiun1, true);
-		failGetReferencedObjects(user2, Arrays.asList(new ObjectChain(new ObjectIdentifier(wsiun1n, "leaf1"),
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefChain(new ObjectIdentifier(wsiun1n, "leaf1"),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: Workspace refedunacc is deleted"));
 	}
@@ -6256,11 +6245,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("foo");
 		ObjectIdentifier oi = new ObjectIdentifier(wsi, "thing");
 		failCreateObjectChain(null, new ArrayList<ObjectIdentifier>(),
-				new IllegalArgumentException("Neither head nor chain can be null"));
-		failCreateObjectChain(oi, null,
-				new IllegalArgumentException("Neither head nor chain can be null"));
-		failCreateObjectChain(oi, new ArrayList<ObjectIdentifier>(),
-				new IllegalArgumentException("Chain cannot be empty"));
+				new IllegalArgumentException("id cannot be null"));
 		failCreateObjectChain(oi, Arrays.asList(oi, null, oi),
 				new IllegalArgumentException("Nulls are not allowed in reference chains"));
 	}
@@ -6431,6 +6416,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setResourceConfig(oldcfg);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Test
 	public void maxReturnedObjectSize() throws Exception {
 
@@ -6457,9 +6443,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		saveObject(user, wsi, null, refdata, reftype, "ref2", new Provenance(user));
 		ObjectIdentifier ref = new ObjectIdentifier(wsi, "ref", 1);
 		ObjectIdentifier ref2 = new ObjectIdentifier(wsi, "ref2", 1);
-		List<ObjectChain> refchain = Arrays.asList(new ObjectChain(ref, oi1l));
-		List<ObjectChain> refchain2 = Arrays.asList(new ObjectChain(ref, oi1l),
-				new ObjectChain(ref2, oi2l));
+		List<ObjectIdentifier> refchain = new LinkedList<ObjectIdentifier>(
+				Arrays.asList(new ObjectIDWithRefChain(ref, oi1l)));
+		List<ObjectIDWithRefChain> refchain2 = 
+				Arrays.asList(new ObjectIDWithRefChain(ref, oi1l),
+				new ObjectIDWithRefChain(ref2, oi2l));
 		
 		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
 		try {
@@ -6468,35 +6456,37 @@ public class WorkspaceTest extends WorkspaceTester {
 							oldcfg).withMaxObjectSize(1);
 			
 			ws.setResourceConfig(build.withMaxReturnedDataSize(20).build());
-			List<SubObjectIdentifier> ois1l = Arrays.asList(new SubObjectIdentifier(oi1,
-					new ObjectPaths(Arrays.asList("/fo"))));
-			List<SubObjectIdentifier> ois1lmt = Arrays.asList(new SubObjectIdentifier(oi1,
-					new ObjectPaths(new ArrayList<String>())));
+			List<ObjectIdentifier> ois1l = new LinkedList<ObjectIdentifier>(
+					Arrays.asList(new ObjIDWithChainAndSubset(oi1, null,
+					new ObjectPaths(Arrays.asList("/fo")))));
+			List<ObjectIdentifier> ois1lmt = new LinkedList<ObjectIdentifier>(
+					Arrays.asList(new ObjIDWithChainAndSubset(oi1, null,
+					new ObjectPaths(new ArrayList<String>()))));
 			successGetObjects(user, oi1l);
-			ws.getObjectsSubSet(user, ois1l);
-			ws.getObjectsSubSet(user, ois1lmt);
-			ws.getReferencedObjects(user, refchain);
+			ws.getObjects(user, ois1l);
+			ws.getObjects(user, ois1lmt);
+			ws.getObjects(user, refchain);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(19).build());
 			String errstr = "Too much data requested from the workspace at once; data requested " + 
 					"including potential subsets is %sB which exceeds maximum of %s.";
 			IllegalArgumentException err = new IllegalArgumentException(String.format(errstr, 20, 19));
 			failGetObjects(user, oi1l, err, true);
-			failGetSubset(user, ois1l, err);
-			failGetSubset(user, ois1lmt, err);
-			failGetReferencedObjects(user, refchain, err);
+			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) ois1l, err);
+			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) ois1lmt, err);
+			failGetReferencedObjects(user, (List<ObjectIDWithRefChain>)(List<?>) refchain, err);
 			
 			ws.setResourceConfig(build.withMaxReturnedDataSize(40).build());
 			List<ObjectIdentifier> two = Arrays.asList(oi1, oi2);
-			List<SubObjectIdentifier> ois1l2 = Arrays.asList(
-					new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/fo"))),
-					new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/ba"))));
-			List<SubObjectIdentifier> bothoi = Arrays.asList(
-					new SubObjectIdentifier(oi1, new ObjectPaths(Arrays.asList("/fo"))),
-					new SubObjectIdentifier(oi2, new ObjectPaths(Arrays.asList("/ba"))));
+			List<ObjIDWithChainAndSubset> ois1l2 = Arrays.asList(
+					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/fo"))),
+					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/ba"))));
+			List<ObjIDWithChainAndSubset> bothoi = Arrays.asList(
+					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/fo"))),
+					new ObjIDWithChainAndSubset(oi2, null, new ObjectPaths(Arrays.asList("/ba"))));
 			successGetObjects(user, two);
-			ws.getObjectsSubSet(user, ois1l2);
-			ws.getObjectsSubSet(user, bothoi);
-			ws.getReferencedObjects(user, refchain2);
+			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) ois1l2);
+			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) bothoi);
+			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) refchain2);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(39).build());
 			err = new IllegalArgumentException(String.format(errstr, 40, 39));
 			failGetObjects(user, two, err, true);
@@ -6504,14 +6494,14 @@ public class WorkspaceTest extends WorkspaceTester {
 			failGetSubset(user, bothoi, err);
 			failGetReferencedObjects(user, refchain2, err);
 			
-			List<SubObjectIdentifier> all = new LinkedList<SubObjectIdentifier>();
+			List<ObjectIdentifier> all = new LinkedList<ObjectIdentifier>();
 			all.addAll(ois1l2);
 			all.addAll(bothoi);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(60).build());
-			ws.getObjectsSubSet(user, all);
+			ws.getObjects(user, all);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(59).build());
 			err = new IllegalArgumentException(String.format(errstr, 60, 59));
-			failGetSubset(user, all, err);
+			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) all, err);
 		} finally {
 			ws.setResourceConfig(oldcfg);
 		}
@@ -6554,8 +6544,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		ObjectIdentifier oi = new ObjectIdentifier(wsi, 1);
 		ws.getObjects(user, Arrays.asList(oi));
 		assertThat("created no temp files on get", filesCreated[0], is(0));
-		ws.getObjectsSubSet(user, Arrays.asList(new SubObjectIdentifier(oi,
-				new ObjectPaths(Arrays.asList("z"))))).get(0).getSerializedData().destroy();
+		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
+				new ObjIDWithChainAndSubset(oi, null,
+				new ObjectPaths(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp file on get subdata", filesCreated[0], is(1));
 		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
 		
@@ -6574,14 +6565,16 @@ public class WorkspaceTest extends WorkspaceTester {
 		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
-		ws.getObjectsSubSet(user, Arrays.asList(new SubObjectIdentifier(oi,
-				new ObjectPaths(Arrays.asList("z"))))).get(0).getSerializedData().destroy();
+		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
+				new ObjIDWithChainAndSubset(oi, null,
+				new ObjectPaths(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp files on get subdata part object", filesCreated[0], is(1));
 		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
-		ws.getObjectsSubSet(user, Arrays.asList(new SubObjectIdentifier(oi,
-				new ObjectPaths(Arrays.asList("z", "y"))))).get(0).getSerializedData().destroy();
+		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
+				new ObjIDWithChainAndSubset(oi, null,
+				new ObjectPaths(Arrays.asList("z", "y")))))).get(0).getSerializedData().destroy();
 		assertThat("created 2 temp files on get subdata full object", filesCreated[0], is(2));
 		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
 		
