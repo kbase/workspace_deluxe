@@ -1014,8 +1014,8 @@ public class Workspace {
 				new ArrayList<WorkspaceObjectData>();
 		for (final ObjectIdentifier o: loi) {
 			final ObjectPaths p;
-			if (o instanceof ObjIDWithChainsAndSubset) {
-				p = ((ObjIDWithChainsAndSubset) o).getPaths();
+			if (o instanceof ObjIDWithChainAndSubset) {
+				p = ((ObjIDWithChainAndSubset) o).getPaths();
 			} else {
 				p = ObjectPaths.EMPTY;
 			}
@@ -1044,8 +1044,8 @@ public class Workspace {
 			if (!paths.containsKey(roi)) {
 				paths.put(roi, new HashSet<ObjectPaths>());
 			}
-			if (o instanceof ObjIDWithChainsAndSubset) {
-				paths.get(roi).add(((ObjIDWithChainsAndSubset) o).getPaths());
+			if (o instanceof ObjIDWithChainAndSubset) {
+				paths.get(roi).add(((ObjIDWithChainAndSubset) o).getPaths());
 			} else {
 				paths.get(roi).add(ObjectPaths.EMPTY);
 			}
@@ -1061,7 +1061,7 @@ public class Workspace {
 		
 		final List<ObjectIdentifier> objs = new LinkedList<ObjectIdentifier>();
 		for (final SubObjectIdentifier soi: loi) {
-			objs.add(new ObjIDWithChainsAndSubset(
+			objs.add(new ObjIDWithChainAndSubset(
 					soi.getObjectIdentifer(), null, soi.getPaths()));
 		}
 		try {

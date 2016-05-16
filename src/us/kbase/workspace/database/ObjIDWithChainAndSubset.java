@@ -4,13 +4,13 @@ import java.util.List;
 
 import us.kbase.typedobj.core.ObjectPaths;
 
-public class ObjIDWithChainsAndSubset extends ObjectIDWithRefChain {
+public class ObjIDWithChainAndSubset extends ObjectIDWithRefChain {
 
 	//TODO unit tests
 	
 	private final ObjectPaths paths;
 	
-	public ObjIDWithChainsAndSubset(
+	public ObjIDWithChainAndSubset(
 			final ObjectIdentifier id,
 			final List<ObjectIdentifier> chain,
 			final ObjectPaths subset) {
@@ -44,7 +44,7 @@ public class ObjIDWithChainsAndSubset extends ObjectIDWithRefChain {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ObjIDWithChainsAndSubset other = (ObjIDWithChainsAndSubset) obj;
+		ObjIDWithChainAndSubset other = (ObjIDWithChainAndSubset) obj;
 		if (paths == null) {
 			if (other.paths != null)
 				return false;
