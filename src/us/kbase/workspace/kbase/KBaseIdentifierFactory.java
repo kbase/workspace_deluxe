@@ -2,6 +2,7 @@ package us.kbase.workspace.kbase;
 
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.database.Util.xorNameId;
+import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -172,16 +173,11 @@ public class KBaseIdentifierFactory {
 						+ objcount + ": " + e.getLocalizedMessage(), e);
 			}
 					
-			boolean strictMaps = ObjectPaths.STRICT_MAPS_DEFAULT;
-			boolean strictArrays = ObjectPaths.STRICT_ARRAYS_DEFAULT;
-			if (soi.getStrictMaps() != null) {
-				strictMaps = soi.getStrictMaps() != 0L;
-			}
-			if (soi.getStrictArrays() != null) {
-				strictArrays = soi.getStrictArrays() != 0L;
-			}
-			ObjectPaths paths = new ObjectPaths(soi.getIncluded(), strictMaps,
-					strictArrays);
+			ObjectPaths paths = new ObjectPaths(soi.getIncluded(),
+					longToBoolean(soi.getStrictMaps(),
+							ObjectPaths.STRICT_MAPS_DEFAULT),
+					longToBoolean(soi.getStrictArrays(),
+							ObjectPaths.STRICT_ARRAYS_DEFAULT));
 			objs.add(new SubObjectIdentifier(oi, paths));
 			objcount++;
 		}

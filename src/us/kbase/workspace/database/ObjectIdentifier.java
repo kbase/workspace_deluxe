@@ -70,6 +70,16 @@ public class ObjectIdentifier {
 		this.version = version;
 	}
 	
+	public ObjectIdentifier(ObjectIdentifier id) {
+		if (id == null) {
+			throw new IllegalArgumentException("id cannot be null");
+		}
+		this.wsi = id.wsi;
+		this.name = id.name;
+		this.id = id.id;
+		this.version = id.version;
+	}
+
 	public WorkspaceIdentifier getWorkspaceIdentifier() {
 		return wsi;
 	}

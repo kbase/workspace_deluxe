@@ -656,8 +656,12 @@ public class ArgUtils {
 	}
 
 	public static boolean longToBoolean(final Long b) {
+		return longToBoolean(b, false);
+	}
+	
+	public static boolean longToBoolean(final Long b, final boolean default_) {
 		if (b == null) {
-			return false;
+			return default_;
 		}
 		return b != 0;
 	}

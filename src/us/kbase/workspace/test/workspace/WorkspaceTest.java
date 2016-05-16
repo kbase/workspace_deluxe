@@ -50,6 +50,7 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ModuleInfo;
+import us.kbase.workspace.database.ObjIDWithChainsAndSubset;
 import us.kbase.workspace.database.ObjectChain;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -5433,7 +5434,8 @@ public class WorkspaceTest extends WorkspaceTester {
 			assertThat("correct exception message", ioe.getLocalizedMessage(),
 					is("Object 2 cannot be accessed: User subUser2 may not read workspace subData"));
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
-					is(new ObjectIdentifier(wsi, 2)));
+					is((ObjectIdentifier) new ObjIDWithChainsAndSubset(
+							new ObjectIdentifier(wsi, 2), null, null)));
 		}
 	}
 
