@@ -904,7 +904,6 @@ public class Workspace {
 		return db.getObjectInformation(params.generateParameters(pset));
 	}
 	
-	//TODO NOW add reference fetching to getObjectInfo, allow ignore errors
 	//TODO NOW allow ignore errors for getObjects
 	public List<WorkspaceObjectData> getObjects(
 			final WorkspaceUser user,
@@ -924,36 +923,12 @@ public class Workspace {
 			InaccessibleObjectException, NoSuchReferenceException,
 			TypedObjectExtractionException {
 		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read");
-		
-		final List<ObjectIDWithRefChain> chains =
-				new LinkedList<ObjectIDWithRefChain>();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads =
-				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> std =
-				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
-		for (final ObjectIdentifier o: loi) {
-			if (o instanceof ObjectIDWithRefChain && 
-					((ObjectIDWithRefChain) o).hasChain()) {
-				chains.add((ObjectIDWithRefChain) o);
-				heads.put(o, ws.get(o));
-			} else {
-				chains.add(null); // maintain count for error reporting
-				std.put(o, ws.get(o));
-			}
-		}
-		ws.clear(); //GC
-		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
-				resolveReferenceChains(user, chains, heads, false);
-		chains.clear();
-		heads.clear();
+		final ResolvedResChains res = resolveObjects(user, loi, false);
 		
 		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> chainpaths =
-				setupObjectPaths(reschains);
+				setupObjectPaths(res.hadchain);
 		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> stdpaths =
-				setupObjectPaths(std);
+				setupObjectPaths(res.nochain);
 
 		//this is pretty gross, think about a better api here
 		final Map<ObjectIDResolvedWS,
@@ -975,15 +950,15 @@ public class Workspace {
 				p = ObjectPaths.EMPTY;
 			}
 			final WorkspaceObjectData wod;
-			if (std.containsKey(o)) {
-				wod = stddata.get(std.get(o)).get(p);
+			if (res.nochain.containsKey(o)) {
+				wod = stddata.get(res.nochain.get(o)).get(p);
 			} else {
-				wod = chaindata.get(reschains.get(o)).get(p);
+				wod = chaindata.get(res.hadchain.get(o)).get(p);
 			}
 			ret.add(wod);
 		}
-		reschains.clear();
-		std.clear();
+		res.nochain.clear();
+		res.hadchain.clear();
 		chaindata.clear();
 		stddata.clear();
 		removeInaccessibleDataCopyReferences(user, ret);
@@ -1305,14 +1280,63 @@ public class Workspace {
 		return db.getObjectHistory(ws.get(oi));
 	}
 	
+	private static class ResolvedResChains {
+		public Map<ObjectIdentifier, ObjectIDResolvedWS> nochain;
+		public Map<ObjectIdentifier, ObjectIDResolvedWS> hadchain;
+
+		private ResolvedResChains(
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> nochain,
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> hadchain) {
+			super();
+			this.nochain = nochain;
+			this.hadchain = hadchain;
+		}
+		
+	}
+	
 	public List<ObjectInformation> getObjectInformation(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi,
 			final boolean includeMetadata, final boolean nullIfInaccessible)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
 			InaccessibleObjectException, NoSuchReferenceException {
 	
-		//TODO NOW make this a method
-		//TODO NOW test with reschains
+		final ResolvedResChains res = resolveObjects(user, loi,
+				nullIfInaccessible);
+		
+		final Map<ObjectIDResolvedWS, ObjectInformation> stdmeta = 
+				db.getObjectInformation(
+						new HashSet<ObjectIDResolvedWS>(res.nochain.values()),
+						includeMetadata, !nullIfInaccessible, false,
+						!nullIfInaccessible);
+		final Map<ObjectIDResolvedWS, ObjectInformation> resmeta = 
+				db.getObjectInformation(
+						new HashSet<ObjectIDResolvedWS>(res.hadchain.values()),
+						includeMetadata, false, true, true);
+						// at this point the object at the chain end must exist
+		final List<ObjectInformation> ret =
+				new ArrayList<ObjectInformation>();
+		
+		for (final ObjectIdentifier o: loi) {
+			if (res.nochain.containsKey(o) &&
+					stdmeta.containsKey(res.nochain.get(o))) {
+				ret.add(stdmeta.get(res.nochain.get(o)));
+			} else if (res.hadchain.containsKey(o) &&
+					resmeta.containsKey(res.hadchain.get(o))) {
+				ret.add(resmeta.get(res.hadchain.get(o)));
+			} else {
+				ret.add(null);
+			}
+		}
+		return ret;
+	}
+
+	/* used to resolve object IDs that might contain reference chains */
+	private ResolvedResChains resolveObjects(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi, final boolean nullIfInaccessible)
+			throws WorkspaceCommunicationException,
+			InaccessibleObjectException, CorruptWorkspaceDBException,
+			NoSuchObjectException, NoSuchReferenceException {
+
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read",
 						nullIfInaccessible, nullIfInaccessible,
@@ -1344,33 +1368,8 @@ public class Workspace {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
 				resolveReferenceChains(user, chains, heads,
 						nullIfInaccessible);
-		chains.clear();
-		heads.clear();
 		
-		final Map<ObjectIDResolvedWS, ObjectInformation> stdmeta = 
-				db.getObjectInformation(
-						new HashSet<ObjectIDResolvedWS>(std.values()),
-						includeMetadata, !nullIfInaccessible, false,
-						!nullIfInaccessible);
-		final Map<ObjectIDResolvedWS, ObjectInformation> resmeta = 
-				db.getObjectInformation(
-						new HashSet<ObjectIDResolvedWS>(reschains.values()),
-						includeMetadata, false, true, true);
-						// at this point the object at the chain end must exist
-		final List<ObjectInformation> ret =
-				new ArrayList<ObjectInformation>();
-		
-		for (final ObjectIdentifier o: loi) {
-			if (std.containsKey(o) && stdmeta.containsKey(std.get(o))) {
-				ret.add(stdmeta.get(std.get(o)));
-			} else if (reschains.containsKey(o) &&
-					resmeta.containsKey(reschains.get(o))) {
-				ret.add(resmeta.get(reschains.get(o)));
-			} else {
-				ret.add(null);
-			}
-		}
-		return ret;
+		return new ResolvedResChains(std, reschains);
 	}
 	
 	/** Get object names based on a provided prefix. Returns at most 1000
