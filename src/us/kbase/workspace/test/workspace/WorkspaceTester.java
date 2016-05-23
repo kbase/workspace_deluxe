@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -666,6 +667,12 @@ public class WorkspaceTester {
 			assertExceptionCorrect(exp, e);
 		}
 		try {
+			ws.getObjectInformation(user, objs, true, false);
+			fail("called get objects with bad args");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+		try {
 			@SuppressWarnings({ "deprecation", "unused" })
 			List<Integer> f = ws.getReferencingObjectCounts(user, objs);
 			fail("called get refing objects with bad args");
@@ -674,15 +681,66 @@ public class WorkspaceTester {
 		}
 	}
 	
+	protected void failGetReferencedObjects(WorkspaceUser user,
+			List<ObjectIDWithRefChain> objs, Exception e) throws Exception {
+		
+		failGetReferencedObjects(user, objs, e, false);
+	}
+	
+	protected void failGetReferencedObjects(WorkspaceUser user,
+			List<ObjectIDWithRefChain> objs, Exception e, Set<Integer> nulls)
+			throws Exception {
+		
+		failGetReferencedObjects(user, objs, e, false, nulls);
+	}
+	
+	protected void failGetReferencedObjects(WorkspaceUser user,
+			List<ObjectIDWithRefChain> objs, Exception e,
+			boolean onlyTestReturningData) throws Exception {
+		Set<Integer> nulls = new HashSet<Integer>();
+		int count = 0;
+		for (@SuppressWarnings("unused") ObjectIDWithRefChain foo: objs) {
+			nulls.add(count);
+			count++;
+		}
+		failGetReferencedObjects(user, objs, e, onlyTestReturningData, nulls);
+	}
+	
 	@SuppressWarnings("unchecked")
 	protected void failGetReferencedObjects(WorkspaceUser user,
-			List<ObjectIDWithRefChain> objs, Exception e) {
+			List<ObjectIDWithRefChain> objs, Exception e,
+			boolean onlyTestReturningData, Set<Integer> nulls)
+			throws Exception {
 		try {
 			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) objs);
 			fail("called get objects with bad args");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
+		if (onlyTestReturningData) {
+			return;
+		}
+		try {
+			ws.getObjectInformation(user,
+					(List<ObjectIdentifier>)(List<?>) objs, true, false);
+			fail("called get object info with bad args");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+		if (objs.isEmpty() || nulls == null) {
+			return;
+		}
+		//test that getting objinfo with bad args returns null when requested
+		List<ObjectInformation> n = ws.getObjectInformation(user,
+				(List<ObjectIdentifier>)(List<?>) objs, true, true);
+		for (int i = 0; i < n.size(); i++) {
+			if (nulls.contains(i)) {
+				assertNull("objinfo is not null", n.get(i));
+			} else {
+				assertNotNull("objectinfo is null", n.get(i));
+			}
+		}
+		
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -1384,7 +1442,10 @@ public class WorkspaceTester {
 			List<String> refs, Map<String, String> refmap) throws Exception {
 		WorkspaceObjectData wod = ws.getObjects(user,
 				Arrays.asList((ObjectIdentifier)chain)).get(0);
+		ObjectInformation info = ws.getObjectInformation(user,
+				Arrays.asList((ObjectIdentifier) chain), true, false).get(0);
 		compareObjectAndInfo(wod, oi, p, data, refs, refmap);
+		assertThat("object info same", info, is(oi));
 	}
 	
 	protected void failCreateObjectChain(ObjectIdentifier oi, List<ObjectIdentifier> chain,

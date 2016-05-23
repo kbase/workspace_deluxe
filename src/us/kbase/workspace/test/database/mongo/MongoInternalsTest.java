@@ -356,7 +356,7 @@ public class MongoInternalsTest {
 				rso2.getObjectIdentifier().getName());
 		
 		long id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
-				Arrays.asList(oidrw2_2)), false, false).get(oidrw2_2).getObjectId();
+				Arrays.asList(oidrw2_2)), false, true, false, true).get(oidrw2_2).getObjectId();
 		assertThat("correct object id", id, is(1L));
 
 		
@@ -401,7 +401,7 @@ public class MongoInternalsTest {
 		ObjectIDResolvedWS oidrw3_2 = new ObjectIDResolvedWS(rwsi3,
 				rso2.getObjectIdentifier().getName());
 		id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
-				Arrays.asList(oidrw3_2)), false, false).get(oidrw3_2).getObjectId();
+				Arrays.asList(oidrw3_2)), false, true, false, true).get(oidrw3_2).getObjectId();
 		assertThat("correct object id", id, is(1L));
 		
 		try {
@@ -426,9 +426,10 @@ public class MongoInternalsTest {
 				String.format("No object with id 1 (name %s) and version 1 exists in workspace %s (name %s)",
 						objname, rwsi.getID(), rwsi.getName()));
 		
-		assertNull("can't get object mid save", mwdb.getObjectInformation(oidsetver, false, true).get(0));
+		assertNull("can't get object mid save", mwdb.getObjectInformation(
+				oidsetver, false, false, false, false).get(0));
 		try {
-			mwdb.getObjectInformation(oidsetver, false, false);
+			mwdb.getObjectInformation(oidsetver, false, true, false, true);
 			fail("got object with no version");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception message", nsoe.getMessage(),

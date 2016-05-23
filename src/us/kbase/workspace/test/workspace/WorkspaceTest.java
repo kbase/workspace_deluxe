@@ -83,6 +83,7 @@ import us.kbase.workspace.test.kbase.JSONRPCLayerTester;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Sets;
 
 public class WorkspaceTest extends WorkspaceTester {
 
@@ -5925,6 +5926,19 @@ public class WorkspaceTest extends WorkspaceTester {
 		compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, null, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, null, refs, refmap);
 		compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, null, mtlist, mtmap);
+		
+		// test getting info only
+		List<ObjectInformation> loi = ws.getObjectInformation(user1,
+				Arrays.asList(
+						leaf2oi,
+						simplerefoi,
+						(ObjectIdentifier) new ObjectIDWithRefChain(
+								simplerefoi, Arrays.asList(leaf1oi)),
+						(ObjectIdentifier) new ObjectIDWithRefChain(
+								simplerefoi, null)
+				), true, false);
+		assertThat("object info different", loi,
+				is(Arrays.asList(leaf2, simpleref, leaf1, simpleref)));
 	}
 	
 	@Test
@@ -6135,6 +6149,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		compareObjectAndInfo(lwod.get(4), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(5), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(6), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		List<ObjectInformation> loi = ws.getObjectInformation(user1, a, true, false);
+		assertThat("object info not same", loi, is(Arrays.asList(
+				leaf1_1, leaf2, leaf1_1, leaf2, leaf2, leaf1_1, leaf2)));
 		
 		checkReferencedObject(user1, new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del1oi)),
 				del1, new Provenance(user2), makeRefData(wsidun1 + "/1/1", wsidun2 + "/1/1"),
@@ -6157,6 +6174,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		compareObjectAndInfo(lwod.get(0), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(1), leaf2, new Provenance(user2), data2, mtlist, mtmap);
 		compareObjectAndInfo(lwod.get(2), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		loi = ws.getObjectInformation(user1, a, true, false);
+		assertThat("object info not same", loi, is(Arrays.asList(
+				leaf2, leaf2, leaf2)));
+		
 		
 		// fail on 2 hop chains with absolute references
 		ObjectIDWithRefChain goodchain = new ObjectIDWithRefChain(delptr12oi, Arrays.asList(
@@ -6172,13 +6193,13 @@ public class WorkspaceTest extends WorkspaceTester {
 				Arrays.asList(del1oi, unlinkedoi))), new NoSuchReferenceException(
 				"Reference chain #3, position 2: Object 2 with version 1 in workspace 3 does not contain a " +
 				"reference to object 2 with version 1 in workspace 4",
-				null, null));
+				null, null), Sets.newHashSet(2));
 		failGetReferencedObjects(user1, Arrays.asList(goodchain, new ObjectIDWithRefChain(delptr12oi,
-				Arrays.asList(del1oi, new ObjectIdentifier(wsiun2, 3, 1)))),
+				Arrays.asList(del1oi, new ObjectIdentifier(wsiun2, 3, 1))), goodchain),
 				new NoSuchReferenceException(
 				"Reference chain #2, position 2: Object 2 with version 1 in workspace 3 does not contain a " +
 				"reference to object 3 with version 1 in workspace 4",
-				null, null));
+				null, null), Sets.newHashSet(1));
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefChain(delptr12oi,
 				Arrays.asList(del2oi, new ObjectIdentifier(wsiun1, 1, 3)))),
 				new NoSuchReferenceException(
@@ -6473,7 +6494,8 @@ public class WorkspaceTest extends WorkspaceTester {
 			failGetObjects(user, oi1l, err, true);
 			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) ois1l, err);
 			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) ois1lmt, err);
-			failGetReferencedObjects(user, (List<ObjectIDWithRefChain>)(List<?>) refchain, err);
+			failGetReferencedObjects(user,
+					(List<ObjectIDWithRefChain>)(List<?>) refchain, err, true);
 			
 			ws.setResourceConfig(build.withMaxReturnedDataSize(40).build());
 			List<ObjectIdentifier> two = Arrays.asList(oi1, oi2);
@@ -6492,7 +6514,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			failGetObjects(user, two, err, true);
 			failGetSubset(user, ois1l2, err);
 			failGetSubset(user, bothoi, err);
-			failGetReferencedObjects(user, refchain2, err);
+			failGetReferencedObjects(user, refchain2, err, true);
 			
 			List<ObjectIdentifier> all = new LinkedList<ObjectIdentifier>();
 			all.addAll(ois1l2);

@@ -212,6 +212,8 @@ public interface WorkspaceDatabase {
 	 * @param objs the objects for which to retrieve references.
 	 * @param exceptIfDeleted throw an exception if the object is deleted if
 	 * true.
+	 * @param includeDeleted include references from deleted objects. Has no
+	 * effect if exceptIfDeleted is set.
 	 * @param exceptIfMissing throw and exception if the object does not
 	 * exist if true. If true, the object will not exist in the returned map.
 	 * @return the set of references for each object.
@@ -223,6 +225,7 @@ public interface WorkspaceDatabase {
 			getObjectOutgoingReferences(
 					Set<ObjectIDResolvedWS> objs,
 					boolean exceptIfDeleted,
+					boolean includeDeleted,
 					boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
@@ -236,9 +239,27 @@ public interface WorkspaceDatabase {
 			Set<ObjectIDResolvedWS> objects)
 			throws WorkspaceCommunicationException, NoSuchObjectException;
 	
+	/** Get information about a set of objects.
+	 * @param objectIDs the object IDs for which to retrieve information.
+	 * @param includeMetadata true to return user supplied metadata with the
+	 * information.
+	 * @param exceptIfDeleted throw an exception if the object is in a
+	 * deleted state.
+	 * @param includeDeleted include information from deleted objects. Has no
+	 * effect if exceptIfDeleted is set.
+	 * @param exceptIfMissing throw an exception if the object does not exist
+	 * in the database.
+	 * @return a mapping of the object ID to information about the object.
+	 * @throws NoSuchObjectException if the object doesn't exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs
+	 * with the backend database.
+	 */
 	public Map<ObjectIDResolvedWS, ObjectInformation> getObjectInformation(
-			Set<ObjectIDResolvedWS> objectIDs, boolean includeMetadata,
-			boolean ignoreMissingAndDeleted)
+			Set<ObjectIDResolvedWS> objectIDs,
+			boolean includeMetadata,
+			boolean exceptIfDeleted,
+			boolean includeDeleted,
+			boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
