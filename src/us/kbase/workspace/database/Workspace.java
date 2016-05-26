@@ -1000,7 +1000,6 @@ public class Workspace {
 	}
 	
 	//TODO REFS Update docs
-	//TODO REFS release notes
 	//TODO REFS add get_objects2 to API with all new functionality, update get_object_info_new with reference following
 
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveReferenceChains(
