@@ -49,9 +49,11 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetPermissionsParams;
@@ -328,10 +330,21 @@ public class HandleTest {
 		
 		checkReadAcl(node, oneuser);
 
-		//basic get objects
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
+		//get objects2
+				
+		ObjectData ret1 = CLIENT2.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification()
+					.withWorkspace(workspace)
+					.withObjid(1L)))).getData().get(0);
+		checkHandleError(ret1.getHandleError(), ret1.getHandleStacktrace());
 		
+		checkReadAcl(node, twouser);
+		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
+		checkReadAcl(node, oneuser);
+		
+		//get objects
 		ObjectData ret = CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
 				.withObjid(1L))).get(0);
 		checkHandleError(ret.getHandleError(), ret.getHandleStacktrace());
@@ -377,8 +390,10 @@ public class HandleTest {
 		//test error message for deleted node
 		node.delete();
 		
-		ObjectData wod = CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
-				.withObjid(1L))).get(0);
+		ObjectData wod = CLIENT2.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification()
+					.withWorkspace(workspace)
+					.withObjid(1L)))).getData().get(0);
 		
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
