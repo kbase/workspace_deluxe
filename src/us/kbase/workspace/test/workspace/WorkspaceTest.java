@@ -1019,8 +1019,60 @@ public class WorkspaceTest extends WorkspaceTester {
 				new InaccessibleObjectException("Object 3 cannot be accessed: User bar may not read workspace saveobj"));
 		failGetObjects(null, Arrays.asList(new ObjectIdentifier(priv, 3)),
 				new InaccessibleObjectException("Object 3 cannot be accessed: Anonymous users may not read workspace saveobj"));
-		
+	}
+	
+	@Test
+	public void getInaccessibleObjectsAsNulls() throws Exception {
 		//test get object info where null is returned instead of exception
+		
+		// set up
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		WorkspaceUser bar = new WorkspaceUser("bar");
+		
+		IdReferenceHandlerSetFactory foofac = getIdFactory();
+		IdReferenceHandlerSetFactory barfac = getIdFactory();
+		
+		WorkspaceIdentifier read = new WorkspaceIdentifier("saveobjread");
+		WorkspaceIdentifier priv = new WorkspaceIdentifier("saveobj");
+		WorkspaceInformation readinfo = ws.createWorkspace(
+				foo, read.getIdentifierString(), true, null, null);
+		WorkspaceInformation privinfo = ws.createWorkspace(
+				foo, priv.getIdentifierString(), false, null, null);
+		long readid = readinfo.getId();
+		long privid = privinfo.getId();
+		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> data2 = new HashMap<String, Object>();
+		Map<String, String> premeta = new HashMap<String, String>();
+		Map<String, Object> moredata = new HashMap<String, Object>();
+		moredata.put("foo", "bar");
+		data.put("fubar", moredata);
+		JsonNode savedata = MAPPER.valueToTree(data);
+		data2.put("fubar2", moredata);
+		JsonNode savedata2 = MAPPER.valueToTree(data2);
+		premeta.put("metastuff", "meta");
+		WorkspaceUserMetadata meta = new WorkspaceUserMetadata(premeta);
+		Map<String, String> premeta2 = new HashMap<String, String>();
+		premeta2.put("meta2", "my hovercraft is full of eels");
+		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(premeta2);
+		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
+		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
+		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
+		
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata, SAFE_TYPE1, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata2, SAFE_TYPE1, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-1"), savedata, SAFE_TYPE1, meta, p, false));
+		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE1, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE1, meta, p, false));
+		
+		List<ObjectInformation> objinfo = ws.saveObjects(foo, read, objects, foofac);
+		ws.saveObjects(foo, priv, objects, foofac);
+		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
+		String chksum2 = "3c59f762140806c36ab48a152f28e840";
+		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.NONE);
+		
+		//tests
+		
+		// test bad workspace name, bad object name
 		List<ObjectIdentifier> nullloi = new ArrayList<ObjectIdentifier>();
 		nullloi.add(new ObjectIdentifier(read, 1));
 		nullloi.add(new ObjectIdentifier(read, "booger"));
@@ -1033,6 +1085,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(2));
 		checkObjInfo(nullobjinfo.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
 		
+		// test inaccessible workspace
 		nullloi.clear();
 		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "auto3"));
 		nullloi.add(new ObjectIdentifier(priv, 2));
@@ -1057,6 +1110,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
 		checkObjInfo(nullobjinfo.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
 		
+		// test deleted object & workspace
 		ws.setObjectsDeleted(foo, Arrays.asList(new ObjectIdentifier(priv, 3)), true);
 		ws.setWorkspaceDeleted(foo, read, true);
 		
