@@ -38,7 +38,6 @@ import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
-import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.test.workspace.WorkspaceTest;
 
 import com.fasterxml.jackson.core.JsonEncoding;
@@ -118,6 +117,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		// need 3g to get to this point
 		File tempFile2 = SERVER1.getTempFilesManager().generateTempFile("clresp", "json");
 		CLIENT1._setFileForNextRpcResponse(tempFile2);
+		@SuppressWarnings("deprecation")
 		UObject data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
 				.withWorkspace("bigdata"))).get(0).getData();
 		if (printMemUsage) {
@@ -154,7 +154,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 	public void unicode() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("unicode"));
 		
-		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> edata = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		StringBuilder sb = new StringBuilder();
 		//19 ttl bytes in UTF-8
@@ -169,15 +169,16 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		
 		int count = 4347900;
 		
-		data.put("subset", subdata);
+		edata.put("subset", subdata);
 		for (int i = 0; i < count; i++) {
 			subdata.add(test);
 		}
 		
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("unicode")
 				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
-						.withData(new UObject(data)))));
-		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
+						.withData(new UObject(edata)))));
+		@SuppressWarnings("deprecation")
+		Map<String, Object> data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
 				.withWorkspace("unicode"))).get(0).getData().asInstance();
 		
 		assertThat("correct obj keys", data.keySet(),
@@ -196,12 +197,13 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("unicode")
 				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
 						.withData(new UObject(data)))));
-		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(2L)
+		@SuppressWarnings("deprecation")
+		Map<String, Object> newdata = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(2L)
 				.withWorkspace("unicode"))).get(0).getData().asInstance();
 		
-		assertThat("unicode key correct", data.keySet(),
+		assertThat("unicode key correct", newdata.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList(test))));
-		assertThat("value correct", (String) data.get(test), is("foo"));
+		assertThat("value correct", (String) newdata.get(test), is("foo"));
 	}
 	
 	@Test
@@ -265,6 +267,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		CLIENT1.releaseModule(moduleName);
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(wsName).withObjects(saveDataList));
 		saveDataList = null;
+		@SuppressWarnings("deprecation")
 		List<ObjectData> retList = CLIENT1.getObjects(objIds);
 		for (int i = 0; i < retList.size(); i++) {
 			ObjectData ret = retList.get(i);
@@ -475,7 +478,9 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		int iterCount1 = 100;
 		for (int iter = 0; iter < iterCount1; iter++) {
 			long time1 = System.currentTimeMillis();
-			ObjectData wod1 = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withRef(wsName + "/" + objName))).get(0);
+			@SuppressWarnings("deprecation")
+			ObjectData wod1 = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity()
+				.withRef(wsName + "/" + objName))).get(0);
 			Map<String, Object> ret1 = wod1.getData().asClassInstance(Map.class);
 			String data1text = wod1.getData().toJsonString();
 			Map<String, Object> contigIdsToFeatures = (Map<String, Object>)ret1.get("data");
@@ -499,7 +504,10 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 				for (int i = 0; i < numberOfIncludedPaths; i++)
 					included.add("data/" + contigId + "/" + rnd.nextInt(featureCount));
 				long time2 = System.currentTimeMillis();
-				ObjectData wod2 = CLIENT1.getObjectSubset(Arrays.asList(new SubObjectIdentity().withRef(wsName + "/" + objName).withIncluded(included))).get(0);
+				@SuppressWarnings("deprecation")
+				ObjectData wod2 = CLIENT1.getObjectSubset(Arrays.asList(
+						new us.kbase.workspace.SubObjectIdentity()
+						.withRef(wsName + "/" + objName).withIncluded(included))).get(0);
 				String data2text = wod2.getData().toJsonString();
 				time2 = System.currentTimeMillis() - time2;
 				avgTime2 += time2;

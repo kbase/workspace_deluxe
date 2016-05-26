@@ -52,8 +52,8 @@ import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
-import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
@@ -64,7 +64,6 @@ import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.SubAction;
-import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
@@ -745,6 +744,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(Arrays.asList(
 						new ObjectSaveData().withName("obj1").withType(SAFE_TYPE).withData(new UObject(data)),
 						new ObjectSaveData().withName("obj2").withType(SAFE_TYPE).withData(new UObject(data)))));
+		@SuppressWarnings("deprecation")
 		List<ObjectData> ret = CLIENT1.getObjects(Arrays.asList(
 				new ObjectIdentity().withRef(wsName + "/obj2"),
 				new ObjectIdentity().withRef(wsName + "/obj1")));
@@ -814,12 +814,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		ObjectIdentity ojbid = new ObjectIdentity().withWorkspace("saveget")
 				.withName("auto1");
 		Map<String, List<String>> exp = new HashMap<String, List<String>>();
+		@SuppressWarnings("deprecation")
 		ObjectData obj = CLIENT1.getObjects(Arrays.asList(ojbid)).get(0);
 		assertThat("extracted ids empty", obj.getExtractedIds(), is(exp));
-		obj = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(ojbid))).get(0);
-		assertThat("extracted ids empty", obj.getExtractedIds(), is(exp));
-		ObjectProvenanceInfo prov = CLIENT1.getObjectProvenance(Arrays.asList(ojbid)).get(0);
-		assertThat("extracted ids empty", prov.getExtractedIds(), is(exp));
+		@SuppressWarnings("deprecation")
+		ObjectData obj2 = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(ojbid))).get(0);
+		assertThat("extracted ids empty", obj2.getExtractedIds(), is(exp));
+		@SuppressWarnings("deprecation")
+		Map<String, List<String>> extids =
+				CLIENT1.getObjectProvenance(Arrays.asList(ojbid)).get(0).getExtractedIds();
+		assertThat("extracted ids empty", extids, is(exp));
 		
 		
 		objects.clear();
@@ -922,21 +926,21 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failGetObjects(loi, "Object 1 cannot be accessed: User " + USER1 + " may not read workspace setgetunreadableto1");
 		
 		//test get_object_info w/o errors
-		GetObjectInfoNewParams p = new GetObjectInfoNewParams().withObjects(Arrays.asList(loi.get(0)));
+		GetObjectInfoNewParams p = new GetObjectInfoNewParams().withObjects(Arrays.asList(toObjSpec(loi.get(0))));
 		p.setAdditionalProperties("wooga", "foo");
 		failGetObjectInfoNew(p, "Unexpected arguments in GetObjectInfoNewParams: wooga");
 		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(null),
 				"The object identifier list cannot be null");
 		
-		List<ObjectIdentity> nullloi = new ArrayList<ObjectIdentity>();
-		nullloi.add(new ObjectIdentity().withWorkspace("ultrafakeworkspace").withObjid(1L).withVer(1L));
-		nullloi.add(new ObjectIdentity().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
-		nullloi.add(new ObjectIdentity().withRef("saveget/2"));
-		nullloi.add(new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
-		nullloi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2"));
-		nullloi.add(new ObjectIdentity().withRef(wsid + "/2"));
-		nullloi.add(new ObjectIdentity().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
-		nullloi.add(new ObjectIdentity().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
+		List<ObjectSpecification> nullloi = new ArrayList<ObjectSpecification>();
+		nullloi.add(new ObjectSpecification().withWorkspace("ultrafakeworkspace").withObjid(1L).withVer(1L));
+		nullloi.add(new ObjectSpecification().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
+		nullloi.add(new ObjectSpecification().withRef("saveget/2"));
+		nullloi.add(new ObjectSpecification().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
+		nullloi.add(new ObjectSpecification().withRef("kb|ws." + wsid + ".obj.2"));
+		nullloi.add(new ObjectSpecification().withRef(wsid + "/2"));
+		nullloi.add(new ObjectSpecification().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
+		nullloi.add(new ObjectSpecification().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
 		
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> nullret =
 				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(nullloi)
@@ -959,8 +963,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT2.deleteWorkspace(new WorkspaceIdentity().withWorkspace("setgetunreadableto1"));
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("saveget/1")));
 		
-		nullloi.set(2, new ObjectIdentity().withRef("saveget/1"));
-		nullloi.set(5, new ObjectIdentity().withWorkspace("setgetunreadableto1")
+		nullloi.set(2, new ObjectSpecification().withRef("saveget/1"));
+		nullloi.set(5, new ObjectSpecification().withWorkspace("setgetunreadableto1")
 				.withName("foo"));
 		
 		nullret = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(nullloi)
@@ -1057,6 +1061,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			} else {
 				exp = smallmapdata;
 			}
+			@SuppressWarnings("deprecation")
 			Map<String, Object> ret = CLIENT1.getObjects(
 					Arrays.asList(new ObjectIdentity().withWsid(wsid)
 							.withObjid(i))).get(0).getData().asInstance();
@@ -1559,6 +1564,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		objects.add(new ObjectSaveData().withData(new UObject(data))
 				.withType(type));
 		CLIENT1.saveObjects(soc);
+		@SuppressWarnings("deprecation")
 		ObjectData od = CLIENT1.getObjects(Arrays.asList(
 				new ObjectIdentity().withWsid(wsid).withName("auto3")))
 				.get(0);
@@ -1692,6 +1698,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 	}
 	
+	@SuppressWarnings("deprecation")
 	private void checkObjectCopy(WorkspaceClient cli, ObjectIdentity nocopy,
 			String ref, long copyInvisible) throws Exception {
 		ObjectData obj = cli.getObjects(Arrays.asList(nocopy)).get(0);
@@ -1700,7 +1707,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		obj = cli.getObjectSubset(objIDToSubObjID(Arrays.asList(nocopy))).get(0);
 		assertThat("copy ref is correct", obj.getCopied(), is(ref));
 		assertThat("copy vis is correct", obj.getCopySourceInaccessible(), is(copyInvisible));
-		ObjectProvenanceInfo prov = cli.getObjectProvenance(Arrays.asList(nocopy)).get(0);
+		us.kbase.workspace.ObjectProvenanceInfo prov =
+				cli.getObjectProvenance(Arrays.asList(nocopy)).get(0);
 		assertThat("copy ref is correct", prov.getCopied(), is(ref));
 		assertThat("copy vis is correct", prov.getCopySourceInaccessible(), is(copyInvisible));
 		
@@ -1825,7 +1833,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObj(new ObjectIdentity().withRef("renameObj/1")));
 		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
 		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(
-				Arrays.asList(new ObjectIdentity().withWorkspace("renameObj").withObjid(1L)))).get(0);
+				Arrays.asList(new ObjectSpecification().withWorkspace("renameObj").withObjid(1L)))).get(0);
 		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
 		RenameObjectParams rop = new RenameObjectParams().withNewName("mynewname2")
 				.withObj(new ObjectIdentity().withRef("renameObj/1"));
@@ -2586,8 +2594,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data))
 				.withType(SAFE_TYPE).withName("std")))).get(0);
 		
+		@SuppressWarnings("deprecation")
 		ObjectData od = CLIENT1.getObjectSubset(Arrays.asList(
-				new SubObjectIdentity().withRef("subdata/1")
+				new us.kbase.workspace.SubObjectIdentity().withRef("subdata/1")
 				.withIncluded(Arrays.asList("/map/id1", "/map/id3")))).get(0);
 		Map<String, Object> expdata = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
@@ -2602,8 +2611,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				expdata);
 		
 		try {
-			CLIENT1.getObjectSubset(Arrays.asList(
-					new SubObjectIdentity().withRef("subdata/1")
+			@SuppressWarnings({ "deprecation", "unused" })
+			ObjectData objectData = CLIENT1.getObjectSubset(Arrays.asList(
+					new us.kbase.workspace.SubObjectIdentity().withRef("subdata/1")
 					.withIncluded(Arrays.asList("/map/id1", "/map/id3/id/id/id/12")))).get(0);
 			fail("listed objects with bad params");
 		} catch (ServerException se) {
@@ -2627,8 +2637,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		                .withType(SAFE_TYPE).withName("std2")))).get(0);
 
         try {
-            CLIENT1.getObjectSubset(Arrays.asList(
-                    new SubObjectIdentity().withRef("subdata/2")
+            @SuppressWarnings({ "unused", "deprecation" })
+			ObjectData objectData = CLIENT1.getObjectSubset(Arrays.asList(
+                    new us.kbase.workspace.SubObjectIdentity().withRef("subdata/2")
                     .withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
             fail("listed objects with bad params");
         } catch (ServerException se) {
@@ -2636,8 +2647,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
                     is("Invalid selection: no array element exists at position '3', at: /features/3"));
         }
 
-        ObjectData od2 = CLIENT1.getObjectSubset(Arrays.asList(
-                new SubObjectIdentity().withRef("subdata/2").withStrictArrays(0L)
+        @SuppressWarnings("deprecation")
+		ObjectData od2 = CLIENT1.getObjectSubset(Arrays.asList(
+                new us.kbase.workspace.SubObjectIdentity().withRef("subdata/2").withStrictArrays(0L)
                 .withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
         Map<String, Object> od2map = od2.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
         Assert.assertEquals(1, od2map.size());
@@ -2722,6 +2734,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withType(SAFE_TYPE).withName("prov").withProvenance(Arrays.asList(
 						new ProvenanceAction().withInputWsObjects(Arrays.asList("referencedPriv/two")))))));
 		
+		@SuppressWarnings("deprecation")
 		List<ObjectData> exp = CLIENT2.getObjects(Arrays.asList(
 				new ObjectIdentity().withRef("referencedPriv/one"),
 				new ObjectIdentity().withRef("referencedPriv/two")));
@@ -3096,6 +3109,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data))
 				.withType(type).withName("f"))));
 		
+		@SuppressWarnings("deprecation")
 		Map<String, Object> got = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity()
 				.withWorkspace("float").withName("f"))).get(0).getData().asInstance();
 		assertThat("got correct float back", got, is(data));

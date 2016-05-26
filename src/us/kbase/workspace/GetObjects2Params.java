@@ -13,17 +13,15 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 
 /**
- * <p>Original spec-file type: GetObjectInfoNewParams</p>
+ * <p>Original spec-file type: GetObjects2Params</p>
  * <pre>
- * Input parameters for the "get_object_info_new" function.
- *         Required arguments:
- *         list<ObjectSpecification> objects - the objects for which the
- *                 information should be fetched. Subsetting related parameters are
- *                 ignored.
- *         
- *         Optional arguments:
- *         boolean includeMetadata - include the object metadata in the returned
- *                 information. Default false.
+ * Input parameters for the get_objects2 function.
+ *         Required parameters:
+ *         list<ObjectSpecification> objects - the list of object specifications
+ *                 for the objects to return (via reference chain and as a subset if
+ *                 specified).
+ *                 
+ *         Optional parameters:
  *         boolean ignoreErrors - Don't throw an exception if an object cannot
  *                 be accessed; return null for that object's information instead.
  *                 Default false.
@@ -34,15 +32,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "objects",
-    "includeMetadata",
     "ignoreErrors"
 })
-public class GetObjectInfoNewParams {
+public class GetObjects2Params {
 
     @JsonProperty("objects")
     private List<ObjectSpecification> objects;
-    @JsonProperty("includeMetadata")
-    private Long includeMetadata;
     @JsonProperty("ignoreErrors")
     private Long ignoreErrors;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
@@ -57,23 +52,8 @@ public class GetObjectInfoNewParams {
         this.objects = objects;
     }
 
-    public GetObjectInfoNewParams withObjects(List<ObjectSpecification> objects) {
+    public GetObjects2Params withObjects(List<ObjectSpecification> objects) {
         this.objects = objects;
-        return this;
-    }
-
-    @JsonProperty("includeMetadata")
-    public Long getIncludeMetadata() {
-        return includeMetadata;
-    }
-
-    @JsonProperty("includeMetadata")
-    public void setIncludeMetadata(Long includeMetadata) {
-        this.includeMetadata = includeMetadata;
-    }
-
-    public GetObjectInfoNewParams withIncludeMetadata(Long includeMetadata) {
-        this.includeMetadata = includeMetadata;
         return this;
     }
 
@@ -87,7 +67,7 @@ public class GetObjectInfoNewParams {
         this.ignoreErrors = ignoreErrors;
     }
 
-    public GetObjectInfoNewParams withIgnoreErrors(Long ignoreErrors) {
+    public GetObjects2Params withIgnoreErrors(Long ignoreErrors) {
         this.ignoreErrors = ignoreErrors;
         return this;
     }
@@ -104,7 +84,7 @@ public class GetObjectInfoNewParams {
 
     @Override
     public String toString() {
-        return ((((((((("GetObjectInfoNewParams"+" [objects=")+ objects)+", includeMetadata=")+ includeMetadata)+", ignoreErrors=")+ ignoreErrors)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

@@ -51,12 +51,10 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
-import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetPermissionsParams;
-import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.kbase.HandleIdHandlerFactory;
@@ -290,6 +288,7 @@ public class HandleTest {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	@Test
 	public void basicHandleTest() throws Exception {
 		String workspace = "basichandle";
@@ -342,7 +341,7 @@ public class HandleTest {
 		checkReadAcl(node, oneuser);
 
 		//object subset
-		ret = CLIENT2.getObjectSubset(Arrays.asList(new SubObjectIdentity().withWorkspace(workspace)
+		ret = CLIENT2.getObjectSubset(Arrays.asList(new us.kbase.workspace.SubObjectIdentity().withWorkspace(workspace)
 				.withObjid(1L))).get(0);
 		checkHandleError(ret.getHandleError(), ret.getHandleStacktrace());
 		
@@ -351,7 +350,7 @@ public class HandleTest {
 		checkReadAcl(node, oneuser);
 
 		//object provenance
-		ObjectProvenanceInfo ret2 = CLIENT2.getObjectProvenance(Arrays.asList(
+		us.kbase.workspace.ObjectProvenanceInfo ret2 = CLIENT2.getObjectProvenance(Arrays.asList(
 				new ObjectIdentity().withWorkspace(workspace)
 				.withObjid(1L))).get(0);
 		checkHandleError(ret2.getHandleError(), ret2.getHandleStacktrace());

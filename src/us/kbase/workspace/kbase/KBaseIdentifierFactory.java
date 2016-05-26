@@ -14,9 +14,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.workspace.ObjectIdentity;
-import us.kbase.workspace.SubObjectIdentity;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjectIDWithRefChain;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 
@@ -151,25 +152,27 @@ public class KBaseIdentifierFactory {
 		return ObjectIdentifier.parseObjectReference(ref);
 	}
 
+	@SuppressWarnings("deprecation")
 	public static List<ObjectIdentifier> processSubObjectIdentifiers(
-			List<SubObjectIdentity> subObjectIds) {
+			List<us.kbase.workspace.SubObjectIdentity> subObjectIds) {
 		final List<ObjectIdentifier> objs =
 				new LinkedList<ObjectIdentifier>();
 		int objcount = 1;
-		for (final SubObjectIdentity soi: subObjectIds) {
+		for (final us.kbase.workspace.SubObjectIdentity soi: subObjectIds) {
 			final ObjectIdentifier oi;
 			try {
-				checkAddlArgs(soi.getAdditionalProperties(), soi.getClass());
 				oi = processObjectIdentifier(
 					new ObjectIdentity()
-					.withWorkspace(soi.getWorkspace())
-					.withWsid(soi.getWsid())
-					.withName(soi.getName())
-					.withObjid(soi.getObjid())
-					.withVer(soi.getVer())
-					.withRef(soi.getRef()));
+						.withWorkspace(soi.getWorkspace())
+						.withWsid(soi.getWsid())
+						.withName(soi.getName())
+						.withObjid(soi.getObjid())
+						.withVer(soi.getVer())
+						.withRef(soi.getRef()));
+				checkAddlArgs(soi.getAdditionalProperties(), soi.getClass());
 			} catch (IllegalArgumentException e) {
-				throw new IllegalArgumentException("Error on SubObjectIdentity #"
+				throw new IllegalArgumentException(
+						"Error on SubObjectIdentity #"
 						+ objcount + ": " + e.getLocalizedMessage(), e);
 			}
 					
@@ -182,5 +185,113 @@ public class KBaseIdentifierFactory {
 			objcount++;
 		}
 		return objs;
+	}
+	
+	public static List<ObjectIdentifier> processObjectSpecifications(
+			final List<ObjectSpecification> objects) {
+		
+		if (objects == null) {
+			throw new NullPointerException(
+					"The object specification list cannot be null");
+		}
+		final List<ObjectIdentifier> objs =
+				new LinkedList<ObjectIdentifier>();
+		int objcount = 1;
+		for (final ObjectSpecification o: objects) {
+			final ObjectIdentifier oi;
+			try {
+				oi = processObjectIdentifier(
+					new ObjectIdentity()
+						.withWorkspace(o.getWorkspace())
+						.withWsid(o.getWsid())
+						.withName(o.getName())
+						.withObjid(o.getObjid())
+						.withVer(o.getVer())
+						.withRef(o.getRef()));
+				checkAddlArgs(o.getAdditionalProperties(), o.getClass());
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException(
+						"Error on ObjectSpecification #"
+						+ objcount + ": " + e.getLocalizedMessage(), e);
+			}
+			final ObjectPaths paths;
+			if (o.getIncluded() != null && !o.getIncluded().isEmpty()) {
+				paths = new ObjectPaths(o.getIncluded(),
+						longToBoolean(o.getStrictMaps(),
+								ObjectPaths.STRICT_MAPS_DEFAULT),
+						longToBoolean(o.getStrictArrays(),
+								ObjectPaths.STRICT_ARRAYS_DEFAULT));
+			} else {
+				paths = null;
+			}
+			final List<ObjectIdentifier> refchain;
+			try {
+				refchain = processRefChains(o);
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException(
+						"Error on ObjectSpecification #"
+						+ objcount + ": " + e.getLocalizedMessage(), e);
+			}
+			if (paths == null && refchain == null) {
+				objs.add(oi);
+			} else if (paths == null) {
+				objs.add(new ObjectIDWithRefChain(oi, refchain));
+			} else {
+				objs.add(new ObjIDWithChainAndSubset(oi, refchain, paths));
+			}
+			objcount++;
+		}
+		return objs;
+	}
+
+	private static List<ObjectIdentifier> processRefChains(
+			final ObjectSpecification o) {
+		final List<ObjectIdentity> objrefs;
+		if (o.getObjPath() != null && !o.getObjPath().isEmpty()) {
+			objrefs = o.getObjPath();
+		} else {
+			objrefs = null;
+		}
+		final List<String> refs;
+		if (o.getObjRefPath() != null && !o.getObjRefPath().isEmpty()) {
+			refs = o.getObjRefPath();
+		} else {
+			refs = null;
+		}
+		if (refs != null && objrefs != null) {
+			throw new IllegalArgumentException("Only one of an object " +
+					"reference path or an object path may be specified");
+		}
+		final List<ObjectIdentifier> ret = new LinkedList<ObjectIdentifier>();
+		if (refs != null) {
+			int refcount = 1;
+			for (final String r: refs) {
+				try {
+					ret.add(processObjectReference(r));
+				} catch (IllegalArgumentException e) {
+					throw new IllegalArgumentException(String.format(
+							"Invalid object reference %s at position #%s: %s",
+							r, refcount, e.getLocalizedMessage()), e);
+				}
+				refcount++;
+			}
+		}
+		if (objrefs != null) {
+			int refcount = 1;
+			for (final ObjectIdentity oi: objrefs) {
+				try {
+					ret.add(processObjectIdentifier(oi));
+				} catch (IllegalArgumentException e) {
+					throw new IllegalArgumentException(String.format(
+							"Invalid object id at position #%s: %s",
+							refcount, e.getLocalizedMessage()), e);
+				}
+				refcount++;
+			}
+		}
+		if (ret.isEmpty()) {
+			return null;
+		}
+		return ret;
 	}
 }

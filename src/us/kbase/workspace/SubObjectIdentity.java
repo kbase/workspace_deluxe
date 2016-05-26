@@ -15,30 +15,34 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 /**
  * <p>Original spec-file type: SubObjectIdentity</p>
  * <pre>
- * An object subset identifier.
- * Select a subset of an object by:
- * EITHER
- *         One, and only one, of the numerical id or name of the workspace,
- *         where the name can also be a KBase ID including the numerical id,
- *         e.g. kb|ws.35.
- *                 ws_id wsid - the numerical ID of the workspace.
- *                 ws_name workspace - name of the workspace or the workspace ID
- *                         in KBase format, e.g. kb|ws.78.
- *         AND 
- *         One, and only one, of the numerical id or name of the object.
- *                 obj_id objid- the numerical ID of the object.
- *                 obj_name name - name of the object.
- *         OPTIONALLY
- *                 obj_ver ver - the version of the object.
- * OR an object reference string:
- *         obj_ref ref - an object reference string.
- * AND a subset specification:
- *         list<object_path> included - the portions of the object to include
- *                 in the object subset.
- * strict_maps - if true, throw an exception if the subset specification
- *         traverses a non-existant map key (default false)
- * strict_arrays - if true, throw an exception if the subset specification
- *         exceeds the size of an array (default true)
+ * DEPRECATED
+ *         An object subset identifier.
+ *         
+ *         Select a subset of an object by:
+ *         EITHER
+ *                 One, and only one, of the numerical id or name of the workspace,
+ *                 where the name can also be a KBase ID including the numerical id,
+ *                 e.g. kb|ws.35.
+ *                         ws_id wsid - the numerical ID of the workspace.
+ *                         ws_name workspace - name of the workspace or the workspace ID
+ *                                 in KBase format, e.g. kb|ws.78.
+ *                 AND 
+ *                 One, and only one, of the numerical id or name of the object.
+ *                         obj_id objid- the numerical ID of the object.
+ *                         obj_name name - name of the object.
+ *                 OPTIONALLY
+ *                         obj_ver ver - the version of the object.
+ *         OR an object reference string:
+ *                 obj_ref ref - an object reference string.
+ *         AND a subset specification:
+ *                 list<object_path> included - the portions of the object to include
+ *                         in the object subset.
+ *         boolean strict_maps - if true, throw an exception if the subset
+ *                 specification traverses a non-existant map key (default false)
+ *         boolean strict_arrays - if true, throw an exception if the subset
+ *                 specification exceeds the size of an array (default true)
+ *                 
+ *         @deprecated Workspace.ObjectSpecification
  * </pre>
  * 
  */

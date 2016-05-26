@@ -32,6 +32,7 @@ import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
+import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectSpecifications;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectIdentifiers;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
@@ -109,13 +110,15 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "d276e03997a51ddb6055a66dbd4efd26733c8410";
+    private static final String gitCommitHash = "41e5b040256d1044c797f6f706464d3eaeaa5216";
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
     //TODO timestamps for startup script
     //TODO check shock version
     //TODO shock client should ignore extra fields
+    
+    //TODO NOW test reference following on get obj info, test all of getobjs2
 	
 	private static final String VER = "0.4.1";
 	private static final String GIT =
@@ -645,7 +648,9 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_object_provenance</p>
      * <pre>
+     * DEPRECATED
      * Get object provenance from the workspace.
+     * @deprecated Workspace.get_objects2
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectProvenanceInfo ObjectProvenanceInfo}
@@ -665,7 +670,9 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_objects</p>
      * <pre>
+     * DEPRECATED
      * Get objects from the workspace.
+     * @deprecated Workspace.get_objects2
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectData ObjectData}
@@ -686,8 +693,39 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: get_objects2</p>
+     * <pre>
+     * Get objects from the workspace.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetObjects2Params GetObjects2Params}
+     * @return   parameter "results" of type {@link us.kbase.workspace.GetObjects2Results GetObjects2Results}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_objects2", authOptional=true, async=true)
+    public GetObjects2Results getObjects2(GetObjects2Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
+        GetObjects2Results returnVal = null;
+        //BEGIN get_objects2
+		checkAddlArgs(params.getAdditionalProperties(),
+				GetObjects2Params.class);
+		final List<ObjectIdentifier> loi =
+				processObjectSpecifications(params.getObjects());
+		final Set<ByteArrayFileCache> resources =
+				new HashSet<ByteArrayFileCache>();
+		final boolean noData = longToBoolean(params.getNoData(), false);
+		final boolean ignoreErrors = longToBoolean(
+				params.getIgnoreErrors(), false);
+		returnVal = new GetObjects2Results().withData(translateObjectData(
+				ws.getObjects(getUser(authPart), loi, noData, ignoreErrors),
+				getUser(authPart), resources, handleManagerUrl, handleMgrToken,
+				true));
+		resourcesToDelete.set(resources);
+        //END get_objects2
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: get_object_subset</p>
      * <pre>
+     * DEPRECATED
      * Get portions of objects from the workspace.
      * When selecting a subset of an array in an object, the returned
      * array is compressed to the size of the subset, but the ordering of
@@ -700,6 +738,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * The returned feature array will be of length three and the entries will
      * consist, in order, of the 7th, 700th, and 3015th entries of the
      * original array.
+     * @deprecated Workspace.get_objects2
      * </pre>
      * @param   subObjectIds   instance of list of type {@link us.kbase.workspace.SubObjectIdentity SubObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectData ObjectData}
@@ -789,7 +828,8 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_referenced_objects</p>
      * <pre>
-     * Get objects by references from other objects.
+     * DEPRECATED
+     *         Get objects by references from other objects.
      *         NOTE: In the vast majority of cases, this method is not necessary and
      *         get_objects should be used instead. 
      *         
@@ -802,6 +842,8 @@ public class WorkspaceServer extends JsonServerServlet {
      *         The user must have at least read access to the first object in each
      *         reference chain, but need not have access to any further objects in
      *         the chain, and those objects may be deleted.
+     *         
+     *         @deprecated Workspace.get_objects2
      * </pre>
      * @param   refChains   instance of list of original type "ref_chain" (A chain of objects with references to one another. An object reference chain consists of a list of objects where the nth object possesses a reference, either in the object itself or in the object provenance, to the n+1th object.) &rarr; list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectData ObjectData}
@@ -1048,7 +1090,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_info_new
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final List<ObjectIdentifier> loi = processObjectIdentifiers(
+		final List<ObjectIdentifier> loi = processObjectSpecifications(
 				params.getObjects());
 		returnVal = objInfoToTuple(
 				ws.getObjectInformation(getUser(authPart), loi,
@@ -1058,7 +1100,7 @@ public class WorkspaceServer extends JsonServerServlet {
         return returnVal;
     }
 
-    /**
+	/**
      * <p>Original spec-file function name: rename_workspace</p>
      * <pre>
      * Rename a workspace.

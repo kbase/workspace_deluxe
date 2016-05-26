@@ -53,8 +53,8 @@ import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
-import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RenameObjectParams;
@@ -63,7 +63,6 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.SubAction;
-import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
@@ -514,6 +513,7 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
+	@SuppressWarnings("deprecation")
 	protected void checkProvenance(String user, ObjectIdentity id,
 			List<ProvenanceAction> prov, Map<String, String> refmap,
 			Map<StringEpoch, StringEpoch> timemap) throws Exception {
@@ -532,7 +532,7 @@ public class JSONRPCLayerTester {
 		checkProvenance(prov, ret.getProvenance(), refmap, timemap);
 		ret = null;
 		
-		ObjectProvenanceInfo p = CLIENT1.getObjectProvenance(
+		us.kbase.workspace.ObjectProvenanceInfo p = CLIENT1.getObjectProvenance(
 				Arrays.asList(id)).get(0);
 		assertThat("user correct", p.getCreator(), is(user));
 		assertThat("wsid correct", p.getOrigWsid(), is(id.getWsid()));
@@ -741,6 +741,24 @@ public class JSONRPCLayerTester {
 					is(exception));
 		}
 	}
+	
+	protected ObjectSpecification toObjSpec(final ObjectIdentity oi) {
+		return new ObjectSpecification()
+			.withName(oi.getName())
+			.withObjid(oi.getObjid())
+			.withRef(oi.getRef())
+			.withVer(oi.getVer())
+			.withWorkspace(oi.getWorkspace())
+			.withWsid(oi.getWsid());
+	}
+	
+	protected List<ObjectSpecification> toObjSpec(final List<ObjectIdentity> oi) {
+		final List<ObjectSpecification> ret = new LinkedList<ObjectSpecification>();
+		for (ObjectIdentity o: oi) {
+			ret.add(toObjSpec(o));
+		}
+		return ret;
+	}
 
 	@SuppressWarnings("deprecation")
 	protected void failGetObjects(List<ObjectIdentity> loi, String exception)
@@ -767,11 +785,12 @@ public class JSONRPCLayerTester {
 					is(exception));
 		}
 		try {
-			CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(loi));
+			CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(toObjSpec(loi)));
 			fail("got info with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception));
+					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
 		}
 		//deprecated, remove when removed from code.
 		try {
@@ -814,9 +833,10 @@ public class JSONRPCLayerTester {
 					chksum, size, meta, data);
 		}
 		
-		List<ObjectProvenanceInfo> prov = CLIENT1.getObjectProvenance(loi);
+		List<us.kbase.workspace.ObjectProvenanceInfo> prov =
+				CLIENT1.getObjectProvenance(loi);
 		assertThat("num prov correct", prov.size(), is(loi.size()));
-		for (ObjectProvenanceInfo p: prov) {
+		for (us.kbase.workspace.ObjectProvenanceInfo p: prov) {
 			checkInfo(p.getInfo(), id, name, type, ver, user, wsid, wsname,
 					chksum, size, meta);
 		}
@@ -824,7 +844,7 @@ public class JSONRPCLayerTester {
 		List<Tuple11<Long, String, String, String, Long, String, Long, String,
 				String, Long, Map<String, String>>> retusermeta =
 				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-						.withObjects(loi).withIncludeMetadata(1L));
+						.withObjects(toObjSpec(loi)).withIncludeMetadata(1L));
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (Tuple11<Long, String, String, String, Long, String, Long,
@@ -843,7 +863,8 @@ public class JSONRPCLayerTester {
 					chksum, size, meta);
 		}
 		
-		retusermeta = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(loi));
+		retusermeta = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+			.withObjects(toObjSpec(loi)));
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (Tuple11<Long, String, String, String, Long, String, Long,
@@ -863,10 +884,14 @@ public class JSONRPCLayerTester {
 		}
 	}
 
-	protected List<SubObjectIdentity> objIDToSubObjID(List<ObjectIdentity> loi) {
-		LinkedList<SubObjectIdentity> ret = new LinkedList<SubObjectIdentity>();
+	@SuppressWarnings("deprecation")
+	protected List<us.kbase.workspace.SubObjectIdentity> objIDToSubObjID(
+			List<ObjectIdentity> loi) {
+		LinkedList<us.kbase.workspace.SubObjectIdentity> ret =
+				new LinkedList<us.kbase.workspace.SubObjectIdentity>();
 		for (ObjectIdentity oi: loi) {
-			SubObjectIdentity soi = new SubObjectIdentity().withName(oi.getName())
+			us.kbase.workspace.SubObjectIdentity soi =
+					new us.kbase.workspace.SubObjectIdentity().withName(oi.getName())
 					.withObjid(oi.getObjid()).withRef(oi.getRef())
 					.withVer(oi.getVer()).withWorkspace(oi.getWorkspace())
 					.withWsid(oi.getWsid());
@@ -966,6 +991,7 @@ public class JSONRPCLayerTester {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	protected void checkData(List<ObjectIdentity> loi, Map<String, Object> data)
 			throws Exception {
 		assertThat("expected loi size is 1", loi.size(), is(1));
@@ -975,6 +1001,7 @@ public class JSONRPCLayerTester {
 				.get(0).getData().asClassInstance(Object.class), is((Object) data));
 	}
 
+	@SuppressWarnings("deprecation")
 	protected void compareObjectInfoAndData(
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> orig,
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied,
@@ -989,7 +1016,7 @@ public class JSONRPCLayerTester {
 		
 		String expectedCopy = orig.getE7() + "/" + orig.getE1() + "/" + orig.getE5();
 		
-		List<ObjectProvenanceInfo> prov = CLIENT1.getObjectProvenance(loi);
+		List<us.kbase.workspace.ObjectProvenanceInfo> prov = CLIENT1.getObjectProvenance(loi);
 		compareObjectInfo(prov.get(0).getInfo(), prov.get(1).getInfo(), wsname, wsid, name, id, ver);
 		assertThat("creator same", prov.get(1).getCreator(), is(prov.get(0).getCreator()));
 		assertThat("created same", prov.get(1).getCreated(), is(prov.get(0).getCreated()));
@@ -1348,6 +1375,7 @@ public class JSONRPCLayerTester {
 		return new ObjectMapper().readValue(json, Map.class);
 	}
 
+	@SuppressWarnings("deprecation")
 	protected void getReferencedObjectsCheckData(List<ObjectData> exp) throws IOException,
 			JsonClientException, Exception {
 		List<ObjectData> res = CLIENT1.getReferencedObjects(Arrays.asList(
@@ -1356,6 +1384,7 @@ public class JSONRPCLayerTester {
 		compareData(exp, res);
 	}
 	
+	@SuppressWarnings("deprecation")
 	protected void failGetReferencedObjects(List<List<ObjectIdentity>> chains,
 			String excep) throws Exception {
 		try {

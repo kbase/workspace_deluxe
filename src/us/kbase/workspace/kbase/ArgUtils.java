@@ -42,7 +42,6 @@ import us.kbase.auth.TokenExpiredException;
 import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
-import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectInformation;
@@ -452,18 +451,19 @@ public class ArgUtils {
 		return ret;
 	}
 	
-	public static List<ObjectProvenanceInfo> translateObjectProvInfo(
+	@SuppressWarnings("deprecation")
+	public static List<us.kbase.workspace.ObjectProvenanceInfo> translateObjectProvInfo(
 			final List<WorkspaceObjectData> objects,
 			final WorkspaceUser user,
 			final URL handleManagerURl,
 			final RefreshingToken handleManagertoken,
 			final boolean logObjects) {
-		final List<ObjectProvenanceInfo> ret =
-				new ArrayList<ObjectProvenanceInfo>();
+		final List<us.kbase.workspace.ObjectProvenanceInfo> ret =
+				new ArrayList<us.kbase.workspace.ObjectProvenanceInfo>();
 		for (final WorkspaceObjectData o: objects) {
 			final HandleError error = makeHandlesReadable(
 					o, user, handleManagerURl, handleManagertoken);
-			ret.add(new ObjectProvenanceInfo()
+			ret.add(new us.kbase.workspace.ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
