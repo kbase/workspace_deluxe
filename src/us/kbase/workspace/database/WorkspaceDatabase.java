@@ -192,6 +192,10 @@ public interface WorkspaceDatabase {
 	 * @param objects the objects for which to retrieve data.
 	 * @param noData return provenance only if true.
 	 * @param exceptIfDeleted throw an exception if deleted.
+	 * @param includeDeleted include information from deleted objects. Has no
+	 * effect if exceptIfDeleted is set.
+	 * @param exceptIfMissing throw an exception if the object does not exist
+	 * in the database.
 	 * @return a mapping of object id -> subdata paths -> data.
 	 * @throws NoSuchObjectException if there is no such object.
 	 * @throws WorkspaceCommunicationException if a communication error with
@@ -202,10 +206,12 @@ public interface WorkspaceDatabase {
 	 */
 	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
 			getObjects(
-					final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects,
-					final boolean noData,
-					final boolean exceptIfDeleted)
-			throws NoSuchObjectException, WorkspaceCommunicationException,
+					Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects,
+					boolean noData,
+					boolean exceptIfDeleted,
+					boolean includeDeleted,
+					boolean exceptIfMissing)
+			throws NoSuchObjectException,WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException;
 	
 	/** Get the set of outgoing references for an object.

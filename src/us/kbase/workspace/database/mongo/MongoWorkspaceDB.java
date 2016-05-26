@@ -1930,16 +1930,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			getObjects(
 				final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objs,
 				final boolean noData,
-				final boolean exceptIfDeleted)
+				final boolean exceptIfDeleted,
+				final boolean includeDeleted,
+				final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException,
 			TypedObjectExtractionException, CorruptWorkspaceDBException {
 		
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs =
-				resolveObjectIDs(objs.keySet(), exceptIfDeleted, true);
+				resolveObjectIDs(objs.keySet(), exceptIfDeleted,
+						includeDeleted, exceptIfMissing, false);
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
-						FLDS_VER_GET_OBJECT, false);
+						FLDS_VER_GET_OBJECT, !exceptIfMissing);
 		if (!noData) {
 			checkTotalFileSize(objs, resobjs, vers);
 		}
@@ -1956,6 +1959,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				tfm);
 		for (final ObjectIDResolvedWS o: objs.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
+			if (!vers.containsKey(roi)) {
+				continue; // works if roi is null or vers doesn't have the key
+			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
 			final String copyref =

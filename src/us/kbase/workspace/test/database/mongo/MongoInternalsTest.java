@@ -448,7 +448,7 @@ public class MongoInternalsTest {
 			paths.put(o, null);
 		}
 		try {
-			mwdb.getObjects(paths, false, true);
+			mwdb.getObjects(paths, false, true, false, true);
 			fail("operated on object with no version");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception message", nsoe.getMessage(),

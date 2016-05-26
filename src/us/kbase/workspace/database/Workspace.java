@@ -904,7 +904,6 @@ public class Workspace {
 		return db.getObjectInformation(params.generateParameters(pset));
 	}
 	
-	//TODO NOW allow ignore errors for getObjects
 	public List<WorkspaceObjectData> getObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> loi)
@@ -922,8 +921,21 @@ public class Workspace {
 			CorruptWorkspaceDBException, WorkspaceCommunicationException,
 			InaccessibleObjectException, NoSuchReferenceException,
 			TypedObjectExtractionException {
+		return getObjects(user, loi, noData, false);
+	}
+	
+	//TODO NOW test null if inaccessible all the same ways it's tested for getObjectInfo
+	public List<WorkspaceObjectData> getObjects(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final boolean noData,
+			boolean nullIfInaccessible) throws
+			CorruptWorkspaceDBException, WorkspaceCommunicationException,
+			InaccessibleObjectException, NoSuchReferenceException,
+			TypedObjectExtractionException {
 		
-		final ResolvedResChains res = resolveObjects(user, loi, false);
+		final ResolvedResChains res = resolveObjects(user, loi,
+				nullIfInaccessible);
 		
 		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> chainpaths =
 				setupObjectPaths(res.hadchain);
@@ -933,10 +945,12 @@ public class Workspace {
 		//this is pretty gross, think about a better api here
 		final Map<ObjectIDResolvedWS,
 				Map<ObjectPaths, WorkspaceObjectData>> stddata =
-					db.getObjects(stdpaths, noData, true);
+					db.getObjects(stdpaths, noData, !nullIfInaccessible, false,
+							!nullIfInaccessible);
 		final Map<ObjectIDResolvedWS,
 				Map<ObjectPaths, WorkspaceObjectData>> chaindata =
-					db.getObjects(chainpaths, noData, false);
+					db.getObjects(chainpaths, noData, false, true, true);
+					//object cannot be missing at this stage
 		chainpaths.clear();
 		stdpaths.clear();
 		
@@ -950,10 +964,13 @@ public class Workspace {
 				p = ObjectPaths.EMPTY;
 			}
 			final WorkspaceObjectData wod;
-			if (res.nochain.containsKey(o)) {
+			// works if res.nochain.get(o) is null or stddata doesn't have key
+			if (stddata.containsKey(res.nochain.get(o))) {
 				wod = stddata.get(res.nochain.get(o)).get(p);
-			} else {
+			} else if (chaindata.containsKey(res.hadchain.get(o))) {
 				wod = chaindata.get(res.hadchain.get(o)).get(p);
+			} else {
+				wod = null;
 			}
 			ret.add(wod);
 		}
