@@ -924,7 +924,6 @@ public class Workspace {
 		return getObjects(user, loi, noData, false);
 	}
 	
-	//TODO NOW test null if inaccessible all the same ways it's tested for getObjectInfo
 	public List<WorkspaceObjectData> getObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> loi,
@@ -1002,6 +1001,7 @@ public class Workspace {
 	
 	//TODO REFS Update docs
 	//TODO REFS release notes
+	//TODO REFS add get_objects2 to API with all new functionality, update get_object_info_new with reference following
 
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveReferenceChains(
 			final WorkspaceUser user,

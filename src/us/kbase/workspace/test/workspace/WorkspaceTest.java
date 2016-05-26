@@ -1026,99 +1026,127 @@ public class WorkspaceTest extends WorkspaceTester {
 		//test get object info where null is returned instead of exception
 		
 		// set up
-		WorkspaceUser foo = new WorkspaceUser("foo");
-		WorkspaceUser bar = new WorkspaceUser("bar");
+		WorkspaceUser user1 = new WorkspaceUser("foo");
+		WorkspaceUser user2 = new WorkspaceUser("bar");
 		
 		IdReferenceHandlerSetFactory foofac = getIdFactory();
-		IdReferenceHandlerSetFactory barfac = getIdFactory();
 		
-		WorkspaceIdentifier read = new WorkspaceIdentifier("saveobjread");
-		WorkspaceIdentifier priv = new WorkspaceIdentifier("saveobj");
-		WorkspaceInformation readinfo = ws.createWorkspace(
-				foo, read.getIdentifierString(), true, null, null);
-		WorkspaceInformation privinfo = ws.createWorkspace(
-				foo, priv.getIdentifierString(), false, null, null);
-		long readid = readinfo.getId();
-		long privid = privinfo.getId();
+		WorkspaceIdentifier glblws = new WorkspaceIdentifier("readglbl");
+		WorkspaceIdentifier readws = new WorkspaceIdentifier("read");
+		WorkspaceIdentifier privws = new WorkspaceIdentifier("priv");
+		WorkspaceIdentifier delws = new WorkspaceIdentifier("del");
+		WorkspaceInformation glblwsinf = ws.createWorkspace(
+				user1, glblws.getIdentifierString(), true, null, null);
+		WorkspaceInformation readwsinf = ws.createWorkspace(
+				user1, readws.getIdentifierString(), false, null, null);
+		WorkspaceInformation privwsinf = ws.createWorkspace(
+				user1, privws.getIdentifierString(), false, null, null);
+		WorkspaceInformation delwsinf = ws.createWorkspace(
+				user1, delws.getIdentifierString(), false, null, null);
+		long glblid = glblwsinf.getId();
+		long readid = readwsinf.getId();
+		long delid = delwsinf.getId();
+		long privid = privwsinf.getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> data2 = new HashMap<String, Object>();
 		Map<String, String> premeta = new HashMap<String, String>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
-		JsonNode savedata = MAPPER.valueToTree(data);
 		data2.put("fubar2", moredata);
-		JsonNode savedata2 = MAPPER.valueToTree(data2);
 		premeta.put("metastuff", "meta");
 		WorkspaceUserMetadata meta = new WorkspaceUserMetadata(premeta);
 		Map<String, String> premeta2 = new HashMap<String, String>();
 		premeta2.put("meta2", "my hovercraft is full of eels");
 		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(premeta2);
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
-		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
-		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
+		p.addAction(new Provenance.ProvenanceAction()
+				.withServiceName("some service"));
+		List<WorkspaceSaveObject> objects =
+				new ArrayList<WorkspaceSaveObject>();
 		
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata, SAFE_TYPE1, meta, p, false));
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata2, SAFE_TYPE1, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-1"), savedata, SAFE_TYPE1, meta, p, false));
-		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE1, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE1, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("type1"),
+				data, SAFE_TYPE1, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("type2del"),
+				data2, SAFE_TYPE1, meta2, p, false));
+		ObjectInformation rdobjinfo = ws.saveObjects(
+				user1, readws, objects, foofac).get(0);
+		ws.setObjectsDeleted(user1, Arrays.asList(
+				new ObjectIdentifier(readws, "type2del")), true);
 		
-		List<ObjectInformation> objinfo = ws.saveObjects(foo, read, objects, foofac);
-		ws.saveObjects(foo, priv, objects, foofac);
-		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
-		String chksum2 = "3c59f762140806c36ab48a152f28e840";
-		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.NONE);
+		objects.remove(1);
+		
+		ws.saveObjects(user1, privws, objects, foofac).get(0);
+		ws.saveObjects(user1, delws, objects, foofac).get(0);
+		ws.setWorkspaceDeleted(user1, delws, true);
+		ObjectInformation globjinfo = ws.saveObjects(
+				user1, glblws, objects, foofac).get(0);
+		
+		ws.setPermissions(user1, readws, Arrays.asList(user2),
+				Permission.READ);
+		ws.setPermissions(user1, privws, Arrays.asList(user2),
+				Permission.NONE);
 		
 		//tests
 		
-		// test bad workspace name, bad object name
+		// test bad workspace name, bad object name, bad ids, bad ver
 		List<ObjectIdentifier> nullloi = new ArrayList<ObjectIdentifier>();
-		nullloi.add(new ObjectIdentifier(read, 1));
-		nullloi.add(new ObjectIdentifier(read, "booger"));
-		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier("saveAndGetFakefake"), "booger"));
-		nullloi.add(new ObjectIdentifier(read, 1, 1));
-		
-		List<ObjectInformation> nullobjinfo = ws.getObjectInformation(foo, nullloi, true, true);
-		checkObjInfo(nullobjinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
-		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
-		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(2));
-		checkObjInfo(nullobjinfo.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
-		
-		// test inaccessible workspace
-		nullloi.clear();
-		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "auto3"));
-		nullloi.add(new ObjectIdentifier(priv, 2));
-		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), "auto3", 1));
-		nullloi.add(new ObjectIdentifier(priv, 3));
+		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(glblid), 1));
+		nullloi.add(new ObjectIdentifier(glblws, "booger"));
+		nullloi.add(new ObjectIdentifier(
+				new WorkspaceIdentifier("saveAndGetFakefake"), 1));
+		nullloi.add(new ObjectIdentifier(glblws, "type1", 1));
+		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(5), 1));
 		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), 1));
+		nullloi.add(new ObjectIdentifier(readws, 1, 2));
+		nullloi.add(new ObjectIdentifier(readws, 3));
+		nullloi.add(new ObjectIdentifier(readws, "type1"));
+		nullloi.add(new ObjectIdentifier(readws, 1, 1));
 		
-		nullobjinfo = ws.getObjectInformation(bar, nullloi, false, true);
-		checkObjInfo(nullobjinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
-		checkObjInfo(nullobjinfo.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
-		checkObjInfo(nullobjinfo.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjectAndInfoWithNulls(user2, nullloi, Arrays.asList(
+				globjinfo, null, null, globjinfo, null, rdobjinfo, null, null,
+				rdobjinfo, rdobjinfo),
+				Arrays.asList(
+				data, null, null, data, null, data, null, null, data, data));
 		
+		// test with anonymous user
+		checkObjectAndInfoWithNulls(null, nullloi, Arrays.asList(
+				globjinfo, null, null, globjinfo, null, null, null, null,
+				null, null),
+				Arrays.asList(
+				data, null, null, data, null, null, null, null, null, null));
+		
+		// test unreadable workspace
 		nullloi.clear();
-		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(readid), 1, 1));
-		nullloi.add(new ObjectIdentifier(priv, 3));
-		nullloi.add(new ObjectIdentifier(read, "auto3"));
+		nullloi.add(new ObjectIdentifier(new WorkspaceIdentifier(glblid), 1));
+		nullloi.add(new ObjectIdentifier(privws, 1));
+		nullloi.add(new ObjectIdentifier(readws, "type1", 1));
+		nullloi.add(new ObjectIdentifier(
+				new WorkspaceIdentifier(privid), "type1"));
+		nullloi.add(new ObjectIdentifier(privws, "type1", 1));
+		nullloi.add(new ObjectIdentifier(readws, 1));
 		
-		nullobjinfo = ws.getObjectInformation(null, nullloi, true, true);
-		checkObjInfo(nullobjinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
-		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
-		checkObjInfo(nullobjinfo.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
+		checkObjectAndInfoWithNulls(user2, nullloi, Arrays.asList(
+				globjinfo, null, rdobjinfo, null, null, rdobjinfo),
+				Arrays.asList(
+				data, null,  data, null, null, data));
 		
-		// test deleted object & workspace
-		ws.setObjectsDeleted(foo, Arrays.asList(new ObjectIdentifier(priv, 3)), true);
-		ws.setWorkspaceDeleted(foo, read, true);
+		// test deleted object and workspace
+		nullloi.clear();
+		nullloi.add(new ObjectIdentifier(readws, 1, 1));
+		nullloi.add(new ObjectIdentifier(delws, 1));
+		nullloi.add(new ObjectIdentifier(delws, 1, 1));
+		nullloi.add(new ObjectIdentifier(
+				new WorkspaceIdentifier(delid), "type1"));
+		nullloi.add(new ObjectIdentifier(glblws, "type1", 1));
+		nullloi.add(new ObjectIdentifier(readws, 2));
+		nullloi.add(new ObjectIdentifier(readws, "type2", 1));
+		nullloi.add(new ObjectIdentifier(readws, "type1", 1));
 		
-		nullobjinfo = ws.getObjectInformation(null, nullloi, true, true);
-		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(0));
-		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
-		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(2));
-		
+		checkObjectAndInfoWithNulls(user2, nullloi, Arrays.asList(
+				rdobjinfo, null, null, null, globjinfo, null, null, rdobjinfo),
+				Arrays.asList(
+				data, null, null, null, data, null, null, data));
 	}
 
 	@Test

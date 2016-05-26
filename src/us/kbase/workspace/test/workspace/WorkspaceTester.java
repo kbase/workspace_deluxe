@@ -598,12 +598,48 @@ public class WorkspaceTester {
 			assertThat("correct exception", e.getLocalizedMessage(), is(exp.getLocalizedMessage()));
 		}
 	}
+	
+	protected void checkObjectAndInfoWithNulls(WorkspaceUser user,
+			List<ObjectIdentifier> ids, List<ObjectInformation> expected,
+			List<Map<String, Object>> expdata) throws Exception {
+		List<WorkspaceObjectData> gotdata = ws.getObjects(user, ids, false, true);
+		List<WorkspaceObjectData> gotprov = ws.getObjects(user, ids, true, true);
+		List<ObjectInformation> gotinfo = ws.getObjectInformation(user, ids, true, true);
+		Iterator<WorkspaceObjectData> gotdatai = gotdata.iterator();
+		Iterator<WorkspaceObjectData> gotprovi = gotprov.iterator();
+		Iterator<ObjectInformation> gotinfoi = gotinfo.iterator();
+		Iterator<ObjectInformation> expinfoi = expected.iterator();
+		Iterator<Map<String, Object>> expdatai = expdata.iterator();
+		while (gotdatai.hasNext()) {
+			ObjectInformation einf = expinfoi.next();
+			Map<String, Object> edata = expdatai.next();
+			WorkspaceObjectData gprov = gotprovi.next();
+			ObjectInformation ginf = gotinfoi.next();
+			WorkspaceObjectData gdata = gotdatai.next();
+			if (einf == null) {
+				assertNull("expected null prov", gprov);
+				assertNull("expected null info", ginf);
+				assertNull("expected null data", gdata);
+			} else {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> d = (Map<String, Object>) gdata.getData();
+				assertThat("got expected obj info from getInfo", ginf, is(einf));
+				assertThat("got expected obj info from getObj", gdata.getObjectInfo(), is(einf));
+				assertThat("got expected obj info from getObjProv", gprov.getObjectInfo(), is(einf));
+				assertThat("got expected data", d, is(edata));
+			}
+		}
+		if (expinfoi.hasNext() || expdatai.hasNext() || gotprovi.hasNext() ||
+				gotinfoi.hasNext() || gotdatai.hasNext()) {
+			fail("mismatched iter counts");
+		}
+	}
 
 	protected void checkObjectAndInfo(WorkspaceUser user,
 			List<ObjectIdentifier> ids, List<FakeObjectInfo> fakeinfo,
 			List<Map<String, Object>> data) throws Exception {
 		List<WorkspaceObjectData> retdata = ws.getObjects(user, ids);
-		List<WorkspaceObjectData> provdata = ws.getObjects(user, ids, false);
+		List<WorkspaceObjectData> provdata = ws.getObjects(user, ids, true);
 		Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
 		Iterator<WorkspaceObjectData> provi = provdata.iterator();
 		Iterator<FakeObjectInfo> info = fakeinfo.iterator();
@@ -613,7 +649,7 @@ public class WorkspaceTester {
 			Map<String, Object> d = dataiter.next();
 			WorkspaceObjectData woprov = provi.next();
 			WorkspaceObjectData wod1 = ret1.next();
-			checkObjectAndInfo(wod1, inf , d);
+			checkObjectAndInfo(wod1, inf, d);
 			checkObjInfo(woprov.getObjectInfo(), inf.getObjectId(), inf.getObjectName(),
 					inf.getTypeString(), inf.getVersion(), inf.getSavedBy(),
 					inf.getWorkspaceId(), inf.getWorkspaceName(), inf.getCheckSum(),

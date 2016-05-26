@@ -2015,10 +2015,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//size penalty, but meh
 		long size = 0;
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
-			final Set<ObjectPaths> ops = paths.get(o);
-			final long mult = ops.size() < 1 ? 1 : ops.size();
-			size += mult * (Long) vers.get(resobjs.get(o))
-					.get(Fields.VER_SIZE);
+			// works if resobjs.get(o) is null or vers doesn't contain
+			if (vers.containsKey(resobjs.get(o))) {
+				final Set<ObjectPaths> ops = paths.get(o);
+				final long mult = ops.size() < 1 ? 1 : ops.size();
+				size += mult * (Long) vers.get(resobjs.get(o))
+						.get(Fields.VER_SIZE);
+			}
 		}
 		if (size > rescfg.getMaxReturnedDataSize()) {
 			throw new IllegalArgumentException(String.format(
