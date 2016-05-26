@@ -2483,6 +2483,7 @@ $results is a Workspace.GetObjects2Results
 GetObjects2Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 	ignoreErrors has a value which is a Workspace.boolean
+	no_data has a value which is a Workspace.boolean
 ObjectSpecification is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -2592,6 +2593,7 @@ $results is a Workspace.GetObjects2Results
 GetObjects2Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 	ignoreErrors has a value which is a Workspace.boolean
+	no_data has a value which is a Workspace.boolean
 ObjectSpecification is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -10133,6 +10135,8 @@ Input parameters for the get_objects2 function.
         boolean ignoreErrors - Don't throw an exception if an object cannot
                 be accessed; return null for that object's information instead.
                 Default false.
+        boolean no_data - return the provenance, references, and
+                object_info for this object without the object data. Default false.
 
 
 =item Definition
@@ -10143,6 +10147,7 @@ Input parameters for the get_objects2 function.
 a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 ignoreErrors has a value which is a Workspace.boolean
+no_data has a value which is a Workspace.boolean
 
 </pre>
 
@@ -10153,6 +10158,7 @@ ignoreErrors has a value which is a Workspace.boolean
 a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 ignoreErrors has a value which is a Workspace.boolean
+no_data has a value which is a Workspace.boolean
 
 
 =end text

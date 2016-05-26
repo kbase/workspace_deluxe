@@ -110,7 +110,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "41e5b040256d1044c797f6f706464d3eaeaa5216";
+    private static final String gitCommitHash = "57ece4612f32e29a5788aca9a9ee2870ece79796";
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
@@ -1100,7 +1100,7 @@ public class WorkspaceServer extends JsonServerServlet {
         return returnVal;
     }
 
-	/**
+    /**
      * <p>Original spec-file function name: rename_workspace</p>
      * <pre>
      * Rename a workspace.

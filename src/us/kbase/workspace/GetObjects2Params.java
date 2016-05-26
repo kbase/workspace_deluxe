@@ -25,6 +25,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         boolean ignoreErrors - Don't throw an exception if an object cannot
  *                 be accessed; return null for that object's information instead.
  *                 Default false.
+ *         boolean no_data - return the provenance, references, and
+ *                 object_info for this object without the object data. Default false.
  * </pre>
  * 
  */
@@ -32,7 +34,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
     "objects",
-    "ignoreErrors"
+    "ignoreErrors",
+    "no_data"
 })
 public class GetObjects2Params {
 
@@ -40,6 +43,8 @@ public class GetObjects2Params {
     private List<ObjectSpecification> objects;
     @JsonProperty("ignoreErrors")
     private Long ignoreErrors;
+    @JsonProperty("no_data")
+    private Long noData;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("objects")
@@ -72,6 +77,21 @@ public class GetObjects2Params {
         return this;
     }
 
+    @JsonProperty("no_data")
+    public Long getNoData() {
+        return noData;
+    }
+
+    @JsonProperty("no_data")
+    public void setNoData(Long noData) {
+        this.noData = noData;
+    }
+
+    public GetObjects2Params withNoData(Long noData) {
+        this.noData = noData;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -84,7 +104,7 @@ public class GetObjects2Params {
 
     @Override
     public String toString() {
-        return ((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", noData=")+ noData)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

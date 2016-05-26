@@ -743,13 +743,18 @@ public class JSONRPCLayerTester {
 	}
 	
 	protected ObjectSpecification toObjSpec(final ObjectIdentity oi) {
-		return new ObjectSpecification()
+		ObjectSpecification ret = new ObjectSpecification()
 			.withName(oi.getName())
 			.withObjid(oi.getObjid())
 			.withRef(oi.getRef())
 			.withVer(oi.getVer())
 			.withWorkspace(oi.getWorkspace())
 			.withWsid(oi.getWsid());
+		
+		for (Entry<String, Object> e: oi.getAdditionalProperties().entrySet()) {
+			ret.setAdditionalProperties(e.getKey(), e.getValue());
+		}
+		return ret;
 	}
 	
 	protected List<ObjectSpecification> toObjSpec(final List<ObjectIdentity> oi) {

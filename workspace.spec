@@ -1036,6 +1036,7 @@ module Workspace {
 	typedef structure {
 		list<ObjectSpecification> objects;
 		boolean ignoreErrors;
+		boolean no_data;
 	} GetObjects2Params;
 	
 	/* Results from the get_objects2 function.

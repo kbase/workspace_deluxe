@@ -930,7 +930,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		p.setAdditionalProperties("wooga", "foo");
 		failGetObjectInfoNew(p, "Unexpected arguments in GetObjectInfoNewParams: wooga");
 		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(null),
-				"The object identifier list cannot be null");
+				"The object specification list cannot be null");
 		
 		List<ObjectSpecification> nullloi = new ArrayList<ObjectSpecification>();
 		nullloi.add(new ObjectSpecification().withWorkspace("ultrafakeworkspace").withObjid(1L).withVer(1L));
