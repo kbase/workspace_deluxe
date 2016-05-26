@@ -37,6 +37,7 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -446,6 +447,20 @@ public class LoggingTest {
 				new LogObjExp("get_object_info_new",
 						"Object 1/1/1 SomeModule.AType-1.0", true),
 				new LogObjExp("get_object_info_new", "end method", false))));
+		logout.reset();
+		
+		//get objs2
+		CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(
+				new ObjectSpecification().withRef("1/1/2"),
+				new ObjectSpecification().withRef("1/1/1"))));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("get_objects2", "start method", false),
+				new LogObjExp("get_objects2",
+						"Object 1/1/2 SomeModule.BType-1.0", true),
+				new LogObjExp("get_objects2",
+						"Object 1/1/1 SomeModule.AType-1.0", true),
+				new LogObjExp("get_objects2", "end method", false))));
 		logout.reset();
 		
 		// get objs
