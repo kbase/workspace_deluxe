@@ -198,6 +198,10 @@ public class KBaseIdentifierFactory {
 				new LinkedList<ObjectIdentifier>();
 		int objcount = 1;
 		for (final ObjectSpecification o: objects) {
+			if (o == null) {
+				throw new NullPointerException(
+						"Objects in the object specification list cannot be null");
+			}
 			final ObjectIdentifier oi;
 			try {
 				oi = processObjectIdentifier(
@@ -270,7 +274,7 @@ public class KBaseIdentifierFactory {
 					ret.add(processObjectReference(r));
 				} catch (IllegalArgumentException e) {
 					throw new IllegalArgumentException(String.format(
-							"Invalid object reference %s at position #%s: %s",
+							"Invalid object reference (%s) at position #%s: %s",
 							r, refcount, e.getLocalizedMessage()), e);
 				}
 				refcount++;

@@ -274,7 +274,7 @@ Step 5 - retrieve the data from the Workspace
 ---------------------------------------------
 
 Retrieving the data from the workspace also works normally, but there’s a
-couple of important points. When calling the ``get_objects``,
+couple of important points. When calling the ``get_objects``, ``get_objects2``,
 ``get_referenced_objects``, ``get_object_subset``, or
 ``get_object_provenance`` methods:
 
@@ -289,7 +289,7 @@ Workspace object are shared as the object is shared.
 .. code-block:: python
     :emphasize-lines: 19-22
 
-    In [18]: ws.get_objects([{'ref': 'foo/foo'}])
+    In [18]: ws.get_objects2({'objects': [{'ref': 'foo/foo'}]})['data']
     Out[18]:
     [{u'created': u'2014-08-01T20:20:58+0000',
       u'creator': u'kbasetest',  
@@ -339,7 +339,7 @@ of some or all of the Shock nodes embedded in the object could not be updated.
 .. code-block:: python
     :emphasize-lines: 7, 8
 
-    In [26]: ws.get_objects([{'ref': 'foo/foo'}])
+    In [26]: ws.get_objects2({'objects': [{'ref': 'foo/foo'}]})
     Out[26]:
     [{u'created': u'2014-08-08T00:07:10+0000',
       u'creator': u'kbasetest',
