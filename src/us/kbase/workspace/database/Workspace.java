@@ -1188,7 +1188,7 @@ public class Workspace {
 		final Set<WorkspaceIdentifier> wsis =
 				new HashSet<WorkspaceIdentifier>();
 		for (final WorkspaceObjectData d: data) {
-			if (d.getCopyReference() != null) {
+			if (d != null && d.getCopyReference() != null) {
 				wsis.add(new WorkspaceIdentifier(
 						d.getCopyReference().getWorkspaceID()));
 			}
@@ -1224,17 +1224,16 @@ public class Workspace {
 		final Map<WorkspaceObjectData, ObjectIDResolvedWS> rois =
 				new HashMap<WorkspaceObjectData, ObjectIDResolvedWS>();
 		for (final WorkspaceObjectData d: data) {
-			final Reference cref = d.getCopyReference();
-			if (cref == null) {
-				continue;
-			}
-			final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
-					cref.getWorkspaceID());
-			if (!rwsis.containsKey(wsi)) {
-				d.setCopySourceInaccessible();
-			} else {
-				rois.put(d, new ObjectIDResolvedWS(rwsis.get(wsi),
-						cref.getObjectID(), cref.getVersion()));
+			if (d != null && d.getCopyReference() != null) {
+				final Reference cref = d.getCopyReference();
+				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
+						cref.getWorkspaceID());
+				if (!rwsis.containsKey(wsi)) {
+					d.setCopySourceInaccessible();
+				} else {
+					rois.put(d, new ObjectIDResolvedWS(rwsis.get(wsi),
+							cref.getObjectID(), cref.getVersion()));
+				}
 			}
 		}
 		

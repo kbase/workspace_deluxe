@@ -1065,8 +1065,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(1));
 		assertNull("Obj info is null for inaccessible object", nullobjinfo.get(2));
 		
-		ws.setWorkspaceDeleted(foo, read, false);
-		ws.setGlobalPermission(foo, read, Permission.NONE);
 	}
 
 	@Test

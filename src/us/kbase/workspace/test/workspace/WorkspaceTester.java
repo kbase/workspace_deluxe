@@ -731,13 +731,17 @@ public class WorkspaceTester {
 			return;
 		}
 		//test that getting objinfo with bad args returns null when requested
-		List<ObjectInformation> n = ws.getObjectInformation(user,
+		List<ObjectInformation> infonulls = ws.getObjectInformation(user,
 				(List<ObjectIdentifier>)(List<?>) objs, true, true);
-		for (int i = 0; i < n.size(); i++) {
+		List<WorkspaceObjectData> datanulls = ws.getObjects(user,
+				(List<ObjectIdentifier>)(List<?>) objs, true, true);
+		for (int i = 0; i < infonulls.size(); i++) {
 			if (nulls.contains(i)) {
-				assertNull("objinfo is not null", n.get(i));
+				assertNull("objinfo is not null", infonulls.get(i));
+				assertNull("objdata is not null", datanulls.get(i));
 			} else {
-				assertNotNull("objectinfo is null", n.get(i));
+				assertNotNull("objectinfo is null", infonulls.get(i));
+				assertNotNull("objectdata is null", datanulls.get(i));
 			}
 		}
 		
