@@ -962,6 +962,21 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertNull("Got object info when expected null", nullret.get(6));
 		assertNull("Got object info when expected null", nullret.get(7));
 		
+		List<ObjectData> nullobj = CLIENT1.getObjects2(new GetObjects2Params()
+			.withObjects(nullloi).withIgnoreErrors(1L)).getData();
+		
+		assertNull("Got object info when expected null", nullobj.get(0));
+		assertNull("Got object info when expected null", nullobj.get(1));
+		checkData(nullobj.get(2), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
+		assertNull("Got object info when expected null", nullobj.get(3));
+		checkData(nullobj.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
+		checkData(nullobj.get(5), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
+		assertNull("Got object info when expected null", nullobj.get(6));
+		assertNull("Got object info when expected null", nullobj.get(7));
+		
 		CLIENT2.setPermissions(new SetPermissionsParams().withNewPermission("r")
 				.withUsers(Arrays.asList(USER1)).withWorkspace("setgetunreadableto1"));
 		CLIENT2.deleteWorkspace(new WorkspaceIdentity().withWorkspace("setgetunreadableto1"));
@@ -983,11 +998,19 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertNull("Got object info when expected null", nullret.get(5));
 		assertNull("Got object info when expected null", nullret.get(6));
 		assertNull("Got object info when expected null", nullret.get(7));
+
+		nullobj = CLIENT1.getObjects2(new GetObjects2Params().withObjects(nullloi)
+				.withIgnoreErrors(1L)).getData();
 		
-		
-		//clean up
-		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
-				.withWorkspace("saveget").withNewPermission("n"));
+		assertNull("Got object info when expected null", nullobj.get(0));
+		assertNull("Got object info when expected null", nullobj.get(1));
+		assertNull("Got object info when expected null", nullobj.get(2));
+		assertNull("Got object info when expected null", nullobj.get(3));
+		checkData(nullobj.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
+		assertNull("Got object info when expected null", nullobj.get(5));
+		assertNull("Got object info when expected null", nullobj.get(6));
+		assertNull("Got object info when expected null", nullobj.get(7));
 	}
 	
 	@Test

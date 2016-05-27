@@ -922,7 +922,8 @@ public class JSONRPCLayerTester {
 		List<Tuple11<Long, String, String, String, Long, String, Long, String,
 				String, Long, Map<String, String>>> retusermeta =
 				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-						.withObjects(toObjSpec(loi)).withIncludeMetadata(1L));
+						.withObjects(toObjSpec(loi)).withIncludeMetadata(1L)
+						.withIgnoreErrors(0L));
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (Tuple11<Long, String, String, String, Long, String, Long,

@@ -425,6 +425,10 @@ public class ArgUtils {
 			throws JsonParseException, IOException {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
+			if (o == null) {
+				ret.add(null);
+				continue;
+			}
 			final HandleError error = makeHandlesReadable(
 					o, user, handleManagerURl, handleManagertoken);
 			final ByteArrayFileCache resource = o.getSerializedData();

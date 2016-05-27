@@ -118,8 +118,6 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
     
-    //TODO NOW test reference following on get obj info, test all of getobjs2
-	
 	private static final String VER = "0.4.1";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
