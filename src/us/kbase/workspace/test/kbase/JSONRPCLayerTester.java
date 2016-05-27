@@ -966,6 +966,23 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
+	protected void compareInfo(
+			List<Tuple11<Long, String, String, String, Long, String, Long,
+			String, String, Long, Map<String, String>>> info,
+			List<ObjectData> exp) throws Exception {
+		
+		assertThat("not same number of ObjectInfos", info.size(), is(exp.size()));
+		Iterator<ObjectData> eIter = exp.iterator();
+		Iterator<Tuple11<Long, String, String, String, Long, String, Long,
+			String, String, Long, Map<String, String>>> gIter = info.iterator();
+		while (eIter.hasNext()) {
+			ObjectData e = eIter.next();
+			Tuple11<Long, String, String, String, Long, String, Long, String,
+				String, Long, Map<String, String>> gt = gIter.next();
+			compareObjectInfo(gt, e.getInfo());
+		}
+	}
+	
 	protected void checkData(ObjectData retdata, long id, String name,
 			String typeString, int ver, String user, long wsid, String wsname,
 			String chksum, long size, Map<String, String> meta, Map<String, Object> data) 
@@ -1443,13 +1460,20 @@ public class JSONRPCLayerTester {
 						new ObjectIdentity().withRef("referencedPriv/two"))));
 		compareData(exp, res);
 		
-		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
+		final List<ObjectSpecification> objlist = Arrays.asList(
 				new ObjectSpecification().withRef("referenced/ref").withObjPath(
 						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"))),
 				new ObjectSpecification().withRef("referenced/prov").withObjPath(
-						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/two"))))))
+						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/two"))));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(objlist))
 				.getData();
 		compareData(exp, res);
+		
+		List<Tuple11<Long, String, String, String, Long, String, Long, String,
+			String, Long, Map<String, String>>> info =
+			CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(objlist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -1487,7 +1511,7 @@ public class JSONRPCLayerTester {
 			excep = "The object specification list cannot be null";
 		}
 		// this is super goofy but it does point out that the new way of
-		// specifiying chains has many fewer failure modes
+		// specifying chains has many fewer failure modes
 		if (excep.contains("The object identifier list cannot be null") ||
 			excep.contains("No object identifiers provided") ||
 			excep.contains("The minimum size of a reference chain is 2 ObjectIdentities")) {
@@ -1516,11 +1540,6 @@ public class JSONRPCLayerTester {
 						e[2].replace("ObjectIdentities", "Reference string"));
 			}
 		}
-		
-//		if (excep.equals("Error on object chain #1: Error on ObjectIdentity #2: ObjectIdentities cannot be null")) {
-//			excep = "Error on ObjectSpecification #1: Invalid object id at position #1: ObjectIdentities cannot be null";
-//			refex = "Error on ObjectSpecification #1: Invalid object reference (null) at position #1: Reference string cannot be null";
-//		}
 		
 		try {
 			CLIENT1.getObjects2(new GetObjects2Params().withObjects(osl));

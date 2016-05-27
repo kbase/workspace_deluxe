@@ -43,6 +43,7 @@ import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GetNamesByPrefixParams;
 import us.kbase.workspace.GetNamesByPrefixResults;
 import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListAllTypesParams;
 import us.kbase.workspace.ListModuleVersionsParams;
@@ -2734,10 +2735,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withType(SAFE_TYPE).withName("prov").withProvenance(Arrays.asList(
 						new ProvenanceAction().withInputWsObjects(Arrays.asList("referencedPriv/two")))))));
 		
-		@SuppressWarnings("deprecation")
-		List<ObjectData> exp = CLIENT2.getObjects(Arrays.asList(
-				new ObjectIdentity().withRef("referencedPriv/one"),
-				new ObjectIdentity().withRef("referencedPriv/two")));
+		
+		List<ObjectData> exp = CLIENT2.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
+				new ObjectSpecification().withRef("referencedPriv/one"),
+				new ObjectSpecification().withRef("referencedPriv/two")))).getData();
 		
 		getReferencedObjectsCheckData(exp);
 		
