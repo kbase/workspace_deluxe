@@ -81,10 +81,3 @@ Build the documentation:
     bareubuntu@bu:~/ws/workspace_deluxe$ make build-docs
     
 The build directory is `docs`.
-
-COMPILATION REQUIREMENTS
--------------------------
-https://github.com/msneddon/typecomp  
-https://github.com/kbase/java_type_generator dev branch  
-
-For now, all compiled files are checked in.

@@ -8,5 +8,11 @@ public interface Reference extends RemappedId {
 	public long getObjectID();
 	public int getVersion();
 	@Override
+	public String getId();
+	@Override
 	public String toString();
+	@Override
+	public int hashCode();
+	@Override
+	public boolean equals(Object obj);
 }

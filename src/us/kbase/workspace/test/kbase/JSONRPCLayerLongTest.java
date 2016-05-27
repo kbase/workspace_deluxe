@@ -33,12 +33,12 @@ import us.kbase.kidl.KbStruct;
 import us.kbase.kidl.KbStructItem;
 import us.kbase.kidl.KbType;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.ObjectData;
-import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
-import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.test.workspace.WorkspaceTest;
 
 import com.fasterxml.jackson.core.JsonEncoding;
@@ -118,8 +118,9 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		// need 3g to get to this point
 		File tempFile2 = SERVER1.getTempFilesManager().generateTempFile("clresp", "json");
 		CLIENT1._setFileForNextRpcResponse(tempFile2);
-		UObject data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
-				.withWorkspace("bigdata"))).get(0).getData();
+		UObject data = CLIENT1.getObjects2(new GetObjects2Params().withObjects(
+				Arrays.asList(new ObjectSpecification().withObjid(1L)
+				.withWorkspace("bigdata")))).getData().get(0).getData();
 		if (printMemUsage) {
 			threadStopWrapper3[0] = true;
 			t3.join();
@@ -154,7 +155,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 	public void unicode() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("unicode"));
 		
-		Map<String, Object> data = new HashMap<String, Object>();
+		Map<String, Object> edata = new HashMap<String, Object>();
 		List<String> subdata = new LinkedList<String>();
 		StringBuilder sb = new StringBuilder();
 		//19 ttl bytes in UTF-8
@@ -169,16 +170,17 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		
 		int count = 4347900;
 		
-		data.put("subset", subdata);
+		edata.put("subset", subdata);
 		for (int i = 0; i < count; i++) {
 			subdata.add(test);
 		}
 		
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("unicode")
 				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
-						.withData(new UObject(data)))));
-		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(1L)
-				.withWorkspace("unicode"))).get(0).getData().asInstance();
+						.withData(new UObject(edata)))));
+		Map<String, Object> data = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification().withObjid(1L)
+				.withWorkspace("unicode")))).getData().get(0).getData().asInstance();
 		
 		assertThat("correct obj keys", data.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
@@ -196,12 +198,13 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("unicode")
 				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
 						.withData(new UObject(data)))));
-		data = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withObjid(2L)
-				.withWorkspace("unicode"))).get(0).getData().asInstance();
+		Map<String, Object> newdata = CLIENT1.getObjects2(new GetObjects2Params()
+			.withObjects(Arrays.asList(new ObjectSpecification().withObjid(2L)
+					.withWorkspace("unicode")))).getData().get(0).getData().asInstance();
 		
-		assertThat("unicode key correct", data.keySet(),
+		assertThat("unicode key correct", newdata.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList(test))));
-		assertThat("value correct", (String) data.get(test), is("foo"));
+		assertThat("value correct", (String) newdata.get(test), is("foo"));
 	}
 	
 	@Test
@@ -232,7 +235,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		String specDoc = "module " + moduleName + " {\n";
 		List<ObjectSaveData> saveDataList = new ArrayList<ObjectSaveData>();
 		List<byte[]> jsonList = new ArrayList<byte[]>();
-		List<ObjectIdentity> objIds = new ArrayList<ObjectIdentity>();
+		List<ObjectSpecification> objIds = new ArrayList<ObjectSpecification>();
 		List<KbTypedef> registeredTypes = new ArrayList<KbTypedef>();
 		List<String> newTypeNames = new ArrayList<String>();
 		List<Integer> sizes = new ArrayList<Integer>();
@@ -243,7 +246,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 			Object data = generateRandomData(r, type, new int[] {0});
 			specDoc += "typedef " + getTypeSpecText(type) + " " + typeName + ";\n";
 			String objName = "object" + i;
-			objIds.add(new ObjectIdentity().withRef(wsName + "/" + objName));
+			objIds.add(new ObjectSpecification().withRef(wsName + "/" + objName));
 			saveDataList.add(new ObjectSaveData().withType(moduleName + "." + typeName)
 					.withData(new UObject(data)).withName(objName));
 			byte[] json = sortJson(new ObjectMapper().writeValueAsBytes(data));
@@ -265,7 +268,8 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		CLIENT1.releaseModule(moduleName);
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(wsName).withObjects(saveDataList));
 		saveDataList = null;
-		List<ObjectData> retList = CLIENT1.getObjects(objIds);
+		List<ObjectData> retList = CLIENT1.getObjects2(
+				new GetObjects2Params().withObjects(objIds)).getData();
 		for (int i = 0; i < retList.size(); i++) {
 			ObjectData ret = retList.get(i);
 			byte[] retJson = UObject.getMapper().writeValueAsBytes(ret.getData());
@@ -475,7 +479,9 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		int iterCount1 = 100;
 		for (int iter = 0; iter < iterCount1; iter++) {
 			long time1 = System.currentTimeMillis();
-			ObjectData wod1 = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity().withRef(wsName + "/" + objName))).get(0);
+			ObjectData wod1 = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification()
+				.withRef(wsName + "/" + objName)))).getData().get(0);
 			Map<String, Object> ret1 = wod1.getData().asClassInstance(Map.class);
 			String data1text = wod1.getData().toJsonString();
 			Map<String, Object> contigIdsToFeatures = (Map<String, Object>)ret1.get("data");
@@ -499,7 +505,10 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 				for (int i = 0; i < numberOfIncludedPaths; i++)
 					included.add("data/" + contigId + "/" + rnd.nextInt(featureCount));
 				long time2 = System.currentTimeMillis();
-				ObjectData wod2 = CLIENT1.getObjectSubset(Arrays.asList(new SubObjectIdentity().withRef(wsName + "/" + objName).withIncluded(included))).get(0);
+				ObjectData wod2 = CLIENT1.getObjects2(
+						new GetObjects2Params().withObjects(Arrays.asList(
+						new ObjectSpecification().withRef(wsName + "/" + objName)
+						.withIncluded(included)))).getData().get(0);
 				String data2text = wod2.getData().toJsonString();
 				time2 = System.currentTimeMillis() - time2;
 				avgTime2 += time2;

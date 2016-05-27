@@ -23,6 +23,8 @@ import org.joda.time.format.DateTimeFormatterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonParseException;
+
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
@@ -40,7 +42,6 @@ import us.kbase.auth.TokenExpiredException;
 import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
-import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectInformation;
@@ -50,11 +51,9 @@ import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 
 /**
- * not thread safe
  * @author gaprice@lbl.gov
  *
  */
@@ -74,6 +73,23 @@ public class ArgUtils {
 	private final static DateTimeFormatter DATE_FORMATTER =
 			DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZoneUTC();
 	
+	public static Date chooseDate(
+			final String timestamp,
+			final Long epochInMilliSec,
+			final String error)
+			throws ParseException {
+		if (timestamp != null && epochInMilliSec != null) {
+			throw new IllegalArgumentException(error);
+		}
+		if (timestamp != null) {
+			return parseDate(timestamp);
+		}
+		if (epochInMilliSec != null) {
+			return new Date(epochInMilliSec);
+		}
+		return null;
+	}
+	
 	public static Provenance processProvenance(final WorkspaceUser user,
 			final List<ProvenanceAction> actions) throws ParseException {
 		
@@ -83,8 +99,11 @@ public class ArgUtils {
 		}
 		for (final ProvenanceAction a: actions) {
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
+			final Date d = chooseDate(a.getTime(), a.getEpoch(),
+					"Cannot specify both time and epoch in provenance " +
+							"action");
 			p.addAction(new Provenance.ProvenanceAction()
-					.withTime(parseDate(a.getTime()))
+					.withTime(d)
 					.withCaller(a.getCaller())
 					.withServiceName(a.getService())
 					.withServiceVersion(a.getServiceVer())
@@ -101,7 +120,7 @@ public class ArgUtils {
 					.withSubActions(processSubActions(a.getSubactions()))
 					.withCustom(a.getCustom())
 					.withDescription(a.getDescription())
-					);
+			);
 		}
 		return p;
 	}
@@ -132,22 +151,25 @@ public class ArgUtils {
 			return ret;
 		}
 		for (final ExternalDataUnit edu: externalData) {
+			final Date d = chooseDate(edu.getResourceReleaseDate(),
+					edu.getResourceReleaseEpoch(),
+					"Cannot specify both time and epoch in external " +
+							"data unit");
 			checkAddlArgs(edu.getAdditionalProperties(), edu.getClass());
 			ret.add(new ExternalData()
 					.withDataId(edu.getDataId())
 					.withDataUrl(edu.getDataUrl())
 					.withDescription(edu.getDescription())
 					.withResourceName(edu.getResourceName())
-					.withResourceReleaseDate(
-							parseDate(edu.getResourceReleaseDate()))
+					.withResourceReleaseDate(d)
 					.withResourceUrl(edu.getResourceUrl())
 					.withResourceVersion(edu.getResourceVersion())
-					);
+			);
 		}
 		return ret;
 	}
 
-	public static Date parseDate(final String date) throws ParseException {
+	private static Date parseDate(final String date) throws ParseException {
 		if (date == null) {
 			return null;
 		}
@@ -399,14 +421,19 @@ public class ArgUtils {
 			final Set<ByteArrayFileCache> resourcesToDestroy,
 			final URL handleManagerURl,
 			final RefreshingToken handleManagertoken,
-			final boolean logObjects) {
+			final boolean logObjects)
+			throws JsonParseException, IOException {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
+			if (o == null) {
+				ret.add(null);
+				continue;
+			}
 			final HandleError error = makeHandlesReadable(
 					o, user, handleManagerURl, handleManagertoken);
-			final ByteArrayFileCache resource = o.getDataAsTokens();
+			final ByteArrayFileCache resource = o.getSerializedData();
 			ret.add(new ObjectData()
-					.withData(resource.getUObject())
+					.withData(resource == null ? null : resource.getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
@@ -414,6 +441,7 @@ public class ArgUtils {
 					.withOrigWsid(o.getProvenance().getWorkspaceID())
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
+					.withEpoch(o.getProvenance().getDate().getTime())
 					.withRefs(o.getReferences())
 					.withCopied(o.getCopyReference() == null ? null :
 						o.getCopyReference().getId())
@@ -427,18 +455,19 @@ public class ArgUtils {
 		return ret;
 	}
 	
-	public static List<ObjectProvenanceInfo> translateObjectProvInfo(
-			final List<WorkspaceObjectInformation> objects,
+	@SuppressWarnings("deprecation")
+	public static List<us.kbase.workspace.ObjectProvenanceInfo> translateObjectProvInfo(
+			final List<WorkspaceObjectData> objects,
 			final WorkspaceUser user,
 			final URL handleManagerURl,
 			final RefreshingToken handleManagertoken,
 			final boolean logObjects) {
-		final List<ObjectProvenanceInfo> ret =
-				new ArrayList<ObjectProvenanceInfo>();
-		for (final WorkspaceObjectInformation o: objects) {
+		final List<us.kbase.workspace.ObjectProvenanceInfo> ret =
+				new ArrayList<us.kbase.workspace.ObjectProvenanceInfo>();
+		for (final WorkspaceObjectData o: objects) {
 			final HandleError error = makeHandlesReadable(
 					o, user, handleManagerURl, handleManagertoken);
-			ret.add(new ObjectProvenanceInfo()
+			ret.add(new us.kbase.workspace.ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
@@ -446,6 +475,7 @@ public class ArgUtils {
 					.withOrigWsid(o.getProvenance().getWorkspaceID())
 					.withCreated(formatDate(
 							o.getProvenance().getDate()))
+					.withEpoch(o.getProvenance().getDate().getTime())
 					.withRefs(o.getReferences())
 					.withCopied(o.getCopyReference() == null ? null :
 						o.getCopyReference().getId())
@@ -483,7 +513,7 @@ public class ArgUtils {
 	}
 
 	private static HandleError makeHandlesReadable(
-			final WorkspaceObjectInformation o,
+			final WorkspaceObjectData o,
 			final WorkspaceUser user,
 			final URL handleManagerURL,
 			final RefreshingToken handleManagertoken) {
@@ -561,8 +591,10 @@ public class ArgUtils {
 			final List<Provenance.ProvenanceAction> actions) {
 		final List<ProvenanceAction> pas = new LinkedList<ProvenanceAction>();
 		for (final Provenance.ProvenanceAction a: actions) {
+			final Date d = a.getTime();
 			pas.add(new ProvenanceAction()
-					.withTime(formatDate(a.getTime()))
+					.withTime(formatDate(d))
+					.withEpoch(d == null ? null : d.getTime())
 					.withCaller(a.getCaller())
 					.withService(a.getServiceName())
 					.withServiceVer(a.getServiceVersion())
@@ -612,13 +644,14 @@ public class ArgUtils {
 			return ret; //this should never happen, but just in case
 		}
 		for (final ExternalData ed: externalData) {
+			final Date d = ed.getResourceReleaseDate();
 			ret.add(new ExternalDataUnit()
 					.withDataId(ed.getDataId())
 					.withDataUrl(ed.getDataUrl())
 					.withDescription(ed.getDescription())
 					.withResourceName(ed.getResourceName())
-					.withResourceReleaseDate(
-							formatDate(ed.getResourceReleaseDate()))
+					.withResourceReleaseDate(formatDate(d))
+					.withResourceReleaseEpoch(d == null ? null : d.getTime())
 					.withResourceUrl(ed.getResourceUrl())
 					.withResourceVersion(ed.getResourceVersion())
 					);
@@ -627,8 +660,12 @@ public class ArgUtils {
 	}
 
 	public static boolean longToBoolean(final Long b) {
+		return longToBoolean(b, false);
+	}
+	
+	public static boolean longToBoolean(final Long b, final boolean default_) {
 		if (b == null) {
-			return false;
+			return default_;
 		}
 		return b != 0;
 	}

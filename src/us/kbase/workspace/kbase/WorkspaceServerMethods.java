@@ -1,12 +1,12 @@
 package us.kbase.workspace.kbase;
 
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
+import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.processProvenance;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
-import static us.kbase.workspace.kbase.ArgUtils.parseDate;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
@@ -16,6 +16,7 @@ import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -282,11 +283,17 @@ public class WorkspaceServerMethods {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final Permission p = params.getPerm() == null ? null :
 				translatePermission(params.getPerm());
+		final Date after = chooseDate(params.getAfter(),
+				params.getAfterEpoch(),
+				"Cannot specify both timestamp and epoch for after parameter");
+		final Date before = chooseDate(params.getBefore(),
+				params.getBeforeEpoch(),
+				"Cannot specify both timestamp and epoch for before " +
+				"parameter");
 		return wsInfoToTuple(ws.listWorkspaces(user,
 				p, ArgUtils.convertUsers(params.getOwners()),
 				new WorkspaceUserMetadata(params.getMeta()),
-				parseDate(params.getAfter()),
-				parseDate(params.getBefore()),
+				after, before,
 				longToBoolean(params.getExcludeGlobal()),
 				longToBoolean(params.getShowDeleted()),
 				longToBoolean(params.getShowOnlyDeleted())));

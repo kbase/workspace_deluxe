@@ -16,15 +16,18 @@ import us.kbase.common.service.Tuple11;
 /**
  * <p>Original spec-file type: ObjectProvenanceInfo</p>
  * <pre>
- * The provenance and supplemental info for an object.
+ * DEPRECATED
+ *         The provenance and supplemental info for an object.
  *         object_info info - information about the object.
  *         list<ProvenanceAction> provenance - the object's provenance.
  *         username creator - the user that first saved the object to the
  *                 workspace.
  *         ws_id orig_wsid - the id of the workspace in which this object was
- *                         originally saved. Null for objects saved prior to version
+ *                         originally saved. Missing for objects saved prior to version
  *                         0.4.1.
  *         timestamp created - the date the object was first saved to the
+ *                 workspace.
+ *         epoch epoch - the date the object was first saved to the
  *                 workspace.
  *         list<obj_ref> - the references contained within the object.
  *         obj_ref copied - the reference of the source object if this object is
@@ -38,6 +41,8 @@ import us.kbase.common.service.Tuple11;
  *         string handle_error - if an error occurs while setting ACLs on
  *                 embedded handle IDs, it will be reported here.
  *         string handle_stacktrace - the stacktrace for handle_error.
+ *         
+ *         @deprecated
  * </pre>
  * 
  */
@@ -49,6 +54,7 @@ import us.kbase.common.service.Tuple11;
     "creator",
     "orig_wsid",
     "created",
+    "epoch",
     "refs",
     "copied",
     "copy_source_inaccessible",
@@ -68,6 +74,8 @@ public class ObjectProvenanceInfo {
     private java.lang.Long origWsid;
     @JsonProperty("created")
     private java.lang.String created;
+    @JsonProperty("epoch")
+    private java.lang.Long epoch;
     @JsonProperty("refs")
     private List<String> refs;
     @JsonProperty("copied")
@@ -154,6 +162,21 @@ public class ObjectProvenanceInfo {
 
     public ObjectProvenanceInfo withCreated(java.lang.String created) {
         this.created = created;
+        return this;
+    }
+
+    @JsonProperty("epoch")
+    public java.lang.Long getEpoch() {
+        return epoch;
+    }
+
+    @JsonProperty("epoch")
+    public void setEpoch(java.lang.Long epoch) {
+        this.epoch = epoch;
+    }
+
+    public ObjectProvenanceInfo withEpoch(java.lang.Long epoch) {
+        this.epoch = epoch;
         return this;
     }
 
@@ -259,7 +282,7 @@ public class ObjectProvenanceInfo {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((("ObjectProvenanceInfo"+" [info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", origWsid=")+ origWsid)+", created=")+ created)+", refs=")+ refs)+", copied=")+ copied)+", copySourceInaccessible=")+ copySourceInaccessible)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((("ObjectProvenanceInfo"+" [info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", origWsid=")+ origWsid)+", created=")+ created)+", epoch=")+ epoch)+", refs=")+ refs)+", copied=")+ copied)+", copySourceInaccessible=")+ copySourceInaccessible)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

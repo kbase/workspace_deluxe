@@ -11,7 +11,6 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
-import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
@@ -189,37 +188,84 @@ public interface WorkspaceDatabase {
 			NoSuchWorkspaceException, WorkspaceCommunicationException,
 			NoSuchObjectException;
 	
-	public Map<ObjectIDResolvedWS, WorkspaceObjectInformation>
-			getObjectProvenance(Set<ObjectIDResolvedWS> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException;
-	
+	/** Get object data and provenance information from the workspace database.
+	 * @param objects the objects for which to retrieve data.
+	 * @param noData return provenance only if true.
+	 * @param exceptIfDeleted throw an exception if deleted.
+	 * @param includeDeleted include information from deleted objects. Has no
+	 * effect if exceptIfDeleted is set.
+	 * @param exceptIfMissing throw an exception if the object does not exist
+	 * in the database.
+	 * @return a mapping of object id -> subdata paths -> data.
+	 * @throws NoSuchObjectException if there is no such object.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the backend occurs.
+	 * @throws CorruptWorkspaceDBException if database corruption is detected.
+	 * @throws TypedObjectExtractionException if the subdata could not be
+	 * extracted.
+	 */
 	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
-			getObjects(Set<ObjectIDResolvedWS> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException;
-
-	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
-			getObjects(final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects)
-			throws NoSuchObjectException, WorkspaceCommunicationException,
+			getObjects(
+					Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects,
+					boolean noData,
+					boolean exceptIfDeleted,
+					boolean includeDeleted,
+					boolean exceptIfMissing)
+			throws NoSuchObjectException,WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException;
 	
-	public Map<ObjectChainResolvedWS, WorkspaceObjectData> getReferencedObjects(
-			Set<ObjectChainResolvedWS> values)
-			throws NoSuchObjectException, WorkspaceCommunicationException,
-			NoSuchReferenceException, CorruptWorkspaceDBException;
+	/** Get the set of outgoing references for an object.
+	 * @param objs the objects for which to retrieve references.
+	 * @param exceptIfDeleted throw an exception if the object is deleted if
+	 * true.
+	 * @param includeDeleted include references from deleted objects. Has no
+	 * effect if exceptIfDeleted is set.
+	 * @param exceptIfMissing throw and exception if the object does not
+	 * exist if true. If true, the object will not exist in the returned map.
+	 * @return the set of references for each object.
+	 * @throws NoSuchObjectException if there is no such object.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the backend occurs.
+	 */
+	public Map<ObjectIDResolvedWS, ObjectReferenceSet>
+			getObjectOutgoingReferences(
+					Set<ObjectIDResolvedWS> objs,
+					boolean exceptIfDeleted,
+					boolean includeDeleted,
+					boolean exceptIfMissing)
+			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public Map<ObjectIDResolvedWS, Set<ObjectInformation>>
 			getReferencingObjects(PermissionSet perms,
 					Set<ObjectIDResolvedWS> objs)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
+	/** @deprecated */
 	public Map<ObjectIDResolvedWS, Integer> getReferencingObjectCounts(
 			Set<ObjectIDResolvedWS> objects)
 			throws WorkspaceCommunicationException, NoSuchObjectException;
 	
+	/** Get information about a set of objects.
+	 * @param objectIDs the object IDs for which to retrieve information.
+	 * @param includeMetadata true to return user supplied metadata with the
+	 * information.
+	 * @param exceptIfDeleted throw an exception if the object is in a
+	 * deleted state.
+	 * @param includeDeleted include information from deleted objects. Has no
+	 * effect if exceptIfDeleted is set.
+	 * @param exceptIfMissing throw an exception if the object does not exist
+	 * in the database.
+	 * @return a mapping of the object ID to information about the object.
+	 * @throws NoSuchObjectException if the object doesn't exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs
+	 * with the backend database.
+	 */
 	public Map<ObjectIDResolvedWS, ObjectInformation> getObjectInformation(
-			Set<ObjectIDResolvedWS> objectIDs, boolean includeMetadata,
-			boolean ignoreMissingAndDeleted)
+			Set<ObjectIDResolvedWS> objectIDs,
+			boolean includeMetadata,
+			boolean exceptIfDeleted,
+			boolean includeDeleted,
+			boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
@@ -309,5 +355,4 @@ public interface WorkspaceDatabase {
 
 	public void setResourceUsageConfiguration(
 			ResourceUsageConfiguration rescfg);
-
 }

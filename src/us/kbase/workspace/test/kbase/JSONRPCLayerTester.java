@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -49,12 +50,13 @@ import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
-import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RenameObjectParams;
@@ -63,7 +65,6 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.SubAction;
-import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
@@ -464,39 +465,145 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
+	protected static class StringEpoch {
+		public final Long epoch;
+		public final String time;
+		
+		public StringEpoch(long epoch) {
+			this.epoch = epoch;
+			this.time = null;
+		}
+		
+		public StringEpoch(String time) {
+			this.time = time;
+			this.epoch = null;
+		}
+		public StringEpoch(long epoch, String time) {
+			this.time = time;
+			this.epoch = epoch;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((epoch == null) ? 0 : epoch.hashCode());
+			result = prime * result + ((time == null) ? 0 : time.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			StringEpoch other = (StringEpoch) obj;
+			if (epoch == null) {
+				if (other.epoch != null)
+					return false;
+			} else if (!epoch.equals(other.epoch))
+				return false;
+			if (time == null) {
+				if (other.time != null)
+					return false;
+			} else if (!time.equals(other.time))
+				return false;
+			return true;
+		}
+	}
+	
+	@SuppressWarnings("deprecation")
 	protected void checkProvenance(String user, ObjectIdentity id,
 			List<ProvenanceAction> prov, Map<String, String> refmap,
-			Map<String, String> timemap) throws Exception {
+			Map<StringEpoch, StringEpoch> timemap) throws Exception {
+		Date tenback = getOlderDate(10 * 60 * 1000);
+		Date tenfor = getNewerDate(10 * 60 * 1000);
+		
+		//get objs 2 prov
+		ObjectData ret1p = CLIENT1.getObjects2(new GetObjects2Params()
+			.withNoData(1L)
+			.withObjects(Arrays.asList(toObjSpec(id)))).getData().get(0);
+		assertThat("user correct", ret1p.getCreator(), is(user));
+		assertThat("wsid correct", ret1p.getOrigWsid(), is(id.getWsid()));
+		Date created = DATE_FORMAT.parse(ret1p.getCreated());
+		assertTrue("created within last 10 mins", created.after(tenback));
+		assertTrue("epoch within last 10 mins", new Date(ret1p.getEpoch())
+				.after(tenback));
+		assertTrue("not saved in future", created.before(tenfor));
+		assertTrue("epoch not in future", new Date(ret1p.getEpoch())
+				.before(tenfor));
+		checkProvenance(prov, ret1p.getProvenance(), refmap, timemap);
+		assertNull("got unrequested data", ret1p.getData());
+		
+		//get objs 2
+		ObjectData ret1 = CLIENT1.getObjects2(new GetObjects2Params()
+			.withObjects(Arrays.asList(toObjSpec(id)))).getData().get(0);
+		assertThat("user correct", ret1.getCreator(), is(user));
+		assertThat("wsid correct", ret1.getOrigWsid(), is(id.getWsid()));
+		created = DATE_FORMAT.parse(ret1.getCreated());
+		assertTrue("created within last 10 mins", created.after(tenback));
+		assertTrue("epoch within last 10 mins", new Date(ret1.getEpoch())
+				.after(tenback));
+		assertTrue("not saved in future", created.before(tenfor));
+		assertTrue("epoch not in future", new Date(ret1.getEpoch())
+				.before(tenfor));
+		checkProvenance(prov, ret1.getProvenance(), refmap, timemap);
+		
+		//get objs
 		ObjectData ret = CLIENT1.getObjects(Arrays.asList(id)).get(0);
 		assertThat("user correct", ret.getCreator(), is(user));
 		assertThat("wsid correct", ret.getOrigWsid(), is(id.getWsid()));
-		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(ret.getCreated())
-				.after(getOlderDate(10 * 60 * 1000)));
+		created = DATE_FORMAT.parse(ret.getCreated());
+		assertTrue("created within last 10 mins", created.after(tenback));
+		assertTrue("epoch within last 10 mins", new Date(ret.getEpoch())
+				.after(tenback));
+		assertTrue("not saved in future", created.before(tenfor));
+		assertTrue("epoch not in future", new Date(ret.getEpoch())
+				.before(tenfor));
 		checkProvenance(prov, ret.getProvenance(), refmap, timemap);
+		ret = null;
 		
-		ObjectProvenanceInfo p = CLIENT1.getObjectProvenance(
+		// get prov
+		us.kbase.workspace.ObjectProvenanceInfo p = CLIENT1.getObjectProvenance(
 				Arrays.asList(id)).get(0);
 		assertThat("user correct", p.getCreator(), is(user));
-		assertThat("wsid correct", ret.getOrigWsid(), is(id.getWsid()));
-		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(p.getCreated())
-				.after(getOlderDate(10 * 60 * 1000)));
+		assertThat("wsid correct", p.getOrigWsid(), is(id.getWsid()));
+		created = DATE_FORMAT.parse(p.getCreated());
+		assertTrue("created within last 10 mins", created.after(tenback));
+		assertTrue("epoch within last 10 mins", new Date(p.getEpoch())
+				.after(tenback));
+		assertTrue("not saved in future", created.before(tenfor));
+		assertTrue("epoch not in future", new Date(p.getEpoch())
+				.before(tenfor));
 		checkProvenance(prov, p.getProvenance(), refmap, timemap);
+		p = null;
 		
+		// get subset
 		ret = CLIENT1.getObjectSubset(objIDToSubObjID(Arrays.asList(id)))
 				.get(0);
 		assertThat("user correct", ret.getCreator(), is(user));
 		assertThat("wsid correct", ret.getOrigWsid(), is(id.getWsid()));
-		assertTrue("created within last 10 mins", 
-				DATE_FORMAT.parse(ret.getCreated())
-				.after(getOlderDate(10 * 60 * 1000)));
+		created = DATE_FORMAT.parse(ret.getCreated());
+		assertTrue("created within last 10 mins", created.after(tenback));
+		assertTrue("epoch within last 10 mins", new Date(ret.getEpoch())
+				.after(tenback));
+		assertTrue("not saved in future", created.before(tenfor));
+		assertTrue("epoch not in future", new Date(ret.getEpoch())
+				.before(tenfor));
 		checkProvenance(prov, ret.getProvenance(), refmap, timemap);
 	}
 	
 	protected Date getOlderDate(long ms) {
 		long now = new Date().getTime();
 		return new Date(now - ms);
+	}
+	
+	protected Date getNewerDate(long ms) {
+		long now = new Date().getTime();
+		return new Date(now + ms);
 	}
 	
 	protected void saveProvWithBadTime(String time, String exception) throws Exception {
@@ -532,7 +639,7 @@ public class JSONRPCLayerTester {
 	
 	protected void checkProvenance(List<ProvenanceAction> expected,
 			List<ProvenanceAction> got, Map<String, String> refmap,
-			Map<String, String> timemap) {
+			Map<StringEpoch, StringEpoch> timemap) throws Exception {
 		assertThat("same number actions", got.size(),
 				is(expected.size()));
 		
@@ -571,7 +678,9 @@ public class JSONRPCLayerTester {
 				assertThat("custom equal", gotpa.getCustom(), is(exppa.getCustom()));
 			}
 			assertThat("caller equal", gotpa.getCaller(), is(exppa.getCaller()));
-			assertThat("time equal", gotpa.getTime(), is(timemap.get(exppa.getTime())));
+			StringEpoch se = getStringEpoch(exppa, timemap);
+			assertThat("time equal", gotpa.getTime(), is(se.time));
+			assertThat("epoch equal", gotpa.getEpoch(), is(se.epoch));
 			assertThat("refs equal", gotpa.getInputWsObjects(),
 					is(exppa.getInputWsObjects() == null ? new ArrayList<String>() :
 						exppa.getInputWsObjects()));
@@ -609,9 +718,10 @@ public class JSONRPCLayerTester {
 		
 	}
 	
-	private void checkProvenanceExternalData(
+	private void checkProvenanceExternalData (
 			List<ExternalDataUnit> got,
-			List<ExternalDataUnit> exp, Map<String, String> timemap) {
+			List<ExternalDataUnit> exp, Map<StringEpoch, StringEpoch> timemap)
+			throws Exception {
 		if (exp == null) {
 			assertThat("prov external data empty", got.size(), is(0));
 			return;
@@ -626,12 +736,35 @@ public class JSONRPCLayerTester {
 			assertThat("same data url", g.getDataUrl(), is (e.getDataUrl()));
 			assertThat("same description", g.getDescription(), is (e.getDescription()));
 			assertThat("same resource name", g.getResourceName(), is (e.getResourceName()));
+			StringEpoch se = getStringEpoch(e, timemap);
 			assertThat("same resource rel date", g.getResourceReleaseDate(),
-					is (timemap.get(e.getResourceReleaseDate())));
+					is(se.time));
+			assertThat("same resource rel epoch", g.getResourceReleaseEpoch(),
+					is(se.epoch));
 			assertThat("same resource url", g.getResourceUrl(), is (e.getResourceUrl()));
 			assertThat("same resource ver", g.getResourceVersion(), is (e.getResourceVersion()));
 		}
 		
+	}
+	
+	private StringEpoch getStringEpoch(ExternalDataUnit edu,
+			Map<StringEpoch, StringEpoch> timemap) {
+		if (edu.getResourceReleaseDate() != null) {
+			return timemap.get(new StringEpoch(edu.getResourceReleaseDate()));
+		} else if (edu.getResourceReleaseEpoch() != null){
+			return timemap.get(new StringEpoch(edu.getResourceReleaseEpoch()));
+		}
+		return new StringEpoch(null);
+	}
+	
+	private StringEpoch getStringEpoch(ProvenanceAction edu,
+			Map<StringEpoch, StringEpoch> timemap) {
+		if (edu.getTime() != null) {
+			return timemap.get(new StringEpoch(edu.getTime()));
+		} else if (edu.getEpoch() != null){
+			return timemap.get(new StringEpoch(edu.getEpoch()));
+		}
+		return new StringEpoch(null);
 	}
 
 	protected void failGetObjectInfoNew(GetObjectInfoNewParams params, String exception)
@@ -644,10 +777,52 @@ public class JSONRPCLayerTester {
 					is(exception));
 		}
 	}
+	
+	protected ObjectSpecification toObjSpec(final ObjectIdentity oi) {
+		if (oi == null) {
+			return null;
+		}
+		ObjectSpecification ret = new ObjectSpecification()
+			.withName(oi.getName())
+			.withObjid(oi.getObjid())
+			.withRef(oi.getRef())
+			.withVer(oi.getVer())
+			.withWorkspace(oi.getWorkspace())
+			.withWsid(oi.getWsid());
+		
+		for (Entry<String, Object> e: oi.getAdditionalProperties().entrySet()) {
+			ret.setAdditionalProperties(e.getKey(), e.getValue());
+		}
+		return ret;
+	}
+	
+	protected List<ObjectSpecification> toObjSpec(final List<ObjectIdentity> oi) {
+		final List<ObjectSpecification> ret = new LinkedList<ObjectSpecification>();
+		for (ObjectIdentity o: oi) {
+			ret.add(toObjSpec(o));
+		}
+		return ret;
+	}
 
 	@SuppressWarnings("deprecation")
 	protected void failGetObjects(List<ObjectIdentity> loi, String exception)
 			throws Exception {
+		try {
+			CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(toObjSpec(loi)));
+			fail("got object with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+		}
+		try {
+			CLIENT1.getObjects2(new GetObjects2Params().withNoData(1L)
+				.withObjects(toObjSpec(loi)));
+			fail("got object with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+		}
 		try {
 			CLIENT1.getObjects(loi);
 			fail("got object with bad id");
@@ -670,11 +845,12 @@ public class JSONRPCLayerTester {
 					is(exception));
 		}
 		try {
-			CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(loi));
+			CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(toObjSpec(loi)));
 			fail("got info with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception));
+					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
 		}
 		//deprecated, remove when removed from code.
 		try {
@@ -704,7 +880,15 @@ public class JSONRPCLayerTester {
 	protected void checkSavedObjects(List<ObjectIdentity> loi, long id, String name,
 			String type, int ver, String user, long wsid, String wsname, String chksum, long size,
 			Map<String, String> meta, Map<String, Object> data) throws Exception {
-		List<ObjectData> retdata = CLIENT1.getObjects(loi);
+		
+		List<ObjectData> retdata = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(toObjSpec(loi))).getData();
+		assertThat("num data correct", retdata.size(), is(loi.size()));
+		for (ObjectData o: retdata) {
+			checkData(o, id, name, type, ver, user, wsid, wsname,
+					chksum, size, meta, data);
+		}
+		retdata = CLIENT1.getObjects(loi);
 		assertThat("num data correct", retdata.size(), is(loi.size()));
 		for (ObjectData o: retdata) {
 			checkData(o, id, name, type, ver, user, wsid, wsname,
@@ -717,9 +901,20 @@ public class JSONRPCLayerTester {
 					chksum, size, meta, data);
 		}
 		
-		List<ObjectProvenanceInfo> prov = CLIENT1.getObjectProvenance(loi);
+		List<ObjectData> prov2 = CLIENT1.getObjects2(new GetObjects2Params()
+			.withNoData(1L)
+			.withObjects(toObjSpec(loi))).getData();
+			assertThat("num data correct", prov2.size(), is(loi.size()));
+		for (ObjectData p: prov2) {
+			checkInfo(p.getInfo(), id, name, type, ver, user, wsid, wsname,
+					chksum, size, meta);
+			assertNull("got unrequested data", p.getData());
+		}
+		
+		List<us.kbase.workspace.ObjectProvenanceInfo> prov =
+				CLIENT1.getObjectProvenance(loi);
 		assertThat("num prov correct", prov.size(), is(loi.size()));
-		for (ObjectProvenanceInfo p: prov) {
+		for (us.kbase.workspace.ObjectProvenanceInfo p: prov) {
 			checkInfo(p.getInfo(), id, name, type, ver, user, wsid, wsname,
 					chksum, size, meta);
 		}
@@ -727,7 +922,8 @@ public class JSONRPCLayerTester {
 		List<Tuple11<Long, String, String, String, Long, String, Long, String,
 				String, Long, Map<String, String>>> retusermeta =
 				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-						.withObjects(loi).withIncludeMetadata(1L));
+						.withObjects(toObjSpec(loi)).withIncludeMetadata(1L)
+						.withIgnoreErrors(0L));
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (Tuple11<Long, String, String, String, Long, String, Long,
@@ -746,7 +942,8 @@ public class JSONRPCLayerTester {
 					chksum, size, meta);
 		}
 		
-		retusermeta = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(loi));
+		retusermeta = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+			.withObjects(toObjSpec(loi)));
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
 		for (Tuple11<Long, String, String, String, Long, String, Long,
@@ -766,10 +963,14 @@ public class JSONRPCLayerTester {
 		}
 	}
 
-	protected List<SubObjectIdentity> objIDToSubObjID(List<ObjectIdentity> loi) {
-		LinkedList<SubObjectIdentity> ret = new LinkedList<SubObjectIdentity>();
+	@SuppressWarnings("deprecation")
+	protected List<us.kbase.workspace.SubObjectIdentity> objIDToSubObjID(
+			List<ObjectIdentity> loi) {
+		LinkedList<us.kbase.workspace.SubObjectIdentity> ret =
+				new LinkedList<us.kbase.workspace.SubObjectIdentity>();
 		for (ObjectIdentity oi: loi) {
-			SubObjectIdentity soi = new SubObjectIdentity().withName(oi.getName())
+			us.kbase.workspace.SubObjectIdentity soi =
+					new us.kbase.workspace.SubObjectIdentity().withName(oi.getName())
 					.withObjid(oi.getObjid()).withRef(oi.getRef())
 					.withVer(oi.getVer()).withWorkspace(oi.getWorkspace())
 					.withWsid(oi.getWsid());
@@ -798,6 +999,23 @@ public class JSONRPCLayerTester {
 			assertThat("created same", gt.getCreated(), is(exp.getCreated()));
 			assertThat("prov same", gt.getProvenance(), is(exp.getProvenance()));
 			assertThat("refs same", gt.getRefs(), is(exp.getRefs()));
+		}
+	}
+	
+	protected void compareInfo(
+			List<Tuple11<Long, String, String, String, Long, String, Long,
+			String, String, Long, Map<String, String>>> info,
+			List<ObjectData> exp) throws Exception {
+		
+		assertThat("not same number of ObjectInfos", info.size(), is(exp.size()));
+		Iterator<ObjectData> eIter = exp.iterator();
+		Iterator<Tuple11<Long, String, String, String, Long, String, Long,
+			String, String, Long, Map<String, String>>> gIter = info.iterator();
+		while (eIter.hasNext()) {
+			ObjectData e = eIter.next();
+			Tuple11<Long, String, String, String, Long, String, Long, String,
+				String, Long, Map<String, String>> gt = gIter.next();
+			compareObjectInfo(gt, e.getInfo());
 		}
 	}
 	
@@ -869,15 +1087,20 @@ public class JSONRPCLayerTester {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	protected void checkData(List<ObjectIdentity> loi, Map<String, Object> data)
 			throws Exception {
 		assertThat("expected loi size is 1", loi.size(), is(1));
+		assertThat("can get data", CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(toObjSpec(loi))).getData().get(0).getData()
+				.asClassInstance(Object.class), is((Object) data));
 		assertThat("can get data", CLIENT1.getObjects(loi).get(0).getData()
 				.asClassInstance(Object.class), is((Object) data));
 		assertThat("can get data", CLIENT1.getObjectSubset(objIDToSubObjID(loi))
 				.get(0).getData().asClassInstance(Object.class), is((Object) data));
 	}
 
+	@SuppressWarnings("deprecation")
 	protected void compareObjectInfoAndData(
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> orig,
 			Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied,
@@ -892,7 +1115,19 @@ public class JSONRPCLayerTester {
 		
 		String expectedCopy = orig.getE7() + "/" + orig.getE1() + "/" + orig.getE5();
 		
-		List<ObjectProvenanceInfo> prov = CLIENT1.getObjectProvenance(loi);
+		List<ObjectData> prov2 = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(toObjSpec(loi)).withNoData(1L)).getData();
+		compareObjectInfo(prov2.get(0).getInfo(), prov2.get(1).getInfo(), wsname, wsid, name, id, ver);
+		assertThat("creator same", prov2.get(1).getCreator(), is(prov2.get(0).getCreator()));
+		assertThat("created same", prov2.get(1).getCreated(), is(prov2.get(0).getCreated()));
+		assertThat("prov same", prov2.get(1).getProvenance(), is(prov2.get(0).getProvenance()));
+		assertThat("refs same", prov2.get(1).getRefs(), is(prov2.get(0).getRefs()));
+		assertThat("copy ref correct", prov2.get(1).getCopied(), is(expectedCopy));
+		assertThat("copy visibility correct", prov2.get(1).getCopySourceInaccessible(), is(0L));
+		assertNull("got unrequested data", prov2.get(0).getData());
+		assertNull("got unrequested data", prov2.get(1).getData());
+		
+		List<us.kbase.workspace.ObjectProvenanceInfo> prov = CLIENT1.getObjectProvenance(loi);
 		compareObjectInfo(prov.get(0).getInfo(), prov.get(1).getInfo(), wsname, wsid, name, id, ver);
 		assertThat("creator same", prov.get(1).getCreator(), is(prov.get(0).getCreator()));
 		assertThat("created same", prov.get(1).getCreated(), is(prov.get(0).getCreated()));
@@ -901,7 +1136,19 @@ public class JSONRPCLayerTester {
 		assertThat("copy ref correct", prov.get(1).getCopied(), is(expectedCopy));
 		assertThat("copy visibility correct", prov.get(1).getCopySourceInaccessible(), is(0L));
 		
-		List<ObjectData> objs = CLIENT1.getObjects(loi);
+		List<ObjectData> objs = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(toObjSpec(loi))).getData();
+		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
+		assertThat("creator same", objs.get(1).getCreator(), is(objs.get(0).getCreator()));
+		assertThat("created same", objs.get(1).getCreated(), is(objs.get(0).getCreated()));
+		assertThat("data same", objs.get(1).getData().asClassInstance(Map.class),
+				is(objs.get(0).getData().asClassInstance(Map.class)));
+		assertThat("prov same", objs.get(1).getProvenance(), is(objs.get(0).getProvenance()));
+		assertThat("refs same", objs.get(1).getRefs(), is(objs.get(0).getRefs()));
+		assertThat("copy ref correct", objs.get(1).getCopied(), is(expectedCopy));
+		assertThat("copy visibility correct", objs.get(1).getCopySourceInaccessible(), is(0L));
+		
+		objs = CLIENT1.getObjects(loi);
 		compareObjectInfo(objs.get(0).getInfo(), objs.get(1).getInfo(), wsname, wsid, name, id, ver);
 		assertThat("creator same", objs.get(1).getCreator(), is(objs.get(0).getCreator()));
 		assertThat("created same", objs.get(1).getCreated(), is(objs.get(0).getCreated()));
@@ -1023,12 +1270,12 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
-	protected String addSec(String time) throws Exception {
-		return DATE_FORMAT.format(DATE_FORMAT.parse(time).getTime() + 1000);
+	protected long addSec(String time) throws Exception {
+		return DATE_FORMAT.parse(time).getTime() + 1000;
 	}
 	
-	protected String subSec(String time) throws Exception {
-		return DATE_FORMAT.format(DATE_FORMAT.parse(time).getTime() - 1000);
+	protected long subSec(String time) throws Exception {
+		return DATE_FORMAT.parse(time).getTime() - 1000;
 	}
 
 	protected void checkWSInfoList(
@@ -1251,14 +1498,50 @@ public class JSONRPCLayerTester {
 		return new ObjectMapper().readValue(json, Map.class);
 	}
 
+	@SuppressWarnings("deprecation")
 	protected void getReferencedObjectsCheckData(List<ObjectData> exp) throws IOException,
 			JsonClientException, Exception {
+		
+		//test get refed objs
 		List<ObjectData> res = CLIENT1.getReferencedObjects(Arrays.asList(
-				Arrays.asList(new ObjectIdentity().withRef("referenced/ref"), new ObjectIdentity().withRef("referencedPriv/one")),
-				Arrays.asList(new ObjectIdentity().withRef("referenced/prov"), new ObjectIdentity().withRef("referencedPriv/two"))));
+				Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+						new ObjectIdentity().withRef("referencedPriv/one")),
+				Arrays.asList(new ObjectIdentity().withRef("referenced/prov"),
+						new ObjectIdentity().withRef("referencedPriv/two"))));
 		compareData(exp, res);
+		
+		// test getobjs2 and getinfo with ref path
+		final List<ObjectSpecification> reflist = Arrays.asList(
+				new ObjectSpecification().withRef("referenced/ref").withObjRefPath(
+						Arrays.asList("referencedPriv/one")),
+				new ObjectSpecification().withRef("referenced/prov").withObjRefPath(
+						Arrays.asList("referencedPriv/two")));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(reflist))
+				.getData();
+		compareData(exp, res);
+		
+		List<Tuple11<Long, String, String, String, Long, String, Long, String,
+		String, Long, Map<String, String>>> info =
+		CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+			.withObjects(reflist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+		// test getobjs2 and getinfo with obj ref path
+		final List<ObjectSpecification> refobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referenced/ref").withObjPath(
+						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"))),
+				new ObjectSpecification().withRef("referenced/prov").withObjPath(
+						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/two"))));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(refobjlist))
+				.getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(refobjlist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
 	}
 	
+	@SuppressWarnings("deprecation")
 	protected void failGetReferencedObjects(List<List<ObjectIdentity>> chains,
 			String excep) throws Exception {
 		try {
@@ -1268,6 +1551,113 @@ public class JSONRPCLayerTester {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(excep));
 		}
+		List<ObjectSpecification> osl = new LinkedList<ObjectSpecification>();
+		List<ObjectSpecification> osr = new LinkedList<ObjectSpecification>();
+		if (chains == null) {
+			osl = null;
+			osr = null;
+		} else {
+			for (List<ObjectIdentity> loi: chains) {
+				if (loi == null || loi.size() < 2 || loi.get(0) == null) {
+					osl.add(null);
+					osr.add(null);
+				} else {
+					ObjectSpecification os1 = toObjSpec(loi.get(0));
+					os1.withObjPath(loi.subList(1, loi.size()));
+					osl.add(os1);
+					
+					ObjectSpecification os2 = toObjSpec(loi.get(0));
+					os2.withObjRefPath(toRefs(loi.subList(1, loi.size())));
+					osr.add(os2);
+				}
+			}
+		}
+		if (excep.equals("refChains may not be null")) {
+			excep = "The object specification list cannot be null";
+		}
+		// this is super goofy but it does point out that the new way of
+		// specifying chains has many fewer failure modes
+		if (excep.contains("The object identifier list cannot be null") ||
+			excep.contains("No object identifiers provided") ||
+			excep.contains("The minimum size of a reference chain is 2 ObjectIdentities")) {
+			excep = "Objects in the object specification list cannot be null";
+		}
+		
+		// oh my god I'm disgusting and evil
+		String refex = excep;
+		String[] e = excep.split(":", 3);
+		if (e.length == 3 && excep.startsWith("Error on")) {
+			int chainnum = Integer.parseInt(e[0].substring(e[0].length() - 1));
+			int oidnum = Integer.parseInt(e[1].substring(e[1].length() - 1));
+			if (oidnum == 1) {
+				excep = "Error on ObjectSpecification #" + chainnum + ":" +
+						e[2];
+				refex = excep;
+			} else {
+				excep = "Error on ObjectSpecification #" + chainnum + 
+						": Invalid object id at position #" + (oidnum - 1) +
+						":" + e[2];
+				String ref = osr.get(chainnum - 1).getObjRefPath()
+						.get(oidnum - 2);
+				refex = String.format("Error on ObjectSpecification #%s" + 
+						": Invalid object reference (%s) at position #%s:%s",
+						chainnum, ref, oidnum - 1,
+						e[2].replace("ObjectIdentities", "Reference string"));
+			}
+		}
+		
+		try {
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(osl));
+			fail("got referenced objects with bad params");
+		} catch (ServerException se) {
+//			System.out.println(se.getData());
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(excep));
+		}
+		if (excep.contains("Unexpected arguments in ObjectIdentity: foo")) {
+			return; // can't have UAs in a string ref
+		}
+		try {
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(osr));
+			fail("got referenced objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(refex));
+		}
+	}
+
+	private List<String> toRefs(List<ObjectIdentity> loi) {
+		List<String> refs = new LinkedList<String>();
+		for (ObjectIdentity oi: loi) {
+			if (oi == null) {
+				refs.add(null);
+			} else {
+				refs.add(toRefs(oi));
+			}
+		}
+		return refs;
+	}
+
+	private String toRefs(ObjectIdentity oi) {
+		if (oi.getRef() != null) {
+			return oi.getRef();
+		}
+		String ref = "";
+		if (oi.getWorkspace() != null) {
+			ref += oi.getWorkspace();
+		} else {
+			ref += oi.getWsid();
+		}
+		ref += "/";
+		if (oi.getName() != null) {
+			ref += oi.getName();
+		} else {
+			ref += oi.getObjid();
+		}
+		if (oi.getVer() != null) {
+			ref += "/" + oi.getVer();
+		}
+		return ref;
 	}
 
 	protected void checkAdmins(WorkspaceClient cli, List<String> expadmins)

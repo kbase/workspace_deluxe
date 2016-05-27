@@ -29,9 +29,10 @@ import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectDataList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
-import static us.kbase.workspace.kbase.ArgUtils.parseDate;
+import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
+import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectSpecifications;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectIdentifiers;
 import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
@@ -39,6 +40,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -68,8 +70,7 @@ import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.ObjectChain;
-import us.kbase.workspace.database.SubObjectIdentifier;
+import us.kbase.workspace.database.ObjectIDWithRefChain;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -107,19 +108,16 @@ import us.kbase.workspace.kbase.WorkspaceServerMethods;
  */
 public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
-    @SuppressWarnings("unused")
-	private static final String version = "0.0.1";
-    @SuppressWarnings("unused")
-	private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    @SuppressWarnings("unused")
-	private static final String gitCommitHash = "8c9b3e7dcb193f891019cf4ecfb2e7f119408460";
+    private static final String version = "0.0.1";
+    private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
+    private static final String gitCommitHash = "57ece4612f32e29a5788aca9a9ee2870ece79796";
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
     //TODO timestamps for startup script
     //TODO check shock version
     //TODO shock client should ignore extra fields
-	
+    
 	private static final String VER = "0.4.1";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
@@ -635,7 +633,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getInstance());
 		final WorkspaceObjectData ret = ws.getObjects(
 				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
-		final ByteArrayFileCache resource = ret.getDataAsTokens();
+		final ByteArrayFileCache resource = ret.getSerializedData();
 		returnVal = new GetObjectOutput()
 			.withData(resource.getUObject())
 			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo(), true));
@@ -648,7 +646,9 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_object_provenance</p>
      * <pre>
+     * DEPRECATED
      * Get object provenance from the workspace.
+     * @deprecated Workspace.get_objects2
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectProvenanceInfo ObjectProvenanceInfo}
@@ -659,7 +659,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_provenance
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = translateObjectProvInfo(
-				ws.getObjectProvenance(getUser(authPart), loi),
+				ws.getObjects(getUser(authPart), loi, true),
 					getUser(authPart), handleManagerUrl, handleMgrToken, true);
         //END get_object_provenance
         return returnVal;
@@ -668,7 +668,9 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_objects</p>
      * <pre>
+     * DEPRECATED
      * Get objects from the workspace.
+     * @deprecated Workspace.get_objects2
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectData ObjectData}
@@ -689,8 +691,39 @@ public class WorkspaceServer extends JsonServerServlet {
     }
 
     /**
+     * <p>Original spec-file function name: get_objects2</p>
+     * <pre>
+     * Get objects from the workspace.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetObjects2Params GetObjects2Params}
+     * @return   parameter "results" of type {@link us.kbase.workspace.GetObjects2Results GetObjects2Results}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_objects2", authOptional=true, async=true)
+    public GetObjects2Results getObjects2(GetObjects2Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
+        GetObjects2Results returnVal = null;
+        //BEGIN get_objects2
+		checkAddlArgs(params.getAdditionalProperties(),
+				GetObjects2Params.class);
+		final List<ObjectIdentifier> loi =
+				processObjectSpecifications(params.getObjects());
+		final Set<ByteArrayFileCache> resources =
+				new HashSet<ByteArrayFileCache>();
+		final boolean noData = longToBoolean(params.getNoData(), false);
+		final boolean ignoreErrors = longToBoolean(
+				params.getIgnoreErrors(), false);
+		returnVal = new GetObjects2Results().withData(translateObjectData(
+				ws.getObjects(getUser(authPart), loi, noData, ignoreErrors),
+				getUser(authPart), resources, handleManagerUrl, handleMgrToken,
+				true));
+		resourcesToDelete.set(resources);
+        //END get_objects2
+        return returnVal;
+    }
+
+    /**
      * <p>Original spec-file function name: get_object_subset</p>
      * <pre>
+     * DEPRECATED
      * Get portions of objects from the workspace.
      * When selecting a subset of an array in an object, the returned
      * array is compressed to the size of the subset, but the ordering of
@@ -703,6 +736,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * The returned feature array will be of length three and the entries will
      * consist, in order, of the 7th, 700th, and 3015th entries of the
      * original array.
+     * @deprecated Workspace.get_objects2
      * </pre>
      * @param   subObjectIds   instance of list of type {@link us.kbase.workspace.SubObjectIdentity SubObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectData ObjectData}
@@ -711,12 +745,12 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<ObjectData> getObjectSubset(List<SubObjectIdentity> subObjectIds, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<ObjectData> returnVal = null;
         //BEGIN get_object_subset
-		final List<SubObjectIdentifier> loi = processSubObjectIdentifiers(
+		final List<ObjectIdentifier> loi = processSubObjectIdentifiers(
 				subObjectIds);
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
 		returnVal = translateObjectData(
-				ws.getObjectsSubSet(getUser(authPart), loi), getUser(authPart),
+				ws.getObjects(getUser(authPart), loi), getUser(authPart),
 						resources, handleManagerUrl, handleMgrToken, true);
 		resourcesToDelete.set(resources);
         //END get_object_subset
@@ -766,10 +800,12 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: list_referencing_object_counts</p>
      * <pre>
+     * DEPRECATED
      * List the number of times objects have been referenced.
      * This count includes both provenance and object-to-object references
      * and, unlike list_referencing_objects, includes objects that are
      * inaccessible to the user.
+     * @deprecated
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "counts" of list of Long
@@ -790,7 +826,8 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_referenced_objects</p>
      * <pre>
-     * Get objects by references from other objects.
+     * DEPRECATED
+     *         Get objects by references from other objects.
      *         NOTE: In the vast majority of cases, this method is not necessary and
      *         get_objects should be used instead. 
      *         
@@ -803,6 +840,8 @@ public class WorkspaceServer extends JsonServerServlet {
      *         The user must have at least read access to the first object in each
      *         reference chain, but need not have access to any further objects in
      *         the chain, and those objects may be deleted.
+     *         
+     *         @deprecated Workspace.get_objects2
      * </pre>
      * @param   refChains   instance of list of original type "ref_chain" (A chain of objects with references to one another. An object reference chain consists of a list of objects where the nth object possesses a reference, either in the object itself or in the object provenance, to the n+1th object.) &rarr; list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectData ObjectData}
@@ -814,7 +853,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (refChains == null) {
 			throw new IllegalArgumentException("refChains may not be null");
 		}
-		final List<ObjectChain> chains = new LinkedList<ObjectChain>();
+		final List<ObjectIdentifier> chains =
+				new LinkedList<ObjectIdentifier>();
 		int count = 1;
 		for (List<ObjectIdentity> loy: refChains) {
 			final List<ObjectIdentifier> lor;
@@ -830,12 +870,13 @@ public class WorkspaceServer extends JsonServerServlet {
 						"Error on object chain #%s: The minimum size of a reference chain is 2 ObjectIdentities",
 						count));
 			}
-			chains.add(new ObjectChain(lor.get(0), lor.subList(1, lor.size())));
+			chains.add(new ObjectIDWithRefChain(
+					lor.get(0), lor.subList(1, lor.size())));
 			count++;
 		}
 		final Set<ByteArrayFileCache> resources =
 				new HashSet<ByteArrayFileCache>();
-		returnVal = translateObjectData(ws.getReferencedObjects(
+		returnVal = translateObjectData(ws.getObjects(
 				getUser(authPart), chains), getUser(authPart), resources,
 					handleManagerUrl, handleMgrToken, true);
 		resourcesToDelete.set(resources);	
@@ -954,12 +995,19 @@ public class WorkspaceServer extends JsonServerServlet {
 		} else {
 			lop = new ListObjectsParameters(user, wsis, type);
 		}
+		final Date after = chooseDate(params.getAfter(),
+				params.getAfterEpoch(),
+				"Cannot specify both timestamp and epoch for after parameter");
+		final Date before = chooseDate(params.getBefore(),
+				params.getBeforeEpoch(),
+				"Cannot specify both timestamp and epoch for before " +
+				"parameter");
 		lop.withMinimumPermission(params.getPerm() == null ? null :
 				translatePermission(params.getPerm()))
 			.withSavers(ArgUtils.convertUsers(params.getSavedby()))
 			.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
-			.withAfter(parseDate(params.getAfter()))
-			.withBefore(parseDate(params.getBefore()))
+			.withAfter(after)
+			.withBefore(before)
 			.withMinObjectID(checkLong(params.getMinObjectID(), -1))
 			.withMaxObjectID(checkLong(params.getMaxObjectID(), -1))
 			.withShowHidden(longToBoolean(params.getShowHidden()))
@@ -1040,7 +1088,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_info_new
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final List<ObjectIdentifier> loi = processObjectIdentifiers(
+		final List<ObjectIdentifier> loi = processObjectSpecifications(
 				params.getObjects());
 		returnVal = objInfoToTuple(
 				ws.getObjectInformation(getUser(authPart), loi,
@@ -1740,6 +1788,12 @@ public class WorkspaceServer extends JsonServerServlet {
         returnVal.put("message", "");
         returnVal.put("version", VER);
         returnVal.put("git_url", GIT);
+        @SuppressWarnings("unused")
+        String v = version;
+        @SuppressWarnings("unused")
+        String h = gitCommitHash;
+        @SuppressWarnings("unused")
+        String u = gitUrl;
         //END_STATUS
         return returnVal;
     }
