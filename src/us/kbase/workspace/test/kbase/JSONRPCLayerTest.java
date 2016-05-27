@@ -745,10 +745,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(Arrays.asList(
 						new ObjectSaveData().withName("obj1").withType(SAFE_TYPE).withData(new UObject(data)),
 						new ObjectSaveData().withName("obj2").withType(SAFE_TYPE).withData(new UObject(data)))));
-		@SuppressWarnings("deprecation")
-		List<ObjectData> ret = CLIENT1.getObjects(Arrays.asList(
-				new ObjectIdentity().withRef(wsName + "/obj2"),
-				new ObjectIdentity().withRef(wsName + "/obj1")));
+		List<ObjectData> ret = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(
+				new ObjectSpecification().withRef(wsName + "/obj2"),
+				new ObjectSpecification().withRef(wsName + "/obj1")))).getData();
 		for (ObjectData obj : ret) {
 			String largeString2 = (String)obj.getData().asClassInstance(Map.class).get("thing");
 			if (!largeString2.equals(largeString))
@@ -815,6 +815,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		ObjectIdentity ojbid = new ObjectIdentity().withWorkspace("saveget")
 				.withName("auto1");
 		Map<String, List<String>> exp = new HashMap<String, List<String>>();
+		ObjectData objo = CLIENT1.getObjects2(new GetObjects2Params()
+			.withObjects(toObjSpec(Arrays.asList(ojbid)))).getData().get(0);
+		assertThat("extracted ids empty", objo.getExtractedIds(), is(exp));
 		@SuppressWarnings("deprecation")
 		ObjectData obj = CLIENT1.getObjects(Arrays.asList(ojbid)).get(0);
 		assertThat("extracted ids empty", obj.getExtractedIds(), is(exp));
@@ -1062,10 +1065,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			} else {
 				exp = smallmapdata;
 			}
-			@SuppressWarnings("deprecation")
-			Map<String, Object> ret = CLIENT1.getObjects(
-					Arrays.asList(new ObjectIdentity().withWsid(wsid)
-							.withObjid(i))).get(0).getData().asInstance();
+			Map<String, Object> ret = CLIENT1.getObjects2(new GetObjects2Params()
+					.withObjects(
+					Arrays.asList(new ObjectSpecification().withWsid(wsid)
+							.withObjid(i)))).getData().get(0).getData().asInstance();
 			assertThat("Got correct object back with sending various byte encodings to server",
 					ret, is(exp));
 		}
@@ -1565,10 +1568,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		objects.add(new ObjectSaveData().withData(new UObject(data))
 				.withType(type));
 		CLIENT1.saveObjects(soc);
-		@SuppressWarnings("deprecation")
-		ObjectData od = CLIENT1.getObjects(Arrays.asList(
-				new ObjectIdentity().withWsid(wsid).withName("auto3")))
-				.get(0);
+		ObjectData od = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(
+				new ObjectSpecification().withWsid(wsid).withName("auto3"))))
+				.getData().get(0);
 		Map<String, String> refs = od.getData().asInstance();
 		assertThat("correct ref parse/rewrite", refs.get("ref1"), is(wsid + "/1/3"));
 		assertThat("correct ref parse/rewrite", refs.get("ref2"), is(wsid + "/1/2"));
@@ -1702,6 +1705,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	@SuppressWarnings("deprecation")
 	private void checkObjectCopy(WorkspaceClient cli, ObjectIdentity nocopy,
 			String ref, long copyInvisible) throws Exception {
+		
+		ObjectData objo = cli.getObjects2(new GetObjects2Params()
+			.withObjects(toObjSpec(Arrays.asList(nocopy)))).getData().get(0);
+		assertThat("copy ref is correct", objo.getCopied(), is(ref));
+		assertThat("copy vis is correct", objo.getCopySourceInaccessible(), is(copyInvisible));
 		ObjectData obj = cli.getObjects(Arrays.asList(nocopy)).get(0);
 		assertThat("copy ref is correct", obj.getCopied(), is(ref));
 		assertThat("copy vis is correct", obj.getCopySourceInaccessible(), is(copyInvisible));
@@ -2599,6 +2607,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		ObjectData od = CLIENT1.getObjectSubset(Arrays.asList(
 				new us.kbase.workspace.SubObjectIdentity().withRef("subdata/1")
 				.withIncluded(Arrays.asList("/map/id1", "/map/id3")))).get(0);
+		ObjectData odn = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(
+				new ObjectSpecification().withRef("subdata/1")
+				.withIncluded(Arrays.asList("/map/id1", "/map/id3"))))).getData().get(0);
 		Map<String, Object> expdata = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
 				"					  \"thing\": \"foo\"}," +
@@ -2608,6 +2620,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"}"
 				);
 		checkData(od, 1, "std", SAFE_TYPE, 1, USER1, info1.getE1(), "subdata",
+				md5, 119, new HashMap<String, String>(),
+				expdata);
+		checkData(odn, 1, "std", SAFE_TYPE, 1, USER1, info1.getE1(), "subdata",
 				md5, 119, new HashMap<String, String>(),
 				expdata);
 		
@@ -2622,45 +2637,75 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					is("Invalid selection: the path given specifies fields or elements that do not exist "
 							+ "because data at this location is a scalar value (i.e. string, integer, float), at: /map/id3/id"));
 		}
+		try {
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
+					new ObjectSpecification().withRef("subdata/1")
+					.withIncluded(Arrays.asList("/map/id1", "/map/id3/id/id/id/12")))))
+					.getData().get(0);
+			fail("listed objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Invalid selection: the path given specifies fields or elements that do not exist "
+							+ "because data at this location is a scalar value (i.e. string, integer, float), at: /map/id3/id"));
+		}
 		
 		Map<String, Object> data2 = createData( // intentionally unsorted
-		        "{\"features\": " +
-		        "    [{\"id\": 1, \"thing\": \"foo\"}," +
-		        "     {\"id\": 2, \"thing\": \"foo2\"}," +
-		        "     {\"id\": 3, \"thing\": \"foo3\"}" +
-		        "    ]," +
-		        " \"foobar\": \"somestuff\"" +
-		        "}"
-		        );
+				"{\"features\": " +
+				"    [{\"id\": 1, \"thing\": \"foo\"}," +
+				"     {\"id\": 2, \"thing\": \"foo2\"}," +
+				"     {\"id\": 3, \"thing\": \"foo3\"}" +
+				"    ]," +
+				" \"foobar\": \"somestuff\"" +
+				"}"
+				);
 
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("subdata")
-		        .withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data2))
-		                .withType(SAFE_TYPE).withName("std2")))).get(0);
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data2))
+						.withType(SAFE_TYPE).withName("std2")))).get(0);
 
-        try {
-            @SuppressWarnings({ "unused", "deprecation" })
+		try {
+			@SuppressWarnings({ "unused", "deprecation" })
 			ObjectData objectData = CLIENT1.getObjectSubset(Arrays.asList(
-                    new us.kbase.workspace.SubObjectIdentity().withRef("subdata/2")
-                    .withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
-            fail("listed objects with bad params");
-        } catch (ServerException se) {
-            assertThat("correct excep message", se.getLocalizedMessage(),
-                    is("Invalid selection: no array element exists at position '3', at: /features/3"));
-        }
+					new us.kbase.workspace.SubObjectIdentity().withRef("subdata/2")
+					.withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
+			fail("listed objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Invalid selection: no array element exists at position '3', at: /features/3"));
+		}
+		try {
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
+					new ObjectSpecification().withRef("subdata/2")
+					.withIncluded(Arrays.asList("/features/2", "/features/3")))))
+					.getData().get(0);
+			fail("listed objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Invalid selection: no array element exists at position '3', at: /features/3"));
+		}
 
-        @SuppressWarnings("deprecation")
+		@SuppressWarnings("deprecation")
 		ObjectData od2 = CLIENT1.getObjectSubset(Arrays.asList(
-                new us.kbase.workspace.SubObjectIdentity().withRef("subdata/2").withStrictArrays(0L)
-                .withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
-        Map<String, Object> od2map = od2.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
-        Assert.assertEquals(1, od2map.size());
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> features = (List<Map<String, Object>>)od2map.get("features");
-        Assert.assertEquals(1, features.size());
-        Assert.assertEquals("foo3", features.get(0).get("thing"));
-
-		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
-				.withWorkspace("subdata").withNewPermission("n"));
+				new us.kbase.workspace.SubObjectIdentity().withRef("subdata/2").withStrictArrays(0L)
+				.withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
+		Map<String, Object> od2map = od2.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
+		Assert.assertEquals(1, od2map.size());
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> features = (List<Map<String, Object>>)od2map.get("features");
+		Assert.assertEquals(1, features.size());
+		Assert.assertEquals("foo3", features.get(0).get("thing"));
+		
+		ObjectData od2n = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(
+				new ObjectSpecification().withRef("subdata/2").withStrictArrays(0L)
+				.withIncluded(Arrays.asList("/features/2", "/features/3")))))
+				.getData().get(0);
+		Map<String, Object> od2nmap = od2n.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
+		Assert.assertEquals(1, od2nmap.size());
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> featuresN = (List<Map<String, Object>>)od2nmap.get("features");
+		Assert.assertEquals(1, featuresN.size());
+		Assert.assertEquals("foo3", featuresN.get(0).get("thing"));
 	}
 	
 	@Test
@@ -3110,9 +3155,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(data))
 				.withType(type).withName("f"))));
 		
-		@SuppressWarnings("deprecation")
-		Map<String, Object> got = CLIENT1.getObjects(Arrays.asList(new ObjectIdentity()
-				.withWorkspace("float").withName("f"))).get(0).getData().asInstance();
+		Map<String, Object> got = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification()
+				.withWorkspace("float").withName("f")))).getData().get(0).getData().asInstance();
 		assertThat("got correct float back", got, is(data));
 	}
 	
