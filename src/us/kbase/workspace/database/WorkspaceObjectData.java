@@ -1,64 +1,136 @@
 package us.kbase.workspace.database;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+
+import com.fasterxml.jackson.core.JsonParseException;
 
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 
-
-public class WorkspaceObjectData extends WorkspaceObjectInformation {
+public class WorkspaceObjectData {
 	
 	private final ByteArrayFileCache data;
+	private final ObjectInformation info;
+	private final Provenance prov;
+	private final List<String> references;
+	private Reference copied;
+	private boolean isCopySourceInaccessible = false;
+	private final Map<String, List<String>> extIDs;
 
+	public WorkspaceObjectData(
+			final ObjectInformation info,
+			final Provenance prov,
+			final List<String> references,
+			final Reference copied,
+			final Map<String, List<String>> extIDs) {
+		if (info == null || prov == null || references == null) {
+			throw new IllegalArgumentException(
+					"references, prov and info cannot be null");
+		}
+		this.info = info;
+		this.prov = prov;
+		this.references = references;
+		this.copied = copied;
+		this.extIDs = extIDs == null ? new HashMap<String, List<String>>() :
+			extIDs;
+		this.data = null;
+	}
+	
 	public WorkspaceObjectData(
 			final ByteArrayFileCache data,
 			final ObjectInformation info,
 			final Provenance prov,
 			final List<String> references,
 			final Reference copied,
-			final Map<String, List<String>> extractedIds) {
-		super(info, prov, references, copied, extractedIds);
-		if (data == null) {
-			throw new IllegalArgumentException("data cannot be null");
+			final Map<String, List<String>> extIDs) {
+		if (info == null || prov == null || references == null) {
+			throw new IllegalArgumentException(
+					"references, prov and info cannot be null");
 		}
+		this.info = info;
+		this.prov = prov;
+		this.references = references;
+		this.copied = copied;
+		this.extIDs = extIDs == null ? new HashMap<String, List<String>>() :
+			extIDs;
 		this.data = data;
 	}
 
-	public ByteArrayFileCache getDataAsTokens() {
+	public ObjectInformation getObjectInfo() {
+		return info;
+	}
+
+	public Provenance getProvenance() {
+		return prov;
+	}
+	
+	public List<String> getReferences() {
+		return references;
+	}
+	
+	public Reference getCopyReference() {
+		return copied;
+	}
+	
+	public Map<String, List<String>> getExtractedIds() {
+		return extIDs;
+		//could make this immutable I suppose
+	}
+	
+	public ByteArrayFileCache getSerializedData() {
 		return data;
 	}
 	
+	public boolean hasData() {
+		return data != null;
+	}
+	
+	void setCopySourceInaccessible() {
+		copied = null;
+		isCopySourceInaccessible = true;
+	}
+	
+	public boolean isCopySourceInaccessible() {
+		return isCopySourceInaccessible;
+	}
+	
 	/**
-	 * You can call this method only once since it deleted temporary file with data.
 	 * @return Maps/lists/scalars
+	 * @throws IOException 
+	 * @throws JsonParseException 
 	 */
-	public Object getData() {
+	public Object getData() throws IOException {
 		try {
-			//return MAPPER.treeToValue(data, Object.class);
 			return data.getUObject().asClassInstance(Object.class);
-		} catch (RuntimeException jpe) { //don't wrap RTEs in RTEs
-			throw jpe;
-		} catch (Exception jpe) {
-			//this should never happen
-			throw new RuntimeException("something's dun broke", jpe);
+		} catch (JsonParseException jpe) {
+			//this should never happen since the data's already been type
+			//checked
+			throw new RuntimeException("somethin's dun broke", jpe);
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("WorkspaceObjectData [data=");
 		builder.append(data);
 		builder.append(", info=");
-		builder.append(getObjectInfo());
+		builder.append(info);
 		builder.append(", prov=");
-		builder.append(getProvenance());
-		builder.append(", refs=");
-		builder.append(getReferences());
+		builder.append(prov);
+		builder.append(", references=");
+		builder.append(references);
 		builder.append(", copied=");
-		builder.append(getCopyReference());
-		builder.append(", extractedIds=");
-		builder.append(getExtractedIds());
+		builder.append(copied);
+		builder.append(", isCopySourceInaccessible=");
+		builder.append(isCopySourceInaccessible);
+		builder.append(", extIDs=");
+		builder.append(extIDs);
 		builder.append("]");
 		return builder.toString();
 	}

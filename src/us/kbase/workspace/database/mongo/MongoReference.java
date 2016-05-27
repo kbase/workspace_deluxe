@@ -25,7 +25,10 @@ public class MongoReference implements Reference {
 	
 	MongoReference(final String ref) {
 		final ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(ref);
-		//will throw an NPE if not a correct reference
+		if (!oi.isAbsolute()) {
+			throw new IllegalArgumentException(String.format(
+					"ref %s is not an absolute reference", ref));
+		}
 		workspaceID = oi.getWorkspaceIdentifier().getId();
 		objectID = oi.getId();
 		version = oi.getVersion();
@@ -55,5 +58,39 @@ public class MongoReference implements Reference {
 	public String toString() {
 		return workspaceID + ObjectIdentifier.REFERENCE_SEP + objectID +
 				ObjectIdentifier.REFERENCE_SEP + version;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (int) (objectID ^ (objectID >>> 32));
+		result = prime * result + version;
+		result = prime * result + (int) (workspaceID ^ (workspaceID >>> 32));
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		MongoReference other = (MongoReference) obj;
+		if (objectID != other.objectID)
+			return false;
+		if (version != other.version)
+			return false;
+		if (workspaceID != other.workspaceID)
+			return false;
+		return true;
 	}
 }

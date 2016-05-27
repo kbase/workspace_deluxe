@@ -23,6 +23,7 @@ import com.mongodb.DB;
 
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonTokenStream;
+import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -34,6 +35,7 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
@@ -78,23 +80,25 @@ public class GetObjectsLibSpeedTest {
 				new File(WorkspaceTestCommon.getTempDir()));
 		
 		DB db = GetMongoDB.getDB(mongohost, wsDB);
+		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(
+				GetMongoDB.getDB(mongohost, typeDB)));
 		TypedObjectValidator val = new TypedObjectValidator(
-				new TypeDefinitionDB(new MongoTypeStorage(
-						GetMongoDB.getDB(mongohost, typeDB)),
-						tfm.getTempDir()));
+				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-				new ShockBlobStore(db.getCollection("shock_map"), new URL(shockurl), shockuser, shockpwd),
-				tfm, val);
+				new ShockBlobStore(db.getCollection("shock_map"),
+						new URL(shockurl), shockuser, shockpwd),
+				tfm);
 		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser());
+				new KBaseReferenceParser(), val);
+		Types types = new Types(typeDefDB);
 		
 		WorkspaceUser user = new WorkspaceUser("foo");
-		ws.requestModuleRegistration(user, module);
-		ws.resolveModuleRegistration(module, true);
-		ws.compileNewTypeSpec(user, FileUtils.readFileToString(new File(specfile)),
+		types.requestModuleRegistration(user, module);
+		types.resolveModuleRegistration(module, true);
+		types.compileNewTypeSpec(user, FileUtils.readFileToString(new File(specfile)),
 				Arrays.asList(type), null, null, false, null);
-		ws.releaseTypes(user, module);
+		types.releaseTypes(user, module);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> o = MAP.readValue(new File(objfile), Map.class);
 		
@@ -158,7 +162,7 @@ public class GetObjectsLibSpeedTest {
 
 			long start = System.nanoTime();
 			ByteArrayFileCache bafc = ws.getObjects(user, Arrays.asList(oi))
-					.get(0).getDataAsTokens();
+					.get(0).getSerializedData();
 			long gotbytes = System.nanoTime();
 			
 			Reader r = bafc.getJSON();

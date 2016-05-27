@@ -15,6 +15,8 @@ import java.util.List;
  */
 public class ObjectPaths implements Iterable<String> {
 	
+	public static final ObjectPaths EMPTY = new ObjectPaths(null);
+	
 	private final List<String> paths;
 	private final boolean strictMaps;
 	private final boolean strictArrays;
@@ -22,13 +24,14 @@ public class ObjectPaths implements Iterable<String> {
    /** sets default behavior for extraction.  If strict is true, then errors are thrown if a field
      * in map is requested but does not exist in the data object. If strict is false, then
      * if the field in map is missing, nothing is returned.  This is useful for optional
-     * fields, but may be prone to error if a user had a typo in the path...
+     * fields, but may be prone to error if a user has a typo in the path.
      */
     public static boolean STRICT_MAPS_DEFAULT = false;
+
     /** sets default behavior for extraction.  If strict is true, then errors are thrown if an
-     * array element is requested but does not exist in the data object. If strict is false, then
-     * if an array element is missing, nothing is returned.  This is useful for optional
-     * fields, but may be prone to error if a user had a typo in the path...
+     * array element is requested but does not exist in the data object. If strict is false and
+     * an array element is missing, nothing is returned.  This is useful for optional
+     * array items, but may be prone to error if a user has a typo in the path.
      */
     public static boolean STRICT_ARRAYS_DEFAULT = true;
 

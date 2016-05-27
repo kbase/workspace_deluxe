@@ -17,8 +17,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <pre>
  * Input parameters for the "get_object_info_new" function.
  *         Required arguments:
- *         list<ObjectIdentity> objects - the objects for which the information
- *                 should be fetched
+ *         list<ObjectSpecification> objects - the objects for which the
+ *                 information should be fetched. Subsetting related parameters are
+ *                 ignored.
  *         
  *         Optional arguments:
  *         boolean includeMetadata - include the object metadata in the returned
@@ -39,7 +40,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 public class GetObjectInfoNewParams {
 
     @JsonProperty("objects")
-    private List<ObjectIdentity> objects;
+    private List<ObjectSpecification> objects;
     @JsonProperty("includeMetadata")
     private Long includeMetadata;
     @JsonProperty("ignoreErrors")
@@ -47,16 +48,16 @@ public class GetObjectInfoNewParams {
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("objects")
-    public List<ObjectIdentity> getObjects() {
+    public List<ObjectSpecification> getObjects() {
         return objects;
     }
 
     @JsonProperty("objects")
-    public void setObjects(List<ObjectIdentity> objects) {
+    public void setObjects(List<ObjectSpecification> objects) {
         this.objects = objects;
     }
 
-    public GetObjectInfoNewParams withObjects(List<ObjectIdentity> objects) {
+    public GetObjectInfoNewParams withObjects(List<ObjectSpecification> objects) {
         this.objects = objects;
         return this;
     }
