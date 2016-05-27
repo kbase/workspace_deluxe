@@ -2813,8 +2813,27 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new ObjectSpecification().withRef("referencedPriv/one"),
 				new ObjectSpecification().withRef("referencedPriv/two")))).getData();
 		
+		/* ws referenced = 1
+		 * ws referencedPriv = 2
+		 * obj one = 1
+		 * obj two = 2
+		 * obj ref = 1
+		 * obj prov = 2
+		 */
+		
 		getReferencedObjectsCheckData(exp);
 		
+		
+		try {
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
+					new ObjectSpecification().withRef("referenced/ref").withObjRefPath(
+							Arrays.asList("referencedPriv/one")).withObjPath(
+							Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"))))));
+			fail("get objects with bad params");
+		} catch (ServerException se) {
+			assertThat("wrong exception message", se.getLocalizedMessage(),
+					is("Error on ObjectSpecification #1: Only one of an object reference path or an object path may be specified"));
+		}
 		
 		failGetReferencedObjects(null, "refChains may not be null");
 		failGetReferencedObjects(Arrays.asList(null, Arrays.asList(null, new ObjectIdentity().withRef("referenced/ref"))),

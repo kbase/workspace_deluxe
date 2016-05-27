@@ -1501,6 +1501,8 @@ public class JSONRPCLayerTester {
 	@SuppressWarnings("deprecation")
 	protected void getReferencedObjectsCheckData(List<ObjectData> exp) throws IOException,
 			JsonClientException, Exception {
+		
+		//test get refed objs
 		List<ObjectData> res = CLIENT1.getReferencedObjects(Arrays.asList(
 				Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
 						new ObjectIdentity().withRef("referencedPriv/one")),
@@ -1508,19 +1510,34 @@ public class JSONRPCLayerTester {
 						new ObjectIdentity().withRef("referencedPriv/two"))));
 		compareData(exp, res);
 		
-		final List<ObjectSpecification> objlist = Arrays.asList(
-				new ObjectSpecification().withRef("referenced/ref").withObjPath(
-						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"))),
-				new ObjectSpecification().withRef("referenced/prov").withObjPath(
-						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/two"))));
-		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(objlist))
+		// test getobjs2 and getinfo with ref path
+		final List<ObjectSpecification> reflist = Arrays.asList(
+				new ObjectSpecification().withRef("referenced/ref").withObjRefPath(
+						Arrays.asList("referencedPriv/one")),
+				new ObjectSpecification().withRef("referenced/prov").withObjRefPath(
+						Arrays.asList("referencedPriv/two")));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(reflist))
 				.getData();
 		compareData(exp, res);
 		
 		List<Tuple11<Long, String, String, String, Long, String, Long, String,
-			String, Long, Map<String, String>>> info =
-			CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-				.withObjects(objlist).withIncludeMetadata(1L));
+		String, Long, Map<String, String>>> info =
+		CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+			.withObjects(reflist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+		// test getobjs2 and getinfo with obj ref path
+		final List<ObjectSpecification> refobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referenced/ref").withObjPath(
+						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"))),
+				new ObjectSpecification().withRef("referenced/prov").withObjPath(
+						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/two"))));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(refobjlist))
+				.getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(refobjlist).withIncludeMetadata(1L));
 		compareInfo(info, exp);
 	}
 	
