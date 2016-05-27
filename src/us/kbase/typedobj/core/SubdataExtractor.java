@@ -129,18 +129,24 @@ public class SubdataExtractor {
 	 * know is it the end of array of not. For maps/objects there is such problem because
 	 * we read field token before processing value block.
 	 */
-	private static void writeTokensFromCurrent(TokenSequenceProvider jts, JsonToken current, 
-			JsonGenerator jgen) throws IOException {
+	private static void writeTokensFromCurrent(
+			final TokenSequenceProvider jts,
+			final JsonToken current, 
+			final JsonGenerator jgen)
+			throws IOException, TypedObjectExtractionException {
 		JsonToken t = current;
 		writeCurrentToken(jts, t, jgen);
 		if (t == JsonToken.START_OBJECT) {
 			while (true) {
 				t = jts.nextToken();
 				writeCurrentToken(jts, t, jgen);
-				if (t == JsonToken.END_OBJECT)
+				if (t == JsonToken.END_OBJECT) {
 					break;
-				if (t != JsonToken.FIELD_NAME)
-					throw new IllegalStateException("Error parsing json format: " + t.asString());
+				}
+				if (t != JsonToken.FIELD_NAME) {
+					throw new TypedObjectExtractionException(
+							"Error parsing json format: " + t.asString());
+				}
 				t = jts.nextToken();
 				writeTokensFromCurrent(jts, t, jgen);
 			}

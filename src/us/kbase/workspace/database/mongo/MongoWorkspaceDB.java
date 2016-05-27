@@ -38,11 +38,11 @@ import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.util.Counter;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.GetObjectInformationParameters;
-import us.kbase.workspace.database.ObjectChainResolvedWS;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInformation;
@@ -60,15 +60,14 @@ import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.DeletedObjectException;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
-import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
@@ -616,7 +615,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} else {
 			rto = resolveObjectIDs(
 					new HashSet<ObjectIDResolvedWS>(Arrays.asList(to)),
-					false, false, true).get(to); //don't except if there's no object
+					false, true, false, true).get(to); //don't except if there's no object
 		}
 		if (rto == null && to.getId() != null) {
 			throw new NoSuchObjectException(String.format(
@@ -725,7 +724,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		input = new HashSet<ObjectIDResolvedWS>(Arrays.asList(oid));
 		
 		final ObjectInformation oinf =
-				getObjectInformation(input, false, false).get(oid);
+				getObjectInformation(input, false, true, false, true).get(oid);
 		updateWorkspaceModifiedDate(roi.getWorkspaceIdentifier());
 		return oinf;
 	}
@@ -1927,95 +1926,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_COPIED);
 	
 	@Override
-	public Map<ObjectIDResolvedWS, WorkspaceObjectInformation>
-			getObjectProvenance(final Set<ObjectIDResolvedWS> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException {
-		//similar to getObjects but the code got too messy trying to combine
-		//could try to factor out methods 
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs =
-				resolveObjectIDs(objectIDs);
-		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
-				queryVersions(
-						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
-						FLDS_VER_GET_OBJECT, false);
-		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
-		final Map<ObjectIDResolvedWS, WorkspaceObjectInformation> ret =
-				new HashMap<ObjectIDResolvedWS, WorkspaceObjectInformation>();
-		for (final ObjectIDResolvedWS o: objectIDs) {
-			final ResolvedMongoObjectID roi = resobjs.get(o);
-			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
-					.get(Fields.VER_PROV));
-			@SuppressWarnings("unchecked")
-			final List<String> refs =
-					(List<String>) vers.get(roi).get(Fields.VER_REF);
-			final String copyref =
-					(String) vers.get(roi).get(Fields.VER_COPIED);
-			final Reference copied = copyref == null ? null :
-					new MongoReference(copyref);
-			@SuppressWarnings("unchecked")
-			final Map<String, List<String>> extIDs =
-					(Map<String, List<String>>) vers.get(roi).get(
-							Fields.VER_EXT_IDS);
-			final MongoObjectInfo info = ObjectInfoUtils.generateObjectInfo(
-					roi, vers.get(roi));
-			ret.put(o, new WorkspaceObjectInformation(
-					info, prov, refs, copied, extIDs));
-		}
-		return ret;
-	}
-	
-	@Override
 	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
-			getObjects(final Set<ObjectIDResolvedWS> objectIDs)
-			throws NoSuchObjectException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
-		for (final ObjectIDResolvedWS o: objectIDs) {
-			paths.put(o, null);
-		}
-		try {
-			return getObjects(paths);
-		} catch (TypedObjectExtractionException toee) {
-			throw new RuntimeException(
-					"No extraction done, so something's very wrong here", toee);
-		}
-	}
-	
-	@Override
-	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
-			getObjects(final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects)
-			throws NoSuchObjectException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, TypedObjectExtractionException {
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
-				resolveObjectIDs(objects.keySet());
-		return getObjects(objects, oids);
-	}
-
-	private Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
-			getObjectsPreResolved(
-					final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids)
-			throws WorkspaceCommunicationException, NoSuchObjectException,
-			TypedObjectExtractionException, CorruptWorkspaceDBException {
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
-		for (final ObjectIDResolvedWS oi: oids.keySet()) {
-			paths.put(oi, null);
-		}
-		return getObjects(paths, oids);
-	}
-	
-	private Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
-			getObjects(final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths,
-			final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs)
+			getObjects(
+				final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objs,
+				final boolean noData,
+				final boolean exceptIfDeleted,
+				final boolean includeDeleted,
+				final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException,
 			TypedObjectExtractionException, CorruptWorkspaceDBException {
 		
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs =
+				resolveObjectIDs(objs.keySet(), exceptIfDeleted,
+						includeDeleted, exceptIfMissing, false);
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
-						FLDS_VER_GET_OBJECT, false);
-		checkTotalFileSize(paths, resobjs, vers);
+						FLDS_VER_GET_OBJECT, !exceptIfMissing);
+		if (!noData) {
+			checkTotalFileSize(objs, resobjs, vers);
+		}
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
 		final Map<String, ByteArrayFileCache> chksumToData =
 				new HashMap<String, ByteArrayFileCache>();
@@ -2027,8 +1957,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				//summing to 1G to 1G objects, since the 1G originals will be discarded
 				rescfg.getMaxReturnedDataSize() * 2L,
 				tfm);
-		for (final ObjectIDResolvedWS o: paths.keySet()) {
+		for (final ObjectIDResolvedWS o: objs.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
+			if (!vers.containsKey(roi)) {
+				continue; // works if roi is null or vers doesn't have the key
+			}
 			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
 					.get(Fields.VER_PROV));
 			final String copyref =
@@ -2044,34 +1977,31 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
 			final MongoObjectInfo info = ObjectInfoUtils.generateObjectInfo(
 					roi, vers.get(roi));
-			try {
-				if (paths.get(o) == null || paths.get(o).isEmpty()) {
-					buildReturnedObjectData(chksumToData, ret, o, prov, refs,
-							copied, extIDs, info, null, bafcMan);
-				} else {
-					for (final ObjectPaths op: paths.get(o)) {
-						buildReturnedObjectData(chksumToData, ret, o, prov,
-								refs, copied, extIDs, info, op, bafcMan);
+			if (noData) {
+				ret.put(o, new HashMap<ObjectPaths, WorkspaceObjectData>());
+				ret.get(o).put(ObjectPaths.EMPTY, new WorkspaceObjectData(
+						info, prov, refs, copied, extIDs));
+			} else {
+				try {
+					if (objs.get(o).isEmpty()) {
+						buildReturnedObjectData(
+								o, ObjectPaths.EMPTY, prov, refs, copied,
+								extIDs, info, chksumToData, bafcMan, ret);
+					} else {
+						for (final ObjectPaths op: objs.get(o)) {
+							buildReturnedObjectData(
+									o, op, prov, refs, copied, extIDs, info,
+									chksumToData, bafcMan, ret);
+						}
 					}
+				} catch (TypedObjectExtractionException |
+						WorkspaceCommunicationException |
+						CorruptWorkspaceDBException |
+						RuntimeException |
+						Error e) {
+					cleanUpTempObjectFiles(chksumToData, ret);
+					throw e;
 				}
-			} catch (TypedObjectExtractionException e) {
-				cleanUpTempObjectFiles(chksumToData, ret);
-				throw e;
-			} catch (WorkspaceCommunicationException e) {
-				cleanUpTempObjectFiles(chksumToData, ret);
-				throw e;
-			} catch (CorruptWorkspaceDBException e) {
-				cleanUpTempObjectFiles(chksumToData, ret);
-				throw e;
-			} catch (IllegalStateException e) {
-				cleanUpTempObjectFiles(chksumToData, ret);
-				throw e;
-			} catch (RuntimeException e) {
-				cleanUpTempObjectFiles(chksumToData, ret);
-				throw e;
-			} catch (Error e) {
-				cleanUpTempObjectFiles(chksumToData, ret);
-				throw e;
 			}
 		}
 		return ret;
@@ -2085,16 +2015,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//size penalty, but meh
 		long size = 0;
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
-			final Set<ObjectPaths> ops = paths.get(o);
-			final long mult = ops == null || ops.size() < 1 ? 1 : ops.size();
-			size += mult * (Long) vers.get(resobjs.get(o))
-					.get(Fields.VER_SIZE);
+			// works if resobjs.get(o) is null or vers doesn't contain
+			if (vers.containsKey(resobjs.get(o))) {
+				final Set<ObjectPaths> ops = paths.get(o);
+				final long mult = ops.size() < 1 ? 1 : ops.size();
+				size += mult * (Long) vers.get(resobjs.get(o))
+						.get(Fields.VER_SIZE);
+			}
 		}
 		if (size > rescfg.getMaxReturnedDataSize()) {
 			throw new IllegalArgumentException(String.format(
 					"Too much data requested from the workspace at once; " +
 					"data requested including potential subsets is %sB " + 
-					"which  exceeds maximum of %s.", size,
+					"which exceeds maximum of %s.", size,
 					rescfg.getMaxReturnedDataSize()));
 		}
 	}
@@ -2108,7 +2041,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final Map<ObjectPaths, WorkspaceObjectData> m:
 			ret.values()) {
 			for (final WorkspaceObjectData wod: m.values()) {
-				wod.getDataAsTokens().destroy();
+				wod.getSerializedData().destroy();
 			}
 		}
 	}
@@ -2116,15 +2049,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	//yuck. Think more about the interface here
 	private void buildReturnedObjectData(
-			final Map<String, ByteArrayFileCache> chksumToData,
-			final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret,
 			final ObjectIDResolvedWS o,
+			final ObjectPaths op,
 			final MongoProvenance prov,
 			final List<String> refs,
 			final Reference copied,
 			final Map<String, List<String>> extIDs,
 			final MongoObjectInfo info,
-			final ObjectPaths op, final ByteArrayFileCacheManager bafcMan)
+			final Map<String, ByteArrayFileCache> chksumToData,
+			final ByteArrayFileCacheManager bafcMan,
+			final Map<ObjectIDResolvedWS,
+					Map<ObjectPaths, WorkspaceObjectData>> ret)
 			throws TypedObjectExtractionException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (!ret.containsKey(o)) {
@@ -2174,7 +2109,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectPaths paths, final ByteArrayFileCacheManager bafcMan)
 			throws TypedObjectExtractionException,
 			WorkspaceCommunicationException {
-		if (paths == null || paths.isEmpty()) {
+		if (paths.isEmpty()) {
 			return data;
 		}
 		try {
@@ -2189,83 +2124,51 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					+ bafcMan.getMaxSizeOnDisk());
 		}
 	}
-
+	
 	private static final Set<String> FLDS_GETOBJREF = newHashSet(
-			Fields.VER_WS_ID, Fields.VER_PROVREF, Fields.VER_REF);
-
+			Fields.VER_WS_ID, Fields.VER_PROVREF, Fields.VER_REF,
+			Fields.VER_VER);
+	
 	@Override
-	public Map<ObjectChainResolvedWS, WorkspaceObjectData> getReferencedObjects(
-			final Set<ObjectChainResolvedWS> chains)
-			throws NoSuchObjectException, WorkspaceCommunicationException,
-			NoSuchReferenceException, CorruptWorkspaceDBException {
-		final Set<ObjectIDResolvedWS> heads = new HashSet<ObjectIDResolvedWS>();
-		final Set<ObjectIDResolvedWS> ch = new HashSet<ObjectIDResolvedWS>();
-		for (final ObjectChainResolvedWS chain: chains) {
-			heads.add(chain.getHead());
-			ch.addAll(chain.getChain());
-		}
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resheads = 
-				resolveObjectIDs(heads);
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> reschains = 
-				resolveObjectIDs(ch, false, true);
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resall =
-				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>(resheads);
-		resall.putAll(reschains);
-		final Map<ResolvedMongoObjectID, Map<String, Object>> foo =
-				queryVersions(
-						new HashSet<ResolvedMongoObjectID>(resall.values()),
-						FLDS_GETOBJREF, false);
-		final Map<ObjectIDResolvedWS, Set<String>> refs =
-				setUpRefs(resall, foo);
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> toGet =
-				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
-		for (final ObjectChainResolvedWS chain: chains) {
-			ObjectIDResolvedWS pos = chain.getHead();
-			final List<ObjectIDResolvedWS> lch = chain.getChain();
-			for (final ObjectIDResolvedWS oi: lch) {
-				final String ref = resall.get(oi).getReference().toString();
-				if (!refs.get(pos).contains(ref)) {
-					throw new NoSuchReferenceException(String.format(
-							"The object %s in workspace %s does not contain the reference %s",
-							pos.getIdentifierString(),
-							pos.getWorkspaceIdentifier().getName(), ref),
-							pos, oi);
-				}
-				pos = oi;
-			}
-			toGet.put(chain.getLast(), resall.get(chain.getLast()));
-		}
-		final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> res;
-		try {
-			res = getObjectsPreResolved(toGet);
-		} catch (TypedObjectExtractionException toee) {
-			throw new RuntimeException(
-					"No extraction done, so something's very wrong here", toee);
-		}
-		final Map<ObjectChainResolvedWS, WorkspaceObjectData> ret =
-				new HashMap<ObjectChainResolvedWS, WorkspaceObjectData>();
-		for (final ObjectChainResolvedWS chain: chains) {
-			ret.put(chain, res.get(chain.getLast()).get(null));
-		}
-		return ret;
-	}
-
-	private Map<ObjectIDResolvedWS, Set<String>> setUpRefs(
-			final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> objs,
-			final Map<ResolvedMongoObjectID, Map<String, Object>> refs)
-			throws NoSuchObjectException {
+	public Map<ObjectIDResolvedWS, ObjectReferenceSet>
+			getObjectOutgoingReferences(
+			final Set<ObjectIDResolvedWS> objs,
+			final boolean exceptIfDeleted,
+			final boolean includeDeleted,
+			final boolean exceptIfMissing)
+			throws NoSuchObjectException, WorkspaceCommunicationException {
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> ret =
+				new HashMap<ObjectIDResolvedWS, ObjectReferenceSet>();
 		
-		final Map<ObjectIDResolvedWS, Set<String>> ret =
-				new HashMap<ObjectIDResolvedWS, Set<String>>();
-		for (final ObjectIDResolvedWS oi: objs.keySet()) {
-			final Map<String, Object> m = refs.get(objs.get(oi));
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs = 
+				resolveObjectIDs(objs, exceptIfDeleted, includeDeleted,
+						exceptIfMissing, false);
+		final Map<ResolvedMongoObjectID, Map<String, Object>> refs =
+				queryVersions(
+						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
+						FLDS_GETOBJREF, !exceptIfMissing);
+		
+		for (final ObjectIDResolvedWS oi: objs) {
+			if (!resobjs.containsKey(oi)) {
+				continue;
+			}
+			final ResolvedMongoObjectID res = resobjs.get(oi);
+			final Map<String, Object> m = refs.get(res);
+			final int ver = (Integer) m.get(Fields.VER_VER);
+			final Reference ref = new MongoReference(
+					res.getWorkspaceIdentifier().getID(), res.getId(), ver);
 			@SuppressWarnings("unchecked")
-			final List<String> r = (List<String>) m.get(Fields.VER_REF);
+			final List<String> rf = (List<String>) m.get(Fields.VER_REF);
 			@SuppressWarnings("unchecked")
-			final List<String> pr = (List<String>) m.get(Fields.VER_PROVREF);
-			final Set<String> s = new HashSet<String>(r);
-			s.addAll(pr);
-			ret.put(oi, s);
+			final List<String> prf = (List<String>) m.get(Fields.VER_PROVREF);
+			final Set<MongoReference> r = new HashSet<MongoReference>();
+			for (String s: rf) {
+				r.add(new MongoReference(s));
+			}
+			for (String s: prf) {
+				r.add(new MongoReference(s));
+			}
+			ret.put(oi, new MongoObjRefSet(ref, r, false));
 		}
 		return ret;
 	}
@@ -2347,7 +2250,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws WorkspaceCommunicationException, NoSuchObjectException {
 		//TODO test w/ garbage collection
 		final Map<ObjectIDResolvedWS, Map<String, Object>> objdata =
-				queryObjects(objects, FLDS_REF_CNT, true, true);
+				queryObjects(objects, FLDS_REF_CNT, true, false, true);
 		final Map<ObjectIDResolvedWS, Integer> ret =
 				new HashMap<ObjectIDResolvedWS, Integer>();
 		for (final ObjectIDResolvedWS o: objects) {
@@ -2418,6 +2321,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//this method is a pattern - generalize somehow?
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
 				resolveObjectIDs(objectIDs);
+		//instead of calling verifyVersions() just query the version here
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
@@ -2521,19 +2425,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Map<ObjectIDResolvedWS, ObjectInformation> getObjectInformation(
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean includeMetadata,
-			final boolean ignoreMissingAndDeleted)
+			final boolean exceptIfDeleted,
+			final boolean includeDeleted,
+			final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
-				resolveObjectIDs(objectIDs, !ignoreMissingAndDeleted,
-						!ignoreMissingAndDeleted);
-		final Iterator<Entry<ObjectIDResolvedWS, ResolvedMongoObjectID>> iter =
-				oids.entrySet().iterator();
-		while (iter.hasNext()) {
-			Entry<ObjectIDResolvedWS, ResolvedMongoObjectID> e = iter.next();
-			if (e.getValue().isDeleted()) {
-				iter.remove();
-			}
-		}
+				resolveObjectIDs(objectIDs, exceptIfDeleted, includeDeleted,
+						exceptIfMissing, false);
 		final Set<String> fields;
 		if (includeMetadata) {
 			fields = new HashSet<String>(FLDS_VER_META);
@@ -2544,7 +2442,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(oids.values()),
-						fields, ignoreMissingAndDeleted);
+						fields, !exceptIfMissing);
 		final Map<ObjectIDResolvedWS, ObjectInformation> ret =
 				new HashMap<ObjectIDResolvedWS, ObjectInformation>();
 		for (ObjectIDResolvedWS o: objectIDs) {
@@ -2571,18 +2469,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean exceptIfDeleted, final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		return resolveObjectIDs(objectIDs, exceptIfDeleted, exceptIfMissing,
-				false);
+		return resolveObjectIDs(objectIDs, exceptIfDeleted, true,
+				exceptIfMissing, false);
 	}
 	
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs,
-			final boolean exceptIfDeleted, final boolean exceptIfMissing,
+			final boolean exceptIfDeleted,
+			final boolean includeDeleted,
+			final boolean exceptIfMissing,
 			final boolean ignoreVersion)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, Map<String, Object>> ids = 
 				queryObjects(objectIDs, FLDS_RESOLVE_OBJS, exceptIfDeleted,
-						exceptIfMissing);
+						includeDeleted, exceptIfMissing);
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ret =
 				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
 		for (final ObjectIDResolvedWS o: ids.keySet()) {
@@ -2620,8 +2520,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private Map<ObjectIDResolvedWS, Map<String, Object>> queryObjects(
 			final Set<ObjectIDResolvedWS> objectIDs, Set<String> fields,
-			final boolean exceptIfDeleted, final boolean exceptIfMissing)
-			throws WorkspaceCommunicationException, NoSuchObjectException {
+			final boolean exceptIfDeleted, final boolean includeDeleted,
+			final boolean exceptIfMissing)
+			throws WorkspaceCommunicationException, NoSuchObjectException,
+			DeletedObjectException {
 		final Map<ObjectIDResolvedWS, ObjectIDResolvedWSNoVer> nover =
 				new HashMap<ObjectIDResolvedWS, ObjectIDResolvedWSNoVer>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
@@ -2653,12 +2555,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final long id = (Long) ids.get(o).get(Fields.OBJ_ID);
 			final boolean deleted = (Boolean) ids.get(o).get(Fields.OBJ_DEL);
 			if (exceptIfDeleted && deleted) {
-				throw new NoSuchObjectException(String.format(
+				throw new DeletedObjectException(String.format(
 						"Object %s (name %s) in workspace %s has been deleted",
 						id, name, oid.getWorkspaceIdentifier().getID()), oid);
 			}
-			ObjectInfoUtils.calcLatestObjVersion(ids.get(o));
-			ret.put(oid, ids.get(o));
+			if (!deleted || includeDeleted) {
+				ObjectInfoUtils.calcLatestObjVersion(ids.get(o));
+				ret.put(oid, ids.get(o));
+			}
 		}
 		return ret;
 	}
@@ -2676,20 +2580,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (ignoreMissing) {
 			return vers;
 		}
+		// the ID was resolved, but could have been deleted since then,
+		// or if the database failed between an autoincrement and a version
+		// save the version might not exist
 		for (ResolvedMongoObjectID roi: objectIds) {
 			if (!vers.containsKey(roi)) {
 				ObjectIDResolvedWS oid = new ObjectIDResolvedWS(
 						roi.getWorkspaceIdentifier(), roi.getId());
 				throw new NoSuchObjectException(String.format(
 						"No object with id %s (name %s) and version %s " +
-						"exists in workspace %s", roi.getId(),
-						roi.getName(), roi.getVersion(), 
-						roi.getWorkspaceIdentifier().getID()), oid);
+						"exists in workspace %s (name %s)",
+						roi.getId(), roi.getName(), roi.getVersion(), 
+						roi.getWorkspaceIdentifier().getID(),
+						roi.getWorkspaceIdentifier().getName()), oid);
 			}
 		}
 		return vers;
 	}
-	
 	
 	//In rare race conditions an object may exist with a ver count of 1 but
 	//no versions. Really need to move this code to a backend DB with
@@ -2760,7 +2667,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"Explicitly told not to throw exception but did anyway",
 					e);
 		}
-		Map<ObjectIDResolvedWS, Boolean> ret =
+		final Map<ObjectIDResolvedWS, Boolean> ret =
 				new HashMap<ObjectIDResolvedWS, Boolean>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			if (!objs.containsKey(o)) {

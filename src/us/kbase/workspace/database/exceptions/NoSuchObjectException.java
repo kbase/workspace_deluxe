@@ -3,7 +3,7 @@ package us.kbase.workspace.database.exceptions;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 
 /** 
- * Thrown when the requested workspace doesn't exist.
+ * Thrown when the requested object doesn't exist.
  * @author gaprice@lbl.gov
  *
  */

@@ -45,6 +45,7 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.DeletedObjectException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
@@ -547,8 +548,7 @@ public class Workspace {
 	
 	private static String getObjectErrorId(final WorkspaceSaveObject wo,
 			final int objcount) {
-		final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
-		return getObjectErrorId(oid, objcount);
+		return getObjectErrorId(wo.getObjectIdentifier(), objcount);
 	}
 	
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
@@ -904,122 +904,275 @@ public class Workspace {
 		return db.getObjectInformation(params.generateParameters(pset));
 	}
 	
-	public List<WorkspaceObjectInformation> getObjectProvenance(
-			final WorkspaceUser user, final List<ObjectIdentifier> loi)
+	public List<WorkspaceObjectData> getObjects(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi)
 			throws CorruptWorkspaceDBException,
-			WorkspaceCommunicationException, InaccessibleObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read");
-		final Map<ObjectIDResolvedWS, WorkspaceObjectInformation> prov =
-				db.getObjectProvenance(
-						new HashSet<ObjectIDResolvedWS>(ws.values()));
-		final List<WorkspaceObjectInformation> ret =
-				new ArrayList<WorkspaceObjectInformation>();
-		
-		for (final ObjectIdentifier o: loi) {
-			ret.add(prov.get(ws.get(o)));
-		}
-		removeInaccessibleProvenanceCopyReferences(user, ret);
-		return ret;
-	}
-
-	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
-			final List<ObjectIdentifier> loi) throws
-			CorruptWorkspaceDBException, WorkspaceCommunicationException,
-			InaccessibleObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read");
-		//this is pretty gross, think about a better api here
-		final Map<ObjectIDResolvedWS,
-				Map<ObjectPaths, WorkspaceObjectData>> data = 
-				db.getObjects(new HashSet<ObjectIDResolvedWS>(ws.values()));
-		final List<WorkspaceObjectData> ret =
-				new ArrayList<WorkspaceObjectData>();
-		
-		for (final ObjectIdentifier o: loi) {
-			ret.add(data.get(ws.get(o)).get(null));
-		}
-		removeInaccessibleDataCopyReferences(user, ret);
-		return ret;
+			WorkspaceCommunicationException, InaccessibleObjectException,
+			NoSuchReferenceException, TypedObjectExtractionException {
+			
+		return getObjects(user, loi, false);
 	}
 	
-	public List<WorkspaceObjectData> getObjectsSubSet(final WorkspaceUser user,
-			final List<SubObjectIdentifier> loi) throws
+	public List<WorkspaceObjectData> getObjects(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final boolean noData) throws
 			CorruptWorkspaceDBException, WorkspaceCommunicationException,
-			InaccessibleObjectException, TypedObjectExtractionException {
-		final List<ObjectIdentifier> objs = new LinkedList<ObjectIdentifier>();
-		for (final SubObjectIdentifier soi: loi) {
-			objs.add(soi.getObjectIdentifer());
-		}
+			InaccessibleObjectException, NoSuchReferenceException,
+			TypedObjectExtractionException {
+		return getObjects(user, loi, noData, false);
+	}
+	
+	public List<WorkspaceObjectData> getObjects(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final boolean noData,
+			boolean nullIfInaccessible) throws
+			CorruptWorkspaceDBException, WorkspaceCommunicationException,
+			InaccessibleObjectException, NoSuchReferenceException,
+			TypedObjectExtractionException {
 		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, objs, Permission.READ, "read");
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objpaths =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
-		for (final SubObjectIdentifier soi: loi) {
-			final ObjectIDResolvedWS o = ws.get(soi.getObjectIdentifer());
-			if (!objpaths.containsKey(o)) {
-				objpaths.put(o, new HashSet<ObjectPaths>());
-			}
-			objpaths.get(o).add(soi.getPaths());
-		}
+		final ResolvedResChains res = resolveObjects(user, loi,
+				nullIfInaccessible);
 		
-		//this is kind of disgusting, think about the api here
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> chainpaths =
+				setupObjectPaths(res.hadchain);
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> stdpaths =
+				setupObjectPaths(res.nochain);
+
+		//this is pretty gross, think about a better api here
 		final Map<ObjectIDResolvedWS,
-				Map<ObjectPaths, WorkspaceObjectData>> data = 
-				db.getObjects(objpaths);
+				Map<ObjectPaths, WorkspaceObjectData>> stddata =
+					db.getObjects(stdpaths, noData, !nullIfInaccessible, false,
+							!nullIfInaccessible);
+		final Map<ObjectIDResolvedWS,
+				Map<ObjectPaths, WorkspaceObjectData>> chaindata =
+					db.getObjects(chainpaths, noData, false, true, true);
+					//object cannot be missing at this stage
+		chainpaths.clear();
+		stdpaths.clear();
 		
 		final List<WorkspaceObjectData> ret =
 				new ArrayList<WorkspaceObjectData>();
-		for (final SubObjectIdentifier soi: loi) {
-			ret.add(data.get(ws.get(soi.getObjectIdentifer()))
-					.get(soi.getPaths()));
+		for (final ObjectIdentifier o: loi) {
+			final ObjectPaths p;
+			if (o instanceof ObjIDWithChainAndSubset) {
+				p = ((ObjIDWithChainAndSubset) o).getPaths();
+			} else {
+				p = ObjectPaths.EMPTY;
+			}
+			final WorkspaceObjectData wod;
+			// works if res.nochain.get(o) is null or stddata doesn't have key
+			if (stddata.containsKey(res.nochain.get(o))) {
+				wod = stddata.get(res.nochain.get(o)).get(p);
+			} else if (chaindata.containsKey(res.hadchain.get(o))) {
+				wod = chaindata.get(res.hadchain.get(o)).get(p);
+			} else {
+				wod = null;
+			}
+			ret.add(wod);
 		}
+		res.nochain.clear();
+		res.hadchain.clear();
+		chaindata.clear();
+		stddata.clear();
 		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
 	}
 
-	public List<WorkspaceObjectData> getReferencedObjects(
-			final WorkspaceUser user,
-			final List<ObjectChain> refchains)
-			throws CorruptWorkspaceDBException, WorkspaceCommunicationException,
-			InaccessibleObjectException, NoSuchReferenceException {
-		final LinkedList<ObjectIdentifier> first =
-				new LinkedList<ObjectIdentifier>();
-		final LinkedList<ObjectIdentifier> rest =
-				new LinkedList<ObjectIdentifier>();
-		for (final ObjectChain oc: refchains) {
-			first.add(oc.getHead());
-			rest.addAll(oc.getChain());
-		}
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resheads = 
-				checkPerms(user, first, Permission.READ, "read");
-		Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
-				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
-		if (!rest.isEmpty()) {
-			reschains = checkPerms(user, rest, Permission.NONE, "foo", true);
-		}
-		final Map<ObjectChain, ObjectChainResolvedWS> objs =
-				new HashMap<ObjectChain, ObjectChainResolvedWS>();
-		for (final ObjectChain oc: refchains) {
-			final ObjectIDResolvedWS head = resheads.get(oc.getHead());
-			final List<ObjectIDResolvedWS> chain =
-					new LinkedList<ObjectIDResolvedWS>();
-			for (final ObjectIdentifier oi: oc.getChain()) {
-				chain.add(reschains.get(oi));
+	private Map<ObjectIDResolvedWS, Set<ObjectPaths>> setupObjectPaths(
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> objs) {
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
+				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		for (final ObjectIdentifier o: objs.keySet()) {
+			final ObjectIDResolvedWS roi = objs.get(o);
+			if (!paths.containsKey(roi)) {
+				paths.put(roi, new HashSet<ObjectPaths>());
 			}
-			objs.put(oc, new ObjectChainResolvedWS(head, chain));
+			if (o instanceof ObjIDWithChainAndSubset) {
+				paths.get(roi).add(((ObjIDWithChainAndSubset) o).getPaths());
+			} else {
+				paths.get(roi).add(ObjectPaths.EMPTY);
+			}
 		}
-		final Map<ObjectChainResolvedWS, WorkspaceObjectData> res =
-				db.getReferencedObjects(
-						new HashSet<ObjectChainResolvedWS>(objs.values()));
-		final List<WorkspaceObjectData> ret =
-				new LinkedList<WorkspaceObjectData>();
-		for (final ObjectChain oc: refchains) {
-			ret.add(res.get(objs.get(oc)));
+		return paths;
+	}
+	
+	private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveReferenceChains(
+			final WorkspaceUser user,
+			final List<ObjectIDWithRefChain> refchains,
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads,
+			final boolean ignoreErrors)
+			throws WorkspaceCommunicationException,
+			InaccessibleObjectException, CorruptWorkspaceDBException,
+			NoSuchObjectException, NoSuchReferenceException {
+		
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ret =
+				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		if (!hasItems(refchains)) {
+			return ret;
 		}
-		removeInaccessibleDataCopyReferences(user, ret);
-		return ret;
+		
+		final List<ObjectIdentifier> chains =
+				new LinkedList<ObjectIdentifier>();
+		for (final ObjectIDWithRefChain oc: refchains) {
+			if (oc != null) {
+				/* allow nulls in list to maintain object count in the case
+				 * calling method input includes objectIDs with and without
+				 * chains
+				 */
+				chains.addAll(oc.getChain());
+			}
+		}
+		
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> headrefs =
+				getObjectOutGoingReferences(heads, !ignoreErrors, false);
+		/* ignore all errors when getting chain objects until actually getting
+		 * to the point where we need the data. Otherwise an attacker can
+		 * explore what objects exist in arbitrary workspaces.
+		 */
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
+				checkPerms(user, chains, Permission.NONE, "somthinsbroke",
+						true, true, true);
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> chainrefs =
+				getObjectOutGoingReferences(reschains, false, true);
+		
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedChains =
+				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		int chnum = 1;
+		for (final ObjectIDWithRefChain chain: refchains) {
+			if (chain != null) {
+				final ObjectReferenceSet refs = headrefs.get(heads.get(chain));
+				if (refs != null && isValidRefChain(chain, refs, reschains,
+						chainrefs, ignoreErrors, chnum)) {
+					resolvedChains.put(chain, reschains.get(chain.getLast()));
+				}
+			}
+			chnum++;
+		}
+		return resolvedChains;
+	}
+	
+	private boolean isValidRefChain(
+			final ObjectIDWithRefChain chain,
+			final ObjectReferenceSet headref,
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains,
+			final Map<ObjectIDResolvedWS, ObjectReferenceSet> chainrefs,
+			final boolean ignoreErrors,
+			final int chainNumber
+			) throws NoSuchReferenceException {
+		ObjectIdentifier pos = chain;
+		ObjectReferenceSet refs = headref;
+		int posnum = 1;
+		for (final ObjectIdentifier oi: chain.getChain()) {
+			/* refs are guaranteed to exist, so if the db didn't find
+			 * it the user specified it incorrectly
+			 */
+			/* only throw the exception from one
+			 * place, otherwise an attacker can tell if the object in the
+			 * ref chain is in the DB or not
+			 */
+			final ObjectIDResolvedWS oir = reschains.get(oi);
+			final ObjectReferenceSet current = oir == null ? null :
+				chainrefs.get(oir);
+			if (current == null ||
+					!refs.contains(current.getObjectReference())) {
+				if (ignoreErrors) {
+					return false;
+				}
+				throwNoSuchRefException(pos, oi, chainNumber, posnum);
+			}
+			pos = oi;
+			refs = current;
+			posnum++;
+		}
+		return true;
+	}
+
+	private boolean hasItems(final List<?> l) {
+		if (l == null || l.isEmpty()) {
+			return false;
+		}
+		for (final Object item: l) {
+			if (item != null) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private void throwNoSuchRefException(
+			final ObjectIdentifier from,
+			final ObjectIdentifier to, int chnum, int posnum)
+			throws NoSuchReferenceException {
+		throw new NoSuchReferenceException(
+				String.format(
+				"Reference chain #%s, position %s: Object %s %sin " +
+				"workspace %s does not contain a reference to " +
+				"object %s %sin workspace %s",
+				chnum, posnum,
+				from.getIdentifierString(),
+				from.getVersion() == null ? "" :
+					"with version " + from.getVersion() + " ",
+				from.getWorkspaceIdentifierString(),
+				to.getIdentifierString(),
+				to.getVersion() == null ? "" :
+					"with version " + to.getVersion() + " ",
+				to.getWorkspaceIdentifierString()),
+				from, to);
+	}
+
+	private Map<ObjectIDResolvedWS, ObjectReferenceSet>
+			getObjectOutGoingReferences(
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> objs,
+				final boolean exceptIfMissingOrDeleted,
+				final boolean includeDeleted)
+				throws WorkspaceCommunicationException, NoSuchObjectException {
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> refs;
+		try {
+			refs = db.getObjectOutgoingReferences(
+					new HashSet<ObjectIDResolvedWS>(objs.values()),
+					exceptIfMissingOrDeleted, includeDeleted,
+					exceptIfMissingOrDeleted);
+		} catch (NoSuchObjectException nsoe) {
+			final ObjectIDResolvedWS e = nsoe.getResolvedInaccessibleObject();
+			for (Entry<ObjectIdentifier, ObjectIDResolvedWS> entry:
+					objs.entrySet()) {
+				if (entry.getValue().equals(e)) {
+					throw new NoSuchObjectException(
+							formatInaccessibleObjectException(
+									entry.getKey(), nsoe),
+							entry.getValue(), nsoe);
+				}
+				
+			}
+			throw new RuntimeException("Something went very wrong here", nsoe);
+		}
+		return refs;
+	}
+	
+	private static String formatInaccessibleObjectException(
+			final ObjectIdentifier oi,
+			final InaccessibleObjectException nsoe) {
+		final StringBuilder sb = new StringBuilder("Object ");
+		sb.append(oi.getIdentifierString());
+		sb.append(oi.getVersion() == null ? "" :
+			" with version " + oi.getVersion());
+		if (nsoe instanceof DeletedObjectException) {
+			sb.append(" in workspace ");
+		} else if (nsoe instanceof NoSuchObjectException) {
+			sb.append(" does not exist in workspace ");
+		} else {
+			sb.append(" in workspace ");
+		}
+		sb.append(oi.getWorkspaceIdentifierString());
+		if (nsoe instanceof DeletedObjectException) {
+			sb.append(" has been deleted");
+		} else if (!(nsoe instanceof NoSuchObjectException)) {
+			sb.append(" is inaccessible");
+		}
+		return sb.toString();
 	}
 	
 	private void removeInaccessibleDataCopyReferences(
@@ -1028,24 +1181,10 @@ public class Workspace {
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		
-		final List<WorkspaceObjectInformation> newdata =
-				new LinkedList<WorkspaceObjectInformation>();
-		for (final WorkspaceObjectData d: data) {
-			newdata.add((WorkspaceObjectInformation) d);
-		}
-		removeInaccessibleProvenanceCopyReferences(user, newdata);
-	}
-	
-	private void removeInaccessibleProvenanceCopyReferences(
-			final WorkspaceUser user,
-			final List<WorkspaceObjectInformation> info)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		
 		final Set<WorkspaceIdentifier> wsis =
 				new HashSet<WorkspaceIdentifier>();
-		for (final WorkspaceObjectInformation d: info) {
-			if (d.getCopyReference() != null) {
+		for (final WorkspaceObjectData d: data) {
+			if (d != null && d.getCopyReference() != null) {
 				wsis.add(new WorkspaceIdentifier(
 						d.getCopyReference().getWorkspaceID()));
 			}
@@ -1078,20 +1217,19 @@ public class Workspace {
 			}
 		}
 		
-		final Map<WorkspaceObjectInformation, ObjectIDResolvedWS> rois =
-				new HashMap<WorkspaceObjectInformation, ObjectIDResolvedWS>();
-		for (final WorkspaceObjectInformation d: info) {
-			final Reference cref = d.getCopyReference();
-			if (cref == null) {
-				continue;
-			}
-			final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
-					cref.getWorkspaceID());
-			if (!rwsis.containsKey(wsi)) {
-				d.setCopySourceInaccessible();
-			} else {
-				rois.put(d, new ObjectIDResolvedWS(rwsis.get(wsi),
-						cref.getObjectID(), cref.getVersion()));
+		final Map<WorkspaceObjectData, ObjectIDResolvedWS> rois =
+				new HashMap<WorkspaceObjectData, ObjectIDResolvedWS>();
+		for (final WorkspaceObjectData d: data) {
+			if (d != null && d.getCopyReference() != null) {
+				final Reference cref = d.getCopyReference();
+				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
+						cref.getWorkspaceID());
+				if (!rwsis.containsKey(wsi)) {
+					d.setCopySourceInaccessible();
+				} else {
+					rois.put(d, new ObjectIDResolvedWS(rwsis.get(wsi),
+							cref.getObjectID(), cref.getVersion()));
+				}
 			}
 		}
 		
@@ -1099,7 +1237,7 @@ public class Workspace {
 				db.getObjectExists(
 						new HashSet<ObjectIDResolvedWS>(rois.values())); 
 		
-		for (final Entry<WorkspaceObjectInformation, ObjectIDResolvedWS> e:
+		for (final Entry<WorkspaceObjectData, ObjectIDResolvedWS> e:
 				rois.entrySet()) {
 			if (!objexists.get(e.getValue())) {
 				e.getKey().setCopySourceInaccessible();
@@ -1154,30 +1292,96 @@ public class Workspace {
 		return db.getObjectHistory(ws.get(oi));
 	}
 	
+	private static class ResolvedResChains {
+		public Map<ObjectIdentifier, ObjectIDResolvedWS> nochain;
+		public Map<ObjectIdentifier, ObjectIDResolvedWS> hadchain;
+
+		private ResolvedResChains(
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> nochain,
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> hadchain) {
+			super();
+			this.nochain = nochain;
+			this.hadchain = hadchain;
+		}
+		
+	}
+	
 	public List<ObjectInformation> getObjectInformation(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi,
 			final boolean includeMetadata, final boolean nullIfInaccessible)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
-			InaccessibleObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read",
-						nullIfInaccessible, nullIfInaccessible,
-						nullIfInaccessible);
-		final Map<ObjectIDResolvedWS, ObjectInformation> meta = 
+			InaccessibleObjectException, NoSuchReferenceException {
+	
+		final ResolvedResChains res = resolveObjects(user, loi,
+				nullIfInaccessible);
+		
+		final Map<ObjectIDResolvedWS, ObjectInformation> stdmeta = 
 				db.getObjectInformation(
-						new HashSet<ObjectIDResolvedWS>(ws.values()),
-						includeMetadata, nullIfInaccessible);
+						new HashSet<ObjectIDResolvedWS>(res.nochain.values()),
+						includeMetadata, !nullIfInaccessible, false,
+						!nullIfInaccessible);
+		final Map<ObjectIDResolvedWS, ObjectInformation> resmeta = 
+				db.getObjectInformation(
+						new HashSet<ObjectIDResolvedWS>(res.hadchain.values()),
+						includeMetadata, false, true, true);
+						// at this point the object at the chain end must exist
 		final List<ObjectInformation> ret =
 				new ArrayList<ObjectInformation>();
 		
 		for (final ObjectIdentifier o: loi) {
-			if (!ws.containsKey(o) || !meta.containsKey(ws.get(o))) {
-				ret.add(null);
+			if (res.nochain.containsKey(o) &&
+					stdmeta.containsKey(res.nochain.get(o))) {
+				ret.add(stdmeta.get(res.nochain.get(o)));
+			} else if (res.hadchain.containsKey(o) &&
+					resmeta.containsKey(res.hadchain.get(o))) {
+				ret.add(resmeta.get(res.hadchain.get(o)));
 			} else {
-				ret.add(meta.get(ws.get(o)));
+				ret.add(null);
 			}
 		}
 		return ret;
+	}
+
+	/* used to resolve object IDs that might contain reference chains */
+	private ResolvedResChains resolveObjects(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi, final boolean nullIfInaccessible)
+			throws WorkspaceCommunicationException,
+			InaccessibleObjectException, CorruptWorkspaceDBException,
+			NoSuchObjectException, NoSuchReferenceException {
+
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, Permission.READ, "read",
+						nullIfInaccessible, nullIfInaccessible,
+						nullIfInaccessible);
+		
+		final List<ObjectIDWithRefChain> chains =
+				new LinkedList<ObjectIDWithRefChain>();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads =
+				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> std =
+				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		for (final ObjectIdentifier o: loi) {
+			if (ws.get(o) == null) {
+				continue;
+			}
+			if (o instanceof ObjectIDWithRefChain && 
+					((ObjectIDWithRefChain) o).hasChain()) {
+				chains.add((ObjectIDWithRefChain) o);
+				heads.put(o, ws.get(o));
+			} else {
+				chains.add(null); // maintain count for error reporting
+				std.put(o, ws.get(o));
+			}
+		}
+		ws.clear(); //GC
+		
+		// this should exclude any heads that are deleted, even if
+		// nullIfInaccessible is true
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
+				resolveReferenceChains(user, chains, heads,
+						nullIfInaccessible);
+		
+		return new ResolvedResChains(std, reschains);
 	}
 	
 	/** Get object names based on a provided prefix. Returns at most 1000
