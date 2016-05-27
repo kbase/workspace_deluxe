@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -521,12 +522,28 @@ public class JSONRPCLayerTester {
 		Date tenback = getOlderDate(10 * 60 * 1000);
 		Date tenfor = getNewerDate(10 * 60 * 1000);
 		
+		//get objs 2 prov
+		ObjectData ret1p = CLIENT1.getObjects2(new GetObjects2Params()
+			.withNoData(1L)
+			.withObjects(Arrays.asList(toObjSpec(id)))).getData().get(0);
+		assertThat("user correct", ret1p.getCreator(), is(user));
+		assertThat("wsid correct", ret1p.getOrigWsid(), is(id.getWsid()));
+		Date created = DATE_FORMAT.parse(ret1p.getCreated());
+		assertTrue("created within last 10 mins", created.after(tenback));
+		assertTrue("epoch within last 10 mins", new Date(ret1p.getEpoch())
+				.after(tenback));
+		assertTrue("not saved in future", created.before(tenfor));
+		assertTrue("epoch not in future", new Date(ret1p.getEpoch())
+				.before(tenfor));
+		checkProvenance(prov, ret1p.getProvenance(), refmap, timemap);
+		assertNull("got unrequested data", ret1p.getData());
+		
 		//get objs 2
 		ObjectData ret1 = CLIENT1.getObjects2(new GetObjects2Params()
 			.withObjects(Arrays.asList(toObjSpec(id)))).getData().get(0);
 		assertThat("user correct", ret1.getCreator(), is(user));
 		assertThat("wsid correct", ret1.getOrigWsid(), is(id.getWsid()));
-		Date created = DATE_FORMAT.parse(ret1.getCreated());
+		created = DATE_FORMAT.parse(ret1.getCreated());
 		assertTrue("created within last 10 mins", created.after(tenback));
 		assertTrue("epoch within last 10 mins", new Date(ret1.getEpoch())
 				.after(tenback));
@@ -799,6 +816,14 @@ public class JSONRPCLayerTester {
 					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
 		}
 		try {
+			CLIENT1.getObjects2(new GetObjects2Params().withNoData(1L)
+				.withObjects(toObjSpec(loi)));
+			fail("got object with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+		}
+		try {
 			CLIENT1.getObjects(loi);
 			fail("got object with bad id");
 		} catch (ServerException se) {
@@ -874,6 +899,16 @@ public class JSONRPCLayerTester {
 		for (ObjectData o: retdata) {
 			checkData(o, id, name, type, ver, user, wsid, wsname,
 					chksum, size, meta, data);
+		}
+		
+		List<ObjectData> prov2 = CLIENT1.getObjects2(new GetObjects2Params()
+			.withNoData(1L)
+			.withObjects(toObjSpec(loi))).getData();
+			assertThat("num data correct", prov2.size(), is(loi.size()));
+		for (ObjectData p: prov2) {
+			checkInfo(p.getInfo(), id, name, type, ver, user, wsid, wsname,
+					chksum, size, meta);
+			assertNull("got unrequested data", p.getData());
 		}
 		
 		List<us.kbase.workspace.ObjectProvenanceInfo> prov =
@@ -1078,6 +1113,18 @@ public class JSONRPCLayerTester {
 				.withObjid(copied.getE1()).withVer(copied.getE5()));
 		
 		String expectedCopy = orig.getE7() + "/" + orig.getE1() + "/" + orig.getE5();
+		
+		List<ObjectData> prov2 = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(toObjSpec(loi)).withNoData(1L)).getData();
+		compareObjectInfo(prov2.get(0).getInfo(), prov2.get(1).getInfo(), wsname, wsid, name, id, ver);
+		assertThat("creator same", prov2.get(1).getCreator(), is(prov2.get(0).getCreator()));
+		assertThat("created same", prov2.get(1).getCreated(), is(prov2.get(0).getCreated()));
+		assertThat("prov same", prov2.get(1).getProvenance(), is(prov2.get(0).getProvenance()));
+		assertThat("refs same", prov2.get(1).getRefs(), is(prov2.get(0).getRefs()));
+		assertThat("copy ref correct", prov2.get(1).getCopied(), is(expectedCopy));
+		assertThat("copy visibility correct", prov2.get(1).getCopySourceInaccessible(), is(0L));
+		assertNull("got unrequested data", prov2.get(0).getData());
+		assertNull("got unrequested data", prov2.get(1).getData());
 		
 		List<us.kbase.workspace.ObjectProvenanceInfo> prov = CLIENT1.getObjectProvenance(loi);
 		compareObjectInfo(prov.get(0).getInfo(), prov.get(1).getInfo(), wsname, wsid, name, id, ver);

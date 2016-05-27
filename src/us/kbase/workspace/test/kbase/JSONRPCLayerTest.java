@@ -1706,7 +1706,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	private void checkObjectCopy(WorkspaceClient cli, ObjectIdentity nocopy,
 			String ref, long copyInvisible) throws Exception {
 		
-		ObjectData objo = cli.getObjects2(new GetObjects2Params()
+		ObjectData objp = cli.getObjects2(new GetObjects2Params().withNoData(1L)
+			.withObjects(toObjSpec(Arrays.asList(nocopy)))).getData().get(0);
+		assertThat("copy ref is correct", objp.getCopied(), is(ref));
+		assertThat("copy vis is correct", objp.getCopySourceInaccessible(), is(copyInvisible));
+		assertNull("got unrequested data", objp.getData());
+		ObjectData objo = cli.getObjects2(new GetObjects2Params().withNoData(0L)
 			.withObjects(toObjSpec(Arrays.asList(nocopy)))).getData().get(0);
 		assertThat("copy ref is correct", objo.getCopied(), is(ref));
 		assertThat("copy vis is correct", objo.getCopySourceInaccessible(), is(copyInvisible));

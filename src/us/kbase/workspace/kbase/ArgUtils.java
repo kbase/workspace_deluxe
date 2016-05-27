@@ -429,7 +429,7 @@ public class ArgUtils {
 					o, user, handleManagerURl, handleManagertoken);
 			final ByteArrayFileCache resource = o.getSerializedData();
 			ret.add(new ObjectData()
-					.withData(resource.getUObject())
+					.withData(resource == null ? null : resource.getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))

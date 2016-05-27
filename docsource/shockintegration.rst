@@ -339,7 +339,7 @@ of some or all of the Shock nodes embedded in the object could not be updated.
 .. code-block:: python
     :emphasize-lines: 7, 8
 
-    In [26]: ws.get_objects2({'objects': [{'ref': 'foo/foo'}]})
+    In [26]: ws.get_objects2({'objects': [{'ref': 'foo/foo'}]})['data']
     Out[26]:
     [{u'created': u'2014-08-08T00:07:10+0000',
       u'creator': u'kbasetest',
