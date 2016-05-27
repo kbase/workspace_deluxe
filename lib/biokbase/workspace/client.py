@@ -293,6 +293,13 @@ class Workspace(object):
                           [object_ids], json_rpc_context)
         return resp[0]
   
+    def get_objects2(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_objects2: argument json_rpc_context is not type dict as required.')
+        resp = self._call('Workspace.get_objects2',
+                          [params], json_rpc_context)
+        return resp[0]
+  
     def get_object_subset(self, sub_object_ids, json_rpc_context = None):
         if json_rpc_context and type(json_rpc_context) is not dict:
             raise ValueError('Method get_object_subset: argument json_rpc_context is not type dict as required.')

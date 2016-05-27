@@ -43,11 +43,12 @@ In the interest of simplicity, saving the example objects is not shown. User 1
 reference to the other:
 
 .. code-block:: python
-    :emphasize-lines: 13, 17, 19, 29, 43
+    :emphasize-lines: 14, 18, 20, 30, 44
 
-    In [28]: user1client.get_objects([{'ref': 'user1ws/simple'},
-                                      {'ref': 'user1ws/refobj1'}
-                                      ])
+    In [28]: user1client.get_objects2({'objects':
+                                       [{'ref': 'user1ws/simple'},
+                                       {'ref': 'user1ws/refobj1'}
+                                       ]})['data']
     Out[28]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-18T04:13:15+0000',
@@ -100,9 +101,10 @@ This workspace is readable to User 2 (kbasetest8):
 As such, User 2 saved an object that references User 1's ``refobj1``:
 
 .. code-block:: python
-    :emphasize-lines: 6, 20
+    :emphasize-lines: 7, 21
     
-    In [31]: user2client.get_objects([{'ref': 'user2ws/refobj2'}])
+    In [31]: user2client.get_objects2(
+                 {'objects': [{'ref': 'user2ws/refobj2'}]})['data']
     Out[31]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-18T04:16:20+0000',
@@ -138,7 +140,8 @@ object:
 
 .. code-block:: python
 
-    In [35]: user2client.get_objects([{'ref': 'user1ws/refobj1'}])
+    In [35]: user2client.get_objects2(
+                 {'objects': [{'ref': 'user1ws/refobj1'}]})['data']
     --------------------------------------------------------------------------
     ServerError                               Traceback (most recent call last)
     <ipython-input-35-7c5faa02c112> in <module>()
@@ -149,15 +152,16 @@ object:
     ServerError: JSONRPCError: -32500. Object refobj1 cannot be accessed: User
     kbasetest8 may not read workspace user1ws
 
-However, using the ``get_referenced_objects`` method and providing the path
+However, using the ``get_objects2`` method and providing the path
 from an accessible object to the desired object, User 2 can still retrieve
 the hidden/deleted objects, and thus use ``refobj2``. The path can be deduced
 from the references in each object:
 
 .. code-block:: python
-    :emphasize-lines: 6, 20, 23, 29, 43, 47
+    :emphasize-lines: 7, 21, 25, 32, 46, 50-51
 
-    In [51]: user2client.get_objects([{'ref': 'user2ws/refobj2'}])
+    In [51]: user2client.get_objects2(
+                 {'objects': [{'ref': 'user2ws/refobj2'}]})['data']
     Out[51]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-18T04:16:20+0000',
@@ -178,9 +182,11 @@ from the references in each object:
       u'provenance': [],
       u'refs': [u'13/2/1']}]
     
-    In [52]: user2client.get_referenced_objects([[{'ref': 'user2ws/refobj2'},
-                                                  {'ref': '13/2/1'}
-                                                  ]])
+    In [52]: user2client.get_objects2(
+                 {'objects': [{'ref': 'user2ws/refobj2',
+                               'obj_path': [{'ref': '13/2/1'}]
+                               }
+                              ]})
     Out[52]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-18T04:14:33+0000',
@@ -201,10 +207,12 @@ from the references in each object:
       u'provenance': [],
       u'refs': [u'13/1/1']}]
     
-    In [53]: user2client.get_referenced_objects([[{'ref': 'user2ws/refobj2'},
-                                                  {'ref': '13/2/1'},
-                                                  {'ref': '13/1/1'}
-                                                  ]])
+    In [53]: user2client.get_objects2(
+                 {'objects': [{'ref': 'user2ws/refobj2',
+                               'obj_path': [{'ref': '13/2/1'},
+                                            {'ref': '13/1/1'}
+                                            ]
+                              ]})
     Out[53]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-18T04:13:15+0000',
@@ -228,12 +236,6 @@ from the references in each object:
       u'provenance': [],
       u'refs': []}]
 
-.. note::
-   Because ``get_referenced_objects`` always returns the object data,
-   traversing the graph may be inefficient if intermediate object data is not
-   needed. We are working on improvements to the ease and efficiency of
-   traversing the object graph.
-   
 It is also possible for User 1 to find objects that reference their
 objects if they are readable and not in the deleted state:
 

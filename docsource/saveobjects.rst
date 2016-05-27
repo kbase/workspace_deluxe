@@ -312,9 +312,10 @@ field has been added to the provenance. This field contains the translated
 object references supplied in ``input_ws_objects``:
 
 .. code-block:: python
-    :emphasize-lines: 24, 29
+    :emphasize-lines: 25, 30
 
-    In [32]: ws.get_objects([{'ref': 'MyWorkspace/simpleWithProv'}])
+    In [32]: ws.get_objects2({'objects':
+                 [{'ref': 'MyWorkspace/simpleWithProv'}]})['data']
     Out[32]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-14T23:44:35+0000',
@@ -405,7 +406,7 @@ Saving an object with a dependency reference required by the typespec is just
 like saving any other object:
 
 .. code-block:: python
-    :emphasize-lines: 1, 8, 31, 47
+    :emphasize-lines: 1, 8, 32, 48
 
     In [57]: refobj = {'r': 'MyWorkspace/simple',
                        'thing': 'this object has a reference'
@@ -432,7 +433,8 @@ like saving any other object:
       52,
       {}]]
 
-    In [59]: ws.get_objects([{'workspace': 'MyWorkspace', 'name': 'ref'}])
+    In [59]: ws.get_objects2({'objects':
+                 [{'workspace': 'MyWorkspace', 'name': 'ref'}]})['data']
     Out[59]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-15T03:12:41+0000',

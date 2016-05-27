@@ -230,7 +230,9 @@ module Workspace {
 	*/
 	typedef string object_path;
 	
-	/* An object subset identifier.
+	/*  DEPRECATED
+	
+		An object subset identifier.
 		
 		Select a subset of an object by:
 		EITHER
@@ -251,10 +253,12 @@ module Workspace {
 		AND a subset specification:
 			list<object_path> included - the portions of the object to include
 				in the object subset.
-		strict_maps - if true, throw an exception if the subset specification
-			traverses a non-existant map key (default false)
-		strict_arrays - if true, throw an exception if the subset specification
-			exceeds the size of an array (default true)
+		boolean strict_maps - if true, throw an exception if the subset
+			specification traverses a non-existant map key (default false)
+		boolean strict_arrays - if true, throw an exception if the subset
+			specification exceeds the size of an array (default true)
+			
+		@deprecated Workspace.ObjectSpecification
 	*/
 	typedef structure {
 		ws_name workspace;
@@ -267,6 +271,72 @@ module Workspace {
 		boolean strict_maps;
 		boolean strict_arrays;
 	} SubObjectIdentity;
+	
+	/* An Object Specification (OS). Inherits from ObjectIdentity.
+		Specifies which object, and which parts of that object, to retrieve
+		from the Workspace Service.
+		
+		The fields wsid, workspace, objid, name, ver, and ref are identical to
+		the ObjectIdentity fields.
+		
+		REFERENCE FOLLOWING:
+		
+		Reference following guarantees that a user that has access to an
+		object can always see a) objects that are referenced inside the object
+		and b) objects that are referenced in the object's provenance. This
+		ensures that the user has visibility into the entire provenance of the
+		object and the object's object dependencies (e.g. references).
+		
+		The user must have at least read access to the object specified in this
+		SO, but need not have access to any further objects in the reference
+		chain, and those objects may be deleted.
+		
+		Optional reference following fields:
+		ref_chain obj_path - a path to the desired object from the object
+			specified in this OS. In other words, the object specified in this
+			OS is assumed to be accessible to the user, and the objects in
+			the object path represent a chain of references to the desired
+			object at the end of the object path. If the references are all
+			valid, the desired object will be returned.
+		- OR -
+		list<obj_ref> obj_ref_path - shorthand for the obj_path. Only one of
+			obj_path or obj_ref_path may be specified.
+		
+		OBJECT SUBSETS:
+		
+		When selecting a subset of an array in an object, the returned
+		array is compressed to the size of the subset, but the ordering of
+		the array is maintained. For example, if the array stored at the
+		'feature' key of a Genome object has 4000 entries, and the object paths
+		provided are:
+			/feature/7
+			/feature/3015
+			/feature/700
+		The returned feature array will be of length three and the entries will
+		consist, in order, of the 7th, 700th, and 3015th entries of the
+		original array.
+		
+		Optional object subset fields:
+		list<object_path> included - the portions of the object to include
+				in the object subset.
+		boolean strict_maps - if true, throw an exception if the subset
+			specification traverses a non-existant map key (default false)
+		boolean strict_arrays - if true, throw an exception if the subset
+			specification exceeds the size of an array (default true)
+	*/
+	typedef structure {
+		ws_name workspace;
+		ws_id wsid;
+		obj_name name;
+		obj_id objid;
+		obj_ver ver;
+		obj_ref ref;
+		ref_chain obj_path;
+		list<obj_ref> obj_ref_path;
+		list<object_path> included;
+		boolean strict_maps;
+		boolean strict_arrays;
+	} ObjectSpecification;
 	
 	/* Meta data associated with an object stored in a workspace. Provided for
 		backwards compatibility.
@@ -845,7 +915,9 @@ module Workspace {
 	funcdef get_object(get_object_params params)
 		returns (get_object_output output) authentication optional;
 	
-	/* The provenance and supplemental info for an object.
+	/*  DEPRECATED
+	
+		The provenance and supplemental info for an object.
 	
 		object_info info - information about the object.
 		list<ProvenanceAction> provenance - the object's provenance.
@@ -870,6 +942,8 @@ module Workspace {
 		string handle_error - if an error occurs while setting ACLs on
 			embedded handle IDs, it will be reported here.
 		string handle_stacktrace - the stacktrace for handle_error.
+		
+		@deprecated
 	*/
 	typedef structure {
 		object_info info;
@@ -886,8 +960,10 @@ module Workspace {
 		string handle_stacktrace;
 	} ObjectProvenanceInfo;
 	
-	/* 
+	/*  DEPRECATED
 		Get object provenance from the workspace.
+		
+		@deprecated Workspace.get_objects2
 	*/
 	funcdef get_object_provenance(list<ObjectIdentity> object_ids)
 		returns (list<ObjectProvenanceInfo> data) authentication optional;
@@ -936,13 +1012,46 @@ module Workspace {
 		string handle_stacktrace;
 	} ObjectData;
 	
-	/* 
+	/*  DEPRECATED
 		Get objects from the workspace.
+		@deprecated Workspace.get_objects2
 	*/
 	funcdef get_objects(list<ObjectIdentity> object_ids)
 		returns (list<ObjectData> data) authentication optional;
-		
-	/* 
+	
+	/* Input parameters for the get_objects2 function.
+	
+		Required parameters:
+		list<ObjectSpecification> objects - the list of object specifications
+			for the objects to return (via reference chain and as a subset if
+			specified).
+			
+		Optional parameters:
+		boolean ignoreErrors - Don't throw an exception if an object cannot
+			be accessed; return null for that object's information instead.
+			Default false.
+		boolean no_data - return the provenance, references, and
+			object_info for this object without the object data. Default false.
+	*/
+	typedef structure {
+		list<ObjectSpecification> objects;
+		boolean ignoreErrors;
+		boolean no_data;
+	} GetObjects2Params;
+	
+	/* Results from the get_objects2 function.
+	
+		list<ObjectData> data - the returned objects.
+	*/
+	typedef structure {
+		list<ObjectData> data;
+	} GetObjects2Results;
+	
+	/* Get objects from the workspace. */
+	funcdef get_objects2(GetObjects2Params params)
+		returns(GetObjects2Results results) authentication optional;
+	
+	/*  DEPRECATED
 		Get portions of objects from the workspace.
 		
 		When selecting a subset of an array in an object, the returned
@@ -956,6 +1065,7 @@ module Workspace {
 		The returned feature array will be of length three and the entries will
 		consist, in order, of the 7th, 700th, and 3015th entries of the
 		original array.
+		@deprecated Workspace.get_objects2
 	*/
 	funcdef get_object_subset(list<SubObjectIdentity> sub_object_ids)
 		returns (list<ObjectData> data) authentication optional;
@@ -988,7 +1098,9 @@ module Workspace {
 	funcdef list_referencing_object_counts(list<ObjectIdentity> object_ids)
 		returns (list<int> counts) authentication optional;
 	
-	/* Get objects by references from other objects.
+	/*  DEPRECATED
+	
+		Get objects by references from other objects.
 	
 		NOTE: In the vast majority of cases, this method is not necessary and
 		get_objects should be used instead. 
@@ -1002,6 +1114,8 @@ module Workspace {
 		The user must have at least read access to the first object in each
 		reference chain, but need not have access to any further objects in
 		the chain, and those objects may be deleted.
+		
+		@deprecated Workspace.get_objects2
 	
 	*/
 	funcdef get_referenced_objects(list<ref_chain> ref_chains)
@@ -1249,8 +1363,9 @@ module Workspace {
 	/* Input parameters for the "get_object_info_new" function.
 	
 		Required arguments:
-		list<ObjectIdentity> objects - the objects for which the information
-			should be fetched
+		list<ObjectSpecification> objects - the objects for which the
+			information should be fetched. Subsetting related parameters are
+			ignored.
 		
 		Optional arguments:
 		boolean includeMetadata - include the object metadata in the returned
@@ -1261,7 +1376,7 @@ module Workspace {
 			
 	*/
 	typedef structure { 
-		list<ObjectIdentity> objects;
+		list<ObjectSpecification> objects;
 		boolean includeMetadata;
 		boolean ignoreErrors;
 	} GetObjectInfoNewParams;

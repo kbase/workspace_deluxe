@@ -23,6 +23,8 @@ import org.joda.time.format.DateTimeFormatterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonParseException;
+
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
@@ -40,7 +42,6 @@ import us.kbase.auth.TokenExpiredException;
 import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
-import us.kbase.workspace.ObjectProvenanceInfo;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectInformation;
@@ -50,11 +51,9 @@ import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceObjectInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 
 /**
- * not thread safe
  * @author gaprice@lbl.gov
  *
  */
@@ -422,14 +421,19 @@ public class ArgUtils {
 			final Set<ByteArrayFileCache> resourcesToDestroy,
 			final URL handleManagerURl,
 			final RefreshingToken handleManagertoken,
-			final boolean logObjects) {
+			final boolean logObjects)
+			throws JsonParseException, IOException {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
+			if (o == null) {
+				ret.add(null);
+				continue;
+			}
 			final HandleError error = makeHandlesReadable(
 					o, user, handleManagerURl, handleManagertoken);
-			final ByteArrayFileCache resource = o.getDataAsTokens();
+			final ByteArrayFileCache resource = o.getSerializedData();
 			ret.add(new ObjectData()
-					.withData(resource.getUObject())
+					.withData(resource == null ? null : resource.getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
@@ -451,18 +455,19 @@ public class ArgUtils {
 		return ret;
 	}
 	
-	public static List<ObjectProvenanceInfo> translateObjectProvInfo(
-			final List<WorkspaceObjectInformation> objects,
+	@SuppressWarnings("deprecation")
+	public static List<us.kbase.workspace.ObjectProvenanceInfo> translateObjectProvInfo(
+			final List<WorkspaceObjectData> objects,
 			final WorkspaceUser user,
 			final URL handleManagerURl,
 			final RefreshingToken handleManagertoken,
 			final boolean logObjects) {
-		final List<ObjectProvenanceInfo> ret =
-				new ArrayList<ObjectProvenanceInfo>();
-		for (final WorkspaceObjectInformation o: objects) {
+		final List<us.kbase.workspace.ObjectProvenanceInfo> ret =
+				new ArrayList<us.kbase.workspace.ObjectProvenanceInfo>();
+		for (final WorkspaceObjectData o: objects) {
 			final HandleError error = makeHandlesReadable(
 					o, user, handleManagerURl, handleManagertoken);
-			ret.add(new ObjectProvenanceInfo()
+			ret.add(new us.kbase.workspace.ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
@@ -508,7 +513,7 @@ public class ArgUtils {
 	}
 
 	private static HandleError makeHandlesReadable(
-			final WorkspaceObjectInformation o,
+			final WorkspaceObjectData o,
 			final WorkspaceUser user,
 			final URL handleManagerURL,
 			final RefreshingToken handleManagertoken) {
@@ -655,8 +660,12 @@ public class ArgUtils {
 	}
 
 	public static boolean longToBoolean(final Long b) {
+		return longToBoolean(b, false);
+	}
+	
+	public static boolean longToBoolean(final Long b, final boolean default_) {
 		if (b == null) {
-			return false;
+			return default_;
 		}
 		return b != 0;
 	}

@@ -488,7 +488,9 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: get_object_provenance</p>
      * <pre>
+     * DEPRECATED
      * Get object provenance from the workspace.
+     * @deprecated Workspace.get_objects2
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectProvenanceInfo ObjectProvenanceInfo}
@@ -506,7 +508,9 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: get_objects</p>
      * <pre>
+     * DEPRECATED
      * Get objects from the workspace.
+     * @deprecated Workspace.get_objects2
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectData ObjectData}
@@ -522,8 +526,27 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: get_objects2</p>
+     * <pre>
+     * Get objects from the workspace.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetObjects2Params GetObjects2Params}
+     * @return   parameter "results" of type {@link us.kbase.workspace.GetObjects2Results GetObjects2Results}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public GetObjects2Results getObjects2(GetObjects2Params params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<GetObjects2Results>> retType = new TypeReference<List<GetObjects2Results>>() {};
+        List<GetObjects2Results> res = caller.jsonrpcCall("Workspace.get_objects2", args, retType, true, false, jsonRpcContext);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: get_object_subset</p>
      * <pre>
+     * DEPRECATED
      * Get portions of objects from the workspace.
      * When selecting a subset of an array in an object, the returned
      * array is compressed to the size of the subset, but the ordering of
@@ -536,6 +559,7 @@ public class WorkspaceClient {
      * The returned feature array will be of length three and the entries will
      * consist, in order, of the 7th, 700th, and 3015th entries of the
      * original array.
+     * @deprecated Workspace.get_objects2
      * </pre>
      * @param   subObjectIds   instance of list of type {@link us.kbase.workspace.SubObjectIdentity SubObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectData ObjectData}
@@ -614,7 +638,8 @@ public class WorkspaceClient {
     /**
      * <p>Original spec-file function name: get_referenced_objects</p>
      * <pre>
-     * Get objects by references from other objects.
+     * DEPRECATED
+     *         Get objects by references from other objects.
      *         NOTE: In the vast majority of cases, this method is not necessary and
      *         get_objects should be used instead. 
      *         
@@ -627,6 +652,8 @@ public class WorkspaceClient {
      *         The user must have at least read access to the first object in each
      *         reference chain, but need not have access to any further objects in
      *         the chain, and those objects may be deleted.
+     *         
+     *         @deprecated Workspace.get_objects2
      * </pre>
      * @param   refChains   instance of list of original type "ref_chain" (A chain of objects with references to one another. An object reference chain consists of a list of objects where the nth object possesses a reference, either in the object itself or in the object provenance, to the n+1th object.) &rarr; list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @return   parameter "data" of list of type {@link us.kbase.workspace.ObjectData ObjectData}

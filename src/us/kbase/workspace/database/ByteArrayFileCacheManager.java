@@ -9,7 +9,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 
+import org.apache.commons.lang.NotImplementedException;
+
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import us.kbase.common.service.JsonTokenStream;
@@ -154,7 +157,8 @@ public class ByteArrayFileCacheManager {
 		OutputStream os = new OutputStream() {
 			@Override
 			public void write(int b) throws IOException {
-				throw new RuntimeException("Single byte writing is not supported");
+				throw new NotImplementedException(
+						"Single byte writing is not supported");
 			}
 			@Override
 			public void write(byte[] b, int off, int len) throws IOException {
@@ -254,12 +258,14 @@ public class ByteArrayFileCacheManager {
 			return sorted;
 		}
 		
-		public UObject getUObject() {
+		public UObject getUObject() throws JsonParseException, IOException {
 			checkIfDestroyed();
+			jts.setRoot(null);
 			return new UObject(jts);
 		}
 		
-		public JsonNode getAsJsonNode() {
+		public JsonNode getAsJsonNode()
+				throws JsonParseException, IOException {
 			checkIfDestroyed();
 			return UObject.transformObjectToJackson(getUObject());
 		}
@@ -290,14 +296,17 @@ public class ByteArrayFileCacheManager {
 				throws TypedObjectExtractionException {
 			checkIfDestroyed();
 			try {
-				JsonGenerator jgen = UObject.getMapper().getFactory().createGenerator(os);
+				JsonGenerator jgen = UObject.getMapper().getFactory()
+						.createGenerator(os);
 				try {
 					SubdataExtractor.extract(paths, jts.setRoot(null), jgen);
 				} finally {
 					jts.close();
 					jgen.close();
 				}
-			} catch (IOException ex) {
+				// jts.setRoot throws IllegalStateException in a bunch of
+				// places, ugh
+			} catch (IOException | IllegalStateException ex) {
 				throw new TypedObjectExtractionException(ex.getMessage(), ex);
 			}
 		}

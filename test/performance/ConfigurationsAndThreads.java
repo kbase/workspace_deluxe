@@ -42,6 +42,7 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.SaveObjectsParams;
@@ -343,7 +344,8 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performReads() throws Exception {
 			for (String id: wsids) {
-				wsc.getObjects(Arrays.asList(new ObjectIdentity()
+				@SuppressWarnings({ "deprecation", "unused" })
+				List<ObjectData> objects = wsc.getObjects(Arrays.asList(new ObjectIdentity()
 					.withWorkspace(workspace).withName(id)));
 			}
 			return 0;

@@ -14,18 +14,36 @@ NEW FEATURES:
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
-VERSION: 0.4.1 (Released TBD)
---------------------------------
+VERSION: 0.4.1 (Released 5/27/16)
+---------------------------------
+
+BACKWARDS INCOMPATIBILIES:
+
+* Java users will need to switch from the ``ObjectIdentity`` to the
+  ``ObjectSpecification`` class when calling ``getObjectInfoNew``. The
+  interface is a superset of ``ObjectIdentity`` and so is a simple name swap.
+* The text of some error messages has changed.
 
 NEW FEATURES:
 
-N/A
+* Added the ``get_objects2`` method. This method combines the functionality of
+  ``get_objects``, ``get_object_provenance``, ``get_object_subset``, and
+  ``get_referenced_objects`` and as such those methods are deprecated. In
+  particular, a user can now get a subset from a referenced object or get only
+  the provenance from a referenced object. ``get_objects2`` also allows for
+  returning nulls instead of throwing an error when an object is inaccessible
+  in the same way as ``get_object_info_new``.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
+* ``get_object_info_new`` can now follow object references like
+  ``get_objects2`` and ``get_referenced_objects``.
+* Fixed an exploit where an attacker, for an arbitrary workspace, could
+  determine the number of objects in that workspace, the number of versions of
+  each object, and whether a particular object name exists in the workspace.
 * Added the ``custom``, ``subactions``, and ``caller`` fields to
   ``ProvenanceAction``.
-* Added original workspace ID to the data returned by get_objects* methods.
+* Added original workspace ID to the data returned by ``get_objects*`` methods.
 * Unix epoch times are now accepted and emitted where possible (e.g. not in 
   tuples) as well as string timestamps.
 * ``list_referencing_object_counts`` has been deprecated.

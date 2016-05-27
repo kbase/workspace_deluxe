@@ -171,7 +171,7 @@
 
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
-    <javac destdir="${classes}" includeantruntime="false" target="1.6" source="1.6"
+    <javac destdir="${classes}" includeantruntime="false"
       debug="true" classpathref="compile.classpath">
       <src path="${src}"/>
     </javac>

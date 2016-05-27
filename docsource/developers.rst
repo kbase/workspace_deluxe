@@ -21,6 +21,12 @@ Branches:
 ``develop``, but because most of ``ci`` would break if the workspace breaks,
 ``develop`` must be kept stable.
 
+Recompiling the generated code
+------------------------------
+To compile, simply run ``make compile``. The
+`kb-sdk <https://github.com/kbase/kb_sdk>`_ executable must be in the system
+path.
+
 Release checklist
 -----------------
 
@@ -36,6 +42,3 @@ Release checklist
   ``staging``
 * When satisfied with testing on ``next.kbase.us`` merge ``staging`` to
   ``master``.
-  
-.. todo::
-   add compilation instructions with the kb-sdk. Update Makefile to use kb-sdk.

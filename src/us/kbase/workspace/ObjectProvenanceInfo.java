@@ -16,7 +16,8 @@ import us.kbase.common.service.Tuple11;
 /**
  * <p>Original spec-file type: ObjectProvenanceInfo</p>
  * <pre>
- * The provenance and supplemental info for an object.
+ * DEPRECATED
+ *         The provenance and supplemental info for an object.
  *         object_info info - information about the object.
  *         list<ProvenanceAction> provenance - the object's provenance.
  *         username creator - the user that first saved the object to the
@@ -40,6 +41,8 @@ import us.kbase.common.service.Tuple11;
  *         string handle_error - if an error occurs while setting ACLs on
  *                 embedded handle IDs, it will be reported here.
  *         string handle_stacktrace - the stacktrace for handle_error.
+ *         
+ *         @deprecated
  * </pre>
  * 
  */
