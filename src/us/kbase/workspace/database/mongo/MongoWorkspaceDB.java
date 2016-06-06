@@ -521,12 +521,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//or worse the db went down post version increment pre version save
 		//need to move to transactional backend or relationless schema
 		q.put(Fields.OBJ_VCNT, new BasicDBObject("$gt", 0));
+		q.put(Fields.OBJ_DEL, false);
+		final DBObject hint = new BasicDBObject(Fields.OBJ_WS_ID, 1);
+		hint.put(Fields.OBJ_ID, 1);
 		final List<Map<String, Object>> wsobjects =
-				query.queryCollection(COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS);
+				query.queryCollection(COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS,
+						hint, -1);
 		for (Map<String, Object> o: wsobjects) {
-			if ((Boolean) o.get(Fields.OBJ_DEL)) {
-				continue;
-			}
 			final long oldid = (Long) o.get(Fields.OBJ_ID);
 			final String name = (String) o.get(Fields.OBJ_NAME);
 			final boolean hidden = (Boolean) o.get(Fields.OBJ_HIDE);
