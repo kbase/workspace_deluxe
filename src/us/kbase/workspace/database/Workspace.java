@@ -335,19 +335,24 @@ public class Workspace {
 		db.setWorkspaceMeta(wsid, meta);
 	}
 	
-	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final String newname,
-			final boolean globalread, final String description,
-			final WorkspaceUserMetadata meta)
+	public WorkspaceInformation cloneWorkspace(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String newname,
+			final boolean globalread,
+			final String description,
+			final WorkspaceUserMetadata meta,
+			final Set<ObjectIDNoWSNoVer> exclude)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
-			PreExistingWorkspaceException {
+			PreExistingWorkspaceException, NoSuchObjectException {
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.READ,
 				"read");
 		new WorkspaceIdentifier(newname, user); //check for errors
 		return db.cloneWorkspace(user, wsid, newname, globalread,
 				pruneWorkspaceDescription(description),
-				meta == null ? new WorkspaceUserMetadata() : meta);
+				meta == null ? new WorkspaceUserMetadata() : meta,
+				exclude);
 	}
 	
 	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,

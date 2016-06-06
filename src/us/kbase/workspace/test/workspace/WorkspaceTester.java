@@ -1291,9 +1291,15 @@ public class WorkspaceTester {
 
 	protected void failClone(WorkspaceUser user, WorkspaceIdentifier wsi,
 			String name, Map<String, String> meta, Exception e) {
+		failClone(user, wsi, name, meta, null, e);
+	}
+	
+	protected void failClone(WorkspaceUser user, WorkspaceIdentifier wsi,
+			String name, Map<String, String> meta,
+			Set<ObjectIDNoWSNoVer> exclude, Exception e) {
 		try {
 			ws.cloneWorkspace(user, wsi, name, false, null,
-					new WorkspaceUserMetadata(meta));
+					new WorkspaceUserMetadata(meta), exclude);
 			fail("expected clone to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
