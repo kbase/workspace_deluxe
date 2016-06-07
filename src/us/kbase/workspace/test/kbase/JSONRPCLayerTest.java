@@ -1788,9 +1788,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfoAndData(objs.get(1), copystack.get(1), "newclone", wsinfo.getE1(), "myname", 1L, 2);
 		
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo2 =
-				CLIENT1.cloneWorkspace(new CloneWorkspaceParams().withWorkspace("newclone2").withWsi(wssrc));
+				CLIENT1.cloneWorkspace(new CloneWorkspaceParams()
+					.withWorkspace("newclone2").withWsi(wssrc)
+					.withExclude(new LinkedList<ObjectIdentity>()));
 		checkWS(wsinfo2, wsinfo2.getE1(), wsinfo2.getE4(), "newclone2", USER1, 1, "a", "n", "unlocked", null, MT_META);
 		
+		wsinfo = CLIENT1.cloneWorkspace(new CloneWorkspaceParams()
+					.withWorkspace("newclone3").withWsi(wssrc)
+					.withExclude(Arrays.asList(new ObjectIdentity().withObjid(1L))));
+		assertThat("object exist in excluded clone", wsinfo.getE5(), is(0L));
 		
 		CloneWorkspaceParams cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity().withWorkspace("newclone"))
 				.withWorkspace("fake");
@@ -1811,6 +1817,19 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		} catch (ServerException se) {
 			assertThat("correct exception msg", se.getLocalizedMessage(),
 					is("globalread must be n or r"));
+		}
+		
+		cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity()
+				.withWorkspace("newclone"))
+				.withExclude(Arrays.asList(new ObjectIdentity().withName("bar"),
+						new ObjectIdentity().withName("foo")
+						.withObjid(1L)));
+		try {
+			CLIENT1.cloneWorkspace(cpo);
+			fail("cloned with bad params");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getLocalizedMessage(),
+					is("Error with excluded object #2: Must provide one and only one of object name (was: foo) or id (was: 1)"));
 		}
 	}
 	

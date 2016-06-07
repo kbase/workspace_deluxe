@@ -598,6 +598,9 @@ module Workspace {
 			characters max. Longer strings will be mercilessly and brutally
 			truncated.
 		usermeta meta - arbitrary user-supplied metadata for the workspace.
+		list<ObjectIdentity> exclude - exclude the specified objects from the
+			cloned workspace. Workspace IDs, versions, and refs in the
+			ObjectIdentities are ignored.
 	*/
 	typedef structure { 
 		WorkspaceIdentity wsi;
@@ -605,6 +608,7 @@ module Workspace {
 		permission globalread;
 		string description;
 		usermeta meta;
+		list<ObjectIdentity> exclude;
 	} CloneWorkspaceParams;
 	
 	/*

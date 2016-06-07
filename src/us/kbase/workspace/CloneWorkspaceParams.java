@@ -2,6 +2,7 @@
 package us.kbase.workspace;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.Generated;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -29,6 +30,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 characters max. Longer strings will be mercilessly and brutally
  *                 truncated.
  *         usermeta meta - arbitrary user-supplied metadata for the workspace.
+ *         list<ObjectIdentity> exclude - exclude the specified objects from the
+ *                 cloned workspace. Workspace IDs, versions, and refs in the
+ *                 ObjectIdentities are ignored.
  * </pre>
  * 
  */
@@ -39,7 +43,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "workspace",
     "globalread",
     "description",
-    "meta"
+    "meta",
+    "exclude"
 })
 public class CloneWorkspaceParams {
 
@@ -66,6 +71,8 @@ public class CloneWorkspaceParams {
     private java.lang.String description;
     @JsonProperty("meta")
     private Map<String, String> meta;
+    @JsonProperty("exclude")
+    private List<ObjectIdentity> exclude;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     /**
@@ -169,6 +176,21 @@ public class CloneWorkspaceParams {
         return this;
     }
 
+    @JsonProperty("exclude")
+    public List<ObjectIdentity> getExclude() {
+        return exclude;
+    }
+
+    @JsonProperty("exclude")
+    public void setExclude(List<ObjectIdentity> exclude) {
+        this.exclude = exclude;
+    }
+
+    public CloneWorkspaceParams withExclude(List<ObjectIdentity> exclude) {
+        this.exclude = exclude;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -181,7 +203,7 @@ public class CloneWorkspaceParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((("CloneWorkspaceParams"+" [wsi=")+ wsi)+", workspace=")+ workspace)+", globalread=")+ globalread)+", description=")+ description)+", meta=")+ meta)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((("CloneWorkspaceParams"+" [wsi=")+ wsi)+", workspace=")+ workspace)+", globalread=")+ globalread)+", description=")+ description)+", meta=")+ meta)+", exclude=")+ exclude)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

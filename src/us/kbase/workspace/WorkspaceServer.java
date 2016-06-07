@@ -69,6 +69,7 @@ import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ListObjectsParameters;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.ObjectIDWithRefChain;
 import us.kbase.workspace.database.Types;
@@ -110,7 +111,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "57ece4612f32e29a5788aca9a9ee2870ece79796";
+    private static final String gitCommitHash = "af0d53e22e6d7a0e0dbe9dc3a8301b80fb5ec7c7";
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
@@ -365,14 +366,29 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> returnVal = null;
         //BEGIN clone_workspace
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		Permission p = getGlobalWSPerm(params.getGlobalread());
+		Set<ObjectIDNoWSNoVer> exclude = null;
+		if (params.getExclude() != null && !params.getExclude().isEmpty()) {
+			exclude = new HashSet<ObjectIDNoWSNoVer>();
+			int count = 1;
+			for (final ObjectIdentity o: params.getExclude()) {
+				try {
+					exclude.add(ObjectIDNoWSNoVer.create(
+							o.getName(), o.getObjid()));
+				} catch (IllegalArgumentException e) {
+					throw new IllegalArgumentException(String.format(
+							"Error with excluded object #%s: %s",
+							count, e.getLocalizedMessage()), e);
+				}
+				count++;
+			}
+		}
+		final Permission p = getGlobalWSPerm(params.getGlobalread());
 		final WorkspaceIdentifier wsi =
 				processWorkspaceIdentifier(params.getWsi());
 		final WorkspaceInformation meta = ws.cloneWorkspace(getUser(authPart),
 				wsi, params.getWorkspace(), p.equals(Permission.READ),
 				params.getDescription(),
-				//TODO CLONE add to API
-				new WorkspaceUserMetadata(params.getMeta()), null);
+				new WorkspaceUserMetadata(params.getMeta()), exclude);
 		returnVal = wsInfoToTuple(meta);
         //END clone_workspace
         return returnVal;
