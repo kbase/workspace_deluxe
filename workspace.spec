@@ -356,6 +356,8 @@ module Workspace {
 		usermeta metadata - arbitrary user-supplied metadata about
 			the object.
 		obj_id objid - the numerical id of the object.
+		
+		@deprecated object_info
 	*/
 	typedef tuple<obj_name id, type_string type, timestamp moddate,
 		int instance, string command, username lastmodifier, username owner,
@@ -768,6 +770,7 @@ module Workspace {
 	
 	/* 
 		Get permissions for a workspace.
+		@deprecated get_permissions_mass
 	*/
 	funcdef get_permissions(WorkspaceIdentity wsi) returns
 		(mapping<username, permission> perms) authentication optional;

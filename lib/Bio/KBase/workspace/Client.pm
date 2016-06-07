@@ -1450,6 +1450,7 @@ permission is a string
 =item Description
 
 Get permissions for a workspace.
+@deprecated get_permissions_mass
 
 =back
 
@@ -8884,6 +8885,8 @@ string chsum - the md5 checksum of the object.
 usermeta metadata - arbitrary user-supplied metadata about
         the object.
 obj_id objid - the numerical id of the object.
+
+@deprecated object_info
 
 
 =item Definition
