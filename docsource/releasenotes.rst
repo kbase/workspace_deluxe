@@ -1,8 +1,15 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.4.2 (Released TBD)
+-----------------------------
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* ``clone_workspace`` can now exclude user specified objects from the clone.
+
 VERSION: 0.4.1 (Released 5/27/16)
---------------------------------
+---------------------------------
 
 BACKWARDS INCOMPATIBILIES:
 

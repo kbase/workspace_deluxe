@@ -408,11 +408,22 @@ public class QueryMethods {
 	List<Map<String, Object>> queryCollection(final String collection,
 			final DBObject query, final Set<String> fields)
 			throws WorkspaceCommunicationException {
-		return queryCollection(collection, query, fields, -1);
+		return queryCollection(collection, query, fields, null, -1);
 	}
 	
 	List<Map<String, Object>> queryCollection(final String collection,
-			final DBObject query, final Set<String> fields, final int limit)
+	final DBObject query, final Set<String> fields, final int limit)
+	throws WorkspaceCommunicationException {
+		return queryCollection(collection, query, fields, null, limit);
+	}
+
+	List<Map<String, Object>> queryCollection(
+			final String collection,
+			final DBObject query,
+			final Set<String> fields,
+			// really shouldn't be necessary, but 2.4 sometimes isn't smart
+			final DBObject queryHint,
+			final int limit)
 			throws WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
 		projection.put(Fields.MONGO_ID, 0);
@@ -426,6 +437,9 @@ public class QueryMethods {
 					.find(query, projection);
 			if (limit > 0) {
 				im.limit(limit);
+			}
+			if (queryHint != null) {
+				im.hint(queryHint); //currently mdb only supports 1 index
 			}
 			for (final DBObject o: im) {
 				result.add(dbObjectToMap(o));

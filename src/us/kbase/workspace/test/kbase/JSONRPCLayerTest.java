@@ -221,6 +221,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 		Map<String, String> expected = new HashMap<String, String>();
 		expected.put(USER1, "a");
+		@SuppressWarnings("deprecation")
 		Map<String, String> perms = CLIENT1.getPermissions(new WorkspaceIdentity().withWorkspace("badperms"));
 		assertThat("Bad permissions were added to a workspace", perms, is(expected));
 		
@@ -228,6 +229,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		.withWorkspace("badperms").withNewPermission("n"));
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Test
 	public void permissions() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("permspriv")
@@ -349,6 +351,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withWorkspace("permsglob").withNewPermission("n"));
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Test
 	public void permissionsWithNoCreds() throws Exception {
 		/* Tests the case for getting permissions for a workspace without
@@ -385,6 +388,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withWorkspace("PnoCglob").withNewPermission("n"));
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Test
 	public void badIdent() throws Exception {
 		try {
@@ -1788,9 +1792,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfoAndData(objs.get(1), copystack.get(1), "newclone", wsinfo.getE1(), "myname", 1L, 2);
 		
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo2 =
-				CLIENT1.cloneWorkspace(new CloneWorkspaceParams().withWorkspace("newclone2").withWsi(wssrc));
+				CLIENT1.cloneWorkspace(new CloneWorkspaceParams()
+					.withWorkspace("newclone2").withWsi(wssrc)
+					.withExclude(new LinkedList<ObjectIdentity>()));
 		checkWS(wsinfo2, wsinfo2.getE1(), wsinfo2.getE4(), "newclone2", USER1, 1, "a", "n", "unlocked", null, MT_META);
 		
+		wsinfo = CLIENT1.cloneWorkspace(new CloneWorkspaceParams()
+					.withWorkspace("newclone3").withWsi(wssrc)
+					.withExclude(Arrays.asList(new ObjectIdentity().withObjid(1L))));
+		assertThat("object exist in excluded clone", wsinfo.getE5(), is(0L));
 		
 		CloneWorkspaceParams cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity().withWorkspace("newclone"))
 				.withWorkspace("fake");
@@ -1811,6 +1821,19 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		} catch (ServerException se) {
 			assertThat("correct exception msg", se.getLocalizedMessage(),
 					is("globalread must be n or r"));
+		}
+		
+		cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity()
+				.withWorkspace("newclone"))
+				.withExclude(Arrays.asList(new ObjectIdentity().withName("bar"),
+						new ObjectIdentity().withName("foo")
+						.withObjid(1L)));
+		try {
+			CLIENT1.cloneWorkspace(cpo);
+			fail("cloned with bad params");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getLocalizedMessage(),
+					is("Error with excluded object #2: Must provide one and only one of object name (was: foo) or id (was: 1)"));
 		}
 	}
 	
@@ -3100,12 +3123,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		adminParams.put("params", ws);
 		@SuppressWarnings("unchecked")
 		Map<String, String> res = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
-		assertThat("admin gets correct params", res, is(CLIENT1.getPermissions(ws)));
+		assertThat("admin gets correct params", res, is(CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0)));
 		
 		adminParams.put("user", USER2);
 		@SuppressWarnings("unchecked")
 		Map<String, String> res2 = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
-		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissions(ws)));
+		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissionsMass(gPM(ws)).getPerms().get(0)));
 		
 		adminParams.put("user", "thisisacrazykbaseuserthatdoesntexistforsure");
 		failAdmin(CLIENT2, adminParams, "User thisisacrazykbaseuserthatdoesntexistforsure is not a valid user");
@@ -3121,14 +3144,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		Map<String, String> expected = new HashMap<String, String>();
 		expected.put(USER1, "a");
-		assertThat("admin set global perm correctly", CLIENT1.getPermissions(ws),
+		assertThat("admin set global perm correctly", CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0),
 				is(expected));
 		
 		adminParams.put("params", new SetGlobalPermissionsParams()
 				.withWorkspace(wsstr).withNewPermission("r"));
 		CLIENT2.administer(new UObject(adminParams));
 		expected.put("*", "r");
-		assertThat("admin set global perm correctly", CLIENT1.getPermissions(ws),
+		assertThat("admin set global perm correctly", CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0),
 				is(expected));
 		
 		adminParams.put("user", USER2);
@@ -3139,7 +3162,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 		CLIENT2.administer(new UObject(adminParams));
 		expected.put(USER2, "w");
-		assertThat("admin set perm correctly", CLIENT1.getPermissions(ws),
+		assertThat("admin set perm correctly", CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0),
 				is(expected));
 		
 		Map<String, Object> setWSownerParams = new HashMap<String, Object>();
@@ -3162,6 +3185,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception", se.getMessage(),
 					is("newUser cannot be null"));
 		}
+	}
+
+	private GetPermissionsMassParams gPM(WorkspaceIdentity ws) {
+		return new GetPermissionsMassParams().withWorkspaces(Arrays.asList(ws));
 	}
 	
 	@Test

@@ -8,6 +8,8 @@ import java.util.regex.Pattern;
 
 public class ObjectIDNoWSNoVer {
 	
+	//TODO unit tests
+	
 	private final static Pattern INVALID_OBJ_NAMES = 
 			Pattern.compile("[^\\w\\|._-]");
 	private final static int MAX_NAME_LENGTH = 255;
