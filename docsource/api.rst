@@ -3,8 +3,9 @@
 Workspace API documentation
 ===========================
 
-* `KIDL <./workspace.spec>`_
-* `Perl <./workspace.html>`_
+* `KIDL spec as HTML <./Workspace.html>`_
+* `KIDL spec as text <./workspace.spec>`_
+* `Perl <./workspace_perl.html>`_
 * `Java <./javadoc/index.html>`_
 
 .. todo::

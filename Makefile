@@ -58,15 +58,19 @@ build-libs:
 build-docs:
 	-rm -r docs 
 	$(ANT) javadoc
-	pod2html --infile=lib/Bio/KBase/$(SERVICE)/Client.pm --outfile=docs/$(SERVICE).html
+	pod2html --infile=lib/Bio/KBase/$(SERVICE)/Client.pm --outfile=docs/$(SERVICE)_perl.html
 	rm -f pod2htm?.tmp
 	sphinx-build docsource/ docs
 	cp $(SERVICE).spec docs/.
+	cp docshtml/* docs/.
 
-compile: compile-typespec compile-typespec-java
+compile: compile-typespec compile-typespec-java compile-html
 
 compile-java-client:
 	$(ANT) compile_client
+
+compile-html:
+	kb-sdk compile --html --out docshtml $(SERVICE).spec
 
 compile-typespec-java:
 	kb-sdk compile  --java --javasrc src --javasrv --out . \
