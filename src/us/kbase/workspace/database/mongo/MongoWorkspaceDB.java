@@ -81,6 +81,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.DuplicateKeyException;
 import com.mongodb.MongoException;
 import com.mongodb.WriteResult;
 
@@ -228,7 +229,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		cfg.put(Fields.CONFIG_SCHEMA_VERSION, SCHEMA_VERSION);
 		try {
 			wsmongo.getCollection(COL_CONFIG).insert(cfg);
-		} catch (MongoException.DuplicateKey dk) {
+		} catch (DuplicateKeyException dk) {
 			//ok, the version doc is already there, this isn't the first
 			//startup
 			final DBCursor cur = wsmongo.getCollection(COL_CONFIG)
@@ -261,7 +262,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private void ensureIndexes() throws CorruptWorkspaceDBException {
 		for (String col: INDEXES.keySet()) {
-			wsmongo.getCollection(col).resetIndexCache();
+//			wsmongo.getCollection(col).resetIndexCache();
 			for (List<String> idx: INDEXES.get(col).keySet()) {
 				final DBObject index = new BasicDBObject();
 				final DBObject opts = new BasicDBObject();
@@ -274,8 +275,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					}
 				}
 				try {
-					wsmongo.getCollection(col).ensureIndex(index, opts);
-				} catch (MongoException.DuplicateKey dk) {
+					wsmongo.getCollection(col).createIndex(index, opts);
+				} catch (DuplicateKeyException dk) {
 					throw new CorruptWorkspaceDBException(
 							"Found duplicate index keys in the database, " +
 							"aborting startup", dk);
@@ -370,7 +371,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Fields.WS_META, metaHashToMongoArray(meta.getMetadata()));
 		try {
 			wsmongo.getCollection(COL_WORKSPACES).insert(ws);
-		} catch (MongoException.DuplicateKey mdk) {
+		} catch (DuplicateKeyException mdk) {
 			//this is almost impossible to test and will probably almost never happen
 			throw new PreExistingWorkspaceException(String.format(
 					"Workspace name %s is already in use", wsname));
@@ -503,15 +504,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					Fields.OBJ_HIDE);
 	
 	@Override
-	public WorkspaceInformation cloneWorkspace(final WorkspaceUser user,
-			final ResolvedWorkspaceID wsid, final String newname,
-			final boolean globalRead, final String description,
-			final WorkspaceUserMetadata meta)
+	public WorkspaceInformation cloneWorkspace(
+			final WorkspaceUser user,
+			final ResolvedWorkspaceID wsid,
+			final String newname,
+			final boolean globalRead,
+			final String description,
+			final WorkspaceUserMetadata meta,
+			final Set<ObjectIDNoWSNoVer> exclude)
 			throws PreExistingWorkspaceException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+			WorkspaceCommunicationException, CorruptWorkspaceDBException,
+			NoSuchObjectException {
 		
 		// looked at using copyObject to do this but was too messy
 		final ResolvedMongoWSID fromWS = query.convertResolvedWSID(wsid);
+		// resolve the object before making a new workspace in case something
+		// fails
+		final Collection<ResolvedMongoObjectID> resexclude =
+				resolveObjectIDs(fromWS, exclude).values();
 		final WorkspaceInformation wsinfo =
 				createWorkspace(user, newname, globalRead, description, meta);
 		final ResolvedMongoWSID toWS = new ResolvedMongoWSID(wsinfo.getName(),
@@ -521,12 +531,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//or worse the db went down post version increment pre version save
 		//need to move to transactional backend or relationless schema
 		q.put(Fields.OBJ_VCNT, new BasicDBObject("$gt", 0));
+		q.put(Fields.OBJ_DEL, false);
+		addExcludedToCloneQuery(fromWS, resexclude, q);
+		final DBObject hint = new BasicDBObject(Fields.OBJ_WS_ID, 1);
+		hint.put(Fields.OBJ_ID, 1);
 		final List<Map<String, Object>> wsobjects =
-				query.queryCollection(COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS);
+				query.queryCollection(COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS,
+						hint, -1);
 		for (Map<String, Object> o: wsobjects) {
-			if ((Boolean) o.get(Fields.OBJ_DEL)) {
-				continue;
-			}
 			final long oldid = (Long) o.get(Fields.OBJ_ID);
 			final String name = (String) o.get(Fields.OBJ_NAME);
 			final boolean hidden = (Boolean) o.get(Fields.OBJ_HIDE);
@@ -561,6 +573,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			saveObjectVersions(user, toWS, objid, versions, hidden);
 		}
 		return getWorkspaceInformation(user, toWS);
+	}
+
+	private void addExcludedToCloneQuery(final ResolvedMongoWSID fromWS,
+			final Collection<ResolvedMongoObjectID> resexclude, final DBObject q)
+			throws WorkspaceCommunicationException {
+		if (resexclude == null || resexclude.isEmpty()) {
+			return;
+		}
+		final Set<Long> excludeids = new HashSet<Long>();
+		for (final ResolvedMongoObjectID o: resexclude) {
+			excludeids.add(o.getId());
+		}
+		q.put(Fields.OBJ_ID, new BasicDBObject("$nin", excludeids));
 	}
 	
 	private final static String M_LOCK_WS_WTH = String.format("{$set: {%s: #}}",
@@ -680,7 +705,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_ID_QRY, rwsi.getID())
 					.with(M_RENAME_WS_WTH, newname, new Date());
-		} catch (MongoException.DuplicateKey medk) {
+		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already a workspace named " + newname);
 		} catch (MongoException me) {
@@ -711,7 +736,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.update(M_RENAME_OBJ_QRY,
 							roi.getWorkspaceIdentifier().getID(), roi.getId())
 					.with(M_RENAME_OBJ_WTH, newname, new Date());
-		} catch (MongoException.DuplicateKey medk) {
+		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already an object in the workspace named " +
 							newname);
@@ -941,7 +966,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.with(M_CHOWN_WS_NEWNAME_WTH,
 							newUser.getUser(), newname, new Date());
 			}
-		} catch (MongoException.DuplicateKey medk) {
+		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already a workspace named " + newname);
 		} catch (MongoException me) {
@@ -1190,22 +1215,42 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> resolveObjectIDs(
 			final ResolvedMongoWSID workspaceID,
 			final Set<ObjectIDNoWSNoVer> objects) throws
+			WorkspaceCommunicationException, NoSuchObjectException {
+		return resolveObjectIDs(workspaceID, objects, true, true);
+	}
+	
+	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID>
+				resolveObjectIDsIgnoreExceptions(
+			final ResolvedMongoWSID workspaceID,
+			final Set<ObjectIDNoWSNoVer> objects) throws
 			WorkspaceCommunicationException {
+		try {
+			return resolveObjectIDs(workspaceID, objects, false, false);
+		} catch (NoSuchObjectException nsoe) {
+			throw new RuntimeException(
+					"Threw a NoSuchObjectException when explicitly told not to");
+		}
+	}
+	
+	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> resolveObjectIDs(
+			final ResolvedMongoWSID workspaceID,
+			final Set<ObjectIDNoWSNoVer> objects,
+			final boolean exceptIfDeleted,
+			final boolean exceptIfMissing)
+			throws WorkspaceCommunicationException, NoSuchObjectException {
+		if (objects == null || objects.isEmpty()) {
+			return new HashMap<ObjectIDNoWSNoVer, ResolvedMongoObjectID>();
+		}
 		
 		final Map<ObjectIDNoWSNoVer, ObjectIDResolvedWS> queryobjs = 
 				new HashMap<ObjectIDNoWSNoVer, ObjectIDResolvedWS>();
 		for (final ObjectIDNoWSNoVer o: objects) {
 			queryobjs.put(o, new ObjectIDResolvedWS(workspaceID, o));
 		}
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> res;
-		try {
-			res = resolveObjectIDs(
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> res =
+				resolveObjectIDs(
 					new HashSet<ObjectIDResolvedWS>(queryobjs.values()),
-					false, false);
-		} catch (NoSuchObjectException nsoe) {
-			throw new RuntimeException(
-					"Threw a NoSuchObjectException when explicitly told not to");
-		}
+					exceptIfDeleted, exceptIfMissing);
 		final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> ret = 
 				new HashMap<ObjectIDNoWSNoVer, ResolvedMongoObjectID>();
 		for (final ObjectIDNoWSNoVer o: objects) {
@@ -1410,7 +1455,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//errors would really suck
 			//do this later if it becomes a bottleneck
 			wsmongo.getCollection(COL_WORKSPACE_OBJS).insert(dbo);
-		} catch (MongoException.DuplicateKey dk) {
+		} catch (DuplicateKeyException dk) {
 			//ok, someone must've just this second added this name to an object
 			//asshole
 			//this should be a rare event
@@ -1422,7 +1467,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			final ObjectIDNoWSNoVer o = new ObjectIDNoWSNoVer(name);
 			final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> objID =
-					resolveObjectIDs(wsid,
+					resolveObjectIDsIgnoreExceptions(wsid,
 							new HashSet<ObjectIDNoWSNoVer>(Arrays.asList(o)));
 			if (objID.isEmpty()) {
 				//oh ffs, name deleted again, try again
@@ -1598,7 +1643,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		
 		//confirm object IDs exist or get the id for a name, if any
 		final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> objIDs =
-				resolveObjectIDs(wsidmongo, idToPkg.keySet());
+				resolveObjectIDsIgnoreExceptions(wsidmongo, idToPkg.keySet());
 		
 		//check each id or name provided by the user
 		for (ObjectIDNoWSNoVer o: idToPkg.keySet()) {

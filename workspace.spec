@@ -356,6 +356,8 @@ module Workspace {
 		usermeta metadata - arbitrary user-supplied metadata about
 			the object.
 		obj_id objid - the numerical id of the object.
+		
+		@deprecated object_info
 	*/
 	typedef tuple<obj_name id, type_string type, timestamp moddate,
 		int instance, string command, username lastmodifier, username owner,
@@ -598,6 +600,10 @@ module Workspace {
 			characters max. Longer strings will be mercilessly and brutally
 			truncated.
 		usermeta meta - arbitrary user-supplied metadata for the workspace.
+		list<ObjectIdentity> exclude - exclude the specified objects from the
+			cloned workspace. Either an object ID or a object name must be
+			specified in each ObjectIdentity - any supplied reference strings,
+			workspace names or IDs, and versions are ignored. 
 	*/
 	typedef structure { 
 		WorkspaceIdentity wsi;
@@ -605,6 +611,7 @@ module Workspace {
 		permission globalread;
 		string description;
 		usermeta meta;
+		list<ObjectIdentity> exclude;
 	} CloneWorkspaceParams;
 	
 	/*
@@ -764,6 +771,7 @@ module Workspace {
 	
 	/* 
 		Get permissions for a workspace.
+		@deprecated get_permissions_mass
 	*/
 	funcdef get_permissions(WorkspaceIdentity wsi) returns
 		(mapping<username, permission> perms) authentication optional;

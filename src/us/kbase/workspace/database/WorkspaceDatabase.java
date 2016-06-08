@@ -59,11 +59,33 @@ public interface WorkspaceDatabase {
 	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
 			throws WorkspaceCommunicationException;
 	
-	public WorkspaceInformation cloneWorkspace(WorkspaceUser user,
-			ResolvedWorkspaceID wsid, String newname, boolean globalread,
-			String description, WorkspaceUserMetadata meta)
+	/** Clone a workspace.
+	 * @param user the user cloning the workspace
+	 * @param wsid the ID of the workspace to be cloned.
+	 * @param newname the name for the new workspace.
+	 * @param globalread whether the new workspace should be globally readable.
+	 * @param description the description of the new workspace.
+	 * @param meta the metadata of the new workspace.
+	 * @param exclude objects to exlude from the cloned workspace.
+	 * @return information about the new workspace
+	 * @throws PreExistingWorkspaceException if the workspace name already
+	 * exists.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is
+	 * corrupt.
+	 * @throws NoSuchObjectException if an excluded object doesn't exist.
+	 */
+	public WorkspaceInformation cloneWorkspace(
+			WorkspaceUser user,
+			ResolvedWorkspaceID wsid,
+			String newname,
+			boolean globalread,
+			String description,
+			WorkspaceUserMetadata meta,
+			Set<ObjectIDNoWSNoVer> exclude)
 			throws PreExistingWorkspaceException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+			WorkspaceCommunicationException, CorruptWorkspaceDBException,
+			NoSuchObjectException;
 	
 	public WorkspaceInformation lockWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid)

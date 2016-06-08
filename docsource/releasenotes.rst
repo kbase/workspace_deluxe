@@ -8,11 +8,9 @@ BACKWARDS INCOMPATIBILITIES:
 
 * The ``skip`` parameter of ``list_objects`` has been removed.
 
-NEW FEATURES:
-
-* None
-
 UPDATED FEATURES / MAJOR BUG FIXES:
+
+* ``clone_workspace`` can now exclude user specified objects from the clone.
 
 VERSION: 0.4.1 (Released 5/27/16)
 ---------------------------------

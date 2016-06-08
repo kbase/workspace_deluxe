@@ -427,6 +427,7 @@ CloneWorkspaceParams is a reference to a hash where the following keys are defin
 	globalread has a value which is a Workspace.permission
 	description has a value which is a string
 	meta has a value which is a Workspace.usermeta
+	exclude has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
@@ -434,6 +435,17 @@ ws_name is a string
 ws_id is an int
 permission is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
 workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
@@ -462,6 +474,7 @@ CloneWorkspaceParams is a reference to a hash where the following keys are defin
 	globalread has a value which is a Workspace.permission
 	description has a value which is a string
 	meta has a value which is a Workspace.usermeta
+	exclude has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
@@ -469,6 +482,17 @@ ws_name is a string
 ws_id is an int
 permission is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
 workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
@@ -1426,6 +1450,7 @@ permission is a string
 =item Description
 
 Get permissions for a workspace.
+@deprecated get_permissions_mass
 
 =back
 
@@ -8859,6 +8884,8 @@ usermeta metadata - arbitrary user-supplied metadata about
         the object.
 obj_id objid - the numerical id of the object.
 
+@deprecated object_info
+
 
 =item Definition
 
@@ -9357,6 +9384,10 @@ Input parameters for the "clone_workspace" function.
                 characters max. Longer strings will be mercilessly and brutally
                 truncated.
         usermeta meta - arbitrary user-supplied metadata for the workspace.
+        list<ObjectIdentity> exclude - exclude the specified objects from the
+                cloned workspace. Either an object ID or a object name must be
+                specified in each ObjectIdentity - any supplied reference strings,
+                workspace names or IDs, and versions are ignored.
 
 
 =item Definition
@@ -9370,6 +9401,7 @@ workspace has a value which is a Workspace.ws_name
 globalread has a value which is a Workspace.permission
 description has a value which is a string
 meta has a value which is a Workspace.usermeta
+exclude has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
 
 </pre>
 
@@ -9383,6 +9415,7 @@ workspace has a value which is a Workspace.ws_name
 globalread has a value which is a Workspace.permission
 description has a value which is a string
 meta has a value which is a Workspace.usermeta
+exclude has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
 
 
 =end text

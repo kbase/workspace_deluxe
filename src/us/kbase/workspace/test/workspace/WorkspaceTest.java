@@ -73,6 +73,7 @@ import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
+import us.kbase.workspace.database.exceptions.DeletedObjectException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
@@ -2226,7 +2227,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkExternalIds(user, copied, expected);
 		
 		WorkspaceIdentifier clone = new WorkspaceIdentifier("idextract_cloned");
-		ws.cloneWorkspace(user, wsi, clone.getName(), false, null, null);
+		ws.cloneWorkspace(user, wsi, clone.getName(), false, null, null, null);
 		ObjectIdentifier clonedobj = new ObjectIdentifier(clone, "copied");
 		checkExternalIds(user, clonedobj, expected);
 		
@@ -3671,12 +3672,76 @@ public class WorkspaceTest extends WorkspaceTester {
 					new TestReference(inf.getCopyReference()), is(testRef.get(i)));
 				assertThat("correct inaccessibility", inf.isCopySourceInaccessible(),
 						is(copyAccessible.get(i)));
-				
 			}
 		}
-		
 	}
 	
+	@Test
+	public void cloneWithExclude() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("user1");
+		WorkspaceIdentifier source = new WorkspaceIdentifier("source");
+		ws.createWorkspace(user, source.getName(), false, null, null).getId();
+		List<WorkspaceSaveObject> objects = new LinkedList<WorkspaceSaveObject>();
+		Provenance p = new Provenance(user);
+		final HashMap<String, String> mt = new HashMap<String, String>();
+		objects.add(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("object1"), mt, SAFE_TYPE1, null, p, false));
+		objects.add(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("object2"), mt, SAFE_TYPE1, null, p, false));
+		objects.add(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("object3"), mt, SAFE_TYPE1, null, p, false));
+		ws.saveObjects(user, source, objects, getIdFactory());
+		
+		ws.cloneWorkspace(user, source, "new1", false, null, null, null);
+		checkWsObjectNames(user, "new1", "object1", "object2", "object3");
+		
+		ws.cloneWorkspace(user, source, "new2", false, null, null,
+				new HashSet<ObjectIDNoWSNoVer>());
+		checkWsObjectNames(user, "new2", "object1", "object2", "object3");
+		
+		Set<ObjectIDNoWSNoVer> exclude = new HashSet<ObjectIDNoWSNoVer>();
+		
+		exclude.add(new ObjectIDNoWSNoVer("object2"));
+		ws.cloneWorkspace(user, source, "new3", false, null, null, exclude);
+		checkWsObjectNames(user, "new3", "object1", "object3");
+		
+		exclude.add(new ObjectIDNoWSNoVer(1));
+		ws.cloneWorkspace(user, source, "new4", false, null, null, exclude);
+		checkWsObjectNames(user, "new4", "object3");
+		
+		exclude.remove(new ObjectIDNoWSNoVer("object2"));
+		System.out.println(exclude);
+		ws.cloneWorkspace(user, source, "new5", false, null, null, exclude);
+		checkWsObjectNames(user, "new5", "object2", "object3");
+		
+		exclude.clear();
+		exclude.add(new ObjectIDNoWSNoVer("object4"));
+		failClone(user, source, "foo", null, exclude,
+				new NoSuchObjectException(
+						"No object with name object4 exists in workspace 1"));
+		
+		ws.setObjectsDeleted(user, Arrays.asList(
+				new ObjectIdentifier(source, "object3")), true);
+		exclude.clear();
+		exclude.add(new ObjectIDNoWSNoVer("object3"));
+		failClone(user, source, "foo", null, exclude,
+				new DeletedObjectException(
+						"Object 3 (name object3) in workspace 1 has been deleted"));
+	}
+	
+	private void checkWsObjectNames(WorkspaceUser user, String wsName,
+			String... objnames) throws Exception {
+		List<ObjectInformation> objs = ws.listObjects(
+				new ListObjectsParameters(user,
+				Arrays.asList(new WorkspaceIdentifier(wsName))));
+		Set<String> expected = new HashSet<String>(Arrays.asList(objnames));
+		Set<String> got = new HashSet<String>();
+		for (ObjectInformation o: objs) {
+			got.add(o.getObjectName());
+		}
+		assertThat("Got incorrect list of objects", got, is(expected));
+	}
+
 	@Test
 	public void cloneWorkspace() throws Exception {
 		WorkspaceUser user1 = new WorkspaceUser("foo");
@@ -3692,7 +3757,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		premeta.put("clone", "workspace");
 		WorkspaceUserMetadata meta = new WorkspaceUserMetadata(premeta);
 		
-		WorkspaceInformation info1 = ws.cloneWorkspace(user1, cp1, clone1.getName(), false, null, meta);
+		WorkspaceInformation info1 = ws.cloneWorkspace(
+				user1, cp1, clone1.getName(), false, null, meta, null);
 		
 		checkWSInfo(clone1, user1, "newclone", 3, Permission.OWNER, false, info1.getId(),
 				info1.getModDate(), "unlocked", premeta);
@@ -3732,7 +3798,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "hide")), true);
 		
 		WorkspaceIdentifier clone2 = new WorkspaceIdentifier("newclone2");
-		WorkspaceInformation info2 = ws.cloneWorkspace(user1, cp1, clone2.getName(), true, "my desc", null);
+		WorkspaceInformation info2 = ws.cloneWorkspace(
+				user1, cp1, clone2.getName(), true, "my desc", null, null);
 		
 		checkWSInfo(clone2, user1, "newclone2", 2, Permission.OWNER, true, info2.getId(),
 				info2.getModDate(), "unlocked", MT_META);
@@ -3775,7 +3842,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.lockWorkspace(user1, cp1);
 		
 		WorkspaceIdentifier clone3 = new WorkspaceIdentifier("newclone3");
-		WorkspaceInformation info3 = ws.cloneWorkspace(user1, cp1, clone3.getName(), false, "my desc2", meta);
+		WorkspaceInformation info3 = ws.cloneWorkspace(
+				user1, cp1, clone3.getName(), false, "my desc2", meta, null);
 		
 		checkWSInfo(clone3, user1, "newclone3", 2, Permission.OWNER, false, info3.getId(),
 				info3.getModDate(), "unlocked", premeta);
@@ -3793,7 +3861,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkUnhiddenObjectCount(user1, clone3, 3, 4);
 		
 		WorkspaceIdentifier clone4 = new WorkspaceIdentifier("newclone4");
-		ws.cloneWorkspace(user1, cp1, clone4.getName(), true, LONG_TEXT, null);
+		ws.cloneWorkspace(
+				user1, cp1, clone4.getName(), true, LONG_TEXT, null, null);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone4), is(LONG_TEXT.subSequence(0, 1000)));
 		
 		ws.setGlobalPermission(user1, clone2, Permission.NONE);
@@ -3817,7 +3886,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceInformation info = ws.lockWorkspace(user, wsi);
 		checkWSInfo(info, user, "lock", 1, Permission.OWNER, false, "locked", meta);
 		successGetObjects(user, Arrays.asList(oi));
-		ws.cloneWorkspace(user, wsi, "lockclone", false, null, null);
+		ws.cloneWorkspace(user, wsi, "lockclone", false, null, null, null);
 		ws.copyObject(user, oi, new ObjectIdentifier(new WorkspaceIdentifier("lockclone"), "foo"));
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.NONE);

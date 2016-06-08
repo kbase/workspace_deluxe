@@ -342,7 +342,7 @@ public class MongoInternalsTest {
 		}
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi2.getName(), false, null,
-				new WorkspaceUserMetadata());
+				new WorkspaceUserMetadata(), null);
 		ResolvedMongoWSID rwsi2 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
 				wsi2);
 		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
@@ -388,7 +388,7 @@ public class MongoInternalsTest {
 			.with("{$inc: {numver: 1}}");
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null,
-				new WorkspaceUserMetadata());
+				new WorkspaceUserMetadata(), null);
 		ResolvedMongoWSID rwsi3 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
 				wsi3);
 		ObjectIDResolvedWS oidrw3_1 = new ObjectIDResolvedWS(rwsi3,
@@ -574,7 +574,8 @@ public class MongoInternalsTest {
 		checkRefCounts(wsid, expected, 2);
 		
 		WorkspaceIdentifier wspace3 = new WorkspaceIdentifier("refcount3");
-		ws.cloneWorkspace(userfoo, wspace2, wspace3.getName(), false, null, null);
+		ws.cloneWorkspace(userfoo, wspace2, wspace3.getName(), false, null,
+				null, null);
 		checkRefCounts(wsid, expected, 3);
 		
 		for (int i = 1; i <= 16; i++) {
@@ -674,7 +675,8 @@ public class MongoInternalsTest {
 			
 		}
 		
-		long wsid2 = ws.cloneWorkspace(userfoo, copyrev, wsprefix + "2", false, null, null).getId();
+		long wsid2 = ws.cloneWorkspace(userfoo, copyrev, wsprefix + "2",
+				false, null, null, null).getId();
 		
 		checkRefCntInit(wsid2, 3, 1);
 		checkRefCntInit(wsid2, 4, 4);
