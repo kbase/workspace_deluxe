@@ -59,7 +59,7 @@ public class ShockBlobStore implements BlobStore {
 		dbo.put(Fields.SHOCK_CHKSUM, 1);
 		final DBObject opts = new BasicDBObject();
 		opts.put(IDX_UNIQ, 1);
-		mongoCol.ensureIndex(dbo, opts);
+		mongoCol.createIndex(dbo, opts);
 		token = getToken(user, password);
 		try {
 			client = new BasicShockClient(url, getToken());
