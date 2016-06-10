@@ -60,7 +60,6 @@ public class Workspace {
 	
 	//TODO limit all methods that return a set or list or map
 	//TODO generalize descent into DAG for all methods
-	//TODO deprecate skip
 	
 	//TODO general unit tests
 	//TODO BIG GC garbage collection - see WOR-45

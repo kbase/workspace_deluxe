@@ -16,6 +16,7 @@ import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
+import com.mongodb.DuplicateKeyException;
 import com.mongodb.MongoException;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
@@ -50,7 +51,7 @@ public class GridFSBlobStore implements BlobStore {
 				gif.put(Fields.GFS_SORTED, sorted);
 				try {
 					gif.save();
-				} catch (MongoException.DuplicateKey dk) {
+				} catch (DuplicateKeyException dk) {
 					// already here, done
 				} catch (MongoException me) {
 					throw new BlobStoreCommunicationException(

@@ -4125,7 +4125,6 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	excludeGlobal has a value which is a Workspace.boolean
-	skip has a value which is an int
 	limit has a value which is an int
 ws_name is a string
 ws_id is an int
@@ -4178,7 +4177,6 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	excludeGlobal has a value which is a Workspace.boolean
-	skip has a value which is an int
 	limit has a value which is an int
 ws_name is a string
 ws_id is an int
@@ -9387,8 +9385,9 @@ Input parameters for the "clone_workspace" function.
                 truncated.
         usermeta meta - arbitrary user-supplied metadata for the workspace.
         list<ObjectIdentity> exclude - exclude the specified objects from the
-                cloned workspace. Workspace IDs, versions, and refs in the
-                ObjectIdentities are ignored.
+                cloned workspace. Either an object ID or a object name must be
+                specified in each ObjectIdentity - any supplied reference strings,
+                workspace names or IDs, and versions are ignored.
 
 
 =item Definition
@@ -10475,8 +10474,6 @@ Parameters for the 'list_objects' function.
                         metadata will be null.
                 boolean excludeGlobal - exclude objects in global workspaces. This
                         parameter only has an effect when filtering by types alone.
-                int skip - DEPRECATED. Skip the first X objects. Maximum value is 2^31,
-                        skip values < 0 are treated as 0, the default.
                 int limit - limit the output to X objects. Default and maximum value
                         is 10000. Limit values < 1 are treated as 10000, the default.
 
@@ -10505,7 +10502,6 @@ showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 excludeGlobal has a value which is a Workspace.boolean
-skip has a value which is an int
 limit has a value which is an int
 
 </pre>
@@ -10533,7 +10529,6 @@ showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 excludeGlobal has a value which is a Workspace.boolean
-skip has a value which is an int
 limit has a value which is an int
 
 

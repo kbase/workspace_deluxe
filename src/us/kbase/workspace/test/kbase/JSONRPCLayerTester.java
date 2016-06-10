@@ -1317,11 +1317,11 @@ public class JSONRPCLayerTester {
 	}
 
 	protected void checkObjectPagination(String wsname,
-			Long skip, Long limit, int minid, int maxid) 
+			Long limit, int minid, int maxid) 
 			throws Exception {
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> res =
 				CLIENT1.listObjects(new ListObjectsParams()
-				.withWorkspaces(Arrays.asList(wsname)).withSkip(skip)
+				.withWorkspaces(Arrays.asList(wsname))
 				.withLimit(limit));
 				
 		assertThat("correct number of objects returned", res.size(), is(maxid - minid + 1));
@@ -1397,19 +1397,19 @@ public class JSONRPCLayerTester {
 			Long showDeleted, Long allVers, Long includeMeta, String exp)
 			throws Exception {
 		failListObjects(wsnames, wsids, type, perm, meta, showHidden,
-				showDeleted, allVers, includeMeta, -1, -1, exp);
+				showDeleted, allVers, includeMeta, -1, exp);
 	}
 
 	protected void failListObjects(List<String> wsnames, List<Long> wsids,
 			String type, String perm, Map<String, String> meta, Long showHidden,
-			Long showDeleted, Long allVers, Long includeMeta, long skip, long limit, String exp)
+			Long showDeleted, Long allVers, Long includeMeta, long limit, String exp)
 			throws Exception {
 		try {
 			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
 					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
 					.withIncludeMetadata(includeMeta).withPerm(perm).withMeta(meta)
-					.withSkip(skip).withLimit(limit));
+					.withLimit(limit));
 			fail("listed objects with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),

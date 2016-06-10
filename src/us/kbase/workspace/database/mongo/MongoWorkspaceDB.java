@@ -81,6 +81,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.DuplicateKeyException;
 import com.mongodb.MongoException;
 import com.mongodb.WriteResult;
 
@@ -228,7 +229,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		cfg.put(Fields.CONFIG_SCHEMA_VERSION, SCHEMA_VERSION);
 		try {
 			wsmongo.getCollection(COL_CONFIG).insert(cfg);
-		} catch (MongoException.DuplicateKey dk) {
+		} catch (DuplicateKeyException dk) {
 			//ok, the version doc is already there, this isn't the first
 			//startup
 			final DBCursor cur = wsmongo.getCollection(COL_CONFIG)
@@ -261,7 +262,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private void ensureIndexes() throws CorruptWorkspaceDBException {
 		for (String col: INDEXES.keySet()) {
-			wsmongo.getCollection(col).resetIndexCache();
+//			wsmongo.getCollection(col).resetIndexCache();
 			for (List<String> idx: INDEXES.get(col).keySet()) {
 				final DBObject index = new BasicDBObject();
 				final DBObject opts = new BasicDBObject();
@@ -274,8 +275,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					}
 				}
 				try {
-					wsmongo.getCollection(col).ensureIndex(index, opts);
-				} catch (MongoException.DuplicateKey dk) {
+					wsmongo.getCollection(col).createIndex(index, opts);
+				} catch (DuplicateKeyException dk) {
 					throw new CorruptWorkspaceDBException(
 							"Found duplicate index keys in the database, " +
 							"aborting startup", dk);
@@ -370,7 +371,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Fields.WS_META, metaHashToMongoArray(meta.getMetadata()));
 		try {
 			wsmongo.getCollection(COL_WORKSPACES).insert(ws);
-		} catch (MongoException.DuplicateKey mdk) {
+		} catch (DuplicateKeyException mdk) {
 			//this is almost impossible to test and will probably almost never happen
 			throw new PreExistingWorkspaceException(String.format(
 					"Workspace name %s is already in use", wsname));
@@ -704,7 +705,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_ID_QRY, rwsi.getID())
 					.with(M_RENAME_WS_WTH, newname, new Date());
-		} catch (MongoException.DuplicateKey medk) {
+		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already a workspace named " + newname);
 		} catch (MongoException me) {
@@ -735,7 +736,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.update(M_RENAME_OBJ_QRY,
 							roi.getWorkspaceIdentifier().getID(), roi.getId())
 					.with(M_RENAME_OBJ_WTH, newname, new Date());
-		} catch (MongoException.DuplicateKey medk) {
+		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already an object in the workspace named " +
 							newname);
@@ -965,7 +966,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.with(M_CHOWN_WS_NEWNAME_WTH,
 							newUser.getUser(), newname, new Date());
 			}
-		} catch (MongoException.DuplicateKey medk) {
+		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already a workspace named " + newname);
 		} catch (MongoException me) {
@@ -1454,7 +1455,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//errors would really suck
 			//do this later if it becomes a bottleneck
 			wsmongo.getCollection(COL_WORKSPACE_OBJS).insert(dbo);
-		} catch (MongoException.DuplicateKey dk) {
+		} catch (DuplicateKeyException dk) {
 			//ok, someone must've just this second added this name to an object
 			//asshole
 			//this should be a rare event

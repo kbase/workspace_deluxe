@@ -83,7 +83,7 @@ public class ObjectInfoUtils {
 		}
 		final DBObject verq = buildQuery(params);
 		final DBObject projection = buildProjection(params);
-		final DBCursor cur = buildCursor(verq, projection, params.getSkip());
+		final DBCursor cur = buildCursor(verq, projection);
 		
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
@@ -121,18 +121,13 @@ public class ObjectInfoUtils {
 
 	private DBCursor buildCursor(
 			final DBObject verq,
-			final DBObject projection,
-			final int skip)
+			final DBObject projection)
 			throws WorkspaceCommunicationException {
 		final DBCursor cur;
 		try {
 			cur = query.getDatabase().getCollection(
 					query.getVersionCollection())
 					.find(verq, projection);
-			//TODO skip is deprecated, remove when possible
-			if (skip > 0) {
-				cur.skip(skip);
-			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
