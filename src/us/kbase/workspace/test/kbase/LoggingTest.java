@@ -37,15 +37,17 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.ListWorkspaceInfoParams;
+import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
-import us.kbase.workspace.SubObjectIdentity;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
@@ -436,8 +438,8 @@ public class LoggingTest {
 		// get info
 		CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
 				.withObjects(Arrays.asList(
-						new ObjectIdentity().withRef("1/1/2"),
-						new ObjectIdentity().withRef("1/1/1"))));
+						new ObjectSpecification().withRef("1/1/2"),
+						new ObjectSpecification().withRef("1/1/1"))));
 		checkLogging(convertLogObjExp(Arrays.asList(
 				new LogObjExp("get_object_info_new", "start method", false),
 				new LogObjExp("get_object_info_new",
@@ -447,8 +449,23 @@ public class LoggingTest {
 				new LogObjExp("get_object_info_new", "end method", false))));
 		logout.reset();
 		
+		//get objs2
+		CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(
+				new ObjectSpecification().withRef("1/1/2"),
+				new ObjectSpecification().withRef("1/1/1"))));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("get_objects2", "start method", false),
+				new LogObjExp("get_objects2",
+						"Object 1/1/2 SomeModule.BType-1.0", true),
+				new LogObjExp("get_objects2",
+						"Object 1/1/1 SomeModule.AType-1.0", true),
+				new LogObjExp("get_objects2", "end method", false))));
+		logout.reset();
+		
 		// get objs
-		CLIENT1.getObjects(Arrays.asList(
+		@SuppressWarnings({ "deprecation", "unused" })
+		List<ObjectData> objects = CLIENT1.getObjects(Arrays.asList(
 				new ObjectIdentity().withRef("1/1/2"),
 				new ObjectIdentity().withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
@@ -461,10 +478,11 @@ public class LoggingTest {
 		logout.reset();
 		
 		// get subobjs
-		CLIENT1.getObjectSubset(Arrays.asList(
-				new SubObjectIdentity().withIncluded(Arrays.asList("/"))
+		@SuppressWarnings({ "unused", "deprecation" })
+		List<ObjectData> objectSubset = CLIENT1.getObjectSubset(Arrays.asList(
+				new us.kbase.workspace.SubObjectIdentity().withIncluded(Arrays.asList("/"))
 						.withRef("1/1/2"),
-				new SubObjectIdentity().withIncluded(Arrays.asList("/"))
+				new us.kbase.workspace.SubObjectIdentity().withIncluded(Arrays.asList("/"))
 						.withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
 				new LogObjExp("get_object_subset", "start method", false),
@@ -476,7 +494,9 @@ public class LoggingTest {
 		logout.reset();
 		
 		// get prov
-		CLIENT1.getObjectProvenance(Arrays.asList(
+		@SuppressWarnings({ "unused", "deprecation" })
+		List<us.kbase.workspace.ObjectProvenanceInfo> objectProvenance =
+				CLIENT1.getObjectProvenance(Arrays.asList(
 				new ObjectIdentity().withRef("1/1/2"),
 				new ObjectIdentity().withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
@@ -499,7 +519,9 @@ public class LoggingTest {
 							.withName("ref")
 							.withType(REFTYPE))));
 		logout.reset();
-		CLIENT1.getReferencedObjects(Arrays.asList(Arrays.asList(
+		@SuppressWarnings({ "unused", "deprecation" })
+		List<ObjectData> referencedObjects =
+				CLIENT1.getReferencedObjects(Arrays.asList(Arrays.asList(
 				new ObjectIdentity().withRef("1/ref/1"),
 				new ObjectIdentity().withRef("1/1/2"))));
 		checkLogging(convertLogObjExp(Arrays.asList(

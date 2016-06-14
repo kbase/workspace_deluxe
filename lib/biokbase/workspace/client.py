@@ -29,7 +29,7 @@ def _get_token(user_id, password,
                         'grant_type=client_credentials'):
     # This is bandaid helper function until we get a full
     # KBase python auth client released
-    auth = _base64.encodestring(user_id + ':' + password)
+    auth = _base64.b64encode(user_id + ':' + password)
     headers = {'Authorization': 'Basic ' + auth}
     ret = _requests.get(auth_svc, headers=headers, allow_redirects=True)
     status = ret.status_code
@@ -138,18 +138,23 @@ class Workspace(object):
         if self.timeout < 1:
             raise ValueError('Timeout value must be at least 1 second')
 
-    def _call(self, method, params):
+    def _call(self, method, params, json_rpc_context = None):
         arg_hash = {'method': method,
                     'params': params,
                     'version': '1.1',
                     'id': str(_random.random())[2:]
                     }
+        if json_rpc_context:
+            arg_hash['context'] = json_rpc_context
 
         body = _json.dumps(arg_hash, cls=_JSONObjectEncoder)
         ret = _requests.post(self.url, data=body, headers=self._headers,
                              timeout=self.timeout,
                              verify=not self.trust_all_ssl_certificates)
         if ret.status_code == _requests.codes.server_error:
+            json_header = None
+            if _CT in ret.headers:
+                json_header = ret.headers[_CT]
             if _CT in ret.headers and ret.headers[_CT] == _AJ:
                 err = _json.loads(ret.text)
                 if 'error' in err:
@@ -160,289 +165,416 @@ class Workspace(object):
                 raise ServerError('Unknown', 0, ret.text)
         if ret.status_code != _requests.codes.OK:
             ret.raise_for_status()
+        ret.encoding = 'utf-8'
         resp = _json.loads(ret.text)
         if 'result' not in resp:
             raise ServerError('Unknown', 0, 'An unknown server error occurred')
         return resp['result']
-
-    def ver(self):
+ 
+    def ver(self, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method ver: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.ver',
-                          [])
+                          [], json_rpc_context)
         return resp[0]
-
-    def create_workspace(self, params):
+  
+    def create_workspace(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method create_workspace: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.create_workspace',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def alter_workspace_metadata(self, params):
+  
+    def alter_workspace_metadata(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method alter_workspace_metadata: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.alter_workspace_metadata',
-                   [params])
-
-    def clone_workspace(self, params):
+                   [params], json_rpc_context)
+  
+    def clone_workspace(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method clone_workspace: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.clone_workspace',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def lock_workspace(self, wsi):
+  
+    def lock_workspace(self, wsi, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method lock_workspace: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.lock_workspace',
-                          [wsi])
+                          [wsi], json_rpc_context)
         return resp[0]
-
-    def get_workspacemeta(self, params):
+  
+    def get_workspacemeta(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_workspacemeta: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_workspacemeta',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def get_workspace_info(self, wsi):
+  
+    def get_workspace_info(self, wsi, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_workspace_info: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_workspace_info',
-                          [wsi])
+                          [wsi], json_rpc_context)
         return resp[0]
-
-    def get_workspace_description(self, wsi):
+  
+    def get_workspace_description(self, wsi, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_workspace_description: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_workspace_description',
-                          [wsi])
+                          [wsi], json_rpc_context)
         return resp[0]
-
-    def set_permissions(self, params):
+  
+    def set_permissions(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method set_permissions: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.set_permissions',
-                   [params])
-
-    def set_global_permission(self, params):
+                   [params], json_rpc_context)
+  
+    def set_global_permission(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method set_global_permission: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.set_global_permission',
-                   [params])
-
-    def set_workspace_description(self, params):
+                   [params], json_rpc_context)
+  
+    def set_workspace_description(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method set_workspace_description: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.set_workspace_description',
-                   [params])
-
-    def get_permissions_mass(self, mass):
+                   [params], json_rpc_context)
+  
+    def get_permissions_mass(self, mass, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_permissions_mass: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_permissions_mass',
-                          [mass])
+                          [mass], json_rpc_context)
         return resp[0]
-
-    def get_permissions(self, wsi):
+  
+    def get_permissions(self, wsi, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_permissions: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_permissions',
-                          [wsi])
+                          [wsi], json_rpc_context)
         return resp[0]
-
-    def save_object(self, params):
+  
+    def save_object(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method save_object: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.save_object',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def save_objects(self, params):
+  
+    def save_objects(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method save_objects: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.save_objects',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def get_object(self, params):
+  
+    def get_object(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_object: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_object',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def get_object_provenance(self, object_ids):
+  
+    def get_object_provenance(self, object_ids, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_object_provenance: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_object_provenance',
-                          [object_ids])
+                          [object_ids], json_rpc_context)
         return resp[0]
-
-    def get_objects(self, object_ids):
+  
+    def get_objects(self, object_ids, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_objects: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_objects',
-                          [object_ids])
+                          [object_ids], json_rpc_context)
         return resp[0]
-
-    def get_object_subset(self, sub_object_ids):
+  
+    def get_objects2(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_objects2: argument json_rpc_context is not type dict as required.')
+        resp = self._call('Workspace.get_objects2',
+                          [params], json_rpc_context)
+        return resp[0]
+  
+    def get_object_subset(self, sub_object_ids, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_object_subset: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_object_subset',
-                          [sub_object_ids])
+                          [sub_object_ids], json_rpc_context)
         return resp[0]
-
-    def get_object_history(self, object):
+  
+    def get_object_history(self, object, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_object_history: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_object_history',
-                          [object])
+                          [object], json_rpc_context)
         return resp[0]
-
-    def list_referencing_objects(self, object_ids):
+  
+    def list_referencing_objects(self, object_ids, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method list_referencing_objects: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.list_referencing_objects',
-                          [object_ids])
+                          [object_ids], json_rpc_context)
         return resp[0]
-
-    def list_referencing_object_counts(self, object_ids):
+  
+    def list_referencing_object_counts(self, object_ids, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method list_referencing_object_counts: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.list_referencing_object_counts',
-                          [object_ids])
+                          [object_ids], json_rpc_context)
         return resp[0]
-
-    def get_referenced_objects(self, ref_chains):
+  
+    def get_referenced_objects(self, ref_chains, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_referenced_objects: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_referenced_objects',
-                          [ref_chains])
+                          [ref_chains], json_rpc_context)
         return resp[0]
-
-    def list_workspaces(self, params):
+  
+    def list_workspaces(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method list_workspaces: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.list_workspaces',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def list_workspace_info(self, params):
+  
+    def list_workspace_info(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method list_workspace_info: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.list_workspace_info',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def list_workspace_objects(self, params):
+  
+    def list_workspace_objects(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method list_workspace_objects: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.list_workspace_objects',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def list_objects(self, params):
+  
+    def list_objects(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method list_objects: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.list_objects',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def get_objectmeta(self, params):
+  
+    def get_objectmeta(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_objectmeta: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_objectmeta',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def get_object_info(self, object_ids, includeMetadata):
+  
+    def get_object_info(self, object_ids, includeMetadata, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_object_info: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_object_info',
-                          [object_ids, includeMetadata])
+                          [object_ids, includeMetadata], json_rpc_context)
         return resp[0]
-
-    def get_object_info_new(self, params):
+  
+    def get_object_info_new(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_object_info_new: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_object_info_new',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def rename_workspace(self, params):
+  
+    def rename_workspace(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method rename_workspace: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.rename_workspace',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def rename_object(self, params):
+  
+    def rename_object(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method rename_object: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.rename_object',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def copy_object(self, params):
+  
+    def copy_object(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method copy_object: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.copy_object',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def revert_object(self, object):
+  
+    def revert_object(self, object, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method revert_object: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.revert_object',
-                          [object])
+                          [object], json_rpc_context)
         return resp[0]
-
-    def get_names_by_prefix(self, params):
+  
+    def get_names_by_prefix(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_names_by_prefix: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_names_by_prefix',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def hide_objects(self, object_ids):
+  
+    def hide_objects(self, object_ids, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method hide_objects: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.hide_objects',
-                   [object_ids])
-
-    def unhide_objects(self, object_ids):
+                   [object_ids], json_rpc_context)
+  
+    def unhide_objects(self, object_ids, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method unhide_objects: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.unhide_objects',
-                   [object_ids])
-
-    def delete_objects(self, object_ids):
+                   [object_ids], json_rpc_context)
+  
+    def delete_objects(self, object_ids, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method delete_objects: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.delete_objects',
-                   [object_ids])
-
-    def undelete_objects(self, object_ids):
+                   [object_ids], json_rpc_context)
+  
+    def undelete_objects(self, object_ids, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method undelete_objects: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.undelete_objects',
-                   [object_ids])
-
-    def delete_workspace(self, wsi):
+                   [object_ids], json_rpc_context)
+  
+    def delete_workspace(self, wsi, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method delete_workspace: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.delete_workspace',
-                   [wsi])
-
-    def undelete_workspace(self, wsi):
+                   [wsi], json_rpc_context)
+  
+    def undelete_workspace(self, wsi, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method undelete_workspace: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.undelete_workspace',
-                   [wsi])
-
-    def request_module_ownership(self, mod):
+                   [wsi], json_rpc_context)
+  
+    def request_module_ownership(self, mod, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method request_module_ownership: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.request_module_ownership',
-                   [mod])
-
-    def register_typespec(self, params):
+                   [mod], json_rpc_context)
+  
+    def register_typespec(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method register_typespec: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.register_typespec',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def register_typespec_copy(self, params):
+  
+    def register_typespec_copy(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method register_typespec_copy: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.register_typespec_copy',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def release_module(self, mod):
+  
+    def release_module(self, mod, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method release_module: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.release_module',
-                          [mod])
+                          [mod], json_rpc_context)
         return resp[0]
-
-    def list_modules(self, params):
+  
+    def list_modules(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method list_modules: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.list_modules',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def list_module_versions(self, params):
+  
+    def list_module_versions(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method list_module_versions: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.list_module_versions',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def get_module_info(self, params):
+  
+    def get_module_info(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_module_info: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_module_info',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def get_jsonschema(self, type):
+  
+    def get_jsonschema(self, type, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_jsonschema: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_jsonschema',
-                          [type])
+                          [type], json_rpc_context)
         return resp[0]
-
-    def translate_from_MD5_types(self, md5_types):
+  
+    def translate_from_MD5_types(self, md5_types, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method translate_from_MD5_types: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.translate_from_MD5_types',
-                          [md5_types])
+                          [md5_types], json_rpc_context)
         return resp[0]
-
-    def translate_to_MD5_types(self, sem_types):
+  
+    def translate_to_MD5_types(self, sem_types, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method translate_to_MD5_types: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.translate_to_MD5_types',
-                          [sem_types])
+                          [sem_types], json_rpc_context)
         return resp[0]
-
-    def get_type_info(self, type):
+  
+    def get_type_info(self, type, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_type_info: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_type_info',
-                          [type])
+                          [type], json_rpc_context)
         return resp[0]
-
-    def get_all_type_info(self, mod):
+  
+    def get_all_type_info(self, mod, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_all_type_info: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_all_type_info',
-                          [mod])
+                          [mod], json_rpc_context)
         return resp[0]
-
-    def get_func_info(self, func):
+  
+    def get_func_info(self, func, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_func_info: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_func_info',
-                          [func])
+                          [func], json_rpc_context)
         return resp[0]
-
-    def get_all_func_info(self, mod):
+  
+    def get_all_func_info(self, mod, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method get_all_func_info: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.get_all_func_info',
-                          [mod])
+                          [mod], json_rpc_context)
         return resp[0]
-
-    def grant_module_ownership(self, params):
+  
+    def grant_module_ownership(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method grant_module_ownership: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.grant_module_ownership',
-                   [params])
-
-    def remove_module_ownership(self, params):
+                   [params], json_rpc_context)
+  
+    def remove_module_ownership(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method remove_module_ownership: argument json_rpc_context is not type dict as required.')
         self._call('Workspace.remove_module_ownership',
-                   [params])
-
-    def list_all_types(self, params):
+                   [params], json_rpc_context)
+  
+    def list_all_types(self, params, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method list_all_types: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.list_all_types',
-                          [params])
+                          [params], json_rpc_context)
         return resp[0]
-
-    def administer(self, command):
+  
+    def administer(self, command, json_rpc_context = None):
+        if json_rpc_context and type(json_rpc_context) is not dict:
+            raise ValueError('Method administer: argument json_rpc_context is not type dict as required.')
         resp = self._call('Workspace.administer',
-                          [command])
+                          [command], json_rpc_context)
         return resp[0]
+ 

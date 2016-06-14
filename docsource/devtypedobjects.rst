@@ -15,7 +15,7 @@ TO size and composition
   TOs. Many small objects will also slow the WSS overall and increase the
   WSS index size.
 
-  * The get_object_subdata method allows retrieving subsets of a TO from the
+  * The ``get_objects2`` method allows retrieving subsets of a TO from the
     WSS to provide the equivalent of retrieving a few small TOs rather than
     one large TO and then manually extracting the small TOs.
     

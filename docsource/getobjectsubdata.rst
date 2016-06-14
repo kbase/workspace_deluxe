@@ -65,12 +65,12 @@ Get the contents of a single key of the mapping:
 .. code-block:: python
     :emphasize-lines: 11
 
-    In [11]: ws.get_object_subset(
+    In [11]: ws.get_objects2({'objects':
                  [{'workspace': 'MyWorkspace',
                    'name': 'subsetexample',
                    'included': ['/map/mid1']
                    }
-                  ])
+                  ]})['data']
     Out[25]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-16T03:57:03+0000',
@@ -96,12 +96,12 @@ Get all the ``stuff`` fields from the mapping:
 .. code-block:: python
     :emphasize-lines: 11-12
 
-    In [39]: ws.get_object_subset(
+    In [39]: ws.get_objects2({'objects':
                  [{'workspace': 'MyWorkspace',
                    'name': 'subsetexample',
                    'included': ['/map/*/stuff']
                    }
-                  ])
+                  ]})['data']
     Out[39]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-16T04:04:59+0000',
@@ -128,12 +128,12 @@ Get all the ``id`` fields from the array:
 .. code-block:: python
     :emphasize-lines: 11
 
-    In [33]: ws.get_object_subset(
+    In [33]: ws.get_objects2({'objects':
                  [{'workspace': 'MyWorkspace',
                    'name': 'subsetexample',
                    'included': ['/array/[*]/id']
                    }
-                  ])
+                  ]})['data']
     Out[33]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-16T04:04:59+0000',
@@ -161,12 +161,12 @@ maintained):
 .. code-block:: python
     :emphasize-lines: 11
 
-    In [35]: ws.get_object_subset(
+    In [35]: ws.get_objects2({'objects':
                  [{'workspace': 'MyWorkspace',
                    'name': 'subsetexample',
                    'included': ['/array/2', '/array/0']
                    }
-                  ])
+                  ]})['data']
     Out[35]: 
     [{u'copy_source_inaccessible': 0,
       u'created': u'2015-12-16T04:04:59+0000',

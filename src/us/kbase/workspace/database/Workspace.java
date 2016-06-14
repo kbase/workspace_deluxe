@@ -7,13 +7,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -24,22 +22,11 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
-import us.kbase.typedobj.db.FuncDetailedInfo;
-import us.kbase.typedobj.db.FuncInfo;
-import us.kbase.typedobj.db.ModuleDefId;
-import us.kbase.typedobj.db.OwnerInfo;
-import us.kbase.typedobj.db.TypeChange;
-import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.db.TypeDetailedInfo;
-import us.kbase.typedobj.exceptions.NoSuchFuncException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
-import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
-import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
@@ -58,6 +45,7 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.DeletedObjectException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
@@ -75,13 +63,12 @@ public class Workspace {
 	//TODO deprecate skip
 	
 	//TODO general unit tests
-	//TODO BIG GC garbage collection - make a static thread that calls a gc() method, waits until all reads done - read counting, read methods must register to static object. Set latest object version on version deletion. How delete entire object? have deleted obj collection with 30 day expiration?
-	//TODO BIG SHOCK shock node pointer objects that return pointer and set ACLS on pointer.
+	//TODO BIG GC garbage collection - see WOR-45
 	//TODO BIG SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
 	//TODO BIG SEARCH separate service - get object changes since date (based on type collection and pointers collection
 	//TODO BIG SEARCH index typespecs
 	
-	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists?
+	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists? Uh, why is this needed? Probably can drop.
 	
 	//TODO use DigestInputStream while sorting object to calculate md5 at the same time
 	
@@ -94,15 +81,15 @@ public class Workspace {
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
 	
 	private final WorkspaceDatabase db;
-	private final TypeDefinitionDB typedb;
-	private final TempFilesManager tfm;
 	private ResourceUsageConfiguration rescfg;
 	private final ReferenceParser parser;
+	private final TypedObjectValidator validator;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
-			final ReferenceParser parser) {
+			final ReferenceParser parser,
+			final TypedObjectValidator validator) {
 		if (db == null) {
 			throw new NullPointerException("db cannot be null");
 		}
@@ -112,9 +99,12 @@ public class Workspace {
 		if (cfg == null) {
 			throw new NullPointerException("cfg cannot be null");
 		}
+		if (validator == null) {
+			throw new NullPointerException("validator cannot be null");
+		}
 		this.db = db;
-		typedb = db.getTypeValidator().getDB();
-		tfm = db.getTempFilesManager();
+		//TODO check that a few object types exist to make sure the type provider is ok.
+		this.validator = validator;
 		rescfg = cfg;
 		this.parser = parser;
 		db.setResourceUsageConfiguration(rescfg);
@@ -133,7 +123,7 @@ public class Workspace {
 	}
 	
 	public TempFilesManager getTempFilesManager() {
-		return tfm;
+		return db.getTempFilesManager();
 	}
 	
 	private void comparePermission(final WorkspaceUser user,
@@ -558,8 +548,7 @@ public class Workspace {
 	
 	private static String getObjectErrorId(final WorkspaceSaveObject wo,
 			final int objcount) {
-		final ObjectIDNoWSNoVer oid = wo.getObjectIdentifier();
-		return getObjectErrorId(oid, objcount);
+		return getObjectErrorId(wo.getObjectIdentifier(), objcount);
 	}
 	
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
@@ -640,8 +629,8 @@ public class Workspace {
 		long ttlObjSize = 0;
 		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
-			
 			//maintain ordering
+			wo.getProvenance().setWorkspaceID(new Long(rwsi.getID()));
 			final List<Reference> provrefs = new LinkedList<Reference>();
 			for (final Provenance.ProvenanceAction action:
 					wo.getProvenance().getActions()) {
@@ -722,14 +711,13 @@ public class Workspace {
 			final IdReferenceHandlerSet<IDAssociation> idhandler)
 			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
-		final TypedObjectValidator val = db.getTypeValidator();
 		final Map<WorkspaceSaveObject, TypedObjectValidationReport> reports = 
 				new HashMap<WorkspaceSaveObject, TypedObjectValidationReport>();
 		int objcount = 1;
 		for (final WorkspaceSaveObject wo: objects) {
 			idhandler.associateObject(new IDAssociation(objcount, false));
-			final TypedObjectValidationReport rep = validate(wo, val,
-					idhandler, objcount);
+			final TypedObjectValidationReport rep = validate(wo, idhandler,
+					objcount);
 			reports.put(wo, rep);
 			idhandler.associateObject(new IDAssociation(objcount, true));
 			try {
@@ -824,14 +812,13 @@ public class Workspace {
 
 	private TypedObjectValidationReport validate(
 			final WorkspaceSaveObject wo,
-			final TypedObjectValidator val,
 			final IdReferenceHandlerSet<IDAssociation> idhandler,
 			final int objcount)
 			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
 		final TypedObjectValidationReport rep;
 		try {
-			rep = val.validate(wo.getData(), wo.getType(), idhandler);
+			rep = validator.validate(wo.getData(), wo.getType(), idhandler);
 		} catch (NoSuchTypeException nste) {
 			throw new TypedObjectValidationException(String.format(
 					"Object %s failed type checking:\n",
@@ -917,122 +904,275 @@ public class Workspace {
 		return db.getObjectInformation(params.generateParameters(pset));
 	}
 	
-	public List<WorkspaceObjectInformation> getObjectProvenance(
-			final WorkspaceUser user, final List<ObjectIdentifier> loi)
+	public List<WorkspaceObjectData> getObjects(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi)
 			throws CorruptWorkspaceDBException,
-			WorkspaceCommunicationException, InaccessibleObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read");
-		final Map<ObjectIDResolvedWS, WorkspaceObjectInformation> prov =
-				db.getObjectProvenance(
-						new HashSet<ObjectIDResolvedWS>(ws.values()));
-		final List<WorkspaceObjectInformation> ret =
-				new ArrayList<WorkspaceObjectInformation>();
-		
-		for (final ObjectIdentifier o: loi) {
-			ret.add(prov.get(ws.get(o)));
-		}
-		removeInaccessibleProvenanceCopyReferences(user, ret);
-		return ret;
-	}
-
-	public List<WorkspaceObjectData> getObjects(final WorkspaceUser user,
-			final List<ObjectIdentifier> loi) throws
-			CorruptWorkspaceDBException, WorkspaceCommunicationException,
-			InaccessibleObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read");
-		//this is pretty gross, think about a better api here
-		final Map<ObjectIDResolvedWS,
-				Map<ObjectPaths, WorkspaceObjectData>> data = 
-				db.getObjects(new HashSet<ObjectIDResolvedWS>(ws.values()));
-		final List<WorkspaceObjectData> ret =
-				new ArrayList<WorkspaceObjectData>();
-		
-		for (final ObjectIdentifier o: loi) {
-			ret.add(data.get(ws.get(o)).get(null));
-		}
-		removeInaccessibleDataCopyReferences(user, ret);
-		return ret;
+			WorkspaceCommunicationException, InaccessibleObjectException,
+			NoSuchReferenceException, TypedObjectExtractionException {
+			
+		return getObjects(user, loi, false);
 	}
 	
-	public List<WorkspaceObjectData> getObjectsSubSet(final WorkspaceUser user,
-			final List<SubObjectIdentifier> loi) throws
+	public List<WorkspaceObjectData> getObjects(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final boolean noData) throws
 			CorruptWorkspaceDBException, WorkspaceCommunicationException,
-			InaccessibleObjectException, TypedObjectExtractionException {
-		final List<ObjectIdentifier> objs = new LinkedList<ObjectIdentifier>();
-		for (final SubObjectIdentifier soi: loi) {
-			objs.add(soi.getObjectIdentifer());
-		}
+			InaccessibleObjectException, NoSuchReferenceException,
+			TypedObjectExtractionException {
+		return getObjects(user, loi, noData, false);
+	}
+	
+	public List<WorkspaceObjectData> getObjects(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final boolean noData,
+			boolean nullIfInaccessible) throws
+			CorruptWorkspaceDBException, WorkspaceCommunicationException,
+			InaccessibleObjectException, NoSuchReferenceException,
+			TypedObjectExtractionException {
 		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, objs, Permission.READ, "read");
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objpaths =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
-		for (final SubObjectIdentifier soi: loi) {
-			final ObjectIDResolvedWS o = ws.get(soi.getObjectIdentifer());
-			if (!objpaths.containsKey(o)) {
-				objpaths.put(o, new HashSet<ObjectPaths>());
-			}
-			objpaths.get(o).add(soi.getPaths());
-		}
+		final ResolvedResChains res = resolveObjects(user, loi,
+				nullIfInaccessible);
 		
-		//this is kind of disgusting, think about the api here
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> chainpaths =
+				setupObjectPaths(res.hadchain);
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> stdpaths =
+				setupObjectPaths(res.nochain);
+
+		//this is pretty gross, think about a better api here
 		final Map<ObjectIDResolvedWS,
-				Map<ObjectPaths, WorkspaceObjectData>> data = 
-				db.getObjects(objpaths);
+				Map<ObjectPaths, WorkspaceObjectData>> stddata =
+					db.getObjects(stdpaths, noData, !nullIfInaccessible, false,
+							!nullIfInaccessible);
+		final Map<ObjectIDResolvedWS,
+				Map<ObjectPaths, WorkspaceObjectData>> chaindata =
+					db.getObjects(chainpaths, noData, false, true, true);
+					//object cannot be missing at this stage
+		chainpaths.clear();
+		stdpaths.clear();
 		
 		final List<WorkspaceObjectData> ret =
 				new ArrayList<WorkspaceObjectData>();
-		for (final SubObjectIdentifier soi: loi) {
-			ret.add(data.get(ws.get(soi.getObjectIdentifer()))
-					.get(soi.getPaths()));
+		for (final ObjectIdentifier o: loi) {
+			final ObjectPaths p;
+			if (o instanceof ObjIDWithChainAndSubset) {
+				p = ((ObjIDWithChainAndSubset) o).getPaths();
+			} else {
+				p = ObjectPaths.EMPTY;
+			}
+			final WorkspaceObjectData wod;
+			// works if res.nochain.get(o) is null or stddata doesn't have key
+			if (stddata.containsKey(res.nochain.get(o))) {
+				wod = stddata.get(res.nochain.get(o)).get(p);
+			} else if (chaindata.containsKey(res.hadchain.get(o))) {
+				wod = chaindata.get(res.hadchain.get(o)).get(p);
+			} else {
+				wod = null;
+			}
+			ret.add(wod);
 		}
+		res.nochain.clear();
+		res.hadchain.clear();
+		chaindata.clear();
+		stddata.clear();
 		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
 	}
 
-	public List<WorkspaceObjectData> getReferencedObjects(
-			final WorkspaceUser user,
-			final List<ObjectChain> refchains)
-			throws CorruptWorkspaceDBException, WorkspaceCommunicationException,
-			InaccessibleObjectException, NoSuchReferenceException {
-		final LinkedList<ObjectIdentifier> first =
-				new LinkedList<ObjectIdentifier>();
-		final LinkedList<ObjectIdentifier> rest =
-				new LinkedList<ObjectIdentifier>();
-		for (final ObjectChain oc: refchains) {
-			first.add(oc.getHead());
-			rest.addAll(oc.getChain());
-		}
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resheads = 
-				checkPerms(user, first, Permission.READ, "read");
-		Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
-				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
-		if (!rest.isEmpty()) {
-			reschains = checkPerms(user, rest, Permission.NONE, "foo", true);
-		}
-		final Map<ObjectChain, ObjectChainResolvedWS> objs =
-				new HashMap<ObjectChain, ObjectChainResolvedWS>();
-		for (final ObjectChain oc: refchains) {
-			final ObjectIDResolvedWS head = resheads.get(oc.getHead());
-			final List<ObjectIDResolvedWS> chain =
-					new LinkedList<ObjectIDResolvedWS>();
-			for (final ObjectIdentifier oi: oc.getChain()) {
-				chain.add(reschains.get(oi));
+	private Map<ObjectIDResolvedWS, Set<ObjectPaths>> setupObjectPaths(
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> objs) {
+		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
+				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		for (final ObjectIdentifier o: objs.keySet()) {
+			final ObjectIDResolvedWS roi = objs.get(o);
+			if (!paths.containsKey(roi)) {
+				paths.put(roi, new HashSet<ObjectPaths>());
 			}
-			objs.put(oc, new ObjectChainResolvedWS(head, chain));
+			if (o instanceof ObjIDWithChainAndSubset) {
+				paths.get(roi).add(((ObjIDWithChainAndSubset) o).getPaths());
+			} else {
+				paths.get(roi).add(ObjectPaths.EMPTY);
+			}
 		}
-		final Map<ObjectChainResolvedWS, WorkspaceObjectData> res =
-				db.getReferencedObjects(
-						new HashSet<ObjectChainResolvedWS>(objs.values()));
-		final List<WorkspaceObjectData> ret =
-				new LinkedList<WorkspaceObjectData>();
-		for (final ObjectChain oc: refchains) {
-			ret.add(res.get(objs.get(oc)));
+		return paths;
+	}
+	
+	private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveReferenceChains(
+			final WorkspaceUser user,
+			final List<ObjectIDWithRefChain> refchains,
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads,
+			final boolean ignoreErrors)
+			throws WorkspaceCommunicationException,
+			InaccessibleObjectException, CorruptWorkspaceDBException,
+			NoSuchObjectException, NoSuchReferenceException {
+		
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ret =
+				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		if (!hasItems(refchains)) {
+			return ret;
 		}
-		removeInaccessibleDataCopyReferences(user, ret);
-		return ret;
+		
+		final List<ObjectIdentifier> chains =
+				new LinkedList<ObjectIdentifier>();
+		for (final ObjectIDWithRefChain oc: refchains) {
+			if (oc != null) {
+				/* allow nulls in list to maintain object count in the case
+				 * calling method input includes objectIDs with and without
+				 * chains
+				 */
+				chains.addAll(oc.getChain());
+			}
+		}
+		
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> headrefs =
+				getObjectOutGoingReferences(heads, !ignoreErrors, false);
+		/* ignore all errors when getting chain objects until actually getting
+		 * to the point where we need the data. Otherwise an attacker can
+		 * explore what objects exist in arbitrary workspaces.
+		 */
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
+				checkPerms(user, chains, Permission.NONE, "somthinsbroke",
+						true, true, true);
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> chainrefs =
+				getObjectOutGoingReferences(reschains, false, true);
+		
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedChains =
+				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		int chnum = 1;
+		for (final ObjectIDWithRefChain chain: refchains) {
+			if (chain != null) {
+				final ObjectReferenceSet refs = headrefs.get(heads.get(chain));
+				if (refs != null && isValidRefChain(chain, refs, reschains,
+						chainrefs, ignoreErrors, chnum)) {
+					resolvedChains.put(chain, reschains.get(chain.getLast()));
+				}
+			}
+			chnum++;
+		}
+		return resolvedChains;
+	}
+	
+	private boolean isValidRefChain(
+			final ObjectIDWithRefChain chain,
+			final ObjectReferenceSet headref,
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains,
+			final Map<ObjectIDResolvedWS, ObjectReferenceSet> chainrefs,
+			final boolean ignoreErrors,
+			final int chainNumber
+			) throws NoSuchReferenceException {
+		ObjectIdentifier pos = chain;
+		ObjectReferenceSet refs = headref;
+		int posnum = 1;
+		for (final ObjectIdentifier oi: chain.getChain()) {
+			/* refs are guaranteed to exist, so if the db didn't find
+			 * it the user specified it incorrectly
+			 */
+			/* only throw the exception from one
+			 * place, otherwise an attacker can tell if the object in the
+			 * ref chain is in the DB or not
+			 */
+			final ObjectIDResolvedWS oir = reschains.get(oi);
+			final ObjectReferenceSet current = oir == null ? null :
+				chainrefs.get(oir);
+			if (current == null ||
+					!refs.contains(current.getObjectReference())) {
+				if (ignoreErrors) {
+					return false;
+				}
+				throwNoSuchRefException(pos, oi, chainNumber, posnum);
+			}
+			pos = oi;
+			refs = current;
+			posnum++;
+		}
+		return true;
+	}
+
+	private boolean hasItems(final List<?> l) {
+		if (l == null || l.isEmpty()) {
+			return false;
+		}
+		for (final Object item: l) {
+			if (item != null) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private void throwNoSuchRefException(
+			final ObjectIdentifier from,
+			final ObjectIdentifier to, int chnum, int posnum)
+			throws NoSuchReferenceException {
+		throw new NoSuchReferenceException(
+				String.format(
+				"Reference chain #%s, position %s: Object %s %sin " +
+				"workspace %s does not contain a reference to " +
+				"object %s %sin workspace %s",
+				chnum, posnum,
+				from.getIdentifierString(),
+				from.getVersion() == null ? "" :
+					"with version " + from.getVersion() + " ",
+				from.getWorkspaceIdentifierString(),
+				to.getIdentifierString(),
+				to.getVersion() == null ? "" :
+					"with version " + to.getVersion() + " ",
+				to.getWorkspaceIdentifierString()),
+				from, to);
+	}
+
+	private Map<ObjectIDResolvedWS, ObjectReferenceSet>
+			getObjectOutGoingReferences(
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> objs,
+				final boolean exceptIfMissingOrDeleted,
+				final boolean includeDeleted)
+				throws WorkspaceCommunicationException, NoSuchObjectException {
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> refs;
+		try {
+			refs = db.getObjectOutgoingReferences(
+					new HashSet<ObjectIDResolvedWS>(objs.values()),
+					exceptIfMissingOrDeleted, includeDeleted,
+					exceptIfMissingOrDeleted);
+		} catch (NoSuchObjectException nsoe) {
+			final ObjectIDResolvedWS e = nsoe.getResolvedInaccessibleObject();
+			for (Entry<ObjectIdentifier, ObjectIDResolvedWS> entry:
+					objs.entrySet()) {
+				if (entry.getValue().equals(e)) {
+					throw new NoSuchObjectException(
+							formatInaccessibleObjectException(
+									entry.getKey(), nsoe),
+							entry.getValue(), nsoe);
+				}
+				
+			}
+			throw new RuntimeException("Something went very wrong here", nsoe);
+		}
+		return refs;
+	}
+	
+	private static String formatInaccessibleObjectException(
+			final ObjectIdentifier oi,
+			final InaccessibleObjectException nsoe) {
+		final StringBuilder sb = new StringBuilder("Object ");
+		sb.append(oi.getIdentifierString());
+		sb.append(oi.getVersion() == null ? "" :
+			" with version " + oi.getVersion());
+		if (nsoe instanceof DeletedObjectException) {
+			sb.append(" in workspace ");
+		} else if (nsoe instanceof NoSuchObjectException) {
+			sb.append(" does not exist in workspace ");
+		} else {
+			sb.append(" in workspace ");
+		}
+		sb.append(oi.getWorkspaceIdentifierString());
+		if (nsoe instanceof DeletedObjectException) {
+			sb.append(" has been deleted");
+		} else if (!(nsoe instanceof NoSuchObjectException)) {
+			sb.append(" is inaccessible");
+		}
+		return sb.toString();
 	}
 	
 	private void removeInaccessibleDataCopyReferences(
@@ -1041,24 +1181,10 @@ public class Workspace {
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		
-		final List<WorkspaceObjectInformation> newdata =
-				new LinkedList<WorkspaceObjectInformation>();
-		for (final WorkspaceObjectData d: data) {
-			newdata.add((WorkspaceObjectInformation) d);
-		}
-		removeInaccessibleProvenanceCopyReferences(user, newdata);
-	}
-	
-	private void removeInaccessibleProvenanceCopyReferences(
-			final WorkspaceUser user,
-			final List<WorkspaceObjectInformation> info)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		
 		final Set<WorkspaceIdentifier> wsis =
 				new HashSet<WorkspaceIdentifier>();
-		for (final WorkspaceObjectInformation d: info) {
-			if (d.getCopyReference() != null) {
+		for (final WorkspaceObjectData d: data) {
+			if (d != null && d.getCopyReference() != null) {
 				wsis.add(new WorkspaceIdentifier(
 						d.getCopyReference().getWorkspaceID()));
 			}
@@ -1091,20 +1217,19 @@ public class Workspace {
 			}
 		}
 		
-		final Map<WorkspaceObjectInformation, ObjectIDResolvedWS> rois =
-				new HashMap<WorkspaceObjectInformation, ObjectIDResolvedWS>();
-		for (final WorkspaceObjectInformation d: info) {
-			final Reference cref = d.getCopyReference();
-			if (cref == null) {
-				continue;
-			}
-			final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
-					cref.getWorkspaceID());
-			if (!rwsis.containsKey(wsi)) {
-				d.setCopySourceInaccessible();
-			} else {
-				rois.put(d, new ObjectIDResolvedWS(rwsis.get(wsi),
-						cref.getObjectID(), cref.getVersion()));
+		final Map<WorkspaceObjectData, ObjectIDResolvedWS> rois =
+				new HashMap<WorkspaceObjectData, ObjectIDResolvedWS>();
+		for (final WorkspaceObjectData d: data) {
+			if (d != null && d.getCopyReference() != null) {
+				final Reference cref = d.getCopyReference();
+				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
+						cref.getWorkspaceID());
+				if (!rwsis.containsKey(wsi)) {
+					d.setCopySourceInaccessible();
+				} else {
+					rois.put(d, new ObjectIDResolvedWS(rwsis.get(wsi),
+							cref.getObjectID(), cref.getVersion()));
+				}
 			}
 		}
 		
@@ -1112,7 +1237,7 @@ public class Workspace {
 				db.getObjectExists(
 						new HashSet<ObjectIDResolvedWS>(rois.values())); 
 		
-		for (final Entry<WorkspaceObjectInformation, ObjectIDResolvedWS> e:
+		for (final Entry<WorkspaceObjectData, ObjectIDResolvedWS> e:
 				rois.entrySet()) {
 			if (!objexists.get(e.getValue())) {
 				e.getKey().setCopySourceInaccessible();
@@ -1141,6 +1266,7 @@ public class Workspace {
 		return ret;
 	}
 	
+	/** @deprecated */
 	public List<Integer> getReferencingObjectCounts(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
@@ -1166,30 +1292,96 @@ public class Workspace {
 		return db.getObjectHistory(ws.get(oi));
 	}
 	
+	private static class ResolvedResChains {
+		public Map<ObjectIdentifier, ObjectIDResolvedWS> nochain;
+		public Map<ObjectIdentifier, ObjectIDResolvedWS> hadchain;
+
+		private ResolvedResChains(
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> nochain,
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> hadchain) {
+			super();
+			this.nochain = nochain;
+			this.hadchain = hadchain;
+		}
+		
+	}
+	
 	public List<ObjectInformation> getObjectInformation(
 			final WorkspaceUser user, final List<ObjectIdentifier> loi,
 			final boolean includeMetadata, final boolean nullIfInaccessible)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
-			InaccessibleObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read",
-						nullIfInaccessible, nullIfInaccessible,
-						nullIfInaccessible);
-		final Map<ObjectIDResolvedWS, ObjectInformation> meta = 
+			InaccessibleObjectException, NoSuchReferenceException {
+	
+		final ResolvedResChains res = resolveObjects(user, loi,
+				nullIfInaccessible);
+		
+		final Map<ObjectIDResolvedWS, ObjectInformation> stdmeta = 
 				db.getObjectInformation(
-						new HashSet<ObjectIDResolvedWS>(ws.values()),
-						includeMetadata, nullIfInaccessible);
+						new HashSet<ObjectIDResolvedWS>(res.nochain.values()),
+						includeMetadata, !nullIfInaccessible, false,
+						!nullIfInaccessible);
+		final Map<ObjectIDResolvedWS, ObjectInformation> resmeta = 
+				db.getObjectInformation(
+						new HashSet<ObjectIDResolvedWS>(res.hadchain.values()),
+						includeMetadata, false, true, true);
+						// at this point the object at the chain end must exist
 		final List<ObjectInformation> ret =
 				new ArrayList<ObjectInformation>();
 		
 		for (final ObjectIdentifier o: loi) {
-			if (!ws.containsKey(o) || !meta.containsKey(ws.get(o))) {
-				ret.add(null);
+			if (res.nochain.containsKey(o) &&
+					stdmeta.containsKey(res.nochain.get(o))) {
+				ret.add(stdmeta.get(res.nochain.get(o)));
+			} else if (res.hadchain.containsKey(o) &&
+					resmeta.containsKey(res.hadchain.get(o))) {
+				ret.add(resmeta.get(res.hadchain.get(o)));
 			} else {
-				ret.add(meta.get(ws.get(o)));
+				ret.add(null);
 			}
 		}
 		return ret;
+	}
+
+	/* used to resolve object IDs that might contain reference chains */
+	private ResolvedResChains resolveObjects(final WorkspaceUser user,
+			final List<ObjectIdentifier> loi, final boolean nullIfInaccessible)
+			throws WorkspaceCommunicationException,
+			InaccessibleObjectException, CorruptWorkspaceDBException,
+			NoSuchObjectException, NoSuchReferenceException {
+
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, loi, Permission.READ, "read",
+						nullIfInaccessible, nullIfInaccessible,
+						nullIfInaccessible);
+		
+		final List<ObjectIDWithRefChain> chains =
+				new LinkedList<ObjectIDWithRefChain>();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads =
+				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> std =
+				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		for (final ObjectIdentifier o: loi) {
+			if (ws.get(o) == null) {
+				continue;
+			}
+			if (o instanceof ObjectIDWithRefChain && 
+					((ObjectIDWithRefChain) o).hasChain()) {
+				chains.add((ObjectIDWithRefChain) o);
+				heads.put(o, ws.get(o));
+			} else {
+				chains.add(null); // maintain count for error reporting
+				std.put(o, ws.get(o));
+			}
+		}
+		ws.clear(); //GC
+		
+		// this should exclude any heads that are deleted, even if
+		// nullIfInaccessible is true
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains =
+				resolveReferenceChains(user, chains, heads,
+						nullIfInaccessible);
+		
+		return new ResolvedResChains(std, reschains);
 	}
 	
 	/** Get object names based on a provided prefix. Returns at most 1000
@@ -1324,221 +1516,6 @@ public class Workspace {
 		db.setWorkspaceDeleted(wsid, delete);
 	}
 
-	private String getUser(WorkspaceUser user) {
-		return user == null ? null : user.getUser();
-	}
-	
-	public void requestModuleRegistration(final WorkspaceUser user,
-			final String module) throws TypeStorageException {
-		if (typedb.isValidModule(module)) {
-			throw new IllegalArgumentException(module +
-					" module already exists");
-		}
-		typedb.requestModuleRegistration(module, user.getUser());
-	}
-	
-	public List<OwnerInfo> listModuleRegistrationRequests() throws
-			TypeStorageException {
-		try {
-			return typedb.getNewModuleRegistrationRequests(null, true);
-		} catch (NoSuchPrivilegeException nspe) {
-			throw new RuntimeException(
-					"Something is broken in the administration system", nspe);
-		}
-	}
-	
-	public void resolveModuleRegistration(final String module,
-			final boolean approve)
-			throws TypeStorageException {
-		try {
-			if (approve) {
-				typedb.approveModuleRegistrationRequest(null, module, true);
-			} else {
-				typedb.refuseModuleRegistrationRequest(null, module, true);
-			}
-		} catch (NoSuchPrivilegeException nspe) {
-			throw new RuntimeException(
-					"Something is broken in the administration system", nspe);
-		}
-	}
-	
-	//TODO should return the version as well?
-	public Map<TypeDefName, TypeChange> compileNewTypeSpec(
-			final WorkspaceUser user, final String typespec,
-			final List<String> newtypes, final List<String> removeTypes,
-			final Map<String, Long> moduleVers, final boolean dryRun,
-			final Long previousVer)
-			throws SpecParseException, TypeStorageException,
-			NoSuchPrivilegeException, NoSuchModuleException {
-		return typedb.registerModule(typespec, newtypes, removeTypes,
-				getUser(user), dryRun, moduleVers, previousVer);
-	}
-	
-	public Map<TypeDefName, TypeChange> compileTypeSpec(
-			final WorkspaceUser user, final String module,
-			final List<String> newtypes, final List<String> removeTypes,
-			final Map<String, Long> moduleVers, boolean dryRun)
-			throws SpecParseException, TypeStorageException,
-			NoSuchPrivilegeException, NoSuchModuleException {
-		return typedb.refreshModule(module, newtypes, removeTypes,
-				user.getUser(), dryRun, moduleVers);
-	}
-	
-	public List<AbsoluteTypeDefId> releaseTypes(final WorkspaceUser user,
-			final String module)
-			throws NoSuchModuleException, TypeStorageException,
-			NoSuchPrivilegeException {
-		return typedb.releaseModule(module, user.getUser(), false);
-	}
-	
-	public String getJsonSchema(final TypeDefId type, WorkspaceUser user) throws
-			NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		return typedb.getJsonSchemaDocument(type, getUser(user));
-	}
-	
-	public List<String> listModules(WorkspaceUser user)
-			throws TypeStorageException {
-		if (user == null) {
-			return typedb.getAllRegisteredModules();
-		}
-		return typedb.getModulesByOwner(user.getUser());
-	}
-	
-	public ModuleInfo getModuleInfo(final WorkspaceUser user, final ModuleDefId module)
-			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		String userId = getUser(user);
-		final us.kbase.typedobj.db.ModuleInfo moduleInfo =
-				typedb.getModuleInfo(module, userId, false);
-		List<String> functions = new ArrayList<String>();
-		for (FuncInfo fi : moduleInfo.getFuncs().values())
-			functions.add(module.getModuleName() + "." + fi.getFuncName() + "-" + 
-					fi.getFuncVersion());
-		return new ModuleInfo(typedb.getModuleSpecDocument(module, userId, false),
-				typedb.getModuleOwners(module.getModuleName()),
-				moduleInfo.getVersionTime(),  moduleInfo.getDescription(),
-				typedb.getJsonSchemasForAllTypes(module, userId, false), 
-				moduleInfo.getIncludedModuleNameToVersion(), moduleInfo.getMd5hash(), 
-				new ArrayList<String>(functions), moduleInfo.isReleased());
-	}
-	
-	public List<Long> getModuleVersions(final String module, WorkspaceUser user)
-			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		if (user != null && typedb.isOwnerOfModule(module, user.getUser()))
-			return typedb.getAllModuleVersionsWithUnreleased(module, user.getUser(), false);
-		return typedb.getAllModuleVersions(module);
-	}
-	
-	public List<Long> getModuleVersions(final TypeDefId type, WorkspaceUser user) 
-			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
-		final List<ModuleDefId> mods =
-				typedb.findModuleVersionsByTypeVersion(type, getUser(user));
-		final List<Long> vers = new ArrayList<Long>();
-		for (final ModuleDefId m: mods) {
-			vers.add(m.getVersion());
-		}
-		return vers;
-	}
-
-	public HashMap<String, List<String>> translateFromMd5Types(List<String> md5TypeList) 
-			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
-		//return typedb.getTypeVersionsForMd5(md5TypeDef);
-		HashMap<String, List<String>> ret = new LinkedHashMap<String, List<String>>();
-		for (String md5TypeDef : md5TypeList) {
-			List<AbsoluteTypeDefId> semantList = typedb.getTypeVersionsForMd5(TypeDefId.fromTypeString(md5TypeDef));
-			List<String> retList = new ArrayList<String>();
-			for (AbsoluteTypeDefId semantTypeDef : semantList)
-				retList.add(semantTypeDef.getTypeString());
-			ret.put(md5TypeDef, retList);
-		}
-		return ret;
-	}
-
-	public Map<String,String> translateToMd5Types(List<String> semanticTypeList,
-			WorkspaceUser user) 
-			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
-		HashMap<String, String> ret = new LinkedHashMap<String, String>();
-		for (String semantString : semanticTypeList) {
-			TypeDefId semantTypeDef = TypeDefId.fromTypeString(semantString);
-			ret.put(semantString, typedb.getTypeMd5Version(semantTypeDef, getUser(user)).getTypeString());
-		}
-		return ret;
-	}
-	
-	public long compileTypeSpecCopy(String moduleName, String specDocument, Set<String> extTypeSet,
-			String userId, Map<String, String> includesToMd5, Map<String, Long> extIncludedSpecVersions) 
-					throws NoSuchModuleException, TypeStorageException, SpecParseException, NoSuchPrivilegeException {
-		long lastLocalVer = typedb.getLatestModuleVersionWithUnreleased(moduleName, userId, false);
-		Map<String, Long> moduleVersionRestrictions = new HashMap<String, Long>();
-		for (Map.Entry<String, String> entry : includesToMd5.entrySet()) {
-			String includedModule = entry.getKey();
-			String md5 = entry.getValue();
-			long extIncludedVer = extIncludedSpecVersions.get(includedModule);
-			List<ModuleDefId> localIncludeVersions = new ArrayList<ModuleDefId>(
-					typedb.findModuleVersionsByMD5(includedModule, md5));
-			if (localIncludeVersions.size() == 0)
-				throw new NoSuchModuleException("Can not find local module " + includedModule + " synchronized " +
-						"with external version " + extIncludedVer + " (md5=" + md5 + ")");
-			us.kbase.typedobj.db.ModuleInfo localIncludedInfo =  typedb.getModuleInfo(includedModule, 
-					localIncludeVersions.get(0).getVersion());
-			moduleVersionRestrictions.put(localIncludedInfo.getModuleName(), localIncludedInfo.getVersionTime());
-		}
-		Set<String> prevTypes = new HashSet<String>(typedb.getModuleInfo(moduleName, lastLocalVer).getTypes().keySet());
-		Set<String> typesToSave = new HashSet<String>(extTypeSet);
-		List<String> allTypes = new ArrayList<String>(prevTypes);
-		allTypes.addAll(typesToSave);
-		List<String> typesToUnregister = new ArrayList<String>();
-		for (String typeName : allTypes) {
-			if (prevTypes.contains(typeName)) {
-				if (typesToSave.contains(typeName)) {
-					typesToSave.remove(typeName);
-				} else {
-					typesToUnregister.add(typeName);
-				}
-			}
-		}
-		typedb.registerModule(specDocument, new ArrayList<String>(typesToSave), typesToUnregister, 
-				userId, false, moduleVersionRestrictions);
-		return typedb.getLatestModuleVersionWithUnreleased(moduleName, userId, false);
-	}
-	
-	public TypeDetailedInfo getTypeInfo(String typeDef, boolean markTypeLinks, WorkspaceUser user) 
-			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
-		String userId = getUser(user);
-		return typedb.getTypeDetailedInfo(TypeDefId.fromTypeString(typeDef), markTypeLinks, userId);
-	}
-	
-	public FuncDetailedInfo getFuncInfo(String funcDef, boolean markTypeLinks, WorkspaceUser user) 
-			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
-		TypeDefId tempDef = TypeDefId.fromTypeString(funcDef);
-		String userId = getUser(user);
-		return typedb.getFuncDetailedInfo(tempDef.getType().getModule(), 
-				tempDef.getType().getName(), tempDef.getVerString(), markTypeLinks, userId);
-	}
-
-	public void grantModuleOwnership(String moduleName, String newOwner, boolean withGrantOption,
-			WorkspaceUser user, boolean isAdmin) throws TypeStorageException, NoSuchPrivilegeException {
-		typedb.addOwnerToModule(getUser(user), moduleName, newOwner, withGrantOption, isAdmin);
-	}
-	
-	public void removeModuleOwnership(String moduleName, String oldOwner, WorkspaceUser user, 
-			boolean isAdmin) throws NoSuchPrivilegeException, TypeStorageException {
-		typedb.removeOwnerFromModule(getUser(user), moduleName, oldOwner, isAdmin);
-	}
-	
-	public Map<String, Map<String, String>> listAllTypes(boolean withEmptyModules) 
-			throws TypeStorageException, NoSuchModuleException {
-		Map<String, Map<String, String>> ret = new TreeMap<String, Map<String, String>>();
-		for (String moduleName : typedb.getAllRegisteredModules()) {
-			Map<String, String> typeMap = new TreeMap<String, String>();
-			for (String key : typedb.getModuleInfo(moduleName).getTypes().keySet())
-				typeMap.put(typedb.getModuleInfo(moduleName).getTypes().get(key).getTypeName(), 
-						typedb.getModuleInfo(moduleName).getTypes().get(key).getTypeVersion());
-			if (withEmptyModules || !typeMap.isEmpty())
-				ret.put(moduleName, typeMap);
-		}
-		return ret;
-	}
-	
 	/* admin method only, should not be exposed in public API
 	 */
 	public Set<WorkspaceUser> getAllWorkspaceOwners()
