@@ -255,7 +255,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		WorkspaceAdministration wsadmin = null;
 		URL handleManagerUrl = null;
 		RefreshingToken handleMgrToken = null;
-		
+		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
 			logErr("Workspace server configuration has errors - all calls will fail");
 			System.out.println(
