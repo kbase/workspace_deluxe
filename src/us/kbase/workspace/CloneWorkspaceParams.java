@@ -31,8 +31,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 truncated.
  *         usermeta meta - arbitrary user-supplied metadata for the workspace.
  *         list<ObjectIdentity> exclude - exclude the specified objects from the
- *                 cloned workspace. Workspace IDs, versions, and refs in the
- *                 ObjectIdentities are ignored.
+ *                 cloned workspace. Either an object ID or a object name must be
+ *                 specified in each ObjectIdentity - any supplied reference strings,
+ *                 workspace names or IDs, and versions are ignored.
  * </pre>
  * 
  */

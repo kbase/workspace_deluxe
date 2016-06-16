@@ -85,7 +85,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.4.2-dev"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0-dev"));
 	}
 	
 	@Test
@@ -2392,7 +2392,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
-	public void listObjectsPagination() throws Exception {
+	public void listObjectsLimit() throws Exception {
 		String ws = "pagination";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws));
 		
@@ -2405,19 +2405,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(objs));
 		
 		//this depends on the natural sort order of mongo
-		checkObjectPagination(ws, null, null, 1, 200);
-		checkObjectPagination(ws, -1L, 0L, 1, 200);
-		checkObjectPagination(ws, -1L, 50L, 1, 50);
-		checkObjectPagination(ws, 100L, 50L, 101, 150);
-		checkObjectPagination(ws, 100L, 100L, 101, 200);
-		checkObjectPagination(ws, 150L, 100L, 151, 200);
-		checkObjectPagination(ws, 150L, 1L, 151, 151);
-		checkObjectPagination(ws, 200L, -1L, 2, 1); //hack
+		checkObjectPagination(ws, null, 1, 200);
+		checkObjectPagination(ws, 0L, 1, 200);
+		checkObjectPagination(ws, 1L, 1, 1);
+		checkObjectPagination(ws, 50L, 1, 50);
+		checkObjectPagination(ws, 200L, 1, 200);
+		checkObjectPagination(ws, 201L, 1, 200);
 		
 		failListObjects(Arrays.asList(ws), null, null, null, null, 0L, 0L,
-				0L, 0L, 4000000000L, 1L, "Skip can be no greater than 2147483647");
-		failListObjects(Arrays.asList(ws), null, null, null, null, 0L, 0L,
-				0L, 0L, 1L, 4000000000L, "Limit can be no greater than 2147483647");
+				0L, 0L, 4000000000L, "Limit can be no greater than 2147483647");
 	}
 	
 	@Test
@@ -2794,7 +2790,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.set(0, new ObjectIdentity().withRef("referingobjs/std/2"));
 		try {
 			@SuppressWarnings({ "deprecation", "unused" })
-			List<Long> refcnts2 = CLIENT1.listReferencingObjectCounts(loi);
+			List<Long> foo = CLIENT1.listReferencingObjectCounts(loi);
 			fail("got ref counts with bad obj id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),

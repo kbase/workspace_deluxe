@@ -250,7 +250,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 	}
 	
 	@Test
-	public void listObjectsPagination() throws Exception {
+	public void listObjectsLimit() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("pagUser");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("pagination");
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
@@ -263,15 +263,12 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		
 		//this depends on the natural sort order of mongo
-		checkObjectPagination(user, wsi, -1, 0, 1, 10000);
-		checkObjectPagination(user, wsi, -1, 10001, 1, 10000);
-		checkObjectPagination(user, wsi, -1, 1000000, 1, 10000);
-		checkObjectPagination(user, wsi, -1, 5000, 1, 5000);
-		checkObjectPagination(user, wsi, 10000, 5000, 10001, 15000);
-		checkObjectPagination(user, wsi, 10000, 10000, 10001, 20000);
-		checkObjectPagination(user, wsi, 15000, 10000, 15001, 20000);
-		checkObjectPagination(user, wsi, 15000, 1, 15001, 15001);
-		checkObjectPagination(user, wsi, 20000, -1, 2, 1); //hack so the method expects 0 objects
+		checkObjectLimit(user, wsi, 0, 1, 10000);
+		checkObjectLimit(user, wsi, 1, 1, 1);
+		checkObjectLimit(user, wsi, 10000, 1, 10000);
+		checkObjectLimit(user, wsi, 10001, 1, 10000);
+		checkObjectLimit(user, wsi, 1000000, 1, 10000);
+		checkObjectLimit(user, wsi, 5000, 1, 5000);
 	}
 	
 	//this test takes FOREVER and doesn't actually test anything, it's a performance measurement

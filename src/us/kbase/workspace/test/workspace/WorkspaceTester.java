@@ -1406,20 +1406,20 @@ public class WorkspaceTester {
 	}
 	
 	/* depends on inherent mongo ordering */
-	protected void checkObjectPagination(WorkspaceUser user, WorkspaceIdentifier wsi,
-			int skip, int limit, int minid, int maxid)
+	protected void checkObjectLimit(WorkspaceUser user, WorkspaceIdentifier wsi,
+			int limit, int minid, int maxid)
 			throws Exception {
-		checkObjectPagination(user, wsi, skip, limit, minid, maxid,
+		checkObjectLimit(user, wsi, limit, minid, maxid,
 				new HashSet<Long>());
 	}
 	
 	/* depends on inherent mongo ordering */
-	protected void checkObjectPagination(WorkspaceUser user, WorkspaceIdentifier wsi,
-			int skip, int limit, int minid, int maxid, Set<Long> exlude) 
+	protected void checkObjectLimit(WorkspaceUser user, WorkspaceIdentifier wsi,
+			int limit, int minid, int maxid, Set<Long> exlude) 
 			throws Exception {
 		List<ObjectInformation> res = ws.listObjects(
 				new ListObjectsParameters(user, Arrays.asList(wsi))
-				.withSkip(skip).withLimit(limit));
+				.withLimit(limit));
 		assertThat("correct number of objects returned", res.size(),
 				is(maxid - minid + 1 - exlude.size()));
 		for (ObjectInformation oi: res) {
@@ -1428,8 +1428,8 @@ public class WorkspaceTester {
 						oi.getObjectId(), minid, maxid));
 			}
 			if (exlude.contains(oi.getObjectId())) {
-				fail("Got object ID that should have been exluded: "
-						+ oi.getObjectId());
+				fail("Got object ID that should have been excluded: " +
+						oi.getObjectId());
 			}
 		}
 	}

@@ -19,7 +19,8 @@ my $translation = {
     showhidden=>"showHidden",
     showversions=>"showAllVersions",
     type => "type",
-    skip => "skip",
+    minobjid => "minObjectID",
+    maxobjid => "maxObjectID"
 };
 #Defining usage and options
 my ($opt, $usage) = describe_options(
@@ -33,24 +34,19 @@ my ($opt, $usage) = describe_options(
     [ 'showversions|v', 'Include all versions of the objects',{"default"=>0}],
     [ 'showhidden|a','Include hidden objects', {"default" =>0} ],
     [ 'showdeleted|s','Include objects that have been deleted', {"default" =>0} ],
-    [ 'skip=i','Specify that the first N objects found (before sorting) are skipped', {} ],
+    [ 'minobjid=i','Only return objects with an ID greater or equal to this value', {"default" =>0} ],
+    [ 'maxobjid=i','Only return objects with an ID less than or equal to this value', {"default" =>0} ],
     [ 'showerror|e', 'Show full stack trace of any errors in execution',{"default"=>0}],
     [ 'help|h|?', 'Print this usage information' ]
 );
 $usage = "\nNAME\n  ws-listobj -- list the objects in a workspace\n\nSYNOPSIS\n  ".$usage;
 $usage .= "\nDESCRIPTION\n";
-$usage .= "    List objects in one or more workspaces.  Note that the Workspace service will\n";
-$usage .= "    limit the number of objects returned to 10,000.  If you need to iterate over\n";
-$usage .= "    all items, you should use the --skip [N] option to skip over records you have\n";
-$usage .= "    seen to get the set of 10,000 objects starting at object [N].  Note that the\n";
-$usage .= "    limit flag of this script is applied after the object list is recieved and\n";
-$usage .= "    does not directly map to the limit parameter in the list_objects API call.\n";
-$usage .= "\nKNOWN BUG WARNING:\n";
-$usage .= "    When filtering the object list in the backend Workspace service, objects that\n";
-$usage .= "    are deleted, hidden, or are an old version are filtered *after* the 10000\n";
-$usage .= "    record limit is applied. This means that fewer objects than the 10000 limit\n";
-$usage .= "    may be returned, and in extreme cases many hidden, deleted, or lower version\n";
-$usage .= "    objects are found no objects may be returned.\n";
+$usage .= "    List objects in one or more workspaces.  Note that the Workspace service\n";
+$usage .= "    will limit the number of objects returned to 10,000.  If you need to\n";
+$usage .= "    iterate over all items, you should use the --minobjid [N] and\n";
+$usage .= "    --maxobjid [N+10000] options. Note that the limit flag of this script\n";
+$usage .= "    is applied after the object list is received and does not directly map\n";
+$usage .= "    to the limit parameter in the list_objects API call.\n";
 $usage .= "\n";
 if (defined($opt->{help})) {
 	print $usage;

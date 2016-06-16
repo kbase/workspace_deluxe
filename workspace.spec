@@ -601,8 +601,9 @@ module Workspace {
 			truncated.
 		usermeta meta - arbitrary user-supplied metadata for the workspace.
 		list<ObjectIdentity> exclude - exclude the specified objects from the
-			cloned workspace. Workspace IDs, versions, and refs in the
-			ObjectIdentities are ignored.
+			cloned workspace. Either an object ID or a object name must be
+			specified in each ObjectIdentity - any supplied reference strings,
+			workspace names or IDs, and versions are ignored. 
 	*/
 	typedef structure { 
 		WorkspaceIdentity wsi;
@@ -1093,7 +1094,7 @@ module Workspace {
 		
 	/*
 		DEPRECATED
-		
+
 		List the number of times objects have been referenced.
 		
 		This count includes both provenance and object-to-object references
@@ -1287,8 +1288,6 @@ module Workspace {
 			metadata will be null.
 		boolean excludeGlobal - exclude objects in global workspaces. This
 			parameter only has an effect when filtering by types alone.
-		int skip - DEPRECATED. Skip the first X objects. Maximum value is 2^31,
-			skip values < 0 are treated as 0, the default.
 		int limit - limit the output to X objects. Default and maximum value
 			is 10000. Limit values < 1 are treated as 10000, the default.
 		
@@ -1312,7 +1311,6 @@ module Workspace {
 		boolean showAllVersions;
 		boolean includeMetadata;
 		boolean excludeGlobal;
-		int skip;
 		int limit;
 	} ListObjectsParams;
 	

@@ -111,7 +111,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "c9968fb5b3c193a53a89430f4dccfd0a683d696c";
+    private static final String gitCommitHash = "5eee53725887a4219c73464fe4a1b3ee17ebbdcc";
 
     //BEGIN_CLASS_HEADER
 	//TODO java doc - really low priority, sorry
@@ -119,7 +119,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
     
-	private static final String VER = "0.4.2-dev";
+	private static final String VER = "0.5.0-dev";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -1034,7 +1034,6 @@ public class WorkspaceServer extends JsonServerServlet {
 			.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
 			.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
 			.withExcludeGlobal(longToBoolean(params.getExcludeGlobal()))
-			.withSkip(longToInt(params.getSkip(), "Skip", -1))
 			.withLimit(longToInt(params.getLimit(), "Limit", -1));
 		
 		returnVal = objInfoToTuple(ws.listObjects(lop), false);
