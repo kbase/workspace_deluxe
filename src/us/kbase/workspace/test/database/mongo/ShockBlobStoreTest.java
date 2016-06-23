@@ -25,6 +25,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
 import us.kbase.auth.AuthService;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
@@ -40,7 +41,6 @@ import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class ShockBlobStoreTest {
 	
@@ -61,11 +61,11 @@ public class ShockBlobStoreTest {
 		String u1 = System.getProperty("test.user1");
 		String p1 = System.getProperty("test.pwd1");
 		
-		tfm = new TempFilesManager(new File(WorkspaceTestCommon.getTempDir()));
-		WorkspaceTestCommon.stfuLoggers();
-		mongoCon = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				WorkspaceTestCommon.useWiredTigerEngine());
+		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
+		TestCommon.stfuLoggers();
+		mongoCon = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + mongoCon.getTempDir());
 		
 		String mongohost = "localhost:" + mongoCon.getServerPort();
@@ -73,9 +73,9 @@ public class ShockBlobStoreTest {
 		mongo = mongoClient.getDB("ShockBackendTest");
 		
 		shock = new ShockController(
-				WorkspaceTestCommon.getShockExe(),
-				WorkspaceTestCommon.getShockVersion(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
+				TestCommon.getShockExe(),
+				TestCommon.getShockVersion(),
+				Paths.get(TestCommon.getTempDir()),
 				"***---fakeuser---***",
 				mongohost,
 				"ShockBackendTest_ShockDB",
@@ -101,10 +101,10 @@ public class ShockBlobStoreTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy(WorkspaceTestCommon.deleteTempFiles());
+			shock.destroy(TestCommon.deleteTempFiles());
 		}
 		if (mongoCon != null) {
-			mongoCon.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongoCon.destroy(TestCommon.deleteTempFiles());
 		}
 	}
 	

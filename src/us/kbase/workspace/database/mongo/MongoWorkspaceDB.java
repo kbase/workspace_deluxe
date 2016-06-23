@@ -24,6 +24,7 @@ import org.bson.types.ObjectId;
 import org.jongo.FindAndModify;
 import org.jongo.Jongo;
 
+import us.kbase.common.utils.Counter;
 import us.kbase.common.utils.CountingOutputStream;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ExtractedMetadata;
@@ -35,7 +36,6 @@ import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
-import us.kbase.typedobj.util.Counter;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectReferenceSet;
@@ -1516,7 +1516,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				ExtractedMetadata extract = o.getRep()
 						.extractMetadata(
 								WorkspaceUserMetadata.MAX_METADATA_SIZE);
-				pkg.wo.addUserMeta(extract.getMetadataAsMap());
+				pkg.wo.addUserMeta(extract.getMetadata());
 			} catch (ExceededMaxMetadataSizeException e) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s: %s",
@@ -2079,7 +2079,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private void cleanUpTempObjectFiles(
 			final Map<String, ByteArrayFileCache> chksumToData,
-			final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret) {
+			final Map<ObjectIDResolvedWS, Map<ObjectPaths,
+				WorkspaceObjectData>> ret) {
 		for (final ByteArrayFileCache f: chksumToData.values()) {
 			f.destroy();
 		}

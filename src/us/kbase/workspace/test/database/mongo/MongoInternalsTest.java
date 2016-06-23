@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.UObject;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.LocalTypeProvider;
@@ -94,12 +95,12 @@ public class MongoInternalsTest {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				WorkspaceTestCommon.useWiredTigerEngine());
+		mongo = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " +
 				mongo.getTempDir());
-		WorkspaceTestCommon.stfuLoggers();
+		TestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();
 		mongoClient = new MongoClient(mongohost);
 		final DB db = mongoClient.getDB("MongoInternalsTest");
@@ -108,7 +109,7 @@ public class MongoInternalsTest {
 		jdb = new Jongo(db);
 		
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
 				new MongoTypeStorage(GetMongoDB.getDB(mongohost, typedb)));
 		TypedObjectValidator val = new TypedObjectValidator(
@@ -135,7 +136,7 @@ public class MongoInternalsTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.deleteTempFiles());
 		}
 	}
 	
@@ -143,7 +144,7 @@ public class MongoInternalsTest {
 	public void startUpAndCheckConfigDoc() throws Exception {
 		final DB db = mongoClient.getDB("startUpAndCheckConfigDoc");
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 		
 		DBCursor c = db.getCollection("config").find();
@@ -213,7 +214,7 @@ public class MongoInternalsTest {
 	private void failMongoWSStart(final DB db, final Exception exp)
 			throws Exception {
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		try {
 			new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 			fail("started mongo with bad config");

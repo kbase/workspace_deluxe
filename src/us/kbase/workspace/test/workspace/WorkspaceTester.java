@@ -31,6 +31,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.common.mongo.GetMongoDB;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
@@ -127,7 +128,7 @@ public class WorkspaceTester {
 	
 	private static MongoController mongo = null;
 	private static ShockController shock = null;
-	private static TempFilesManager tfm;
+	protected static TempFilesManager tfm;
 	
 	protected static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
 	protected static final WorkspaceUser AUSER = new WorkspaceUser("a");
@@ -181,10 +182,10 @@ public class WorkspaceTester {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy(WorkspaceTestCommon.deleteTempFiles());
+			shock.destroy(TestCommon.deleteTempFiles());
 		}
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.deleteTempFiles());
 		}
 		System.out.println("deleting temporary files");
 		tfm.cleanup();
@@ -195,7 +196,7 @@ public class WorkspaceTester {
 	public void clearDB() throws Exception {
 		DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 				DB_WS_NAME);
-		WorkspaceTestCommon.destroyDB(wsdb);
+		TestCommon.destroyDB(wsdb);
 	}
 	
 	private static final Map<String, WSandTypes> CONFIGS =
@@ -207,9 +208,9 @@ public class WorkspaceTester {
 			Integer maxMemoryUsePerCall)
 			throws Exception {
 		if (mongo == null) {
-			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-					Paths.get(WorkspaceTestCommon.getTempDir()),
-					WorkspaceTestCommon.useWiredTigerEngine());
+			mongo = new MongoController(TestCommon.getMongoExe(),
+					Paths.get(TestCommon.getTempDir()),
+					TestCommon.useWiredTigerEngine());
 			System.out.println("Using Mongo temp dir " + mongo.getTempDir());
 			System.out.println("Started test mongo instance at localhost:" +
 					mongo.getServerPort());
@@ -257,9 +258,9 @@ public class WorkspaceTester {
 		String shockpwd = System.getProperty("test.pwd1");
 		if (shock == null) {
 			shock = new ShockController(
-					WorkspaceTestCommon.getShockExe(),
-					WorkspaceTestCommon.getShockVersion(),
-					Paths.get(WorkspaceTestCommon.getTempDir()),
+					TestCommon.getShockExe(),
+					TestCommon.getShockVersion(),
+					Paths.get(TestCommon.getTempDir()),
 					"***---fakeuser---***",
 					"localhost:" + mongo.getServerPort(),
 					"WorkspaceTester_ShockDB",
@@ -286,7 +287,7 @@ public class WorkspaceTester {
 					throws Exception {
 		
 		tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		tfm.cleanup();
 		
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
@@ -1238,9 +1239,6 @@ public class WorkspaceTester {
 					got.getSerializedData());
 		} else {
 			assertThat("returned data same", got.getData(), is((Object)data));
-			assertThat("returned data jsonnode same",
-					got.getSerializedData().getAsJsonNode(),
-					is(new ObjectMapper().valueToTree(data)));
 		}
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));

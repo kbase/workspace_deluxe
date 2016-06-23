@@ -1,4 +1,4 @@
-package us.kbase.typedobj.util;
+package us.kbase.common.utils;
 
 /**
  * A simple counter class that can be initialized to

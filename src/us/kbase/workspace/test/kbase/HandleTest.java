@@ -34,6 +34,7 @@ import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
@@ -113,19 +114,19 @@ public class HandleTest {
 			throw new TestException("Could not log in test user test.user3: " + u3, e);
 		}
 		
-		WorkspaceTestCommon.stfuLoggers();
+		TestCommon.stfuLoggers();
 		
-		MONGO = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				WorkspaceTestCommon.useWiredTigerEngine());
+		MONGO = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 
 		SHOCK = new ShockController(
-				WorkspaceTestCommon.getShockExe(),
-				WorkspaceTestCommon.getShockVersion(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
+				TestCommon.getShockExe(),
+				TestCommon.getShockVersion(),
+				Paths.get(TestCommon.getTempDir()),
 				u3,
 				mongohost,
 				"JSONRPCLayerHandleTest_ShockDB",
@@ -139,9 +140,9 @@ public class HandleTest {
 		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
 
 		MYSQL = new MySQLController(
-				WorkspaceTestCommon.getMySQLExe(),
-				WorkspaceTestCommon.getMySQLInstallExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				TestCommon.getMySQLExe(),
+				TestCommon.getMySQLInstallExe(),
+				Paths.get(TestCommon.getTempDir()));
 		System.out.println("Using MySQL temp dir " + MYSQL.getTempDir());
 		
 		HANDLE = new HandleServiceController(
@@ -154,7 +155,7 @@ public class HandleTest {
 				u3,
 				p3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
-				Paths.get(WorkspaceTestCommon.getTempDir()));
+				Paths.get(TestCommon.getTempDir()));
 		System.out.println("Using Handle Service temp dir " +
 				HANDLE.getTempDir());
 		
@@ -229,7 +230,7 @@ public class HandleTest {
 
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
@@ -249,13 +250,13 @@ public class HandleTest {
 		ws.add("ws-admin", USER2);
 		ws.add("kbase-admin-user", handleUser);
 		ws.add("kbase-admin-pwd", handlePwd);
-		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir())
+		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForJSONRPCLayerTester"));
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 
 		//set up env
-		Map<String, String> env = JSONRPCLayerTester.getenv();
+		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
@@ -277,16 +278,16 @@ public class HandleTest {
 			System.out.println("Done");
 		}
 		if (HANDLE != null) {
-			HANDLE.destroy(WorkspaceTestCommon.deleteTempFiles());
+			HANDLE.destroy(TestCommon.deleteTempFiles());
 		}
 		if (SHOCK != null) {
-			SHOCK.destroy(WorkspaceTestCommon.deleteTempFiles());
+			SHOCK.destroy(TestCommon.deleteTempFiles());
 		}
 		if (MONGO != null) {
-			MONGO.destroy(WorkspaceTestCommon.deleteTempFiles());
+			MONGO.destroy(TestCommon.deleteTempFiles());
 		}
 		if (MYSQL != null) {
-			MYSQL.destroy(WorkspaceTestCommon.deleteTempFiles());
+			MYSQL.destroy(TestCommon.deleteTempFiles());
 		}
 	}
 

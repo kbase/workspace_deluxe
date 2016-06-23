@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import us.kbase.common.exceptions.UnimplementedException;
+import us.kbase.common.utils.Counter;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
@@ -14,7 +15,6 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.DefaultRemappedId;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
-import us.kbase.typedobj.util.Counter;
 
 public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 
