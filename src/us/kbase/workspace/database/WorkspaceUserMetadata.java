@@ -1,7 +1,7 @@
 package us.kbase.workspace.database;
 
-import static us.kbase.typedobj.util.SizeUtils.checkJSONSizeInBytes;
-import static us.kbase.typedobj.util.SizeUtils.checkSizeInBytes;
+import static us.kbase.common.utils.SizeUtils.checkJSONSizeInBytes;
+import static us.kbase.common.utils.SizeUtils.checkSizeInBytes;
 
 import java.util.Collections;
 import java.util.HashMap;
