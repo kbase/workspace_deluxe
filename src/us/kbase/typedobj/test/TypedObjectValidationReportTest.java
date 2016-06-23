@@ -328,15 +328,19 @@ public class TypedObjectValidationReportTest {
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
+		TempFilesManager tfm = new TempFilesManager(
+				new File(TestCommon.getTempDir()));
+		UTF8JsonSorterFactory sfac = new UTF8JsonSorterFactory(225);
 		try {
-			tovr.sort(SORT_FAC);
+			tovr.sort(sfac, tfm);
 			fail("sorting didn't detect duplicate keys");
 		} catch (KeyDuplicationException kde){
 			assertThat("correct exception message", kde.getLocalizedMessage(),
 					is("Duplicated key 'b' was found at /m"));
 		}
+		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 	}
-
+	
 	@Test
 	public void relabelAndSortInMemAndFile() throws Exception {
 		String json = "{\"m\": {\"z\": \"a\", \"b\": \"d\"}}";
@@ -423,6 +427,7 @@ public class TypedObjectValidationReportTest {
 					is("Memory necessary for sorting map keys exceeds the limit " +
 					maxmem + " bytes at /"));
 		}
+		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 		
 		//test with json stored in memory
 		int filelength = json.getBytes("UTF-8").length;

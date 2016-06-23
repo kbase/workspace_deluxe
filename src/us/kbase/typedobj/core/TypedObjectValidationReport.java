@@ -254,6 +254,7 @@ public class TypedObjectValidationReport {
 		nullifySortCacheFile();
 		cacheForSorting = null;
 		if (!sorted) {
+			//TODO NOW choose to use a file based on input size & max mem size. If no TFM & one is necessary, except. make sure tests catch left files.
 			if (tfm == null) {
 				ByteArrayOutputStream os = new ByteArrayOutputStream();
 				final JsonGenerator jgen = mapper.getFactory()
@@ -278,9 +279,15 @@ public class TypedObjectValidationReport {
 							"sortout", "json");
 					final FileOutputStream os = new FileOutputStream(
 							fileForSorting);
-					//TODO NOW if exception occurs here need to delete fileForSorting
-					fac.getSorter(f1).writeIntoStream(os);
-					os.close();
+					try {
+						fac.getSorter(f1).writeIntoStream(os);
+						os.close();
+					} catch (IOException | KeyDuplicationException |
+							TooManyKeysException | RuntimeException |
+							Error e) {
+						nullifySortCacheFile();
+						throw e;
+					}
 				} finally {
 					f1.delete();
 					if (jgen != null)
