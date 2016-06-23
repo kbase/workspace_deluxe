@@ -127,7 +127,7 @@ public class WorkspaceTester {
 	
 	private static MongoController mongo = null;
 	private static ShockController shock = null;
-	private static TempFilesManager tfm;
+	protected static TempFilesManager tfm;
 	
 	protected static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
 	protected static final WorkspaceUser AUSER = new WorkspaceUser("a");
@@ -196,6 +196,34 @@ public class WorkspaceTester {
 		DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 				DB_WS_NAME);
 		WorkspaceTestCommon.destroyDB(wsdb);
+	}
+	
+	public static void assertNoTempFilesExist(TempFilesManager tfm)
+			throws Exception {
+		assertNoTempFilesExist(Arrays.asList(tfm));
+	}
+	
+	
+	public static void assertNoTempFilesExist(List<TempFilesManager> tfms)
+			throws Exception {
+		int i = 0;
+		try {
+			for (TempFilesManager tfm: tfms) {
+				if (!tfm.isEmpty()) {
+					// Allow <=10 seconds to finish all activities
+					for (; i < 100; i++) {
+						Thread.sleep(100);
+						if (tfm.isEmpty())
+							break;
+					}
+				}
+				assertThat("There are tempfiles: " + tfm.getTempFileList(),
+						tfm.isEmpty(), is(true));
+			}
+		} finally {
+			for (TempFilesManager tfm: tfms)
+				tfm.cleanup();
+		}
 	}
 	
 	private static final Map<String, WSandTypes> CONFIGS =

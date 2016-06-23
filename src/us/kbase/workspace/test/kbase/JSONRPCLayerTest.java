@@ -1505,7 +1505,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
-	public void saveBigMeta() throws Exception {
+	public void metadataBig() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta"));
 
 		Map<String, Object> moredata = new HashMap<String, Object>();

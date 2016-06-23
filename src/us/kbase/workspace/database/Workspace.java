@@ -670,6 +670,7 @@ public class Workspace {
 		reports.clear();
 		
 		sortObjects(saveobjs, ttlObjSize);
+		//TODO NOW try finally & delete reps
 		return db.saveObjects(user, rwsi, saveobjs);
 	}
 

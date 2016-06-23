@@ -2079,7 +2079,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private void cleanUpTempObjectFiles(
 			final Map<String, ByteArrayFileCache> chksumToData,
-			final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret) {
+			final Map<ObjectIDResolvedWS, Map<ObjectPaths,
+				WorkspaceObjectData>> ret) {
 		for (final ByteArrayFileCache f: chksumToData.values()) {
 			f.destroy();
 		}

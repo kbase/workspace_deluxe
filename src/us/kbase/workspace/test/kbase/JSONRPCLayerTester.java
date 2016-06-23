@@ -151,8 +151,8 @@ public class JSONRPCLayerTester {
 	public static final Map<String, String> MT_META =
 			new HashMap<String, String>();
 	
-	private static List<TempFilesManager> tfms =
-			new LinkedList<TempFilesManager>();;
+	private static List<TempFilesManager> TFMS =
+			new LinkedList<TempFilesManager>();
 	
 	protected static class ServerThread extends Thread {
 		private WorkspaceServer server;
@@ -356,7 +356,7 @@ public class JSONRPCLayerTester {
 						server.getWorkspaceResourceUsageConfig())
 				.withMaxIncomingDataMemoryUsage(24)
 				.withMaxReturnedDataMemoryUsage(24).build());
-		tfms.add(server.getTempFilesManager());
+		TFMS.add(server.getTempFilesManager());
 		new ServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
@@ -422,7 +422,7 @@ public class JSONRPCLayerTester {
 	
 	@After
 	public void cleanupTempFilesAfterTest() throws Exception {
-		assertNoTempFilesExist(tfms);
+		assertNoTempFilesExist(TFMS);
 	}
 	
 	protected void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,

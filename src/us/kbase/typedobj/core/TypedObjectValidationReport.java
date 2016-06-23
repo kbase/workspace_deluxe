@@ -278,6 +278,7 @@ public class TypedObjectValidationReport {
 							"sortout", "json");
 					final FileOutputStream os = new FileOutputStream(
 							fileForSorting);
+					//TODO NOW if exception occurs here need to delete fileForSorting
 					fac.getSorter(f1).writeIntoStream(os);
 					os.close();
 				} finally {

@@ -1228,6 +1228,14 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 	@Test
 	public void metadataExtractedLargeTest() throws Exception {
+		//make sure all temporary files are deleted when errors occur here
+		//TODO NOW should have 5 temp files when tests is over before fix. NOw have one. Maybe because only 1 needs sorting?
+		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
+		ResourceUsageConfigurationBuilder build =
+				new ResourceUsageConfigurationBuilder(oldcfg);
+		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(1).build());
+		tfm.cleanup();
+		
 		String module = "TestLargeMetadata";
 		String typeName = "BigMeta";
 		String nestmeta = "." + TEXT100.substring(16) + "." +
@@ -1357,6 +1365,9 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceUserMetadata(meta), mtprov, false)),
 				new IllegalArgumentException(
 						"Object #1, whooop: The user-provided metadata, when updated with object-extracted metadata, exceeds the allowed maximum of 16000B"));
+	
+		ws.setResourceConfig(oldcfg);
+		assertNoTempFilesExist(tfm);
 	}
 	
 	@Test
