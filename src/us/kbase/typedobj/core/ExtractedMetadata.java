@@ -21,7 +21,7 @@ public class ExtractedMetadata {
 					new HashMap<String, String>());
 		} else {
 			this.metadata = Collections.unmodifiableMap(
-					new HashMap<String, String>(metadata));;
+					new HashMap<String, String>(metadata));
 		}
 	}
 	

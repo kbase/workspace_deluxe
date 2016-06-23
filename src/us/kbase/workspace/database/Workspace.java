@@ -670,8 +670,17 @@ public class Workspace {
 		reports.clear();
 		
 		sortObjects(saveobjs, ttlObjSize);
-		//TODO NOW try finally & delete reps
-		return db.saveObjects(user, rwsi, saveobjs);
+		try {
+			return db.saveObjects(user, rwsi, saveobjs);
+		} finally {
+			for (final ResolvedSaveObject wo: saveobjs) {
+				try {
+					wo.getRep().destroyCachedResources();
+				} catch (RuntimeException | Error e) {
+					//damn the torpedoes full speed ahead
+				}
+			}
+		}
 	}
 
 	private void sortObjects(

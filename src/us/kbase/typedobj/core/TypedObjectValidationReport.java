@@ -158,7 +158,7 @@ public class TypedObjectValidationReport {
 			
 			@Override
 			public void releaseResources() throws IOException {
-				nullifySortCacheFile();
+				destroyCachedResources();
 			}
 		};
 	}	
@@ -251,10 +251,10 @@ public class TypedObjectValidationReport {
 		if (size < 0) {
 			getRelabeledSize();
 		}
-		nullifySortCacheFile();
+		destroyCachedResources();
 		cacheForSorting = null;
 		if (!sorted) {
-			//TODO NOW choose to use a file based on input size & max mem size. If no TFM & one is necessary, except. make sure tests catch left files.
+			//TODO PERFORMANCE choose to use a file based on input size & max mem size. If no TFM & one is necessary, except. make sure tests catch left files.
 			if (tfm == null) {
 				ByteArrayOutputStream os = new ByteArrayOutputStream();
 				final JsonGenerator jgen = mapper.getFactory()
@@ -285,7 +285,7 @@ public class TypedObjectValidationReport {
 					} catch (IOException | KeyDuplicationException |
 							TooManyKeysException | RuntimeException |
 							Error e) {
-						nullifySortCacheFile();
+						destroyCachedResources();
 						throw e;
 					}
 				} finally {
@@ -297,7 +297,7 @@ public class TypedObjectValidationReport {
 		}
 	}
 	
-	private void nullifySortCacheFile() {
+	public void destroyCachedResources() {
 		if (this.fileForSorting != null) {
 			this.fileForSorting.delete();
 			this.fileForSorting = null;

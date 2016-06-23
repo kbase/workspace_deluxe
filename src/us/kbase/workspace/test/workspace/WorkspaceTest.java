@@ -1229,11 +1229,10 @@ public class WorkspaceTest extends WorkspaceTester {
 	@Test
 	public void metadataExtractedLargeTest() throws Exception {
 		//make sure all temporary files are deleted when errors occur here
-		//TODO NOW should have 5 temp files when tests is over before fix. NOw have one. Maybe because only 1 needs sorting?
-		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
-//		ResourceUsageConfigurationBuilder build =
-//				new ResourceUsageConfigurationBuilder(oldcfg);
-//		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(1).build());
+		final ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
+		final ResourceUsageConfigurationBuilder build =
+				new ResourceUsageConfigurationBuilder(oldcfg);
+		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(1).build());
 		tfm.cleanup();
 		
 		String module = "TestLargeMetadata";
@@ -1274,6 +1273,7 @@ public class WorkspaceTest extends WorkspaceTester {
 					"@optional val3\n" +
 					"*/" +
 					"typedef structure {" +
+						"string a;" + 
 						"string val;" +
 						"string val2;" +
 						"string val3;" +
@@ -1296,6 +1296,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		Map<String, Object> dBig = new LinkedHashMap<String, Object>();
 		dBig.put("l", Arrays.asList(1,2,3,4,5,6,7,8));
+		dBig.put("a", "a"); //force sort
 
 		//test fail on large extracted values
 		dBig.put("val", TEXT1000.substring(103));
