@@ -20,6 +20,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSInputFile;
 
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -28,7 +29,6 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class GridFSBlobStoreTest {
 	
@@ -42,13 +42,13 @@ public class GridFSBlobStoreTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		tfm = new TempFilesManager(new File(WorkspaceTestCommon.getTempDir()));
-		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				WorkspaceTestCommon.useWiredTigerEngine());
+		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
+		mongo = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " +
 				mongo.getTempDir());
-		WorkspaceTestCommon.stfuLoggers();
+		TestCommon.stfuLoggers();
 		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
 		DB db = mongoClient.getDB("GridFSBackendTest");
 		gfs = new GridFS(db);
@@ -59,7 +59,7 @@ public class GridFSBlobStoreTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.deleteTempFiles());
 		}
 	}
 	

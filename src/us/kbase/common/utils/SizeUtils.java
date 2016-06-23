@@ -1,4 +1,4 @@
-package us.kbase.typedobj.util;
+package us.kbase.common.utils;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;

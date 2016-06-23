@@ -85,7 +85,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0-dev"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0-dev2"));
 	}
 	
 	@Test
@@ -1505,7 +1505,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
-	public void saveBigMeta() throws Exception {
+	public void metadataBig() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta"));
 
 		Map<String, Object> moredata = new HashMap<String, Object>();

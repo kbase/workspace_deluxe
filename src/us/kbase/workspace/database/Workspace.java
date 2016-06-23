@@ -59,7 +59,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 public class Workspace {
 	
 	//TODO limit all methods that return a set or list or map
-	//TODO generalize descent into DAG for all methods
 	
 	//TODO general unit tests
 	//TODO BIG GC garbage collection - see WOR-45
@@ -671,7 +670,17 @@ public class Workspace {
 		reports.clear();
 		
 		sortObjects(saveobjs, ttlObjSize);
-		return db.saveObjects(user, rwsi, saveobjs);
+		try {
+			return db.saveObjects(user, rwsi, saveobjs);
+		} finally {
+			for (final ResolvedSaveObject wo: saveobjs) {
+				try {
+					wo.getRep().destroyCachedResources();
+				} catch (RuntimeException | Error e) {
+					//damn the torpedoes full speed ahead
+				}
+			}
+		}
 	}
 
 	private void sortObjects(

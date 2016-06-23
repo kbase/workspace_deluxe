@@ -50,7 +50,7 @@ public class TypedObjectValidationReport {
 	/**
 	 * The typedef author selection indicating in the JSON Schema what data should be extracted as metadata
 	 */
-	private MetadataExtractionHandler wsMetadataExtractionHandler;
+	private JsonNode wsMetadataSelection;
 	
 	/**
 	 * This is the ID of the type definition used in validation - it is an AbsoluteTypeDefId so you always have full version info
@@ -98,7 +98,7 @@ public class TypedObjectValidationReport {
 			final JsonTokenValidationSchema schema,
 			final IdReferenceHandlerSet<?> idHandler) {
 		this.errors = errors == null ? new LinkedList<String>() : errors;
-		this.wsMetadataExtractionHandler = new MetadataExtractionHandler(wsMetadataSelection,-1);
+		this.wsMetadataSelection = wsMetadataSelection;
 		this.validationTypeDefId=validationTypeDefId;
 		this.idHandler = idHandler;
 		this.tokenStreamProvider = tokenStreamProvider;
@@ -158,7 +158,7 @@ public class TypedObjectValidationReport {
 			
 			@Override
 			public void releaseResources() throws IOException {
-				nullifySortCacheFile();
+				destroyCachedResources();
 			}
 		};
 	}	
@@ -251,9 +251,10 @@ public class TypedObjectValidationReport {
 		if (size < 0) {
 			getRelabeledSize();
 		}
-		nullifySortCacheFile();
+		destroyCachedResources();
 		cacheForSorting = null;
 		if (!sorted) {
+			//TODO PERFORMANCE choose to use a file based on input size & max mem size. If no TFM & one is necessary, except. make sure tests catch left files.
 			if (tfm == null) {
 				ByteArrayOutputStream os = new ByteArrayOutputStream();
 				final JsonGenerator jgen = mapper.getFactory()
@@ -278,8 +279,15 @@ public class TypedObjectValidationReport {
 							"sortout", "json");
 					final FileOutputStream os = new FileOutputStream(
 							fileForSorting);
-					fac.getSorter(f1).writeIntoStream(os);
-					os.close();
+					try {
+						fac.getSorter(f1).writeIntoStream(os);
+						os.close();
+					} catch (IOException | KeyDuplicationException |
+							TooManyKeysException | RuntimeException |
+							Error e) {
+						destroyCachedResources();
+						throw e;
+					}
 				} finally {
 					f1.delete();
 					if (jgen != null)
@@ -289,7 +297,7 @@ public class TypedObjectValidationReport {
 		}
 	}
 	
-	private void nullifySortCacheFile() {
+	public void destroyCachedResources() {
 		if (this.fileForSorting != null) {
 			this.fileForSorting.delete();
 			this.fileForSorting = null;
@@ -415,13 +423,15 @@ public class TypedObjectValidationReport {
 		if (!isInstanceValid()) {
 			return new ExtractedMetadata(null);
 		}
-		wsMetadataExtractionHandler.setMaxMetadataSize(maxMetadataSize);
+		final MetadataExtractionHandler handler =
+				new MetadataExtractionHandler(wsMetadataSelection,
+						maxMetadataSize);
 		// Identify what we need to extract
 		TokenSequenceProvider tsp = null;
 		try {
 			tsp = createTokenSequenceForMetaDataExtraction();
 			final ExtractedMetadata esam = MetadataExtractor
-					.extractFields(tsp, wsMetadataExtractionHandler);
+					.extractFields(tsp, handler);
 			tsp.close();
 			return esam;
 		} catch (IOException e) {

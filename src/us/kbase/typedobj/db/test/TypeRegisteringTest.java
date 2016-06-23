@@ -37,6 +37,7 @@ import org.junit.runners.Parameterized.Parameters;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
@@ -60,7 +61,6 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 @RunWith(Parameterized.class)
 public class TypeRegisteringTest {
@@ -123,7 +123,7 @@ public class TypeRegisteringTest {
 
 	public TypeRegisteringTest(boolean useMongoParam) throws Exception {
 		useMongo = useMongoParam;
-		Path d = Paths.get(WorkspaceTestCommon.getTempDir())
+		Path d = Paths.get(TestCommon.getTempDir())
 				.resolve("TypeRegisteringTest");
 		Files.createDirectories(d);
 		TypeStorage innerStorage;
@@ -138,15 +138,15 @@ public class TypeRegisteringTest {
 	
 	public static DB createMongoDbConnection() throws Exception {
 		if (mongo == null) {
-			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-					Paths.get(WorkspaceTestCommon.getTempDir()),
-					WorkspaceTestCommon.useWiredTigerEngine());
+			mongo = new MongoController(TestCommon.getMongoExe(),
+					Paths.get(TestCommon.getTempDir()),
+					TestCommon.useWiredTigerEngine());
 			System.out.println("Using mongo temp dir " + 
 					mongo.getTempDir());
 		}
 		DB mdb = new MongoClient("localhost:" + mongo.getServerPort())
 			.getDB("TypeRegisteringTest");
-		WorkspaceTestCommon.destroyDB(mdb);
+		TestCommon.destroyDB(mdb);
 		return mdb;
 	}
 	
@@ -172,7 +172,7 @@ public class TypeRegisteringTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.deleteTempFiles());
 		}
 	}
 	

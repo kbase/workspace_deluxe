@@ -13,6 +13,8 @@ import org.jongo.MongoCollection;
 import org.jongo.marshall.MarshallingException;
 
 import com.mongodb.DB;
+import com.mongodb.MongoException;
+import com.mongodb.MongoTimeoutException;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthConfig;
@@ -290,9 +292,13 @@ public class InitWorkspaceServer {
 		} catch (UnknownHostException uhe) {
 			throw new WorkspaceInitException("Couldn't find mongo host "
 					+ host + ": " + uhe.getLocalizedMessage(), uhe);
-		} catch (IOException io) {
+		} catch (IOException | MongoTimeoutException e) {
 			throw new WorkspaceInitException("Couldn't connect to mongo host " 
-					+ host + ": " + io.getLocalizedMessage(), io);
+					+ host + ": " + e.getLocalizedMessage(), e);
+		} catch (MongoException e) {
+			throw new WorkspaceInitException(
+					"There was an error connecting to the mongo database: " +
+					e.getLocalizedMessage());
 		} catch (MongoAuthException ae) {
 			throw new WorkspaceInitException("Not authorized for mongo database "
 					+ dbs + ": " + ae.getLocalizedMessage(), ae);
