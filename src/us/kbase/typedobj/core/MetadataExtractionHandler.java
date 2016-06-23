@@ -2,7 +2,9 @@ package us.kbase.typedobj.core;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Map.Entry;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 
@@ -12,129 +14,128 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
- * A small class used to stash metadata extraction selection, and the metadata that
- * is eventually extracted.  Also performs on-the-fly tracking of metadata size and throws
- * an error if the set limit is exceeded.
+ * A small class used to stash metadata extraction selection, and the metadata
+ * that is eventually extracted. Also performs on-the-fly tracking of metadata
+ * size and throws an error if the set limit is exceeded.
+ * 
  * @author msneddon
+ * @author gaprice@lbl.gov
  */
 public class MetadataExtractionHandler {
 
-	/** Place to build up the extracted metadata, maps metadata name to metadata value (string to string) **/
-	protected ObjectNode extracted;
-	protected long maxMetadataSize;
-	protected long currentByteSize;
-	
-	/** this is the encoding used by the Jackson ObjectMapper class, so we assume this is encoding used to
-	 compute the byte size (note that this is used in the WS service for computing max meta data size) */
-	static final protected String CHAR_ENCODING_FOR_BYTE_SIZE = JsonEncoding.UTF8.getJavaName();
-	
-	/** 
-	 * Place to store info on what should be extracted, maps a metadata name to an expression
-	 * used for extraction of the metadata value.
+	/**
+	 * this is the encoding used by the Jackson ObjectMapper class, so we assume
+	 * this is encoding used to compute the byte size (note that this is used in
+	 * the WS service for computing max meta data size)
 	 */
-	protected ObjectNode selection;
+	private static final String CHAR_ENCODING_FOR_BYTE_SIZE =
+			JsonEncoding.UTF8.getJavaName();
+
+	private static final int SZ_COMMA = getSize(",");
 	
-	static protected ObjectMapper mapper; 
-	static {
-		mapper = new ObjectMapper();
+	private static int getSize(final String str) {
+		try {
+			return str.getBytes(CHAR_ENCODING_FOR_BYTE_SIZE).length;
+		} catch (UnsupportedEncodingException e) {
+			throw new IllegalStateException(
+					"Known good encoding is apparently unsupported", e);
+		}
 	}
 	
 	/**
-	 * selection indicates a mapping from metadata name to metadata selection extraction (string to string)
-	 * maxMetadataSize is the maximum size of the metadata string when encoded into JSON UTF8 in bytes. IF
-	 * set to a value less than zero, then no size checks are performed.
+	 * Place to build up the extracted metadata, maps metadata name to metadata
+	 * value (string to string)
+	 **/
+	private final Map<String, String> extracted =
+			new HashMap<String, String>();
+	private final long maxMetadataSize;
+	private long currentByteSize;
+
+	/**
+	 * Place to store info on what should be extracted, maps a metadata name to
+	 * an expression used for extraction of the metadata value.
+	 */
+	private ObjectNode selection;
+
+	private final static ObjectMapper MAPPER = new ObjectMapper();
+
+	/**
+	 * selection indicates a mapping from metadata name to metadata selection
+	 * extraction (string to string) maxMetadataSize is the maximum size of the
+	 * metadata string when encoded into JSON UTF8 in bytes. IF set to a value
+	 * less than zero, then no size checks are performed.
 	 */
 	public MetadataExtractionHandler(JsonNode selection, long maxMetadataSize) {
-		
-		this.selection = mapper.createObjectNode();
-		extracted = mapper.createObjectNode();
-		
+
+		this.selection = MAPPER.createObjectNode();
+		if (maxMetadataSize < 1) {
+			throw new IllegalArgumentException("maxMetadataSize must be > 0");
+		}
 		this.maxMetadataSize = maxMetadataSize;
 		// metadata always has open and close object tokens in the json string
-		currentByteSize = 0;
-		try {
-			currentByteSize = "{}".getBytes(CHAR_ENCODING_FOR_BYTE_SIZE).length;
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException("This is bad. There is an unexpected error when checking the byte size of metatdata",e);
-		}
-		
-		addMetadataToExtract(selection);
-	}
-	
-	public void setMaxMetadataSize(long maxMetadataSize) throws ExceededMaxMetadataSizeException {
-		this.maxMetadataSize = maxMetadataSize;
-		if(maxMetadataSize>=0) {
-			if (currentByteSize > maxMetadataSize)
-				throw new ExceededMaxMetadataSizeException("Object metadata size ("+currentByteSize+" bytes) "
-						+ "exceeds limit of " + maxMetadataSize+"b");
-		}
-	}
-	
-	/**
-	 * Selection should be a Json Object node with field values being the 
-	 * metadata name, and value being a string giving the expression to extract
-	 * the metadata value
-	 */
-	public void addMetadataToExtract(JsonNode selection) {
-		if(selection!=null) {
+		currentByteSize = getSize("{}");
+
+		if (selection != null) {
 			Iterator<Entry<String, JsonNode>> fields = selection.fields();
-			while(fields.hasNext()) {
-				Entry<String,JsonNode> info = fields.next();
-				if(info.getValue().isTextual()) {
+			while (fields.hasNext()) {
+				Entry<String, JsonNode> info = fields.next();
+				if (info.getValue().isTextual()) {
 					this.selection.put(info.getKey(), info.getValue().asText());
 				}
 			}
 		}
 	}
-	
-	public JsonNode getMetadataSelection() {
+
+	JsonNode getMetadataSelection() {
 		return selection;
 	}
-	
-	public void saveMetadata(String name, String value) throws ExceededMaxMetadataSizeException {
+
+	void saveMetadata(String name, String value) throws ExceededMaxMetadataSizeException {
 		// check the size of what we are adding first
-		try {
-			if (extracted.size() > 0) {
-				currentByteSize += ",".getBytes(
-						CHAR_ENCODING_FOR_BYTE_SIZE).length;
-			}
-			currentByteSize += ("\""+name+"\":\""+value+"\"").getBytes(
-					CHAR_ENCODING_FOR_BYTE_SIZE).length;
-		} catch (Exception e) {
-			throw new RuntimeException(
-					"This is bad. There is an unexpected error when checking the byte size of metatdata",e);
+		if (extracted.size() > 0) {
+			currentByteSize += SZ_COMMA;
 		}
-		if (maxMetadataSize >= 0) {
-			if (currentByteSize > maxMetadataSize) {
-				throw new ExceededMaxMetadataSizeException(
-						"Extracted metadata from object exceeds limit of " +
-								maxMetadataSize + "B");
-			}
+		currentByteSize += getSize("\"" + name + "\":\"" + value + "\"");
+		if (currentByteSize > maxMetadataSize) {
+			throw new ExceededMaxMetadataSizeException(
+					"Extracted metadata from object exceeds limit of " +
+							maxMetadataSize + "B");
 		}
 		extracted.put(name, value);
-		//Code below tests that computed string byte size matches what would be generated by the Jackson object mapper of the
-		//data object.  If you want to run this code, you will have to import us.kbase.common.utils.CountingOutputStream;
+		// Code below tests that computed string byte size matches what would be
+		// generated by the Jackson object mapper of the
+		// data object. If you want to run this code, you will have to import
+		// us.kbase.common.utils.CountingOutputStream;
 		/*
-			CountingOutputStream cos2 = new CountingOutputStream();
-			try {
-				mapper.writeValue(cos2, extracted);
-			} catch (JsonProcessingException jpe) { throw new IllegalArgumentException("Unable to serialize metadata", jpe);
-			} catch (IOException ioe) { throw new RuntimeException("something's broken", ioe);
-			} finally { try { cos2.close(); } catch (IOException ioe) { throw new RuntimeException("something's broken", ioe); } }
-			System.out.println("   ====\n     saving:" +name+"=>"+value);
-			System.out.println("     full size:"+cos2.getSize());
-			System.out.println("     streaming size:"+currentByteSize);
-		*/
+		 * CountingOutputStream cos2 = new CountingOutputStream(); try {
+		 * mapper.writeValue(cos2, extracted); } catch (JsonProcessingException
+		 * jpe) { throw new IllegalArgumentException(
+		 * "Unable to serialize metadata", jpe); } catch (IOException ioe) {
+		 * throw new RuntimeException("something's broken", ioe); } finally {
+		 * try { cos2.close(); } catch (IOException ioe) { throw new
+		 * RuntimeException("something's broken", ioe); } } System.out.println(
+		 * "   ====\n     saving:" +name+"=>"+value); System.out.println(
+		 * "     full size:"+cos2.getSize()); System.out.println(
+		 * "     streaming size:"+currentByteSize);
+		 */
 	}
-	
-	public JsonNode getSavedMetadata() {
+
+	Map<String, String> getSavedMetadata() {
 		return extracted;
 	}
-	
 
 	@Override
 	public String toString() {
-		return "MetadataExtractionHandler [extracted=" + extracted
-				+ ", selection=" + selection + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("MetadataExtractionHandler [extracted=");
+		builder.append(extracted);
+		builder.append(", maxMetadataSize=");
+		builder.append(maxMetadataSize);
+		builder.append(", currentByteSize=");
+		builder.append(currentByteSize);
+		builder.append(", selection=");
+		builder.append(selection);
+		builder.append("]");
+		return builder.toString();
 	}
 }

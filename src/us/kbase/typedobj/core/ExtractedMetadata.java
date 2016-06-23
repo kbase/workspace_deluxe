@@ -1,12 +1,8 @@
 package us.kbase.typedobj.core;
 
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * A thin container to return extracted Metadata (indicated by
@@ -17,35 +13,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class ExtractedMetadata {
 
-	private JsonNode metadata;
-	private static final ObjectMapper mapper = new ObjectMapper();
-	/**
-	 * The metadata JsonNode must be an object node with String type values for
-	 * all fields.  We assume that this has already been validated earlier.
-	 * @param wsSearchableSubset
-	 * @param metadata
-	 */
-	public ExtractedMetadata(JsonNode metadata) {
-		if(metadata == null) {
-			this.metadata = mapper.createObjectNode();
+	private final Map<String, String> metadata;
+
+	public ExtractedMetadata(final Map<String, String> metadata) {
+		if (metadata == null) {
+			this.metadata = Collections.unmodifiableMap(
+					new HashMap<String, String>());
 		} else {
-			this.metadata = metadata;
+			this.metadata = Collections.unmodifiableMap(
+					new HashMap<String, String>(metadata));;
 		}
 	}
 	
-	public JsonNode getMetadata() {
+	public Map<String, String> getMetadata() {
 		return metadata;
 	}
-	
-	/** converts the data stored in the metadata JsonNode to a map */
-	public Map<String,String> getMetadataAsMap() {
-		Map <String,String> data = new HashMap<String,String>(metadata.size());
-		Iterator<Entry<String, JsonNode>> ite = metadata.fields();
-		while (ite.hasNext()) {
-			Entry<String,JsonNode> next = ite.next();
-			data.put(next.getKey(),next.getValue().asText());
-		}
-		return data;
-	}
-	
 }

@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -208,7 +209,7 @@ public class MetadataExtractionTest {
 		JsonNode exception = testdataJson.get("exception");
 		JsonNode maxMetadataSize = testdataJson.get("maxMetadataSize");
 		
-		long maxMetadataSizeLong = -1;
+		long maxMetadataSizeLong = 16000;
 		if(maxMetadataSize!=null)
 			maxMetadataSizeLong = maxMetadataSize.asLong();
 		
@@ -228,7 +229,7 @@ public class MetadataExtractionTest {
 				report.isInstanceValid());
 		try {
 			ExtractedMetadata extraction = report.extractMetadata(maxMetadataSizeLong);
-			JsonNode actualMetadata = extraction.getMetadata();
+			Map<String, String> actualMetadata = extraction.getMetadata();
 			if(exception!=null) {
 				fail("  -("+instance.resourceName+") should throw an exception when getting subdata, but does not");
 			}
@@ -246,9 +247,10 @@ public class MetadataExtractionTest {
 		System.out.println("       PASS");
 	}
 
-	public void compare(JsonNode expectedSubset, JsonNode actualSubset, String resourceName) throws IOException {
+	public void compare(JsonNode expectedSubset, Map<String, String> actualMetadata, String resourceName) throws IOException {
 		assertEquals("  -("+resourceName+") extracted subset/metadata does not match expected extracted subset/metadata",
-				sortJson(expectedSubset), sortJson(actualSubset));
+				sortJson(expectedSubset), sortJson(
+						new ObjectMapper().valueToTree(actualMetadata)));
 	}
 
 	private static JsonNode sortJson(JsonNode tree) throws IOException {

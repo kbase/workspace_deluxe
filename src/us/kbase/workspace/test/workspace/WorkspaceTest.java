@@ -1231,9 +1231,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		//make sure all temporary files are deleted when errors occur here
 		//TODO NOW should have 5 temp files when tests is over before fix. NOw have one. Maybe because only 1 needs sorting?
 		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
-		ResourceUsageConfigurationBuilder build =
-				new ResourceUsageConfigurationBuilder(oldcfg);
-		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(1).build());
+//		ResourceUsageConfigurationBuilder build =
+//				new ResourceUsageConfigurationBuilder(oldcfg);
+//		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(1).build());
 		tfm.cleanup();
 		
 		String module = "TestLargeMetadata";

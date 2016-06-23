@@ -1516,7 +1516,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				ExtractedMetadata extract = o.getRep()
 						.extractMetadata(
 								WorkspaceUserMetadata.MAX_METADATA_SIZE);
-				pkg.wo.addUserMeta(extract.getMetadataAsMap());
+				pkg.wo.addUserMeta(extract.getMetadata());
 			} catch (ExceededMaxMetadataSizeException e) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s: %s",
