@@ -62,8 +62,7 @@ public class MetadataExtractionHandler {
 	/**
 	 * selection indicates a mapping from metadata name to metadata selection
 	 * extraction (string to string) maxMetadataSize is the maximum size of the
-	 * metadata string when encoded into JSON UTF8 in bytes. IF set to a value
-	 * less than zero, then no size checks are performed.
+	 * metadata string when encoded into JSON UTF8 in bytes.
 	 */
 	public MetadataExtractionHandler(JsonNode selection, long maxMetadataSize) {
 

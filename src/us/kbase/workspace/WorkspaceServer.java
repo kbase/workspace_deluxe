@@ -117,7 +117,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //TODO check shock version
     //TODO shock client should ignore extra fields
     
-	private static final String VER = "0.5.0-dev";
+	private static final String VER = "0.5.0-dev2";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 

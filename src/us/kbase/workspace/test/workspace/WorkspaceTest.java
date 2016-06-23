@@ -637,6 +637,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failGetPermissions(AUSER, wsis, new NoSuchWorkspaceException(
 				"No workspace with name permmass-doesntexist exists", wiow));
 		
+		wsis.remove(wsis.size() - 1);
 		wsis.add(new WorkspaceIdentifier(100000000));
 		failGetPermissions(AUSER, wsis, new NoSuchWorkspaceException(
 				"No workspace with id 100000000 exists", wiow));
@@ -4891,7 +4892,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 		failListObjects(user2, Arrays.asList(wsi, writeable), null,
 				new WorkspaceAuthorizationException("User listObjUser2 may not read workspace listObj1"));
-		failListObjects(null, Arrays.asList(wsi, writeable), null,
+		failListObjects(null, Arrays.asList(wsi), null,
 				new WorkspaceAuthorizationException("Anonymous users may not read workspace listObj1"));
 		failListObjects(user, Arrays.asList(writeable, new WorkspaceIdentifier("listfake")), null,
 				new NoSuchWorkspaceException("No workspace with name listfake exists", wsi));
