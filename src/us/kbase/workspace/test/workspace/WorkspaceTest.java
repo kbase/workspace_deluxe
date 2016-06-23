@@ -31,6 +31,7 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;
+import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFileListener;
@@ -80,7 +81,6 @@ import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-import us.kbase.workspace.test.kbase.JSONRPCLayerTester;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -1367,7 +1367,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"Object #1, whooop: The user-provided metadata, when updated with object-extracted metadata, exceeds the allowed maximum of 16000B"));
 	
 		ws.setResourceConfig(oldcfg);
-		assertNoTempFilesExist(tfm);
+		TestCommon.assertNoTempFilesExist(tfm);
 	}
 	
 	@Test
@@ -6729,35 +6729,35 @@ public class WorkspaceTest extends WorkspaceTester {
 				new ObjIDWithChainAndSubset(oi, null,
 				new ObjectPaths(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp file on get subdata", filesCreated[0], is(1));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		//files go to disk except for small subdata
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(12).build());
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		assertThat("created temp files on save", filesCreated[0], is(2));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(12).build());
 		oi = new ObjectIdentifier(wsi, 2);
 		ws.getObjects(user, Arrays.asList(oi)).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp files on get", filesCreated[0], is(1));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
 				new ObjIDWithChainAndSubset(oi, null,
 				new ObjectPaths(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp files on get subdata part object", filesCreated[0], is(1));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
 				new ObjIDWithChainAndSubset(oi, null,
 				new ObjectPaths(Arrays.asList("z", "y")))))).get(0).getSerializedData().destroy();
 		assertThat("created 2 temp files on get subdata full object", filesCreated[0], is(2));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		// test with multiple objects
 		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
@@ -6783,7 +6783,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			wod.getSerializedData().destroy();
 		}
 		assertThat("created no temp files on get", filesCreated[0], is(0));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		//multiple objects to file
 		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(38).build());
@@ -6791,7 +6791,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		//two files per data - 1 for relabeling, 1 for sort
 		assertThat("created temp files on save", filesCreated[0], is(4));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(38).build());
@@ -6799,7 +6799,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			wod.getSerializedData().destroy();
 		}
 		assertThat("created 1 temp files on get", filesCreated[0], is(1));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(25).build());
@@ -6807,7 +6807,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			wod.getSerializedData().destroy();
 		}
 		assertThat("created 2 temp files on get", filesCreated[0], is(2));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		ws.getTempFilesManager().removeListener(listener);
 		ws.setResourceConfig(oldcfg);

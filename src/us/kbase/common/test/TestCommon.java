@@ -39,7 +39,7 @@ public class TestCommon {
 				System.getProperty("java.runtime.version"));
 	}
 	
-	private static String getProp(String prop) {
+	public static String getProp(String prop) {
 		if (System.getProperty(prop) == null || prop.isEmpty()) {
 			throw new TestException("Property " + prop +
 					" cannot be null or the empty string.");
@@ -118,7 +118,7 @@ public class TestCommon {
 	
 	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
 	@SuppressWarnings("unchecked")
-	protected static Map<String, String> getenv()
+	public static Map<String, String> getenv()
 			throws NoSuchFieldException, SecurityException,
 			IllegalArgumentException, IllegalAccessException {
 		Map<String, String> unmodifiable = System.getenv();

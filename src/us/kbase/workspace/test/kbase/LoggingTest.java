@@ -6,7 +6,6 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -32,6 +31,7 @@ import us.kbase.common.service.JsonServerSyslog;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.service.JsonServerSyslog.SyslogOutput;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.workspace.CopyObjectParams;
@@ -64,7 +64,7 @@ import com.mongodb.MongoClient;
  */
 public class LoggingTest {
 	
-	//TODO it'd be nice if JsonServerServlet integrated with slf4j
+	//TODO NOW it'd be nice if JsonServerServlet integrated with slf4j
 
 	private static final String DB_WS_NAME = "LoggingTest";
 	private static final String DB_TYPE_NAME = "LoggingTest_Types";
@@ -98,9 +98,9 @@ public class LoggingTest {
 		String p2 = System.getProperty("test.pwd2");
 		
 //		WorkspaceTestCommon.stfuLoggers();
-		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				WorkspaceTestCommon.useWiredTigerEngine());
+		mongo = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
@@ -156,19 +156,6 @@ public class LoggingTest {
 		CLIENT1.releaseModule("SomeModule");
 	}
 	
-	//TODO move to common, used everywhere
-	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
-	@SuppressWarnings("unchecked")
-	protected static Map<String, String> getenv() throws NoSuchFieldException,
-			SecurityException, IllegalArgumentException,
-			IllegalAccessException {
-		Map<String, String> unmodifiable = System.getenv();
-		Class<?> cu = unmodifiable.getClass();
-		Field m = cu.getDeclaredField("m");
-		m.setAccessible(true);
-		return (Map<String, String>) m.get(unmodifiable);
-	}
-
 	public static void administerCommand(WorkspaceClient client,
 			String command, String... params)
 			throws IOException, JsonClientException {
@@ -186,7 +173,7 @@ public class LoggingTest {
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
@@ -200,14 +187,14 @@ public class LoggingTest {
 		ws.add("ws-admin", USER2);
 		ws.add("kbase-admin-user", USER1);
 		ws.add("kbase-admin-pwd", user1Password);
-		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir())
+		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForLoggingTest"));
 		ws.add("ignore-handle-service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		
 		//set up env
-		Map<String, String> env = getenv();
+		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
@@ -230,7 +217,7 @@ public class LoggingTest {
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.deleteTempFiles());
 		}
 	}
 
@@ -239,7 +226,7 @@ public class LoggingTest {
 		logout.reset();
 		DB wsdb1 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 				DB_WS_NAME);
-		WorkspaceTestCommon.destroyDB(wsdb1);
+		TestCommon.destroyDB(wsdb1);
 	}
 	
 	private static class LogEvent {

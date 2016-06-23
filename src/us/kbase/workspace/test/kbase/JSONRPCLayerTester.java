@@ -8,7 +8,6 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
@@ -44,6 +43,7 @@ import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -171,17 +171,6 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
-	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
-	@SuppressWarnings("unchecked")
-	protected static Map<String, String> getenv() throws NoSuchFieldException,
-			SecurityException, IllegalArgumentException, IllegalAccessException {
-		Map<String, String> unmodifiable = System.getenv();
-		Class<?> cu = unmodifiable.getClass();
-		Field m = cu.getDeclaredField("m");
-		m.setAccessible(true);
-		return (Map<String, String>) m.get(unmodifiable);
-	}
-	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		USER1 = System.getProperty("test.user1");
@@ -195,10 +184,10 @@ public class JSONRPCLayerTester {
 		String p2 = System.getProperty("test.pwd2");
 		String p3 = System.getProperty("test.pwd3");
 		
-		WorkspaceTestCommon.stfuLoggers();
-		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				WorkspaceTestCommon.useWiredTigerEngine());
+		TestCommon.stfuLoggers();
+		mongo = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
@@ -323,7 +312,7 @@ public class JSONRPCLayerTester {
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
@@ -336,13 +325,14 @@ public class JSONRPCLayerTester {
 		ws.add("ws-admin", USER2);
 		ws.add("kbase-admin-user", USER1);
 		ws.add("kbase-admin-pwd", user1Password);
-		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir()).resolve("tempForJSONRPCLayerTester"));
+		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
+				.resolve("tempForJSONRPCLayerTester"));
 		ws.add("ignore-handle-service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		
 		//set up env
-		Map<String, String> env = getenv();
+		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
@@ -379,7 +369,7 @@ public class JSONRPCLayerTester {
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.deleteTempFiles());
 		}
 		JsonTokenStreamOCStat.showStat();
 	}
@@ -389,40 +379,13 @@ public class JSONRPCLayerTester {
 				DB_WS_NAME_1);
 		DB wsdb2 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 				DB_WS_NAME_2);
-		WorkspaceTestCommon.destroyDB(wsdb1);
-		WorkspaceTestCommon.destroyDB(wsdb2);
-	}
-	
-	public static void assertNoTempFilesExist(TempFilesManager tfm)
-			throws Exception {
-		assertNoTempFilesExist(Arrays.asList(tfm));
-	}
-	
-	
-	public static void assertNoTempFilesExist(List<TempFilesManager> tfms)
-			throws Exception {
-		int i = 0;
-		try {
-			for (TempFilesManager tfm: tfms) {
-				if (!tfm.isEmpty()) {
-					// Allow <=10 seconds to finish all activities
-					for (; i < 100; i++) {
-						Thread.sleep(100);
-						if (tfm.isEmpty())
-							break;
-					}
-				}
-				assertThat("There are tempfiles: " + tfm.getTempFileList(), tfm.isEmpty(), is(true));
-			}
-		} finally {
-			for (TempFilesManager tfm: tfms)
-				tfm.cleanup();
-		}
+		TestCommon.destroyDB(wsdb1);
+		TestCommon.destroyDB(wsdb2);
 	}
 	
 	@After
 	public void cleanupTempFilesAfterTest() throws Exception {
-		assertNoTempFilesExist(TFMS);
+		TestCommon.assertNoTempFilesExist(TFMS);
 	}
 	
 	protected void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,

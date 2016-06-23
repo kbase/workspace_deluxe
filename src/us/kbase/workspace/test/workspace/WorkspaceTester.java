@@ -31,6 +31,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.common.mongo.GetMongoDB;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
@@ -181,10 +182,10 @@ public class WorkspaceTester {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy(WorkspaceTestCommon.deleteTempFiles());
+			shock.destroy(TestCommon.deleteTempFiles());
 		}
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.deleteTempFiles());
 		}
 		System.out.println("deleting temporary files");
 		tfm.cleanup();
@@ -195,35 +196,7 @@ public class WorkspaceTester {
 	public void clearDB() throws Exception {
 		DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 				DB_WS_NAME);
-		WorkspaceTestCommon.destroyDB(wsdb);
-	}
-	
-	public static void assertNoTempFilesExist(TempFilesManager tfm)
-			throws Exception {
-		assertNoTempFilesExist(Arrays.asList(tfm));
-	}
-	
-	
-	public static void assertNoTempFilesExist(List<TempFilesManager> tfms)
-			throws Exception {
-		int i = 0;
-		try {
-			for (TempFilesManager tfm: tfms) {
-				if (!tfm.isEmpty()) {
-					// Allow <=10 seconds to finish all activities
-					for (; i < 100; i++) {
-						Thread.sleep(100);
-						if (tfm.isEmpty())
-							break;
-					}
-				}
-				assertThat("There are tempfiles: " + tfm.getTempFileList(),
-						tfm.isEmpty(), is(true));
-			}
-		} finally {
-			for (TempFilesManager tfm: tfms)
-				tfm.cleanup();
-		}
+		TestCommon.destroyDB(wsdb);
 	}
 	
 	private static final Map<String, WSandTypes> CONFIGS =
@@ -235,9 +208,9 @@ public class WorkspaceTester {
 			Integer maxMemoryUsePerCall)
 			throws Exception {
 		if (mongo == null) {
-			mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-					Paths.get(WorkspaceTestCommon.getTempDir()),
-					WorkspaceTestCommon.useWiredTigerEngine());
+			mongo = new MongoController(TestCommon.getMongoExe(),
+					Paths.get(TestCommon.getTempDir()),
+					TestCommon.useWiredTigerEngine());
 			System.out.println("Using Mongo temp dir " + mongo.getTempDir());
 			System.out.println("Started test mongo instance at localhost:" +
 					mongo.getServerPort());
@@ -285,9 +258,9 @@ public class WorkspaceTester {
 		String shockpwd = System.getProperty("test.pwd1");
 		if (shock == null) {
 			shock = new ShockController(
-					WorkspaceTestCommon.getShockExe(),
-					WorkspaceTestCommon.getShockVersion(),
-					Paths.get(WorkspaceTestCommon.getTempDir()),
+					TestCommon.getShockExe(),
+					TestCommon.getShockVersion(),
+					Paths.get(TestCommon.getTempDir()),
 					"***---fakeuser---***",
 					"localhost:" + mongo.getServerPort(),
 					"WorkspaceTester_ShockDB",
@@ -314,7 +287,7 @@ public class WorkspaceTester {
 					throws Exception {
 		
 		tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		tfm.cleanup();
 		
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(

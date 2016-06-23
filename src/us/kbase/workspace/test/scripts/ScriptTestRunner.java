@@ -6,7 +6,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
@@ -28,6 +27,7 @@ import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthUser;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
@@ -89,17 +89,6 @@ public class ScriptTestRunner {
 				e.printStackTrace();
 			}
 		}
-	}
-	
-	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
-	@SuppressWarnings("unchecked")
-	private static Map<String, String> getenv() throws NoSuchFieldException,
-			SecurityException, IllegalArgumentException, IllegalAccessException {
-		Map<String, String> unmodifiable = System.getenv();
-		Class<?> cu = unmodifiable.getClass();
-		Field m = cu.getDeclaredField("m");
-		m.setAccessible(true);
-		return (Map<String, String>) m.get(unmodifiable);
 	}
 	
 	@Test
@@ -201,20 +190,20 @@ public class ScriptTestRunner {
 			throw new TestException("Could not log in test user test.user3: " + u3, e);
 		}
 		
-		WorkspaceTestCommon.stfuLoggers();
+		TestCommon.stfuLoggers();
 		
-		String tempDir = Paths.get(WorkspaceTestCommon.getTempDir())
+		String tempDir = Paths.get(TestCommon.getTempDir())
 							.resolve(TMP_FILE_SUBDIR).toString();
 		
-		MONGO = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(tempDir), WorkspaceTestCommon.useWiredTigerEngine());
+		MONGO = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(tempDir), TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 
 		SHOCK = new ShockController(
-				WorkspaceTestCommon.getShockExe(),
-				WorkspaceTestCommon.getShockVersion(),
+				TestCommon.getShockExe(),
+				TestCommon.getShockVersion(),
 				Paths.get(tempDir),
 				u3,
 				mongohost,
@@ -229,8 +218,8 @@ public class ScriptTestRunner {
 		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
 
 		MYSQL = new MySQLController(
-				WorkspaceTestCommon.getMySQLExe(),
-				WorkspaceTestCommon.getMySQLInstallExe(),
+				TestCommon.getMySQLExe(),
+				TestCommon.getMySQLInstallExe(),
 				Paths.get(tempDir));
 		System.out.println("Using MySQL temp dir " + MYSQL.getTempDir());
 		
@@ -290,7 +279,7 @@ public class ScriptTestRunner {
 
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
@@ -308,13 +297,13 @@ public class ScriptTestRunner {
 		ws.add("handle-manager-user", handleUser);
 		ws.add("handle-manager-pwd", handlePwd);
 		ws.add("ws-admin", USER2);
-		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir())
+		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve(TMP_FILE_SUBDIR));
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 
 		//set up env
-		Map<String, String> env = getenv();
+		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
@@ -338,22 +327,22 @@ public class ScriptTestRunner {
 		}
 		if (HANDLE != null) {
 			System.out.print("Destroying handle service... ");
-			HANDLE.destroy(WorkspaceTestCommon.deleteTempFiles());
+			HANDLE.destroy(TestCommon.deleteTempFiles());
 			System.out.println("Done");
 		}
 		if (SHOCK != null) {
 			System.out.print("Destroying shock service... ");
-			SHOCK.destroy(WorkspaceTestCommon.deleteTempFiles());
+			SHOCK.destroy(TestCommon.deleteTempFiles());
 			System.out.println("Done");
 		}
 		if (MONGO != null) {
 			System.out.print("Destroying mongo test service... ");
-			MONGO.destroy(WorkspaceTestCommon.deleteTempFiles());
+			MONGO.destroy(TestCommon.deleteTempFiles());
 			System.out.println("Done");
 		}
 		if (MYSQL != null) {
 			System.out.print("Destroying mysql test service... ");
-			MYSQL.destroy(WorkspaceTestCommon.deleteTempFiles());
+			MYSQL.destroy(TestCommon.deleteTempFiles());
 			System.out.println("Done");
 		}
 	}

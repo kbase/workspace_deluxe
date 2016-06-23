@@ -22,6 +22,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
@@ -38,7 +39,6 @@ import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class TypedObjectValidationReportTest {
 	
@@ -57,7 +57,7 @@ public class TypedObjectValidationReportTest {
 	@BeforeClass
 	public static void setupTypeDB() throws Exception {
 		//ensure test location is available
-		final Path temppath = Paths.get(WorkspaceTestCommon.getTempDir());
+		final Path temppath = Paths.get(TestCommon.getTempDir());
 		Files.createDirectories(temppath);
 		tempdir = Files.createTempDirectory(temppath, "TypedObjectValReportTest");
 		System.out.println("setting up temporary typed obj database");
@@ -154,7 +154,7 @@ public class TypedObjectValidationReportTest {
 					is("Sorter factory cannot be null"));
 		}
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		try {
 			tovr.sort(null, tfm);
 			fail("sorted with no factory");
@@ -381,7 +381,7 @@ public class TypedObjectValidationReportTest {
 		handlers.processIDs();
 
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		tfm.cleanup();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 		tovr.sort(SORT_FAC, tfm);
@@ -408,7 +408,7 @@ public class TypedObjectValidationReportTest {
 		
 		int maxmem = 8 + 64 + 8 + 64;
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(maxmem);
 		
 		//test with json stored in file
