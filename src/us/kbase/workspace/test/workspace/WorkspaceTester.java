@@ -1239,9 +1239,6 @@ public class WorkspaceTester {
 					got.getSerializedData());
 		} else {
 			assertThat("returned data same", got.getData(), is((Object)data));
-			assertThat("returned data jsonnode same",
-					got.getSerializedData().getAsJsonNode(),
-					is(new ObjectMapper().valueToTree(data)));
 		}
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));
