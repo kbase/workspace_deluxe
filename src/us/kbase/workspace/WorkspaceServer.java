@@ -51,8 +51,6 @@ import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.AppenderBase;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -179,31 +177,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				org.slf4j.Logger.ROOT_LOGGER_NAME));
 		rootLogger.setLevel(Level.OFF);
 		rootLogger.detachAndStopAllAppenders();
-		final Logger kbaseRootLogger = (Logger) LoggerFactory.getLogger(
-				"us.kbase");
-		//would be better to also set the level here on calls to the server
-		//setLogLevel, but meh for now
-		kbaseRootLogger.setLevel(Level.ALL);
-		final AppenderBase<ILoggingEvent> kbaseAppender =
-				new AppenderBase<ILoggingEvent>() {
-
-			@Override
-			protected void append(final ILoggingEvent event) {
-				//for now only INFO is tested; test others as they're needed
-				final Level l = event.getLevel();
-				if (l.equals(Level.TRACE)) {
-					logDebug(event.getFormattedMessage(), 3);
-				} else if (l.equals(Level.DEBUG)) {
-					logDebug(event.getFormattedMessage());
-				} else if (l.equals(Level.INFO) || l.equals(Level.WARN)) {
-					logInfo(event.getFormattedMessage());
-				} else if (l.equals(Level.ERROR)) {
-					logErr(event.getFormattedMessage());
-				}
-			}
-		};
-		kbaseAppender.start();
-		kbaseRootLogger.addAppender(kbaseAppender);
 	}
 	
 	private class WorkspaceInitReporter extends InitReporter {

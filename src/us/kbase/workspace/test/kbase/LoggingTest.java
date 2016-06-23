@@ -64,8 +64,12 @@ import com.mongodb.MongoClient;
  */
 public class LoggingTest {
 	
-	//TODO NOW it'd be nice if JsonServerServlet integrated with slf4j
-
+	private static final String ARGUTILS = "us.kbase.workspace.kbase.ArgUtils";
+	private static final String SERV =
+			"us.kbase.workspace.WorkspaceServer";
+	private static final String ADMIN =
+			"us.kbase.workspace.kbase.WorkspaceAdministration";
+	
 	private static final String DB_WS_NAME = "LoggingTest";
 	private static final String DB_TYPE_NAME = "LoggingTest_Types";
 	
@@ -274,22 +278,22 @@ public class LoggingTest {
 		public String method;
 		public String message;
 		public String user;
-		boolean internal;
+		public String caller;
 
 		public ExpectedLog(int level, String method, String message,
-				String user, boolean internal) {
+				String user, String caller) {
 			this.level = level;
 			this.method = method;
 			this.message = message;
 			this.user = user;
-			this.internal = internal;
+			this.caller = caller;
 		}
 	}
 	
 	private static class LogObjExp extends ExpectedLog {
 		
-		public LogObjExp(String method, String message, boolean internal) {
-			super(INFO, method, message, USER1, internal);
+		public LogObjExp(String method, String message, String caller) {
+			super(INFO, method, message, USER1, caller);
 		}
 	}
 	
@@ -330,9 +334,7 @@ public class LoggingTest {
 		long now = new Date().getTime();
 		assertThat("log date < 5s ago", now - epochms < 5000, is(true));
 		//3 is user running the service
-		assertThat("caller correct", headerParts[4],
-				is("us.kbase.workspace.WorkspaceServer" +
-						(exp.internal ? "$1" : "")));
+		assertThat("caller correct", headerParts[4], is(exp.caller));
 		//5 is pid
 		assertThat("ip correct", headerParts[6], is("127.0.0.1"));
 		assertThat("remote user correct", headerParts[7], is(exp.user));
@@ -368,14 +370,14 @@ public class LoggingTest {
 				.withWorkspace(ws)
 				.withObjects(d));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("save_objects", "start method", false),
+				new LogObjExp("save_objects", "start method", SERV),
 				new LogObjExp("save_objects",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("save_objects",
-						"Object 1/2/1 SomeModule.BType-1.0", true),
+						"Object 1/2/1 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("save_objects",
-						"Object 1/3/1 SomeModule.AType-1.0", true),
-				new LogObjExp("save_objects", "end method", false))));
+						"Object 1/3/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("save_objects", "end method", SERV))));
 		logout.reset();
 		
 		// rename
@@ -383,10 +385,10 @@ public class LoggingTest {
 				.withNewName("bak")
 				.withObj(new ObjectIdentity().withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("rename_object", "start method", false),
+				new LogObjExp("rename_object", "start method", SERV),
 				new LogObjExp("rename_object",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("rename_object", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("rename_object", "end method", SERV))));
 		logout.reset();
 		
 		// copy
@@ -394,32 +396,32 @@ public class LoggingTest {
 				.withFrom(new ObjectIdentity().withRef("1/2"))
 				.withTo(new ObjectIdentity().withRef("1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("copy_object", "start method", false),
+				new LogObjExp("copy_object", "start method", SERV),
 				new LogObjExp("copy_object",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
-				new LogObjExp("copy_object", "end method", false))));
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
+				new LogObjExp("copy_object", "end method", SERV))));
 		logout.reset();
 		
 		// revert
 		CLIENT1.revertObject(new ObjectIdentity().withRef("1/1/1"));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("revert_object", "start method", false),
+				new LogObjExp("revert_object", "start method", SERV),
 				new LogObjExp("revert_object",
-						"Object 1/1/3 SomeModule.AType-1.0", true),
-				new LogObjExp("revert_object", "end method", false))));
+						"Object 1/1/3 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("revert_object", "end method", SERV))));
 		logout.reset();
 		
 		// history
 		CLIENT1.getObjectHistory(new ObjectIdentity().withRef("1/1"));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_object_history", "start method", false),
+				new LogObjExp("get_object_history", "start method", SERV),
 				new LogObjExp("get_object_history",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("get_object_history",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_object_history",
-						"Object 1/1/3 SomeModule.AType-1.0", true),
-				new LogObjExp("get_object_history", "end method", false))));
+						"Object 1/1/3 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_object_history", "end method", SERV))));
 		logout.reset();
 		
 		// get info
@@ -428,12 +430,12 @@ public class LoggingTest {
 						new ObjectSpecification().withRef("1/1/2"),
 						new ObjectSpecification().withRef("1/1/1"))));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_object_info_new", "start method", false),
+				new LogObjExp("get_object_info_new", "start method", SERV),
 				new LogObjExp("get_object_info_new",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_object_info_new",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("get_object_info_new", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_object_info_new", "end method", SERV))));
 		logout.reset();
 		
 		//get objs2
@@ -442,12 +444,12 @@ public class LoggingTest {
 				new ObjectSpecification().withRef("1/1/2"),
 				new ObjectSpecification().withRef("1/1/1"))));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_objects2", "start method", false),
+				new LogObjExp("get_objects2", "start method", SERV),
 				new LogObjExp("get_objects2",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_objects2",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("get_objects2", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_objects2", "end method", SERV))));
 		logout.reset();
 		
 		// get objs
@@ -456,28 +458,28 @@ public class LoggingTest {
 				new ObjectIdentity().withRef("1/1/2"),
 				new ObjectIdentity().withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_objects", "start method", false),
+				new LogObjExp("get_objects", "start method", SERV),
 				new LogObjExp("get_objects",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_objects",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("get_objects", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_objects", "end method", SERV))));
 		logout.reset();
 		
 		// get subobjs
 		@SuppressWarnings({ "unused", "deprecation" })
 		List<ObjectData> objectSubset = CLIENT1.getObjectSubset(Arrays.asList(
-				new us.kbase.workspace.SubObjectIdentity().withIncluded(Arrays.asList("/"))
-						.withRef("1/1/2"),
-				new us.kbase.workspace.SubObjectIdentity().withIncluded(Arrays.asList("/"))
-						.withRef("1/1/1")));
+				new us.kbase.workspace.SubObjectIdentity()
+						.withIncluded(Arrays.asList("/")).withRef("1/1/2"),
+				new us.kbase.workspace.SubObjectIdentity()
+						.withIncluded(Arrays.asList("/")).withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_object_subset", "start method", false),
+				new LogObjExp("get_object_subset", "start method", SERV),
 				new LogObjExp("get_object_subset",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_object_subset",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("get_object_subset", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_object_subset", "end method", SERV))));
 		logout.reset();
 		
 		// get prov
@@ -487,12 +489,12 @@ public class LoggingTest {
 				new ObjectIdentity().withRef("1/1/2"),
 				new ObjectIdentity().withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_object_provenance", "start method", false),
+				new LogObjExp("get_object_provenance", "start method", SERV),
 				new LogObjExp("get_object_provenance",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_object_provenance",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("get_object_provenance", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_object_provenance", "end method", SERV))));
 		logout.reset();
 		
 		// get ref'd objects
@@ -512,10 +514,10 @@ public class LoggingTest {
 				new ObjectIdentity().withRef("1/ref/1"),
 				new ObjectIdentity().withRef("1/1/2"))));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_referenced_objects", "start method", false),
+				new LogObjExp("get_referenced_objects", "start method", SERV),
 				new LogObjExp("get_referenced_objects",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
-				new LogObjExp("get_referenced_objects", "end method", false))));
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
+				new LogObjExp("get_referenced_objects", "end method", SERV))));
 		logout.reset();
 										
 	}
@@ -530,8 +532,8 @@ public class LoggingTest {
 	
 	private static class AdminExp extends ExpectedLog {
 		
-		public AdminExp(String message, boolean internal) {
-			super(INFO, "administer", message, USER2, internal);
+		public AdminExp(String message, String caller) {
+			super(INFO, "administer", message, USER2, caller);
 		}
 	}
 	
@@ -553,27 +555,27 @@ public class LoggingTest {
 		ac.put("user", USER1);
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("addAdmin " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("addAdmin " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// remove
 		ac.put("command", "removeAdmin");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("removeAdmin " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("removeAdmin " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// list
 		ac.put("command", "listAdmins");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("listAdmins", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("listAdmins", ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 	}
@@ -586,9 +588,9 @@ public class LoggingTest {
 		ac.put("command", "listModRequests");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("listModRequests", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("listModRequests", ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// approve
@@ -598,9 +600,9 @@ public class LoggingTest {
 		ac.put("module", "suckmaster");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("approveModRequest suckmaster", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("approveModRequest suckmaster", ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// approve
@@ -610,9 +612,9 @@ public class LoggingTest {
 		ac.put("module", "burstingfoam");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("denyModRequest burstingfoam", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("denyModRequest burstingfoam", ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// add owner
@@ -623,9 +625,10 @@ public class LoggingTest {
 		ac.put("params", params);
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("grantModuleOwnership suckmaster " + USER2, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("grantModuleOwnership suckmaster " + USER2,
+						ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// remove owner
@@ -636,9 +639,10 @@ public class LoggingTest {
 		ac.put("params", params);
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("removeModuleOwnership suckmaster " + USER2, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("removeModuleOwnership suckmaster " + USER2,
+						ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 	}
 	
@@ -661,18 +665,18 @@ public class LoggingTest {
 		ac.put("params", params);
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("setWorkspaceOwner 1 " + USER2, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("setWorkspaceOwner 1 " + USER2, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// list owners
 		ac.put("command", "listWorkspaceOwners");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("listWorkspaceOwners", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("listWorkspaceOwners", ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 	}
@@ -688,9 +692,9 @@ public class LoggingTest {
 		ac.put("params", new CreateWorkspaceParams().withWorkspace(ws));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("createWorkspace 1 " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("createWorkspace 1 " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// set perms
@@ -701,10 +705,10 @@ public class LoggingTest {
 				.withNewPermission("w"));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
+				new AdminExp("start method", SERV),
 				new AdminExp("setPermissions null myws w " + USER1 + " " +
-						USER2, true),
-				new AdminExp("end method", false))));
+						USER2, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		ac.put("params", new SetPermissionsParams().withId(1L)
@@ -712,9 +716,9 @@ public class LoggingTest {
 				.withNewPermission("a"));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("setPermissions 1 null a " + USER2, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("setPermissions 1 null a " + USER2, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// get perms
@@ -723,17 +727,17 @@ public class LoggingTest {
 		ac.put("params", new WorkspaceIdentity().withWorkspace(ws));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("getPermissions null myws " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("getPermissions null myws " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		ac.put("params", new WorkspaceIdentity().withId(1L));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("getPermissions 1 null " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("getPermissions 1 null " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// set global
@@ -743,18 +747,19 @@ public class LoggingTest {
 				.withNewPermission("r"));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("setGlobalPermission null myws r " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("setGlobalPermission null myws r " + USER1,
+						ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		ac.put("params", new SetGlobalPermissionsParams().withId(1L)
 				.withNewPermission("n"));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("setGlobalPermission 1 null n " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("setGlobalPermission 1 null n " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// save objs
@@ -767,10 +772,10 @@ public class LoggingTest {
 						.withType(ATYPE))));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("saveObjects " + USER1, true),
-				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("saveObjects " + USER1, ADMIN),
+				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// list ws
@@ -779,9 +784,9 @@ public class LoggingTest {
 		ac.put("params", new ListWorkspaceInfoParams());
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("listWorkspaces " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("listWorkspaces " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 	}

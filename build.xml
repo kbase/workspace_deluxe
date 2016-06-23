@@ -32,7 +32,7 @@
   <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
   <property name="jardir" location="${env.JENKINS_JARS_MODULE_PATH}/lib/jars"/>
 
-  <condition property="commonjar" value="kbase/common/kbase-common-0.0.15.jar">
+  <condition property="commonjar" value="kbase/common/kbase-common-0.0.17.jar">
     <or>
       <equals arg1="${env.JENKINS_JAVA_COMMON_JARFILE}" arg2=""/>
       <not>
@@ -172,6 +172,7 @@
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
     <javac destdir="${classes}" includeantruntime="false"
+      target="1.7" source="1.7"
       debug="true" classpathref="compile.classpath">
       <src path="${src}"/>
     </javac>
