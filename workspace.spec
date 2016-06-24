@@ -133,8 +133,9 @@ module Workspace {
 		ws_name workspace - name of the workspace.
 		username owner - name of the user who owns (e.g. created) this workspace.
 		timestamp moddate - date when the workspace was last modified.
-		int objects - the number of objects created in this workspace,
-			including objects that have been deleted.
+		int max_objid - the maximum object ID appearing in this workspace.
+			Since cloning a workspace preserves object IDs, this number may be
+			greater than the number of objects in a newly cloned workspace.
 		permission user_permission - permissions for the authenticated user of
 			this workspace.
 		permission globalread - whether this workspace is globally readable.
@@ -144,7 +145,7 @@ module Workspace {
 			
 	*/
 	typedef tuple<ws_id id, ws_name workspace, username owner, timestamp moddate,
-		int object, permission user_permission, permission globalread,
+		int max_objid, permission user_permission, permission globalread,
 		lock_status lockstat, usermeta metadata> workspace_info;
 		
 	/* The unique, permanent numerical ID of an object. */

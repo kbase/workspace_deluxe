@@ -546,6 +546,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		// fails
 		final Collection<ResolvedMongoObjectID> resexclude =
 				resolveObjectIDs(fromWS, exclude).values();
+		//TODO NOW create with no name, set name, date, and object count at end of method
+		//TODO NOW check name doesn't exist before proceeding
+		//TODO NOW set cloning=True & prevent all other methods from seeing
+		//TODO NOW recompile
+		//TODO NOW test race conditions - shouldn't be able to access workspace in cloning state in any way
 		final WorkspaceInformation wsinfo =
 				createWorkspace(user, newname, globalRead, description, meta);
 		final ResolvedMongoWSID toWS = new ResolvedMongoWSID(wsinfo.getName(),
@@ -559,48 +564,60 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		addExcludedToCloneQuery(fromWS, resexclude, q);
 		final DBObject hint = new BasicDBObject(Fields.OBJ_WS_ID, 1);
 		hint.put(Fields.OBJ_ID, 1);
-		final List<Map<String, Object>> wsobjects =
-				query.queryCollection(COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS,
-						hint, -1);
-		for (Map<String, Object> o: wsobjects) {
-			final long oldid = (Long) o.get(Fields.OBJ_ID);
-			final String name = (String) o.get(Fields.OBJ_NAME);
-			final boolean hidden = (Boolean) o.get(Fields.OBJ_HIDE);
-			final ResolvedMongoObjectIDNoVer roi = 
-					new ResolvedMongoObjectIDNoVer(fromWS, name, oldid);
-			final List<Map<String, Object>> versions;
-			try {
-				versions = queryAllVersions(
-						new HashSet<ResolvedMongoObjectIDNoVer>(
-								Arrays.asList(roi)),
-						FLDS_VER_COPYOBJ).get(roi);
-			} catch (NoSuchObjectException nsoe) {
-				//The object was saved to the objects collections and the
-				//version was incremented at least once. However, no versions
-				//exist in the version collection. So either a race condition
-				//or the system died before versions could be saved, so skip
-				//it. Really need to move to a backend with transactions
-				//or simplify the schema so it's relationless.
-				continue;
+		long maxid = 0;
+		try {
+			final DBCursor wsobjects = query.queryCollectionCursor(
+					COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS, hint, -1);
+			for (final DBObject o: wsobjects) {
+				final long objid = (Long) o.get(Fields.OBJ_ID);
+				final String name = (String) o.get(Fields.OBJ_NAME);
+				final boolean hidden = (Boolean) o.get(Fields.OBJ_HIDE);
+				maxid = Math.max(maxid, objid);
+				final ResolvedMongoObjectIDNoVer roi =
+						new ResolvedMongoObjectIDNoVer(fromWS, name, objid);
+				final List<Map<String, Object>> versions;
+				try {
+					versions = queryAllVersions(
+							new HashSet<ResolvedMongoObjectIDNoVer>(
+									Arrays.asList(roi)),
+							FLDS_VER_COPYOBJ).get(roi);
+				} catch (NoSuchObjectException nsoe) {
+					/* The object was saved to the objects collections and the
+					 * version was incremented at least once. However, no
+					 * versions exist in the version collection. So either a
+					 * race condition or the system died before versions could
+					 * be saved, so skip it. Really need to move to a backend
+					 * with transactions or simplify the schema so it's
+					 * relationless.
+					 */
+					continue;
+				}
+				for (final Map<String, Object> v: versions) {
+					final int ver = (Integer) v.get(Fields.VER_VER);
+					v.remove(Fields.MONGO_ID);
+					v.put(Fields.VER_SAVEDBY, user.getUser());
+					v.put(Fields.VER_RVRT, null);
+					v.put(Fields.VER_COPIED, new MongoReference(
+							fromWS.getID(), objid, ver).toString());
+				}
+				updateReferenceCountsForVersions(versions);
+				saveWorkspaceObject(toWS, objid, name);
+				saveObjectVersions(user, toWS, objid, versions, hidden);
 			}
-			for (final Map<String, Object> v: versions) {
-				final int ver = (Integer) v.get(Fields.VER_VER);
-				v.remove(Fields.MONGO_ID);
-				v.put(Fields.VER_SAVEDBY, user.getUser());
-				v.put(Fields.VER_RVRT, null);
-				v.put(Fields.VER_COPIED, new MongoReference(
-						fromWS.getID(), oldid, ver).toString());
-			}
-			updateReferenceCountsForVersions(versions);
-			final long newid = incrementWorkspaceCounter(toWS, 1);
-			final long objid = saveWorkspaceObject(toWS, newid, name).id;
-			saveObjectVersions(user, toWS, objid, versions, hidden);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		if (maxid > 0) {
+			incrementWorkspaceCounter(toWS, maxid);
 		}
 		return getWorkspaceInformation(user, toWS);
 	}
 
-	private void addExcludedToCloneQuery(final ResolvedMongoWSID fromWS,
-			final Collection<ResolvedMongoObjectID> resexclude, final DBObject q)
+	private void addExcludedToCloneQuery(
+			final ResolvedMongoWSID fromWS,
+			final Collection<ResolvedMongoObjectID> resexclude,
+			final DBObject q)
 			throws WorkspaceCommunicationException {
 		if (resexclude == null || resexclude.isEmpty()) {
 			return;
@@ -1369,14 +1386,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Date saved = new Date();
 		try {
-			FindAndModify q = wsjongo.getCollection(COL_WORKSPACE_OBJS)
+			final FindAndModify q = wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
 					.returnNew();
 			if (hidden == null) {
-				q = q.with(M_SAVEINS_NO_HIDE_WTH, versions.size(),
+				q.with(M_SAVEINS_NO_HIDE_WTH, versions.size(),
 						saved, zeros);
 			} else {
-				q = q.with(M_SAVEINS_WTH, versions.size(), saved,
+				q.with(M_SAVEINS_WTH, versions.size(), saved,
 						hidden, zeros);
 			}
 			ver = (Integer) q
@@ -1744,12 +1761,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	//returns starting object number
 	private long incrementWorkspaceCounter(final ResolvedMongoWSID wsidmongo,
-			final int newobjects) throws WorkspaceCommunicationException {
+			final long newobjects) throws WorkspaceCommunicationException {
 		final long lastid;
 		try {
 			lastid = ((Number) wsjongo.getCollection(COL_WORKSPACES)
 					.findAndModify(M_WS_ID_QRY, wsidmongo.getID())
-					.returnNew().with(M_SAVE_WTH, (long) newobjects)
+					.returnNew().with(M_SAVE_WTH, newobjects)
 					.projection(M_SAVE_PROJ)
 					.as(DBObject.class).get(Fields.WS_NUMOBJ)).longValue();
 		} catch (MongoException me) {

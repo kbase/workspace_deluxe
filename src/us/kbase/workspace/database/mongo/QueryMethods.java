@@ -425,13 +425,34 @@ public class QueryMethods {
 			final DBObject queryHint,
 			final int limit)
 			throws WorkspaceCommunicationException {
+		final List<Map<String, Object>> result =
+				new ArrayList<Map<String,Object>>();
+		try {
+			final DBCursor im = queryCollectionCursor(
+					collection, query, fields, queryHint, limit);
+			for (final DBObject o: im) {
+				result.add(dbObjectToMap(o));
+			}
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		return result;
+	}
+	
+	DBCursor queryCollectionCursor(
+			final String collection,
+			final DBObject query,
+			final Set<String> fields,
+			// really shouldn't be necessary, but 2.4 sometimes isn't smart
+			final DBObject queryHint,
+			final int limit)
+			throws WorkspaceCommunicationException {
 		final DBObject projection = new BasicDBObject();
 		projection.put(Fields.MONGO_ID, 0);
 		for (final String field: fields) {
 			projection.put(field, 1);
 		}
-		final List<Map<String, Object>> result =
-				new ArrayList<Map<String,Object>>();
 		try {
 			final DBCursor im = wsmongo.getCollection(collection)
 					.find(query, projection);
@@ -441,14 +462,11 @@ public class QueryMethods {
 			if (queryHint != null) {
 				im.hint(queryHint); //currently mdb only supports 1 index
 			}
-			for (final DBObject o: im) {
-				result.add(dbObjectToMap(o));
-			}
+			return im;
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return result;
 	}
 	
 	//since LazyBsonObject.toMap() is not supported

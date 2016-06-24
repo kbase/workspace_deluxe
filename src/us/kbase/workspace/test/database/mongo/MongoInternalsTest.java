@@ -321,7 +321,7 @@ public class MongoInternalsTest {
 				wsi);
 		
 		startSaveObject(rwsi, rso, 1, at);
-		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2));
+		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2)); //objid 2
 
 		//possible race condition 1 - no version provided, version not yet
 		//saved, version count not yet incremented
@@ -357,8 +357,9 @@ public class MongoInternalsTest {
 				rso2.getObjectIdentifier().getName());
 		
 		long id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
-				Arrays.asList(oidrw2_2)), false, true, false, true).get(oidrw2_2).getObjectId();
-		assertThat("correct object id", id, is(1L));
+				Arrays.asList(oidrw2_2)), false, true, false, true)
+				.get(oidrw2_2).getObjectId();
+		assertThat("correct object id", id, is(2L));
 
 		
 		//possible race condition 2 - as 1, but version provided
@@ -403,7 +404,7 @@ public class MongoInternalsTest {
 				rso2.getObjectIdentifier().getName());
 		id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw3_2)), false, true, false, true).get(oidrw3_2).getObjectId();
-		assertThat("correct object id", id, is(1L));
+		assertThat("correct object id", id, is(2L));
 		
 		try {
 			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
@@ -499,8 +500,8 @@ public class MongoInternalsTest {
 		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype));
 		
 		Method incrementWorkspaceCounter = mwdb.getClass()
-				.getDeclaredMethod("incrementWorkspaceCounter", ResolvedMongoWSID.class,
-						int.class);
+				.getDeclaredMethod("incrementWorkspaceCounter",
+						ResolvedMongoWSID.class, long.class);
 		incrementWorkspaceCounter.setAccessible(true);
 		incrementWorkspaceCounter.invoke(mwdb, rwsi, 1);
 		
