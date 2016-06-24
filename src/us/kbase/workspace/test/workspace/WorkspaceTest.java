@@ -3778,6 +3778,72 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		assertThat("Got incorrect list of objects", got, is(expected));
 	}
+	
+	@Test
+	public void clonePreserveIDs() throws Exception {
+		/* test that cloning a workspace preserves the object IDs of the old
+		 * workspace. Issues - mongo return order, deleted objects, excluded
+		 * objects
+		 */
+		WorkspaceUser user = new WorkspaceUser("foo");
+		WorkspaceIdentifier source = new WorkspaceIdentifier("source");
+		Map<String, String> mt = new HashMap<String, String>();
+		Provenance p = new Provenance(user);
+		
+		ws.createWorkspace(user, source.getName(), false, null, null);
+		List<WorkspaceSaveObject> objects = Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o1"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o2"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o3"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o4"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o5"), mt,
+						SAFE_TYPE1, null, p, false)
+				);
+		
+		ws.saveObjects(user, source, objects, getIdFactory());
+		
+		//delete an object, should not get cloned and id should not be reused
+		ws.setObjectsDeleted(user, Arrays.asList(
+				new ObjectIdentifier(source, 2)), true);
+		
+		//set the touch order to 5 3 1 4 (going to exclude 4)
+		//this doesn't guarantee the mongo order will change, but it's the
+		//best that can be done
+		ws.saveObjects(user, source, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(1), mt,
+						SAFE_TYPE1, null, p, false)), getIdFactory());
+		ws.saveObjects(user, source, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(3), mt,
+						SAFE_TYPE1, null, p, false)), getIdFactory());
+		ws.saveObjects(user, source, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(5), mt,
+						SAFE_TYPE1, null, p, false)), getIdFactory());
+		
+		//clone
+		WorkspaceIdentifier target = new WorkspaceIdentifier("target");
+		ws.cloneWorkspace(user, source, target.getName(), false, null, null,
+				new HashSet<>(Arrays.asList(new ObjectIDNoWSNoVer(4))));
+		
+		//check ids are preserved
+		List<ObjectInformation> ol = ws.listObjects(new ListObjectsParameters(
+				user, Arrays.asList(target)));
+		Set<Long> seen = new HashSet<>();
+		
+		for (ObjectInformation oi: ol) {
+			seen.add(oi.getObjectId());
+			System.out.println(oi.getObjectId() + " " + oi.getObjectName());
+			assertThat("didn't preserve id", "o" + oi.getObjectId(),
+					is(oi.getObjectName()));
+		}
+		assertThat("incorrect object list", seen,
+				is(new HashSet<>(Arrays.asList(1, 3, 5))));
+		
+		//TODO NOW test race conditions - shouldn't be able to access workspace in cloning state in any way
+	}
 
 	@Test
 	public void cloneWorkspace() throws Exception {

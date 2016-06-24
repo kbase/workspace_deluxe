@@ -418,8 +418,7 @@ public class WorkspaceTester {
 	}
 	
 	protected IdReferenceHandlerSetFactory getIdFactory() {
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
-		return fac;
+		return new IdReferenceHandlerSetFactory(100000);
 	}
 	
 	protected void failSetWSDesc(WorkspaceUser user,
