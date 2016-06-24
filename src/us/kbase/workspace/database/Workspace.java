@@ -298,6 +298,10 @@ public class Workspace {
 		return ret;
 	}
 	
+	public List<DependencyStatus> status() {
+		return db.status();
+	}
+	
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
 			final String wsname, boolean globalread, final String description,
 			final WorkspaceUserMetadata meta)

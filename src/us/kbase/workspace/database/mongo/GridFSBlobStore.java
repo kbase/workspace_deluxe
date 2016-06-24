@@ -2,11 +2,16 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.List;
+
+import org.slf4j.LoggerFactory;
 
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
@@ -14,6 +19,7 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
+import com.mongodb.CommandResult;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
 import com.mongodb.DuplicateKeyException;
@@ -138,6 +144,25 @@ public class GridFSBlobStore implements BlobStore {
 	@Override
 	public String getStoreType() {
 		return "GridFS";
+	}
+	
+	@Override
+	public List<DependencyStatus> status() {
+		//note failures are tested manually for now, if you make changes test
+		//things still work
+		final String version;
+		try {
+			final CommandResult bi = gfs.getDB().command("buildInfo");
+			version = bi.getString("version");
+		} catch (MongoException e) {
+			LoggerFactory.getLogger(getClass())
+				.error("Failed to connect to MongoDB", e);
+			return Arrays.asList(new DependencyStatus(false,
+					"Couldn't connect to MongoDB: " + e.getMessage(),
+					"GridFS", "Unknown"));
+		}
+		return Arrays.asList(
+				new DependencyStatus(true, "OK", "GridFS", version));
 	}
 
 

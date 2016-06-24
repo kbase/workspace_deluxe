@@ -1,9 +1,12 @@
 package us.kbase.workspace.database.mongo;
 
+import java.util.List;
+
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
@@ -48,4 +51,9 @@ public interface BlobStore {
 		BlobStoreCommunicationException, NoSuchBlobException;
 	
 	public String getStoreType();
+
+	/** Returns the status of the blob store's dependencies.
+	 * @return the dependency status.
+	 */
+	public List<DependencyStatus> status();
 }
