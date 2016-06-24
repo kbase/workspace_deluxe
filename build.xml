@@ -66,7 +66,7 @@
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
-    <include name="kbase/shock/shock-client-0.0.10.jar"/>
+    <include name="kbase/shock/shock-client-0.0.11.jar"/>
     <include name="apache_commons/commons-logging-1.1.1.jar"/>
     <include name="apache_commons/http/httpclient-4.3.1.jar"/>
     <include name="apache_commons/http/httpcore-4.3.jar"/>
@@ -96,6 +96,7 @@
     <include name="apache_commons/commons-lang-2.4.jar"/>
     <include name="apache_commons/commons-collections-3.2.1.jar"/>
     <include name="mysql/mysql-connector-java-5.1.22-bin.jar"/>
+    <include name="jsemver/java-semver-0.9.0.jar"/>
   </fileset>
 	
   <union id="serverside">

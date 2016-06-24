@@ -3,7 +3,11 @@ package us.kbase.workspace.database.mongo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import org.slf4j.LoggerFactory;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
@@ -19,6 +23,7 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
@@ -80,6 +85,31 @@ public class ShockBlobStore implements BlobStore {
 					ioe.getLocalizedMessage(), ioe);
 		}
 		//TODO check that a few nodes exist to ensure we're pointing at the right Shock instance
+	}
+	
+	@Override
+	public List<DependencyStatus> status() {
+		//note failures are tested manually for now, if you make changes test
+		//things still work
+		//TODO TEST add tests exercising failures
+		final String version;
+		try {
+			version = client.getRemoteVersion();
+		} catch (IOException e) {
+			LoggerFactory.getLogger(getClass())
+				.error("Failed to connect to Shock", e);
+			return Arrays.asList(new DependencyStatus(
+					false, "Cannot connect to Shock: " +
+					e.getMessage(), "Shock", "Unknown"));
+		} catch (InvalidShockUrlException e) {
+			LoggerFactory.getLogger(getClass())
+				.error("Invalid Shock URL", e);
+			return Arrays.asList(new DependencyStatus(
+					false, "Invalid Shock URL: " +
+					e.getMessage(), "Shock", "Unknown"));
+		}
+		return Arrays.asList(new DependencyStatus(
+				true, "OK", "Shock", version));
 	}
 	
 	private RefreshingToken getToken(final String user, final String pwd)

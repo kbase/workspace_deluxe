@@ -66,6 +66,7 @@ import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -1772,18 +1773,39 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String, Object> status() {
         Map<String, Object> returnVal = null;
         //BEGIN_STATUS
-        returnVal = new LinkedHashMap<String, Object>();
-        //TODO check mongo and shock?
-        returnVal.put("state", "OK");
-        returnVal.put("message", "");
-        returnVal.put("version", VER);
-        returnVal.put("git_url", GIT);
-        @SuppressWarnings("unused")
-        String v = version;
-        @SuppressWarnings("unused")
-        String h = gitCommitHash;
-        @SuppressWarnings("unused")
-        String u = gitUrl;
+		//note failures are tested manually for now, if you make changes test
+		//things still work
+		//TODO TEST when the client supports this method
+		//TODO TEST add tests exercising failures
+		returnVal = new LinkedHashMap<String, Object>();
+		final List<DependencyStatus> deps = ws.status();
+		boolean ok = true;
+		final List<Map<String, String>> dstate = new LinkedList<>();
+		for (final DependencyStatus ds: deps) {
+			if (!ds.isOk()) {
+				ok = false;
+			}
+			final Map<String, String> d = new HashMap<String, String>();
+			d.put("state", ds.isOk() ? "OK" : "Fail");
+			d.put("name", ds.getName());
+			d.put("message", ds.getStatus());
+			d.put("version", ds.getVersion());
+			dstate.add(d);
+		}
+		returnVal.put("state", ok ? "OK" : "Fail");
+		returnVal.put("message", ok ? "OK" : "Dependency failure");
+		returnVal.put("dependencies", dstate);
+		returnVal.put("version", VER);
+		returnVal.put("git_url", GIT);
+		returnVal.put("freemem", Runtime.getRuntime().freeMemory());
+		returnVal.put("totalmem", Runtime.getRuntime().totalMemory());
+		returnVal.put("maxmem", Runtime.getRuntime().maxMemory());
+		@SuppressWarnings("unused")
+		final String v = version;
+		@SuppressWarnings("unused")
+		final String h = gitCommitHash;
+		@SuppressWarnings("unused")
+		final String u = gitUrl;
         //END_STATUS
         return returnVal;
     }

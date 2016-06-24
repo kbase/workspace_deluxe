@@ -49,6 +49,7 @@ import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ModuleInfo;
 import us.kbase.workspace.database.ObjIDWithChainAndSubset;
@@ -84,6 +85,7 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.zafarkhaja.semver.Version;
 import com.google.common.collect.Sets;
 
 public class WorkspaceTest extends WorkspaceTester {
@@ -94,6 +96,28 @@ public class WorkspaceTest extends WorkspaceTester {
 		super(config, backend, maxMemoryUsePerCall);
 	}
 
+	@Test
+	public void status() throws Exception {
+		List<DependencyStatus> deps = ws.status();
+		assertThat("incorrect number of dependencies", deps.size(), is(2));
+		DependencyStatus mwdb = deps.get(0);
+		assertThat("incorrect fail", mwdb.isOk(), is(true));
+		assertThat("incorrect name", mwdb.getName(), is("MongoDB"));
+		assertThat("incorrect status", mwdb.getStatus(), is("OK"));
+		//should throw an error if not a semantic version
+		Version.valueOf(mwdb.getVersion());
+		
+		DependencyStatus blob = deps.get(1);
+		assertThat("incorrect fail", blob.isOk(), is(true));
+		String n = blob.getName();
+		assertThat("incorrect name", n.equals("Shock") || n.equals("GridFS"),
+				is(true));
+		assertThat("incorrect status", blob.getStatus(), is("OK"));
+		//should throw an error if not a semantic version
+		Version.valueOf(blob.getVersion());
+		
+	}
+	
 	@Test
 	public void workspaceDescription() throws Exception {
 		WorkspaceInformation ltinfo = ws.createWorkspace(SOMEUSER, "lt", false, LONG_TEXT, null);

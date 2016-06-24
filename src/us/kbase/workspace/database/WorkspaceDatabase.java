@@ -377,4 +377,9 @@ public interface WorkspaceDatabase {
 
 	public void setResourceUsageConfiguration(
 			ResourceUsageConfiguration rescfg);
+	
+	/** Returns the status of the databases' dependencies.
+	 * @return the dependency status.
+	 */
+	public List<DependencyStatus> status();
 }
