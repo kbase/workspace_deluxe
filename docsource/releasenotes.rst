@@ -8,9 +8,19 @@ BACKWARDS INCOMPATIBILITIES:
 
 * The ``skip`` parameter of ``list_objects`` has been removed.
 
+NEW FEATURES:
+
+* The ``status`` method now returns JVM memory stats and the status of MongoDB
+  and Shock (if using). Currently this method is not available via client, but
+  can be invoked like so:
+
+``curl -X POST -d '{"id": '1', "method": "Workspace.status", "version": "1.1", "params": []}' [Workspace URL]``
+
 UPDATED FEATURES / MAJOR BUG FIXES:
 
 * ``clone_workspace`` can now exclude user specified objects from the clone.
+* Fixed two bugs where various failures on save would leave temporary files on
+  disk.
 
 VERSION: 0.4.1 (Released 5/27/16)
 ---------------------------------

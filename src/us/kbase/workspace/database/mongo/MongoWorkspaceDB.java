@@ -214,6 +214,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	public List<DependencyStatus> status() {
+		//note failures are tested manually for now, if you make changes test
+		//things still work
+		//TODO TEST add tests exercising failures
 		final List<DependencyStatus> deps = new LinkedList<>(blob.status());
 		final String version;
 		try {

@@ -1773,7 +1773,10 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String, Object> status() {
         Map<String, Object> returnVal = null;
         //BEGIN_STATUS
+		//note failures are tested manually for now, if you make changes test
+		//things still work
 		//TODO TEST when the client supports this method
+		//TODO TEST add tests exercising failures
 		returnVal = new LinkedHashMap<String, Object>();
 		final List<DependencyStatus> deps = ws.status();
 		boolean ok = true;

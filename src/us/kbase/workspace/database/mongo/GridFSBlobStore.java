@@ -150,6 +150,7 @@ public class GridFSBlobStore implements BlobStore {
 	public List<DependencyStatus> status() {
 		//note failures are tested manually for now, if you make changes test
 		//things still work
+		//TODO TEST add tests exercising failures
 		final String version;
 		try {
 			final CommandResult bi = gfs.getDB().command("buildInfo");
