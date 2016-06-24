@@ -165,8 +165,10 @@ public class QueryMethods {
 		}
 		fields.add(Fields.WS_NAME);
 		fields.add(Fields.WS_ID);
+		final BasicDBObject q = new BasicDBObject("$or", orquery);
+		q.put(Fields.WS_CLONING, new BasicDBObject("$exists", false));
 		final List<Map<String, Object>> res = queryCollection(
-				workspaceCollection, new BasicDBObject("$or", orquery), fields);
+				workspaceCollection, q, fields);
 		
 		final Map<WorkspaceIdentifier, Map<String, Object>> ret =
 				new HashMap<WorkspaceIdentifier, Map<String,Object>>();
@@ -197,6 +199,7 @@ public class QueryMethods {
 		if (excludeDeletedWorkspaces) {
 			q.put(Fields.WS_DEL, false);
 		}
+		q.put(Fields.WS_CLONING, new BasicDBObject("$exists", false));
 		final List<Map<String, Object>> queryres =
 				queryCollection(workspaceCollection, q, fields);
 		final Map<Long, Map<String, Object>> result =

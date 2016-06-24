@@ -348,6 +348,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String description, final WorkspaceUserMetadata meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return createWorkspace(user, wsname, globalRead, description, meta,
+				false);
+	}
+	
+	//TODO NOW TEST cloning, check state correct
+	private WorkspaceInformation createWorkspace(
+			final WorkspaceUser user,
+			final String wsname,
+			final boolean globalRead,
+			final String description,
+			final WorkspaceUserMetadata meta,
+			final boolean cloning)
+			throws PreExistingWorkspaceException,
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		
 		if (meta == null) {
 			throw new NullPointerException("meta cannot be null");
 		}
@@ -385,9 +400,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final DBObject ws = new BasicDBObject();
 		ws.put(Fields.WS_OWNER, user.getUser());
 		ws.put(Fields.WS_ID, count);
-		Date moddate = new Date();
+		final Date moddate = new Date();
 		ws.put(Fields.WS_MODDATE, moddate);
-		ws.put(Fields.WS_NAME, wsname);
+		if (cloning) {
+			ws.put(Fields.WS_CLONING, true);
+		} else {
+			//it'd be extremely weird to be told a workspace exists when no one
+			//can access it, so don't reserve a name until the clone is done
+			ws.put(Fields.WS_NAME, wsname);
+		}
 		ws.put(Fields.WS_DEL, false);
 		ws.put(Fields.WS_NUMOBJ, 0L);
 		ws.put(Fields.WS_DESC, description);
@@ -396,23 +417,37 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		try {
 			wsmongo.getCollection(COL_WORKSPACES).insert(ws);
 		} catch (DuplicateKeyException mdk) {
-			//this is almost impossible to test and will probably almost never happen
+			// this is almost impossible to test and will probably almost never
+			// happen
 			throw new PreExistingWorkspaceException(String.format(
 					"Workspace name %s is already in use", wsname));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		setPermissionsForWorkspaceUsers(
-				new ResolvedMongoWSID(wsname, count, false, false),
-				Arrays.asList(user), Permission.OWNER, false);
-		if (globalRead) {
-			setPermissions(new ResolvedMongoWSID(wsname, count, false, false),
-					Arrays.asList(ALL_USERS), Permission.READ, false);
+		//TODO NOW inline
+		final ResolvedMongoWSID newWSid = new ResolvedMongoWSID(
+				wsname, count, false, false);
+		if (!cloning) {
+			setCreatedWorkspacePermissions(user, globalRead, newWSid);
 		}
 		return new MongoWSInfo(count, wsname, user, moddate, 0L,
 				Permission.OWNER, globalRead, false,
 				new UncheckedUserMetadata(meta));
+	}
+
+	private void setCreatedWorkspacePermissions(
+			final WorkspaceUser user,
+			final boolean globalRead,
+			final ResolvedMongoWSID newWSid)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		setPermissionsForWorkspaceUsers(newWSid, Arrays.asList(user),
+				Permission.OWNER, false);
+		if (globalRead) {
+			setPermissions(newWSid, Arrays.asList(ALL_USERS), Permission.READ,
+					false);
+		}
 	}
 	
 	private static final Set<String> FLDS_WS_META = newHashSet(Fields.WS_META);
@@ -546,13 +581,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		// fails
 		final Collection<ResolvedMongoObjectID> resexclude =
 				resolveObjectIDs(fromWS, exclude).values();
-		//TODO NOW create with no name, set name, date, and object count at end of method
-		//TODO NOW check name doesn't exist before proceeding
-		//TODO NOW set cloning=True & prevent all other methods from seeing
+		//TODO NOW put ws in cloning state and test all ws methods against it, all should fail
 		//TODO NOW recompile
-		//TODO NOW test race conditions - shouldn't be able to access workspace in cloning state in any way
-		final WorkspaceInformation wsinfo =
-				createWorkspace(user, newname, globalRead, description, meta);
+		//TODO NOW release notes
+		final WorkspaceInformation wsinfo = createWorkspace(
+				user, newname, globalRead, description, meta, true);
 		final ResolvedMongoWSID toWS = new ResolvedMongoWSID(wsinfo.getName(),
 				wsinfo.getId(), wsinfo.isLocked(), false); //assume it's not deleted already
 		final DBObject q = new BasicDBObject(Fields.OBJ_WS_ID, fromWS.getID());
@@ -611,7 +644,47 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (maxid > 0) {
 			incrementWorkspaceCounter(toWS, maxid);
 		}
+		updateClonedWorkspaceInformation(
+				user, globalRead, toWS.getID(), newname);
 		return getWorkspaceInformation(user, toWS);
+	}
+
+	// this method expects that the id exists. If it does not it'll throw an
+	// IllegalState exception.
+	private void updateClonedWorkspaceInformation(
+			final WorkspaceUser user,
+			final boolean globalRead,
+			final long id,
+			final String newname)
+			throws PreExistingWorkspaceException,
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		
+		//TODO NOW TEST
+		final DBObject q = new BasicDBObject(Fields.WS_ID, id);
+
+		final DBObject ws = new BasicDBObject();
+		ws.put(Fields.WS_MODDATE, new Date());
+		ws.put(Fields.WS_NAME, newname);
+		
+		final DBObject update = new BasicDBObject(
+				"$unset", new BasicDBObject(Fields.WS_CLONING, ""));
+		update.put("$set", ws);
+		final WriteResult wr;
+		try {
+			wr = wsmongo.getCollection(COL_WORKSPACES).update(q, update);
+		} catch (DuplicateKeyException mdk) {
+			throw new PreExistingWorkspaceException(String.format(
+					"Workspace name %s is already in use", newname));
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+		if (wr.getN() != 1) {
+			throw new IllegalStateException("A programming error occured: " +
+					"there is no workspace with ID " + id);
+		}
+		setCreatedWorkspacePermissions(user, globalRead,
+				new ResolvedMongoWSID(newname, id, false, false));
 	}
 
 	private void addExcludedToCloneQuery(
@@ -905,6 +978,45 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
+	public Map<ResolvedWorkspaceID, Map<User, Permission>> getAllPermissions(
+			final Set<ResolvedWorkspaceID> rwsis)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
+		final Map<ResolvedMongoWSID, Map<User, Permission>> res =
+				query.queryPermissions(query.convertResolvedWSID(rwsis), null);
+		final Map<ResolvedWorkspaceID, Map<User, Permission>> ret = 
+				new HashMap<ResolvedWorkspaceID, Map<User, Permission>>();
+		//probably a better way to do this
+		for (final ResolvedMongoWSID r: res.keySet()) {
+			ret.put((ResolvedWorkspaceID)r, res.get(r)); 
+		}
+		return ret;
+	}
+	
+	@Override
+	public Permission getPermission(final WorkspaceUser user,
+			final ResolvedWorkspaceID wsi) throws 
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return getPermissions(user, wsi).getPermission(wsi, true);
+	}
+	public PermissionSet getPermissions(final WorkspaceUser user,
+			final ResolvedWorkspaceID rwsi) throws 
+			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		final Set<ResolvedWorkspaceID> wsis =
+				new HashSet<ResolvedWorkspaceID>();
+		wsis.add(rwsi);
+		return getPermissions(user, wsis);
+	}
+	
+	@Override
+	public PermissionSet getPermissions(
+			final WorkspaceUser user, final Set<ResolvedWorkspaceID> rwsis)
+			throws WorkspaceCommunicationException, 
+			CorruptWorkspaceDBException {
+		return getPermissions(user, rwsis, Permission.READ, false, false);
+	}
+
+	@Override
 	public PermissionSet getPermissions(
 			final WorkspaceUser user, final Permission perm,
 			final boolean excludeGlobalRead)
@@ -928,7 +1040,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException(
 					"Permission cannot be null or NONE");
 		}
-		Set<ResolvedMongoWSID> rmwsis = query.convertResolvedWSID(rwsis);
+		final Set<ResolvedMongoWSID> rmwsis = query.convertResolvedWSID(rwsis);
 		final Map<ResolvedMongoWSID, Map<User, Permission>> userperms;
 		if (user != null) {
 			userperms = query.queryPermissions(rmwsis, 
@@ -1059,9 +1171,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_PERMS_UPD = String.format("{$set: {%s: #}}",
 			Fields.ACL_PERM);
 	
-	private void setPermissions(final ResolvedMongoWSID wsid, final List<User> users,
-			final Permission perm, final boolean checkowner) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+	private void setPermissions(
+			final ResolvedMongoWSID wsid,
+			final List<User> users,
+			final Permission perm,
+			final boolean checkowner)
+			throws WorkspaceCommunicationException,
+			CorruptWorkspaceDBException {
 		final WorkspaceUser owner;
 		if (checkowner) {
 			final Map<String, Object> ws =
@@ -1095,45 +1211,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	@Override
-	public Permission getPermission(final WorkspaceUser user,
-			final ResolvedWorkspaceID wsi) throws 
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return getPermissions(user, wsi).getPermission(wsi, true);
-	}
-	
-	public PermissionSet getPermissions(final WorkspaceUser user,
-			final ResolvedWorkspaceID rwsi) throws 
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final Set<ResolvedWorkspaceID> wsis =
-				new HashSet<ResolvedWorkspaceID>();
-		wsis.add(rwsi);
-		return getPermissions(user, wsis);
-	}
-	
-	@Override
-	public PermissionSet getPermissions(
-			final WorkspaceUser user, final Set<ResolvedWorkspaceID> rwsis)
-			throws WorkspaceCommunicationException, 
-			CorruptWorkspaceDBException {
-		return getPermissions(user, rwsis, Permission.READ, false, false);
-	}
-	
-	@Override
-	public Map<ResolvedWorkspaceID, Map<User, Permission>> getAllPermissions(
-			final Set<ResolvedWorkspaceID> rwsis) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final Map<ResolvedMongoWSID, Map<User, Permission>> res =
-				query.queryPermissions(query.convertResolvedWSID(rwsis), null);
-		final Map<ResolvedWorkspaceID, Map<User, Permission>> ret = 
-				new HashMap<ResolvedWorkspaceID, Map<User, Permission>>();
-		//probably a better way to do this
-		for (final ResolvedMongoWSID r: res.keySet()) {
-			ret.put((ResolvedWorkspaceID)r, res.get(r)); 
-		}
-		return ret;
-	}
-
 	private static final Set<String> FLDS_WS_NO_DESC = 
 			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_OWNER,
 					Fields.WS_MODDATE, Fields.WS_NUMOBJ, Fields.WS_DEL,
@@ -2887,10 +2964,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Set<WorkspaceUser> getAllWorkspaceOwners()
 			throws WorkspaceCommunicationException {
 		final Set<WorkspaceUser> ret = new HashSet<WorkspaceUser>();
+		//TODO NOW TEST
+		final DBObject q = new BasicDBObject(Fields.WS_CLONING,
+				new BasicDBObject("$exists", false));
 		try {
 			@SuppressWarnings("unchecked")
 			final List<String> users = wsmongo.getCollection(COL_WORKSPACES)
-					.distinct(Fields.WS_OWNER);
+				.distinct(Fields.WS_OWNER, q);
 			for (final String u: users) {
 				ret.add(new WorkspaceUser(u));
 			}
