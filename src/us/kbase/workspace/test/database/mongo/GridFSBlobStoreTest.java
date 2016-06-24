@@ -9,12 +9,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.github.zafarkhaja.semver.Version;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.gridfs.GridFS;
@@ -27,6 +29,7 @@ import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 
@@ -159,5 +162,17 @@ public class GridFSBlobStoreTest {
 			public void releaseResources() throws IOException {
 			}
 		};
+	}
+	
+	@Test
+	public void status() throws Exception {
+		List<DependencyStatus> deps = gfsb.status();
+		assertThat("incorrect number of deps", deps.size(), is(1));
+		DependencyStatus dep = deps.get(0);
+		assertThat("incorrect fail", dep.isOk(), is(true));
+		assertThat("incorrect name", dep.getName(), is("GridFS"));
+		assertThat("incorrect status", dep.getStatus(), is("OK"));
+		//should throw an error if not a semantic version
+		Version.valueOf(dep.getVersion());
 	}
 }

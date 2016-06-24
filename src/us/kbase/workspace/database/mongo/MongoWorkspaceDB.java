@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 import org.jongo.FindAndModify;
 import org.jongo.Jongo;
+import org.slf4j.LoggerFactory;
 
 import us.kbase.common.utils.Counter;
 import us.kbase.common.utils.CountingOutputStream;
@@ -38,6 +39,7 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
@@ -78,6 +80,7 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
+import com.mongodb.CommandResult;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -208,6 +211,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//TODO check a few random types and make sure they exist
 		ensureIndexes();
 		checkConfig();
+	}
+	
+	public List<DependencyStatus> status() {
+		final List<DependencyStatus> deps = new LinkedList<>(blob.status());
+		final String version;
+		try {
+			final CommandResult bi = wsmongo.command("buildInfo");
+			version = bi.getString("version");
+		} catch (MongoException e) {
+			LoggerFactory.getLogger(getClass())
+				.error("Failed to connect to MongoDB", e);
+			deps.add(0, new DependencyStatus(false,
+					"Couldn't connect to MongoDB: " + e.getMessage(),
+					"MongoDB", "Unknown"));
+			return deps;
+		}
+		deps.add(0, new DependencyStatus(true, "OK", "MongoDB", version));
+		return deps;
 	}
 	
 	@Override
