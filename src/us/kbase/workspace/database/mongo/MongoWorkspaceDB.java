@@ -343,16 +343,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			newHashSet(Fields.WS_DEL, Fields.WS_OWNER);
 	
 	@Override
-	public WorkspaceInformation createWorkspace(final WorkspaceUser user,
-			final String wsname, final boolean globalRead,
-			final String description, final WorkspaceUserMetadata meta)
+	public WorkspaceInformation createWorkspace(
+			final WorkspaceUser user,
+			final String wsname,
+			final boolean globalRead,
+			final String description,
+			final WorkspaceUserMetadata meta)
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		return createWorkspace(user, wsname, globalRead, description, meta,
 				false);
 	}
 	
-	//TODO NOW TEST cloning, check state correct
 	private WorkspaceInformation createWorkspace(
 			final WorkspaceUser user,
 			final String wsname,
@@ -425,11 +427,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		//TODO NOW inline
-		final ResolvedMongoWSID newWSid = new ResolvedMongoWSID(
-				wsname, count, false, false);
 		if (!cloning) {
-			setCreatedWorkspacePermissions(user, globalRead, newWSid);
+			setCreatedWorkspacePermissions(user, globalRead,
+					new ResolvedMongoWSID(wsname, count, false, false));
 		}
 		return new MongoWSInfo(count, wsname, user, moddate, 0L,
 				Permission.OWNER, globalRead, false,

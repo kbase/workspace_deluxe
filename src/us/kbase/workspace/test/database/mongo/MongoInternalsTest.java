@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.jongo.Jongo;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -138,6 +139,69 @@ public class MongoInternalsTest {
 		if (mongo != null) {
 			mongo.destroy(TestCommon.deleteTempFiles());
 		}
+	}
+	
+	@Before
+	public void clearDB() throws Exception {
+		TestCommon.destroyDB(jdb.getDatabase());
+	}
+	
+	@Test
+	public void cloneCreateWorkspace() throws Exception {
+		/* test that creating a workspace to be cloned into creates the 
+		 * correct state.
+		 */
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		Method createClonedWorkspace = mwdb.getClass()
+				.getDeclaredMethod("createWorkspace",
+						WorkspaceUser.class,
+						String.class,
+						boolean.class,
+						String.class,
+						WorkspaceUserMetadata.class,
+						boolean.class);
+		createClonedWorkspace.setAccessible(true);
+		createClonedWorkspace.invoke(mwdb, foo, "myname", false, "desc1",
+				new WorkspaceUserMetadata(), true);
+		
+		DB db = jdb.getDatabase();
+		DBObject ws = db.getCollection("workspaces").findOne(
+				new BasicDBObject("ws", 1));
+		assertThat("name was set incorrectly", (String) ws.get("name"),
+				is((String) null));
+		assertThat("owner set incorrectly", (String) ws.get("owner"),
+				is("foo"));
+		assertThat("id set incorrectly", (long) ws.get("ws"), is(1L));
+		assertThat("deleted set incorrectly", (boolean) ws.get("del"),
+				is(false));
+		assertThat("num objs set incorrectly", (long) ws.get("numObj"),
+				is(0L));
+		assertThat("desc set incorrectly", (String) ws.get("desc"),
+				is("desc1"));
+		assertThat("locked set incorrectly", (boolean) ws.get("lock"),
+				is(false));
+		List<Map<String, String>> meta = new LinkedList<>();
+		List<Map<String, String>> gotmeta = new LinkedList<>();
+		@SuppressWarnings("unchecked")
+		final List<DBObject> shittymeta = (List<DBObject>) ws.get("meta");
+		/* for some reason sometimes (but not always) get a LazyBsonList here
+		 * which doesn't support listIterator which equals uses, but this seems
+		 * to fix it
+		 */
+		for (DBObject o: shittymeta) {
+			Map<String, String> shittymetainner =
+					new HashMap<String, String>();
+			for (String k: o.keySet()) {
+				shittymetainner.put(k, (String) o.get(k));
+			}
+			gotmeta.add(shittymetainner);
+		}
+		assertThat("meta set incorrectly", gotmeta, is(meta));
+		assertThat("cloning set incorrectly", (boolean) ws.get("cloning"),
+				is(true));
+		
+		assertThat("acls should not exist",
+				db.getCollection("workspaceACLs").count(), is(0L));
 	}
 	
 	@Test
