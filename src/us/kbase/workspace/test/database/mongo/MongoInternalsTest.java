@@ -64,6 +64,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
@@ -157,29 +158,137 @@ public class MongoInternalsTest {
 		m.put("foo", "bar");
 		createWSForClone(foo, "myname", false, "desc1",
 				new WorkspaceUserMetadata(m));
+		checkClonedWorkspace(1L, null, foo, "desc1", m, false, false);
+	}
+	
+	@Test
+	public void cloneCompleteClone() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("foo");
+		final Map<String, String> meta = new HashMap<>();
 		
+		final Method update = mwdb.getClass()
+				.getDeclaredMethod("updateClonedWorkspaceInformation",
+						WorkspaceUser.class,
+						boolean.class,	//global read
+						long.class,		// num objs
+						String.class);	// name
+		update.setAccessible(true);
+
+		// test w global read
+		createWSForClone(user, "baz", false, null,
+				new WorkspaceUserMetadata());
+		update.invoke(mwdb, user, true, 1L, "baz");
+		checkClonedWorkspace(1, "baz", user, null, meta, true, true);
+		
+		//test w/o global read
+		meta.put("foo", "bar1");
+		createWSForClone(user, "whee", false, "mydesc",
+				new WorkspaceUserMetadata(meta));
+		update.invoke(mwdb, user, true, 2L, "whee2");
+		checkClonedWorkspace(2, "whee2", user, "mydesc", meta, true, true);
+		
+		//test fail on bad id
+		failUpdateClonedWS(user, 3, "foo", new IllegalStateException(
+				"A programming error occurred: there is no workspace with " +
+				"ID 3"));
+		
+		//test fail on existing name
+		failUpdateClonedWS(user, 2, "whee2", new PreExistingWorkspaceException(
+				"Workspace name whee2 already in use"));
+	}
+	
+	private void failUpdateClonedWS(
+			final WorkspaceUser user,
+			final long id,
+			final String name,
+			final Exception exp) throws Exception {
+		final Method update = mwdb.getClass()
+				.getDeclaredMethod("updateClonedWorkspaceInformation",
+						WorkspaceUser.class,
+						boolean.class,	//global read
+						long.class,		// num objs
+						String.class);	// name
+		update.setAccessible(true);
+		try {
+			update.invoke(mwdb, user, false, id, name);
+		} catch (Exception got) {
+			// exceptions are wrapped in invocation exception
+			TestCommon.assertExceptionCorrect((Exception) got.getCause(), exp);
+		}
+	}
+	
+	private void checkClonedWorkspace(
+			final long id,
+			final String name,
+			final WorkspaceUser owner,
+			final String description,
+			final Map<String, String> meta,
+			final boolean globalRead,
+			final boolean complete) {
 		DB db = jdb.getDatabase();
 		DBObject ws = db.getCollection("workspaces").findOne(
-				new BasicDBObject("ws", 1));
+				new BasicDBObject("ws", id));
 		assertThat("name was set incorrectly", (String) ws.get("name"),
-				is((String) null));
+				is((String) name));
 		assertThat("owner set incorrectly", (String) ws.get("owner"),
-				is("foo"));
-		assertThat("id set incorrectly", (long) ws.get("ws"), is(1L));
+				is(owner.getUser()));
+		final Date minus1m = new Date(new Date().getTime() - (60 * 1000));
+		if (complete) {
+			assertThat("date set incorrectly",
+					minus1m.before((Date) ws.get("moddate")), is(true));
+		} else {
+			assertThat("date shouldn't be set", (Date) ws.get("moddate"),
+					is((Date) null));
+		}
+		assertThat("id set incorrectly", (long) ws.get("ws"), is(id)); //duh
 		assertThat("deleted set incorrectly", (boolean) ws.get("del"),
 				is(false));
 		assertThat("num objs set incorrectly", (long) ws.get("numObj"),
 				is(0L));
 		assertThat("desc set incorrectly", (String) ws.get("desc"),
-				is("desc1"));
+				is(description));
 		assertThat("locked set incorrectly", (boolean) ws.get("lock"),
 				is(false));
-		assertCloneWSMetadataCorrect(ws, m);
-		assertThat("cloning set incorrectly", (boolean) ws.get("cloning"),
-				is(true));
-		
-		assertThat("acls should not exist",
-				db.getCollection("workspaceACLs").count(), is(0L));
+		assertCloneWSMetadataCorrect(ws, meta);
+		assertThat("cloning set incorrectly", (Boolean) ws.get("cloning"),
+				is((Boolean) (complete ? null : true)));
+		assertCloneWSACLsCorrect(id, owner, globalRead, complete);
+	}
+
+	private void assertCloneWSACLsCorrect(
+			final long id,
+			final WorkspaceUser owner,
+			final boolean globalRead,
+			final boolean complete) {
+		final DB db = jdb.getDatabase();
+		final Set<Map<String, Object>> acls = new HashSet<>();
+		for (final DBObject acl: db.getCollection("workspaceACLs")
+				.find(new BasicDBObject("id", id))) {
+			/* fucking LazyBSONObjects, what the hell was mongo thinking */
+			Map<String, Object> a = new HashMap<>();
+			for (final String k: acl.keySet()) {
+				if (!k.equals("_id")) { //mongo id
+					a.put(k, acl.get(k));
+				}
+			}
+			acls.add(a);
+		}
+		final Set<Map<String, Object>> expacl = new HashSet<>();
+		if (complete) {
+			final Map<String, Object> useracl = new HashMap<>();
+			useracl.put("id", id);
+			useracl.put("perm", 40);
+			useracl.put("user", owner.getUser());
+			expacl.add(useracl);
+			if (globalRead) {
+				final Map<String, Object> globalacl = new HashMap<>();
+				globalacl.put("id", id);
+				globalacl.put("perm", 10);
+				globalacl.put("user", "*");
+				expacl.add(globalacl);
+			}
+		}
+		assertThat("acls incorrect", acls, is(expacl));
 	}
 
 	private void assertCloneWSMetadataCorrect(
@@ -188,7 +297,7 @@ public class MongoInternalsTest {
 		final Set<Map<String, String>> gotmeta = new HashSet<>();
 		/* for some reason sometimes (but not always) get a LazyBsonList here
 		 * which doesn't support listIterator which equals uses, but this seems
-		 * to fix it
+		 * to fix it. Doesn't support toMap() either.
 		 */
 		@SuppressWarnings("unchecked")
 		final List<DBObject> shittymeta = (List<DBObject>) ws.get("meta");

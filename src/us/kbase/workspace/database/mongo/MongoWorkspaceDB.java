@@ -403,13 +403,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Fields.WS_OWNER, user.getUser());
 		ws.put(Fields.WS_ID, count);
 		final Date moddate = new Date();
-		ws.put(Fields.WS_MODDATE, moddate);
 		if (cloning) {
 			ws.put(Fields.WS_CLONING, true);
 		} else {
 			//it'd be extremely weird to be told a workspace exists when no one
 			//can access it, so don't reserve a name until the clone is done
 			ws.put(Fields.WS_NAME, wsname);
+			ws.put(Fields.WS_MODDATE, moddate);
 		}
 		ws.put(Fields.WS_DEL, false);
 		ws.put(Fields.WS_NUMOBJ, 0L);
@@ -659,7 +659,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		
-		//TODO NOW TEST
 		final DBObject q = new BasicDBObject(Fields.WS_ID, id);
 
 		final DBObject ws = new BasicDBObject();
@@ -680,7 +679,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"There was a problem communicating with the database", me);
 		}
 		if (wr.getN() != 1) {
-			throw new IllegalStateException("A programming error occured: " +
+			throw new IllegalStateException("A programming error occurred: " +
 					"there is no workspace with ID " + id);
 		}
 		setCreatedWorkspacePermissions(user, globalRead,

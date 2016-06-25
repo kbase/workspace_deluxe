@@ -7,6 +7,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -22,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -501,14 +502,6 @@ public class WorkspaceTester {
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
-	}
-	
-	private void assertExceptionCorrect(Exception got, Exception expected) {
-		assertThat("incorrect exception. trace:\n" +
-				ExceptionUtils.getStackTrace(got),
-				got.getLocalizedMessage(),
-				is(expected.getLocalizedMessage()));
-		assertThat("incorrect exception type", got, is(expected.getClass()));
 	}
 	
 	protected void failCreateWorkspace(WorkspaceUser user, String name,
