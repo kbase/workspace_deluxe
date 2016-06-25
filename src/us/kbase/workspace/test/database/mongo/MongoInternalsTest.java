@@ -163,6 +163,8 @@ public class MongoInternalsTest {
 	
 	@Test
 	public void cloneCompleteClone() throws Exception {
+		/* test that completing a clone creates the correct state */
+		
 		WorkspaceUser user = new WorkspaceUser("foo");
 		final Map<String, String> meta = new HashMap<>();
 		
@@ -184,8 +186,8 @@ public class MongoInternalsTest {
 		meta.put("foo", "bar1");
 		createWSForClone(user, "whee", false, "mydesc",
 				new WorkspaceUserMetadata(meta));
-		update.invoke(mwdb, user, true, 2L, "whee2");
-		checkClonedWorkspace(2, "whee2", user, "mydesc", meta, true, true);
+		update.invoke(mwdb, user, false, 2L, "whee2");
+		checkClonedWorkspace(2, "whee2", user, "mydesc", meta, false, true);
 		
 		//test fail on bad id
 		failUpdateClonedWS(user, 3, "foo", new IllegalStateException(
@@ -195,6 +197,11 @@ public class MongoInternalsTest {
 		//test fail on existing name
 		failUpdateClonedWS(user, 2, "whee2", new PreExistingWorkspaceException(
 				"Workspace name whee2 already in use"));
+	}
+	
+	@Test
+	public void cloningWorkspaceInaccessible() throws Exception {
+		
 	}
 	
 	private void failUpdateClonedWS(
