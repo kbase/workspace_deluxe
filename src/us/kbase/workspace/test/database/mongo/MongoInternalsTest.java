@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.jongo.Jongo;
@@ -152,17 +153,10 @@ public class MongoInternalsTest {
 		 * correct state.
 		 */
 		WorkspaceUser foo = new WorkspaceUser("foo");
-		Method createClonedWorkspace = mwdb.getClass()
-				.getDeclaredMethod("createWorkspace",
-						WorkspaceUser.class,
-						String.class,
-						boolean.class,
-						String.class,
-						WorkspaceUserMetadata.class,
-						boolean.class);
-		createClonedWorkspace.setAccessible(true);
-		createClonedWorkspace.invoke(mwdb, foo, "myname", false, "desc1",
-				new WorkspaceUserMetadata(), true);
+		final Map<String, String> m = new HashMap<>();
+		m.put("foo", "bar");
+		createWSForClone(foo, "myname", false, "desc1",
+				new WorkspaceUserMetadata(m));
 		
 		DB db = jdb.getDatabase();
 		DBObject ws = db.getCollection("workspaces").findOne(
@@ -180,28 +174,61 @@ public class MongoInternalsTest {
 				is("desc1"));
 		assertThat("locked set incorrectly", (boolean) ws.get("lock"),
 				is(false));
-		List<Map<String, String>> meta = new LinkedList<>();
-		List<Map<String, String>> gotmeta = new LinkedList<>();
-		@SuppressWarnings("unchecked")
-		final List<DBObject> shittymeta = (List<DBObject>) ws.get("meta");
+		assertCloneWSMetadataCorrect(ws, m);
+		assertThat("cloning set incorrectly", (boolean) ws.get("cloning"),
+				is(true));
+		
+		assertThat("acls should not exist",
+				db.getCollection("workspaceACLs").count(), is(0L));
+	}
+
+	private void assertCloneWSMetadataCorrect(
+			final DBObject ws,
+			final Map<String, String> meta) {
+		final Set<Map<String, String>> gotmeta = new HashSet<>();
 		/* for some reason sometimes (but not always) get a LazyBsonList here
 		 * which doesn't support listIterator which equals uses, but this seems
 		 * to fix it
 		 */
+		@SuppressWarnings("unchecked")
+		final List<DBObject> shittymeta = (List<DBObject>) ws.get("meta");
 		for (DBObject o: shittymeta) {
-			Map<String, String> shittymetainner =
+			final Map<String, String> shittymetainner =
 					new HashMap<String, String>();
 			for (String k: o.keySet()) {
 				shittymetainner.put(k, (String) o.get(k));
 			}
 			gotmeta.add(shittymetainner);
 		}
-		assertThat("meta set incorrectly", gotmeta, is(meta));
-		assertThat("cloning set incorrectly", (boolean) ws.get("cloning"),
-				is(true));
-		
-		assertThat("acls should not exist",
-				db.getCollection("workspaceACLs").count(), is(0L));
+		final Set<Map<String, String>> expmeta = new HashSet<>();
+		for (final Entry<String, String> e: meta.entrySet()) {
+			final Map<String, String> inner = new HashMap<>();
+			inner.put("k", e.getKey());
+			inner.put("v", e.getValue());
+			expmeta.add(inner);
+		}
+		assertThat("meta set incorrectly", gotmeta, is(expmeta));
+	}
+
+	private void createWSForClone(
+			final WorkspaceUser foo,
+			final String wsname,
+			final boolean global,
+			final String desc,
+			final WorkspaceUserMetadata inmeta)
+			throws NoSuchMethodException, IllegalAccessException,
+			InvocationTargetException {
+		Method createClonedWorkspace = mwdb.getClass()
+				.getDeclaredMethod("createWorkspace",
+						WorkspaceUser.class,
+						String.class,
+						boolean.class,
+						String.class,
+						WorkspaceUserMetadata.class,
+						boolean.class);
+		createClonedWorkspace.setAccessible(true);
+		createClonedWorkspace.invoke(mwdb, foo, wsname, global, desc,
+				inmeta, true);
 	}
 	
 	@Test
