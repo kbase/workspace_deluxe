@@ -581,8 +581,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		// fails
 		final Collection<ResolvedMongoObjectID> resexclude =
 				resolveObjectIDs(fromWS, exclude).values();
-		//TODO NOW recompile
-		//TODO NOW release notes
 		final WorkspaceInformation wsinfo = createWorkspace(
 				user, newname, globalRead, description, meta, true);
 		final ResolvedMongoWSID toWS = new ResolvedMongoWSID(wsinfo.getName(),
