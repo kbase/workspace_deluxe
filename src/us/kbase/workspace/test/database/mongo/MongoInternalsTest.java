@@ -184,7 +184,7 @@ public class MongoInternalsTest {
 				.getDeclaredMethod("updateClonedWorkspaceInformation",
 						WorkspaceUser.class,
 						boolean.class,	//global read
-						long.class,		// num objs
+						long.class,		// ws id
 						String.class);	// name
 		update.setAccessible(true);
 
@@ -415,7 +415,7 @@ public class MongoInternalsTest {
 				.getDeclaredMethod("updateClonedWorkspaceInformation",
 						WorkspaceUser.class,
 						boolean.class,	//global read
-						long.class,		// num objs
+						long.class,		// ws id
 						String.class);	// name
 		update.setAccessible(true);
 		try {
