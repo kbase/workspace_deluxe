@@ -581,7 +581,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		// fails
 		final Collection<ResolvedMongoObjectID> resexclude =
 				resolveObjectIDs(fromWS, exclude).values();
-		//TODO NOW put ws in cloning state and test all ws methods against it, all should fail
 		//TODO NOW recompile
 		//TODO NOW release notes
 		final WorkspaceInformation wsinfo = createWorkspace(
@@ -2963,7 +2962,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Set<WorkspaceUser> getAllWorkspaceOwners()
 			throws WorkspaceCommunicationException {
 		final Set<WorkspaceUser> ret = new HashSet<WorkspaceUser>();
-		//TODO NOW TEST
 		final DBObject q = new BasicDBObject(Fields.WS_CLONING,
 				new BasicDBObject("$exists", false));
 		try {

@@ -580,20 +580,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkWSInfo(wsinfo, u1, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 	}
 	
-	
-	private void failSetWorkspaceOwner(WorkspaceUser user, WorkspaceIdentifier wsi,
-			WorkspaceUser newuser, String name, boolean asAdmin,
-			Exception expected) throws Exception {
-		try {
-			ws.setWorkspaceOwner(user, wsi, newuser, name, asAdmin);
-			fail("expected set owner to fail");
-		} catch (Exception got) {
-			assertThat("correct exception", got.getLocalizedMessage(),
-					is(expected.getLocalizedMessage()));
-			assertThat("correct exception type", got, is(expected.getClass()));
-		}
-	}
-	
 	@Test
 	public void permissionsBulk() throws Exception {
 		/* This test was added after the getPermissions method was converted

@@ -47,10 +47,14 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.test.DummyTypedObjectValidationReport;
 import us.kbase.workspace.database.DefaultReferenceParser;
+import us.kbase.workspace.database.ListObjectsParameters;
+import us.kbase.workspace.database.ObjIDWithChainAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIDWithRefChain;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedSaveObject;
@@ -63,7 +67,9 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException;
@@ -74,6 +80,7 @@ import us.kbase.workspace.database.mongo.ObjectSavePackage;
 import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
 import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.workspace.WorkspaceTester;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -159,6 +166,11 @@ public class MongoInternalsTest {
 		createWSForClone(foo, "myname", false, "desc1",
 				new WorkspaceUserMetadata(m));
 		checkClonedWorkspace(1L, null, foo, "desc1", m, false, false);
+		
+		//check that creating a workspace with the same name as the cloning
+		//workspace works
+		ws.createWorkspace(foo, "myname", false, null,
+				new WorkspaceUserMetadata());
 	}
 	
 	@Test
@@ -201,6 +213,196 @@ public class MongoInternalsTest {
 	
 	@Test
 	public void cloningWorkspaceInaccessible() throws Exception {
+		final WorkspaceUser user1 = new WorkspaceUser("shoopty");
+		final WorkspaceUser user2 = new WorkspaceUser("whoop");
+		
+		final Map<String, String> mt = new HashMap<>();
+		final Provenance p = new Provenance(user1);
+		
+		// make a normal workspace & save objects
+		ws.createWorkspace(user2, "bar", false, null,
+				new WorkspaceUserMetadata());
+		final WorkspaceIdentifier std = new WorkspaceIdentifier(1);
+		ws.saveObjects(user2, std, Arrays.asList(
+				new WorkspaceSaveObject(
+						new UObject(mt), SAFE_TYPE, null, p, false)),
+				fac);
+		final ObjectIdentifier stdobj = new ObjectIdentifier(std, 1);
+		ws.setPermissions(user2, std, Arrays.asList(user1), Permission.WRITE);
+		
+		// make a workspace to be cloned, save objects, and put into cloning
+		// state
+		ws.createWorkspace(user1, "baz", false, null,
+				new WorkspaceUserMetadata());
+		final WorkspaceIdentifier cloning = new WorkspaceIdentifier(2);
+		ws.saveObjects(user1, cloning, Arrays.asList(
+				new WorkspaceSaveObject(
+						new UObject(mt), SAFE_TYPE, null, p, false)),
+				fac);
+		final ObjectIdentifier clnobj = new ObjectIdentifier(cloning, 1);
+		
+		final DBObject cloneunset = new BasicDBObject();
+		cloneunset.put("name", "");
+		cloneunset.put("moddate", "");
+		final DBObject update = new BasicDBObject(
+				"$set", new BasicDBObject("cloning", true));
+		update.put("$unset", cloneunset);
+		jdb.getDatabase().getCollection("workspaces").update(
+				new BasicDBObject("ws", 2), update);
+		
+		final NoSuchWorkspaceException noWSExcp = new NoSuchWorkspaceException(
+				"No workspace with id 2 exists", cloning);
+		final InaccessibleObjectException noObjExcp =
+				new InaccessibleObjectException("Object 1 cannot be " +
+				"accessed: No workspace with id 2 exists");
+
+		//test clone
+		WorkspaceTester.failClone(ws, user1, cloning, "whee", null, null,
+				noWSExcp);
+		
+		//test copy to & from
+		WorkspaceTester.failCopy(ws, user1, stdobj,
+				new ObjectIdentifier(cloning, "foo"),
+				new InaccessibleObjectException("Object foo cannot be " +
+						"accessed: No workspace with id 2 exists"));
+		WorkspaceTester.failCopy(ws, user1, clnobj,
+				new ObjectIdentifier(std, "foo"), noObjExcp);
+		
+		//test get names by prefix
+		WorkspaceTester.failGetNamesByPrefix(ws, user1, Arrays.asList(cloning),
+				"a", false, 1000, noWSExcp);
+		
+		//test get object history
+		WorkspaceTester.failGetObjectHistory(ws, user1, clnobj, noObjExcp);
+		
+		//test various get objects methods
+		WorkspaceTester.failGetObjects(ws, user1, Arrays.asList(clnobj),
+				noObjExcp, false);
+		
+		// test get perms
+		WorkspaceTester.failGetPermissions(ws, user1, Arrays.asList(cloning),
+				noWSExcp);
+		
+		// test get referenced objects
+		final ObjectIDWithRefChain oc = new ObjectIDWithRefChain(
+				clnobj, Arrays.asList(stdobj));
+		WorkspaceTester.failGetReferencedObjects(ws, user1, Arrays.asList(oc),
+				noObjExcp, false, new HashSet<>(Arrays.asList(0)));
+		
+		// test get subset
+		final ObjIDWithChainAndSubset os = new ObjIDWithChainAndSubset(
+				clnobj, null, new ObjectPaths(Arrays.asList("/foo")));
+		WorkspaceTester.failGetSubset(ws, user1, Arrays.asList(os), noObjExcp);
+		
+		//test get ws desc
+		WorkspaceTester.failGetWorkspaceDesc(ws, user1, cloning, noWSExcp);
+		
+		// test list objects - both direct fail and ignoring objects in
+		// cloning workspaces
+		WorkspaceTester.failListObjects(ws, user1, Arrays.asList(std, cloning),
+				null, noWSExcp);
+		
+		final List<ObjectInformation> listobj = ws.listObjects(
+				new ListObjectsParameters(user1, SAFE_TYPE));
+		assertThat("listed object count incorrect", listobj.size(), is(1));
+		assertThat("listed obj ws id incorrect",
+				listobj.get(0).getWorkspaceId(), is(1L));
+		
+		// test obj rename
+		WorkspaceTester.failObjRename(ws, user1, clnobj, "foo", noObjExcp);
+		
+		//test revert
+		WorkspaceTester.failRevert(ws, user1, clnobj, noObjExcp);
+		
+		//test save
+		WorkspaceTester.failSave(ws, user1, cloning, Arrays.asList(
+				new WorkspaceSaveObject(
+						new UObject(mt), SAFE_TYPE, null, p, false)),
+				fac, noWSExcp);
+		
+		// test set global perm
+		WorkspaceTester.failSetGlobalPerm(ws, user1, cloning, Permission.READ,
+				noWSExcp);
+		
+		// test hide
+		WorkspaceTester.failSetHide(ws, user1, clnobj, true, noObjExcp);
+		
+		// test set perms
+		WorkspaceTester.failSetPermissions(ws, user1, cloning,
+				Arrays.asList(new WorkspaceUser("foo1")), Permission.READ,
+				noWSExcp);
+		
+		// test set desc
+		WorkspaceTester.failSetWSDesc(ws, user1, cloning, "foo", noWSExcp);
+		
+		//test ws meta
+		WorkspaceTester.failWSMeta(ws, user1, cloning, "fo", "bar", noWSExcp);
+		
+		//test ws rename
+		WorkspaceTester.failWSRename(ws, user1, cloning, "foo", noWSExcp);
+		
+		//test set ws owner
+		WorkspaceTester.failSetWorkspaceOwner(ws, user1, cloning,
+				new WorkspaceUser("barbaz"), "barbaz", false, noWSExcp);
+		
+		//test list workspaces
+		List<WorkspaceInformation> wsl = ws.listWorkspaces(
+				user1, null, null, null, null, null, false, true, false);
+		assertThat("listed ws count incorrect", wsl.size(), is(1));
+		assertThat("listed ws id incorrect",
+				wsl.get(0).getId(), is(1L));
+		
+		// test delete object
+		try {
+			ws.setObjectsDeleted(user1, Arrays.asList(clnobj), true);
+			fail("set deleted on ws in clone state");
+		} catch (InaccessibleObjectException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is(noObjExcp.getMessage()));
+		}
+		
+		// test get workspace owners
+		assertThat("got owner of cloning workspace",
+				ws.getAllWorkspaceOwners(),
+				is((Set<WorkspaceUser>) new HashSet<>(Arrays.asList(user2))));
+		
+		// test get referencing objects
+		try {
+			ws.getReferencingObjects(user1, Arrays.asList(clnobj));
+			fail("Able to get ref obj data from cloning workspace");
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception message", ioe.getLocalizedMessage(),
+					is(noObjExcp.getMessage()));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(new ObjectIdentifier(cloning, 1)));
+		}
+		
+		// test get workspace info
+		try {
+			ws.getWorkspaceInformation(user1, cloning);
+			fail("Got wsinfo from cloning ws");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("exception message ok", e.getLocalizedMessage(),
+					is(noWSExcp.getMessage()));
+		}
+		
+		// test lock workspace
+		try {
+			ws.lockWorkspace(user1, cloning);
+			fail("locked cloning workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is(noWSExcp.getMessage()));
+		}
+		
+		// test delete workspace
+		try {
+			ws.setWorkspaceDeleted(user1, cloning, true);
+			fail("deleted cloning workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is(noWSExcp.getMessage()));
+		}
 		
 	}
 	
@@ -438,7 +640,7 @@ public class MongoInternalsTest {
 	
 	@Test
 	public void raceConditionRevertObjectId() throws Exception {
-		//TODO more tests like this to test internals that can't be tested otherwise
+		//TODO TEST more tests like this to test internals that can't be tested otherwise
 		
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("ws");
 		WorkspaceUser user = new WorkspaceUser("u");
