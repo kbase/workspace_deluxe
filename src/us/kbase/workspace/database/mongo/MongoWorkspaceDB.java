@@ -1655,9 +1655,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 //					o.getObjectIdentifier(), objnum, "subdata");
 			//could save time by making type->data->TypeData map and reusing
 			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(o.getRep().createJsonWritable(),
-					o.getRep().getValidationTypeDefId());
-			if (pkg.td.getSize() > rescfg.getMaxObjectSize()) {
+			pkg.td = new TypeData(o.getRep().createJsonWritable());
+			if (o.getRep().getRelabeledSize() > rescfg.getMaxObjectSize()) {
 				throw new IllegalArgumentException(String.format(
 						"Object %s data size %s exceeds limit of %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),

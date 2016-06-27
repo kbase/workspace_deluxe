@@ -667,7 +667,7 @@ public class Workspace {
 			
 			final TypedObjectValidationReport rep = reports.get(wo);
 			saveobjs.add(wo.resolve(rep, refs, provrefs, extractedIDs));
-			ttlObjSize += rep.getRelabeledSize();
+			ttlObjSize += rep.calculateRelabeledSize();
 			objcount++;
 		}
 		objects = null;

@@ -246,7 +246,7 @@ public class TypedObjectValidationReportTest {
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
-		tovr.getRelabeledSize();
+		tovr.calculateRelabeledSize();
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
 		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
@@ -361,7 +361,7 @@ public class TypedObjectValidationReportTest {
 		handlers.processIDs();
 		
 		//sort via sort() method in memory
-		assertThat("correct object size", tovr.getRelabeledSize(), is(27L));
+		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
 		tovr.sort(SORT_FAC);
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);

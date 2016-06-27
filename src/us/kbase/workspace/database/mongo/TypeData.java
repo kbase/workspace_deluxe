@@ -1,47 +1,22 @@
 package us.kbase.workspace.database.mongo;
 
-
 import java.io.IOException;
 
-import us.kbase.typedobj.core.AbsoluteTypeDefId;
-import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.Writable;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 public class TypeData {
 	
-	private static final ObjectMapper MAPPER = new ObjectMapper();
-	static {
-		MAPPER.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
-	}
-	
+	//TODO PERFORMANCE SIMPLIFICATION remove this class. Do MD5 and size in TOVR at the same time as sorting
 	private Writable data = null;
 	
-	//these attributes are actually saved in mongo
-	private String type = null;
 	private String chksum;
 	private long size;
 	
-	public TypeData(final Writable data, final AbsoluteTypeDefId type)  {
+	public TypeData(final Writable data)  {
 		if (data == null) {
 			throw new IllegalArgumentException("data may not be null");
 		}
-		if (type == null) {
-			throw new IllegalArgumentException("type may not be null");
-		}
-		if (type.getMd5() != null) {
-			throw new RuntimeException("MD5 types are not accepted");
-		}
 		this.data = data;
-		/* Only the major type is stored here since different minor versions
-		 * of the same type can have the same checksum, and there's no reason
-		 * to store identical subdata twice. Knowing the exact type is not
-		 * necessary for the subdata.
-		 */
-		this.type = type.getType().getTypeString() +
-				AbsoluteTypeDefId.TYPE_VER_SEP + type.getMajorVersion();
 		final MD5DigestOutputStream md5 = new MD5DigestOutputStream();
 		try {
 			//writes in UTF8
@@ -63,10 +38,6 @@ public class TypeData {
 		return data;
 	}
 	
-	public TypeDefId getType() {
-		return TypeDefId.fromTypeString(type);
-	}
-	
 	public String getChksum() {
 		return chksum;
 	}
@@ -77,7 +48,7 @@ public class TypeData {
 
 	@Override
 	public String toString() {
-		return "TypeData [data=" + data + ", type=" + type
+		return "TypeData [data=" + data
 				+ ", chksum=" + chksum + ", size="
 				+ size + "]";
 	}

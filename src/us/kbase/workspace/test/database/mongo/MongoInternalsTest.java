@@ -662,8 +662,11 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("testobj"), new UObject(data), t,
 				new WorkspaceUserMetadata(meta), p, false);
+		final DummyTypedObjectValidationReport dummy =
+				new DummyTypedObjectValidationReport(at, wso.getData());
+		dummy.calculateRelabeledSize();
 		ResolvedSaveObject rso = wso.resolve(
-				new DummyTypedObjectValidationReport(at, wso.getData()),
+				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
 		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
@@ -873,8 +876,10 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer(objname),
 				new UObject(data), t, null, p, false);
+		final DummyTypedObjectValidationReport dummy = new DummyTypedObjectValidationReport(at, wso.getData());
+		dummy.calculateRelabeledSize();
 		ResolvedSaveObject rso = wso.resolve(
-				new DummyTypedObjectValidationReport(at, wso.getData()),
+				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
 		return rso;
@@ -906,7 +911,7 @@ public class MongoInternalsTest {
 		wo.set(pkg, rso);
 		Field td = pkg.getClass().getDeclaredField("td");
 		td.setAccessible(true);
-		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype));
+		td.set(pkg, new TypeData(rso.getRep().createJsonWritable()));
 		
 		Method incrementWorkspaceCounter = mwdb.getClass()
 				.getDeclaredMethod("incrementWorkspaceCounter",

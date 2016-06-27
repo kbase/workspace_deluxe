@@ -185,9 +185,9 @@ public class TypedObjectValidationReport {
 	/** Calculate the size of the object, in bytes, when ids have been
 	 * remapped.
 	 * @return the size of the object after id remapping.
-	 * @throws IOException
+	 * @throws IOException if an IO error occurs.
 	 */
-	public long getRelabeledSize() throws IOException {
+	public long calculateRelabeledSize() throws IOException {
 		if (!idHandler.wereIdsProcessed()) {
 			throw new IllegalStateException(
 					"Must process IDs in handler prior to relabling");
@@ -212,6 +212,20 @@ public class TypedObjectValidationReport {
 		jgen.close();
 		this.size = size[0];
 		return this.size;
+	}
+	
+	/** Get the size of the object, in bytes, when ids have been remapped.
+	 * calculateRelabledSize() must have been called previously, either
+	 * directly or indirectly via sort().
+	 * @return the size of the object after id remapping.
+	 */
+	public long getRelabeledSize() {
+		if (size < 0) {
+			throw new IllegalStateException(
+					"Must call calculateRelabeledSize() " +
+					"before getting said size");
+		}
+		return size;
 	}
 	
 	/** Relabel ids, sort the object if necessary and keep a copy.
@@ -249,7 +263,7 @@ public class TypedObjectValidationReport {
 			throw new NullPointerException("Sorter factory cannot be null");
 		}
 		if (size < 0) {
-			getRelabeledSize();
+			calculateRelabeledSize();
 		}
 		destroyCachedResources();
 		cacheForSorting = null;
