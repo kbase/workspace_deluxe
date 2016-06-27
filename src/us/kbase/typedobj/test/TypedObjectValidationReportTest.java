@@ -22,10 +22,12 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -351,21 +353,45 @@ public class TypedObjectValidationReportTest {
 		refmap.put("a", "a");
 		refmap.put("b", "b");
 		
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
-		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
+		IdReferenceHandlerSetFactory fac =
+				new IdReferenceHandlerSetFactory(100);
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
+				refmap));
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
+		assertThat("incorrect typedef", tovr.getValidationTypeDefId(),
+				is(AbsoluteTypeDefId.fromAbsoluteTypeString(
+						"TestIDMap.IDMap-1.0")));
+		try {
+			tovr.calculateRelabeledSize();
+			fail("calculated size w/o processed IDs");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must process IDs in handler prior to relabling"));
+		}
 		handlers.processIDs();
 		
+		try {
+			tovr.getRelabeledSize();
+			fail("got relabled size before calculation");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must call calculateRelabeledSize() before getting said size"));
+		}
+		
 		//sort via sort() method in memory
+		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
+		assertThat("correct object size", tovr.getRelabeledSize(), is(27L));
+		// check twice, result is memoized
 		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
 		tovr.sort(SORT_FAC);
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
-		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"), is(expectedJson));
+		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"),
+				is(expectedJson));
 		
 		//sort via sort(TFM) method with null TFM, again in memory
 		handlers = fac.createHandlers(String.class).associateObject("foo");
@@ -376,7 +402,8 @@ public class TypedObjectValidationReportTest {
 		tovr.sort(SORT_FAC, null);
 		o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
-		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"), is(expectedJson));
+		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"),
+				is(expectedJson));
 		
 		//sort via sort(TFM) method with data stored in file
 		handlers = fac.createHandlers(String.class).associateObject("foo");
@@ -394,7 +421,8 @@ public class TypedObjectValidationReportTest {
 		o = new ByteArrayOutputStream();
 		Writable w = tovr.createJsonWritable();
 		w.write(o);
-		assertThat("Relabel and in file correctly", o.toString("UTF-8"), is(expectedJson));
+		assertThat("Relabel and in file correctly", o.toString("UTF-8"),
+				is(expectedJson));
 		w.releaseResources();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 	}

@@ -22,6 +22,10 @@ import us.kbase.typedobj.idref.IdReferenceType;
  * @author rsutormin
  */
 public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
+	
+	//TODO TEST unittests
+	//TODO JAVADOC
+	
 	// jts provides tokens of real json data we would like to relabel id-refs in,
 	// relabeling is just substituting tokens with old id-ref values by new ones
 	private final JsonTokenStream jts;
@@ -47,6 +51,15 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	public IdRefTokenSequenceProvider(final JsonTokenStream jts,
 			final JsonTokenValidationSchema schema, 
 			final IdReferenceHandlerSet<?> idhandlers) {
+		if (schema == null) {
+			throw new NullPointerException("schema");
+		}
+		if (jts == null) {
+			throw new NullPointerException("jts");
+		}
+		if (idhandlers == null) {
+			throw new NullPointerException("idhandlers");
+		}
 		this.jts = jts;
 		this.schemaLoc = new ArrayList<JsonTokenValidationSchema>(
 				Arrays.asList(schema));

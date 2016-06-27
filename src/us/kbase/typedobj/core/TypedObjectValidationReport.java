@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -97,7 +98,23 @@ public class TypedObjectValidationReport {
 			final JsonNode wsMetadataSelection,
 			final JsonTokenValidationSchema schema,
 			final IdReferenceHandlerSet<?> idHandler) {
-		this.errors = errors == null ? new LinkedList<String>() : errors;
+		if (errors == null) {
+			throw new NullPointerException("errors");
+		}
+		if (validationTypeDefId == null) {
+			throw new NullPointerException("validationTypeDefId");
+		}
+		if (idHandler == null) {
+			throw new NullPointerException("idHandler");
+		}
+		if (tokenStreamProvider == null) {
+			throw new NullPointerException("tokenStreamProvider");
+		}
+		if (schema == null) {
+			throw new NullPointerException("schema");
+		}
+		this.errors = Collections.unmodifiableList(new LinkedList<>(errors));
+		//null is ok, metadata handler handles correctly
 		this.wsMetadataSelection = wsMetadataSelection;
 		this.validationTypeDefId=validationTypeDefId;
 		this.idHandler = idHandler;
