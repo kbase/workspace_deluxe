@@ -68,8 +68,6 @@ public class Workspace {
 	
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists? Uh, why is this needed? Probably can drop.
 	
-	//TODO PERFORMANCE use DigestInputStream while sorting object to calculate md5 at the same time
-	
 	public static final User ALL_USERS = new AllUsers('*');
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
@@ -653,13 +651,12 @@ public class Workspace {
 					final Set<RemappedId> ids = idhandler.getRemappedIds(
 							irt, new IDAssociation(objcount, false));
 					if (!ids.isEmpty()) {
-						extractedIDs.put(irt, idhandler.getRemappedIds(
-								irt, new IDAssociation(objcount, false)));
+						extractedIDs.put(irt, ids);
 					}
 				}
 			}
 			final Set<RemappedId> refids = idhandler.getRemappedIds(
-					WS_ID_TYPE,  new IDAssociation(objcount, false));
+					WS_ID_TYPE, new IDAssociation(objcount, false));
 			final Set<Reference> refs = new HashSet<Reference>();
 			for (final RemappedId id: refids) {
 				refs.add((Reference) id);
@@ -667,7 +664,14 @@ public class Workspace {
 			
 			final TypedObjectValidationReport rep = reports.get(wo);
 			saveobjs.add(wo.resolve(rep, refs, provrefs, extractedIDs));
-			ttlObjSize += rep.getRelabeledSize();
+			ttlObjSize += rep.calculateRelabeledSize();
+			if (rep.getRelabeledSize() > rescfg.getMaxObjectSize()) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s data size %s exceeds limit of %s",
+						getObjectErrorId(wo.getObjectIdentifier(), objcount),
+						rep.getRelabeledSize(),
+						rescfg.getMaxObjectSize()));
+			}
 			objcount++;
 		}
 		objects = null;

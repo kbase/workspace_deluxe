@@ -22,12 +22,15 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.LocalTypeProvider;
+import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
@@ -238,19 +241,30 @@ public class TypedObjectValidationReportTest {
 		refmap.put("c", "c");
 		refmap.put("a", "a");
 		
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
-		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
+		IdReferenceHandlerSetFactory fac =
+				new IdReferenceHandlerSetFactory(100);
+		fac.addFactory(new DummyIdHandlerFactory(
+				new IdReferenceType("ws"), refmap));
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
-		tovr.getRelabeledSize();
+		try {
+			tovr.getMD5();
+			fail("got md5 for unsorted data");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must call sort() before getting the MD5"));
+		}
+		assertThat("incorrect size", tovr.calculateRelabeledSize(), is(27L));
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
-		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
-		
+		assertThat("Relabel correctly without sort", o.toString("UTF-8"),
+				is(expectedJson));
 		
 		//sort unnecessarily
 		handlers = fac.createHandlers(String.class).associateObject("foo");
@@ -258,9 +272,13 @@ public class TypedObjectValidationReportTest {
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
 		tovr.sort(SORT_FAC);
+		assertThat("incorrect size", tovr.getRelabeledSize(), is(27L));
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
 		o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
-		assertThat("Relabel correctly with unecessary sort", o.toString("UTF-8"), is(expectedJson));
+		assertThat("Relabel correctly with unecessary sort",
+				o.toString("UTF-8"), is(expectedJson));
 	}
 
 	@Test
@@ -275,7 +293,18 @@ public class TypedObjectValidationReportTest {
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
+		try {
+			tovr.getMD5();
+			fail("got md5 for unsorted data");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must call sort() before getting the MD5"));
+		}
 		tovr.sort(SORT_FAC);
+		assertThat("incorrect size", tovr.getRelabeledSize(), is(17L));
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("16903d0745c0f47a90d92d1abd535b12")));
+		
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
 		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
@@ -351,21 +380,54 @@ public class TypedObjectValidationReportTest {
 		refmap.put("a", "a");
 		refmap.put("b", "b");
 		
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
-		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
+		IdReferenceHandlerSetFactory fac =
+				new IdReferenceHandlerSetFactory(100);
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
+				refmap));
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
+		assertThat("incorrect typedef", tovr.getValidationTypeDefId(),
+				is(AbsoluteTypeDefId.fromAbsoluteTypeString(
+						"TestIDMap.IDMap-1.0")));
+		try {
+			tovr.calculateRelabeledSize();
+			fail("calculated size w/o processed IDs");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must process IDs in handler prior to relabling"));
+		}
 		handlers.processIDs();
 		
+		try {
+			tovr.getRelabeledSize();
+			fail("got relabled size before calculation");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must call calculateRelabeledSize() before getting said size"));
+		}
+		
 		//sort via sort() method in memory
+		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
 		assertThat("correct object size", tovr.getRelabeledSize(), is(27L));
+		// check twice, result is memoized
+		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
+		try {
+			tovr.getMD5();
+			fail("got md5 for unsorted data");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must call sort() before getting the MD5"));
+		}
 		tovr.sort(SORT_FAC);
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("920d54af26c56df84e4c4df358952138")));
 		ByteArrayOutputStream o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
-		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"), is(expectedJson));
+		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"),
+				is(expectedJson));
 		
 		//sort via sort(TFM) method with null TFM, again in memory
 		handlers = fac.createHandlers(String.class).associateObject("foo");
@@ -374,9 +436,12 @@ public class TypedObjectValidationReportTest {
 		handlers.processIDs();
 		
 		tovr.sort(SORT_FAC, null);
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("920d54af26c56df84e4c4df358952138")));
 		o = new ByteArrayOutputStream();
 		tovr.createJsonWritable().write(o);
-		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"), is(expectedJson));
+		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"),
+				is(expectedJson));
 		
 		//sort via sort(TFM) method with data stored in file
 		handlers = fac.createHandlers(String.class).associateObject("foo");
@@ -391,10 +456,13 @@ public class TypedObjectValidationReportTest {
 		tovr.sort(SORT_FAC, tfm);
 		assertThat("TFM is no longer empty", tfm.isEmpty(), is(false));
 		assertThat("TFM has one file", tfm.getTempFileList().size(), is(1));
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("920d54af26c56df84e4c4df358952138")));
 		o = new ByteArrayOutputStream();
 		Writable w = tovr.createJsonWritable();
 		w.write(o);
-		assertThat("Relabel and in file correctly", o.toString("UTF-8"), is(expectedJson));
+		assertThat("Relabel and in file correctly", o.toString("UTF-8"),
+				is(expectedJson));
 		w.releaseResources();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 	}

@@ -86,7 +86,8 @@ public class ServiceChecker {
 						"service. Code: %s, message: %s, content: %s",
 						serviceURL, responseCode,
 						conn.getResponseMessage(),
-						error.substring(0, 1000)));
+						error.length() >= 1000 ? error.substring(0, 1000) :
+							error));
 	}
 	
 	private static class RpcError {

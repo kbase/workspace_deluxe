@@ -49,6 +49,11 @@ public class ServiceCheckerTest {
 				"generated service. Code: 200, message: OK, content: " +
 				"<!doctype html><html itemscope=",
 				"http://google.com"));
+		TESTS.put("short200", new TestSpec(
+				"URL https://ci.kbase.us/services/shock-api does not point " +
+				"to a KBase SDK generated service. Code: 200, message: OK, " +
+				"content: {\"attribute_indexes\"",
+				"https://ci.kbase.us/services/shock-api"));
 		
 	}
 	
@@ -79,6 +84,11 @@ public class ServiceCheckerTest {
 	
 	@Test
 	public void test200() throws Exception {
+		test();
+	}
+	
+	@Test
+	public void short200() throws Exception {
 		test();
 	}
 	

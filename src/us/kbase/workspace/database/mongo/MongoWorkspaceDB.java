@@ -1382,7 +1382,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws WorkspaceCommunicationException {
 		final Map<String, Object> version = new HashMap<String, Object>();
 		version.put(Fields.VER_SAVEDBY, user.getUser());
-		version.put(Fields.VER_CHKSUM, pkg.td.getChksum());
+		version.put(Fields.VER_CHKSUM, pkg.wo.getRep().getMD5().getMD5());
 		version.put(Fields.VER_META, metaHashToMongoArray(
 				pkg.wo.getUserMeta().getMetadata()));
 		version.put(Fields.VER_REF, pkg.refs);
@@ -1390,7 +1390,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		version.put(Fields.VER_PROV, pkg.mprov.getMongoId());
 		version.put(Fields.VER_TYPE, pkg.wo.getRep().getValidationTypeDefId()
 				.getTypeString());
-		version.put(Fields.VER_SIZE, pkg.td.getSize());
+		version.put(Fields.VER_SIZE, pkg.wo.getRep().getRelabeledSize());
 		version.put(Fields.VER_RVRT, null);
 		version.put(Fields.VER_COPIED, null);
 		version.put(Fields.VER_EXT_IDS, extractedIDsToStrings(
@@ -1399,11 +1399,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		saveObjectVersions(user, wsid, objectid, Arrays.asList(version),
 				pkg.wo.isHidden());
 		
-		return new MongoObjectInfo(objectid, pkg.name,
+		return new MongoObjectInfo(
+				objectid,
+				pkg.name,
 				pkg.wo.getRep().getValidationTypeDefId().getTypeString(),
 				(Date) version.get(Fields.VER_SAVEDATE),
 				(Integer) version.get(Fields.VER_VER),
-				user, wsid, pkg.td.getChksum(), pkg.td.getSize(),
+				user,
+				wsid,
+				pkg.wo.getRep().getMD5().getMD5(),
+				pkg.wo.getRep().getRelabeledSize(),
 				new UncheckedUserMetadata(pkg.wo.getUserMeta()));
 	}
 
@@ -1648,20 +1653,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"Object %s: %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
 						me.getMessage()), me);
-			}
-			
-			
-//			checkObjectLength(subdata, MAX_SUBDATA_SIZE,
-//					o.getObjectIdentifier(), objnum, "subdata");
-			//could save time by making type->data->TypeData map and reusing
-			//already calced TDs, but hardly seems worth it - unlikely event
-			pkg.td = new TypeData(o.getRep().createJsonWritable(),
-					o.getRep().getValidationTypeDefId());
-			if (pkg.td.getSize() > rescfg.getMaxObjectSize()) {
-				throw new IllegalArgumentException(String.format(
-						"Object %s data size %s exceeds limit of %s",
-						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						pkg.td.getSize(), rescfg.getMaxObjectSize()));
 			}
 			ret.add(pkg);
 			objnum++;
@@ -2043,18 +2034,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	//this whole method needs a rethink now we're dealing with Writeables
-	//could have the blob store calc & return the size & MD5
 	private void saveData(
 			final ResolvedMongoWSID workspaceid,
 			final List<ObjectSavePackage> data)
 			throws WorkspaceCommunicationException {
 		try {
 			for (ObjectSavePackage p: data) {
-				final String md5 = p.td.getChksum();
-				final Writable w = p.td.getData();
+				final String md5 = p.wo.getRep().getMD5().getMD5();
+				final Writable w = p.wo.getRep().createJsonWritable();
 				try {
-					//this is kind of stupid, but no matter how you slice
-					//it you have to calc md5s before you save the data
 					blob.saveBlob(new MD5(md5), w, true); //always sorted in 0.2.0+
 				} catch (BlobStoreCommunicationException e) {
 					throw new WorkspaceCommunicationException(
@@ -2066,10 +2054,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 			}
 		} finally {
-			for (ObjectSavePackage wo: data) {
+			for (final ObjectSavePackage o: data) {
 				try {
-					wo.td.getData().releaseResources();
-				} catch (IOException ioe) {
+					o.wo.getRep().destroyCachedResources();
+				} catch (RuntimeException | Error e) {
 					//ok, we just possibly left a temp file on disk,
 					//but it's not worth interrupting the entire call for
 				}

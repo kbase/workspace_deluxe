@@ -78,7 +78,6 @@ import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
 import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
-import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
@@ -662,8 +661,11 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("testobj"), new UObject(data), t,
 				new WorkspaceUserMetadata(meta), p, false);
+		final DummyTypedObjectValidationReport dummy =
+				new DummyTypedObjectValidationReport(at, wso.getData());
+		dummy.calculateRelabeledSize();
 		ResolvedSaveObject rso = wso.resolve(
-				new DummyTypedObjectValidationReport(at, wso.getData()),
+				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
 		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
@@ -873,8 +875,10 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer(objname),
 				new UObject(data), t, null, p, false);
+		final DummyTypedObjectValidationReport dummy = new DummyTypedObjectValidationReport(at, wso.getData());
+		dummy.calculateRelabeledSize();
 		ResolvedSaveObject rso = wso.resolve(
-				new DummyTypedObjectValidationReport(at, wso.getData()),
+				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
 		return rso;
@@ -904,9 +908,6 @@ public class MongoInternalsTest {
 		Field wo = pkg.getClass().getDeclaredField("wo");
 		wo.setAccessible(true);
 		wo.set(pkg, rso);
-		Field td = pkg.getClass().getDeclaredField("td");
-		td.setAccessible(true);
-		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype));
 		
 		Method incrementWorkspaceCounter = mwdb.getClass()
 				.getDeclaredMethod("incrementWorkspaceCounter",
