@@ -42,23 +42,21 @@ public class ServiceChecker {
 			if (responseCode != 500) {
 				handleNon500(serviceURL, conn, responseCode);
 			} else {
-				final String resp;
+				final RpcResponse r;
 				try (final InputStream is = conn.getErrorStream()) {
-					resp = IOUtils.toString(is);
+					r = new ObjectMapper()
+							.readValue(is, RpcResponse.class);
 				}
 				conn.disconnect();
-				final RpcResponse r = new ObjectMapper()
-						.readValue(resp, RpcResponse.class);
-				final RpcError err = r.error;
 				//TODO TEST mock up a test service for the next two checks at some point
-				if (err == null) {
+				if (r.error == null) {
 					throw new ServiceException(String.format(
 							"The service at %s is not a KBase SDK service: " +
 							"no error field in RPC response as expected",
 							serviceURL));
 				}
-				final String msg = err.message;
-				final int code = err.code;
+				final String msg = r.error.message;
+				final int code = r.error.code;
 				if (!(PY_MSG.equals(msg) && PY_CODE == code) &&
 						!(JV_PL_MSG.equals(msg) && JV_PL_CODE == code)) {
 					throw new ServiceException(String.format(
@@ -82,7 +80,7 @@ public class ServiceChecker {
 			throws IOException, ServiceException {
 		final String error;
 		try (final InputStream es = conn.getInputStream()) {
-			error = IOUtils.toString(es);
+			error = IOUtils.toString(es, "UTF-8");
 		}
 		conn.disconnect();
 		throw new ServiceException(String.format(
@@ -99,9 +97,15 @@ public class ServiceChecker {
 		public int code;
 		@SuppressWarnings("unused")
 		public String name;
+		@SuppressWarnings("unused")
+		public String error;
+		@SuppressWarnings("unused")
+		public String data;
 	}
 	
 	private static class RpcResponse {
+		@SuppressWarnings("unused")
+		public String id;
 		@SuppressWarnings("unused")
 		public String version;
 		public RpcError error;
