@@ -37,9 +37,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * The report generated when a typed object instance is validated.  If the type definition indicates
- * that fields are ID references, those ID references can be extracted from this report.  If a
- * searchable subset flag is set in the type definition, you can extract that too.
+ * The report generated when a typed object instance is validated.  If the type
+ * definition indicates that fields are ID references, those ID references can
+ * be extracted from this report.
  *
  * @author msneddon
  * @author rsutormin
