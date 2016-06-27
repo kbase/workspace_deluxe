@@ -87,6 +87,9 @@ public class WorkspaceServerMethods {
 		this.auth = auth;
 	}
 	
+	public URL getHandleServiceURL() {
+		return handleServiceUrl;
+	}
 	public DependencyStatus checkHandleService() {
 		try {
 			ServiceChecker.checkService(handleServiceUrl);

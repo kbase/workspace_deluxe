@@ -1793,8 +1793,12 @@ public class WorkspaceServer extends JsonServerServlet {
 		//TODO TEST add tests exercising failures
 		returnVal = new LinkedHashMap<String, Object>();
 		final List<DependencyStatus> deps = ws.status();
-		deps.add(wsmeth.checkHandleService());
-		deps.add(checkHandleManager());
+		if (wsmeth.getHandleServiceURL() != null) {
+			deps.add(wsmeth.checkHandleService());
+		}
+		if (handleManagerUrl != null) {
+			deps.add(checkHandleManager());
+		}
 		boolean ok = true;
 		final List<Map<String, String>> dstate = new LinkedList<>();
 		for (final DependencyStatus ds: deps) {
