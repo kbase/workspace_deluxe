@@ -16,6 +16,8 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 
 //BEGIN_HEADER
+import us.kbase.common.service.ServiceChecker;
+import us.kbase.common.service.ServiceChecker.ServiceException;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.checkLong;
 import static us.kbase.workspace.kbase.ArgUtils.getUser;
@@ -195,6 +197,18 @@ public class WorkspaceServer extends JsonServerServlet {
 			startupFailed();
 		}
 		
+	}
+	
+	public DependencyStatus checkHandleManager() {
+		try {
+			ServiceChecker.checkService(handleManagerUrl);
+			return new DependencyStatus(
+					true, "OK", "Handle manager", "Unknown");
+		} catch (ServiceException se) {
+			//tested manually, don't change without testing
+			return new DependencyStatus(
+					false, se.getMessage(), "Handle manager", "Unknown");
+		}
 	}
 	
     //END_CLASS_HEADER
@@ -1779,6 +1793,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		//TODO TEST add tests exercising failures
 		returnVal = new LinkedHashMap<String, Object>();
 		final List<DependencyStatus> deps = ws.status();
+		deps.add(wsmeth.checkHandleService());
+		deps.add(checkHandleManager());
 		boolean ok = true;
 		final List<Map<String, String>> dstate = new LinkedList<>();
 		for (final DependencyStatus ds: deps) {

@@ -25,6 +25,8 @@ import java.util.Map;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
+import us.kbase.common.service.ServiceChecker;
+import us.kbase.common.service.ServiceChecker.ServiceException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.typedobj.core.TypeDefId;
@@ -43,6 +45,7 @@ import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -82,6 +85,18 @@ public class WorkspaceServerMethods {
 		this.handleServiceUrl = handleServiceUrl;
 		this.maximumIDCount = maximumIDCount;
 		this.auth = auth;
+	}
+	
+	public DependencyStatus checkHandleService() {
+		try {
+			ServiceChecker.checkService(handleServiceUrl);
+			return new DependencyStatus(
+					true, "OK", "Handle service", "Unknown");
+		} catch (ServiceException se) {
+			//tested manually, don't change without testing
+			return new DependencyStatus(
+					false, se.getMessage(), "Handle Service", "Unknown");
+		}
 	}
 
 	public Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>
