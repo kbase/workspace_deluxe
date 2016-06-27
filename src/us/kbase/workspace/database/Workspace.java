@@ -653,13 +653,12 @@ public class Workspace {
 					final Set<RemappedId> ids = idhandler.getRemappedIds(
 							irt, new IDAssociation(objcount, false));
 					if (!ids.isEmpty()) {
-						extractedIDs.put(irt, idhandler.getRemappedIds(
-								irt, new IDAssociation(objcount, false)));
+						extractedIDs.put(irt, ids);
 					}
 				}
 			}
 			final Set<RemappedId> refids = idhandler.getRemappedIds(
-					WS_ID_TYPE,  new IDAssociation(objcount, false));
+					WS_ID_TYPE, new IDAssociation(objcount, false));
 			final Set<Reference> refs = new HashSet<Reference>();
 			for (final RemappedId id: refids) {
 				refs.add((Reference) id);
