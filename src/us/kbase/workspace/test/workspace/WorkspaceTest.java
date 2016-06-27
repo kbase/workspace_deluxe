@@ -1565,7 +1565,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		TypeDefId abstype6 = new TypeDefId(new TypeDefName(module, "type6"), 0, 1);
 		Set<String> keys = new TreeSet<String>(Arrays.asList("val1", "val2", "val3"));
 		
-		//TODO should try these tests with bytes vs. maps
+		//TODO TEST should try these tests with bytes vs. maps
 		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
 		data1.put("val3", null);
 		data1.put("val2", null);
@@ -2010,7 +2010,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"Object #1 has invalid provenance reference: There is no object with id referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
 								+ refwsid));
 		
-		//TODO test references against garbage collected objects
+		//TODO GC test references against garbage collected objects
 		
 		//test reference type checking
 		String refmod = "TestTypeCheckingRefType";
@@ -5017,8 +5017,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				.withShowAllVersions(true).withIncludeMetaData(true)),
 				new ArrayList<ObjectInformation>());
 		
-		//TODO move these to unit tests for LOP
-		//TODO you can test the 2 arg constructor, just cast the null idiot
+		//TODO MOVE move these to unit tests for LOP
+		//TODO TEST you can test the 2 arg constructor, just cast the null idiot
 		// can't test 2 argument constructor with the 2nd constructor argument
 		// null since then constructor is ambiguous
 		try {

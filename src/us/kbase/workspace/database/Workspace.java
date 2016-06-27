@@ -58,15 +58,13 @@ import com.fasterxml.jackson.core.JsonParseException;
 
 public class Workspace {
 	
-	//TODO limit all methods that return a set or list or map
+	//TODO MEM limit all methods that return a set or list or map
 	
-	//TODO general unit tests
-	//TODO BIG GC garbage collection - see WOR-45
-	//TODO BIG SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
-	//TODO BIG SEARCH separate service - get object changes since date (based on type collection and pointers collection
-	//TODO BIG SEARCH index typespecs
-	
-	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists? Uh, why is this needed? Probably can drop.
+	//TODO TEST general unit tests
+	//TODO GC garbage collection - see WOR-45
+	//TODO SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
+	//TODO SEARCH separate service - get object changes since date (based on type collection and pointers collection
+	//TODO SEARCH index typespecs
 	
 	public static final User ALL_USERS = new AllUsers('*');
 	
@@ -99,7 +97,7 @@ public class Workspace {
 			throw new NullPointerException("validator cannot be null");
 		}
 		this.db = db;
-		//TODO check that a few object types exist to make sure the type provider is ok.
+		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
 		this.validator = validator;
 		rescfg = cfg;
 		this.parser = parser;

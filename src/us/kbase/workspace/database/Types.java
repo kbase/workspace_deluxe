@@ -75,7 +75,7 @@ public class Types {
 		}
 	}
 	
-	//TODO should return the version as well?
+	//TODO should return the spec version as well?
 	public Map<TypeDefName, TypeChange> compileNewTypeSpec(
 			final WorkspaceUser user, final String typespec,
 			final List<String> newtypes, final List<String> removeTypes,

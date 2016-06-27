@@ -84,7 +84,7 @@ public class WorkspaceIdentifier {
 		}
 	}
 	
-	//TODO unit tests (for entire class?)
+	//TODO TEST unit tests (for entire class?)
 	public static String[] splitUser(final String wsName) {
 		final String[] user_ws = wsName.split(WS_NAME_DELIMITER);
 		if (user_ws.length == 2) {

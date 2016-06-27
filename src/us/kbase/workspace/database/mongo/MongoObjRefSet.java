@@ -10,7 +10,7 @@ import us.kbase.workspace.database.Reference;
 
 public class MongoObjRefSet implements ObjectReferenceSet {
 
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	private Reference objref;
 	private Set<Reference> refs;

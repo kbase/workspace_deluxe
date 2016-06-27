@@ -7,7 +7,7 @@ import java.util.List;
 
 public class ObjectIDWithRefChain extends ObjectIdentifier {
 
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	private List<ObjectIdentifier> chain;
 	

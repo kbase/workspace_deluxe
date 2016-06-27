@@ -13,7 +13,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 
 public class MongoPermissionSet implements PermissionSet {
 	
-	//TODO unit tests 
+	//TODO TEST unit tests 
 	
 	private static class Perms {
 		private final Permission perm;
