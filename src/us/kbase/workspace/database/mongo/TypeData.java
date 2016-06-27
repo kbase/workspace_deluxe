@@ -10,7 +10,6 @@ public class TypeData {
 	private Writable data = null;
 	
 	private String chksum;
-	private long size;
 	
 	public TypeData(final Writable data)  {
 		if (data == null) {
@@ -30,7 +29,6 @@ public class TypeData {
 				throw new RuntimeException("something is broken here", ioe);
 			}
 		}
-		this.size = md5.getSize();
 		this.chksum = md5.getMD5().getMD5();
 	}
 	
@@ -42,14 +40,9 @@ public class TypeData {
 		return chksum;
 	}
 	
-	public long getSize() {
-		return size;
-	}
-
 	@Override
 	public String toString() {
 		return "TypeData [data=" + data
-				+ ", chksum=" + chksum + ", size="
-				+ size + "]";
+				+ ", chksum=" + chksum + "]";
 	}
 }

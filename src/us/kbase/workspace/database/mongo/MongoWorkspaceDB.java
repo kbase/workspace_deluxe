@@ -1390,7 +1390,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		version.put(Fields.VER_PROV, pkg.mprov.getMongoId());
 		version.put(Fields.VER_TYPE, pkg.wo.getRep().getValidationTypeDefId()
 				.getTypeString());
-		version.put(Fields.VER_SIZE, pkg.td.getSize());
+		version.put(Fields.VER_SIZE, pkg.wo.getRep().getRelabeledSize());
 		version.put(Fields.VER_RVRT, null);
 		version.put(Fields.VER_COPIED, null);
 		version.put(Fields.VER_EXT_IDS, extractedIDsToStrings(
@@ -1399,11 +1399,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		saveObjectVersions(user, wsid, objectid, Arrays.asList(version),
 				pkg.wo.isHidden());
 		
-		return new MongoObjectInfo(objectid, pkg.name,
+		return new MongoObjectInfo(
+				objectid,
+				pkg.name,
 				pkg.wo.getRep().getValidationTypeDefId().getTypeString(),
 				(Date) version.get(Fields.VER_SAVEDATE),
 				(Integer) version.get(Fields.VER_VER),
-				user, wsid, pkg.td.getChksum(), pkg.td.getSize(),
+				user,
+				wsid,
+				pkg.td.getChksum(),
+				pkg.wo.getRep().getRelabeledSize(),
 				new UncheckedUserMetadata(pkg.wo.getUserMeta()));
 	}
 
@@ -1660,7 +1665,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new IllegalArgumentException(String.format(
 						"Object %s data size %s exceeds limit of %s",
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						pkg.td.getSize(), rescfg.getMaxObjectSize()));
+						o.getRep().getRelabeledSize(),
+						rescfg.getMaxObjectSize()));
 			}
 			ret.add(pkg);
 			objnum++;
