@@ -1654,20 +1654,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
 						me.getMessage()), me);
 			}
-			
-			
-//			checkObjectLength(subdata, MAX_SUBDATA_SIZE,
-//					o.getObjectIdentifier(), objnum, "subdata");
-			//could save time by making type->data->TypeData map and reusing
-			//already calced TDs, but hardly seems worth it - unlikely event
 			pkg.td = new TypeData(o.getRep().createJsonWritable());
-			if (o.getRep().getRelabeledSize() > rescfg.getMaxObjectSize()) {
-				throw new IllegalArgumentException(String.format(
-						"Object %s data size %s exceeds limit of %s",
-						getObjectErrorId(o.getObjectIdentifier(), objnum),
-						o.getRep().getRelabeledSize(),
-						rescfg.getMaxObjectSize()));
-			}
 			ret.add(pkg);
 			objnum++;
 		}
@@ -2048,7 +2035,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	//this whole method needs a rethink now we're dealing with Writeables
-	//could have the blob store calc & return the size & MD5
 	private void saveData(
 			final ResolvedMongoWSID workspaceid,
 			final List<ObjectSavePackage> data)
@@ -2058,8 +2044,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				final String md5 = p.td.getChksum();
 				final Writable w = p.td.getData();
 				try {
-					//this is kind of stupid, but no matter how you slice
-					//it you have to calc md5s before you save the data
 					blob.saveBlob(new MD5(md5), w, true); //always sorted in 0.2.0+
 				} catch (BlobStoreCommunicationException e) {
 					throw new WorkspaceCommunicationException(

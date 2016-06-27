@@ -668,6 +668,13 @@ public class Workspace {
 			final TypedObjectValidationReport rep = reports.get(wo);
 			saveobjs.add(wo.resolve(rep, refs, provrefs, extractedIDs));
 			ttlObjSize += rep.calculateRelabeledSize();
+			if (rep.getRelabeledSize() > rescfg.getMaxObjectSize()) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s data size %s exceeds limit of %s",
+						getObjectErrorId(wo.getObjectIdentifier(), objcount),
+						rep.getRelabeledSize(),
+						rescfg.getMaxObjectSize()));
+			}
 			objcount++;
 		}
 		objects = null;
