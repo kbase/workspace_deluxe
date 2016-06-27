@@ -7,6 +7,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -22,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -418,13 +419,25 @@ public class WorkspaceTester {
 	}
 	
 	protected IdReferenceHandlerSetFactory getIdFactory() {
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
-		return fac;
+		return new IdReferenceHandlerSetFactory(100000);
 	}
 	
-	protected void failSetWSDesc(WorkspaceUser user,
-			WorkspaceIdentifier wsi, String description,
-			Exception e) throws Exception {
+	protected void failSetWSDesc(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String description,
+			final Exception e)
+			throws Exception {
+		failSetWSDesc(ws, user, wsi, description, e);
+	}
+	
+	public static void failSetWSDesc(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String description,
+			final Exception e)
+			throws Exception {
 		try {
 			ws.setWorkspaceDescription(user, wsi, description);
 			fail("set ws desc when should fail");
@@ -476,16 +489,44 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void failWSMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
-			String key, String value, Exception e) throws Exception {
-		failWSRemoveMeta(user, wsi, key, e);
+	protected void failWSMeta(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String key,
+			final String value,
+			final Exception e)
+			throws Exception {
+		failWSMeta(ws, user, wsi, key, value, e);
+	}
+	
+	public static void failWSMeta(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String key,
+			final String value,
+			final Exception e)
+			throws Exception {
+		failWSRemoveMeta(ws, user, wsi, key, e);
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put(key, value);
-		failWSSetMeta(user, wsi, meta, e);
+		failWSSetMeta(ws, user, wsi, meta, e);
 	}
 
-	protected void failWSRemoveMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
-			String key, Exception e) {
+	protected void failWSRemoveMeta(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String key,
+			final Exception e) {
+		failWSRemoveMeta(ws, user, wsi, key, e);
+	}
+	
+	public static void failWSRemoveMeta(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String key,
+			final Exception e) {
 		try {
 			ws.removeWorkspaceMetadata(user, wsi, key);
 			fail("expected remove ws meta to fail");
@@ -494,22 +535,26 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void failWSSetMeta(WorkspaceUser user, WorkspaceIdentifier wsi,
-			Map<String, String> meta, Exception e) {
+	protected void failWSSetMeta(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Map<String, String> meta,
+			final Exception e) {
+		failWSSetMeta(ws, user, wsi, meta, e);
+	}
+	
+	public static void failWSSetMeta(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Map<String, String> meta,
+			final Exception e) {
 		try {
 			ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(meta));
 			fail("expected set ws meta to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
-	}
-	
-	private void assertExceptionCorrect(Exception got, Exception expected) {
-		assertThat("incorrect exception. trace:\n" +
-				ExceptionUtils.getStackTrace(got),
-				got.getLocalizedMessage(),
-				is(expected.getLocalizedMessage()));
-		assertThat("incorrect exception type", got, is(expected.getClass()));
 	}
 	
 	protected void failCreateWorkspace(WorkspaceUser user, String name,
@@ -524,8 +569,24 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void failSetPermissions(WorkspaceUser user, WorkspaceIdentifier wsi,
-			List<WorkspaceUser> users, Permission perm, Exception e) throws Exception {
+	protected void failSetPermissions(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceUser> users,
+			final Permission perm, 
+			final Exception e)
+			throws Exception {
+		failSetPermissions(ws, user, wsi, users, perm, e);
+	}
+	
+	public static void failSetPermissions(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceUser> users,
+			final Permission perm, 
+			final Exception e)
+			throws Exception {
 		try {
 			ws.setPermissions(user, wsi, users, perm);
 			fail("set perms when should fail");
@@ -534,8 +595,20 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void failGetPermissions(WorkspaceUser user, List<WorkspaceIdentifier> wsis,
-			Exception e) throws Exception {
+	protected void failGetPermissions(
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wsis,
+			final Exception e)
+			throws Exception {
+		failGetPermissions(ws, user, wsis, e);
+	}
+	
+	public static void failGetPermissions(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wsis,
+			final Exception e)
+			throws Exception {
 		try {
 			ws.getPermissions(user, wsis);
 			fail("get perms when should fail");
@@ -579,24 +652,69 @@ public class WorkspaceTester {
 		return readCurrentDate;
 	}
 	
-	
-	
-	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
-			List<WorkspaceSaveObject> wso, Exception exp)
+	protected void failSave(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, 
+			final Map<String, Object> data,
+			final TypeDefId type,
+			final Provenance prov,
+			final Exception exception)
 			throws Exception {
+		failSave(user, wsi, null, data, type, prov, exception);
+	}
+	
+	protected void failSave(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi, 
+			final String objectName,
+			final Map<String, Object> data,
+			final TypeDefId type,
+			final Provenance prov,
+			final Exception exception)
+			throws Exception {
+		
+		final WorkspaceSaveObject wso;
+		if (objectName == null) {
+			wso = new WorkspaceSaveObject(data, type, null, prov, false);
+		} else {
+			wso = new WorkspaceSaveObject(new ObjectIDNoWSNoVer(objectName),
+					data, type, null, prov, false);
+		}
+		failSave(user, wsi, Arrays.asList(wso), exception);
+	}
+	
+	protected void failSave(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceSaveObject> wso,
+			final Exception exp)
+					throws Exception {
 		failSave(user, wsi, wso, getIdFactory(), exp);
 	}
 	
-	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi,
-			List<WorkspaceSaveObject> wso, IdReferenceHandlerSetFactory fac,
-			Exception exp)
+	protected void failSave(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceSaveObject> wso,
+			final IdReferenceHandlerSetFactory fac,
+			final Exception exp)
+			throws Exception {
+		failSave(ws, user, wsi, wso, fac, exp);
+	}
+	
+	public static void failSave(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceSaveObject> wso,
+			final IdReferenceHandlerSetFactory fac,
+			final Exception exp)
 			throws Exception {
 		try {
 			ws.saveObjects(user, wsi, wso, fac);
 			fail("Saved bad objects");
 		} catch (Exception e) {
-			assertThat("correct exception type", e, is(exp.getClass()));
-			assertThat("correct exception", e.getLocalizedMessage(), is(exp.getLocalizedMessage()));
+			assertExceptionCorrect(e, exp);
 		}
 	}
 	
@@ -677,16 +795,29 @@ public class WorkspaceTester {
 		ws.getObjects(user, objs, false);
 	}
 	
-	protected void failGetObjects(WorkspaceUser user,
-			List<ObjectIdentifier> objs,
-			Exception e) 
+	protected void failGetObjects(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> objs,
+			final Exception e) 
 			throws Exception {
 		failGetObjects(user, objs, e, false);
 	}
 	
-	protected void failGetObjects(WorkspaceUser user,
-			List<ObjectIdentifier> objs, Exception e,
-			boolean onlyCheckReturningData) 
+	protected void failGetObjects(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> objs,
+			final Exception e,
+			final boolean onlyCheckReturningData) 
+			throws Exception {
+		failGetObjects(ws, user, objs, e, onlyCheckReturningData);
+	}
+	
+	public static void failGetObjects(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> objs,
+			final Exception e,
+			final boolean onlyCheckReturningData) 
 			throws Exception {
 		try {
 			ws.getObjects(user, objs);
@@ -718,22 +849,31 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void failGetReferencedObjects(WorkspaceUser user,
-			List<ObjectIDWithRefChain> objs, Exception e) throws Exception {
+	protected void failGetReferencedObjects(
+			final WorkspaceUser user,
+			final List<ObjectIDWithRefChain> objs,
+			final Exception e)
+			throws Exception {
 		
 		failGetReferencedObjects(user, objs, e, false);
 	}
 	
-	protected void failGetReferencedObjects(WorkspaceUser user,
-			List<ObjectIDWithRefChain> objs, Exception e, Set<Integer> nulls)
+	protected void failGetReferencedObjects(
+			final WorkspaceUser user,
+			final List<ObjectIDWithRefChain> objs,
+			final Exception e,
+			final Set<Integer> nulls)
 			throws Exception {
 		
 		failGetReferencedObjects(user, objs, e, false, nulls);
 	}
 	
-	protected void failGetReferencedObjects(WorkspaceUser user,
-			List<ObjectIDWithRefChain> objs, Exception e,
-			boolean onlyTestReturningData) throws Exception {
+	protected void failGetReferencedObjects(
+			final WorkspaceUser user,
+			final List<ObjectIDWithRefChain> objs,
+			final Exception e,
+			final boolean onlyTestReturningData)
+			throws Exception {
 		Set<Integer> nulls = new HashSet<Integer>();
 		int count = 0;
 		for (@SuppressWarnings("unused") ObjectIDWithRefChain foo: objs) {
@@ -743,10 +883,24 @@ public class WorkspaceTester {
 		failGetReferencedObjects(user, objs, e, onlyTestReturningData, nulls);
 	}
 	
+	protected void failGetReferencedObjects(
+			final WorkspaceUser user,
+			final List<ObjectIDWithRefChain> objs,
+			final Exception e,
+			final boolean onlyTestReturningData,
+			final Set<Integer> nulls)
+			throws Exception {
+		failGetReferencedObjects(ws, user, objs, e, onlyTestReturningData, nulls);
+	}
+	
 	@SuppressWarnings("unchecked")
-	protected void failGetReferencedObjects(WorkspaceUser user,
-			List<ObjectIDWithRefChain> objs, Exception e,
-			boolean onlyTestReturningData, Set<Integer> nulls)
+	public static void failGetReferencedObjects(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final List<ObjectIDWithRefChain> objs,
+			final Exception e,
+			final boolean onlyTestReturningData,
+			final Set<Integer> nulls)
 			throws Exception {
 		try {
 			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) objs);
@@ -784,47 +938,26 @@ public class WorkspaceTester {
 		
 	}
 	
+	protected void failGetSubset(
+			final WorkspaceUser user,
+			final List<ObjIDWithChainAndSubset> objs,
+			final Exception e)
+			throws Exception {
+		failGetSubset(ws, user, objs, e);
+	}
+	
 	@SuppressWarnings("unchecked")
-	protected void failGetSubset(WorkspaceUser user, List<ObjIDWithChainAndSubset> objs,
-			Exception e)
+	public static void failGetSubset(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final List<ObjIDWithChainAndSubset> objs,
+			final Exception e)
 			throws Exception {
 		try {
 			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) objs);
 			fail("got subobjs obj when should fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
-		}
-	}
-
-	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
-			Map<String, Object> data, TypeDefId type, Provenance prov,
-			Throwable exception) throws Exception {
-		failSave(user, wsi, null, data, type, prov, exception);
-	}
-	
-	protected void failSave(WorkspaceUser user, WorkspaceIdentifier wsi, 
-			String objectName, Map<String, Object> data, TypeDefId type,
-			Provenance prov, Throwable exception) throws Exception {
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
-		
-		WorkspaceSaveObject wso;
-		if (objectName == null) {
-			wso = new WorkspaceSaveObject(data, type, null, prov, false);
-		} else {
-			wso = new WorkspaceSaveObject(new ObjectIDNoWSNoVer(objectName),
-					data, type, null, prov, false);
-		}
-		
-		try {
-			ws.saveObjects(user, wsi, Arrays.asList(wso), fac);
-			fail("Saved bad object");
-		} catch (Exception e) {
-			if (e instanceof NullPointerException) {
-				e.printStackTrace();
-			}
-			assertThat("correct exception", e.getLocalizedMessage(),
-					is(exception.getLocalizedMessage()));
-			assertThat("correct exception type", e, is(exception.getClass()));
 		}
 	}
 	
@@ -922,6 +1055,7 @@ public class WorkspaceTester {
 		}
 	}
 
+	//TODO TEST this looks like it's redundant to failGetObjects
 	protected void getNonExistantObject(WorkspaceUser foo, ObjectIdentifier oi,
 			String exception) throws Exception {
 		try {
@@ -1144,6 +1278,7 @@ public class WorkspaceTester {
 		}
 	}
 
+	//TODO TEST this looks like it's redundant to failGetObjects
 	protected void failToGetDeletedObjects(WorkspaceUser user,
 			List<ObjectIdentifier> objs, String exception) throws Exception {
 		failGetObjects(user, objs, new NoSuchObjectException(exception));
@@ -1155,7 +1290,20 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void failCopy(WorkspaceUser user, ObjectIdentifier from, ObjectIdentifier to, Exception e) {
+	protected void failCopy(
+			final WorkspaceUser user,
+			final ObjectIdentifier from,
+			final ObjectIdentifier to,
+			final Exception e) {
+		failCopy(ws, user, from, to, e);
+	}
+		
+	public static void failCopy(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final ObjectIdentifier from,
+			final ObjectIdentifier to,
+			final Exception e) {
 		try {
 			ws.copyObject(user, from, to);
 			fail("copied object sucessfully but expected fail");
@@ -1164,7 +1312,18 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void failRevert(WorkspaceUser user, ObjectIdentifier from, Exception e) {
+	protected void failRevert(
+			final WorkspaceUser user,
+			final ObjectIdentifier from,
+			final Exception e) {
+		failRevert(ws, user, from, e);
+	}
+	
+	public static void failRevert(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final ObjectIdentifier from,
+			final Exception e) {
 		try {
 			ws.revertObject(user, from);
 			fail("reverted object sucessfully but expected fail");
@@ -1287,14 +1446,33 @@ public class WorkspaceTester {
 				.get(0);
 	}
 
-	protected void failClone(WorkspaceUser user, WorkspaceIdentifier wsi,
-			String name, Map<String, String> meta, Exception e) {
+	protected void failClone(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String name,
+			final Map<String, String> meta,
+			final Exception e) {
 		failClone(user, wsi, name, meta, null, e);
 	}
 	
-	protected void failClone(WorkspaceUser user, WorkspaceIdentifier wsi,
-			String name, Map<String, String> meta,
-			Set<ObjectIDNoWSNoVer> exclude, Exception e) {
+	protected void failClone(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String name,
+			final Map<String, String> meta,
+			final Set<ObjectIDNoWSNoVer> exclude,
+			final Exception e) {
+		failClone(ws, user, wsi, name, meta, exclude, e);
+	}
+	
+	public static void failClone(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String name,
+			final Map<String, String> meta,
+			final Set<ObjectIDNoWSNoVer> exclude,
+			final Exception e) {
 		try {
 			ws.cloneWorkspace(user, wsi, name, false, null,
 					new WorkspaceUserMetadata(meta), exclude);
@@ -1304,26 +1482,92 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void failObjRename(WorkspaceUser user, ObjectIdentifier oi,
-			String newname, Exception e) {
+	protected void failObjRename(
+			final WorkspaceUser user,
+			final ObjectIdentifier oi,
+			final String newname,
+			final Exception e) {
+		failObjRename(ws, user, oi, newname, e);
+	}
+	
+	public static void failObjRename(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final ObjectIdentifier oi,
+			final String newname,
+			final Exception e) {
 		try {
 			ws.renameObject(user, oi, newname);
+			fail("expected rename to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
 	}
 
-	protected void failWSRename(WorkspaceUser user, WorkspaceIdentifier wsi, String newname,
-			Exception e) {
+	protected void failWSRename(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String newname,
+			final Exception e) {
+		failWSRename(ws, user, wsi, newname, e);
+	}
+	
+	public static void failWSRename(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String newname,
+			final Exception e) {
 		try {
 			ws.renameWorkspace(user, wsi, newname);
+			fail("expected rename to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}
 	}
 	
-	protected void failGetWorkspaceDesc(WorkspaceUser user, WorkspaceIdentifier wsi,
-			Exception e) throws Exception {
+	protected void failSetWorkspaceOwner(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final WorkspaceUser newuser,
+			final String name,
+			final boolean asAdmin,
+			final Exception expected)
+			throws Exception {
+		failSetWorkspaceOwner(ws, user, wsi, newuser, name, asAdmin, expected);
+	}
+	
+	public static void failSetWorkspaceOwner(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final WorkspaceUser newuser,
+			final String name,
+			final boolean asAdmin,
+			final Exception expected)
+			throws Exception {
+		try {
+			ws.setWorkspaceOwner(user, wsi, newuser, name, asAdmin);
+			fail("expected set owner to fail");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	protected void failGetWorkspaceDesc(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Exception e)
+			throws Exception {
+		failGetWorkspaceDesc(ws, user, wsi, e);
+	}
+	
+	public static void failGetWorkspaceDesc(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Exception e)
+			throws Exception {
 		try {
 			ws.getWorkspaceDescription(user, wsi);
 			fail("got ws desc when should fail");
@@ -1332,8 +1576,22 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void failSetGlobalPerm(WorkspaceUser user, WorkspaceIdentifier wsi,
-			Permission perm, Exception e) throws Exception {
+	protected void failSetGlobalPerm(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Permission perm,
+			final Exception e)
+			throws Exception {
+		failSetGlobalPerm(ws, user, wsi, perm, e);
+	}
+	
+	public static void failSetGlobalPerm(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Permission perm,
+			final Exception e)
+			throws Exception {
 		try {
 			ws.setGlobalPermission(user, wsi, perm);
 			fail("set global perms when should fail");
@@ -1342,8 +1600,22 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void failSetHide(WorkspaceUser user, ObjectIdentifier oi, boolean hide,
-			Exception e) throws Exception {
+	protected void failSetHide(
+			final WorkspaceUser user,
+			final ObjectIdentifier oi,
+			final boolean hide,
+			final Exception e)
+			throws Exception {
+		failSetHide(ws, user, oi, hide, e);
+	}
+	
+	public static void failSetHide(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final ObjectIdentifier oi,
+			final boolean hide,
+			final Exception e)
+			throws Exception {
 		try {
 			ws.setObjectsHidden(user, Arrays.asList(oi), hide);
 			fail("un/hid obj when should fail");
@@ -1432,8 +1704,18 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void failGetObjectHistory(WorkspaceUser user,
-			ObjectIdentifier oi, Exception e) {
+	protected void failGetObjectHistory(
+			final WorkspaceUser user,
+			final ObjectIdentifier oi,
+			final Exception e) {
+		failGetObjectHistory(ws, user, oi, e);
+	}
+	
+	public static void failGetObjectHistory(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final ObjectIdentifier oi,
+			final Exception e) {
 		try {
 			ws.getObjectHistory(user, oi);
 			fail("listed obj hist when should fail");
@@ -1442,9 +1724,20 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void failListObjects(WorkspaceUser user,
-			List<WorkspaceIdentifier> wsis, Map<String, String> meta,
-			Exception e) {
+	protected void failListObjects(
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wsis,
+			final Map<String, String> meta,
+			final Exception e) {
+		failListObjects(ws, user, wsis, meta, e);
+	}
+	
+	public static void failListObjects(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wsis,
+			final Map<String, String> meta,
+			final Exception e) {
 		try {
 			ws.listObjects(new ListObjectsParameters(user, wsis)
 					.withMetadata(new WorkspaceUserMetadata(meta)));
@@ -1455,15 +1748,28 @@ public class WorkspaceTester {
 	}
 	
 	protected void failGetNamesByPrefix(
-			WorkspaceUser user,
-			List<WorkspaceIdentifier> wsis,
-			String prefix,
-			boolean includeHidden,
-			int limit,
-			Exception e)
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wsis,
+			final String prefix,
+			final boolean includeHidden,
+			final int limit,
+			final Exception e)
+			throws Exception {
+		failGetNamesByPrefix(ws, user, wsis, prefix, includeHidden, limit, e);
+	}
+	
+	public static void failGetNamesByPrefix(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wsis,
+			final String prefix,
+			final boolean includeHidden,
+			final int limit,
+			final Exception e)
 			throws Exception {
 		try {
 			ws.getNamesByPrefix(user, wsis, prefix, includeHidden, limit);
+			fail("got names by prefix with bad args");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}

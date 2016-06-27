@@ -160,9 +160,10 @@ Returns the version of the workspace service.
 							       "Invalid argument count for function ver (received $n, expecting 0)");
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.ver",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.ver",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -210,7 +211,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -241,7 +242,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -285,9 +286,10 @@ Creates a new workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.create_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.create_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -384,9 +386,10 @@ Change the metadata associated with a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.alter_workspace_metadata",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.alter_workspace_metadata",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -451,7 +454,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -498,7 +501,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -541,9 +544,10 @@ Clones a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.clone_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.clone_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -588,7 +592,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -617,7 +621,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -670,9 +674,10 @@ Lock a workspace, preventing further changes.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.lock_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.lock_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -787,9 +792,10 @@ Provided for backwards compatibility.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_workspacemeta",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_workspacemeta",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -834,7 +840,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -863,7 +869,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -908,9 +914,10 @@ Get information associated with a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_workspace_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_workspace_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -999,9 +1006,10 @@ Get a workspace's description.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_workspace_description",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_workspace_description",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1096,9 +1104,10 @@ Set permissions for a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.set_permissions",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.set_permissions",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1189,9 +1198,10 @@ Set the global permission for a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.set_global_permission",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.set_global_permission",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1280,9 +1290,10 @@ Set the description for a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.set_workspace_description",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.set_workspace_description",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1383,9 +1394,10 @@ Get permissions for multiple workspaces.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_permissions_mass",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_permissions_mass",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1479,9 +1491,10 @@ Get permissions for a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_permissions",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_permissions",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1618,9 +1631,10 @@ for backwards compatibility.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.save_object",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.save_object",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1838,9 +1852,10 @@ it.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.save_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.save_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1979,9 +1994,10 @@ Provided for backwards compatibility.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -2223,9 +2239,10 @@ Get object provenance from the workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object_provenance",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_provenance",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -2468,9 +2485,10 @@ Get objects from the workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -2751,9 +2769,10 @@ Get objects from the workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_objects2",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_objects2",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3016,9 +3035,10 @@ original array.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object_subset",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_subset",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3156,9 +3176,10 @@ ignored.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object_history",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_history",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3296,9 +3317,10 @@ in the deleted state are not returned.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_referencing_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_referencing_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3411,9 +3433,10 @@ inaccessible to the user.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_referencing_object_counts",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_referencing_object_counts",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3673,9 +3696,10 @@ DEPRECATED
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_referenced_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_referenced_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3792,9 +3816,10 @@ list_workspace_info
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_workspaces",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_workspaces",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3851,7 +3876,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -3890,7 +3915,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -3933,9 +3958,10 @@ List workspaces viewable by the user.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_workspace_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_workspace_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4069,9 +4095,10 @@ specified type (or with any type). Provided for backwards compatibility.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_workspace_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_workspace_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4236,9 +4263,10 @@ List objects in one or more workspaces.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4371,9 +4399,10 @@ via the instance parameter. Provided for backwards compatibility.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_objectmeta",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_objectmeta",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4523,9 +4552,10 @@ in the future.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4700,9 +4730,10 @@ Get information about objects from the workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object_info_new",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_info_new",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4750,7 +4781,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -4782,7 +4813,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -4827,9 +4858,10 @@ Rename a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.rename_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.rename_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4972,9 +5004,10 @@ Rename an object. User meta data is always returned as null.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.rename_object",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.rename_object",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5117,9 +5150,10 @@ Copy an object. Returns the object_info for the newest version.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.copy_object",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.copy_object",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5259,9 +5293,10 @@ Revert an object.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.revert_object",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.revert_object",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5370,9 +5405,10 @@ This function is intended for use as an autocomplete helper function.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_names_by_prefix",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_names_by_prefix",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5477,9 +5513,10 @@ appear in the list_objects method.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.hide_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.hide_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5583,9 +5620,10 @@ of the version specified in the ObjectIdentity.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.unhide_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.unhide_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5689,9 +5727,10 @@ the version specified in the ObjectIdentity.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.delete_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.delete_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5796,9 +5835,10 @@ deleted, no error is thrown.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.undelete_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.undelete_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5885,9 +5925,10 @@ Delete a workspace. All objects contained in the workspace are deleted.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.delete_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.delete_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5976,9 +6017,10 @@ deleted.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.undelete_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.undelete_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6058,9 +6100,10 @@ must approve the request.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.request_module_ownership",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.request_module_ownership",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6172,9 +6215,10 @@ Also see the release_types function.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.register_typespec",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.register_typespec",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6269,9 +6313,10 @@ Also see the release_types function.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.register_typespec_copy",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.register_typespec_copy",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6366,9 +6411,10 @@ two things to the module's types:
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.release_module",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.release_module",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6455,9 +6501,10 @@ List typespec modules.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_modules",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_modules",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6556,9 +6603,10 @@ List typespec module versions.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_module_versions",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_module_versions",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6679,9 +6727,10 @@ boolean is an int
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_module_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_module_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6764,9 +6813,10 @@ Get JSON schema for a type.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_jsonschema",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_jsonschema",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6847,9 +6897,10 @@ Translation from types qualified with MD5 to their semantic versions
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.translate_from_MD5_types",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.translate_from_MD5_types",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6930,9 +6981,10 @@ Translation from types qualified with semantic versions to their MD5'ed versions
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.translate_to_MD5_types",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.translate_to_MD5_types",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7045,9 +7097,10 @@ func_string is a string
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_type_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_type_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7162,9 +7215,10 @@ func_string is a string
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_all_type_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_all_type_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7269,9 +7323,10 @@ type_string is a string
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_func_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_func_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7378,9 +7433,10 @@ type_string is a string
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_all_func_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_all_func_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7472,9 +7528,10 @@ module.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.grant_module_ownership",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.grant_module_ownership",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7562,9 +7619,10 @@ on the module.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.remove_module_ownership",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.remove_module_ownership",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7657,9 +7715,10 @@ version.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_all_types",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_all_types",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7738,9 +7797,10 @@ The administration interface.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.administer",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.administer",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -8343,8 +8403,9 @@ Information about a workspace.
         ws_name workspace - name of the workspace.
         username owner - name of the user who owns (e.g. created) this workspace.
         timestamp moddate - date when the workspace was last modified.
-        int objects - the number of objects created in this workspace,
-                including objects that have been deleted.
+        int max_objid - the maximum object ID appearing in this workspace.
+                Since cloning a workspace preserves object IDs, this number may be
+                greater than the number of objects in a newly cloned workspace.
         permission user_permission - permissions for the authenticated user of
                 this workspace.
         permission globalread - whether this workspace is globally readable.
@@ -8363,7 +8424,7 @@ a reference to a list containing 9 items:
 1: (workspace) a Workspace.ws_name
 2: (owner) a Workspace.username
 3: (moddate) a Workspace.timestamp
-4: (object) an int
+4: (max_objid) an int
 5: (user_permission) a Workspace.permission
 6: (globalread) a Workspace.permission
 7: (lockstat) a Workspace.lock_status
@@ -8380,7 +8441,7 @@ a reference to a list containing 9 items:
 1: (workspace) a Workspace.ws_name
 2: (owner) a Workspace.username
 3: (moddate) a Workspace.timestamp
-4: (object) an int
+4: (max_objid) an int
 5: (user_permission) a Workspace.permission
 6: (globalread) a Workspace.permission
 7: (lockstat) a Workspace.lock_status

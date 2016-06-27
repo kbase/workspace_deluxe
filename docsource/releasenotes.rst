@@ -18,6 +18,15 @@ NEW FEATURES:
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
+* ``clone_workspace`` now preserves object IDs from the source workspace such
+  that the object name -> id mapping is identical for both workspaces at the
+  completion of the clone (unless changes are made to the source workspace
+  while the clone is in progress). Due to this change, the maximum object ID
+  returned in a ``workspace_info`` tuple may be larger than the number of
+  objects in the new workspace. The documentation has been clarified to
+  reflect this.
+* ``clone_workspace`` now prevents the new workspace from being accessed in any
+  way while the clone is in progress.
 * ``clone_workspace`` can now exclude user specified objects from the clone.
 * Fixed two bugs where various failures on save would leave temporary files on
   disk.

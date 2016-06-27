@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 
@@ -86,6 +88,16 @@ public class TestCommon {
 				db.getCollection(name).remove(new BasicDBObject());
 			}
 		}
+	}
+	
+	public static void assertExceptionCorrect(
+			final Exception got,
+			final Exception expected) {
+		assertThat("incorrect exception. trace:\n" +
+				ExceptionUtils.getStackTrace(got),
+				got.getLocalizedMessage(),
+				is(expected.getLocalizedMessage()));
+		assertThat("incorrect exception type", got, is(expected.getClass()));
 	}
 	
 	public static void assertNoTempFilesExist(TempFilesManager tfm)

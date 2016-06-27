@@ -38,6 +38,7 @@ import us.kbase.common.service.UnauthorizedException;
  */
 public class WorkspaceClient {
     private JsonClientCaller caller;
+    private String serviceVersion = null;
     private static URL DEFAULT_URL = null;
     static {
         try {
@@ -190,6 +191,14 @@ public class WorkspaceClient {
         caller.setFileForNextRpcResponse(f);
     }
 
+    public String getServiceVersion() {
+        return this.serviceVersion;
+    }
+
+    public void setServiceVersion(String newValue) {
+        this.serviceVersion = newValue;
+    }
+
     /**
      * <p>Original spec-file function name: ver</p>
      * <pre>
@@ -202,7 +211,7 @@ public class WorkspaceClient {
     public String ver(RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
-        List<String> res = caller.jsonrpcCall("Workspace.ver", args, retType, true, false, jsonRpcContext);
+        List<String> res = caller.jsonrpcCall("Workspace.ver", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -212,7 +221,7 @@ public class WorkspaceClient {
      * Creates a new workspace.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.CreateWorkspaceParams CreateWorkspaceParams}
-     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
@@ -220,7 +229,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> retType = new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>() {};
-        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.create_workspace", args, retType, true, true, jsonRpcContext);
+        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.create_workspace", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -237,7 +246,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.alter_workspace_metadata", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.alter_workspace_metadata", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -246,7 +255,7 @@ public class WorkspaceClient {
      * Clones a workspace.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.CloneWorkspaceParams CloneWorkspaceParams}
-     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
@@ -254,7 +263,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> retType = new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>() {};
-        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.clone_workspace", args, retType, true, true, jsonRpcContext);
+        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.clone_workspace", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -271,7 +280,7 @@ public class WorkspaceClient {
      *         workspace cannot be made private.
      * </pre>
      * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
-     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
@@ -279,7 +288,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> retType = new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>() {};
-        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.lock_workspace", args, retType, true, true, jsonRpcContext);
+        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.lock_workspace", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -299,7 +308,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple7<String, String, String, Long, String, String, Long>>> retType = new TypeReference<List<Tuple7<String, String, String, Long, String, String, Long>>>() {};
-        List<Tuple7<String, String, String, Long, String, String, Long>> res = caller.jsonrpcCall("Workspace.get_workspacemeta", args, retType, true, false, jsonRpcContext);
+        List<Tuple7<String, String, String, Long, String, String, Long>> res = caller.jsonrpcCall("Workspace.get_workspacemeta", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -309,7 +318,7 @@ public class WorkspaceClient {
      * Get information associated with a workspace.
      * </pre>
      * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
-     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
@@ -317,7 +326,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> retType = new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>() {};
-        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.get_workspace_info", args, retType, true, false, jsonRpcContext);
+        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.get_workspace_info", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -335,7 +344,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
-        List<String> res = caller.jsonrpcCall("Workspace.get_workspace_description", args, retType, true, false, jsonRpcContext);
+        List<String> res = caller.jsonrpcCall("Workspace.get_workspace_description", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -352,7 +361,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.set_permissions", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.set_permissions", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -368,7 +377,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.set_global_permission", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.set_global_permission", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -384,7 +393,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.set_workspace_description", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.set_workspace_description", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -401,7 +410,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(mass);
         TypeReference<List<WorkspacePermissions>> retType = new TypeReference<List<WorkspacePermissions>>() {};
-        List<WorkspacePermissions> res = caller.jsonrpcCall("Workspace.get_permissions_mass", args, retType, true, false, jsonRpcContext);
+        List<WorkspacePermissions> res = caller.jsonrpcCall("Workspace.get_permissions_mass", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -420,7 +429,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
-        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, false, jsonRpcContext);
+        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.get_permissions", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -442,7 +451,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>> retType = new TypeReference<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>() {};
-        List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> res = caller.jsonrpcCall("Workspace.save_object", args, retType, true, false, jsonRpcContext);
+        List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> res = caller.jsonrpcCall("Workspace.save_object", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -461,7 +470,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
-        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true, jsonRpcContext);
+        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.save_objects", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -482,7 +491,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<GetObjectOutput>> retType = new TypeReference<List<GetObjectOutput>>() {};
-        List<GetObjectOutput> res = caller.jsonrpcCall("Workspace.get_object", args, retType, true, false, jsonRpcContext);
+        List<GetObjectOutput> res = caller.jsonrpcCall("Workspace.get_object", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -502,7 +511,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<List<List<ObjectProvenanceInfo>>> retType = new TypeReference<List<List<ObjectProvenanceInfo>>>() {};
-        List<List<ObjectProvenanceInfo>> res = caller.jsonrpcCall("Workspace.get_object_provenance", args, retType, true, false, jsonRpcContext);
+        List<List<ObjectProvenanceInfo>> res = caller.jsonrpcCall("Workspace.get_object_provenance", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -522,7 +531,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<List<List<ObjectData>>> retType = new TypeReference<List<List<ObjectData>>>() {};
-        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_objects", args, retType, true, false, jsonRpcContext);
+        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_objects", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -540,7 +549,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<GetObjects2Results>> retType = new TypeReference<List<GetObjects2Results>>() {};
-        List<GetObjects2Results> res = caller.jsonrpcCall("Workspace.get_objects2", args, retType, true, false, jsonRpcContext);
+        List<GetObjects2Results> res = caller.jsonrpcCall("Workspace.get_objects2", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -571,7 +580,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(subObjectIds);
         TypeReference<List<List<ObjectData>>> retType = new TypeReference<List<List<ObjectData>>>() {};
-        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_object_subset", args, retType, true, false, jsonRpcContext);
+        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_object_subset", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -590,7 +599,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(object);
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
-        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_history", args, retType, true, false, jsonRpcContext);
+        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_history", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -609,7 +618,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<List<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>> retType = new TypeReference<List<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>>() {};
-        List<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> res = caller.jsonrpcCall("Workspace.list_referencing_objects", args, retType, true, false, jsonRpcContext);
+        List<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> res = caller.jsonrpcCall("Workspace.list_referencing_objects", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -632,7 +641,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<List<List<Long>>> retType = new TypeReference<List<List<Long>>>() {};
-        List<List<Long>> res = caller.jsonrpcCall("Workspace.list_referencing_object_counts", args, retType, true, false, jsonRpcContext);
+        List<List<Long>> res = caller.jsonrpcCall("Workspace.list_referencing_object_counts", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -665,7 +674,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(refChains);
         TypeReference<List<List<ObjectData>>> retType = new TypeReference<List<List<ObjectData>>>() {};
-        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_referenced_objects", args, retType, true, false, jsonRpcContext);
+        List<List<ObjectData>> res = caller.jsonrpcCall("Workspace.get_referenced_objects", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -686,7 +695,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple7<String, String, String, Long, String, String, Long>>>> retType = new TypeReference<List<List<Tuple7<String, String, String, Long, String, String, Long>>>>() {};
-        List<List<Tuple7<String, String, String, Long, String, String, Long>>> res = caller.jsonrpcCall("Workspace.list_workspaces", args, retType, true, false, jsonRpcContext);
+        List<List<Tuple7<String, String, String, Long, String, String, Long>>> res = caller.jsonrpcCall("Workspace.list_workspaces", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -696,7 +705,7 @@ public class WorkspaceClient {
      * List workspaces viewable by the user.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.ListWorkspaceInfoParams ListWorkspaceInfoParams}
-     * @return   parameter "wsinfo" of list of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "wsinfo" of list of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
@@ -704,7 +713,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>>() {};
-        List<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.list_workspace_info", args, retType, true, false, jsonRpcContext);
+        List<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.list_workspace_info", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -724,7 +733,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>> retType = new TypeReference<List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>>() {};
-        List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>> res = caller.jsonrpcCall("Workspace.list_workspace_objects", args, retType, true, false, jsonRpcContext);
+        List<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>> res = caller.jsonrpcCall("Workspace.list_workspace_objects", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -742,7 +751,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
-        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.list_objects", args, retType, true, false, jsonRpcContext);
+        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.list_objects", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -763,7 +772,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>> retType = new TypeReference<List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>>>() {};
-        List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> res = caller.jsonrpcCall("Workspace.get_objectmeta", args, retType, true, false, jsonRpcContext);
+        List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> res = caller.jsonrpcCall("Workspace.get_objectmeta", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -788,7 +797,7 @@ public class WorkspaceClient {
         args.add(objectIds);
         args.add(includeMetadata);
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
-        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_info", args, retType, true, false, jsonRpcContext);
+        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_info", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -806,7 +815,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>> retType = new TypeReference<List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>>() {};
-        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_info_new", args, retType, true, false, jsonRpcContext);
+        List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> res = caller.jsonrpcCall("Workspace.get_object_info_new", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -816,7 +825,7 @@ public class WorkspaceClient {
      * Rename a workspace.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.RenameWorkspaceParams RenameWorkspaceParams}
-     * @return   parameter "renamed" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "renamed" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
@@ -824,7 +833,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>> retType = new TypeReference<List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>>() {};
-        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.rename_workspace", args, retType, true, true, jsonRpcContext);
+        List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> res = caller.jsonrpcCall("Workspace.rename_workspace", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -842,7 +851,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> retType = new TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>() {};
-        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.rename_object", args, retType, true, true, jsonRpcContext);
+        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.rename_object", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -860,7 +869,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> retType = new TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>() {};
-        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.copy_object", args, retType, true, true, jsonRpcContext);
+        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.copy_object", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -880,7 +889,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(object);
         TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> retType = new TypeReference<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>>() {};
-        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.revert_object", args, retType, true, true, jsonRpcContext);
+        List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> res = caller.jsonrpcCall("Workspace.revert_object", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -901,7 +910,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<GetNamesByPrefixResults>> retType = new TypeReference<List<GetNamesByPrefixResults>>() {};
-        List<GetNamesByPrefixResults> res = caller.jsonrpcCall("Workspace.get_names_by_prefix", args, retType, true, false, jsonRpcContext);
+        List<GetNamesByPrefixResults> res = caller.jsonrpcCall("Workspace.get_names_by_prefix", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -920,7 +929,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.hide_objects", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.hide_objects", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -937,7 +946,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.unhide_objects", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.unhide_objects", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -954,7 +963,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.delete_objects", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.delete_objects", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -972,7 +981,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(objectIds);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.undelete_objects", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.undelete_objects", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -988,7 +997,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.delete_workspace", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.delete_workspace", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -1006,7 +1015,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(wsi);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.undelete_workspace", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.undelete_workspace", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -1023,7 +1032,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(mod);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.request_module_ownership", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.request_module_ownership", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -1043,7 +1052,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
-        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.register_typespec", args, retType, true, true, jsonRpcContext);
+        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.register_typespec", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1064,7 +1073,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Long>> retType = new TypeReference<List<Long>>() {};
-        List<Long> res = caller.jsonrpcCall("Workspace.register_typespec_copy", args, retType, true, true, jsonRpcContext);
+        List<Long> res = caller.jsonrpcCall("Workspace.register_typespec_copy", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1093,7 +1102,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(mod);
         TypeReference<List<List<String>>> retType = new TypeReference<List<List<String>>>() {};
-        List<List<String>> res = caller.jsonrpcCall("Workspace.release_module", args, retType, true, true, jsonRpcContext);
+        List<List<String>> res = caller.jsonrpcCall("Workspace.release_module", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1111,7 +1120,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<List<String>>> retType = new TypeReference<List<List<String>>>() {};
-        List<List<String>> res = caller.jsonrpcCall("Workspace.list_modules", args, retType, true, false, jsonRpcContext);
+        List<List<String>> res = caller.jsonrpcCall("Workspace.list_modules", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1129,7 +1138,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<ModuleVersions>> retType = new TypeReference<List<ModuleVersions>>() {};
-        List<ModuleVersions> res = caller.jsonrpcCall("Workspace.list_module_versions", args, retType, true, false, jsonRpcContext);
+        List<ModuleVersions> res = caller.jsonrpcCall("Workspace.list_module_versions", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1146,7 +1155,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<ModuleInfo>> retType = new TypeReference<List<ModuleInfo>>() {};
-        List<ModuleInfo> res = caller.jsonrpcCall("Workspace.get_module_info", args, retType, true, false, jsonRpcContext);
+        List<ModuleInfo> res = caller.jsonrpcCall("Workspace.get_module_info", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1164,7 +1173,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(type);
         TypeReference<List<String>> retType = new TypeReference<List<String>>() {};
-        List<String> res = caller.jsonrpcCall("Workspace.get_jsonschema", args, retType, true, false, jsonRpcContext);
+        List<String> res = caller.jsonrpcCall("Workspace.get_jsonschema", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1182,7 +1191,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(md5Types);
         TypeReference<List<Map<String,List<String>>>> retType = new TypeReference<List<Map<String,List<String>>>>() {};
-        List<Map<String,List<String>>> res = caller.jsonrpcCall("Workspace.translate_from_MD5_types", args, retType, true, false, jsonRpcContext);
+        List<Map<String,List<String>>> res = caller.jsonrpcCall("Workspace.translate_from_MD5_types", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1200,7 +1209,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(semTypes);
         TypeReference<List<Map<String,String>>> retType = new TypeReference<List<Map<String,String>>>() {};
-        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.translate_to_MD5_types", args, retType, true, false, jsonRpcContext);
+        List<Map<String,String>> res = caller.jsonrpcCall("Workspace.translate_to_MD5_types", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1217,7 +1226,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(type);
         TypeReference<List<TypeInfo>> retType = new TypeReference<List<TypeInfo>>() {};
-        List<TypeInfo> res = caller.jsonrpcCall("Workspace.get_type_info", args, retType, true, false, jsonRpcContext);
+        List<TypeInfo> res = caller.jsonrpcCall("Workspace.get_type_info", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1234,7 +1243,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(mod);
         TypeReference<List<List<TypeInfo>>> retType = new TypeReference<List<List<TypeInfo>>>() {};
-        List<List<TypeInfo>> res = caller.jsonrpcCall("Workspace.get_all_type_info", args, retType, true, false, jsonRpcContext);
+        List<List<TypeInfo>> res = caller.jsonrpcCall("Workspace.get_all_type_info", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1251,7 +1260,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(func);
         TypeReference<List<FuncInfo>> retType = new TypeReference<List<FuncInfo>>() {};
-        List<FuncInfo> res = caller.jsonrpcCall("Workspace.get_func_info", args, retType, true, false, jsonRpcContext);
+        List<FuncInfo> res = caller.jsonrpcCall("Workspace.get_func_info", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1268,7 +1277,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(mod);
         TypeReference<List<List<FuncInfo>>> retType = new TypeReference<List<List<FuncInfo>>>() {};
-        List<List<FuncInfo>> res = caller.jsonrpcCall("Workspace.get_all_func_info", args, retType, true, false, jsonRpcContext);
+        List<List<FuncInfo>> res = caller.jsonrpcCall("Workspace.get_all_func_info", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1286,7 +1295,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.grant_module_ownership", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.grant_module_ownership", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -1303,7 +1312,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.remove_module_ownership", args, retType, false, true, jsonRpcContext);
+        caller.jsonrpcCall("Workspace.remove_module_ownership", args, retType, false, true, jsonRpcContext, this.serviceVersion);
     }
 
     /**
@@ -1322,7 +1331,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
         TypeReference<List<Map<String,Map<String,String>>>> retType = new TypeReference<List<Map<String,Map<String,String>>>>() {};
-        List<Map<String,Map<String,String>>> res = caller.jsonrpcCall("Workspace.list_all_types", args, retType, true, false, jsonRpcContext);
+        List<Map<String,Map<String,String>>> res = caller.jsonrpcCall("Workspace.list_all_types", args, retType, true, false, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
@@ -1340,7 +1349,7 @@ public class WorkspaceClient {
         List<Object> args = new ArrayList<Object>();
         args.add(command);
         TypeReference<List<UObject>> retType = new TypeReference<List<UObject>>() {};
-        List<UObject> res = caller.jsonrpcCall("Workspace.administer", args, retType, true, true, jsonRpcContext);
+        List<UObject> res = caller.jsonrpcCall("Workspace.administer", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 }
