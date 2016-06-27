@@ -7,12 +7,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.io.output.NullOutputStream;
+
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
+import us.kbase.common.utils.CountingOutputStream;
 import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
@@ -41,6 +47,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class TypedObjectValidationReport {
 
+	//TODO JAVADOC
+	
 	/**
 	 * The list of errors found during validation.  If the object is not valid, this must be non-empty, (although
 	 * note that not all validations errors found may be added, for instance, if there are many errors only the
@@ -71,6 +79,8 @@ public class TypedObjectValidationReport {
 	
 	// the size of the object after relabeling. -1 if not yet calculated.
 	private long size = -1;
+	// the MD5 of the object after relabeling and sorting (if necessary).
+	private MD5 md5 = null;
 	// whether the object is naturally sorted after relabeling. Only set to true after relabeling.
 	private boolean sorted = false;
 	
@@ -212,23 +222,47 @@ public class TypedObjectValidationReport {
 		if (size > -1) {
 			return size;
 		}
-		final long[] size = {0L};
-		final OutputStream sizeOs = new OutputStream() {
-			@Override
-			public void write(int b) throws IOException {
-				size[0]++;
-			}
-			@Override
-			public void write(byte[] b, int off, int len)
-					throws IOException {
-				size[0] += len;
-			}
-		};
-		final JsonGenerator jgen = new JsonFactory().createGenerator(sizeOs);
+		final CountingOutputStream cos = new CountingOutputStream();
+		final JsonGenerator jgen = new JsonFactory().createGenerator(cos);
 		sorted = relabelWsIdReferencesIntoGeneratorAndCheckOrder(jgen);
 		jgen.close();
-		this.size = size[0];
+		this.size = cos.getSize();
+		if (sorted) {
+			/* highly unlikely an object is naturally sorted, so don't waste
+			 * time calculating the MD5 unless we know it is
+			 */
+			final MessageDigest digest = getMD5Digest();
+			relabelWsIdReferencesIntoWriter(new DigestOutputStream(
+					new NullOutputStream(), digest));
+			md5 = getMD5fromDigest(digest);
+		}
 		return this.size;
+	}
+
+	public MD5 getMD5() {
+		if (md5 == null) {
+			throw new IllegalStateException(
+					"Must call sort() before getting the MD5");
+		}
+		return md5;
+	}
+	
+	private MD5 getMD5fromDigest(final MessageDigest digest) {
+		final byte[] d = digest.digest();
+		final StringBuilder sb = new StringBuilder();
+		for (final byte b : d) {
+			sb.append(String.format("%02x", b));
+		}
+		return new MD5(sb);
+	}
+	
+	private MessageDigest getMD5Digest() {
+		try {
+			return MessageDigest.getInstance("MD5");
+		} catch (NoSuchAlgorithmException nsae) {
+			throw new RuntimeException(
+					"There definitely should be an MD5 digest", nsae);
+		}
 	}
 	
 	/** Get the size of the object, in bytes, when ids have been remapped.
@@ -285,6 +319,7 @@ public class TypedObjectValidationReport {
 		destroyCachedResources();
 		cacheForSorting = null;
 		if (!sorted) {
+			final MessageDigest digest = getMD5Digest();
 			//TODO PERFORMANCE choose to use a file based on input size & max mem size. If no TFM & one is necessary, except. make sure tests catch left files.
 			if (tfm == null) {
 				ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -294,7 +329,8 @@ public class TypedObjectValidationReport {
 				jgen.close();
 				cacheForSorting = os.toByteArray();
 				os = new ByteArrayOutputStream();
-				fac.getSorter(cacheForSorting).writeIntoStream(os);
+				fac.getSorter(cacheForSorting).writeIntoStream(
+						new DigestOutputStream(os, digest));
 				os.close();
 				cacheForSorting = os.toByteArray();
 			} else {
@@ -311,7 +347,8 @@ public class TypedObjectValidationReport {
 					final FileOutputStream os = new FileOutputStream(
 							fileForSorting);
 					try {
-						fac.getSorter(f1).writeIntoStream(os);
+						fac.getSorter(f1).writeIntoStream(
+								new DigestOutputStream(os, digest));
 						os.close();
 					} catch (IOException | KeyDuplicationException |
 							TooManyKeysException | RuntimeException |
@@ -325,6 +362,7 @@ public class TypedObjectValidationReport {
 						jgen.close();
 				}
 			}
+			md5 = getMD5fromDigest(digest);
 		}
 	}
 	
@@ -335,12 +373,15 @@ public class TypedObjectValidationReport {
 		}
 	}
 	
-	private void relabelWsIdReferencesIntoWriter(OutputStream os) throws IOException {
-		relabelWsIdReferencesIntoGenerator(new JsonFactory().createGenerator(os));
+	private void relabelWsIdReferencesIntoWriter(final OutputStream os)
+			throws IOException {
+		relabelWsIdReferencesIntoGenerator(
+				new JsonFactory().createGenerator(os));
 	}
 
-	private void relabelWsIdReferencesIntoGenerator(JsonGenerator jgen) throws IOException {
-		TokenSequenceProvider tsp = createIdRefTokenSequenceProvider();
+	private void relabelWsIdReferencesIntoGenerator(final JsonGenerator jgen)
+			throws IOException {
+		final TokenSequenceProvider tsp = createIdRefTokenSequenceProvider();
 		try {
 			new JsonTokenStreamWriter().writeTokens(tsp, jgen);
 			jgen.flush();

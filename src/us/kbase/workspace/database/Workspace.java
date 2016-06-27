@@ -68,8 +68,6 @@ public class Workspace {
 	
 	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists? Uh, why is this needed? Probably can drop.
 	
-	//TODO PERFORMANCE use DigestInputStream while sorting object to calculate md5 at the same time
-	
 	public static final User ALL_USERS = new AllUsers('*');
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;

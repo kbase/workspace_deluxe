@@ -1382,7 +1382,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws WorkspaceCommunicationException {
 		final Map<String, Object> version = new HashMap<String, Object>();
 		version.put(Fields.VER_SAVEDBY, user.getUser());
-		version.put(Fields.VER_CHKSUM, pkg.td.getChksum());
+		version.put(Fields.VER_CHKSUM, pkg.wo.getRep().getMD5().getMD5());
 		version.put(Fields.VER_META, metaHashToMongoArray(
 				pkg.wo.getUserMeta().getMetadata()));
 		version.put(Fields.VER_REF, pkg.refs);
@@ -1407,7 +1407,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				(Integer) version.get(Fields.VER_VER),
 				user,
 				wsid,
-				pkg.td.getChksum(),
+				pkg.wo.getRep().getMD5().getMD5(),
 				pkg.wo.getRep().getRelabeledSize(),
 				new UncheckedUserMetadata(pkg.wo.getUserMeta()));
 	}
@@ -1654,7 +1654,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						getObjectErrorId(o.getObjectIdentifier(), objnum),
 						me.getMessage()), me);
 			}
-			pkg.td = new TypeData(o.getRep().createJsonWritable());
 			ret.add(pkg);
 			objnum++;
 		}
@@ -2041,8 +2040,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws WorkspaceCommunicationException {
 		try {
 			for (ObjectSavePackage p: data) {
-				final String md5 = p.td.getChksum();
-				final Writable w = p.td.getData();
+				final String md5 = p.wo.getRep().getMD5().getMD5();
+				final Writable w = p.wo.getRep().createJsonWritable();
 				try {
 					blob.saveBlob(new MD5(md5), w, true); //always sorted in 0.2.0+
 				} catch (BlobStoreCommunicationException e) {
@@ -2055,10 +2054,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 			}
 		} finally {
-			for (ObjectSavePackage wo: data) {
+			for (final ObjectSavePackage o: data) {
 				try {
-					wo.td.getData().releaseResources();
-				} catch (IOException ioe) {
+					o.wo.getRep().destroyCachedResources();
+				} catch (RuntimeException | Error e) {
 					//ok, we just possibly left a temp file on disk,
 					//but it's not worth interrupting the entire call for
 				}

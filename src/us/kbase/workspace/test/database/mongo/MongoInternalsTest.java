@@ -78,7 +78,6 @@ import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
 import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
-import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
@@ -909,9 +908,6 @@ public class MongoInternalsTest {
 		Field wo = pkg.getClass().getDeclaredField("wo");
 		wo.setAccessible(true);
 		wo.set(pkg, rso);
-		Field td = pkg.getClass().getDeclaredField("td");
-		td.setAccessible(true);
-		td.set(pkg, new TypeData(rso.getRep().createJsonWritable()));
 		
 		Method incrementWorkspaceCounter = mwdb.getClass()
 				.getDeclaredMethod("incrementWorkspaceCounter",
