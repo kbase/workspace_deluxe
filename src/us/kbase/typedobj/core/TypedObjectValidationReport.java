@@ -215,6 +215,7 @@ public class TypedObjectValidationReport {
 	 * @throws IOException if an IO error occurs.
 	 */
 	public long calculateRelabeledSize() throws IOException {
+		//TODO PERFORMANCE just save the relabeled data to the cache and make the other methods fail if the cache is empty.
 		if (!idHandler.wereIdsProcessed()) {
 			throw new IllegalStateException(
 					"Must process IDs in handler prior to relabling");
@@ -399,6 +400,7 @@ public class TypedObjectValidationReport {
 	
 	private boolean relabelWsIdReferencesIntoGeneratorAndCheckOrder(
 			JsonGenerator jgen) throws IOException {
+		//TODO PERFORMANCE make the metadata extractor a TSP wrapper and extract here
 		TokenSequenceProvider tsp = null;
 		try {
 			if (idHandler.isEmpty()) {

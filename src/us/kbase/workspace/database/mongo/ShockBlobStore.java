@@ -84,7 +84,7 @@ public class ShockBlobStore implements BlobStore {
 					"Could not connect to the shock backend: " +
 					ioe.getLocalizedMessage(), ioe);
 		}
-		//TODO check that a few nodes exist to ensure we're pointing at the right Shock instance
+		//TODO DBCONSIST check that a few nodes exist to ensure we're pointing at the right Shock instance
 	}
 	
 	@Override

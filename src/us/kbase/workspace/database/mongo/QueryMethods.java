@@ -27,8 +27,8 @@ import com.mongodb.MongoException;
 
 public class QueryMethods {
 	
-	//TODO unit tests
-	//TODO javadocs
+	//TODO TEST unit tests
+	//TODO JAVADOC
 	
 	private final DB wsmongo;
 	private final AllUsers allUsers;
@@ -246,7 +246,7 @@ public class QueryMethods {
 			}
 		}
 		
-		//TODO This $or query might be better as multiple individual queries, test
+		//TODO PERFORMANCE This $or query might be better as multiple individual queries, test
 		final List<DBObject> orquery = new LinkedList<DBObject>();
 		for (final ResolvedMongoWSID rwsi: names.keySet()) {
 			final DBObject query = new BasicDBObject(Fields.OBJ_WS_ID,

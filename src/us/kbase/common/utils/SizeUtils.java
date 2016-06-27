@@ -17,8 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class SizeUtils {
 	
-	//TODO move to common
-	//TODO unit tests
+	//TODO MOVE move to common
+	//TODO TEST unit tests
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -55,7 +55,7 @@ public class SizeUtils {
 	public static long checkSizeInBytes(final String s) {
 		final CountingOutputStream cos = new CountingOutputStream();
 		try {
-			//TODO Writer copies the string into a char array, doubling memory. Use better implementation.
+			//TODO PERFORMANCE Writer copies the string into a char array, doubling memory. Use better implementation.
 			Writer writer = new OutputStreamWriter(cos,
 					StandardCharsets.UTF_8);
 			try {
