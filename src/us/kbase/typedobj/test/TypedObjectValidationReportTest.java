@@ -62,7 +62,8 @@ public class TypedObjectValidationReportTest {
 		//ensure test location is available
 		final Path temppath = Paths.get(TestCommon.getTempDir());
 		Files.createDirectories(temppath);
-		tempdir = Files.createTempDirectory(temppath, "TypedObjectValReportTest");
+		tempdir = Files.createTempDirectory(temppath,
+				"TypedObjectValReportTest");
 		System.out.println("setting up temporary typed obj database");
 
 		// point the type definition db to point there
@@ -233,6 +234,7 @@ public class TypedObjectValidationReportTest {
 	
 	@Test
 	public void writeWithoutSort() throws Exception {
+		// test objects that do not require a sort
 		String json = "{\"m\": {\"c\": \"a\", \"z\": \"d\"}}";
 		String expectedJson = "{\"m\":{\"c\":\"a\",\"y\":\"whoop\"}}";
 		Map<String, String> refmap = new HashMap<String, String>();
@@ -248,9 +250,48 @@ public class TypedObjectValidationReportTest {
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 
+		TempFilesManager tfm = new TempFilesManager(
+				new File(TestCommon.getTempDir()));
+		tfm.cleanup();
+		// in memory
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
+		failGetRelabeledSize(tovr);
+		failGetMD5(tovr);
+		assertThat("incorrect size", tovr.calculateRelabeledSize(), is(27L));
+		assertThat("incorrect size", tovr.getRelabeledSize(), is(27L));
+		failGetMD5(tovr);
+		// uses the naturally sorted path
+		tovr.sort(SORT_FAC);
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
+		ByteArrayOutputStream o = new ByteArrayOutputStream();
+		tovr.createJsonWritable().write(o);
+		assertThat("Relabel correctly without sort", o.toString("UTF-8"),
+				is(expectedJson));
+		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
+		
+		// in file
+		handlers = fac.createHandlers(String.class).associateObject("foo");
+		tfm.cleanup();
+		tovr = validator.validate(json,
+				new TypeDefId("TestIDMap.IDMap"), handlers);
+		handlers.processIDs();
+		// uses the naturally sorted path
+		tovr.sort(SORT_FAC, tfm);
+		assertThat("incorrect size", tovr.getRelabeledSize(), is(27L));
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
+		o = new ByteArrayOutputStream();
+		tovr.createJsonWritable().write(o);
+		assertThat("Relabel correctly without sort", o.toString("UTF-8"),
+				is(expectedJson));
+		tovr.destroyCachedResources();
+		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
+	}
+
+	private void failGetMD5(TypedObjectValidationReport tovr) {
 		try {
 			tovr.getMD5();
 			fail("got md5 for unsorted data");
@@ -258,27 +299,6 @@ public class TypedObjectValidationReportTest {
 			assertThat("incorrect exception", e.getMessage(),
 					is("Must call sort() before getting the MD5"));
 		}
-		assertThat("incorrect size", tovr.calculateRelabeledSize(), is(27L));
-		assertThat("incorrect md5", tovr.getMD5(),
-				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
-		ByteArrayOutputStream o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel correctly without sort", o.toString("UTF-8"),
-				is(expectedJson));
-		
-		//sort unnecessarily
-		handlers = fac.createHandlers(String.class).associateObject("foo");
-		tovr = validator.validate(json,
-				new TypeDefId("TestIDMap.IDMap"), handlers);
-		handlers.processIDs();
-		tovr.sort(SORT_FAC);
-		assertThat("incorrect size", tovr.getRelabeledSize(), is(27L));
-		assertThat("incorrect md5", tovr.getMD5(),
-				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
-		o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel correctly with unecessary sort",
-				o.toString("UTF-8"), is(expectedJson));
 	}
 
 	@Test
@@ -293,13 +313,7 @@ public class TypedObjectValidationReportTest {
 		TypedObjectValidationReport tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
-		try {
-			tovr.getMD5();
-			fail("got md5 for unsorted data");
-		} catch (IllegalStateException e) {
-			assertThat("incorrect exception", e.getMessage(),
-					is("Must call sort() before getting the MD5"));
-		}
+		failGetMD5(tovr);
 		tovr.sort(SORT_FAC);
 		assertThat("incorrect size", tovr.getRelabeledSize(), is(17L));
 		assertThat("incorrect md5", tovr.getMD5(),
@@ -401,26 +415,14 @@ public class TypedObjectValidationReportTest {
 		}
 		handlers.processIDs();
 		
-		try {
-			tovr.getRelabeledSize();
-			fail("got relabled size before calculation");
-		} catch (IllegalStateException e) {
-			assertThat("incorrect exception", e.getMessage(),
-					is("Must call calculateRelabeledSize() before getting said size"));
-		}
+		failGetRelabeledSize(tovr);
 		
 		//sort via sort() method in memory
 		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
 		assertThat("correct object size", tovr.getRelabeledSize(), is(27L));
 		// check twice, result is memoized
 		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
-		try {
-			tovr.getMD5();
-			fail("got md5 for unsorted data");
-		} catch (IllegalStateException e) {
-			assertThat("incorrect exception", e.getMessage(),
-					is("Must call sort() before getting the MD5"));
-		}
+		failGetMD5(tovr);
 		tovr.sort(SORT_FAC);
 		assertThat("incorrect md5", tovr.getMD5(),
 				is(new MD5("920d54af26c56df84e4c4df358952138")));
@@ -467,11 +469,22 @@ public class TypedObjectValidationReportTest {
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 	}
 
+	private void failGetRelabeledSize(TypedObjectValidationReport tovr) {
+		try {
+			tovr.getRelabeledSize();
+			fail("got relabled size before calculation");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must call calculateRelabeledSize() before getting said size"));
+		}
+	}
+
 	@Test
 	public void keySize() throws Exception {
 		String json = "{\"z\":\"a\",\"b\":\"d\"}";
 		
-		IdReferenceHandlerSetFactory hfac = new IdReferenceHandlerSetFactory(100);
+		IdReferenceHandlerSetFactory hfac =
+				new IdReferenceHandlerSetFactory(100);
 		IdReferenceHandlerSet<String> handlers =
 				hfac.createHandlers(String.class).associateObject("foo");
 		TypedObjectValidationReport tovr = validator.validate(json,
@@ -485,6 +498,8 @@ public class TypedObjectValidationReportTest {
 		
 		//test with json stored in file
 		tovr.sort(fac, tfm); //should work
+		tovr.destroyCachedResources();
+		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 		maxmem--;
 		fac = new UTF8JsonSorterFactory(maxmem);
 		try {

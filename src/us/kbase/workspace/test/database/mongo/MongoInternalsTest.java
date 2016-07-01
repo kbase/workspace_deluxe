@@ -32,6 +32,7 @@ import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.ObjectPaths;
@@ -664,6 +665,7 @@ public class MongoInternalsTest {
 		final DummyTypedObjectValidationReport dummy =
 				new DummyTypedObjectValidationReport(at, wso.getData());
 		dummy.calculateRelabeledSize();
+		dummy.sort(new UTF8JsonSorterFactory(100000));
 		ResolvedSaveObject rso = wso.resolve(
 				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
@@ -875,8 +877,10 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer(objname),
 				new UObject(data), t, null, p, false);
-		final DummyTypedObjectValidationReport dummy = new DummyTypedObjectValidationReport(at, wso.getData());
+		final DummyTypedObjectValidationReport dummy =
+				new DummyTypedObjectValidationReport(at, wso.getData());
 		dummy.calculateRelabeledSize();
+		dummy.sort(new UTF8JsonSorterFactory(100000));
 		ResolvedSaveObject rso = wso.resolve(
 				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),

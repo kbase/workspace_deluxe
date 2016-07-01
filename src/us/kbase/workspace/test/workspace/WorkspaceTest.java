@@ -6925,7 +6925,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
 		data2.put("w", 1);
 		data2.put("f", 2);
-		//already sorted so no temp files will be created
+		//already sorted so only one temp file will be created
 		Map<String, Object> data3 = new LinkedHashMap<String, Object>();
 		data3.put("x", 1);
 		data3.put("z", 2);
@@ -6951,8 +6951,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(38).build());
 		filesCreated[0] = 0;
 		ws.saveObjects(user, wsi, objs, getIdFactory());
-		//two files per data - 1 for relabeling, 1 for sort
-		assertThat("created temp files on save", filesCreated[0], is(4));
+		// two files per data - 1 for relabeling, 1 for sort
+		// except for sorted file, then just 1 for relabeling
+		assertThat("created temp files on save", filesCreated[0], is(5));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
