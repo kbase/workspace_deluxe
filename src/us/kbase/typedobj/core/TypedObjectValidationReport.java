@@ -20,7 +20,6 @@ import java.util.List;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
 import us.kbase.common.utils.CountingOutputStream;
-import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
@@ -171,25 +170,6 @@ public class TypedObjectValidationReport {
 						"the file cache could not be found.", e);
 			}
 		}
-	}
-	
-	/**
-	 * Relabel the WS IDs in the original Json document based on the specified set of
-	 * ID Mappings, where keys are the original ids and values are the replacement ids.
-	 * 
-	 * Caution: this relabeling happens in-place, so if you have modified the structure
-	 * of the JSON node between validation and invocation of this method, you will likely
-	 * get many runtime errors.  You should make a deep copy first if you indent to do this.
-	 * 
-	 * Memory of the original ids is not changed by this operation.  Thus, if you need
-	 * to rename the ids a second time, you must still refer to the id as its original name,
-	 * which will not necessarily be the name in the current version of the object.
-	 */
-	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws IOException {
-		JsonTreeGenerator jgen = new JsonTreeGenerator(UObject.getMapper());
-		relabelWsIdReferencesIntoGenerator(jgen);
-		JsonNode originalInstance = jgen.getTree();
-		return originalInstance;
 	}
 	
 	/** Calculate the size of the object, in bytes, when ids have been

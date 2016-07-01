@@ -1,6 +1,5 @@
 package us.kbase.typedobj.test;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -45,12 +44,6 @@ public class DummyTypedObjectValidationReport extends
 	@Override
 	public List <String> getErrorMessages() {
 		return new ArrayList<String>();
-	}
-	
-	@Override
-	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws IOException {
-		ObjectMapper mapper = new ObjectMapper();
-		return mapper.createObjectNode();
 	}
 
 	public JsonNode extractSearchableWsSubset() {
