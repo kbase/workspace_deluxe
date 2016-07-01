@@ -182,11 +182,6 @@ public class TypedObjectValidationReport {
 					relabelWsIdReferencesIntoWriter(os);
 				}
 			}
-			
-			@Override
-			public void releaseResources() throws IOException {
-				destroyCachedResources();
-			}
 		};
 	}	
 	

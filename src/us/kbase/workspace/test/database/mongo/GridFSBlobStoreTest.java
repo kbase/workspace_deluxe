@@ -158,9 +158,6 @@ public class GridFSBlobStoreTest {
 			public void write(OutputStream w) throws IOException {
 				w.write(s.getBytes("UTF-8"));
 			}
-			@Override
-			public void releaseResources() throws IOException {
-			}
 		};
 	}
 	

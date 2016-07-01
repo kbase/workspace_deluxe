@@ -305,9 +305,6 @@ public class ConfigurationsAndThreads {
 			public void write(OutputStream w) throws IOException {
 				MAP.writeValue(w, value);
 			}
-			@Override
-			public void releaseResources() throws IOException {
-			}
 		};
 	}
 

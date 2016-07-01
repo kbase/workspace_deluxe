@@ -463,7 +463,7 @@ public class TypedObjectValidationReportTest {
 		w.write(o);
 		assertThat("Relabel and in file correctly", o.toString("UTF-8"),
 				is(expectedJson));
-		w.releaseResources();
+		tovr.destroyCachedResources();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 	}
 

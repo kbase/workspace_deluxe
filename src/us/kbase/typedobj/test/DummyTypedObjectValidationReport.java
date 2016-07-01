@@ -80,9 +80,6 @@ public class DummyTypedObjectValidationReport extends
 				mapper.writeValue(os, data);
 			}
 			
-			@Override
-			public void releaseResources() throws IOException {
-			}
 		};
 	}	
 	
