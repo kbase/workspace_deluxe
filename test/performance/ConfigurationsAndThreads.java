@@ -3,8 +3,7 @@ package performance;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,7 +37,6 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
@@ -64,8 +62,8 @@ import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
 
 /* DO NOT run these tests on production workspaces.
- * WARNING: extensive changes have been made to the workspace initialization
- * sequence. Read through the code before using, probably doesn't work 
+ * WARNING: extensive changes have been made to the code. Read through the code
+ * before using, probably doesn't work 
  * correctly any more. See TODOs
  * 
  * Removed all references to the 0.0.5 Perl workspace version 2016/01/23.
@@ -299,13 +297,9 @@ public class ConfigurationsAndThreads {
 		return new Perf(writeNanoSec, readNanoSec, errors);
 	}
 	
-	private static Writable treeToWritable(final JsonNode value) {
-		return new Writable() {
-			@Override
-			public void write(OutputStream w) throws IOException {
-				MAP.writeValue(w, value);
-			}
-		};
+	private static InputStream treeToWritable(final JsonNode value) {
+		//NOTE no idea if this was a good change or not, just made it compile
+		return IOUtils.toInputStream(value.toString());
 	}
 
 	public static class WorkspaceJsonRPCShock extends AbstractReadWriteTest {

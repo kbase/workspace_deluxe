@@ -1,9 +1,11 @@
 package us.kbase.typedobj.core;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -148,44 +150,28 @@ public class TypedObjectValidationReport {
 		return errors;
 	}
 	
-//	public InputStream getInputStream() {
-//		if (sorted == false && cacheForSorting == null &&
-//				fileForSorting == null) {
-//			//TODO be smarter about this later
-//			throw new IllegalStateException(
-//					"You must call sort() prior to accessing the object data.");
-//		}
-//		if (cacheForSorting != null) {
-//			return new ByteArrayInputStream(cacheForSorting);
-//		} else 
-//	}
-	
-	public Writable createJsonWritable() {
+	/** Get an input stream containing the relabeled, sorted object. sort()
+	 * must be called before calling this method.
+	 * 
+	 * The caller of this method is responsible for closing the stream.
+	 * @return an object input stream.
+	 */
+	public InputStream getInputStream() {
 		if (byteCache == null && fileCache == null) {
-			//TODO be smarter about this later
 			throw new IllegalStateException(
-					"You must call sort() prior to creating a Writeable.");
+					"You must call sort() prior to accessing the object data.");
 		}
-		return new Writable() {
-			@Override
-			public void write(OutputStream os) throws IOException {
-				if (byteCache != null) {
-					os.write(byteCache);
-				} else {
-					InputStream is = new FileInputStream(fileCache);
-					byte[] buffer = new byte[10000];
-					while (true) {
-						int len = is.read(buffer);
-						if (len < 0)
-							break;
-						if (len > 0)
-							os.write(buffer, 0, len);
-					}
-					is.close();
-				}
+		if (byteCache != null) {
+			return new ByteArrayInputStream(byteCache);
+		} else {
+			try {
+				return new FileInputStream(fileCache);
+			} catch (FileNotFoundException e) {
+				throw new RuntimeException("A programming error occured and " +
+						"the file cache could not be found.", e);
 			}
-		};
-	}	
+		}
+	}
 	
 	/**
 	 * Relabel the WS IDs in the original Json document based on the specified set of

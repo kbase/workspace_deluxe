@@ -42,6 +42,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
+import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -265,7 +266,9 @@ public class IdProcessingTest {
 		assertThat("found the correct id counts", foundIDs, is(expectedIds));
 		
 		// now we relabel the ids
-		JsonNode relabeledInstance = report.getInstanceAfterIdRefRelabelingForTests();
+		report.sort(new UTF8JsonSorterFactory(1000000));
+		JsonNode relabeledInstance = new ObjectMapper()
+				.readTree(report.getInputStream());
 		
 		// now we revalidate the instance, and ensure that the labels have been renamed
 		IdReferenceHandlerSetFactory dummyfac = new IdReferenceHandlerSetFactory(0);

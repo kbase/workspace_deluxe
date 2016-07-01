@@ -7,8 +7,6 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.List;
@@ -36,7 +34,6 @@ import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
@@ -126,7 +123,7 @@ public class ShockBlobStoreTest {
 		}
 		
 		try {
-			sb.saveBlob(null, stringToWriteable("foo"), true);
+			sb.saveBlob(null, IOUtils.toInputStream("foo"), true);
 		} catch (NullPointerException npe) {
 			assertThat("correct excepction message", npe.getLocalizedMessage(),
 					is("Arguments cannot be null"));
@@ -174,7 +171,7 @@ public class ShockBlobStoreTest {
 	public void saveAndGetBlob() throws Exception {
 		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
 		String data = "this is a blob yo";
-		sb.saveBlob(md1, stringToWriteable(data), true);
+		sb.saveBlob(md1, IOUtils.toInputStream(data), true);
 		ShockNodeId id = new ShockNodeId(sb.getExternalIdentifier(md1));
 		assertTrue("Got a valid shock id",
 				UUID.matcher(id.getId()).matches());
@@ -186,16 +183,16 @@ public class ShockBlobStoreTest {
 		assertThat("data returned marked as sorted", d.isSorted(), is(true));
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
-		sb.saveBlob(md1, stringToWriteable(data), true); //should be able to save the same thing twice with no error
+		sb.saveBlob(md1, IOUtils.toInputStream(data), true); //should be able to save the same thing twice with no error
 		
-		sb.saveBlob(md1, stringToWriteable(data), false); //this should do nothing
+		sb.saveBlob(md1, IOUtils.toInputStream(data), false); //this should do nothing
 		assertThat("sorted still true", sb.getBlob(md1copy,
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm))
 				.isSorted(), is(true));
 		
 		MD5 md2 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2");
 		String data2 = "this is also a blob yo";
-		sb.saveBlob(md2, stringToWriteable(data2), false);
+		sb.saveBlob(md2, IOUtils.toInputStream(data2), false);
 		d = sb.getBlob(md2,
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
@@ -227,7 +224,7 @@ public class ShockBlobStoreTest {
 		sb.removeBlob(new MD5(A32)); //should silently not remove anything
 		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
 		String data = "this is a blob yo";
-		sb.saveBlob(md1, stringToWriteable(data), true);
+		sb.saveBlob(md1, IOUtils.toInputStream(data), true);
 		sb.removeAllBlobs();
 		
 	}
@@ -236,18 +233,9 @@ public class ShockBlobStoreTest {
 	public void removeAllBlobs() throws Exception {
 		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
 		String data = "this is a blob yo";
-		sb.saveBlob(md1, stringToWriteable(data), true);
+		sb.saveBlob(md1, IOUtils.toInputStream(data), true);
 		sb.removeAllBlobs();
 		failGetBlob(md1);
-	}
-	
-	private static Writable stringToWriteable(final String s) {
-		return new Writable() {
-			@Override
-			public void write(OutputStream w) throws IOException {
-				w.write(s.getBytes("UTF-8"));
-			}
-		};
 	}
 	
 	@Test

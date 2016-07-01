@@ -4,7 +4,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,7 +35,6 @@ import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
 import us.kbase.typedobj.core.TypedObjectValidator;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReference;
@@ -266,9 +265,8 @@ public class TypedObjectValidationReportTest {
 		tovr.sort(SORT_FAC);
 		assertThat("incorrect md5", tovr.getMD5(),
 				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
-		ByteArrayOutputStream o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel correctly without sort", o.toString("UTF-8"),
+		String gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel correctly without sort", gotjson,
 				is(expectedJson));
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 		
@@ -283,9 +281,8 @@ public class TypedObjectValidationReportTest {
 		assertThat("incorrect size", tovr.getRelabeledSize(), is(27L));
 		assertThat("incorrect md5", tovr.getMD5(),
 				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
-		o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel correctly without sort", o.toString("UTF-8"),
+		gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel correctly without sort", gotjson,
 				is(expectedJson));
 		tovr.destroyCachedResources();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
@@ -306,7 +303,8 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"z\": \"a\", \"b\": \"d\"}";
 		String expectedJson = "{\"b\":\"d\",\"z\":\"a\"}";
 
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
+		IdReferenceHandlerSetFactory fac =
+				new IdReferenceHandlerSetFactory(100);
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 
@@ -319,9 +317,9 @@ public class TypedObjectValidationReportTest {
 		assertThat("incorrect md5", tovr.getMD5(),
 				is(new MD5("16903d0745c0f47a90d92d1abd535b12")));
 		
-		ByteArrayOutputStream o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
+		String gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel correctly without sort", gotjson,
+				is(expectedJson));
 	}
 
 	@Test
@@ -345,12 +343,12 @@ public class TypedObjectValidationReportTest {
 		//sort via sort() method in memory
 		handlers.processIDs();
 		try {
-			tovr.createJsonWritable();
-			fail("created a writable on non-naturally sorted data");
+			tovr.getInputStream();
+			fail("created an inputstream on unsorted data");
 		} catch (IllegalStateException ise) {
 			assertThat("correct exception message on failing to write",
 					ise.getLocalizedMessage(),
-					is("You must call sort() prior to creating a Writeable."));
+					is("You must call sort() prior to accessing the object data."));
 		}
 	}
 	
@@ -426,9 +424,8 @@ public class TypedObjectValidationReportTest {
 		tovr.sort(SORT_FAC);
 		assertThat("incorrect md5", tovr.getMD5(),
 				is(new MD5("920d54af26c56df84e4c4df358952138")));
-		ByteArrayOutputStream o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"),
+		String gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel and sort in memory correctly", gotjson,
 				is(expectedJson));
 		
 		//sort via sort(TFM) method with null TFM, again in memory
@@ -440,9 +437,8 @@ public class TypedObjectValidationReportTest {
 		tovr.sort(SORT_FAC, null);
 		assertThat("incorrect md5", tovr.getMD5(),
 				is(new MD5("920d54af26c56df84e4c4df358952138")));
-		o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"),
+		gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel and sort in memory correctly", gotjson,
 				is(expectedJson));
 		
 		//sort via sort(TFM) method with data stored in file
@@ -460,10 +456,8 @@ public class TypedObjectValidationReportTest {
 		assertThat("TFM has one file", tfm.getTempFileList().size(), is(1));
 		assertThat("incorrect md5", tovr.getMD5(),
 				is(new MD5("920d54af26c56df84e4c4df358952138")));
-		o = new ByteArrayOutputStream();
-		Writable w = tovr.createJsonWritable();
-		w.write(o);
-		assertThat("Relabel and in file correctly", o.toString("UTF-8"),
+		gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel and in file correctly", gotjson,
 				is(expectedJson));
 		tovr.destroyCachedResources();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
