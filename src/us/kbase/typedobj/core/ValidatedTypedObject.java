@@ -1,6 +1,5 @@
 package us.kbase.typedobj.core;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -88,10 +87,9 @@ public class ValidatedTypedObject {
 	private final JsonTokenValidationSchema schema;
 	
 	/**
-	 * Created a validated object. The object contains
+	 * Create a validated object. The object contains
 	 * information on validation errors (if any), the IDs found in the object,
 	 * and information about the metadata extraction selection.
-	 * 
 	 */
 	protected ValidatedTypedObject(
 			final UObject tokenStreamProvider,
@@ -290,10 +288,13 @@ public class ValidatedTypedObject {
 				byteCache = baos.toByteArray();
 			}
 		} else {
+			/* note that Jackson, JsonTokenStream (the data source) and the
+			 * sorters do their own buffering, so wrapping streams in a buffer
+			 * isn't necessary
+			 */
 			if (naturallySorted) {
 				fileCache = tfm.generateTempFile("natsortout", "json");
-				try (final OutputStream os = new BufferedOutputStream(
-						new FileOutputStream(fileCache))) {
+				try (final OutputStream os = new FileOutputStream(fileCache)) {
 					relabelWsIdReferencesIntoWriter(new DigestOutputStream(
 							os, digest));
 				} catch (IOException | RuntimeException | Error e) {
@@ -303,13 +304,12 @@ public class ValidatedTypedObject {
 			} else {
 				final File f1 = tfm.generateTempFile("sortinp", "json");
 				try {
-					try (final OutputStream os = new BufferedOutputStream(
-							new FileOutputStream(f1))) {
+					try (final OutputStream os = new FileOutputStream(f1)) {
 						relabelWsIdReferencesIntoWriter(os);
 					}
 					fileCache = tfm.generateTempFile("sortout", "json");
-					try (final OutputStream os = new BufferedOutputStream(
-							new FileOutputStream(fileCache))) {
+					try (final OutputStream os =
+							new FileOutputStream(fileCache)) {
 						fac.getSorter(f1).writeIntoStream(
 								new DigestOutputStream(os, digest));
 					} catch (IOException | KeyDuplicationException |
@@ -330,7 +330,6 @@ public class ValidatedTypedObject {
 	 * collection of in-memory caches. This method must be called before
 	 * program exit or temporary files may be left on disk. The caches will be
 	 * recreated as necessary. 
-	 * 
 	 */
 	public void destroyCachedResources() {
 		this.byteCache = null;
