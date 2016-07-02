@@ -43,7 +43,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @author rsutormin
  * @author gaprice@lbl.gov
  */
-public class TypedObjectValidationReport {
+public class ValidatedTypedObject {
 
 	//TODO JAVADOC
 	
@@ -95,7 +95,7 @@ public class TypedObjectValidationReport {
 	 * metadata extraction selection.
 	 * 
 	 */
-	protected TypedObjectValidationReport(
+	protected ValidatedTypedObject(
 			final UObject tokenStreamProvider,
 			final AbsoluteTypeDefId validationTypeDefId, 
 			final List<String> errors,

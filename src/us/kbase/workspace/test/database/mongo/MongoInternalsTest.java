@@ -46,7 +46,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
-import us.kbase.typedobj.test.DummyTypedObjectValidationReport;
+import us.kbase.typedobj.test.DummyValidatedTypedObject;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjIDWithChainAndSubset;
@@ -662,8 +662,8 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("testobj"), new UObject(data), t,
 				new WorkspaceUserMetadata(meta), p, false);
-		final DummyTypedObjectValidationReport dummy =
-				new DummyTypedObjectValidationReport(at, wso.getData());
+		final DummyValidatedTypedObject dummy =
+				new DummyValidatedTypedObject(at, wso.getData());
 		dummy.calculateRelabeledSize();
 		dummy.sort(new UTF8JsonSorterFactory(100000));
 		ResolvedSaveObject rso = wso.resolve(
@@ -877,8 +877,8 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer(objname),
 				new UObject(data), t, null, p, false);
-		final DummyTypedObjectValidationReport dummy =
-				new DummyTypedObjectValidationReport(at, wso.getData());
+		final DummyValidatedTypedObject dummy =
+				new DummyValidatedTypedObject(at, wso.getData());
 		dummy.calculateRelabeledSize();
 		dummy.sort(new UTF8JsonSorterFactory(100000));
 		ResolvedSaveObject rso = wso.resolve(

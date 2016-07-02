@@ -43,7 +43,7 @@ import us.kbase.typedobj.core.ExtractedMetadata;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
@@ -216,7 +216,7 @@ public class MetadataExtractionTest {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(6);
 		IdReferenceHandlerSet<String> han =
 				fac.createHandlers(String.class).associateObject("foo");
-		TypedObjectValidationReport report = 
+		ValidatedTypedObject report = 
 			validator.validate(
 				instanceRootNode,
 				new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),

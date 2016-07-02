@@ -46,7 +46,7 @@ import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
@@ -251,7 +251,7 @@ public class IdProcessingTest {
 		idhandlers.associateObject("foo");
 		
 		// perform the initial validation, which must validate!
-		TypedObjectValidationReport report = 
+		ValidatedTypedObject report = 
 			validator.validate(
 					instanceRootNode,
 					new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
@@ -272,7 +272,7 @@ public class IdProcessingTest {
 		
 		// now we revalidate the instance, and ensure that the labels have been renamed
 		IdReferenceHandlerSetFactory dummyfac = new IdReferenceHandlerSetFactory(0);
-		TypedObjectValidationReport report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
+		ValidatedTypedObject report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
 				dummyfac.createHandlers(String.class).associateObject("foo"));
 		List <String> mssgs2 = report2.getErrorMessages();
 		for(int i=0; i<mssgs2.size(); i++) {

@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.JsonTokenValidationSchema;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 
 /**
@@ -20,12 +20,12 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
  * @author msneddon
  *
  */
-public class DummyTypedObjectValidationReport extends
-		TypedObjectValidationReport {
+public class DummyValidatedTypedObject extends
+		ValidatedTypedObject {
 	
 	final UObject data;
 	
-	public DummyTypedObjectValidationReport(final AbsoluteTypeDefId type, 
+	public DummyValidatedTypedObject(final AbsoluteTypeDefId type, 
 			final UObject data) throws Exception {
 		
 		super(data, type, Collections.<String>emptyList(), null,

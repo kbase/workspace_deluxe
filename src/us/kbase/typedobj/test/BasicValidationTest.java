@@ -37,7 +37,7 @@ import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
@@ -234,7 +234,7 @@ public class BasicValidationTest {
 			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 			
 			try {
-				TypedObjectValidationReport report = 
+				ValidatedTypedObject report = 
 					validator.validate(
 						instanceJson,
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
@@ -263,7 +263,7 @@ public class BasicValidationTest {
 			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 			
 			try {
-				TypedObjectValidationReport report = 
+				ValidatedTypedObject report = 
 					validator.validate(
 						instanceJson,
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
