@@ -277,22 +277,16 @@ public class ValidatedTypedObject {
 		if (tfm == null) {
 			if (naturallySorted) {
 				final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				try (final OutputStream os = new BufferedOutputStream(baos)) {
-					relabelWsIdReferencesIntoWriter(new DigestOutputStream(
-							os, digest));
-				}
+				relabelWsIdReferencesIntoWriter(new DigestOutputStream(
+						baos, digest));
 				byteCache = baos.toByteArray();
 			} else {
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				try (final OutputStream os = new BufferedOutputStream(baos)) {
-					relabelWsIdReferencesIntoWriter(os);
-				}
+				relabelWsIdReferencesIntoWriter(baos);
 				byteCache = baos.toByteArray();
 				baos = new ByteArrayOutputStream();
-				try (final OutputStream os = new BufferedOutputStream(baos)) {
-					fac.getSorter(byteCache).writeIntoStream(
-							new DigestOutputStream(os, digest));
-				}
+				fac.getSorter(byteCache).writeIntoStream(
+						new DigestOutputStream(baos, digest));
 				byteCache = baos.toByteArray();
 			}
 		} else {
