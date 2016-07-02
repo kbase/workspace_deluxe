@@ -310,7 +310,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("Permissions set correctly", perms, is(expected));
 		
 		//test setting perms on multiple users at same time
-		//TODO add clearCaches method to auth client & use here
+		//TODO TEST add clearCaches method to auth client & use here
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("n").withUsers(Arrays.asList(USER2, USER3)));
 		expected.remove(USER2);

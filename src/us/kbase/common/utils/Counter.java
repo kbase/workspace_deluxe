@@ -7,7 +7,7 @@ package us.kbase.common.utils;
  * see http://www.cs.duke.edu/csed/ap/subset/code/Counter.html
  */
 
-//TODO move to common
+//TODO MOVE move to common
 
 public class Counter
 {

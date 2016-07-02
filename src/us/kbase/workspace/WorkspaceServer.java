@@ -115,11 +115,10 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final String gitCommitHash = "2f6b7bb5943816cb6b879dd64c865f6e81dee069";
 
     //BEGIN_CLASS_HEADER
-	//TODO java doc - really low priority, sorry
-    //TODO timestamps for startup script
-    //TODO check shock version
-    //TODO shock client should ignore extra fields
-    
+	//TODO JAVADOC really low priority, sorry
+	//TODO INIT timestamps for startup script
+	//TODO SHOCKCLIENT should ignore extra fields
+
 	private static final String VER = "0.5.0-dev2";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";

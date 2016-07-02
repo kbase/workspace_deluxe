@@ -6,7 +6,7 @@ import us.kbase.typedobj.core.ObjectPaths;
 
 public class ObjIDWithChainAndSubset extends ObjectIDWithRefChain {
 
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	private final ObjectPaths paths;
 	

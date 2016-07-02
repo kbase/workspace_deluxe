@@ -181,7 +181,7 @@ def process_objects(db, workspaces):
     ws_id = 'ws'
     obj_id = 'id'
     # user -> pub -> del -> du or objs -> #
-    # TODO switch to len 8 named tuple, this is stupid
+    # TODO CODE switch to len 8 named tuple, this is stupid
     d = defaultdict(lambda: defaultdict(lambda: defaultdict(
         lambda: defaultdict(int))))
     wscount = 0

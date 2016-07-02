@@ -49,7 +49,7 @@ import us.kbase.workspace.test.controllers.handle.HandleServiceController;
  */
 public class ScriptTestRunner {
 	
-	//TODO needs to run w/o dev container
+	//TODO TEST needs to run w/o dev container
 	
 	protected static WorkspaceClient CLIENT1 = null;
 	protected static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well

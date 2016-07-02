@@ -6,7 +6,7 @@ package us.kbase.workspace.database;
  */
 public class ResourceUsageConfigurationBuilder {
 	
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	final public static int DEFAULT_MAX_OBJECT_SIZE = 1000000000;
 	final public static int DEFAULT_MAX_INCOMING_DATA_MEMORY_USAGE = 100000000;

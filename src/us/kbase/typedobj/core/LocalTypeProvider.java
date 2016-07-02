@@ -12,7 +12,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
  */
 public class LocalTypeProvider implements TypeProvider {
 
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	private final TypeDefinitionDB typeDB;
 	

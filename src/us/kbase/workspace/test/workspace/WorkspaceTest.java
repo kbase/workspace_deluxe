@@ -1565,7 +1565,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		TypeDefId abstype6 = new TypeDefId(new TypeDefName(module, "type6"), 0, 1);
 		Set<String> keys = new TreeSet<String>(Arrays.asList("val1", "val2", "val3"));
 		
-		//TODO should try these tests with bytes vs. maps
+		//TODO TEST should try these tests with bytes vs. maps
 		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
 		data1.put("val3", null);
 		data1.put("val2", null);
@@ -2010,7 +2010,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"Object #1 has invalid provenance reference: There is no object with id referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
 								+ refwsid));
 		
-		//TODO test references against garbage collected objects
+		//TODO GC test references against garbage collected objects
 		
 		//test reference type checking
 		String refmod = "TestTypeCheckingRefType";
@@ -5017,8 +5017,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				.withShowAllVersions(true).withIncludeMetaData(true)),
 				new ArrayList<ObjectInformation>());
 		
-		//TODO move these to unit tests for LOP
-		//TODO you can test the 2 arg constructor, just cast the null idiot
+		//TODO MOVE move these to unit tests for LOP
+		//TODO TEST you can test the 2 arg constructor, just cast the null idiot
 		// can't test 2 argument constructor with the 2nd constructor argument
 		// null since then constructor is ambiguous
 		try {
@@ -6925,7 +6925,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
 		data2.put("w", 1);
 		data2.put("f", 2);
-		//already sorted so no temp files will be created
+		//already sorted so only one temp file will be created
 		Map<String, Object> data3 = new LinkedHashMap<String, Object>();
 		data3.put("x", 1);
 		data3.put("z", 2);
@@ -6951,8 +6951,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(38).build());
 		filesCreated[0] = 0;
 		ws.saveObjects(user, wsi, objs, getIdFactory());
-		//two files per data - 1 for relabeling, 1 for sort
-		assertThat("created temp files on save", filesCreated[0], is(4));
+		// two files per data - 1 for relabeling, 1 for sort
+		// except for sorted file, then just 1 for relabeling
+		assertThat("created temp files on save", filesCreated[0], is(5));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;

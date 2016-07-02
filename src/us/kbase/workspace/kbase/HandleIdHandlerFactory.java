@@ -26,8 +26,7 @@ import us.kbase.typedobj.idref.RemappedId;
 
 public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
-	//TODO copy method needs to call exists on any handle IDs (needs get ext ids method)
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	public static final IdReferenceType type = new IdReferenceType("handle");
 	private final URL handleService;

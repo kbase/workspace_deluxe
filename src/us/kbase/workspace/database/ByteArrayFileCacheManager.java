@@ -26,7 +26,7 @@ import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 
 public class ByteArrayFileCacheManager {
 	
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	private int sizeInMem = 0;
 	private final int maxSizeInMem;

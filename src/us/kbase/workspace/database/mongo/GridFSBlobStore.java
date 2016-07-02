@@ -1,5 +1,6 @@
 package us.kbase.workspace.database.mongo;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -8,7 +9,6 @@ import java.util.List;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.typedobj.core.MD5;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
@@ -17,7 +17,6 @@ import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
-import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
 import com.mongodb.CommandResult;
 import com.mongodb.DB;
@@ -37,7 +36,7 @@ public class GridFSBlobStore implements BlobStore {
 	}
 
 	@Override
-	public void saveBlob(final MD5 md5, final Writable data,
+	public void saveBlob(final MD5 md5, final InputStream data,
 			final boolean sorted)
 			throws BlobStoreCommunicationException {
 		if(data == null || md5 == null) {
@@ -46,38 +45,18 @@ public class GridFSBlobStore implements BlobStore {
 		if (getFile(md5) != null) {
 			return; //already exists
 		}
-		final OutputStreamToInputStream<String> osis =
-				new OutputStreamToInputStream<String>() {
-					
-			@Override
-			protected String doRead(InputStream is) throws Exception {
-				final GridFSInputFile gif = gfs.createFile(is, true);
-				gif.setId(md5.getMD5());
-				gif.setFilename(md5.getMD5());
-				gif.put(Fields.GFS_SORTED, sorted);
-				try {
-					gif.save();
-				} catch (DuplicateKeyException dk) {
-					// already here, done
-				} catch (MongoException me) {
-					throw new BlobStoreCommunicationException(
-							"Could not write to the mongo database", me);
-				}
-//				is.close(); closing the is has caused deadlocks in other applications
-				return null;
-			}
-		};
+		final GridFSInputFile gif = gfs.createFile(
+				new BufferedInputStream(data), true);
+		gif.setId(md5.getMD5());
+		gif.setFilename(md5.getMD5());
+		gif.put(Fields.GFS_SORTED, sorted);
 		try {
-			//writes in UTF8
-			data.write(osis);
-		} catch (IOException ioe) {
-			throw new RuntimeException("Something is broken", ioe);
-		} finally {
-			try {
-				osis.close();
-			} catch (IOException ioe) {
-				throw new RuntimeException("Something is broken", ioe);
-			}
+			gif.save();
+		} catch (DuplicateKeyException dk) {
+			// already here, done
+		} catch (MongoException me) {
+			throw new BlobStoreCommunicationException(
+					"Could not write to the mongo database", me);
 		}
 	}
 

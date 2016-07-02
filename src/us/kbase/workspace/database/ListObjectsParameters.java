@@ -17,7 +17,7 @@ import us.kbase.typedobj.core.TypeDefId;
  */
 public class ListObjectsParameters {
 	
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	private final static int MAX_INFO_COUNT = 10000;
 

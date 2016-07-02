@@ -1,7 +1,5 @@
 package us.kbase.typedobj.test;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,12 +7,10 @@ import java.util.List;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import us.kbase.common.service.JacksonTupleModule;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.JsonTokenValidationSchema;
 import us.kbase.typedobj.core.TypedObjectValidationReport;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 
 /**
@@ -49,19 +45,7 @@ public class DummyTypedObjectValidationReport extends
 	public List <String> getErrorMessages() {
 		return new ArrayList<String>();
 	}
-	
-	@Override
-	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws IOException {
-		ObjectMapper mapper = new ObjectMapper();
-		return mapper.createObjectNode();
-	}
 
-	/*@Override
-	public JsonNode getJsonInstance() {
-		ObjectMapper mapper = new ObjectMapper();
-		return mapper.createObjectNode();
-	}*/
-	
 	public JsonNode extractSearchableWsSubset() {
 		ObjectMapper mapper = new ObjectMapper();
 		return mapper.createObjectNode();
@@ -71,20 +55,4 @@ public class DummyTypedObjectValidationReport extends
 	public String toString() { 
 		return "DummyTypedObjectValidationReport";
 	}
-	
-	public Writable createJsonWritable() {
-		return new Writable() {
-			@Override
-			public void write(OutputStream os) throws IOException {
-				ObjectMapper mapper = new ObjectMapper().registerModule(new JacksonTupleModule());
-				mapper.writeValue(os, data);
-			}
-			
-			@Override
-			public void releaseResources() throws IOException {
-			}
-		};
-	}	
-	
-	
 }
