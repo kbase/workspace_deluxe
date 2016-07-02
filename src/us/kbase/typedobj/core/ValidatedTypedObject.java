@@ -1,5 +1,6 @@
 package us.kbase.typedobj.core;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -146,7 +147,8 @@ public class ValidatedTypedObject {
 	}
 	
 	/** Get an input stream containing the relabeled, sorted object. sort()
-	 * must be called before calling this method.
+	 * must be called before calling this method. The stream is buffered
+	 * when appropriate.
 	 * 
 	 * The caller of this method is responsible for closing the stream.
 	 * @return an object input stream.
@@ -160,7 +162,7 @@ public class ValidatedTypedObject {
 			return new ByteArrayInputStream(byteCache);
 		} else {
 			try {
-				return new FileInputStream(fileCache);
+				return new BufferedInputStream(new FileInputStream(fileCache));
 			} catch (FileNotFoundException e) {
 				throw new RuntimeException("A programming error occured and " +
 						"the file cache could not be found.", e);

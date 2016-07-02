@@ -1,6 +1,5 @@
 package us.kbase.workspace.database.mongo;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -171,8 +170,7 @@ public class ShockBlobStore implements BlobStore {
 		updateAuth();
 		final ShockNode sn;
 		try {
-			sn = client.addNode(new BufferedInputStream(data),
-					"workspace_" + md5.getMD5(), "JSON");
+			sn = client.addNode(data, "workspace_" + md5.getMD5(), "JSON");
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Token magically expired: "
