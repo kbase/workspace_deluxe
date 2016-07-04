@@ -66,7 +66,7 @@
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
-    <include name="kbase/shock/shock-client-0.0.11.jar"/>
+    <include name="kbase/shock/shock-client-0.0.12.jar"/>
     <include name="apache_commons/commons-logging-1.1.1.jar"/>
     <include name="apache_commons/http/httpclient-4.3.1.jar"/>
     <include name="apache_commons/http/httpcore-4.3.jar"/>
@@ -81,7 +81,6 @@
     <include name="mongo/mongo-java-driver-2.13.3.jar"/>
     <include name="jongo/jongo-0.5-early-20130912-1506.jar"/>
     <include name="bson4jackson/bson4jackson-2.2.0-2.2.0.jar"/>
-    <include name="easystream/easystream-1.2.13.jar"/>
     <include name="slf4j/slf4j-api-1.7.7.jar"/>
     <include name="logback/logback-core-1.1.2.jar"/>
     <include name="logback/logback-classic-1.1.2.jar"/>
