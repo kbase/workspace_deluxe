@@ -1,6 +1,5 @@
 package us.kbase.workspace.database.mongo;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -45,8 +44,7 @@ public class GridFSBlobStore implements BlobStore {
 		if (getFile(md5) != null) {
 			return; //already exists
 		}
-		final GridFSInputFile gif = gfs.createFile(
-				new BufferedInputStream(data), true);
+		final GridFSInputFile gif = gfs.createFile(data, true);
 		gif.setId(md5.getMD5());
 		gif.setFilename(md5.getMD5());
 		gif.put(Fields.GFS_SORTED, sorted);

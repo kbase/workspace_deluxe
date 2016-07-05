@@ -1,6 +1,6 @@
 package us.kbase.typedobj.core;
 
-import java.io.BufferedOutputStream;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -35,18 +35,16 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
- * The report generated when a typed object instance is validated.  If the type
+ * A typed object that has been validated  If the type
  * definition indicates that fields are ID references, those ID references can
- * be extracted from this report.
+ * be extracted from this object.
  *
  * @author msneddon
  * @author rsutormin
  * @author gaprice@lbl.gov
  */
-public class TypedObjectValidationReport {
+public class ValidatedTypedObject {
 
-	//TODO JAVADOC
-	
 	/**
 	 * The list of errors found during validation.  If the object is not valid, this must be non-empty, (although
 	 * note that not all validations errors found may be added, for instance, if there are many errors only the
@@ -90,12 +88,11 @@ public class TypedObjectValidationReport {
 	private final JsonTokenValidationSchema schema;
 	
 	/**
-	 * After validation, assemble the validation result into a report for later use. The report contains
-	 * information on validation errors (if any), the IDs found in the object, and information about the
-	 * metadata extraction selection.
-	 * 
+	 * Create a validated object. The object contains
+	 * information on validation errors (if any), the IDs found in the object,
+	 * and information about the metadata extraction selection.
 	 */
-	protected TypedObjectValidationReport(
+	protected ValidatedTypedObject(
 			final UObject tokenStreamProvider,
 			final AbsoluteTypeDefId validationTypeDefId, 
 			final List<String> errors,
@@ -127,30 +124,31 @@ public class TypedObjectValidationReport {
 	}
 	
 	/**
-	 * Get the absolute ID of the typedef that was used to validate the instance
-	 * @return
+	 * Get the absolute ID of the typedef that was used to validate the object.
+	 * @return the type ID.
 	 */
 	public AbsoluteTypeDefId getValidationTypeDefId() {
 		return validationTypeDefId;
 	}
 	
-	/**
-	 * @return boolean true if the instance is valid, false otherwise
+	/** Get whether this object is valid according to the validator.
+	 * @return boolean true if the object is valid, false otherwise
 	 */
 	public boolean isInstanceValid() {
 		return errors.isEmpty();
 	}
 	
 	/**
-	 * Iterate over all items in the report and return the error messages.
-	 * @return errors
+	 * Return any validation errors for this object.
+	 * @return errors the validation errors.
 	 */
 	public List<String> getErrorMessages() {
 		return errors;
 	}
 	
 	/** Get an input stream containing the relabeled, sorted object. sort()
-	 * must be called before calling this method.
+	 * must be called before calling this method. The stream is buffered
+	 * when appropriate.
 	 * 
 	 * The caller of this method is responsible for closing the stream.
 	 * @return an object input stream.
@@ -164,7 +162,7 @@ public class TypedObjectValidationReport {
 			return new ByteArrayInputStream(byteCache);
 		} else {
 			try {
-				return new FileInputStream(fileCache);
+				return new BufferedInputStream(new FileInputStream(fileCache));
 			} catch (FileNotFoundException e) {
 				throw new RuntimeException("A programming error occured and " +
 						"the file cache could not be found.", e);
@@ -209,6 +207,10 @@ public class TypedObjectValidationReport {
 		return size;
 	}
 
+	/** Get the MD5 of the sorted, relabeled object.
+	 * sort() must have been called previously.
+	 * @return the object's MD5
+	 */
 	public MD5 getMD5() {
 		if (md5 == null) {
 			throw new IllegalStateException(
@@ -236,11 +238,9 @@ public class TypedObjectValidationReport {
 	}
 
 	/** Relabel ids, sort the object if necessary and keep a copy.
-	 * You must call this method prior to calling createJsonWritable().
+	 * You must call this method prior to calling getInputStream().
 	 * Equivalent of sort(null). All data is kept in memory.
 	 * @param fac the sorter factory to use when generating a sorter.
-	 * @throws RelabelIdReferenceException if there are duplicate keys after
-	 * relabeling the ids or if sorting the map keys takes too much memory.
 	 * @throws IOException if an IO exception occurs.
 	 * @throws TooManyKeysException if the memory required to sort the map is
 	 * too high.
@@ -253,7 +253,7 @@ public class TypedObjectValidationReport {
 	}
 	
 	/** Relabel ids, sort the object if necessary and keep a copy.
-	 * You must call this method prior to calling createJsonWritable().
+	 * You must call this method prior to calling getInputStream().
 	 * @param fac the sorter factory to use when generating a sorter.
 	 * @param tfm the temporary file manager to use for managing temporary
 	 * files. All data is kept in memory if tfm is null.
@@ -277,29 +277,26 @@ public class TypedObjectValidationReport {
 		if (tfm == null) {
 			if (naturallySorted) {
 				final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				try (final OutputStream os = new BufferedOutputStream(baos)) {
-					relabelWsIdReferencesIntoWriter(new DigestOutputStream(
-							os, digest));
-				}
+				relabelWsIdReferencesIntoWriter(new DigestOutputStream(
+						baos, digest));
 				byteCache = baos.toByteArray();
 			} else {
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				try (final OutputStream os = new BufferedOutputStream(baos)) {
-					relabelWsIdReferencesIntoWriter(os);
-				}
+				relabelWsIdReferencesIntoWriter(baos);
 				byteCache = baos.toByteArray();
 				baos = new ByteArrayOutputStream();
-				try (final OutputStream os = new BufferedOutputStream(baos)) {
-					fac.getSorter(byteCache).writeIntoStream(
-							new DigestOutputStream(os, digest));
-				}
+				fac.getSorter(byteCache).writeIntoStream(
+						new DigestOutputStream(baos, digest));
 				byteCache = baos.toByteArray();
 			}
 		} else {
+			/* note that Jackson, JsonTokenStream (the data source) and the
+			 * sorters do their own buffering, so wrapping streams in a buffer
+			 * isn't necessary
+			 */
 			if (naturallySorted) {
 				fileCache = tfm.generateTempFile("natsortout", "json");
-				try (final OutputStream os = new BufferedOutputStream(
-						new FileOutputStream(fileCache))) {
+				try (final OutputStream os = new FileOutputStream(fileCache)) {
 					relabelWsIdReferencesIntoWriter(new DigestOutputStream(
 							os, digest));
 				} catch (IOException | RuntimeException | Error e) {
@@ -309,13 +306,12 @@ public class TypedObjectValidationReport {
 			} else {
 				final File f1 = tfm.generateTempFile("sortinp", "json");
 				try {
-					try (final OutputStream os = new BufferedOutputStream(
-							new FileOutputStream(f1))) {
+					try (final OutputStream os = new FileOutputStream(f1)) {
 						relabelWsIdReferencesIntoWriter(os);
 					}
 					fileCache = tfm.generateTempFile("sortout", "json");
-					try (final OutputStream os = new BufferedOutputStream(
-							new FileOutputStream(fileCache))) {
+					try (final OutputStream os =
+							new FileOutputStream(fileCache)) {
 						fac.getSorter(f1).writeIntoStream(
 								new DigestOutputStream(os, digest));
 					} catch (IOException | KeyDuplicationException |
@@ -332,6 +328,11 @@ public class TypedObjectValidationReport {
 		md5 = getMD5fromDigest(digest);
 	}
 	
+	/** Destroy any cached resources created by this class and allow garbage
+	 * collection of in-memory caches. This method must be called before
+	 * program exit or temporary files may be left on disk. The caches will be
+	 * recreated as necessary. 
+	 */
 	public void destroyCachedResources() {
 		this.byteCache = null;
 		if (this.fileCache != null) {
@@ -391,6 +392,11 @@ public class TypedObjectValidationReport {
 		}
 	}
 	
+	/** Get the path to an ID in the object.
+	 * @param ref the ID to search for.
+	 * @return the location of the ID in the object.
+	 * @throws IOException if an IO error occurs.
+	 */
 	public JsonDocumentLocation getIdReferenceLocation (
 			final IdReference<?> ref)
 					throws IOException {
@@ -447,13 +453,11 @@ public class TypedObjectValidationReport {
 	
 	
 	/**
-	 * If metadata ws was defined in the Json Schema, then you can use this method
-	 * to extract out the contents.  Note that this method does not perform a deep copy of the data,
-	 * so if you extract metadata, then modify the original instance that was validated, it can
-	 * (in some but not all cases) modify this metadata as well.  So you should always perform a
-	 * deep copy of the original instance if you intend to modify it and  metadata has already
-	 * been extracted.
-	 * @throws ExceededMaxMetadataSizeException 
+	 * If metadata ws was defined in the Json Schema, then you can use this
+	 * method to extract out the contents.
+	 * @param maxMetadataSize the maximum allowable size for the metadata.
+	 * @throws ExceededMaxMetadataSizeException if the metadata exceeds the
+	 * maximum allowed size.
 	 */
 	public ExtractedMetadata extractMetadata(
 			final long maxMetadataSize) 

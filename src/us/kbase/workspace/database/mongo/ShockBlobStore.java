@@ -1,12 +1,10 @@
 package us.kbase.workspace.database.mongo;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import org.slf4j.LoggerFactory;
 
@@ -32,9 +30,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.gc.iotools.stream.base.ExecutionModel;
-import com.gc.iotools.stream.base.ExecutorServiceFactory;
-import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -171,8 +166,7 @@ public class ShockBlobStore implements BlobStore {
 		updateAuth();
 		final ShockNode sn;
 		try {
-			sn = client.addNode(new BufferedInputStream(data),
-					"workspace_" + md5.getMD5(), "JSON");
+			sn = client.addNode(data, "workspace_" + md5.getMD5(), "JSON");
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Token magically expired: "
@@ -245,19 +239,9 @@ public class ShockBlobStore implements BlobStore {
 		} else {
 			sorted = (Boolean)entry.get(Fields.SHOCK_SORTED);
 		}
-		//TODO CODE, PERFORMANCE make the shock client return an inputstream
-		final OutputStreamToInputStream<ByteArrayFileCache> osis =
-				new OutputStreamToInputStream<ByteArrayFileCache>(true,
-						ExecutorServiceFactory.getExecutor(
-								ExecutionModel.THREAD_PER_INSTANCE), 10000000) { //speeds up by 2-3x
-					
-			@Override
-			protected ByteArrayFileCache doRead(InputStream is) throws Exception {
-				return bafcMan.createBAFC(is, true, sorted);
-			}
-		};
 		try {
-			client.getFile(new ShockNodeId(node), osis);
+			return bafcMan.createBAFC(client.getFile(new ShockNodeId(node)),
+					true, sorted);
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
@@ -275,18 +259,6 @@ public class ShockBlobStore implements BlobStore {
 			throw new BlobStoreCommunicationException(
 					"Failed to retrieve shock node: " +
 					she.getLocalizedMessage(), she);
-		}
-		try {
-			osis.close();
-		} catch (IOException ioe) {
-			throw new RuntimeException("Something is broken", ioe);
-		}
-		try {
-			return osis.getResult();
-		} catch (InterruptedException ie) {
-			throw new RuntimeException("Something is broken", ie);
-		} catch (ExecutionException ee) {
-			throw new RuntimeException("Something is broken", ee);
 		}
 	}
 

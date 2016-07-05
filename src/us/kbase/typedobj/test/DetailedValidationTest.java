@@ -41,7 +41,7 @@ import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
@@ -235,7 +235,7 @@ public class DetailedValidationTest {
 		handler.associateObject("foo");
 		
 		try {
-			TypedObjectValidationReport report = 
+			ValidatedTypedObject report = 
 				validator.validate(
 					instance,
 					new TypeDefId(new TypeDefName(typeTokens[0],typeTokens[1])),

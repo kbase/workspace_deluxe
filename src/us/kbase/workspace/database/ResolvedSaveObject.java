@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
@@ -15,7 +15,7 @@ public class ResolvedSaveObject {
 	private final WorkspaceUserMetadata userMeta;
 	private final Provenance provenance;
 	private final boolean hidden;
-	private final TypedObjectValidationReport rep;
+	private final ValidatedTypedObject rep;
 	private final Set<Reference> refs;
 	private final List<Reference> provrefs;
 	final Map<IdReferenceType, Set<RemappedId>> extractedIDs;
@@ -25,7 +25,7 @@ public class ResolvedSaveObject {
 			final WorkspaceUserMetadata userMeta,
 			final Provenance provenance,
 			final boolean hidden,
-			final TypedObjectValidationReport rep,
+			final ValidatedTypedObject rep,
 			final Set<Reference> refs,
 			final List<Reference> provenancerefs,
 			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
@@ -49,7 +49,7 @@ public class ResolvedSaveObject {
 			final WorkspaceUserMetadata userMeta,
 			final Provenance provenance,
 			final boolean hidden,
-			final TypedObjectValidationReport rep,
+			final ValidatedTypedObject rep,
 			final Set<Reference> refs,
 			final List<Reference> provenancerefs,
 			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
@@ -97,7 +97,7 @@ public class ResolvedSaveObject {
 		return hidden;
 	}
 
-	public TypedObjectValidationReport getRep() {
+	public ValidatedTypedObject getRep() {
 		return rep;
 	}
 

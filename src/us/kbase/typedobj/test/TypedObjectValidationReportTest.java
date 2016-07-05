@@ -33,7 +33,7 @@ import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
@@ -111,7 +111,7 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"m\": {\"z\": 1, \"b\": []}}";
 		
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"),
 				fac.createHandlers(String.class).associateObject("foo"));
 		List<String> errors = Arrays.asList(
@@ -145,7 +145,7 @@ public class TypedObjectValidationReportTest {
 						new HashMap<String, String>()));
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
 		
@@ -173,7 +173,7 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"m\": {\"c\": \"a\", \"z\": \"d\"}," +
 						"\"att\":[\"a1\", 3, \"a1\", \"a2\", \"a1\"]," +
 						"\"att2\":[\"b1\", 3, \"b2\", \"b3\", \"b4\"]}";
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), 
 				new IdReferenceHandlerSetFactory(1).createHandlers(String.class));
 		
@@ -212,7 +212,7 @@ public class TypedObjectValidationReportTest {
 		checkIDLocation(tovr, foo2Type, "b4", attrib1, null);
 	}
 
-	private void checkIDLocation(TypedObjectValidationReport tovr,
+	private void checkIDLocation(ValidatedTypedObject tovr,
 			IdReferenceType wsType, final String id, List<String> mtAttribs,
 			String expectedLoc) throws IOException {
 		JsonDocumentLocation loc = tovr.getIdReferenceLocation(
@@ -253,7 +253,7 @@ public class TypedObjectValidationReportTest {
 				new File(TestCommon.getTempDir()));
 		tfm.cleanup();
 		// in memory
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
 		failGetRelabeledSize(tovr);
@@ -288,7 +288,7 @@ public class TypedObjectValidationReportTest {
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 	}
 
-	private void failGetMD5(TypedObjectValidationReport tovr) {
+	private void failGetMD5(ValidatedTypedObject tovr) {
 		try {
 			tovr.getMD5();
 			fail("got md5 for unsorted data");
@@ -308,7 +308,7 @@ public class TypedObjectValidationReportTest {
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
 		failGetMD5(tovr);
@@ -338,7 +338,7 @@ public class TypedObjectValidationReportTest {
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		//sort via sort() method in memory
 		handlers.processIDs();
@@ -366,7 +366,7 @@ public class TypedObjectValidationReportTest {
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
 		TempFilesManager tfm = new TempFilesManager(
@@ -399,7 +399,7 @@ public class TypedObjectValidationReportTest {
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		assertThat("incorrect typedef", tovr.getValidationTypeDefId(),
 				is(AbsoluteTypeDefId.fromAbsoluteTypeString(
@@ -463,7 +463,7 @@ public class TypedObjectValidationReportTest {
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 	}
 
-	private void failGetRelabeledSize(TypedObjectValidationReport tovr) {
+	private void failGetRelabeledSize(ValidatedTypedObject tovr) {
 		try {
 			tovr.getRelabeledSize();
 			fail("got relabled size before calculation");
@@ -481,7 +481,7 @@ public class TypedObjectValidationReportTest {
 				new IdReferenceHandlerSetFactory(100);
 		IdReferenceHandlerSet<String> handlers =
 				hfac.createHandlers(String.class).associateObject("foo");
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
 		
