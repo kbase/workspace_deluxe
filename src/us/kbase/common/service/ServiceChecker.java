@@ -7,6 +7,7 @@ import java.net.URL;
 
 import org.apache.commons.io.IOUtils;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -90,23 +91,15 @@ public class ServiceChecker {
 							error));
 	}
 	
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	private static class RpcError {
 		
 		public String message;
 		public int code;
-		@SuppressWarnings("unused")
-		public String name;
-		@SuppressWarnings("unused")
-		public String error;
-		@SuppressWarnings("unused")
-		public String data;
 	}
 	
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	private static class RpcResponse {
-		@SuppressWarnings("unused")
-		public String id;
-		@SuppressWarnings("unused")
-		public String version;
 		public RpcError error;
 	}
 	
