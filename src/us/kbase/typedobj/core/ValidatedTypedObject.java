@@ -1,18 +1,25 @@
 package us.kbase.typedobj.core;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
-import us.kbase.common.utils.JsonTreeGenerator;
+import us.kbase.common.utils.CountingOutputStream;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
@@ -21,24 +28,22 @@ import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 
-import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * The report generated when a typed object instance is validated.  If the type definition indicates
- * that fields are ID references, those ID references can be extracted from this report.  If a
- * searchable subset flag is set in the type definition, you can extract that too.
+ * A typed object that has been validated  If the type
+ * definition indicates that fields are ID references, those ID references can
+ * be extracted from this object.
  *
  * @author msneddon
  * @author rsutormin
  * @author gaprice@lbl.gov
  */
-public class TypedObjectValidationReport {
+public class ValidatedTypedObject {
 
 	/**
 	 * The list of errors found during validation.  If the object is not valid, this must be non-empty, (although
@@ -70,34 +75,47 @@ public class TypedObjectValidationReport {
 	
 	// the size of the object after relabeling. -1 if not yet calculated.
 	private long size = -1;
-	// whether the object is naturally sorted after relabeling. Only set to true after relabeling.
-	private boolean sorted = false;
+	// the MD5 of the object after relabeling and sorting.
+	private MD5 md5 = null;
+	// whether the object is naturally sorted after relabeling.
+	// Only set to true after relabeling.
+	private boolean naturallySorted = false;
 	
-	private byte[] cacheForSorting = null;
+	private byte[] byteCache = null;
 	
-	private File fileForSorting = null;
+	private File fileCache = null;
 	
 	private final JsonTokenValidationSchema schema;
 	
 	/**
-	 * keep a jackson mapper around so we don't have to create a new one over and over during subset extraction
+	 * Create a validated object. The object contains
+	 * information on validation errors (if any), the IDs found in the object,
+	 * and information about the metadata extraction selection.
 	 */
-	private static ObjectMapper mapper = new ObjectMapper();
-	
-	/**
-	 * After validation, assemble the validation result into a report for later use. The report contains
-	 * information on validation errors (if any), the IDs found in the object, and information about the
-	 * metadata extraction selection.
-	 * 
-	 */
-	protected TypedObjectValidationReport(
+	protected ValidatedTypedObject(
 			final UObject tokenStreamProvider,
 			final AbsoluteTypeDefId validationTypeDefId, 
 			final List<String> errors,
 			final JsonNode wsMetadataSelection,
 			final JsonTokenValidationSchema schema,
 			final IdReferenceHandlerSet<?> idHandler) {
-		this.errors = errors == null ? new LinkedList<String>() : errors;
+		if (errors == null) {
+			throw new NullPointerException("errors");
+		}
+		if (validationTypeDefId == null) {
+			throw new NullPointerException("validationTypeDefId");
+		}
+		if (idHandler == null) {
+			throw new NullPointerException("idHandler");
+		}
+		if (tokenStreamProvider == null) {
+			throw new NullPointerException("tokenStreamProvider");
+		}
+		if (schema == null) {
+			throw new NullPointerException("schema");
+		}
+		this.errors = Collections.unmodifiableList(new LinkedList<>(errors));
+		//null is ok, metadata handler handles correctly
 		this.wsMetadataSelection = wsMetadataSelection;
 		this.validationTypeDefId=validationTypeDefId;
 		this.idHandler = idHandler;
@@ -106,88 +124,58 @@ public class TypedObjectValidationReport {
 	}
 	
 	/**
-	 * Get the absolute ID of the typedef that was used to validate the instance
-	 * @return
+	 * Get the absolute ID of the typedef that was used to validate the object.
+	 * @return the type ID.
 	 */
 	public AbsoluteTypeDefId getValidationTypeDefId() {
 		return validationTypeDefId;
 	}
 	
-	/**
-	 * @return boolean true if the instance is valid, false otherwise
+	/** Get whether this object is valid according to the validator.
+	 * @return boolean true if the object is valid, false otherwise
 	 */
 	public boolean isInstanceValid() {
 		return errors.isEmpty();
 	}
 	
 	/**
-	 * Iterate over all items in the report and return the error messages.
-	 * @return errors
+	 * Return any validation errors for this object.
+	 * @return errors the validation errors.
 	 */
 	public List<String> getErrorMessages() {
 		return errors;
 	}
 	
-	public Writable createJsonWritable() {
-		if (sorted == false && cacheForSorting == null &&
-				fileForSorting == null) {
-			//TODO be smarter about this later
-			throw new IllegalStateException(
-					"You must call sort() prior to creating a Writeable.");
-		}
-		return new Writable() {
-			@Override
-			public void write(OutputStream os) throws IOException {
-				if (cacheForSorting != null) {
-					os.write(cacheForSorting);
-				} else if (fileForSorting != null) {
-					InputStream is = new FileInputStream(fileForSorting);
-					byte[] buffer = new byte[10000];
-					while (true) {
-						int len = is.read(buffer);
-						if (len < 0)
-							break;
-						if (len > 0)
-							os.write(buffer, 0, len);
-					}
-					is.close();
-				} else {
-					relabelWsIdReferencesIntoWriter(os);
-				}
-			}
-			
-			@Override
-			public void releaseResources() throws IOException {
-				destroyCachedResources();
-			}
-		};
-	}	
-	
-	/**
-	 * Relabel the WS IDs in the original Json document based on the specified set of
-	 * ID Mappings, where keys are the original ids and values are the replacement ids.
+	/** Get an input stream containing the relabeled, sorted object. sort()
+	 * must be called before calling this method. The stream is buffered
+	 * when appropriate.
 	 * 
-	 * Caution: this relabeling happens in-place, so if you have modified the structure
-	 * of the JSON node between validation and invocation of this method, you will likely
-	 * get many runtime errors.  You should make a deep copy first if you indent to do this.
-	 * 
-	 * Memory of the original ids is not changed by this operation.  Thus, if you need
-	 * to rename the ids a second time, you must still refer to the id as its original name,
-	 * which will not necessarily be the name in the current version of the object.
+	 * The caller of this method is responsible for closing the stream.
+	 * @return an object input stream.
 	 */
-	public JsonNode getInstanceAfterIdRefRelabelingForTests() throws IOException {
-		JsonTreeGenerator jgen = new JsonTreeGenerator(UObject.getMapper());
-		relabelWsIdReferencesIntoGenerator(jgen);
-		JsonNode originalInstance = jgen.getTree();
-		return originalInstance;
+	public InputStream getInputStream() {
+		if (byteCache == null && fileCache == null) {
+			throw new IllegalStateException(
+					"You must call sort() prior to accessing the object data.");
+		}
+		if (byteCache != null) {
+			return new ByteArrayInputStream(byteCache);
+		} else {
+			try {
+				return new BufferedInputStream(new FileInputStream(fileCache));
+			} catch (FileNotFoundException e) {
+				throw new RuntimeException("A programming error occured and " +
+						"the file cache could not be found.", e);
+			}
+		}
 	}
 	
 	/** Calculate the size of the object, in bytes, when ids have been
 	 * remapped.
 	 * @return the size of the object after id remapping.
-	 * @throws IOException
+	 * @throws IOException if an IO error occurs.
 	 */
-	public long getRelabeledSize() throws IOException {
+	public long calculateRelabeledSize() throws IOException {
 		if (!idHandler.wereIdsProcessed()) {
 			throw new IllegalStateException(
 					"Must process IDs in handler prior to relabling");
@@ -195,31 +183,64 @@ public class TypedObjectValidationReport {
 		if (size > -1) {
 			return size;
 		}
-		final long[] size = {0L};
-		final OutputStream sizeOs = new OutputStream() {
-			@Override
-			public void write(int b) throws IOException {
-				size[0]++;
-			}
-			@Override
-			public void write(byte[] b, int off, int len)
-					throws IOException {
-				size[0] += len;
-			}
-		};
-		final JsonGenerator jgen = new JsonFactory().createGenerator(sizeOs);
-		sorted = relabelWsIdReferencesIntoGeneratorAndCheckOrder(jgen);
+		final CountingOutputStream cos = new CountingOutputStream();
+		final JsonGenerator jgen = new JsonFactory().createGenerator(cos);
+		naturallySorted =
+				relabelWsIdReferencesIntoGeneratorAndCheckOrder(jgen);
 		jgen.close();
-		this.size = size[0];
+		this.size = cos.getSize();
 		return this.size;
 	}
 	
+	
+	/** Get the size of the object, in bytes, when ids have been remapped.
+	 * calculateRelabledSize() must have been called previously, either
+	 * directly or indirectly via sort().
+	 * @return the size of the object after id remapping.
+	 */
+	public long getRelabeledSize() {
+		if (size < 0) {
+			throw new IllegalStateException(
+					"Must call calculateRelabeledSize() " +
+					"before getting said size");
+		}
+		return size;
+	}
+
+	/** Get the MD5 of the sorted, relabeled object.
+	 * sort() must have been called previously.
+	 * @return the object's MD5
+	 */
+	public MD5 getMD5() {
+		if (md5 == null) {
+			throw new IllegalStateException(
+					"Must call sort() before getting the MD5");
+		}
+		return md5;
+	}
+	
+	private MD5 getMD5fromDigest(final MessageDigest digest) {
+		final byte[] d = digest.digest();
+		final StringBuilder sb = new StringBuilder();
+		for (final byte b : d) {
+			sb.append(String.format("%02x", b));
+		}
+		return new MD5(sb);
+	}
+	
+	private MessageDigest getMD5Digest() {
+		try {
+			return MessageDigest.getInstance("MD5");
+		} catch (NoSuchAlgorithmException nsae) {
+			throw new RuntimeException(
+					"There definitely should be an MD5 digest", nsae);
+		}
+	}
+
 	/** Relabel ids, sort the object if necessary and keep a copy.
-	 * You must call this method prior to calling createJsonWritable().
+	 * You must call this method prior to calling getInputStream().
 	 * Equivalent of sort(null). All data is kept in memory.
 	 * @param fac the sorter factory to use when generating a sorter.
-	 * @throws RelabelIdReferenceException if there are duplicate keys after
-	 * relabeling the ids or if sorting the map keys takes too much memory.
 	 * @throws IOException if an IO exception occurs.
 	 * @throws TooManyKeysException if the memory required to sort the map is
 	 * too high.
@@ -232,7 +253,7 @@ public class TypedObjectValidationReport {
 	}
 	
 	/** Relabel ids, sort the object if necessary and keep a copy.
-	 * You must call this method prior to calling createJsonWritable().
+	 * You must call this method prior to calling getInputStream().
 	 * @param fac the sorter factory to use when generating a sorter.
 	 * @param tfm the temporary file manager to use for managing temporary
 	 * files. All data is kept in memory if tfm is null.
@@ -249,39 +270,50 @@ public class TypedObjectValidationReport {
 			throw new NullPointerException("Sorter factory cannot be null");
 		}
 		if (size < 0) {
-			getRelabeledSize();
+			calculateRelabeledSize();
 		}
 		destroyCachedResources();
-		cacheForSorting = null;
-		if (!sorted) {
-			//TODO PERFORMANCE choose to use a file based on input size & max mem size. If no TFM & one is necessary, except. make sure tests catch left files.
-			if (tfm == null) {
-				ByteArrayOutputStream os = new ByteArrayOutputStream();
-				final JsonGenerator jgen = mapper.getFactory()
-						.createGenerator(os);
-				relabelWsIdReferencesIntoGenerator(jgen);
-				jgen.close();
-				cacheForSorting = os.toByteArray();
-				os = new ByteArrayOutputStream();
-				fac.getSorter(cacheForSorting).writeIntoStream(os);
-				os.close();
-				cacheForSorting = os.toByteArray();
+		final MessageDigest digest = getMD5Digest();
+		if (tfm == null) {
+			if (naturallySorted) {
+				final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				relabelWsIdReferencesIntoWriter(new DigestOutputStream(
+						baos, digest));
+				byteCache = baos.toByteArray();
+			} else {
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				relabelWsIdReferencesIntoWriter(baos);
+				byteCache = baos.toByteArray();
+				baos = new ByteArrayOutputStream();
+				fac.getSorter(byteCache).writeIntoStream(
+						new DigestOutputStream(baos, digest));
+				byteCache = baos.toByteArray();
+			}
+		} else {
+			/* note that Jackson, JsonTokenStream (the data source) and the
+			 * sorters do their own buffering, so wrapping streams in a buffer
+			 * isn't necessary
+			 */
+			if (naturallySorted) {
+				fileCache = tfm.generateTempFile("natsortout", "json");
+				try (final OutputStream os = new FileOutputStream(fileCache)) {
+					relabelWsIdReferencesIntoWriter(new DigestOutputStream(
+							os, digest));
+				} catch (IOException | RuntimeException | Error e) {
+					destroyCachedResources();
+					throw e;
+				}
 			} else {
 				final File f1 = tfm.generateTempFile("sortinp", "json");
-				JsonGenerator jgen = null;
 				try {
-					jgen = mapper.getFactory()
-							.createGenerator(f1, JsonEncoding.UTF8);
-					relabelWsIdReferencesIntoGenerator(jgen);
-					jgen.close();
-					jgen = null;
-					fileForSorting = tfm.generateTempFile(
-							"sortout", "json");
-					final FileOutputStream os = new FileOutputStream(
-							fileForSorting);
-					try {
-						fac.getSorter(f1).writeIntoStream(os);
-						os.close();
+					try (final OutputStream os = new FileOutputStream(f1)) {
+						relabelWsIdReferencesIntoWriter(os);
+					}
+					fileCache = tfm.generateTempFile("sortout", "json");
+					try (final OutputStream os =
+							new FileOutputStream(fileCache)) {
+						fac.getSorter(f1).writeIntoStream(
+								new DigestOutputStream(os, digest));
 					} catch (IOException | KeyDuplicationException |
 							TooManyKeysException | RuntimeException |
 							Error e) {
@@ -290,26 +322,34 @@ public class TypedObjectValidationReport {
 					}
 				} finally {
 					f1.delete();
-					if (jgen != null)
-						jgen.close();
 				}
 			}
 		}
+		md5 = getMD5fromDigest(digest);
 	}
 	
+	/** Destroy any cached resources created by this class and allow garbage
+	 * collection of in-memory caches. This method must be called before
+	 * program exit or temporary files may be left on disk. The caches will be
+	 * recreated as necessary. 
+	 */
 	public void destroyCachedResources() {
-		if (this.fileForSorting != null) {
-			this.fileForSorting.delete();
-			this.fileForSorting = null;
+		this.byteCache = null;
+		if (this.fileCache != null) {
+			this.fileCache.delete();
+			this.fileCache = null;
 		}
 	}
 	
-	private void relabelWsIdReferencesIntoWriter(OutputStream os) throws IOException {
-		relabelWsIdReferencesIntoGenerator(new JsonFactory().createGenerator(os));
+	private void relabelWsIdReferencesIntoWriter(final OutputStream os)
+			throws IOException {
+		relabelWsIdReferencesIntoGenerator(
+				new JsonFactory().createGenerator(os));
 	}
 
-	private void relabelWsIdReferencesIntoGenerator(JsonGenerator jgen) throws IOException {
-		TokenSequenceProvider tsp = createIdRefTokenSequenceProvider();
+	private void relabelWsIdReferencesIntoGenerator(final JsonGenerator jgen)
+			throws IOException {
+		final TokenSequenceProvider tsp = createIdRefTokenSequenceProvider();
 		try {
 			new JsonTokenStreamWriter().writeTokens(tsp, jgen);
 			jgen.flush();
@@ -327,6 +367,7 @@ public class TypedObjectValidationReport {
 	
 	private boolean relabelWsIdReferencesIntoGeneratorAndCheckOrder(
 			JsonGenerator jgen) throws IOException {
+		//TODO PERFORMANCE make the metadata extractor a TSP wrapper and extract here
 		TokenSequenceProvider tsp = null;
 		try {
 			if (idHandler.isEmpty()) {
@@ -351,6 +392,11 @@ public class TypedObjectValidationReport {
 		}
 	}
 	
+	/** Get the path to an ID in the object.
+	 * @param ref the ID to search for.
+	 * @return the location of the ID in the object.
+	 * @throws IOException if an IO error occurs.
+	 */
 	public JsonDocumentLocation getIdReferenceLocation (
 			final IdReference<?> ref)
 					throws IOException {
@@ -371,9 +417,9 @@ public class TypedObjectValidationReport {
 	
 	private TokenSequenceProvider createTokenSequenceForMetaDataExtraction()
 			throws IOException {
-		if (cacheForSorting != null || fileForSorting != null) {
+		if (byteCache != null || fileCache != null) {
 			final JsonTokenStream afterSort = new JsonTokenStream(
-					cacheForSorting != null ? cacheForSorting : fileForSorting);
+					byteCache != null ? byteCache : fileCache);
 			return makeTSPfromJTS(afterSort);
 		} else {
 			return createIdRefTokenSequenceProvider();
@@ -407,13 +453,11 @@ public class TypedObjectValidationReport {
 	
 	
 	/**
-	 * If metadata ws was defined in the Json Schema, then you can use this method
-	 * to extract out the contents.  Note that this method does not perform a deep copy of the data,
-	 * so if you extract metadata, then modify the original instance that was validated, it can
-	 * (in some but not all cases) modify this metadata as well.  So you should always perform a
-	 * deep copy of the original instance if you intend to modify it and  metadata has already
-	 * been extracted.
-	 * @throws ExceededMaxMetadataSizeException 
+	 * If metadata ws was defined in the Json Schema, then you can use this
+	 * method to extract out the contents.
+	 * @param maxMetadataSize the maximum allowable size for the metadata.
+	 * @throws ExceededMaxMetadataSizeException if the metadata exceeds the
+	 * maximum allowed size.
 	 */
 	public ExtractedMetadata extractMetadata(
 			final long maxMetadataSize) 
@@ -456,7 +500,7 @@ public class TypedObjectValidationReport {
 		builder.append(", size=");
 		builder.append(size);
 		builder.append(", sorted=");
-		builder.append(sorted);
+		builder.append(naturallySorted);
 		builder.append("]");
 		return builder.toString();
 	}

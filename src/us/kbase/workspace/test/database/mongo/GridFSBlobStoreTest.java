@@ -6,15 +6,15 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.github.zafarkhaja.semver.Version;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.gridfs.GridFS;
@@ -24,9 +24,9 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 
@@ -78,7 +78,7 @@ public class GridFSBlobStoreTest {
 		}
 		
 		try {
-			gfsb.saveBlob(null, stringToWriteable("foo"), true);
+			gfsb.saveBlob(null, IOUtils.toInputStream("foo"), true);
 		} catch (NullPointerException npe) {
 			assertThat("correct excepction message", npe.getLocalizedMessage(),
 					is("Arguments cannot be null"));
@@ -106,7 +106,7 @@ public class GridFSBlobStoreTest {
 	public void saveAndGetBlob() throws Exception {
 		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
 		String data = "this is a blob yo";
-		gfsb.saveBlob(md1, stringToWriteable(data), true);
+		gfsb.saveBlob(md1, IOUtils.toInputStream(data), true);
 		MD5 md1copy = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
 		ByteArrayFileCache d = gfsb.getBlob(md1copy, 
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
@@ -114,16 +114,16 @@ public class GridFSBlobStoreTest {
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
 		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(md1copy) == null);
-		gfsb.saveBlob(md1, stringToWriteable(data), true); //should be able to save the same thing twice with no error
+		gfsb.saveBlob(md1, IOUtils.toInputStream(data), true); //should be able to save the same thing twice with no error
 		
-		gfsb.saveBlob(md1, stringToWriteable(data), false); //this should do nothing
+		gfsb.saveBlob(md1, IOUtils.toInputStream(data), false); //this should do nothing
 		assertThat("sorted still true", gfsb.getBlob(md1copy,
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm))
 					.isSorted(), is(true));
 		
 		MD5 md2 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2");
 		String data2 = "this is also a blob yo";
-		gfsb.saveBlob(md2, stringToWriteable(data2), false);
+		gfsb.saveBlob(md2, IOUtils.toInputStream(data2), false);
 		d = gfsb.getBlob(md2,
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
@@ -149,15 +149,15 @@ public class GridFSBlobStoreTest {
 		gfsb.removeBlob(new MD5(a32)); //should silently not remove anything
 	}
 	
-	private static Writable stringToWriteable(final String s) {
-		return new Writable() {
-			@Override
-			public void write(OutputStream w) throws IOException {
-				w.write(s.getBytes("UTF-8"));
-			}
-			@Override
-			public void releaseResources() throws IOException {
-			}
-		};
+	@Test
+	public void status() throws Exception {
+		List<DependencyStatus> deps = gfsb.status();
+		assertThat("incorrect number of deps", deps.size(), is(1));
+		DependencyStatus dep = deps.get(0);
+		assertThat("incorrect fail", dep.isOk(), is(true));
+		assertThat("incorrect name", dep.getName(), is("GridFS"));
+		assertThat("incorrect status", dep.getStatus(), is("OK"));
+		//should throw an error if not a semantic version
+		Version.valueOf(dep.getVersion());
 	}
 }

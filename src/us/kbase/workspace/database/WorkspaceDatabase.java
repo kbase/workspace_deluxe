@@ -19,7 +19,7 @@ public interface WorkspaceDatabase {
 	
 	public String getBackendType();
 	
-	//TODO return workspace info insted of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
+	//TODO CODE return workspace info insted of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
 	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
@@ -377,4 +377,9 @@ public interface WorkspaceDatabase {
 
 	public void setResourceUsageConfiguration(
 			ResourceUsageConfiguration rescfg);
+	
+	/** Returns the status of the databases' dependencies.
+	 * @return the dependency status.
+	 */
+	public List<DependencyStatus> status();
 }

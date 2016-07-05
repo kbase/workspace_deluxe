@@ -110,7 +110,7 @@ public final class TypedObjectValidator {
 	 * @throws IOException 
 	 * @throws JsonParseException 
 	 */
-	public TypedObjectValidationReport validate(final String instance,
+	public ValidatedTypedObject validate(final String instance,
 			final TypeDefId type, final IdReferenceHandlerSet<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectValidationException,
@@ -148,7 +148,7 @@ public final class TypedObjectValidator {
 	 * @throws IOException 
 	 * @throws JsonParseException 
 	 */
-	public TypedObjectValidationReport validate(final JsonNode instanceRootNode,
+	public ValidatedTypedObject validate(final JsonNode instanceRootNode,
 			final TypeDefId typeDefId, final IdReferenceHandlerSet<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException,
@@ -167,7 +167,7 @@ public final class TypedObjectValidator {
 		return validate(obj, typeDefId, handlers);
 	}
 	
-	public TypedObjectValidationReport validate(final UObject obj,
+	public ValidatedTypedObject validate(final UObject obj,
 			final TypeDefId typeDefId, final IdReferenceHandlerSet<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException,
@@ -268,7 +268,7 @@ public final class TypedObjectValidator {
 			}
 		}
 
-		return new TypedObjectValidationReport(
+		return new ValidatedTypedObject(
 									obj,
 									absoluteTypeDefId,
 									errors, 

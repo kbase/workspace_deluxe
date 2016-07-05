@@ -21,6 +21,11 @@ public class Fields {
 	public static final String WS_DESC = "desc";
 	public static final String WS_LOCKED = "lock";
 	public static final String WS_META = "meta";
+	/* since 0.5.0
+	 * for workspaces that are being cloned and should not be accessed by any
+	 * other process. Either true or omitted, never false.
+	 */
+	public static final String WS_CLONING = "cloning";
 
 	// workspace acl fields
 	public static final String ACL_WSID = "id";

@@ -8,9 +8,29 @@ BACKWARDS INCOMPATIBILITIES:
 
 * The ``skip`` parameter of ``list_objects`` has been removed.
 
+NEW FEATURES:
+
+* The ``status`` method now returns JVM memory stats and the status of MongoDB,
+  Shock, and the Handle service and manager (if using the latter three).
+  Currently this method is not available via client, but can be invoked like
+  so:
+
+``curl -X POST -d '{"id": '1', "method": "Workspace.status", "version": "1.1", "params": []}' [Workspace URL]``
+
 UPDATED FEATURES / MAJOR BUG FIXES:
 
+* ``clone_workspace`` now preserves object IDs from the source workspace such
+  that the object name -> id mapping is identical for both workspaces at the
+  completion of the clone (unless changes are made to the source workspace
+  while the clone is in progress). Due to this change, the maximum object ID
+  returned in a ``workspace_info`` tuple may be larger than the number of
+  objects in the new workspace. The documentation has been clarified to
+  reflect this.
+* ``clone_workspace`` now prevents the new workspace from being accessed in any
+  way while the clone is in progress.
 * ``clone_workspace`` can now exclude user specified objects from the clone.
+* Fixed two bugs where various failures on save would leave temporary files on
+  disk.
 
 VERSION: 0.4.1 (Released 5/27/16)
 ---------------------------------

@@ -23,7 +23,7 @@ import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
@@ -58,17 +58,13 @@ import com.fasterxml.jackson.core.JsonParseException;
 
 public class Workspace {
 	
-	//TODO limit all methods that return a set or list or map
+	//TODO MEM limit all methods that return a set or list or map
 	
-	//TODO general unit tests
-	//TODO BIG GC garbage collection - see WOR-45
-	//TODO BIG SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
-	//TODO BIG SEARCH separate service - get object changes since date (based on type collection and pointers collection
-	//TODO BIG SEARCH index typespecs
-	
-	//TODO need a way to get all types matching a typedef (which might only include a typename) - already exists? Uh, why is this needed? Probably can drop.
-	
-	//TODO use DigestInputStream while sorting object to calculate md5 at the same time
+	//TODO TEST general unit tests
+	//TODO GC garbage collection - see WOR-45
+	//TODO SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
+	//TODO SEARCH separate service - get object changes since date (based on type collection and pointers collection
+	//TODO SEARCH index typespecs
 	
 	public static final User ALL_USERS = new AllUsers('*');
 	
@@ -101,7 +97,7 @@ public class Workspace {
 			throw new NullPointerException("validator cannot be null");
 		}
 		this.db = db;
-		//TODO check that a few object types exist to make sure the type provider is ok.
+		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
 		this.validator = validator;
 		rescfg = cfg;
 		this.parser = parser;
@@ -296,6 +292,10 @@ public class Workspace {
 			ret.put(o, o.resolveWorkspace(r));
 		}
 		return ret;
+	}
+	
+	public List<DependencyStatus> status() {
+		return db.status();
 	}
 	
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
@@ -621,7 +621,7 @@ public class Workspace {
 		final IdReferenceHandlerSet<IDAssociation> idhandler =
 				idHandlerFac.createHandlers(IDAssociation.class);
 		
-		final Map<WorkspaceSaveObject, TypedObjectValidationReport> reports = 
+		final Map<WorkspaceSaveObject, ValidatedTypedObject> reports = 
 				validateObjectsAndExtractReferences(objects, idhandler);
 		
 		processIds(objects, idhandler, reports);
@@ -649,21 +649,27 @@ public class Workspace {
 					final Set<RemappedId> ids = idhandler.getRemappedIds(
 							irt, new IDAssociation(objcount, false));
 					if (!ids.isEmpty()) {
-						extractedIDs.put(irt, idhandler.getRemappedIds(
-								irt, new IDAssociation(objcount, false)));
+						extractedIDs.put(irt, ids);
 					}
 				}
 			}
 			final Set<RemappedId> refids = idhandler.getRemappedIds(
-					WS_ID_TYPE,  new IDAssociation(objcount, false));
+					WS_ID_TYPE, new IDAssociation(objcount, false));
 			final Set<Reference> refs = new HashSet<Reference>();
 			for (final RemappedId id: refids) {
 				refs.add((Reference) id);
 			}
 			
-			final TypedObjectValidationReport rep = reports.get(wo);
+			final ValidatedTypedObject rep = reports.get(wo);
 			saveobjs.add(wo.resolve(rep, refs, provrefs, extractedIDs));
-			ttlObjSize += rep.getRelabeledSize();
+			ttlObjSize += rep.calculateRelabeledSize();
+			if (rep.getRelabeledSize() > rescfg.getMaxObjectSize()) {
+				throw new IllegalArgumentException(String.format(
+						"Object %s data size %s exceeds limit of %s",
+						getObjectErrorId(wo.getObjectIdentifier(), objcount),
+						rep.getRelabeledSize(),
+						rescfg.getMaxObjectSize()));
+			}
 			objcount++;
 		}
 		objects = null;
@@ -718,18 +724,18 @@ public class Workspace {
 		}
 	}
 
-	private Map<WorkspaceSaveObject, TypedObjectValidationReport>
+	private Map<WorkspaceSaveObject, ValidatedTypedObject>
 			validateObjectsAndExtractReferences(
 			final List<WorkspaceSaveObject> objects,
 			final IdReferenceHandlerSet<IDAssociation> idhandler)
 			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
-		final Map<WorkspaceSaveObject, TypedObjectValidationReport> reports = 
-				new HashMap<WorkspaceSaveObject, TypedObjectValidationReport>();
+		final Map<WorkspaceSaveObject, ValidatedTypedObject> reports = 
+				new HashMap<WorkspaceSaveObject, ValidatedTypedObject>();
 		int objcount = 1;
 		for (final WorkspaceSaveObject wo: objects) {
 			idhandler.associateObject(new IDAssociation(objcount, false));
-			final TypedObjectValidationReport rep = validate(wo, idhandler,
+			final ValidatedTypedObject rep = validate(wo, idhandler,
 					objcount);
 			reports.put(wo, rep);
 			idhandler.associateObject(new IDAssociation(objcount, true));
@@ -763,7 +769,7 @@ public class Workspace {
 	private void processIds(
 			final List<WorkspaceSaveObject> objects,
 			final IdReferenceHandlerSet<IDAssociation> idhandler,
-			final Map<WorkspaceSaveObject, TypedObjectValidationReport> reports)
+			final Map<WorkspaceSaveObject, ValidatedTypedObject> reports)
 			throws TypedObjectValidationException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
@@ -806,7 +812,7 @@ public class Workspace {
 		}
 	}
 
-	private String getIDPath(TypedObjectValidationReport r,
+	private String getIDPath(ValidatedTypedObject r,
 			IdReference<String> idReference) {
 		try {
 			final JsonDocumentLocation loc = r.getIdReferenceLocation(
@@ -823,13 +829,13 @@ public class Workspace {
 		}
 	}
 
-	private TypedObjectValidationReport validate(
+	private ValidatedTypedObject validate(
 			final WorkspaceSaveObject wo,
 			final IdReferenceHandlerSet<IDAssociation> idhandler,
 			final int objcount)
 			throws TypeStorageException, TypedObjectSchemaException,
 			TypedObjectValidationException {
-		final TypedObjectValidationReport rep;
+		final ValidatedTypedObject rep;
 		try {
 			rep = validator.validate(wo.getData(), wo.getType(), idhandler);
 		} catch (NoSuchTypeException nste) {

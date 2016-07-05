@@ -3,7 +3,10 @@ package us.kbase.workspace.database.mongo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.concurrent.ExecutionException;
+import java.util.Arrays;
+import java.util.List;
+
+import org.slf4j.LoggerFactory;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
@@ -16,9 +19,9 @@ import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.typedobj.core.MD5;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
@@ -27,9 +30,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.gc.iotools.stream.base.ExecutionModel;
-import com.gc.iotools.stream.base.ExecutorServiceFactory;
-import com.gc.iotools.stream.os.OutputStreamToInputStream;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -79,7 +79,32 @@ public class ShockBlobStore implements BlobStore {
 					"Could not connect to the shock backend: " +
 					ioe.getLocalizedMessage(), ioe);
 		}
-		//TODO check that a few nodes exist to ensure we're pointing at the right Shock instance
+		//TODO DBCONSIST check that a few nodes exist to ensure we're pointing at the right Shock instance
+	}
+	
+	@Override
+	public List<DependencyStatus> status() {
+		//note failures are tested manually for now, if you make changes test
+		//things still work
+		//TODO TEST add tests exercising failures
+		final String version;
+		try {
+			version = client.getRemoteVersion();
+		} catch (IOException e) {
+			LoggerFactory.getLogger(getClass())
+				.error("Failed to connect to Shock", e);
+			return Arrays.asList(new DependencyStatus(
+					false, "Cannot connect to Shock: " +
+					e.getMessage(), "Shock", "Unknown"));
+		} catch (InvalidShockUrlException e) {
+			LoggerFactory.getLogger(getClass())
+				.error("Invalid Shock URL", e);
+			return Arrays.asList(new DependencyStatus(
+					false, "Invalid Shock URL: " +
+					e.getMessage(), "Shock", "Unknown"));
+		}
+		return Arrays.asList(new DependencyStatus(
+				true, "OK", "Shock", version));
 	}
 	
 	private RefreshingToken getToken(final String user, final String pwd)
@@ -125,7 +150,7 @@ public class ShockBlobStore implements BlobStore {
 	}
 
 	@Override
-	public void saveBlob(final MD5 md5, final Writable data,
+	public void saveBlob(final MD5 md5, final InputStream data,
 			final boolean sorted)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
@@ -140,74 +165,24 @@ public class ShockBlobStore implements BlobStore {
 		}
 		updateAuth();
 		final ShockNode sn;
-		final OutputStreamToInputStream<ShockNode> osis =
-				new OutputStreamToInputStream<ShockNode>() {
-					
-			@Override
-			protected ShockNode doRead(InputStream is) throws Exception {
-				final ShockNode sn;
-				try {
-					sn = client.addNode(is, "workspace_" + md5.getMD5(),
-							"JSON");
-				} catch (TokenExpiredException ete) {
-					//this should be impossible
-					throw new RuntimeException("Token magically expired: "
-							+ ete.getLocalizedMessage(), ete);
-				} catch (JsonProcessingException jpe) {
-					//this should be impossible
-					throw new RuntimeException("Attribute serialization failed: "
-							+ jpe.getLocalizedMessage(), jpe);
-				} catch (IOException ioe) {
-					throw new BlobStoreCommunicationException(
-							"Could not connect to the shock backend: " +
-									ioe.getLocalizedMessage(), ioe);
-				} catch (ShockHttpException she) {
-					throw new BlobStoreCommunicationException(
-							"Failed to create shock node: " +
-									she.getLocalizedMessage(), she);
-				}
-//				is.close(); closing the stream has caused deadlocks in other applications
-				return sn;
-			}
-		};
 		try {
-			//writes in UTF8
-			data.write(osis);
+			sn = client.addNode(data, "workspace_" + md5.getMD5(), "JSON");
+		} catch (TokenExpiredException ete) {
+			//this should be impossible
+			throw new RuntimeException("Token magically expired: "
+					+ ete.getLocalizedMessage(), ete);
+		} catch (JsonProcessingException jpe) {
+			//this should be impossible
+			throw new RuntimeException("Attribute serialization failed: "
+					+ jpe.getLocalizedMessage(), jpe);
 		} catch (IOException ioe) {
-			//no way to test this easily, manually tested for now.
-			//be sure to test manually if making changes
-			if (ioe.getCause().getClass().equals(
-					BlobStoreCommunicationException.class)) {
-				throw (BlobStoreCommunicationException) ioe.getCause();
-			}
-			throw new RuntimeException(
-					"IO Error during streaming of data to Shock: "
-					+ ioe.getLocalizedMessage(), ioe);
-		} finally {
-			try {
-				osis.close();
-			} catch (IOException ioe) {
-				//no way to test this easily, manually tested for now.
-				//be sure to test manually if making changes
-				if (ioe.getCause().getClass().equals(
-						BlobStoreCommunicationException.class)) {
-					throw (BlobStoreCommunicationException) ioe.getCause();
-				}
-				throw new RuntimeException(
-						"Couldn't close Shock output stream: " +
-								ioe.getLocalizedMessage(), ioe);
-			}
-		}
-		try {
-			sn = osis.getResult();
-		} catch (InterruptedException ie) {
-			throw new RuntimeException(
-					"Interrupt trying to retrieve ShockNode from EasyStream instance: "
-					+ ie.getLocalizedMessage(), ie);
-		} catch (ExecutionException ee) {
-			throw new RuntimeException(
-					"Excecution error trying to retrieve ShockNode from EasyStream instance: "
-					+ ee.getLocalizedMessage(), ee);
+			throw new BlobStoreCommunicationException(
+					"Could not connect to the shock backend: " +
+							ioe.getLocalizedMessage(), ioe);
+		} catch (ShockHttpException she) {
+			throw new BlobStoreCommunicationException(
+					"Failed to create shock node: " +
+							she.getLocalizedMessage(), she);
 		}
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.SHOCK_CHKSUM, md5.getMD5());
@@ -264,19 +239,9 @@ public class ShockBlobStore implements BlobStore {
 		} else {
 			sorted = (Boolean)entry.get(Fields.SHOCK_SORTED);
 		}
-		
-		final OutputStreamToInputStream<ByteArrayFileCache> osis =
-				new OutputStreamToInputStream<ByteArrayFileCache>(true,
-						ExecutorServiceFactory.getExecutor(
-								ExecutionModel.THREAD_PER_INSTANCE), 10000000) { //speeds up by 2-3x
-					
-			@Override
-			protected ByteArrayFileCache doRead(InputStream is) throws Exception {
-				return bafcMan.createBAFC(is, true, sorted);
-			}
-		};
 		try {
-			client.getFile(new ShockNodeId(node), osis);
+			return bafcMan.createBAFC(client.getFile(new ShockNodeId(node)),
+					true, sorted);
 		} catch (TokenExpiredException ete) {
 			//this should be impossible
 			throw new RuntimeException("Things are broke", ete);
@@ -294,18 +259,6 @@ public class ShockBlobStore implements BlobStore {
 			throw new BlobStoreCommunicationException(
 					"Failed to retrieve shock node: " +
 					she.getLocalizedMessage(), she);
-		}
-		try {
-			osis.close();
-		} catch (IOException ioe) {
-			throw new RuntimeException("Something is broken", ioe);
-		}
-		try {
-			return osis.getResult();
-		} catch (InterruptedException ie) {
-			throw new RuntimeException("Something is broken", ie);
-		} catch (ExecutionException ee) {
-			throw new RuntimeException("Something is broken", ee);
 		}
 	}
 

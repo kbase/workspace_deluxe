@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 public class ObjectIDNoWSNoVer {
 	
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	private final static Pattern INVALID_OBJ_NAMES = 
 			Pattern.compile("[^\\w\\|._-]");
@@ -55,7 +55,6 @@ public class ObjectIDNoWSNoVer {
 		return new ObjectIDNoWSNoVer(id);
 	}
 	
-	//TODO unit tests
 	public static void checkObjectName(String name) {
 		checkString(name, "Object name", MAX_NAME_LENGTH);
 		
