@@ -79,6 +79,7 @@ public class HandleTest {
 	
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
+	private static WorkspaceClient CLIENT_NOAUTH;
 
 	private static AbstractHandleClient HANDLE_CLIENT;
 	
@@ -166,20 +167,24 @@ public class HandleTest {
 				u3, p3);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
+		
+		final URL url = new URL("http://localhost:" + port);
 		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
+			CLIENT1 = new WorkspaceClient(url, USER1, p1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
+			CLIENT2 = new WorkspaceClient(url, USER2, p2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
+		CLIENT_NOAUTH = new WorkspaceClient(url);
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_NOAUTH.setIsInsecureHttpConnectionAllowed(true);
 		
 		setUpSpecs();
 		
@@ -406,6 +411,58 @@ public class HandleTest {
 		assertTrue("got correct stacktrace", wod.getHandleStacktrace().startsWith(
 				"us.kbase.common.service.ServerException: Unable to set acl(s) on handles "
 						+ h1.getHid()));
+	}
+	
+	@Test
+	public void publicWorkspaceHandleTest() throws Exception {
+		String workspace = "publicWS";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace(workspace).withGlobalread("r"));
+		Handle h1 = HANDLE_CLIENT.newHandle();
+		List<String> handleList = new LinkedList<String>();
+		handleList.add(h1.getHid());
+		Map<String, Object> handleobj = new HashMap<String, Object>();
+		handleobj.put("handles", handleList);
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withData(new UObject(handleobj))
+						.withType(HANDLE_TYPE))));
+		
+		// check that there's only one user in the ACL
+		BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + SHOCK.getServerPort()),
+				CLIENT1.getToken());
+		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
+		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
+		
+		ShockNode node = bsc.getNode(new ShockNodeId(h1.getId()));
+		
+		checkReadAcl(node, oneuser);
+		
+		// check temporary workspace response to anonymous user access to
+		// handle containing objects
+		ObjectData ret1 = CLIENT2.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification()
+					.withWorkspace(workspace)
+					.withObjid(1L)))).getData().get(0);
+		checkHandleError(ret1.getHandleError(), ret1.getHandleStacktrace());
+		checkReadAcl(node, twouser);
+		
+		ObjectData ret2 = CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification()
+					.withWorkspace(workspace)
+					.withObjid(1L)))).getData().get(0);
+		
+		@SuppressWarnings("unchecked")
+		Map<String, Object> retdata = ret2.getData().asClassInstance(
+				Map.class);
+		assertThat("got correct data", retdata, is(handleobj));
+		
+		assertThat("got correct error message", ret2.getHandleError(),
+				is("The Workspace Service does not currently support " +
+						"setting ACLs on handles for anonymous users" ));
+		assertThat("got correct stacktrace", ret2.getHandleStacktrace(),
+				is((String) null));
 	}
 
 	private void checkHandleError(String err, String stack) {
