@@ -117,7 +117,6 @@ public class WorkspaceServer extends JsonServerServlet {
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
-	//TODO SHOCKCLIENT should ignore extra fields
 
 	private static final String VER = "0.5.0-dev3";
 	private static final String GIT =
