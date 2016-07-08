@@ -85,17 +85,17 @@ Service dependencies
 The WSS requires `MongoDB <https://mongodb.org>`_ 2.4+ to run. The WSS
 may optionally use:
 
-* `Shock <https://github.com/kbase/shock_service>`_ 0.8.23+ as a file storage
+* `Shock <https://github.com/kbase/shock_service>`_ 0.9.6+ as a file storage
   backend.
 * The `Handle Service <https://github.com/kbase/handle_service>`_ 
-  `41df0fa <https://github.com/kbase/handle_service/commit/41df0fa9c4eef2cc1899b3af7477b264c7920393>`_ +
+  `b9de699 <https://github.com/kbase/handle_service/commit/b9de6991b851e9cd8fa9b5012db565f051e0894f>`_ +
   and `Handle Manager <https://github.com/kbase/handle_mngr>`_ 
   `81297d5 <https://github.com/kbase/handle_mngr/commit/81297d52e8ef9467d5f1f86329bd85d8b3758952>`_ +
   to allow linking workspace objects to Shock nodes (see
   :ref:`shockintegration`).
   
-The WSS has been tested against Shock versions 0.8.23, 0.9.6, 0.9.12, and
-0.9.13, and against MongoDB versions 2.4.14, 2.6.11, 3.0.8, and 3.2.1. 3.0+
+The WSS has been tested against Shock versions 0.9.6 and
+0.9.14, and against MongoDB versions 2.4.14, 2.6.11, 3.0.8, and 3.2.1. 3.0+
 versions were tested with and without the WiredTiger storage engine.
   
 Please see the respective service documentation to set up and run the services

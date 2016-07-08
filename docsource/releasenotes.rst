@@ -7,6 +7,10 @@ VERSION: 0.5.0 (Released TBD)
 BACKWARDS INCOMPATIBILITIES:
 
 * The ``skip`` parameter of ``list_objects`` has been removed.
+* In order to save an object that contains handles to shock nodes, the user
+  must own the shock nodes. Previously, the user only needed read permissions.
+* Handle Service version b9de6991b851e9cd8fa9b5012db565f051e0894f+ is now
+  required.
 
 NEW FEATURES:
 

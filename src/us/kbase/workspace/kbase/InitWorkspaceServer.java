@@ -394,7 +394,7 @@ public class InitWorkspaceServer {
 				rep.reportInfo("Warning - the Handle Service url uses insecure http. https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
-			cli.areReadable(new LinkedList<String>());
+			cli.isOwner(new LinkedList<String>());
 		} catch (Exception e) {
 			if (!(e instanceof ServerException) || !e.getMessage().contains(
 							"can not execute select * from Handle")) {
