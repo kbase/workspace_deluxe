@@ -11,7 +11,7 @@ BACKWARDS INCOMPATIBILITIES:
   must own the shock nodes. Previously, the user only needed read permissions.
 * Handle Service version b9de6991b851e9cd8fa9b5012db565f051e0894f+ is now
   required.
-* Handle Manager version 08c8da3334e1c5907959b6f69124cf578cb926ba is now
+* Handle Manager version 08c8da3334e1c5907959b6f69124cf578cb926ba+ is now
   required.
 
 NEW FEATURES:

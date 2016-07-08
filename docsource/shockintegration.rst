@@ -269,8 +269,7 @@ in the VeryImportantModule module and has been registered and released.
       {}]]
 
 During the save, the Workspace checks with the Handle Service to confirm the
-user owns the Shock data. If such is not the case, the save
-will fail.
+user owns the Shock data. If such is not the case, the save will fail.
 
 Step 4 - share data in the Workspace
 ------------------------------------
