@@ -415,7 +415,7 @@ public class InitWorkspaceServer {
 				rep.reportInfo("Warning - the Handle Manager url uses insecure http. https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
-			cli.addReadAcl(Arrays.asList("FAKEHANDLE_-100"), "fakeuser");
+			cli.setPublicRead(Arrays.asList("FAKEHANDLE_-100"));
 		} catch (Exception e) {
 			if (!(e instanceof ServerException) || !e.getMessage().contains(
 							"Unable to set acl(s) on handles FAKEHANDLE_-100")) {

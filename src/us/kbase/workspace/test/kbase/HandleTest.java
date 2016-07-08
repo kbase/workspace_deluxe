@@ -468,22 +468,41 @@ public class HandleTest {
 		checkHandleError(ret1.getHandleError(), ret1.getHandleStacktrace());
 		checkReadAcl(node, twouser);
 		
+		checkPublicRead(node, false);
 		// check that anonymous users can get the object & shock nodes
-		ObjectData ret2 = CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
+		CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification()
+					.withWorkspace(workspace)
+					.withObjid(1L)))).getData().get(0);
+		checkHandleError(ret1.getHandleError(), ret1.getHandleStacktrace());
+		checkPublicRead(node, true);
+		
+		//test error message for deleted node with no auth
+		node.delete();
+		ObjectData wod = CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
 		
 		@SuppressWarnings("unchecked")
-		Map<String, Object> retdata = ret2.getData().asClassInstance(
-				Map.class);
+		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
 		
-		assertThat("got correct error message", ret2.getHandleError(),
-				is("The Workspace Service does not currently support " +
-						"setting ACLs on handles for anonymous users" ));
-		assertThat("got correct stacktrace", ret2.getHandleStacktrace(),
-				is((String) null));
+		assertThat("got correct error message", wod.getHandleError(),
+				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
+						+ h1.getHid()));
+		assertTrue("got correct stacktrace", wod.getHandleStacktrace().startsWith(
+				"us.kbase.common.service.ServerException: Unable to set acl(s) on handles "
+						+ h1.getHid()));
+		
+	}
+
+	private void checkPublicRead(
+			final ShockNode node,
+			final boolean publicRead)
+			throws Exception {
+		assertThat("correct public read state",
+				node.getACLs().isPublicallyReadable(), is(publicRead));
 	}
 
 	private void checkHandleError(String err, String stack) {
@@ -495,7 +514,7 @@ public class HandleTest {
 	
 	private void checkReadAcl(ShockNode node, List<ShockUserId> uuids)
 			throws Exception {
-		assertThat("correct shock acls", node.getACLs(READ_ACL).getRead(),
+		assertThat("correct shock acls", node.getACLs().getRead(),
 				is(uuids));
 		
 	}

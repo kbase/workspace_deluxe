@@ -66,7 +66,7 @@
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
-    <include name="kbase/shock/shock-client-0.0.12.jar"/>
+    <include name="kbase/shock/shock-client-0.0.13.jar"/>
     <include name="apache_commons/commons-logging-1.1.1.jar"/>
     <include name="apache_commons/http/httpclient-4.3.1.jar"/>
     <include name="apache_commons/http/httpcore-4.3.jar"/>
@@ -86,7 +86,7 @@
     <include name="logback/logback-classic-1.1.2.jar"/>
     <include name="google/guava-14.0.1.jar"/>
     <include name="kbase/handle/HandleServiceClient-160708-b9de699.jar"/>
-    <include name="kbase/handle/HandleManagerClient-141020-ff26a5d.jar"/>
+    <include name="kbase/handle/HandleManagerClient-160708-08c8da3.jar"/>
   </fileset>
 	
   <fileset dir="${jardir}" id="testlib">

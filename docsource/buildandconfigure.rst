@@ -90,7 +90,7 @@ may optionally use:
 * The `Handle Service <https://github.com/kbase/handle_service>`_ 
   `b9de699 <https://github.com/kbase/handle_service/commit/b9de6991b851e9cd8fa9b5012db565f051e0894f>`_ +
   and `Handle Manager <https://github.com/kbase/handle_mngr>`_ 
-  `81297d5 <https://github.com/kbase/handle_mngr/commit/81297d52e8ef9467d5f1f86329bd85d8b3758952>`_ +
+  `08c8da3 <https://github.com/kbase/handle_mngr/commit/08c8da3334e1c5907959b6f69124cf578cb926ba>`_ +
   to allow linking workspace objects to Shock nodes (see
   :ref:`shockintegration`).
   

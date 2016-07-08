@@ -522,12 +522,6 @@ public class ArgUtils {
 		if (handles == null || handles.isEmpty()) {
 			return new HandleError(null, null);
 		}
-		if (user == null) {
-			//TODO BUG set shock node public w/ anonymous users
-			return new HandleError("The Workspace Service does not " +
-					"currently support setting ACLs on handles for anonymous " +
-					"users", null);
-		}
 		final AuthToken token;
 		try {
 			token = handleManagertoken.getToken();
@@ -566,7 +560,11 @@ public class ArgUtils {
 					ExceptionUtils.getStackTrace(e));
 		}
 		try {
-			hmc.addReadAcl(handles, user.getUser());
+			if (user == null) {
+				hmc.setPublicRead(handles);
+			} else {
+				hmc.addReadAcl(handles, user.getUser());
+			}
 		} catch (IOException e) {
 			return new HandleError(
 					"There was an IO problem while attempting to set " +
