@@ -40,6 +40,7 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
 import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
@@ -306,11 +307,27 @@ public class HandleTest {
 		handleList.add(h1.getHid());
 		Map<String, Object> handleobj = new HashMap<String, Object>();
 		handleobj.put("handles", handleList);
-		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
-				.withObjects(Arrays.asList(
-						new ObjectSaveData().withData(new UObject(handleobj))
-						.withType(HANDLE_TYPE))));
+		try {
+			CLIENT1.saveObjects(new SaveObjectsParams()
+					.withWorkspace(workspace)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData().withData(
+									new UObject(handleobj))
+							.withType(HANDLE_TYPE))));
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
 
+		/* should be impossible for a non-owner to save a handle containing
+		 * object where they don't own the shock nodes, even with all other
+		 * privileges
+		 */
+		BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
+		@SuppressWarnings("unused")
+		ShockACL acl = bsc.addToNodeAcl(new ShockNodeId(h1.getId()),
+				Arrays.asList(USER2), ShockACLType.ALL);
 		String workspace2 = "basichandle2";
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace2));
 		try {
@@ -326,8 +343,9 @@ public class HandleTest {
 					"objects in this call was not accessible with your credentials. " +
 					"The call cannot complete."));
 		}
-		BasicShockClient bsc = new BasicShockClient(
-				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
+		
+		bsc.removeFromNodeAcl(new ShockNodeId(h1.getId()),
+				Arrays.asList(USER2), ShockACLType.ALL);
 		
 		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
 		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
@@ -336,6 +354,8 @@ public class HandleTest {
 		
 		checkReadAcl(node, oneuser);
 
+		// test that user2 can get shock nodes even though permissions have
+		// been removed when user2 can read the workspace object
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
 		//get objects2
@@ -439,8 +459,8 @@ public class HandleTest {
 		
 		checkReadAcl(node, oneuser);
 		
-		// check temporary workspace response to anonymous user access to
-		// handle containing objects
+		// check users without explicit access to the workspace can get
+		// object & nodes
 		ObjectData ret1 = CLIENT2.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace)
@@ -448,6 +468,7 @@ public class HandleTest {
 		checkHandleError(ret1.getHandleError(), ret1.getHandleStacktrace());
 		checkReadAcl(node, twouser);
 		
+		// check that anonymous users can get the object & shock nodes
 		ObjectData ret2 = CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace)

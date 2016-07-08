@@ -86,7 +86,7 @@
     <include name="logback/logback-classic-1.1.2.jar"/>
     <include name="google/guava-14.0.1.jar"/>
     <!-- from github.com/brettin/handle-service -->
-    <include name="kbase/handle/HandleServiceClient-141020-5eda76e.jar"/>
+    <include name="kbase/handle/HandleServiceClient-160708-bd9e699.jar"/>
     <include name="kbase/handle/HandleManagerClient-141020-ff26a5d.jar"/>
   </fileset>
 	

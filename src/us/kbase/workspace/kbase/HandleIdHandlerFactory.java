@@ -119,7 +119,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 				if (handleService.getProtocol().equals("http")) {
 					ahc.setIsInsecureHttpConnectionAllowed(true);
 				}
-				allreadable = ahc.areReadable(new LinkedList<String>(handles));
+				allreadable = ahc.isOwner(new LinkedList<String>(handles));
 			} catch (UnauthorizedException e) {
 				throw new IdReferenceHandlerException(
 						"Authorization for Handle Service failed. The server said: "
