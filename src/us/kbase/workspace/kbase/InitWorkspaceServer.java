@@ -355,13 +355,15 @@ public class InitWorkspaceServer {
 			final TempFilesManager tfm = new TempFilesManager(
 					new File(tempDir));
 			if (!wasTempFileCleaningDone) {
+				// check the directory is writeable
+				tfm.generateTempFile("startuptest", "tmp");
 				wasTempFileCleaningDone = true;
 				tfm.cleanup();
 			}
 			return tfm;
 		} catch (Exception e) {
 			rep.reportFail("There was an error initializing the temporary " +
-					"file location: " +e.getLocalizedMessage());
+					"file location: " + e.getLocalizedMessage());
 			return null;
 		}
 	}

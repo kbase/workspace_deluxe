@@ -13,6 +13,7 @@ BACKWARDS INCOMPATIBILITIES:
   required.
 * Handle Manager version 08c8da3334e1c5907959b6f69124cf578cb926ba+ is now
   required.
+* Shock version 0.9.6+ is now required.
 
 NEW FEATURES:
 
@@ -39,6 +40,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   disk.
 * Fixed a bug where accessing an object with handles to shock nodes
   anonymously would cause a null pointer error.
+* A temporary file is created and deleted at startup to ensure the temporary
+  files directory is readable.
 
 VERSION: 0.4.1 (Released 5/27/16)
 ---------------------------------
