@@ -19,10 +19,6 @@ NEW FEATURES:
 
 * The ``status`` method now returns JVM memory stats and the status of MongoDB,
   Shock, and the Handle service and manager (if using the latter three).
-  Currently this method is not available via client, but can be invoked like
-  so:
-
-``curl -X POST -d '{"id": '1', "method": "Workspace.status", "version": "1.1", "params": []}' [Workspace URL]``
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
