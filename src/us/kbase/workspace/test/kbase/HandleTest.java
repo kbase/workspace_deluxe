@@ -11,8 +11,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +26,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.github.zafarkhaja.semver.Version;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
@@ -297,6 +300,59 @@ public class HandleTest {
 		}
 	}
 
+	@Test
+	public void status() throws Exception {
+		final Map<String, Object> st = CLIENT1.status();
+		
+		//top level items
+		assertThat("incorrect state", st.get("state"), is((Object) "OK"));
+		assertThat("incorrect message", st.get("message"), is((Object) "OK"));
+		// should throw an error if not a valid semver
+		Version.valueOf((String) st.get("version")); 
+		assertThat("incorrect git url", st.get("git_url"),
+				is((Object) "https://github.com/kbase/workspace_deluxe"));
+		checkMem(st.get("freemem"), "freemem");
+		checkMem(st.get("totalmem"), "totalmem");
+		checkMem(st.get("maxmem"), "maxmem");
+		
+		//deps
+		@SuppressWarnings("unchecked")
+		final List<Map<String, String>> deps =
+				(List<Map<String, String>>) st.get("dependencies");
+		assertThat("missing dependencies", deps.size(), is(4));
+		
+		final List<List<String>> exp = new ArrayList<List<String>>();
+		exp.add(Arrays.asList("MongoDB", "true"));
+		exp.add(Arrays.asList("GridFS", "true"));
+		exp.add(Arrays.asList("Handle service", "false"));
+		exp.add(Arrays.asList("Handle manager", "false"));
+		final Iterator<List<String>> expiter = exp.iterator();
+		final Iterator<Map<String, String>> gotiter = deps.iterator();
+		while (expiter.hasNext()) {
+			final Map<String, String> g = gotiter.next();
+			final List<String> e = expiter.next();
+			assertThat("incorrect name", (String) g.get("name"), is(e.get(0)));
+			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
+			assertThat("incorrect message", g.get("message"),
+					is((Object) "OK"));
+			if (e.get(1).equals("false")) {
+				assertThat("incorrect version", (String) g.get("version"),
+						is("Unknown"));
+			} else {
+				Version.valueOf((String) g.get("version"));
+			}
+		}
+	}
+	
+	private void checkMem(final Object num, final String name)
+			throws Exception {
+		if (num instanceof Integer) {
+			assertThat("bad " + name, (Integer) num > 0, is(true));
+		} else {
+			assertThat("bad " + name, (Long) num > 0, is(true));
+		}
+	}
+	
 	@SuppressWarnings("deprecation")
 	@Test
 	public void basicHandleTest() throws Exception {

@@ -115,7 +115,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("incorrect status", blob.getStatus(), is("OK"));
 		//should throw an error if not a semantic version
 		Version.valueOf(blob.getVersion());
-		
 	}
 	
 	@Test
