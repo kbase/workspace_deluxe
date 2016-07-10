@@ -2075,7 +2075,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
 			getObjects(
 				final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objs,
-				final boolean noData,
+				final ByteArrayFileCacheManager dataMan,
+				final long usedDataAllocation,
 				final boolean exceptIfDeleted,
 				final boolean includeDeleted,
 				final boolean exceptIfMissing)
@@ -2089,20 +2090,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
 						FLDS_VER_GET_OBJECT, !exceptIfMissing);
-		if (!noData) {
-			checkTotalFileSize(objs, resobjs, vers);
+		if (dataMan != null) {
+			checkTotalFileSize(usedDataAllocation, objs, resobjs, vers);
 		}
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
 		final Map<String, ByteArrayFileCache> chksumToData =
 				new HashMap<String, ByteArrayFileCache>();
 		final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret =
 				new HashMap<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>();
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(
-				rescfg.getMaxReturnedDataMemoryUsage(),
-				//maximum possible disk usage is when subsetting a objects
-				//summing to 1G to 1G objects, since the 1G originals will be discarded
-				rescfg.getMaxReturnedDataSize() * 2L,
-				tfm);
 		for (final ObjectIDResolvedWS o: objs.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
@@ -2123,21 +2118,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
 			final MongoObjectInfo info = ObjectInfoUtils.generateObjectInfo(
 					roi, vers.get(roi));
-			if (noData) {
+			if (dataMan == null) {
 				ret.put(o, new HashMap<ObjectPaths, WorkspaceObjectData>());
 				ret.get(o).put(ObjectPaths.EMPTY, new WorkspaceObjectData(
 						info, prov, refs, copied, extIDs));
 			} else {
 				try {
 					if (objs.get(o).isEmpty()) {
-						buildReturnedObjectData(
-								o, ObjectPaths.EMPTY, prov, refs, copied,
-								extIDs, info, chksumToData, bafcMan, ret);
+						// this can never happen based on the Workspace code
+						throw new IllegalStateException(
+								"At least one ObjectPaths must be provided");
 					} else {
 						for (final ObjectPaths op: objs.get(o)) {
 							buildReturnedObjectData(
 									o, op, prov, refs, copied, extIDs, info,
-									chksumToData, bafcMan, ret);
+									chksumToData, dataMan, ret);
 						}
 					}
 				} catch (TypedObjectExtractionException |
@@ -2154,6 +2149,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private void checkTotalFileSize(
+			final long usedDataAllocation,
 			final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths,
 			final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs,
 			final Map<ResolvedMongoObjectID, Map<String, Object>> vers) {
@@ -2169,11 +2165,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						.get(Fields.VER_SIZE);
 			}
 		}
-		if (size > rescfg.getMaxReturnedDataSize()) {
+		if (size + usedDataAllocation > rescfg.getMaxReturnedDataSize()) {
 			throw new IllegalArgumentException(String.format(
 					"Too much data requested from the workspace at once; " +
 					"data requested including potential subsets is %sB " + 
-					"which exceeds maximum of %s.", size,
+					"which exceeds maximum of %s.", size + usedDataAllocation,
 					rescfg.getMaxReturnedDataSize()));
 		}
 	}

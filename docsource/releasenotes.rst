@@ -38,6 +38,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   anonymously would cause a null pointer error.
 * A temporary file is created and deleted at startup to ensure the temporary
   files directory is readable.
+* Fixed a bug where under certain circumstances more data than allowed could be
+  stored in memory or on disk and returned in a get_objects call.
 
 VERSION: 0.4.1 (Released 5/27/16)
 ---------------------------------

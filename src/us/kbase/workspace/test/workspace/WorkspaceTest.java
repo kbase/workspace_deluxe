@@ -6761,7 +6761,8 @@ public class WorkspaceTest extends WorkspaceTester {
 	@Test
 	public void maxReturnedObjectSize() throws Exception {
 
-		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
+		TypeDefId reftype = new TypeDefId(
+				new TypeDefName("CopyRev", "RefType"), 1, 0);
 		WorkspaceUser user = new WorkspaceUser("MROSuser");
 		WorkspaceIdentifier wsiorig = new WorkspaceIdentifier("maxReturnedObjectSize");
 		ws.createWorkspace(user, wsiorig.getIdentifierString(),
@@ -6819,6 +6820,8 @@ public class WorkspaceTest extends WorkspaceTester {
 			
 			ws.setResourceConfig(build.withMaxReturnedDataSize(40).build());
 			List<ObjectIdentifier> two = Arrays.asList(oi1, oi2);
+			List<ObjectIdentifier> mixed = Arrays.asList(oi1,
+					new ObjectIDWithRefChain(ref2, oi2l));
 			List<ObjIDWithChainAndSubset> ois1l2 = Arrays.asList(
 					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/fo"))),
 					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/ba"))));
@@ -6826,12 +6829,14 @@ public class WorkspaceTest extends WorkspaceTester {
 					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/fo"))),
 					new ObjIDWithChainAndSubset(oi2, null, new ObjectPaths(Arrays.asList("/ba"))));
 			successGetObjects(user, two);
+			successGetObjects(user, mixed);
 			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) ois1l2);
 			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) bothoi);
 			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) refchain2);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(39).build());
 			err = new IllegalArgumentException(String.format(errstr, 40, 39));
 			failGetObjects(user, two, err, true);
+			failGetObjects(user, mixed, err, true);
 			failGetSubset(user, ois1l2, err);
 			failGetSubset(user, bothoi, err);
 			failGetReferencedObjects(user, refchain2, err, true);
@@ -6883,11 +6888,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		assertThat("created no temp files on save", filesCreated[0], is(0));
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(13).build());
-		ObjectIdentifier oi = new ObjectIdentifier(wsi, 1);
-		ws.getObjects(user, Arrays.asList(oi));
+		ObjectIdentifier oi1 = new ObjectIdentifier(wsi, 1);
+		ws.getObjects(user, Arrays.asList(oi1));
 		assertThat("created no temp files on get", filesCreated[0], is(0));
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oi, null,
+				new ObjIDWithChainAndSubset(oi1, null,
 				new ObjectPaths(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp file on get subdata", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -6901,21 +6906,21 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(12).build());
-		oi = new ObjectIdentifier(wsi, 2);
-		ws.getObjects(user, Arrays.asList(oi)).get(0).getSerializedData().destroy();
+		ObjectIdentifier oi2 = new ObjectIdentifier(wsi, 2);
+		ws.getObjects(user, Arrays.asList(oi2)).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp files on get", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oi, null,
+				new ObjIDWithChainAndSubset(oi2, null,
 				new ObjectPaths(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp files on get subdata part object", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oi, null,
+				new ObjIDWithChainAndSubset(oi2, null,
 				new ObjectPaths(Arrays.asList("z", "y")))))).get(0).getSerializedData().destroy();
 		assertThat("created 2 temp files on get subdata full object", filesCreated[0], is(2));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -6971,6 +6976,43 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("created 2 temp files on get", filesCreated[0], is(2));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
+		//test with a referenced object and a standard object
+		TypeDefId reftype = new TypeDefId(
+				new TypeDefName("CopyRev", "RefType"), 1, 0);
+		Map<String, Object> refdata = new HashMap<String, Object>();
+		refdata.put("refs", Arrays.asList(wsi.getName() + "/2/1"));
+		saveObject(user, wsi, null, refdata, reftype, "ref", new Provenance(user));
+		ObjectIdentifier ref = new ObjectIdentifier(wsi, "ref", 1);
+		List<ObjectIdentifier> refAndStd = Arrays.asList(oi1,
+				new ObjectIDWithRefChain(ref, Arrays.asList(oi2)));
+
+		// ref obj and std obj in memory
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(39).build());
+		for (WorkspaceObjectData wod: ws.getObjects(user, refAndStd)) {
+			wod.getSerializedData().destroy();
+		}
+		assertThat("created no temp files on get", filesCreated[0], is(0));
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		// ref obj and std obj to files
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(38).build());
+		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+			wod.getSerializedData().destroy();
+		}
+		assertThat("created 1 temp files on get", filesCreated[0], is(1));
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(25).build());
+		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+			wod.getSerializedData().destroy();
+		}
+		assertThat("created 2 temp files on get", filesCreated[0], is(2));
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		// clean up and reset config
 		ws.getTempFilesManager().removeListener(listener);
 		ws.setResourceConfig(oldcfg);
 	}

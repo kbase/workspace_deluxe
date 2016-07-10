@@ -960,15 +960,21 @@ public class Workspace {
 		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> stdpaths =
 				setupObjectPaths(res.nochain);
 
+		
+		//TODO CODE make an overall resource manager that takes the config as an arg and handles returned data as well as mem & file limits 
+		final ByteArrayFileCacheManager dataMan = getDataManager(noData);
+		
 		//this is pretty gross, think about a better api here
 		final Map<ObjectIDResolvedWS,
 				Map<ObjectPaths, WorkspaceObjectData>> stddata =
-					db.getObjects(stdpaths, noData, !nullIfInaccessible, false,
-							!nullIfInaccessible);
+					db.getObjects(stdpaths, dataMan, 0,
+							!nullIfInaccessible, false, !nullIfInaccessible);
 		final Map<ObjectIDResolvedWS,
 				Map<ObjectPaths, WorkspaceObjectData>> chaindata =
-					db.getObjects(chainpaths, noData, false, true, true);
-					//object cannot be missing at this stage
+					db.getObjects(chainpaths, dataMan,
+							calculateDataSize(stddata),
+							//object cannot be missing at this stage
+							false, true, true);
 		chainpaths.clear();
 		stdpaths.clear();
 		
@@ -998,6 +1004,38 @@ public class Workspace {
 		stddata.clear();
 		removeInaccessibleDataCopyReferences(user, ret);
 		return ret;
+	}
+
+	private long calculateDataSize(
+			final Map<ObjectIDResolvedWS, Map<ObjectPaths,
+				WorkspaceObjectData>> stddata) {
+		long dataSize = 0;
+		for (final Map<ObjectPaths, WorkspaceObjectData> paths:
+				stddata.values()) {
+			for (final WorkspaceObjectData d: paths.values()) {
+				if (d.hasData()) {
+					dataSize += d.getSerializedData().getSize();
+				}
+			}
+			
+		}
+		return dataSize;
+	}
+
+	private ByteArrayFileCacheManager getDataManager(final boolean noData) {
+		if (noData) {
+			return null;
+		} else {
+			return new ByteArrayFileCacheManager(
+					rescfg.getMaxReturnedDataMemoryUsage(),
+					/* maximum possible disk usage is when subsetting objects
+					 * summing to 1G, since we have to pull the 1G objects and
+					 * then subset which could take up to another 1G. The 1G
+					 * originals will then be discarded
+					 */
+					rescfg.getMaxReturnedDataSize() * 2L,
+					db.getTempFilesManager());
+		}
 	}
 
 	private Map<ObjectIDResolvedWS, Set<ObjectPaths>> setupObjectPaths(
@@ -1079,8 +1117,8 @@ public class Workspace {
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains,
 			final Map<ObjectIDResolvedWS, ObjectReferenceSet> chainrefs,
 			final boolean ignoreErrors,
-			final int chainNumber
-			) throws NoSuchReferenceException {
+			final int chainNumber)
+			throws NoSuchReferenceException {
 		ObjectIdentifier pos = chain;
 		ObjectReferenceSet refs = headref;
 		int posnum = 1;
