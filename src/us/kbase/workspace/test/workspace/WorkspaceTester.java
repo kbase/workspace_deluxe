@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -198,6 +199,11 @@ public class WorkspaceTester {
 		DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 				DB_WS_NAME);
 		TestCommon.destroyDB(wsdb);
+	}
+	
+	@After
+	public void after() throws Exception {
+		TestCommon.assertNoTempFilesExist(tfm);
 	}
 	
 	private static final Map<String, WSandTypes> CONFIGS =
@@ -722,35 +728,45 @@ public class WorkspaceTester {
 			List<ObjectIdentifier> ids, List<ObjectInformation> expected,
 			List<Map<String, Object>> expdata) throws Exception {
 		List<WorkspaceObjectData> gotdata = ws.getObjects(user, ids, false, true);
-		List<WorkspaceObjectData> gotprov = ws.getObjects(user, ids, true, true);
-		List<ObjectInformation> gotinfo = ws.getObjectInformation(user, ids, true, true);
-		Iterator<WorkspaceObjectData> gotdatai = gotdata.iterator();
-		Iterator<WorkspaceObjectData> gotprovi = gotprov.iterator();
-		Iterator<ObjectInformation> gotinfoi = gotinfo.iterator();
-		Iterator<ObjectInformation> expinfoi = expected.iterator();
-		Iterator<Map<String, Object>> expdatai = expdata.iterator();
-		while (gotdatai.hasNext()) {
-			ObjectInformation einf = expinfoi.next();
-			Map<String, Object> edata = expdatai.next();
-			WorkspaceObjectData gprov = gotprovi.next();
-			ObjectInformation ginf = gotinfoi.next();
-			WorkspaceObjectData gdata = gotdatai.next();
-			if (einf == null) {
-				assertNull("expected null prov", gprov);
-				assertNull("expected null info", ginf);
-				assertNull("expected null data", gdata);
-			} else {
-				@SuppressWarnings("unchecked")
-				Map<String, Object> d = (Map<String, Object>) gdata.getData();
-				assertThat("got expected obj info from getInfo", ginf, is(einf));
-				assertThat("got expected obj info from getObj", gdata.getObjectInfo(), is(einf));
-				assertThat("got expected obj info from getObjProv", gprov.getObjectInfo(), is(einf));
-				assertThat("got expected data", d, is(edata));
+		try {
+			List<WorkspaceObjectData> gotprov =
+					ws.getObjects(user, ids, true, true);
+			List<ObjectInformation> gotinfo =
+					ws.getObjectInformation(user, ids, true, true);
+			Iterator<WorkspaceObjectData> gotdatai = gotdata.iterator();
+			Iterator<WorkspaceObjectData> gotprovi = gotprov.iterator();
+			Iterator<ObjectInformation> gotinfoi = gotinfo.iterator();
+			Iterator<ObjectInformation> expinfoi = expected.iterator();
+			Iterator<Map<String, Object>> expdatai = expdata.iterator();
+			while (gotdatai.hasNext()) {
+				ObjectInformation einf = expinfoi.next();
+				Map<String, Object> edata = expdatai.next();
+				WorkspaceObjectData gprov = gotprovi.next();
+				ObjectInformation ginf = gotinfoi.next();
+				WorkspaceObjectData gdata = gotdatai.next();
+				if (einf == null) {
+					assertNull("expected null prov", gprov);
+					assertNull("expected null info", ginf);
+					assertNull("expected null data", gdata);
+				} else {
+					@SuppressWarnings("unchecked")
+					Map<String, Object> d =
+					(Map<String, Object>) gdata.getData();
+					assertThat("got expected obj info from getInfo",
+							ginf, is(einf));
+					assertThat("got expected obj info from getObj",
+							gdata.getObjectInfo(), is(einf));
+					assertThat("got expected obj info from getObjProv",
+							gprov.getObjectInfo(), is(einf));
+					assertThat("got expected data", d, is(edata));
+				}
 			}
-		}
-		if (expinfoi.hasNext() || expdatai.hasNext() || gotprovi.hasNext() ||
-				gotinfoi.hasNext() || gotdatai.hasNext()) {
-			fail("mismatched iter counts");
+			if (expinfoi.hasNext() || expdatai.hasNext() || gotprovi.hasNext() ||
+					gotinfoi.hasNext() || gotdatai.hasNext()) {
+				fail("mismatched iter counts");
+			}
+		} finally {
+			destroyGetObjectsResources(gotdata);
 		}
 	}
 
@@ -758,24 +774,37 @@ public class WorkspaceTester {
 			List<ObjectIdentifier> ids, List<FakeObjectInfo> fakeinfo,
 			List<Map<String, Object>> data) throws Exception {
 		List<WorkspaceObjectData> retdata = ws.getObjects(user, ids);
-		List<WorkspaceObjectData> provdata = ws.getObjects(user, ids, true);
-		Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
-		Iterator<WorkspaceObjectData> provi = provdata.iterator();
-		Iterator<FakeObjectInfo> info = fakeinfo.iterator();
-		Iterator<Map<String, Object>> dataiter = data.iterator();
-		while (ret1.hasNext()) {
-			FakeObjectInfo inf = info.next();
-			Map<String, Object> d = dataiter.next();
-			WorkspaceObjectData woprov = provi.next();
-			WorkspaceObjectData wod1 = ret1.next();
-			checkObjectAndInfo(wod1, inf, d);
-			checkObjInfo(woprov.getObjectInfo(), inf.getObjectId(), inf.getObjectName(),
-					inf.getTypeString(), inf.getVersion(), inf.getSavedBy(),
-					inf.getWorkspaceId(), inf.getWorkspaceName(), inf.getCheckSum(),
-					inf.getSize(), inf.getUserMetaData().getMetadata());
-		}
-		if (info.hasNext() || dataiter.hasNext() || provi.hasNext()) {
-			fail("mismatched iter counts");
+		try {
+			List<WorkspaceObjectData> provdata =
+					ws.getObjects(user, ids, true);
+			Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
+			Iterator<WorkspaceObjectData> provi = provdata.iterator();
+			Iterator<FakeObjectInfo> info = fakeinfo.iterator();
+			Iterator<Map<String, Object>> dataiter = data.iterator();
+			while (ret1.hasNext()) {
+				FakeObjectInfo inf = info.next();
+				Map<String, Object> d = dataiter.next();
+				WorkspaceObjectData woprov = provi.next();
+				WorkspaceObjectData wod1 = ret1.next();
+				checkObjectAndInfo(wod1, inf, d);
+				checkObjInfo(
+						woprov.getObjectInfo(),
+						inf.getObjectId(),
+						inf.getObjectName(),
+						inf.getTypeString(),
+						inf.getVersion(),
+						inf.getSavedBy(),
+						inf.getWorkspaceId(),
+						inf.getWorkspaceName(),
+						inf.getCheckSum(),
+						inf.getSize(),
+						inf.getUserMetaData().getMetadata());
+			}
+			if (info.hasNext() || dataiter.hasNext() || provi.hasNext()) {
+				fail("mismatched iter counts");
+			}
+		} finally {
+			destroyGetObjectsResources(retdata);
 		}
 	}
 
@@ -791,10 +820,27 @@ public class WorkspaceTester {
 
 	protected void successGetObjects(WorkspaceUser user,
 			List<ObjectIdentifier> objs) throws Exception {
-		ws.getObjects(user, objs);
-		ws.getObjects(user, objs, false);
+		destroyGetObjectsResources(ws.getObjects(user, objs));
+		destroyGetObjectsResources(ws.getObjects(user, objs, false));
 	}
 	
+	public void destroyGetObjectsResources(
+			final List<WorkspaceObjectData> objects) {
+		destroyGetObjectsResources(ws, objects);
+	}
+	
+	public static void destroyGetObjectsResources(
+			final Workspace ws,
+			final List<WorkspaceObjectData> objects) {
+		for (WorkspaceObjectData wo: objects) {
+			try {
+				wo.destroy();
+			} catch (RuntimeException | Error e) {
+				//continue;
+			}
+		}
+	}
+
 	protected void failGetObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objs,
@@ -935,7 +981,6 @@ public class WorkspaceTester {
 				assertNotNull("objectdata is null", datanulls.get(i));
 			}
 		}
-		
 	}
 	
 	protected void failGetSubset(
@@ -961,12 +1006,22 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected List<Date> checkProvenanceCorrect(WorkspaceUser foo, Provenance prov,
-			ObjectIdentifier obj, Map<String, String> refmap) throws Exception {
-		Provenance pgot = ws.getObjects(foo, Arrays.asList(obj)).get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot, refmap, obj.getWorkspaceIdentifier().getId());
-		Provenance pgot2 = ws.getObjects(foo, Arrays.asList(obj), true).get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot2,refmap, obj.getWorkspaceIdentifier().getId());
+	protected List<Date> checkProvenanceCorrect(
+			final WorkspaceUser foo,
+			final Provenance prov,
+			final ObjectIdentifier obj,
+			final Map<String, String> refmap)
+					throws Exception {
+		final List<WorkspaceObjectData> objects =
+				ws.getObjects(foo, Arrays.asList(obj));
+		destroyGetObjectsResources(objects); // don't need the data
+		Provenance pgot = objects.get(0).getProvenance();
+		checkProvenanceCorrect(prov, pgot, refmap,
+				obj.getWorkspaceIdentifier().getId());
+		Provenance pgot2 = ws.getObjects(foo, Arrays.asList(obj), true)
+				.get(0).getProvenance();
+		checkProvenanceCorrect(prov, pgot2,refmap,
+				obj.getWorkspaceIdentifier().getId());
 		return Arrays.asList(pgot.getDate(), pgot2.getDate());
 	}
 	
@@ -1272,9 +1327,13 @@ public class WorkspaceTester {
 			Map<ObjectIdentifier, Object> idToData) throws Exception {
 		List<ObjectIdentifier> objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
 		List<WorkspaceObjectData> d = ws.getObjects(foo, objs);
-		for (int i = 0; i < d.size(); i++) {
-			assertThat("can get correct data from undeleted objects",
-					d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
+		try {
+			for (int i = 0; i < d.size(); i++) {
+				assertThat("can get correct data from undeleted objects",
+						d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
+			}
+		} finally {
+			destroyGetObjectsResources(d);
 		}
 	}
 
@@ -1351,41 +1410,53 @@ public class WorkspaceTester {
 		compareObjectInfo(original, copied, user, wsid, wsname, objectid,
 				objname, version);
 		
-		TestReference expectedCopyRef = new TestReference(original.getWorkspaceId(),
-				original.getObjectId(), original.getVersion());
+		WorkspaceObjectData orig = null;
+		WorkspaceObjectData copy = null;
 		
-		//getObjects
-		WorkspaceObjectData orig = ws.getObjects(original.getSavedBy(), Arrays.asList(
-				new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
-						original.getObjectId(), original.getVersion()))).get(0);
-		WorkspaceObjectData copy = ws.getObjects(copied.getSavedBy(), Arrays.asList(
-				new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
-						copied.getObjectId(), copied.getVersion()))).get(0);
-		compareObjectInfo(orig.getObjectInfo(), copy.getObjectInfo(), user, wsid, wsname, objectid,
-				objname, version);
-		assertThat("returned data same", copy.getData(), is(orig.getData()));
-		assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
-		assertThat("copy ref correct", new TestReference(copy.getCopyReference()),
-				is(expectedCopyRef));
-		checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(),
-				null, original.getWorkspaceId());
-		
-		//getObjectProvenance
-		WorkspaceObjectData originfo = ws.getObjects(original.getSavedBy(),
-				Arrays.asList(
-						new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
-						original.getObjectId(), original.getVersion())), true).get(0);
-		WorkspaceObjectData copyinfo = ws.getObjects(copied.getSavedBy(),
-				Arrays.asList(
-				new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
-						copied.getObjectId(), copied.getVersion())), true).get(0);
-		compareObjectInfo(originfo.getObjectInfo(), copyinfo.getObjectInfo(), user, wsid, wsname, objectid,
-				objname, version);
-		assertThat("returned refs same", copyinfo.getReferences(), is(originfo.getReferences()));
-		assertThat("copy ref correct", new TestReference(copyinfo.getCopyReference()),
-				is(expectedCopyRef));
-		checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(),
-				null, original.getWorkspaceId());
+		try {
+			TestReference expectedCopyRef = new TestReference(original.getWorkspaceId(),
+					original.getObjectId(), original.getVersion());
+			
+			//getObjects
+			orig = ws.getObjects(original.getSavedBy(), Arrays.asList(
+					new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
+							original.getObjectId(), original.getVersion()))).get(0);
+			copy = ws.getObjects(copied.getSavedBy(), Arrays.asList(
+					new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
+							copied.getObjectId(), copied.getVersion()))).get(0);
+			compareObjectInfo(orig.getObjectInfo(), copy.getObjectInfo(), user, wsid, wsname, objectid,
+					objname, version);
+			assertThat("returned data same", copy.getData(), is(orig.getData()));
+			assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
+			assertThat("copy ref correct", new TestReference(copy.getCopyReference()),
+					is(expectedCopyRef));
+			checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(),
+					null, original.getWorkspaceId());
+			
+			//getObjectProvenance
+			WorkspaceObjectData originfo = ws.getObjects(original.getSavedBy(),
+					Arrays.asList(
+							new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
+							original.getObjectId(), original.getVersion())), true).get(0);
+			WorkspaceObjectData copyinfo = ws.getObjects(copied.getSavedBy(),
+					Arrays.asList(
+					new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
+							copied.getObjectId(), copied.getVersion())), true).get(0);
+			compareObjectInfo(originfo.getObjectInfo(), copyinfo.getObjectInfo(), user, wsid, wsname, objectid,
+					objname, version);
+			assertThat("returned refs same", copyinfo.getReferences(), is(originfo.getReferences()));
+			assertThat("copy ref correct", new TestReference(copyinfo.getCopyReference()),
+					is(expectedCopyRef));
+			checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(),
+					null, original.getWorkspaceId());
+		} finally {
+			if (orig != null) {
+				destroyGetObjectsResources(Arrays.asList(orig));
+			}
+			if (copy != null) {
+				destroyGetObjectsResources(Arrays.asList(copy));
+			}
+		}
 	}
 	
 	protected void compareObjectAndInfo(WorkspaceObjectData got,
@@ -1790,11 +1861,15 @@ public class WorkspaceTester {
 	protected void checkReferencedObject(WorkspaceUser user, ObjectIDWithRefChain chain,
 			ObjectInformation oi, Provenance p, Map<String, ? extends Object> data,
 			List<String> refs, Map<String, String> refmap) throws Exception {
-		WorkspaceObjectData wod = ws.getObjects(user,
-				Arrays.asList((ObjectIdentifier)chain)).get(0);
 		ObjectInformation info = ws.getObjectInformation(user,
 				Arrays.asList((ObjectIdentifier) chain), true, false).get(0);
-		compareObjectAndInfo(wod, oi, p, data, refs, refmap);
+		WorkspaceObjectData wod = ws.getObjects(user,
+				Arrays.asList((ObjectIdentifier)chain)).get(0);
+		try {
+			compareObjectAndInfo(wod, oi, p, data, refs, refmap);
+		} finally {
+			destroyGetObjectsResources(Arrays.asList(wod));
+		}
 		assertThat("object info same", info, is(oi));
 	}
 	
@@ -1823,6 +1898,7 @@ public class WorkspaceTester {
 			throws Exception {
 		List<ObjectIdentifier> o = Arrays.asList(obj);
 		WorkspaceObjectData wod = ws.getObjects(user, o).get(0);
+		wod.destroy(); // don't need the actual data
 		WorkspaceObjectData woi = ws.getObjects(user, o, true).get(0);
 		
 		assertThat("get objs correct ext ids", wod.getExtractedIds(), is(expected));

@@ -96,6 +96,17 @@ public class WorkspaceObjectData {
 		return isCopySourceInaccessible;
 	}
 	
+	/** Destroys any resources used to store the objects. In the case of
+	 * object subsets, also destroys the parent objects. This method should be
+	 * called on a set of objects when further processing is no longer
+	 * required.
+	 */
+	public void destroy() {
+		if (data != null) {
+			data.destroy();
+		}
+	}
+	
 	/**
 	 * @return Maps/lists/scalars
 	 * @throws IOException 

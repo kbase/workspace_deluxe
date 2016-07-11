@@ -675,8 +675,8 @@ public class Workspace {
 		objects = null;
 		reports.clear();
 		
-		sortObjects(saveobjs, ttlObjSize);
 		try {
+			sortObjects(saveobjs, ttlObjSize);
 			return db.saveObjects(user, rwsi, saveobjs);
 		} finally {
 			for (final ResolvedSaveObject wo: saveobjs) {

@@ -323,6 +323,10 @@ public class ByteArrayFileCacheManager {
 			}
 		}
 		
+		/** Destroys any data associated with this cache and calls destroy()
+		 * on this cache's parent. Only subdata objects have a parent, but
+		 * multiple subdata objects can share the same parent.
+		 */
 		public void destroy() {
 			if (destroyed) {
 				return;
