@@ -272,7 +272,7 @@ public class ArgUtils {
 	}
 
 	public static List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>
-			translateObjectDataList(
+			translateObjectInfoList(
 					final List<Set<ObjectInformation>> lsoi,
 					final boolean logObjects) {
 		final List<List<Tuple11<Long, String, String, String, Long, String,
@@ -418,7 +418,6 @@ public class ArgUtils {
 	public static List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
 			final WorkspaceUser user,
-			final Set<ByteArrayFileCache> resourcesToDestroy,
 			final URL handleManagerURl,
 			final RefreshingToken handleManagertoken,
 			final boolean logObjects)
@@ -450,7 +449,6 @@ public class ArgUtils {
 					.withExtractedIds(o.getExtractedIds())
 					.withHandleError(error.error)
 					.withHandleStacktrace(error.stackTrace));
-			resourcesToDestroy.add(resource);
 		}
 		return ret;
 	}

@@ -47,6 +47,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.test.DummyValidatedTypedObject;
+import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjIDWithChainAndSubset;
@@ -862,8 +863,10 @@ public class MongoInternalsTest {
 		for (final ObjectIDResolvedWS o: oidsetver) {
 			paths.put(o, null);
 		}
+		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(
+				10000, 10000, mwdb.getTempFilesManager());
 		try {
-			mwdb.getObjects(paths, false, true, false, true);
+			mwdb.getObjects(paths, man, 0, true, false, true);
 			fail("operated on object with no version");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception message", nsoe.getMessage(),

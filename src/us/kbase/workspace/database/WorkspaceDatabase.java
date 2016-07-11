@@ -212,7 +212,13 @@ public interface WorkspaceDatabase {
 	
 	/** Get object data and provenance information from the workspace database.
 	 * @param objects the objects for which to retrieve data.
-	 * @param noData return provenance only if true.
+	 * @param dataManager the data manager. Reuse the same data manager over
+	 * multiple getObjects() calls to enforce limits on the combined returned
+	 * data. If null, only provenance information is returned.
+	 * @param usedDataAllocation the amount of data already pulled from prior
+	 * getObjects() calls. This amount will be added to the data amount pulled
+	 * this call and if the total exceeds the limit, an exception will be
+	 * thrown.
 	 * @param exceptIfDeleted throw an exception if deleted.
 	 * @param includeDeleted include information from deleted objects. Has no
 	 * effect if exceptIfDeleted is set.
@@ -229,7 +235,8 @@ public interface WorkspaceDatabase {
 	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
 			getObjects(
 					Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects,
-					boolean noData,
+					ByteArrayFileCacheManager dataManager,
+					long usedDataAllocation,
 					boolean exceptIfDeleted,
 					boolean includeDeleted,
 					boolean exceptIfMissing)

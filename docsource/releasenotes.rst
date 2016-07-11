@@ -32,12 +32,14 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * ``clone_workspace`` now prevents the new workspace from being accessed in any
   way while the clone is in progress.
 * ``clone_workspace`` can now exclude user specified objects from the clone.
-* Fixed two bugs where various failures on save would leave temporary files on
+* Fixed several bugs where various failures could leave temporary files on
   disk.
 * Fixed a bug where accessing an object with handles to shock nodes
   anonymously would cause a null pointer error.
 * A temporary file is created and deleted at startup to ensure the temporary
   files directory is readable.
+* Fixed a bug where under certain circumstances more data than allowed could be
+  stored in memory or on disk and returned in a get_objects call.
 
 VERSION: 0.4.1 (Released 5/27/16)
 ---------------------------------
