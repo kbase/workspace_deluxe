@@ -11,8 +11,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +26,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.github.zafarkhaja.semver.Version;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
@@ -40,6 +43,7 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
 import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
@@ -79,6 +83,7 @@ public class HandleTest {
 	
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
+	private static WorkspaceClient CLIENT_NOAUTH;
 
 	private static AbstractHandleClient HANDLE_CLIENT;
 	
@@ -166,20 +171,24 @@ public class HandleTest {
 				u3, p3);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
+		
+		final URL url = new URL("http://localhost:" + port);
 		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
+			CLIENT1 = new WorkspaceClient(url, USER1, p1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
+			CLIENT2 = new WorkspaceClient(url, USER2, p2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
+		CLIENT_NOAUTH = new WorkspaceClient(url);
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_NOAUTH.setIsInsecureHttpConnectionAllowed(true);
 		
 		setUpSpecs();
 		
@@ -291,6 +300,59 @@ public class HandleTest {
 		}
 	}
 
+	@Test
+	public void status() throws Exception {
+		final Map<String, Object> st = CLIENT1.status();
+		
+		//top level items
+		assertThat("incorrect state", st.get("state"), is((Object) "OK"));
+		assertThat("incorrect message", st.get("message"), is((Object) "OK"));
+		// should throw an error if not a valid semver
+		Version.valueOf((String) st.get("version")); 
+		assertThat("incorrect git url", st.get("git_url"),
+				is((Object) "https://github.com/kbase/workspace_deluxe"));
+		checkMem(st.get("freemem"), "freemem");
+		checkMem(st.get("totalmem"), "totalmem");
+		checkMem(st.get("maxmem"), "maxmem");
+		
+		//deps
+		@SuppressWarnings("unchecked")
+		final List<Map<String, String>> deps =
+				(List<Map<String, String>>) st.get("dependencies");
+		assertThat("missing dependencies", deps.size(), is(4));
+		
+		final List<List<String>> exp = new ArrayList<List<String>>();
+		exp.add(Arrays.asList("MongoDB", "true"));
+		exp.add(Arrays.asList("GridFS", "true"));
+		exp.add(Arrays.asList("Handle service", "false"));
+		exp.add(Arrays.asList("Handle manager", "false"));
+		final Iterator<List<String>> expiter = exp.iterator();
+		final Iterator<Map<String, String>> gotiter = deps.iterator();
+		while (expiter.hasNext()) {
+			final Map<String, String> g = gotiter.next();
+			final List<String> e = expiter.next();
+			assertThat("incorrect name", (String) g.get("name"), is(e.get(0)));
+			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
+			assertThat("incorrect message", g.get("message"),
+					is((Object) "OK"));
+			if (e.get(1).equals("false")) {
+				assertThat("incorrect version", (String) g.get("version"),
+						is("Unknown"));
+			} else {
+				Version.valueOf((String) g.get("version"));
+			}
+		}
+	}
+	
+	private void checkMem(final Object num, final String name)
+			throws Exception {
+		if (num instanceof Integer) {
+			assertThat("bad " + name, (Integer) num > 0, is(true));
+		} else {
+			assertThat("bad " + name, (Long) num > 0, is(true));
+		}
+	}
+	
 	@SuppressWarnings("deprecation")
 	@Test
 	public void basicHandleTest() throws Exception {
@@ -301,11 +363,27 @@ public class HandleTest {
 		handleList.add(h1.getHid());
 		Map<String, Object> handleobj = new HashMap<String, Object>();
 		handleobj.put("handles", handleList);
-		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
-				.withObjects(Arrays.asList(
-						new ObjectSaveData().withData(new UObject(handleobj))
-						.withType(HANDLE_TYPE))));
+		try {
+			CLIENT1.saveObjects(new SaveObjectsParams()
+					.withWorkspace(workspace)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData().withData(
+									new UObject(handleobj))
+							.withType(HANDLE_TYPE))));
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
 
+		/* should be impossible for a non-owner to save a handle containing
+		 * object where they don't own the shock nodes, even with all other
+		 * privileges
+		 */
+		BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
+		@SuppressWarnings("unused")
+		ShockACL acl = bsc.addToNodeAcl(new ShockNodeId(h1.getId()),
+				Arrays.asList(USER2), ShockACLType.ALL);
 		String workspace2 = "basichandle2";
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace2));
 		try {
@@ -321,8 +399,9 @@ public class HandleTest {
 					"objects in this call was not accessible with your credentials. " +
 					"The call cannot complete."));
 		}
-		BasicShockClient bsc = new BasicShockClient(
-				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
+		
+		bsc.removeFromNodeAcl(new ShockNodeId(h1.getId()),
+				Arrays.asList(USER2), ShockACLType.ALL);
 		
 		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
 		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
@@ -331,6 +410,8 @@ public class HandleTest {
 		
 		checkReadAcl(node, oneuser);
 
+		// test that user2 can get shock nodes even though permissions have
+		// been removed when user2 can read the workspace object
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
 		//get objects2
@@ -407,6 +488,78 @@ public class HandleTest {
 				"us.kbase.common.service.ServerException: Unable to set acl(s) on handles "
 						+ h1.getHid()));
 	}
+	
+	@Test
+	public void publicWorkspaceHandleTest() throws Exception {
+		String workspace = "publicWS";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace(workspace).withGlobalread("r"));
+		Handle h1 = HANDLE_CLIENT.newHandle();
+		List<String> handleList = new LinkedList<String>();
+		handleList.add(h1.getHid());
+		Map<String, Object> handleobj = new HashMap<String, Object>();
+		handleobj.put("handles", handleList);
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
+				.withObjects(Arrays.asList(
+						new ObjectSaveData().withData(new UObject(handleobj))
+						.withType(HANDLE_TYPE))));
+		
+		// check that there's only one user in the ACL
+		BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + SHOCK.getServerPort()),
+				CLIENT1.getToken());
+		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
+		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
+		
+		ShockNode node = bsc.getNode(new ShockNodeId(h1.getId()));
+		
+		checkReadAcl(node, oneuser);
+		
+		// check users without explicit access to the workspace can get
+		// object & nodes
+		ObjectData ret1 = CLIENT2.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification()
+					.withWorkspace(workspace)
+					.withObjid(1L)))).getData().get(0);
+		checkHandleError(ret1.getHandleError(), ret1.getHandleStacktrace());
+		checkReadAcl(node, twouser);
+		
+		checkPublicRead(node, false);
+		// check that anonymous users can get the object & shock nodes
+		CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification()
+					.withWorkspace(workspace)
+					.withObjid(1L)))).getData().get(0);
+		checkHandleError(ret1.getHandleError(), ret1.getHandleStacktrace());
+		checkPublicRead(node, true);
+		
+		//test error message for deleted node with no auth
+		node.delete();
+		ObjectData wod = CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification()
+					.withWorkspace(workspace)
+					.withObjid(1L)))).getData().get(0);
+		
+		@SuppressWarnings("unchecked")
+		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
+		assertThat("got correct data", retdata, is(handleobj));
+		
+		assertThat("got correct error message", wod.getHandleError(),
+				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
+						+ h1.getHid()));
+		assertTrue("got correct stacktrace", wod.getHandleStacktrace().startsWith(
+				"us.kbase.common.service.ServerException: Unable to set acl(s) on handles "
+						+ h1.getHid()));
+		
+	}
+
+	private void checkPublicRead(
+			final ShockNode node,
+			final boolean publicRead)
+			throws Exception {
+		assertThat("correct public read state",
+				node.getACLs().isPublicallyReadable(), is(publicRead));
+	}
 
 	private void checkHandleError(String err, String stack) {
 		if (err != null || stack != null) {
@@ -417,7 +570,7 @@ public class HandleTest {
 	
 	private void checkReadAcl(ShockNode node, List<ShockUserId> uuids)
 			throws Exception {
-		assertThat("correct shock acls", node.getACLs(READ_ACL).getRead(),
+		assertThat("correct shock acls", node.getACLs().getRead(),
 				is(uuids));
 		
 	}

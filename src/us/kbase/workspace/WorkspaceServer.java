@@ -112,14 +112,13 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "2f6b7bb5943816cb6b879dd64c865f6e81dee069";
+    private static final String gitCommitHash = "2a7a086e6ecf4417293b99eb0f28ba21407ca82e";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
-	//TODO SHOCKCLIENT should ignore extra fields
 
-	private static final String VER = "0.5.0-dev3";
+	private static final String VER = "0.5.0-dev4";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 

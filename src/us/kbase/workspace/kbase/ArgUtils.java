@@ -560,7 +560,11 @@ public class ArgUtils {
 					ExceptionUtils.getStackTrace(e));
 		}
 		try {
-			hmc.addReadAcl(handles, user.getUser());
+			if (user == null) {
+				hmc.setPublicRead(handles);
+			} else {
+				hmc.addReadAcl(handles, user.getUser());
+			}
 		} catch (IOException e) {
 			return new HandleError(
 					"There was an IO problem while attempting to set " +
