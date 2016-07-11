@@ -2179,12 +2179,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<ObjectIDResolvedWS, Map<ObjectPaths,
 				WorkspaceObjectData>> ret) {
 		for (final ByteArrayFileCache f: chksumToData.values()) {
-			f.destroy();
+			try {
+				f.destroy();
+			} catch (RuntimeException | Error e) {
+				//continue
+			}
 		}
 		for (final Map<ObjectPaths, WorkspaceObjectData> m:
 			ret.values()) {
 			for (final WorkspaceObjectData wod: m.values()) {
-				wod.getSerializedData().destroy();
+				try {
+					wod.destroy();
+				} catch (RuntimeException | Error e) {
+					//continue
+				}
 			}
 		}
 	}

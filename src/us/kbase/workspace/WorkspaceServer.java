@@ -67,7 +67,6 @@ import us.kbase.typedobj.db.FuncDetailedInfo;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
-import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -638,9 +637,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceObjectData ret = ws.getObjects(
 				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
 		resourcesToDelete.set(Arrays.asList(ret));
-		final ByteArrayFileCache resource = ret.getSerializedData();
 		returnVal = new GetObjectOutput()
-			.withData(resource.getUObject())
+			.withData(ret.getSerializedData().getUObject())
 			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo(), true));
         //END get_object
         return returnVal;

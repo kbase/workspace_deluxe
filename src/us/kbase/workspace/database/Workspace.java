@@ -959,51 +959,79 @@ public class Workspace {
 				setupObjectPaths(res.hadchain);
 		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> stdpaths =
 				setupObjectPaths(res.nochain);
-
 		
 		//TODO CODE make an overall resource manager that takes the config as an arg and handles returned data as well as mem & file limits 
 		final ByteArrayFileCacheManager dataMan = getDataManager(noData);
 		
 		//this is pretty gross, think about a better api here
-		final Map<ObjectIDResolvedWS,
-				Map<ObjectPaths, WorkspaceObjectData>> stddata =
-					db.getObjects(stdpaths, dataMan, 0,
-							!nullIfInaccessible, false, !nullIfInaccessible);
-		final Map<ObjectIDResolvedWS,
-				Map<ObjectPaths, WorkspaceObjectData>> chaindata =
-					db.getObjects(chainpaths, dataMan,
-							calculateDataSize(stddata),
-							//object cannot be missing at this stage
-							false, true, true);
-		chainpaths.clear();
-		stdpaths.clear();
-		
-		final List<WorkspaceObjectData> ret =
-				new ArrayList<WorkspaceObjectData>();
-		for (final ObjectIdentifier o: loi) {
-			final ObjectPaths p;
-			if (o instanceof ObjIDWithChainAndSubset) {
-				p = ((ObjIDWithChainAndSubset) o).getPaths();
-			} else {
-				p = ObjectPaths.EMPTY;
+		Map<ObjectIDResolvedWS,
+				Map<ObjectPaths, WorkspaceObjectData>> stddata = null;
+		Map<ObjectIDResolvedWS,
+				Map<ObjectPaths, WorkspaceObjectData>> chaindata = null;
+		try {
+			stddata = db.getObjects(stdpaths, dataMan, 0,
+					!nullIfInaccessible, false, !nullIfInaccessible);
+			chaindata = db.getObjects(chainpaths, dataMan,
+					calculateDataSize(stddata),
+					//object cannot be missing at this stage
+					false, true, true);
+			
+			
+			chainpaths.clear();
+			stdpaths.clear();
+			
+			final List<WorkspaceObjectData> ret =
+					new ArrayList<WorkspaceObjectData>();
+			for (final ObjectIdentifier o: loi) {
+				final ObjectPaths p;
+				if (o instanceof ObjIDWithChainAndSubset) {
+					p = ((ObjIDWithChainAndSubset) o).getPaths();
+				} else {
+					p = ObjectPaths.EMPTY;
+				}
+				final WorkspaceObjectData wod;
+				// works if res.nochain.get(o) is null or stddata doesn't have
+				// key
+				if (stddata.containsKey(res.nochain.get(o))) {
+					wod = stddata.get(res.nochain.get(o)).get(p);
+				} else if (chaindata.containsKey(res.hadchain.get(o))) {
+					wod = chaindata.get(res.hadchain.get(o)).get(p);
+				} else {
+					wod = null;
+				}
+				ret.add(wod);
 			}
-			final WorkspaceObjectData wod;
-			// works if res.nochain.get(o) is null or stddata doesn't have key
-			if (stddata.containsKey(res.nochain.get(o))) {
-				wod = stddata.get(res.nochain.get(o)).get(p);
-			} else if (chaindata.containsKey(res.hadchain.get(o))) {
-				wod = chaindata.get(res.hadchain.get(o)).get(p);
-			} else {
-				wod = null;
-			}
-			ret.add(wod);
+			res.nochain.clear();
+			res.hadchain.clear();
+			chaindata.clear();
+			stddata.clear();
+			removeInaccessibleDataCopyReferences(user, ret);
+			return ret;
+		} catch (RuntimeException | Error | CorruptWorkspaceDBException |
+				WorkspaceCommunicationException | InaccessibleObjectException |
+				TypedObjectExtractionException e){
+			destroyGetObjectsResources(stddata);
+			destroyGetObjectsResources(chaindata);
+			throw e;
 		}
-		res.nochain.clear();
-		res.hadchain.clear();
-		chaindata.clear();
-		stddata.clear();
-		removeInaccessibleDataCopyReferences(user, ret);
-		return ret;
+	}
+
+	private void destroyGetObjectsResources(
+			final Map<ObjectIDResolvedWS, Map<ObjectPaths,
+					WorkspaceObjectData>> data) {
+		if (data == null) {
+			return;
+		}
+		for (final Map<ObjectPaths, WorkspaceObjectData> paths:
+			data.values()) {
+			for (final WorkspaceObjectData d: paths.values()) {
+				try {
+					d.destroy();
+				} catch (RuntimeException | Error e) {
+					//continue
+				}
+			}
+		}
 	}
 
 	private long calculateDataSize(
