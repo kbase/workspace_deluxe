@@ -976,7 +976,6 @@ public class Workspace {
 					//object cannot be missing at this stage
 					false, true, true);
 			
-			
 			chainpaths.clear();
 			stdpaths.clear();
 			
@@ -1009,7 +1008,7 @@ public class Workspace {
 			return ret;
 		} catch (RuntimeException | Error | CorruptWorkspaceDBException |
 				WorkspaceCommunicationException | InaccessibleObjectException |
-				TypedObjectExtractionException e){
+				TypedObjectExtractionException e) {
 			destroyGetObjectsResources(stddata);
 			destroyGetObjectsResources(chaindata);
 			throw e;
@@ -1023,7 +1022,7 @@ public class Workspace {
 			return;
 		}
 		for (final Map<ObjectPaths, WorkspaceObjectData> paths:
-			data.values()) {
+				data.values()) {
 			for (final WorkspaceObjectData d: paths.values()) {
 				try {
 					d.destroy();
