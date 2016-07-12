@@ -355,13 +355,15 @@ public class InitWorkspaceServer {
 			final TempFilesManager tfm = new TempFilesManager(
 					new File(tempDir));
 			if (!wasTempFileCleaningDone) {
+				// check the directory is writeable
+				tfm.generateTempFile("startuptest", "tmp");
 				wasTempFileCleaningDone = true;
 				tfm.cleanup();
 			}
 			return tfm;
 		} catch (Exception e) {
 			rep.reportFail("There was an error initializing the temporary " +
-					"file location: " +e.getLocalizedMessage());
+					"file location: " + e.getLocalizedMessage());
 			return null;
 		}
 	}
@@ -394,7 +396,7 @@ public class InitWorkspaceServer {
 				rep.reportInfo("Warning - the Handle Service url uses insecure http. https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
-			cli.areReadable(new LinkedList<String>());
+			cli.isOwner(new LinkedList<String>());
 		} catch (Exception e) {
 			if (!(e instanceof ServerException) || !e.getMessage().contains(
 							"can not execute select * from Handle")) {
@@ -415,7 +417,7 @@ public class InitWorkspaceServer {
 				rep.reportInfo("Warning - the Handle Manager url uses insecure http. https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
-			cli.addReadAcl(Arrays.asList("FAKEHANDLE_-100"), "fakeuser");
+			cli.setPublicRead(Arrays.asList("FAKEHANDLE_-100"));
 		} catch (Exception e) {
 			if (!(e instanceof ServerException) || !e.getMessage().contains(
 							"Unable to set acl(s) on handles FAKEHANDLE_-100")) {

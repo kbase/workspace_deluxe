@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -72,6 +73,7 @@ import us.kbase.workspace.WorkspacePermissions;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.zafarkhaja.semver.Version;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -85,7 +87,53 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0-dev3"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0-dev4"));
+	}
+	
+	public void status() throws Exception {
+		final Map<String, Object> st = CLIENT1.status();
+		System.out.println(st);
+		
+		//top level items
+		assertThat("incorrect state", st.get("state"), is((Object) "OK"));
+		assertThat("incorrect message", st.get("message"), is((Object) "OK"));
+		// should throw an error if not a valid semver
+		Version.valueOf((String) st.get("version")); 
+		assertThat("incorrect git url", st.get("git_url"),
+				is((Object) "https://github.com/kbase/workspace_deluxe"));
+		checkMem(st.get("freemem"), "freemem");
+		checkMem(st.get("totalmem"), "totalmem");
+		checkMem(st.get("maxmem"), "maxmem");
+		
+		//deps
+		@SuppressWarnings("unchecked")
+		final List<Map<String, String>> deps =
+				(List<Map<String, String>>) st.get("dependencies");
+		assertThat("missing dependencies", deps.size(), is(2));
+		
+		final List<String> exp = new ArrayList<String>();
+		exp.add("MongoDB");
+		exp.add("GridFS");
+		final Iterator<String> expiter = exp.iterator();
+		final Iterator<Map<String, String>> gotiter = deps.iterator();
+		while (expiter.hasNext()) {
+			final Map<String, String> g = gotiter.next();
+			assertThat("incorrect name", (String) g.get("name"),
+					is(expiter.next()));
+			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
+			assertThat("incorrect message", g.get("message"),
+					is((Object) "OK"));
+			Version.valueOf((String) g.get("version"));
+		}
+	}
+	
+	private void checkMem(final Object num, final String name)
+			throws Exception {
+		if (num instanceof Integer) {
+			assertThat("bad " + name, (Integer) num > 0, is(true));
+		} else {
+			assertThat("bad " + name, (Long) num > 0, is(true));
+		}
 	}
 	
 	@Test

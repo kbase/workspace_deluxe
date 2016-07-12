@@ -7,15 +7,18 @@ VERSION: 0.5.0 (Released TBD)
 BACKWARDS INCOMPATIBILITIES:
 
 * The ``skip`` parameter of ``list_objects`` has been removed.
+* In order to save an object that contains handles to shock nodes, the user
+  must own the shock nodes. Previously, the user only needed read permissions.
+* Handle Service version b9de6991b851e9cd8fa9b5012db565f051e0894f+ is now
+  required.
+* Handle Manager version 08c8da3334e1c5907959b6f69124cf578cb926ba+ is now
+  required.
+* Shock version 0.9.6+ is now required.
 
 NEW FEATURES:
 
 * The ``status`` method now returns JVM memory stats and the status of MongoDB,
   Shock, and the Handle service and manager (if using the latter three).
-  Currently this method is not available via client, but can be invoked like
-  so:
-
-``curl -X POST -d '{"id": '1', "method": "Workspace.status", "version": "1.1", "params": []}' [Workspace URL]``
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
@@ -29,8 +32,14 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * ``clone_workspace`` now prevents the new workspace from being accessed in any
   way while the clone is in progress.
 * ``clone_workspace`` can now exclude user specified objects from the clone.
-* Fixed two bugs where various failures on save would leave temporary files on
+* Fixed several bugs where various failures could leave temporary files on
   disk.
+* Fixed a bug where accessing an object with handles to shock nodes
+  anonymously would cause a null pointer error.
+* A temporary file is created and deleted at startup to ensure the temporary
+  files directory is readable.
+* Fixed a bug where under certain circumstances more data than allowed could be
+  stored in memory or on disk and returned in a get_objects call.
 
 VERSION: 0.4.1 (Released 5/27/16)
 ---------------------------------

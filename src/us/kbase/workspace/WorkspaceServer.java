@@ -28,7 +28,7 @@ import static us.kbase.workspace.kbase.ArgUtils.objInfoToMetaTuple;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectProvInfo;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
-import static us.kbase.workspace.kbase.ArgUtils.translateObjectDataList;
+import static us.kbase.workspace.kbase.ArgUtils.translateObjectInfoList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
@@ -67,7 +67,6 @@ import us.kbase.typedobj.db.FuncDetailedInfo;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
-import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -112,14 +111,13 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "2f6b7bb5943816cb6b879dd64c865f6e81dee069";
+    private static final String gitCommitHash = "2a7a086e6ecf4417293b99eb0f28ba21407ca82e";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
-	//TODO SHOCKCLIENT should ignore extra fields
 
-	private static final String VER = "0.5.0-dev3";
+	private static final String VER = "0.5.0-dev4";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -136,8 +134,8 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final URL handleManagerUrl;
 	private final RefreshingToken handleMgrToken;
 	
-	private ThreadLocal<Set<ByteArrayFileCache>> resourcesToDelete =
-			new ThreadLocal<Set<ByteArrayFileCache>>();
+	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
+			new ThreadLocal<List<WorkspaceObjectData>>();
 	
 	
 	public static void clearConfigForTests() {
@@ -157,9 +155,9 @@ public class WorkspaceServer extends JsonServerServlet {
 	protected void onRpcMethodDone() {
 		if (resourcesToDelete.get() != null &&
 				!resourcesToDelete.get().isEmpty()) {
-			for (final ByteArrayFileCache f : resourcesToDelete.get())
+			for (final WorkspaceObjectData o : resourcesToDelete.get())
 				try {
-					f.destroy();
+					o.destroy();
 				} catch (Exception ignore) {}
 			resourcesToDelete.set(null);
 		}
@@ -638,12 +636,10 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getInstance());
 		final WorkspaceObjectData ret = ws.getObjects(
 				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
-		final ByteArrayFileCache resource = ret.getSerializedData();
+		resourcesToDelete.set(Arrays.asList(ret));
 		returnVal = new GetObjectOutput()
-			.withData(resource.getUObject())
+			.withData(ret.getSerializedData().getUObject())
 			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo(), true));
-			resourcesToDelete.set(new HashSet<ByteArrayFileCache>(
-					Arrays.asList(resource)));
         //END get_object
         return returnVal;
     }
@@ -685,12 +681,11 @@ public class WorkspaceServer extends JsonServerServlet {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		final Set<ByteArrayFileCache> resources =
-				new HashSet<ByteArrayFileCache>();
-		returnVal = translateObjectData(
-				ws.getObjects(getUser(authPart), loi), getUser(authPart),
-					resources, handleManagerUrl, handleMgrToken, true);
-		resourcesToDelete.set(resources);
+		final List<WorkspaceObjectData> objects =
+				ws.getObjects(getUser(authPart), loi);
+		resourcesToDelete.set(objects);
+		returnVal = translateObjectData(objects, getUser(authPart),
+					handleManagerUrl, handleMgrToken, true);
         //END get_objects
         return returnVal;
     }
@@ -711,16 +706,15 @@ public class WorkspaceServer extends JsonServerServlet {
 				GetObjects2Params.class);
 		final List<ObjectIdentifier> loi =
 				processObjectSpecifications(params.getObjects());
-		final Set<ByteArrayFileCache> resources =
-				new HashSet<ByteArrayFileCache>();
 		final boolean noData = longToBoolean(params.getNoData(), false);
 		final boolean ignoreErrors = longToBoolean(
 				params.getIgnoreErrors(), false);
+		final List<WorkspaceObjectData> objects =
+				ws.getObjects(getUser(authPart), loi, noData, ignoreErrors);
+		resourcesToDelete.set(objects);
 		returnVal = new GetObjects2Results().withData(translateObjectData(
-				ws.getObjects(getUser(authPart), loi, noData, ignoreErrors),
-				getUser(authPart), resources, handleManagerUrl, handleMgrToken,
+				objects, getUser(authPart), handleManagerUrl, handleMgrToken,
 				true));
-		resourcesToDelete.set(resources);
         //END get_objects2
         return returnVal;
     }
@@ -752,12 +746,11 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_subset
 		final List<ObjectIdentifier> loi = processSubObjectIdentifiers(
 				subObjectIds);
-		final Set<ByteArrayFileCache> resources =
-				new HashSet<ByteArrayFileCache>();
-		returnVal = translateObjectData(
-				ws.getObjects(getUser(authPart), loi), getUser(authPart),
-						resources, handleManagerUrl, handleMgrToken, true);
-		resourcesToDelete.set(resources);
+		final List<WorkspaceObjectData> objects =
+				ws.getObjects(getUser(authPart), loi);
+		resourcesToDelete.set(objects);
+		returnVal = translateObjectData(objects, getUser(authPart),
+				handleManagerUrl, handleMgrToken, true);
         //END get_object_subset
         return returnVal;
     }
@@ -796,7 +789,7 @@ public class WorkspaceServer extends JsonServerServlet {
         List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> returnVal = null;
         //BEGIN list_referencing_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		returnVal = translateObjectDataList(
+		returnVal = translateObjectInfoList(
 				ws.getReferencingObjects(getUser(authPart), loi), false);
         //END list_referencing_objects
         return returnVal;
@@ -879,12 +872,11 @@ public class WorkspaceServer extends JsonServerServlet {
 					lor.get(0), lor.subList(1, lor.size())));
 			count++;
 		}
-		final Set<ByteArrayFileCache> resources =
-				new HashSet<ByteArrayFileCache>();
-		returnVal = translateObjectData(ws.getObjects(
-				getUser(authPart), chains), getUser(authPart), resources,
+		final List<WorkspaceObjectData> objects = ws.getObjects(
+				getUser(authPart), chains);
+		resourcesToDelete.set(objects);
+		returnVal = translateObjectData(objects, getUser(authPart),
 					handleManagerUrl, handleMgrToken, true);
-		resourcesToDelete.set(resources);	
         //END get_referenced_objects
         return returnVal;
     }

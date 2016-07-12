@@ -1352,4 +1352,11 @@ public class WorkspaceClient {
         List<UObject> res = caller.jsonrpcCall("Workspace.administer", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
+
+    public Map<String, Object> status(RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        TypeReference<List<Map<String, Object>>> retType = new TypeReference<List<Map<String, Object>>>() {};
+        List<Map<String, Object>> res = caller.jsonrpcCall("Workspace.status", args, retType, true, false, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
 }

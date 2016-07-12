@@ -180,17 +180,20 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		WorkspaceObjectData wod = ws.getObjects(userfoo,
 				Arrays.asList(new ObjectIdentifier(wspace, "auto10001")))
 				.get(0);
-		
-		@SuppressWarnings("unchecked")
-		Map<String, Object> ret = (Map<String, Object>) wod.getData();
-		@SuppressWarnings("unchecked")
-		Map<String, String> retrefs = (Map<String, String>) ret.get("map");
-		for (Entry<String, String> es: retrefs.entrySet()) {
-			long expected = Long.parseLong(es.getValue().split(" ")[1]);
-			ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(es.getKey());
-			assertThat("reference ws is correct", oi.getWorkspaceIdentifier().getId(), is(wsid));
-			assertThat("reference id is correct", oi.getId(), is(expected));
-			assertThat("reference ver is correct", oi.getVersion(), is(1));
+		try {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> ret = (Map<String, Object>) wod.getData();
+			@SuppressWarnings("unchecked")
+			Map<String, String> retrefs = (Map<String, String>) ret.get("map");
+			for (Entry<String, String> es: retrefs.entrySet()) {
+				long expected = Long.parseLong(es.getValue().split(" ")[1]);
+				ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(es.getKey());
+				assertThat("reference ws is correct", oi.getWorkspaceIdentifier().getId(), is(wsid));
+				assertThat("reference id is correct", oi.getId(), is(expected));
+				assertThat("reference ver is correct", oi.getVersion(), is(1));
+			}
+		} finally {
+			destroyGetObjectsResources(Arrays.asList(wod));
 		}
 		assertThat("returned refs correct", new HashSet<String>(wod.getReferences()),
 				is(expectedRefs));
@@ -224,9 +227,17 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
 				getIdFactory());
-		@SuppressWarnings("unchecked")
-		Map<String, Object> newdata = (Map<String, Object>) ws.getObjects(
-				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1))).get(0).getData();
+		final List<WorkspaceObjectData> objects = ws.getObjects(
+				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1)));
+		final Map<String, Object> newdata;
+		try {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> newdatatmp =
+					(Map<String, Object>) objects.get(0).getData();
+			newdata = newdatatmp;
+		} finally {
+			destroyGetObjectsResources(objects);
+		}
 		assertThat("correct obj keys", newdata.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
 		@SuppressWarnings("unchecked")
@@ -241,12 +252,17 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
 				getIdFactory());
-		@SuppressWarnings("unchecked")
-		Map<String, Object> newdata2 = (Map<String, Object>) ws.getObjects(
-				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2))).get(0).getData();
-		assertThat("unicode key correct", newdata2.keySet(),
-				is((Set<String>) new HashSet<String>(Arrays.asList(test))));
-		assertThat("value correct", (String) newdata2.get(test), is("foo"));
+		final List<WorkspaceObjectData> objects2 = ws.getObjects(
+				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2)));
+		try {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> newdata2 = (Map<String, Object>) objects2.get(0).getData();
+			assertThat("unicode key correct", newdata2.keySet(),
+					is((Set<String>) new HashSet<String>(Arrays.asList(test))));
+			assertThat("value correct", (String) newdata2.get(test), is("foo"));
+		} finally {
+			destroyGetObjectsResources(objects2);
+		}
 	}
 	
 	@Test
