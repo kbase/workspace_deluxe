@@ -250,6 +250,8 @@ public class HandleTest {
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
 		ws.add("backend-secret", "foo");
+		ws.add("auth-service-url", TestCommon.getAuthUrl());
+		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("handle-service-url", "http://localhost:" +
 				HANDLE.getHandleServerPort());
 		ws.add("handle-manager-url", "http://localhost:" +

@@ -12,7 +12,6 @@ import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.RefreshingToken;
-import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
@@ -70,10 +69,6 @@ public class ShockBlobStore implements BlobStore {
 			throw new BlobStoreException(
 					"Shock appears to be misconfigured - the client could not initialize. Shock said: "
 					+ she.getLocalizedMessage(), she);
-		} catch (TokenExpiredException ete) {
-			throw new BlobStoreException( //uh... this should never happen
-					"The token retrieved from the auth service is already " +
-					"expired", ete);
 		} catch (IOException ioe) {
 			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend: " +
@@ -141,12 +136,7 @@ public class ShockBlobStore implements BlobStore {
 	private void updateAuth()
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		try {
-			client.updateToken(getToken());
-		} catch (TokenExpiredException ete) {
-			throw new RuntimeException(
-					"Auth service is handing out expired tokens", ete);
-		}
+		client.updateToken(getToken());
 	}
 
 	@Override
@@ -167,10 +157,6 @@ public class ShockBlobStore implements BlobStore {
 		final ShockNode sn;
 		try {
 			sn = client.addNode(data, "workspace_" + md5.getMD5(), "JSON");
-		} catch (TokenExpiredException ete) {
-			//this should be impossible
-			throw new RuntimeException("Token magically expired: "
-					+ ete.getLocalizedMessage(), ete);
 		} catch (JsonProcessingException jpe) {
 			//this should be impossible
 			throw new RuntimeException("Attribute serialization failed: "
@@ -242,9 +228,6 @@ public class ShockBlobStore implements BlobStore {
 		try {
 			return bafcMan.createBAFC(client.getFile(new ShockNodeId(node)),
 					true, sorted);
-		} catch (TokenExpiredException ete) {
-			//this should be impossible
-			throw new RuntimeException("Things are broke", ete);
 		} catch (IOException ioe) {
 			if (ioe.getCause() instanceof FileCacheLimitExceededException) {
 				throw (FileCacheLimitExceededException) ioe.getCause();
@@ -276,9 +259,6 @@ public class ShockBlobStore implements BlobStore {
 		
 		try {
 			client.deleteNode(new ShockNodeId(node));
-		} catch (TokenExpiredException ete) {
-			//this should be impossible
-			throw new RuntimeException("Things are broke", ete);
 		} catch (IOException ioe) {
 			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend: " +

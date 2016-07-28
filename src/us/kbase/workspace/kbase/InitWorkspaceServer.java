@@ -49,6 +49,8 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 
 public class InitWorkspaceServer {
 	
+	//TODO AUTH LATER Remove Refreshing tokens.
+	
 	private static final int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
 	private static final String COL_SETTINGS = "settings";
 	private static final String COL_SHOCK_NODES = "shock_nodeMap";
@@ -136,6 +138,10 @@ public class InitWorkspaceServer {
 		final TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(),
 				rep);
 		
+		final ConfigurableAuthService auth = setUpAuthClient(
+				cfg.getKbaseAdminUser(), cfg.getKbaseAdminPassword(), rep);
+
+		@SuppressWarnings("deprecation")
 		RefreshingToken handleMgrToken = null;
 		if (!cfg.ignoreHandleService()) {
 			handleMgrToken = getHandleToken(cfg, rep);
@@ -148,9 +154,6 @@ public class InitWorkspaceServer {
 						handleMgrToken, rep);
 			}
 		}
-		
-		final ConfigurableAuthService auth = setUpAuthClient(
-				cfg.getKbaseAdminUser(), cfg.getKbaseAdminPassword(), rep);
 		
 		if (rep.isFailed()) {
 			rep.reportFail("Server startup failed - all calls will error out.");

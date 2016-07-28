@@ -38,8 +38,6 @@ import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.RefreshingToken;
-import us.kbase.auth.TokenExpiredException;
-import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
@@ -372,26 +370,13 @@ public class ArgUtils {
 	
 	public static WorkspaceUser getUser(final String tokenstring,
 			final AuthToken token)
-			throws TokenExpiredException, TokenFormatException, IOException,
-			AuthException {
-		return getUser(tokenstring, token, false);
-	}
-	
-	public static WorkspaceUser getUser(final String tokenstring,
-			final AuthToken token, final boolean authrqd)
-			throws TokenExpiredException, TokenFormatException, IOException,
-			AuthException {
+			throws IOException, AuthException {
 		if (tokenstring != null) {
-			final AuthToken t = new AuthToken(tokenstring);
-			if (!AuthService.validateToken(t)) {
-				throw new AuthException("Token is invalid");
-			}
+			// TODO AUTH NOW use configured service
+			final AuthToken t = AuthService.validateToken(tokenstring);
 			return new WorkspaceUser(t.getUserName());
 		}
 		if (token == null) {
-			if (authrqd) {
-				throw new AuthException("Authorization is required");
-			}
 			return null;
 		}
 		return new WorkspaceUser(token.getUserName());

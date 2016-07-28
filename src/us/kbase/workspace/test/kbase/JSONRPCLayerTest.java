@@ -1122,7 +1122,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				conn.setConnectTimeout(10000);
 				conn.setDoOutput(true);
 				conn.setRequestMethod("POST");
-				conn.setRequestProperty("Authorization", CLIENT1.getToken().toString());
+				conn.setRequestProperty("Authorization",
+						CLIENT1.getToken().getToken());
 				conn.getOutputStream().write(breq);
 				conn.getResponseCode();
 				InputStream is = conn.getInputStream();
@@ -1250,9 +1251,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkListObjectsDep("depsave", null, null, AUTH_USER2.getTokenString(), Arrays.asList(obj1, obj3));
 		
 		String invalidToken = AUTH_USER2.getTokenString() + "a";
-		String invalidTokenExp = "Token is invalid";
+		String invalidTokenExp =
+				"Login failed! Server responded with code 401 UNAUTHORIZED";
 		String badFormatToken = "borkborkbork";
-		String badFormatTokenExp = "Auth token is in the incorrect format, near 'borkborkbork'";
+		String badFormatTokenExp = "Login failed! Invalid token";
 		
 		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
 				.withWorkspace("depsave").withAuth(invalidToken),

@@ -18,6 +18,9 @@ import com.mongodb.DB;
 
 public class TestCommon {
 	
+	public static final String AUTHSERV = "test.auth.url";
+	public static final String GLOBUS = "test.globus.url";
+	
 	public static final String SHOCKEXE = "test.shock.exe";
 	public static final String SHOCKVER = "test.shock.version";
 	public static final String MONGOEXE = "test.mongo.exe";
@@ -47,6 +50,14 @@ public class TestCommon {
 					" cannot be null or the empty string.");
 		}
 		return System.getProperty(prop);
+	}
+	
+	public static String getAuthUrl() {
+		return getProp(AUTHSERV);
+	}
+	
+	public static String getGlobusUrl() {
+		return getProp(GLOBUS);
 	}
 	
 	public static String getTempDir() {

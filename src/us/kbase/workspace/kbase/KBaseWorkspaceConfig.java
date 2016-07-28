@@ -11,22 +11,31 @@ import java.util.Map;
 
 public class KBaseWorkspaceConfig {
 	
+	//TODO AUTH LATER remove user names and pwds when auth2 server is up
+	
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
 	private static final String DB = "mongodb-database";
 	//startup workspace admin user
 	private static final String WSADMIN = "ws-admin";
 	//required backend param:
-	private static final String BACKEND_SECRET = "backend-secret"; 
+	private static final String BACKEND_SECRET = "backend-secret";
+	private static final String BACKEND_TOKEN = "backend-token";
 	//mongo db auth params:
 	private static final String MONGO_USER = "mongodb-user";
 	private static final String MONGO_PWD = "mongodb-pwd";
 	//mongo connection attempt limit
 	private static final String MONGO_RECONNECT = "mongodb-retry";
+	
+	//auth servers
+	private static final String KBASE_AUTH_URL = "auth-service-url";
+	private static final String GLOBUS_AUTH_URL = "globus-url";
+	
 
 	//credentials to use for user queries
 	private static final String KBASE_ADMIN_USER = "kbase-admin-user";
 	private static final String KBASE_ADMIN_PWD = "kbase-admin-pwd";
+	private static final String KBASE_ADMIN_TOKEN = "kbase-admin-token";
 
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE =
@@ -35,33 +44,60 @@ public class KBaseWorkspaceConfig {
 	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
 	private static final String HANDLE_MANAGER_USER = "handle-manager-user";
 	private static final String HANDLE_MANAGER_PWD = "handle-manager-pwd";
+	private static final String HANDLE_MANAGER_TOKEN = "handle-manager-token";
 	
 	//directory for temp files
 	private static final String TEMP_DIR = "temp-dir";
 	
 	private static final List<String> REQUIRED_PARAMS = Arrays.asList(
-			HOST, DB, BACKEND_SECRET, KBASE_ADMIN_USER, KBASE_ADMIN_PWD,
-			TEMP_DIR);
+			HOST, DB, TEMP_DIR, GLOBUS_AUTH_URL, KBASE_AUTH_URL);
 	
 	private final String host;
 	private final String db;
 	private final String backendSecret;
+	private final String backendToken;
 	private final String kbaseAdminUser;
 	private final String kbaseAdminPassword;
+	private final String kbaseAdminToken;
 	private final String tempDir;
 	private final String workspaceAdmin;
 	private final String mongoUser;
 	private final String mongoPassword;
+	private final URL authURL;
+	private final URL globusURL;
 	private final int mongoReconnectAttempts;
 	private final boolean ignoreHandleService;
 	private final URL handleServiceURL;
 	private final URL handleManagerURL;
 	private final String handleManagerUser;
 	private final String handleManagerPassword;
+	private final String handleManagerToken;
 	private final List<String> errors;
 	private final List<String> infoMessages;
 	private final String paramReport;
 
+	private class Creds {
+		final String token;
+		final String user;
+		final String pwd;
+		final boolean allNull;
+		
+		private Creds(
+				final String token,
+				final String user,
+				final String pwd) {
+			super();
+			this.token = token;
+			this.user = user;
+			this.pwd = pwd;
+			if (token == null && user == null && pwd == null) {
+				allNull = true;
+			} else {
+				allNull = false;
+			}
+		}
+	}
+	
 	public KBaseWorkspaceConfig(final Map<String, String> config) {
 		if (config == null) {
 			throw new NullPointerException("config cannot be null");
@@ -78,10 +114,33 @@ public class KBaseWorkspaceConfig {
 		}
 		host = config.get(HOST);
 		db = config.get(DB);
-		backendSecret = config.get(BACKEND_SECRET);
-		kbaseAdminUser = config.get(KBASE_ADMIN_USER);
-		kbaseAdminPassword = config.get(KBASE_ADMIN_PWD);
 		tempDir = config.get(TEMP_DIR);
+		
+		authURL = getUrl(config, KBASE_AUTH_URL, paramErrors);
+		globusURL = getUrl(config, GLOBUS_AUTH_URL, paramErrors);
+		
+		final String beToken = config.get(BACKEND_TOKEN);
+		if (beToken == null || beToken.isEmpty()) {
+			backendToken = null;
+			final String beSecret = config.get(BACKEND_SECRET);
+			if (beSecret == null || beSecret.isEmpty()) {
+				paramErrors.add(String.format(
+						"Must provide either %s or %s is the config file",
+						BACKEND_TOKEN, BACKEND_SECRET));
+				backendSecret = null;
+			} else {
+				backendSecret = beSecret;
+			}
+		} else {
+			backendToken = beToken;
+			backendSecret = null;
+		}
+		
+		final Creds c = getCreds(KBASE_ADMIN_TOKEN, KBASE_ADMIN_USER,
+				KBASE_ADMIN_PWD, config, paramErrors);
+		kbaseAdminUser = c.user;
+		kbaseAdminPassword = c.pwd;
+		kbaseAdminToken = c.token;
 		
 		workspaceAdmin = config.get(WSADMIN); //doesn't matter what's here
 		
@@ -113,27 +172,25 @@ public class KBaseWorkspaceConfig {
 			handleManagerURL = null;
 			handleManagerUser = null;
 			handleManagerPassword = null;
+			handleManagerToken = null;
 		} else {
-			final URL hsURL = getHandleUrl(config, HANDLE_SERVICE_URL,
+			final URL hsURL = getUrl(config, HANDLE_SERVICE_URL,
 					paramErrors);
-			final URL hmURL = getHandleUrl(config, HANDLE_MANAGER_URL,
+			final URL hmURL = getUrl(config, HANDLE_MANAGER_URL,
 					paramErrors);
-			final String huser = config.get(HANDLE_MANAGER_USER);
-			final String hpwd =  config.get(HANDLE_MANAGER_PWD);
-			if (huser == null || huser.isEmpty() ||
-					hpwd == null || hpwd.isEmpty()) {
-				paramErrors.add("Must provide params " + HANDLE_MANAGER_USER +
-						" and " + HANDLE_MANAGER_PWD + " in config file");
-				handleManagerUser = null;
-				handleManagerPassword = null;
+			final Creds hc = getCreds(HANDLE_MANAGER_TOKEN,
+					HANDLE_MANAGER_USER, HANDLE_MANAGER_PWD, config,
+					paramErrors);
+			if (hc.allNull) {
 				handleServiceURL = null;
 				handleManagerURL = null;
 			} else {
-				handleManagerUser = huser;
-				handleManagerPassword = hpwd;
 				handleServiceURL = hsURL;
 				handleManagerURL = hmURL;
 			}
+			handleManagerToken = hc.token;
+			handleManagerUser = hc.user;
+			handleManagerPassword = hc.pwd;
 		}
 		
 		mongoReconnectAttempts = getReconnectCount(config, infoMsgs);
@@ -142,10 +199,36 @@ public class KBaseWorkspaceConfig {
 		paramReport = generateParamReport(config);
 	}
 	
+	private Creds getCreds(
+			final String paramToken,
+			final String paramUser,
+			final String paramPwd,
+			final Map<String, String> config,
+			final List<String> paramErrors) {
+
+		final String token = config.get(paramToken);
+		if (token == null || token.isEmpty()) {
+			final String user = config.get(paramUser);
+			final String pwd = config.get(paramPwd);
+			final boolean hasUser = user != null && !user.isEmpty();
+			final boolean hasPwd = pwd != null && !pwd.isEmpty();
+			if (!hasUser || !hasPwd) {
+				paramErrors.add(String.format(
+						"Must provide either %s or %s and %s in config file",
+						paramToken, paramUser, paramPwd));
+				return new Creds(null, null, null);
+			}
+			return new Creds(null, user, pwd);
+		} else {
+			return new Creds(token, null, null);
+		}
+	}
+
 	private String generateParamReport(final Map<String, String> cfg) {
 		String params = "";
 		final List<String> paramSet = new LinkedList<String>(
-				Arrays.asList(HOST, DB, MONGO_USER));
+				Arrays.asList(HOST, DB, MONGO_USER, GLOBUS_AUTH_URL,
+						KBASE_AUTH_URL));
 		if (!ignoreHandleService) {
 			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL,
 					HANDLE_MANAGER_URL, HANDLE_MANAGER_USER));
@@ -162,7 +245,7 @@ public class KBaseWorkspaceConfig {
 		return params;
 	}
 
-	private static URL getHandleUrl(
+	private static URL getUrl(
 			final Map<String, String> wsConfig,
 			final String configKey,
 			final List<String> errors) {
@@ -213,8 +296,20 @@ public class KBaseWorkspaceConfig {
 		return db;
 	}
 
+	public URL getAuthURL() {
+		return authURL;
+	}
+	
+	public URL getGlobusURL() {
+		return globusURL;
+	}
+	
 	public String getBackendSecret() {
 		return backendSecret;
+	}
+	
+	public String getBackendToken() {
+		return backendToken;
 	}
 
 	public String getKbaseAdminUser() {
@@ -223,6 +318,10 @@ public class KBaseWorkspaceConfig {
 
 	public String getKbaseAdminPassword() {
 		return kbaseAdminPassword;
+	}
+	
+	public String getKBaseAdminToken() {
+		return kbaseAdminToken;
 	}
 	
 	public String getTempDir() {
@@ -263,6 +362,10 @@ public class KBaseWorkspaceConfig {
 
 	public String getHandleManagerPassword() {
 		return handleManagerPassword;
+	}
+	
+	public String getHandleManagerToken() {
+		return handleManagerToken;
 	}
 
 	public List<String> getErrors() {

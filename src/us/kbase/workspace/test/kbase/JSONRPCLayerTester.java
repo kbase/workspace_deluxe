@@ -227,7 +227,12 @@ public class JSONRPCLayerTester {
 		CLIENT1.setStreamingModeOn(true); //for JSONRPCLayerLongTest
 		
 		//set up a basic type for test use that doesn't worry about type checking
-		CLIENT1.requestModuleOwnership("SomeModule");
+		try {
+			CLIENT1.requestModuleOwnership("SomeModule");
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
 		administerCommand(CLIENT2, "approveModRequest", "module", "SomeModule");
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
@@ -321,6 +326,8 @@ public class JSONRPCLayerTester {
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
+		ws.add("auth-service-url", TestCommon.getAuthUrl());
+		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
 		ws.add("kbase-admin-user", USER1);

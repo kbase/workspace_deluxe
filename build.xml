@@ -32,7 +32,7 @@
   <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
   <property name="jardir" location="${env.JENKINS_JARS_MODULE_PATH}/lib/jars"/>
 
-  <condition property="commonjar" value="kbase/common/kbase-common-0.0.17.jar">
+  <condition property="commonjar" value="kbase/common/kbase-common-auth2-temp.jar">
     <or>
       <equals arg1="${env.JENKINS_JAVA_COMMON_JARFILE}" arg2=""/>
       <not>
@@ -58,7 +58,7 @@
 
   <fileset dir="${jardir}" id="clientserverlib">
     <include name="junit/junit-4.9.jar"/>
-    <include name="kbase/auth/kbase-auth-0.3.1.jar"/>
+    <include name="kbase/auth/kbase-auth2-temp.jar"/>
     <include name="jackson/jackson-annotations-2.2.3.jar"/>
     <include name="jackson/jackson-core-2.2.3.jar"/>
     <include name="jackson/jackson-databind-2.2.3.jar"/>
@@ -66,7 +66,7 @@
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
-    <include name="kbase/shock/shock-client-0.0.13.jar"/>
+    <include name="kbase/shock/shock-client-auth2-temp.jar"/>
     <include name="apache_commons/commons-logging-1.1.1.jar"/>
     <include name="apache_commons/http/httpclient-4.3.1.jar"/>
     <include name="apache_commons/http/httpcore-4.3.jar"/>
@@ -239,6 +239,8 @@
   </target>
 
   <target name="test" depends="compile, preparejunitreportdir" description="run tests">
+    <fail unless="test.auth.url" message="property test.auth.url not set."/>
+    <fail unless="test.globus.url" message="property test.globus.url not set."/>
     <fail unless="test.shock.exe" message="property test.shock.exe not set."/>
     <fail unless="test.shock.version" message="property test.shock.version not set."/>
     <fail unless="test.mongo.exe" message="property test.mongo.exe not set."/>
@@ -261,6 +263,8 @@
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
       <formatter type="xml" usefile="true" if="env.JENKINS_REPORT_DIR"/>
+      <sysproperty key="test.auth.url" value="${test.auth.url}" />
+      <sysproperty key="test.globus.url" value="${test.globus.url}" />
       <sysproperty key="test.shock.exe" value="${test.shock.exe}"/>
       <sysproperty key="test.shock.version" value="${test.shock.version}"/>
       <sysproperty key="test.mongo.exe" value="${test.mongo.exe}"/>
@@ -289,6 +293,8 @@
   </target>
 
   <target name="test-scripts" depends="compile" description="run tests of scripts">
+    <fail unless="test.auth.url" message="property test.auth.url not set."/>
+    <fail unless="test.globus.url" message="property test.globus.url not set."/>
     <fail unless="test.shock.exe" message="property test.shock.exe not set."/>
     <fail unless="test.shock.version" message="property test.shock.version not set."/>
     <fail unless="test.mongo.exe" message="property test.mongo.exe not set."/>
@@ -310,6 +316,8 @@
     <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
+      <sysproperty key="test.auth.url" value="${test.auth.url}" />
+      <sysproperty key="test.globus.url" value="${test.globus.url}" />
       <sysproperty key="test.shock.exe" value="${test.shock.exe}"/>
       <sysproperty key="test.shock.version" value="${test.shock.version}"/>
       <sysproperty key="test.mongo.exe" value="${test.mongo.exe}"/>

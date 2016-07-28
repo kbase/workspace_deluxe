@@ -571,11 +571,9 @@ public class WorkspaceServer extends JsonServerServlet {
 						.withMeta(params.getMetadata())
 						.withName(params.getId())
 						.withType(params.getType())));
+		//TODO AUTH NOW use config service
 		if (params.getAuth() != null) {
-			authPart = new AuthToken(params.getAuth());
-			if (!AuthService.validateToken(authPart)) {
-				throw new AuthException("Token is invalid");
-			}
+			authPart = AuthService.validateToken(params.getAuth());
 		}
 		final Tuple11<Long, String, String, String, Long, String, Long, String,
 				String, Long, Map<String, String>> meta = saveObjects(
