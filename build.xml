@@ -20,6 +20,21 @@
   <property name="clientjar.file" value="WorkspaceClient.jar"/>
   <property name="war.dir" value="war"/>
 
+  <!--
+   set user, pwd, token for the 3 users to nothing so ommitted properties
+   won't be set as ${test.user3} or whatever. Properties are immutable so
+   this won't overwrite already set properties
+   -->
+  <property name="test.user1" value="" />
+  <property name="test.user2" value="" />
+  <property name="test.user3" value="" />
+  <property name="test.pwd1" value="" />
+  <property name="test.pwd2" value="" />
+  <property name="test.pwd3" value="" />
+  <property name="test.token1" value="" />
+  <property name="test.token2" value="" />
+  <property name="test.token3" value="" />
+
   <property environment="env"/>
   <condition property="jardir" value="../jars/lib/jars/">
     <or>
@@ -40,7 +55,7 @@
       </not>
     </or>
   </condition>
-  <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
+  <!-- Properties in ant are immutable, so the following assignment will only take place if commonjar was not set above. -->
   <property name="commonjar" value="${env.JENKINS_JAVA_COMMON_JARFILE}"/>
 
   <fileset dir="${jardir}" id="sourceslib">
@@ -252,12 +267,6 @@
     <fail unless="test.handle.manager.psgi" message="property test.handle.manager.psgi not set.}"/>
     <fail unless="test.handle.PERL5LIB" message="property test.handle.PERL5LIB not set.}"/>
     <fail unless="test.temp.dir" message="property test.temp.dir not set."/>
-    <fail unless="test.user1" message="property test.user1 not set."/>
-    <fail unless="test.pwd1" message="property test.pwd1 not set."/>
-    <fail unless="test.user2" message="property test.user2 not set."/>
-    <fail unless="test.pwd2" message="property test.pwd2 not set."/>
-    <fail unless="test.user3" message="property test.user3 not set."/>
-    <fail unless="test.pwd3" message="property test.pwd3 not set."/>
     <echo message="starting ${package} tests"/>
     <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
@@ -279,10 +288,13 @@
       <sysproperty key="test.temp.dir.keep" value="${test.temp.dir.keep}"/>
       <sysproperty key="test.user1" value="${test.user1}"/>
       <sysproperty key="test.pwd1" value="${test.pwd1}"/>
+      <sysproperty key="test.token1" value="${test.token1}"/>
       <sysproperty key="test.user2" value="${test.user2}"/>
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
+      <sysproperty key="test.token2" value="${test.token2}"/>
       <sysproperty key="test.user3" value="${test.user3}"/>
       <sysproperty key="test.pwd3" value="${test.pwd3}"/>
+      <sysproperty key="test.token3" value="${test.token3}"/>
       <batchtest todir="${env.JENKINS_REPORT_DIR}">
         <fileset dir="${src}">
           <include name="**/test/**/**Test.java"/>
@@ -306,12 +318,6 @@
     <fail unless="test.handle.manager.psgi" message="property test.handle.manager.psgi not set.}"/>
     <fail unless="test.handle.PERL5LIB" message="property test.handle.PERL5LIB not set.}"/>
     <fail unless="test.temp.dir" message="property test.temp.dir not set."/>
-    <fail unless="test.user1" message="property test.user1 not set."/>
-    <fail unless="test.pwd1" message="property test.pwd1 not set."/>
-    <fail unless="test.user2" message="property test.user2 not set."/>
-    <fail unless="test.pwd2" message="property test.pwd2 not set."/>
-    <fail unless="test.user3" message="property test.user3 not set."/>
-    <fail unless="test.pwd3" message="property test.pwd3 not set."/>
     <echo message="starting ${package} tests"/>
     <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
@@ -332,10 +338,13 @@
       <sysproperty key="test.temp.dir.keep" value="${test.temp.dir.keep}"/>
       <sysproperty key="test.user1" value="${test.user1}"/>
       <sysproperty key="test.pwd1" value="${test.pwd1}"/>
+      <sysproperty key="test.token1" value="${test.token1}"/>
       <sysproperty key="test.user2" value="${test.user2}"/>
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
+      <sysproperty key="test.token2" value="${test.token2}"/>
       <sysproperty key="test.user3" value="${test.user3}"/>
       <sysproperty key="test.pwd3" value="${test.pwd3}"/>
+      <sysproperty key="test.token3" value="${test.token3}"/>
       <test name="us.kbase.workspace.test.scripts.ScriptTestRunner"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />

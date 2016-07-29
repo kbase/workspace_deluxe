@@ -33,6 +33,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.test.TestCommon;
@@ -264,8 +265,12 @@ public class WorkspaceTester {
 	
 	private WSandTypes setUpShock(DB wsdb, Integer maxMemoryUsePerCall)
 			throws Exception {
-		String shockuser = System.getProperty("test.user1");
-		String shockpwd = System.getProperty("test.pwd1");
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		System.out.println(String.format("Logging in shock user at %s",
+				TestCommon.getAuthUrl()));
+		final AuthToken t = TestCommon.getToken(1, auth);
 		if (shock == null) {
 			shock = new ShockController(
 					TestCommon.getShockExe(),
@@ -285,15 +290,7 @@ public class WorkspaceTester {
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		//TODO AUTH NOW use tokens
-		System.out.println(String.format("Logging shock user %s at %s",
-				shockuser, TestCommon.getAuthUrl()));
-		final TokenProvider tp = new TokenProvider(
-				new ConfigurableAuthService(
-						new AuthConfig().withKBaseAuthServerURL(
-								TestCommon.getAuthUrl()))
-						.login(shockuser, shockpwd).getToken(),
-				TestCommon.getAuthUrl());
+		final TokenProvider tp = new TokenProvider(t, TestCommon.getAuthUrl());
 		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"),
 				shockUrl, tp);
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);

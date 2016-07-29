@@ -33,6 +33,7 @@ import com.mongodb.MongoClient;
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.abstracthandle.Handle;
 import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.ServerException;
@@ -95,9 +96,15 @@ public class HandleTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		USER1 = System.getProperty("test.user1");
-		USER2 = System.getProperty("test.user2");
-		String u3 = System.getProperty("test.user3");
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		final AuthToken t1 = TestCommon.getToken(1, auth);
+		final AuthToken t2 = TestCommon.getToken(2, auth);
+		final AuthToken t3 = TestCommon.getToken(3, auth);
+		USER1 = t1.getUserName();
+		USER2 = t2.getUserName();
+		String u3 = t3.getUserName();
 		if (USER1.equals(USER2)) {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
@@ -110,19 +117,7 @@ public class HandleTest {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
 		}
-		String p1 = System.getProperty("test.pwd1");
-		String p2 = System.getProperty("test.pwd2");
-		String p3 = System.getProperty("test.pwd3");
-		
-		final ConfigurableAuthService auth = new ConfigurableAuthService(
-				new AuthConfig().withKBaseAuthServerURL(
-						TestCommon.getAuthUrl()));
-		
-		try {
-			auth.login(u3, p3);
-		} catch (Exception e) {
-			throw new TestException("Could not log in test user test.user3: " + u3, e);
-		}
+		String p3 = TestCommon.getPwdNullIfToken(3);
 		
 		TestCommon.stfuLoggers();
 		
@@ -155,6 +150,7 @@ public class HandleTest {
 				Paths.get(TestCommon.getTempDir()));
 		System.out.println("Using MySQL temp dir " + MYSQL.getTempDir());
 		
+		//TODO AUTH need to update handle manager to use token vs uid/pwd
 		HANDLE = new HandleServiceController(
 				WorkspaceTestCommon.getPlackupExe(),
 				WorkspaceTestCommon.getHandleServicePSGI(),
@@ -172,22 +168,19 @@ public class HandleTest {
 		
 		SERVER = startupWorkspaceServer(mongohost,
 				mongoClient.getDB("JSONRPCLayerHandleTester"), 
-				"JSONRPCLayerHandleTester_types",
-				u3, p3);
+				"JSONRPCLayerHandleTester_types", p3, t3);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
 		
 		final URL url = new URL("http://localhost:" + port);
 		try {
-			CLIENT1 = new WorkspaceClient(url, USER1, p1,
-					TestCommon.getAuthUrl());
+			CLIENT1 = new WorkspaceClient(url, t1, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(url, USER2, p2,
-					TestCommon.getAuthUrl());
+			CLIENT2 = new WorkspaceClient(url, t2, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
@@ -200,8 +193,7 @@ public class HandleTest {
 		setUpSpecs();
 		
 		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
-				HANDLE.getHandleServerPort()), USER1, p1,
-				TestCommon.getAuthUrl());
+				HANDLE.getHandleServerPort()), t1, TestCommon.getAuthUrl());
 		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
 		
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:"
@@ -237,8 +229,8 @@ public class HandleTest {
 			String mongohost,
 			DB db,
 			String typedb,
-			String handleUser,
-			String handlePwd)
+			String handlePwd,
+			AuthToken handleToken)
 			throws InvalidHostException, UnknownHostException, IOException,
 			NoSuchFieldException, IllegalAccessException, Exception,
 			InterruptedException {
@@ -264,11 +256,16 @@ public class HandleTest {
 				HANDLE.getHandleServerPort());
 		ws.add("handle-manager-url", "http://localhost:" +
 				HANDLE.getHandleManagerPort());
-		ws.add("handle-manager-user", handleUser);
-		ws.add("handle-manager-pwd", handlePwd);
 		ws.add("ws-admin", USER2);
-		ws.add("kbase-admin-user", handleUser);
-		ws.add("kbase-admin-pwd", handlePwd);
+		if (handlePwd == null) {
+			ws.add("handle-manager-token", handleToken.getToken());
+			ws.add("kbase-admin-token", handleToken.getToken());
+		} else {
+			ws.add("handle-manager-user", handleToken.getUserName());
+			ws.add("handle-manager-pwd", handlePwd);
+			ws.add("kbase-admin-user", handleToken.getUserName());
+			ws.add("kbase-admin-pwd", handlePwd);
+		}
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForJSONRPCLayerTester"));
 		ini.store(iniFile);

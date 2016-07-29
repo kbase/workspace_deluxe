@@ -25,11 +25,9 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
 import us.kbase.auth.AuthConfig;
-import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.test.TestCommon;
-import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
@@ -62,18 +60,10 @@ public class ShockBlobStoreTest {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		final String u1 = System.getProperty("test.user1");
-		final String p1 = System.getProperty("test.pwd1");
-		final URL auth = TestCommon.getAuthUrl();
-		final AuthToken t;
-		try {
-			t = new ConfigurableAuthService(new AuthConfig()
-				.withKBaseAuthServerURL(auth)).login(u1, p1).getToken();
-		} catch (AuthException e) {
-			throw new TestException("Unable to login with test.user1: " + u1 +
-					"\nPlease check the credentials in the test configuration.",
-					e);
-		}
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		final AuthToken t = TestCommon.getToken(1, auth);
 		
 		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		TestCommon.stfuLoggers();
@@ -104,8 +94,7 @@ public class ShockBlobStoreTest {
 		URL url = new URL("http://localhost:" + shock.getServerPort());
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		System.out.println("Logging in with auth service " + auth);
-		//TODO AUTH NOW use token from config
-		tp = new TokenProvider(t, auth);
+		tp = new TokenProvider(t, auth.getConfig().getAuthLoginURL());
 		sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, tp);
 		client = new BasicShockClient(url, tp.getToken());
 	}

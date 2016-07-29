@@ -20,6 +20,7 @@ import com.mongodb.MongoTimeoutException;
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
+import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
@@ -162,10 +163,7 @@ public class InitWorkspaceServer {
 
 		final WorkspaceDependencies wsdeps;
 		try {
-			wsdeps = getDependencies(cfg.getHost(), cfg.getDBname(),
-					cfg.getBackendSecret(), cfg.getMongoUser(),
-					cfg.getMongoPassword(), tfm,
-					cfg.getMongoReconnectAttempts(), auth);
+			wsdeps = getDependencies(cfg, tfm, auth);
 		} catch (WorkspaceInitException wie) {
 			rep.reportFail(wie.getLocalizedMessage());
 			rep.reportFail(
@@ -201,29 +199,26 @@ public class InitWorkspaceServer {
 	}
 	
 	private static WorkspaceDependencies getDependencies(
-			final String host,
-			final String dbs,
-			final String backendSecret,
-			final String mongouser,
-			final String mongopwd,
+			final KBaseWorkspaceConfig cfg,
 			final TempFilesManager tfm,
-			final int mongoReconnectRetry,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
 		
 		final WorkspaceDependencies deps = new WorkspaceDependencies();
 		
-		final DB db = getMongoDBInstance(host, dbs, mongouser, mongopwd,
-				mongoReconnectRetry);
+		final DB db = getMongoDBInstance(cfg.getHost(), cfg.getDBname(),
+				cfg.getMongoUser(), cfg.getMongoPassword(),
+				cfg.getMongoReconnectAttempts());
 		
 		final Settings settings = getSettings(db);
 		final String bsType = settings.isGridFSBackend() ? "GridFS" : "Shock";
 		
 		final BlobStore bs = setupBlobStore(db, bsType, settings.getShockUrl(),
-				settings.getShockUser(), backendSecret, auth);
+				settings.getShockUser(), cfg, auth);
 		
-		final DB typeDB = getMongoDBInstance(host, settings.getTypeDatabase(),
-				mongouser, mongopwd, mongoReconnectRetry);
+		final DB typeDB = getMongoDBInstance(cfg.getHost(),
+				settings.getTypeDatabase(), cfg.getMongoUser(),
+				cfg.getMongoPassword(), cfg.getMongoReconnectAttempts());
 		
 		try {
 			deps.typeDB = new TypeDefinitionDB(new MongoTypeStorage(typeDB));
@@ -244,23 +239,37 @@ public class InitWorkspaceServer {
 	}
 	
 	private static TokenProvider getBackendToken(
-			final String shockUser,
-			final String backendSecret,
+			final String shockUserFromSettings,
+			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
-		//TODO AUTH NOW handle backendtoken
-		//TODO AUTH LATER remove uid/pwd
+		//TODO AUTH LATER remove refreshing token
 		
 		try {
-			@SuppressWarnings("deprecation")
-			final TokenProvider tp = new TokenProvider(auth.getRefreshingToken(
-					shockUser, backendSecret, TOKEN_REFRESH_INTERVAL_SEC),
-					auth.getConfig().getAuthLoginURL());
-			return tp;
+			if (cfg.getBackendToken() == null) {
+				@SuppressWarnings("deprecation")
+				final TokenProvider tp = new TokenProvider(
+						auth.getRefreshingToken(shockUserFromSettings,
+								cfg.getBackendSecret(),
+								TOKEN_REFRESH_INTERVAL_SEC),
+						auth.getConfig().getAuthLoginURL());
+				return tp;
+			} else {
+				final AuthToken t = auth.validateToken(cfg.getBackendToken());
+				if (!t.getUserName().equals(shockUserFromSettings)) {
+					throw new WorkspaceInitException(String.format(
+							"The username from the backend token, %s, does " +
+							"not match the backend username stored in the " +
+							"database, %s",
+							t.getUserName(), shockUserFromSettings));
+				}
+				return new TokenProvider(t,
+						auth.getConfig().getAuthLoginURL());
+			}
 		} catch (AuthException e) {
 			throw new WorkspaceInitException(
 					"Couldn't log in with backend credentials for user " +
-					shockUser + ": " + e.getMessage(), e);
+					shockUserFromSettings + ": " + e.getMessage(), e);
 		} catch (IOException e) {
 			throw new WorkspaceInitException(
 					"Couldn't contact the auth service to obtain a token for the backend: "
@@ -272,8 +281,8 @@ public class InitWorkspaceServer {
 			final DB db,
 			final String blobStoreType,
 			final String blobStoreURL,
-			final String user,
-			final String pwd,
+			final String shockUserFromSettings,
+			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
 		
@@ -289,9 +298,8 @@ public class InitWorkspaceServer {
 						"Workspace database settings document has bad shock url: "
 						+ blobStoreURL, mue);
 			}
-			// TODO AUTH NOW handle backendToken
-			// TODO AUTH LATER remove uid/pwd
-			final TokenProvider token = getBackendToken(user, pwd, auth);
+			final TokenProvider token = getBackendToken(
+					shockUserFromSettings, cfg, auth);
 			try {
 				return new ShockBlobStore(db.getCollection(COL_SHOCK_NODES),
 						shockurl, token);
@@ -406,19 +414,32 @@ public class InitWorkspaceServer {
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep,
 			final ConfigurableAuthService auth) {
-		//TODO AUTH NOW handle std token
 		//TODO AUTH LATER remove refreshing token
+		final boolean token = cfg.getHandleManagerToken() != null;
 		try {
-			@SuppressWarnings("deprecation")
-			final TokenProvider tp = new TokenProvider(auth.getRefreshingToken(
-					cfg.getHandleManagerUser(), cfg.getHandleManagerPassword(),
-					TOKEN_REFRESH_INTERVAL_SEC),
-					auth.getConfig().getAuthLoginURL());
+			final TokenProvider tp;
+			if (token) {
+				tp = new TokenProvider(auth.validateToken(
+						cfg.getHandleManagerToken()),
+						auth.getConfig().getAuthLoginURL());
+			} else {
+				@SuppressWarnings("deprecation")
+				final TokenProvider tptemp = new TokenProvider(
+						auth.getRefreshingToken(cfg.getHandleManagerUser(),
+								cfg.getHandleManagerPassword(),
+								TOKEN_REFRESH_INTERVAL_SEC),
+						auth.getConfig().getAuthLoginURL());
+				tp = tptemp;
+			}
 			return tp;
 		} catch (AuthException e) {
-			rep.reportFail("Couldn't log in with handle manager credentials for user " +
-					cfg.getHandleManagerUser() + ": " +
-					e.getMessage());
+			String err = "Couldn't log in with handle manager credentials: ";
+			if (token) {
+				err += "token was supplied";
+			} else {
+				err += "user " + cfg.getHandleManagerUser();
+			}
+			rep.reportFail(err + ": " + e.getMessage());
 		} catch (IOException e) {
 			rep.reportFail("Couldn't contact the auth service to obtain a token for the handle manager: "
 					+ e.getLocalizedMessage());
@@ -481,14 +502,17 @@ public class InitWorkspaceServer {
 		} catch (URISyntaxException e) {
 			throw new RuntimeException("this should be impossible", e);
 		}
-		//TODO AUTH NOW handle admin token or admin uid/pwd
 		//TODO AUTH LATER remove refreshing token
 		final ConfigurableAuthService auth;
 		try {
 			auth = new ConfigurableAuthService(c);
-			c.withRefreshingToken(auth.getRefreshingToken(
-					cfg.getKbaseAdminUser(), cfg.getKbaseAdminPassword(),
-					TOKEN_REFRESH_INTERVAL_SEC));
+			if (cfg.getKBaseAdminToken() != null) {
+				c.withToken(auth.validateToken(cfg.getKBaseAdminToken()));
+			} else {
+				c.withRefreshingToken(auth.getRefreshingToken(
+						cfg.getKbaseAdminUser(), cfg.getKbaseAdminPassword(),
+						TOKEN_REFRESH_INTERVAL_SEC));
+			}
 			return auth;
 		} catch (AuthException e) {
 			rep.reportFail("Couldn't log in the KBase administrative user " +
