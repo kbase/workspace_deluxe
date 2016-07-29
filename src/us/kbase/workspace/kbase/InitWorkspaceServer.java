@@ -254,7 +254,8 @@ public class InitWorkspaceServer {
 		try {
 			@SuppressWarnings("deprecation")
 			final TokenProvider tp = new TokenProvider(auth.getRefreshingToken(
-					shockUser, backendSecret, TOKEN_REFRESH_INTERVAL_SEC));
+					shockUser, backendSecret, TOKEN_REFRESH_INTERVAL_SEC),
+					auth.getConfig().getAuthLoginURL());
 			return tp;
 		} catch (AuthException e) {
 			throw new WorkspaceInitException(
@@ -411,7 +412,8 @@ public class InitWorkspaceServer {
 			@SuppressWarnings("deprecation")
 			final TokenProvider tp = new TokenProvider(auth.getRefreshingToken(
 					cfg.getHandleManagerUser(), cfg.getHandleManagerPassword(),
-					TOKEN_REFRESH_INTERVAL_SEC));
+					TOKEN_REFRESH_INTERVAL_SEC),
+					auth.getConfig().getAuthLoginURL());
 			return tp;
 		} catch (AuthException e) {
 			rep.reportFail("Couldn't log in with handle manager credentials for user " +

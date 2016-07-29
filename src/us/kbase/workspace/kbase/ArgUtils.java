@@ -491,7 +491,8 @@ public class ArgUtils {
 		
 		final HandleMngrClient hmc;
 		try {
-			hmc = new HandleMngrClient(handleManagerURL, token);
+			hmc = new HandleMngrClient(handleManagerURL, token,
+					handleManagertoken.getAuthURL());
 			if (handleManagerURL.getProtocol().equals("http")) {
 				hmc.setIsInsecureHttpConnectionAllowed(true);
 			}

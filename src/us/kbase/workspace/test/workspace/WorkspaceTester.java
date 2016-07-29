@@ -288,10 +288,12 @@ public class WorkspaceTester {
 		//TODO AUTH NOW use tokens
 		System.out.println(String.format("Logging shock user %s at %s",
 				shockuser, TestCommon.getAuthUrl()));
-		final TokenProvider tp = new TokenProvider(new ConfigurableAuthService(
-				new AuthConfig().withKBaseAuthServerURL(
-						TestCommon.getAuthUrl()))
-				.login(shockuser, shockpwd).getToken());
+		final TokenProvider tp = new TokenProvider(
+				new ConfigurableAuthService(
+						new AuthConfig().withKBaseAuthServerURL(
+								TestCommon.getAuthUrl()))
+						.login(shockuser, shockpwd).getToken(),
+				TestCommon.getAuthUrl());
 		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"),
 				shockUrl, tp);
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);

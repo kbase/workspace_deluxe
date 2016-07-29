@@ -621,7 +621,8 @@ public class HandleTest {
 		IdReferenceType type = HandleIdHandlerFactory.type;
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(4);
 		fac.addFactory(new HandleIdHandlerFactory(new URL("http://localhost:"
-				+ HANDLE.getHandleServerPort()), CLIENT1.getToken()));
+				+ HANDLE.getHandleServerPort()), CLIENT1.getToken(),
+				TestCommon.getAuthUrl()));
 		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
 		handlers.associateObject("foo");
 		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));

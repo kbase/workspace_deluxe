@@ -105,7 +105,7 @@ public class ShockBlobStoreTest {
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		System.out.println("Logging in with auth service " + auth);
 		//TODO AUTH NOW use token from config
-		tp = new TokenProvider(t);
+		tp = new TokenProvider(t, auth);
 		sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, tp);
 		client = new BasicShockClient(url, tp.getToken());
 	}

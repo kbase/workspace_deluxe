@@ -90,7 +90,7 @@ public class GetObjectsLibSpeedTest {
 				new ShockBlobStore(db.getCollection("shock_map"),
 						new URL(shockurl), new TokenProvider(
 								AuthService.login(shockuser, shockpwd)
-								.getToken())),
+								.getToken(), new URL("https://fake"))),
 				tfm);
 		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),
