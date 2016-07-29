@@ -60,6 +60,7 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
+import us.kbase.workspace.kbase.TokenProvider;
 
 /* DO NOT run these tests on production workspaces.
  * WARNING: extensive changes have been made to the code. Read through the code
@@ -124,7 +125,6 @@ public class ConfigurationsAndThreads {
 	private static JsonNode jsonData;
 	private static Map<String, Object> mapData;
 	private static AuthToken token;
-	private static String password;
 	private static TempFilesManager tfm;
 	
 	private static URL shockURL;
@@ -142,7 +142,6 @@ public class ConfigurationsAndThreads {
 		System.out.println("Workspace url: " + workspaceURL);
 		System.out.println("logging in " + user);
 		
-		password = pwd;
 		token = AuthService.login(user, pwd).getToken();
 		shockURL = new URL(shockurl);
 		workspace0_1_0URL = new URL(workspaceURL);
@@ -383,15 +382,18 @@ public class ConfigurationsAndThreads {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			//NOTE check this still works
+			//NOTE check this still works NOTE2 it doesn't
 			DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
 			final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
 					new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)));
 			TypedObjectValidator val = new TypedObjectValidator(
 					new LocalTypeProvider(typeDefDB));
 			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-					new ShockBlobStore(db.getCollection("shock_map"),
-							shockURL, "baduser", "badpwd"),
+					new ShockBlobStore(
+							db.getCollection("shock_map"), shockURL,
+							new TokenProvider(
+									AuthService.login("baduser", "badpwd")
+									.getToken())),
 					tfm);
 			ws = new Workspace(mwdb,
 					new ResourceUsageConfigurationBuilder().build(),
@@ -451,7 +453,7 @@ public class ConfigurationsAndThreads {
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
 			this.sb = new ShockBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0).getCollection(
-					"temp_shock_node_map"), shockURL, token.getUserName(), password);
+					"temp_shock_node_map"), shockURL, new TokenProvider(token));
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);

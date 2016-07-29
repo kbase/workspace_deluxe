@@ -7,6 +7,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.lang.reflect.Field;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -52,12 +54,21 @@ public class TestCommon {
 		return System.getProperty(prop);
 	}
 	
-	public static String getAuthUrl() {
-		return getProp(AUTHSERV);
+	public static URL getAuthUrl() {
+		return getURL(AUTHSERV);
 	}
 	
-	public static String getGlobusUrl() {
-		return getProp(GLOBUS);
+	private static URL getURL(String prop) {
+		try {
+			return new URL(getProp(prop));
+		} catch (MalformedURLException e) {
+			throw new TestException("Property " + prop + " is not a valid url",
+					e);
+		}
+	}
+	
+	public static URL getGlobusUrl() {
+		return getURL(GLOBUS);
 	}
 	
 	public static String getTempDir() {

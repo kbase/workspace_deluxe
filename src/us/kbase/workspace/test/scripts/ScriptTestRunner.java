@@ -22,9 +22,9 @@ import org.junit.Test;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
-import us.kbase.abstracthandle.AbstractHandleClient;
-import us.kbase.auth.AuthService;
+import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthUser;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestCommon;
@@ -65,8 +65,6 @@ public class ScriptTestRunner {
 	
 	private static HandleServiceController HANDLE;
 	private static WorkspaceServer SERVER;
-	
-	private static AbstractHandleClient HANDLE_CLIENT;
 	
 	final private static String TMP_FILE_SUBDIR = "tempForScriptTestRunner";
 	
@@ -184,8 +182,12 @@ public class ScriptTestRunner {
 		String p2 = System.getProperty("test.pwd2");
 		String p3 = System.getProperty("test.pwd3");
 		
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		
 		try {
-			AuthService.login(u3, p3);
+			auth.login(u3, p3);
 		} catch (Exception e) {
 			throw new TestException("Could not log in test user test.user3: " + u3, e);
 		}
@@ -245,24 +247,21 @@ public class ScriptTestRunner {
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
 		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
+			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
+					USER1, p1, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
+			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
+					USER2, p2, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
-		
-		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
-				HANDLE.getHandleServerPort()), USER1, p1);
-		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
-		
 	}
 	
 	private static WorkspaceServer startupWorkspaceServer(
@@ -289,6 +288,8 @@ public class ScriptTestRunner {
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
+		ws.add("auth-service-url", TestCommon.getAuthUrl());
+		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("handle-service-url", "http://localhost:" +
 				HANDLE.getHandleServerPort());

@@ -33,8 +33,9 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import us.kbase.auth.AuthService;
+import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthUser;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
@@ -184,6 +185,10 @@ public class JSONRPCLayerTester {
 		String p2 = System.getProperty("test.pwd2");
 		String p3 = System.getProperty("test.pwd3");
 		
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		
 		TestCommon.stfuLoggers();
 		mongo = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
@@ -199,25 +204,28 @@ public class JSONRPCLayerTester {
 		int port = SERVER1.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
+			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
+					USER1, p1, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
+			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
+					USER2, p2, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port), USER3, p3);
+			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port),
+					USER3, p3, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user3: " + USER3 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
-		AUTH_USER1 = AuthService.login(USER1, p1);
-		AUTH_USER2 = AuthService.login(USER2, p2);
+		AUTH_USER1 = auth.login(USER1, p1);
+		AUTH_USER2 = auth.login(USER2, p2);
 
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
@@ -261,7 +269,7 @@ public class JSONRPCLayerTester {
 				DB_TYPE_NAME_2, p1);
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
 		WorkspaceClient clientForSrv2 = new WorkspaceClient(new URL("http://localhost:" + 
-				SERVER2.getServerPort()), USER2, p2);
+				SERVER2.getServerPort()), USER2, p2, TestCommon.getAuthUrl());
 		clientForSrv2.setIsInsecureHttpConnectionAllowed(true);
 		clientForSrv2.requestModuleOwnership("SomeModule");
 		administerCommand(clientForSrv2, "approveModRequest", "module", "SomeModule");
