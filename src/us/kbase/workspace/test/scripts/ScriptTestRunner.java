@@ -23,6 +23,7 @@ import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
 import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
 import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
@@ -55,7 +56,6 @@ public class ScriptTestRunner {
 	protected static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well
 	protected static String USER1 = null;
 	protected static String USER2 = null;
-	protected static String USER3 = null;
 	protected static AuthUser AUTH_USER1 = null;
 	protected static AuthUser AUTH_USER2 = null;
 	
@@ -163,34 +163,20 @@ public class ScriptTestRunner {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		USER1 = System.getProperty("test.user1");
-		USER2 = System.getProperty("test.user2");
-		String u3 = System.getProperty("test.user3");
-		if (USER1.equals(USER2)) {
-			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
-		}
-		if (USER1.equals(u3)) {
-			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
-		}
-		if (USER2.equals(u3)) {
-			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
-		}
-		String p1 = System.getProperty("test.pwd1");
-		String p2 = System.getProperty("test.pwd2");
-		String p3 = System.getProperty("test.pwd3");
-		
 		final ConfigurableAuthService auth = new ConfigurableAuthService(
 				new AuthConfig().withKBaseAuthServerURL(
 						TestCommon.getAuthUrl()));
-		
-		try {
-			auth.login(u3, p3);
-		} catch (Exception e) {
-			throw new TestException("Could not log in test user test.user3: " + u3, e);
+		final AuthToken t1 = TestCommon.getToken(1, auth);
+		final AuthToken t2 = TestCommon.getToken(2, auth);
+		final AuthToken t3 = TestCommon.getToken(3, auth);
+		USER1 = t1.getUserName();
+		USER2 = t2.getUserName();
+		final String u3 = t3.getUserName();
+		if (USER1.equals(USER2) || USER2.equals(u3) || USER1.equals(u3)) {
+			throw new TestException("All the test users must be unique: " + 
+					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
 		}
+		String p3 = TestCommon.getPwdNullIfToken(3);
 		
 		TestCommon.stfuLoggers();
 		
@@ -232,7 +218,7 @@ public class ScriptTestRunner {
 				u3,
 				MYSQL,
 				"http://localhost:" + SHOCK.getServerPort(),
-				u3,
+				t3,
 				p3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(tempDir));
@@ -248,14 +234,14 @@ public class ScriptTestRunner {
 		System.out.println("Started test workspace server on port " + port);
 		try {
 			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
-					USER1, p1, TestCommon.getAuthUrl());
+					t1, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
 			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
-					USER2, p2, TestCommon.getAuthUrl());
+					t2, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);

@@ -158,7 +158,7 @@ public class HandleTest {
 				u3,
 				MYSQL,
 				"http://localhost:" + SHOCK.getServerPort(),
-				u3,
+				t3,
 				p3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(TestCommon.getTempDir()));
