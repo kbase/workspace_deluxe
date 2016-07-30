@@ -126,7 +126,7 @@ public class KBaseWorkspaceConfig {
 			final String beSecret = config.get(BACKEND_SECRET);
 			if (beSecret == null || beSecret.isEmpty()) {
 				paramErrors.add(String.format(
-						"Must provide either %s or %s is the config file",
+						"Must provide either %s or %s in the config file",
 						BACKEND_TOKEN, BACKEND_SECRET));
 				backendSecret = null;
 			} else {

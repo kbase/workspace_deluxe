@@ -150,7 +150,6 @@ public class HandleTest {
 				Paths.get(TestCommon.getTempDir()));
 		System.out.println("Using MySQL temp dir " + MYSQL.getTempDir());
 		
-		//TODO AUTH need to update handle manager to use token vs uid/pwd
 		HANDLE = new HandleServiceController(
 				WorkspaceTestCommon.getPlackupExe(),
 				WorkspaceTestCommon.getHandleServicePSGI(),
