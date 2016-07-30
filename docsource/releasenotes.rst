@@ -40,6 +40,11 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   files directory is readable.
 * Fixed a bug where under certain circumstances more data than allowed could be
   stored in memory or on disk and returned in a get_objects call.
+* The authorization URLs used by the server may now be configured.
+* All configuration user id / password combinations may now be alternately
+  fulfilled with a token.
+* The initialization script now takes a token rather than a user id and
+  password for the shock user account.
 
 VERSION: 0.4.1 (Released 5/27/16)
 ---------------------------------
