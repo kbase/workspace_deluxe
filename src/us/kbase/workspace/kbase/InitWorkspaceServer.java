@@ -50,6 +50,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 public class InitWorkspaceServer {
 	
 	//TODO AUTH LATER Remove Refreshing tokens.
+	//TODO TEST unittests
 	
 	private static final int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
 	private static final String COL_SETTINGS = "settings";

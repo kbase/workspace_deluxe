@@ -12,6 +12,7 @@ import java.util.Map;
 public class KBaseWorkspaceConfig {
 	
 	//TODO AUTH LATER remove user names and pwds when auth2 server is up
+	//TODO TEST unit tests
 	
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
@@ -238,7 +239,6 @@ public class KBaseWorkspaceConfig {
 				params += s + "=" + cfg.get(s) + "\n";
 			}
 		}
-		params += BACKEND_SECRET + "=[redacted for your safety and comfort]\n";
 		if (mongoPassword != null && !mongoPassword.isEmpty()) {
 			params += MONGO_PWD + "=[redacted for your safety and comfort]\n";
 		}
