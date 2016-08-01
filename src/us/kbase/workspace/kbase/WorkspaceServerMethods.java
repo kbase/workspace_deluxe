@@ -87,6 +87,10 @@ public class WorkspaceServerMethods {
 		this.auth = auth;
 	}
 	
+	public ConfigurableAuthService getAuth() {
+		return auth;
+	}
+	
 	public URL getHandleServiceURL() {
 		return handleServiceUrl;
 	}
@@ -100,6 +104,38 @@ public class WorkspaceServerMethods {
 			return new DependencyStatus(
 					false, se.getMessage(), "Handle Service", "Unknown");
 		}
+	}
+	
+	public WorkspaceUser getUser(
+			final String tokenstring,
+			final AuthToken token)
+			throws IOException, AuthException {
+		if (tokenstring != null) {
+			final AuthToken t = auth.validateToken(tokenstring);
+			return new WorkspaceUser(t.getUserName());
+		}
+		if (token == null) {
+			return null;
+		}
+		return new WorkspaceUser(token.getUserName());
+	}
+	
+	public WorkspaceUser getUser(final AuthToken token) {
+		if (token == null) {
+			return null;
+		}
+		return new WorkspaceUser(token.getUserName());
+	}
+	
+	public List<WorkspaceUser> convertUsers(final List<String> users) {
+		final List<WorkspaceUser> wsusers = new ArrayList<WorkspaceUser>();
+		if (users == null) {
+			return null;
+		}
+		for (String u: users) {
+			wsusers.add(new WorkspaceUser(u));
+		}
+		return wsusers;
 	}
 
 	public Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>
@@ -143,7 +179,7 @@ public class WorkspaceServerMethods {
 	
 	public List<WorkspaceUser> validateUsers(final List<String> users)
 			throws IOException, AuthException {
-		final List<WorkspaceUser> wsusers = ArgUtils.convertUsers(users);
+		final List<WorkspaceUser> wsusers = convertUsers(users);
 		final Map<String, Boolean> userok;
 		try {
 			userok = auth.isValidUserName(users);
@@ -269,7 +305,7 @@ public class WorkspaceServerMethods {
 		final IdReferenceHandlerSetFactory fac =
 				new IdReferenceHandlerSetFactory(maximumIDCount);
 		fac.addFactory(new HandleIdHandlerFactory(handleServiceUrl,
-				token));
+				token, auth.getConfig().getAuthLoginURL()));
 		
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
 		return objInfoToTuple(meta, true);
@@ -309,7 +345,7 @@ public class WorkspaceServerMethods {
 				"Cannot specify both timestamp and epoch for before " +
 				"parameter");
 		return wsInfoToTuple(ws.listWorkspaces(user,
-				p, ArgUtils.convertUsers(params.getOwners()),
+				p, convertUsers(params.getOwners()),
 				new WorkspaceUserMetadata(params.getMeta()),
 				after, before,
 				longToBoolean(params.getExcludeGlobal()),

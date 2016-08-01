@@ -25,6 +25,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.productivity.java.syslog4j.SyslogIF;
 
+import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthToken;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.JsonServerSyslog;
@@ -92,14 +95,19 @@ public class LoggingTest {
 	public static void setUpClass() throws Exception {
 		logout = new SysLogOutputMock();
 		
-		USER1 = System.getProperty("test.user1");
-		USER2 = System.getProperty("test.user2");
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		final AuthToken t1 = TestCommon.getToken(1, auth);
+		final AuthToken t2 = TestCommon.getToken(2, auth);
+		
+		USER1 = t1.getUserName();
+		USER2 = t2.getUserName();
 		if (USER1.equals(USER2)) {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2), " "));
 		}
-		String p1 = System.getProperty("test.pwd1");
-		String p2 = System.getProperty("test.pwd2");
+		String p1 = TestCommon.getPwdNullIfToken(1);
 		
 //		WorkspaceTestCommon.stfuLoggers();
 		mongo = new MongoController(TestCommon.getMongoExe(),
@@ -112,20 +120,20 @@ public class LoggingTest {
 		
 		SERVER = startupWorkspaceServer(mongohost,
 				mongoClient.getDB(DB_WS_NAME), 
-				DB_TYPE_NAME, p1);
+				DB_TYPE_NAME, p1, t1);
 		SERVER.changeSyslogOutput(logout);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		try {
 			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
-					USER1, p1);
+					t1, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
 			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
-					USER2, p2);
+					t2, TestCommon.getAuthUrl());
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
@@ -170,8 +178,12 @@ public class LoggingTest {
 		client.administer(new UObject(releasemod));
 	}
 	
-	private static WorkspaceServer startupWorkspaceServer(String mongohost,
-			DB db, String typedb, String user1Password)
+	private static WorkspaceServer startupWorkspaceServer(
+			final String mongohost,
+			final DB db,
+			final String typedb,
+			final String pwd,
+			final AuthToken t)
 			throws Exception {
 		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
 		
@@ -187,10 +199,16 @@ public class LoggingTest {
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
+		ws.add("auth-service-url", TestCommon.getAuthUrl());
+		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
-		ws.add("kbase-admin-user", USER1);
-		ws.add("kbase-admin-pwd", user1Password);
+		if (pwd == null || pwd.isEmpty()) {
+			ws.add("kbase-admin-token", t.getToken());
+		} else {
+			ws.add("kbase-admin-user", USER1);
+			ws.add("kbase-admin-pwd", pwd);
+		}
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForLoggingTest"));
 		ws.add("ignore-handle-service", "true");
@@ -221,7 +239,7 @@ public class LoggingTest {
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
-			mongo.destroy(TestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
 

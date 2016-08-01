@@ -11,7 +11,7 @@ BACKWARDS INCOMPATIBILITIES:
   must own the shock nodes. Previously, the user only needed read permissions.
 * Handle Service version b9de6991b851e9cd8fa9b5012db565f051e0894f+ is now
   required.
-* Handle Manager version 08c8da3334e1c5907959b6f69124cf578cb926ba+ is now
+* Handle Manager version 3e60998fc22bb331e51b189ae1b71ebd54e58b90+ is now
   required.
 * Shock version 0.9.6+ is now required.
 
@@ -40,6 +40,11 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   files directory is readable.
 * Fixed a bug where under certain circumstances more data than allowed could be
   stored in memory or on disk and returned in a get_objects call.
+* The authorization URLs used by the server may now be configured.
+* All configuration user id / password combinations may now be alternately
+  fulfilled with a token.
+* The initialization script now takes a token rather than a user id and
+  password for the shock user account.
 
 VERSION: 0.4.1 (Released 5/27/16)
 ---------------------------------

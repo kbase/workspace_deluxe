@@ -9,8 +9,7 @@ from configobj import ConfigObj
 from pymongo import MongoClient
 import urllib2
 import json
-import httplib2
-import base64
+import requests
 
 try:  # py 2/3 compatibility
     input = raw_input  # @ReservedAssignment
@@ -38,7 +37,7 @@ SHOCKURL = 'shock_location'
 SHOCKUSER = 'shock_user'
 BACKEND = 'backend'
 TYPE_DB = 'type_db'
-BACKENDCREDS = 'backend-secret'
+BACKENDTOKEN = 'backend-token'
 SHOCK = 'shock'
 GFS = 'gridFS'
 
@@ -101,29 +100,20 @@ def printDBsettings(settings):
         print(s + '=' + str(settings.get(s, None)))
 
 
-# TODO WAIT DEP replace this with the py auth lib when it's ready
-def _get_token(user_id, password,
-        auth_svc='https://nexus.api.globusonline.org/goauth/token?' +
-            'grant_type=client_credentials'):
-    h = httplib2.Http(disable_ssl_certificate_validation=True)
+def _get_user(token):
+    d = {'token': token, 'fields': 'user_id'}
+    ret = requests.post(
+        'https://kbase.us/services/authorization/Sessions/Login', data=d)
+    if not ret.ok:
+        try:
+            err = ret.json()
+        except:
+            ret.raise_for_status()
+        raise ValueError('Error connecting to auth service: {} {}\n{}'
+                         .format(ret.status_code, ret.reason,
+                                 err['error_msg']))
 
-    auth = base64.encodestring(user_id + ':' + password)
-    headers = {'Authorization': 'Basic ' + auth}
-
-    h.add_credentials(user_id, password)
-    h.follow_all_redirects = True
-    url = auth_svc
-
-    resp, content = h.request(url, 'GET', headers=headers)
-    status = int(resp['status'])
-    if status >= 200 and status <= 299:
-        tok = json.loads(content)
-    elif status == 403:
-        raise Exception('Authentication failed: Bad user_id/password ' +
-                        'combination %s:%s' % (user_id, password))
-    else:
-        raise Exception(str(resp))
-    return tok['access_token']
+    return ret.json()['user_id']
 
 
 def configDB(wscfg, db):
@@ -140,13 +130,13 @@ def configDB(wscfg, db):
     if backend == 's':
         settings[BACKEND] = SHOCK
         shockurl = input('Please enter the url of the shock server: ')
-        shockuser = input('Please enter the workspace shock username: ')
-        shockpwd = input('Please enter the workspace shock password: ')
+        shocktoken = input('Please enter an authentication token for the ' +
+                           'workspace shock user account: ')
         try:
-            _get_token(shockuser, shockpwd)
-        except:
-            printerr('Authorization for user {} failed.'.format(shockuser))
-        wscfg[BACKENDCREDS] = shockpwd
+            shockuser = _get_user(shocktoken)
+        except Exception as e:
+            printerr('Token validation failed: ' + e.args[0])
+        wscfg[BACKENDTOKEN] = shocktoken
         try:
             r = urllib2.urlopen(shockurl).read()
         except:
@@ -202,7 +192,7 @@ def main():
     wscfg = cfg[CONFIGHEADER]
     getparams(REQPARAMS, wscfg, dropconfig)
     authrqd = getinput('Does mongodb require authentication?', ('y', 'yes'),
-                {'n': 'no'}) == 'y'
+                       {'n': 'no'}) == 'y'
     if authrqd:
         getparams(AUTHPARAMS, wscfg, dropconfig)
     else:
@@ -228,11 +218,11 @@ def main():
     settings = None
     if SETTINGS in db.collection_names():
         settings = db[SETTINGS].find_one()
-    if settings != None:
+    if settings:
         print('The database is already initialized with the parameters:')
         printDBsettings(settings)
         print(
-'''\nYou can change the server configuration now, but if the workspaceservice
+            '''\nYou can change the server configuration now, but if the workspaceservice
 has already saved objects it could put the workspace and the backend store
 (gridFS or shock) in an inconsistent state, in which case all workspace
 objects will be irretrievable and you will make a lot of people really really

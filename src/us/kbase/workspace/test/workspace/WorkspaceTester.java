@@ -32,6 +32,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
+import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthToken;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
@@ -73,6 +76,7 @@ import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
+import us.kbase.workspace.kbase.TokenProvider;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import ch.qos.logback.classic.Level;
@@ -184,10 +188,10 @@ public class WorkspaceTester {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy(TestCommon.deleteTempFiles());
+			shock.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (mongo != null) {
-			mongo.destroy(TestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
 		System.out.println("deleting temporary files");
 		tfm.cleanup();
@@ -261,8 +265,12 @@ public class WorkspaceTester {
 	
 	private WSandTypes setUpShock(DB wsdb, Integer maxMemoryUsePerCall)
 			throws Exception {
-		String shockuser = System.getProperty("test.user1");
-		String shockpwd = System.getProperty("test.pwd1");
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		System.out.println(String.format("Logging in shock user at %s",
+				TestCommon.getAuthUrl()));
+		final AuthToken t = TestCommon.getToken(1, auth);
 		if (shock == null) {
 			shock = new ShockController(
 					TestCommon.getShockExe(),
@@ -282,8 +290,9 @@ public class WorkspaceTester {
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
+		final TokenProvider tp = new TokenProvider(t, TestCommon.getAuthUrl());
 		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"),
-				shockUrl, shockuser, shockpwd);
+				shockUrl, tp);
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
 	

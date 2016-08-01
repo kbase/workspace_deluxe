@@ -14,10 +14,15 @@ CFG_SECTION = 'Workspacetest'
 
 CONFIG_OPTS = ['test.user1',
                'test.pwd1',
+               'test.token1',
                'test.user2',
                'test.pwd2',
+               'test.token2',
                'test.user3',
                'test.pwd3',
+               'test.token3',
+               'test.auth.url',
+               'test.globus.url',
                'test.shock.exe',
                'test.shock.version',
                'test.mongo.exe',
@@ -40,7 +45,7 @@ def write_runner(out, ant_target):
         run.write(ANT + ' ' + ant_target)
         for o in CONFIG_OPTS:
             if o in testcfg:
-                run.write(' -D' + o + '=' + testcfg[o])
+                run.write(' -D' + o + '="' + testcfg[o] + '"')
         run.write('\n')
     os.chmod(out, 0755)
     print 'Writing test runner with target "' + ant_target + '" to: ' + out
@@ -65,15 +70,10 @@ if __name__ == '__main__':
         print 'Test config file ' + fn + ' is missing section ' +\
             CFG_SECTION + '. Halting.'
         sys.exit(1)
-    if (testcfg['test.user1'] == testcfg['test.user2'] or
-        testcfg['test.user1'] == testcfg['test.user3'] or
-        testcfg['test.user2'] == testcfg['test.user3']):
-        print "At least two test users are identical. Halting."
-        sys.exit(1)
     write_runner(out_run_tests, 'test')
     write_runner(out_run_script_tests, 'test-scripts')
 
-    #create a copy of the cfg file in the test/scripts/files dir for script
+    # create a copy of the cfg file in the test/scripts/files dir for script
     # tests -mike
     scriptcfgfile = os.path.join(d, 'scripts', 'files', 'test.cfg.copy')
     with open(scriptcfgfile, 'w') as copyfile:

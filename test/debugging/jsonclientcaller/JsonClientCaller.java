@@ -3,7 +3,6 @@ package debugging.jsonclientcaller;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.TokenExpiredException;
 
 import java.net.*;
 import java.nio.charset.Charset;
@@ -65,14 +64,11 @@ public class JsonClientCaller {
 		mapper = new ObjectMapper(); //.registerModule(new JacksonTupleModule());
 	}
 
-	public JsonClientCaller(URL url, AuthToken accessToken) throws UnauthorizedException, IOException {
+	public JsonClientCaller(URL url, AuthToken accessToken)
+			throws AuthException, UnauthorizedException, IOException {
 		this(url);
 		this.accessToken = accessToken;
-		try {
-			AuthService.validateToken(accessToken);
-		} catch (TokenExpiredException ex) {
-			throw new UnauthorizedException("Token validation failed", ex);
-		}
+		AuthService.validateToken(accessToken.getToken());
 	}
 
 	public JsonClientCaller(URL url, String user, String password) throws UnauthorizedException, IOException {
