@@ -188,10 +188,10 @@ public class WorkspaceTester {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy(TestCommon.deleteTempFiles());
+			shock.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (mongo != null) {
-			mongo.destroy(TestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
 		System.out.println("deleting temporary files");
 		tfm.cleanup();

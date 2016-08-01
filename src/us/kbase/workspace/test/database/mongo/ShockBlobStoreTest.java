@@ -102,10 +102,10 @@ public class ShockBlobStoreTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy(TestCommon.deleteTempFiles());
+			shock.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (mongoCon != null) {
-			mongoCon.destroy(TestCommon.deleteTempFiles());
+			mongoCon.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
 	

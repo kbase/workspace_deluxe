@@ -503,11 +503,12 @@ public class InitWorkspaceServer {
 		} catch (URISyntaxException e) {
 			throw new RuntimeException("this should be impossible", e);
 		}
+		final boolean token = cfg.getKBaseAdminToken() != null;
 		//TODO AUTH LATER remove refreshing token
 		final ConfigurableAuthService auth;
 		try {
 			auth = new ConfigurableAuthService(c);
-			if (cfg.getKBaseAdminToken() != null) {
+			if (token) {
 				c.withToken(auth.validateToken(cfg.getKBaseAdminToken()));
 			} else {
 				c.withRefreshingToken(auth.getRefreshingToken(
@@ -517,7 +518,8 @@ public class InitWorkspaceServer {
 			return auth;
 		} catch (AuthException e) {
 			rep.reportFail("Couldn't log in the KBase administrative user " +
-					cfg.getKbaseAdminUser() + " : " + e.getLocalizedMessage());
+					(token ? "with a token" : cfg.getKbaseAdminUser()) + ": " +
+					e.getMessage());
 		} catch (IOException e) {
 			rep.reportFail("Couldn't connect to authorization service at " +
 					c.getAuthServerURL() + " : " + e.getLocalizedMessage());

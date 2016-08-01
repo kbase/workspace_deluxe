@@ -1,11 +1,5 @@
 package us.kbase.common.test;
 
-import us.kbase.auth.AuthException;
-import us.kbase.auth.AuthToken;
-import us.kbase.auth.ConfigurableAuthService;
-import us.kbase.common.test.TestException;
-import us.kbase.typedobj.core.TempFilesManager;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -21,6 +15,12 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+
+import us.kbase.auth.AuthException;
+import us.kbase.auth.AuthToken;
+import us.kbase.auth.ConfigurableAuthService;
+import us.kbase.common.test.TestException;
+import us.kbase.typedobj.core.TempFilesManager;
 
 public class TestCommon {
 	
@@ -161,7 +161,7 @@ public class TestCommon {
 		return getProp(MYSQL_INSTALL_EXE);
 	}
 	
-	public static boolean deleteTempFiles() {
+	public static boolean getDeleteTempFiles() {
 		return !"true".equals(System.getProperty(KEEP_TEMP_DIR));
 	}
 	

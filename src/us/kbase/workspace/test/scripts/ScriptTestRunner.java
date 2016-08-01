@@ -314,22 +314,22 @@ public class ScriptTestRunner {
 		}
 		if (HANDLE != null) {
 			System.out.print("Destroying handle service... ");
-			HANDLE.destroy(TestCommon.deleteTempFiles());
+			HANDLE.destroy(TestCommon.getDeleteTempFiles());
 			System.out.println("Done");
 		}
 		if (SHOCK != null) {
 			System.out.print("Destroying shock service... ");
-			SHOCK.destroy(TestCommon.deleteTempFiles());
+			SHOCK.destroy(TestCommon.getDeleteTempFiles());
 			System.out.println("Done");
 		}
 		if (MONGO != null) {
 			System.out.print("Destroying mongo test service... ");
-			MONGO.destroy(TestCommon.deleteTempFiles());
+			MONGO.destroy(TestCommon.getDeleteTempFiles());
 			System.out.println("Done");
 		}
 		if (MYSQL != null) {
 			System.out.print("Destroying mysql test service... ");
-			MYSQL.destroy(TestCommon.deleteTempFiles());
+			MYSQL.destroy(TestCommon.getDeleteTempFiles());
 			System.out.println("Done");
 		}
 	}

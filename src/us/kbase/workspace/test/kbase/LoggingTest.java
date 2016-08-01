@@ -239,7 +239,7 @@ public class LoggingTest {
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
-			mongo.destroy(TestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
 

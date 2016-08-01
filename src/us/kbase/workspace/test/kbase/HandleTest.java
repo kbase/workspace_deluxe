@@ -293,16 +293,16 @@ public class HandleTest {
 			System.out.println("Done");
 		}
 		if (HANDLE != null) {
-			HANDLE.destroy(TestCommon.deleteTempFiles());
+			HANDLE.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (SHOCK != null) {
-			SHOCK.destroy(TestCommon.deleteTempFiles());
+			SHOCK.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (MONGO != null) {
-			MONGO.destroy(TestCommon.deleteTempFiles());
+			MONGO.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (MYSQL != null) {
-			MYSQL.destroy(TestCommon.deleteTempFiles());
+			MYSQL.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
 
