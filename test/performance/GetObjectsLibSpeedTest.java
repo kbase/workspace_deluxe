@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
+import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.test.TestCommon;
@@ -44,6 +45,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseReferenceParser;
+import us.kbase.workspace.kbase.TokenProvider;
 
 public class GetObjectsLibSpeedTest {
 	
@@ -86,7 +88,9 @@ public class GetObjectsLibSpeedTest {
 				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
 				new ShockBlobStore(db.getCollection("shock_map"),
-						new URL(shockurl), shockuser, shockpwd),
+						new URL(shockurl), new TokenProvider(
+								AuthService.login(shockuser, shockpwd)
+								.getToken(), new URL("https://fake"))),
 				tfm);
 		Workspace ws = new Workspace(mwdb,
 				new ResourceUsageConfigurationBuilder().build(),

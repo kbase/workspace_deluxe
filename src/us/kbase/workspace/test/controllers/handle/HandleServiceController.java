@@ -19,6 +19,7 @@ import org.apache.commons.io.FileUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 
+import us.kbase.auth.AuthToken;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
 import us.kbase.common.test.controllers.shock.ShockController;
@@ -50,7 +51,7 @@ public class HandleServiceController {
 			final String handleManagerAllowedUser,
 			final MySQLController mysql,
 			final String shockHost,
-			final String shockAdmin,
+			final AuthToken shockAdminToken,
 			final String shockAdminPwd,
 			final String perl5lib,
 			final Path rootTempDir)
@@ -95,7 +96,7 @@ public class HandleServiceController {
 		handleManagerPort = findFreePort();
 		
 		File hmIniFile = createHandleManagerDeployCfg(
-				shockAdmin, shockAdminPwd, handleManagerAllowedUser);
+				shockAdminToken, shockAdminPwd, handleManagerAllowedUser);
 		
 		ProcessBuilder handlemgrpb = new ProcessBuilder(plackupExe, "--port",
 				"" + handleManagerPort, handleManagerPSGIpath)
@@ -111,7 +112,7 @@ public class HandleServiceController {
 	}
 
 	private File createHandleManagerDeployCfg(
-			final String shockAdmin,
+			final AuthToken shockAdminToken,
 			final String shockAdminPwd,
 			final String allowedUser)
 			throws IOException {
@@ -121,13 +122,17 @@ public class HandleServiceController {
 		}
 		
 		Ini ini = new Ini();
-		Section ws = ini.add("HandleMngr");
-		ws.add("handle-service-url", "http://localhost:" + handleServicePort);
-		ws.add("service-host", "localhost");
-		ws.add("service-port", "" + handleManagerPort);
-		ws.add("admin-login", shockAdmin);
-		ws.add("admin-password", shockAdminPwd);
-		ws.add("allowed-users", allowedUser);
+		Section hm = ini.add("HandleMngr");
+		hm.add("handle-service-url", "http://localhost:" + handleServicePort);
+		hm.add("service-host", "localhost");
+		hm.add("service-port", "" + handleManagerPort);
+		if (shockAdminPwd == null || shockAdminPwd.isEmpty()) {
+			hm.add("admin-token", shockAdminToken.getToken());
+		} else {
+			hm.add("admin-login", shockAdminToken.getUserName());
+			hm.add("admin-password", shockAdminPwd);
+		}
+		hm.add("allowed-users", allowedUser);
 		
 		ini.store(iniFile);
 		return iniFile;
@@ -141,17 +146,17 @@ public class HandleServiceController {
 		}
 		
 		Ini ini = new Ini();
-		Section ws = ini.add("handle_service");
-		ws.add("self-url", "http://localhost:" + handleServicePort);
-		ws.add("service-port", "" + handleServicePort);
-		ws.add("service-host", "localhost");
-		ws.add("default-shock-server", shockHost);
+		Section hs = ini.add("handle_service");
+		hs.add("self-url", "http://localhost:" + handleServicePort);
+		hs.add("service-port", "" + handleServicePort);
+		hs.add("service-host", "localhost");
+		hs.add("default-shock-server", shockHost);
 		
-		ws.add("mysql-host", "127.0.0.1");
-		ws.add("mysql-port", "" + mysql.getServerPort());
-		ws.add("mysql-user", USER);
-		ws.add("mysql-pass", PWD);
-		ws.add("data-source", "dbi:mysql:" + DB);
+		hs.add("mysql-host", "127.0.0.1");
+		hs.add("mysql-port", "" + mysql.getServerPort());
+		hs.add("mysql-user", USER);
+		hs.add("mysql-pass", PWD);
+		hs.add("data-source", "dbi:mysql:" + DB);
 		
 		ini.store(iniFile);
 		return iniFile;
@@ -233,7 +238,7 @@ public class HandleServiceController {
 				System.getProperty("test.user2"),
 				mc,
 				"http://localhost:" + sc.getServerPort(),
-				System.getProperty("test.user1"),
+				null, //this will break the hm, need a token
 				System.getProperty("test.pwd1"),
 				"/kb/deployment/lib",
 				Paths.get("workspacetesttemp"));

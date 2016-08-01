@@ -9,10 +9,7 @@ import java.util.List;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.auth.AuthException;
-import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.RefreshingToken;
-import us.kbase.auth.TokenExpiredException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
@@ -28,6 +25,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.kbase.TokenProvider;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mongodb.BasicDBObject;
@@ -40,19 +38,17 @@ public class ShockBlobStore implements BlobStore {
 	
 	private final BasicShockClient client;
 	private final DBCollection mongoCol;
-	private final RefreshingToken token;
+	private final TokenProvider token;
 	
-	private static final int TOKEN_REFRESH_INTERVAL = 24 * 60 * 60;
 	private static final String IDX_UNIQ = "unique";
 	
-	public ShockBlobStore(final DBCollection mongoCollection,
-			final URL url, final String user, final String password)
-			throws BlobStoreAuthorizationException,
-			BlobStoreException {
-		if (mongoCollection == null || url == null
-				|| user == null || password == null) {
-			throw new NullPointerException(
-					"Arguments cannot be null");
+	public ShockBlobStore(
+			final DBCollection mongoCollection,
+			final URL url,
+			final TokenProvider token)
+			throws BlobStoreAuthorizationException, BlobStoreException {
+		if (mongoCollection == null || url == null || token == null) {
+			throw new NullPointerException("Arguments cannot be null");
 		}
 		this.mongoCol = mongoCollection;
 		final DBObject dbo = new BasicDBObject();
@@ -60,7 +56,7 @@ public class ShockBlobStore implements BlobStore {
 		final DBObject opts = new BasicDBObject();
 		opts.put(IDX_UNIQ, 1);
 		mongoCol.createIndex(dbo, opts);
-		token = getToken(user, password);
+		this.token = token;
 		try {
 			client = new BasicShockClient(url, getToken());
 		} catch (InvalidShockUrlException isue) {
@@ -70,10 +66,6 @@ public class ShockBlobStore implements BlobStore {
 			throw new BlobStoreException(
 					"Shock appears to be misconfigured - the client could not initialize. Shock said: "
 					+ she.getLocalizedMessage(), she);
-		} catch (TokenExpiredException ete) {
-			throw new BlobStoreException( //uh... this should never happen
-					"The token retrieved from the auth service is already " +
-					"expired", ete);
 		} catch (IOException ioe) {
 			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend: " +
@@ -107,22 +99,6 @@ public class ShockBlobStore implements BlobStore {
 				true, "OK", "Shock", version));
 	}
 	
-	private RefreshingToken getToken(final String user, final String pwd)
-			throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException {
-		try {
-			return AuthService.getRefreshingToken(
-					user, pwd, TOKEN_REFRESH_INTERVAL);
-		} catch (AuthException ae) {
-			throw new BlobStoreAuthorizationException(
-					"Could not authenticate backend user", ae);
-		} catch (IOException ioe) {
-			throw new BlobStoreCommunicationException(
-					"Could not connect to the shock backend auth provider: " +
-					ioe.getLocalizedMessage(), ioe);
-		}
-	}
-	
 	private AuthToken getToken()
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
@@ -138,17 +114,6 @@ public class ShockBlobStore implements BlobStore {
 		}
 	}
 	
-	private void updateAuth()
-			throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException {
-		try {
-			client.updateToken(getToken());
-		} catch (TokenExpiredException ete) {
-			throw new RuntimeException(
-					"Auth service is handing out expired tokens", ete);
-		}
-	}
-
 	@Override
 	public void saveBlob(final MD5 md5, final InputStream data,
 			final boolean sorted)
@@ -163,14 +128,10 @@ public class ShockBlobStore implements BlobStore {
 		} catch (NoSuchBlobException nb) {
 			//go ahead, need to save
 		}
-		updateAuth();
+		client.updateToken(getToken());
 		final ShockNode sn;
 		try {
 			sn = client.addNode(data, "workspace_" + md5.getMD5(), "JSON");
-		} catch (TokenExpiredException ete) {
-			//this should be impossible
-			throw new RuntimeException("Token magically expired: "
-					+ ete.getLocalizedMessage(), ete);
 		} catch (JsonProcessingException jpe) {
 			//this should be impossible
 			throw new RuntimeException("Attribute serialization failed: "
@@ -230,7 +191,7 @@ public class ShockBlobStore implements BlobStore {
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException, NoSuchBlobException,
 			FileCacheLimitExceededException, FileCacheIOException {
-		updateAuth();
+		client.updateToken(getToken());
 		final DBObject entry = getBlobEntry(md5);
 		final String node = (String)entry.get(Fields.SHOCK_NODE);
 		final boolean sorted;
@@ -242,9 +203,6 @@ public class ShockBlobStore implements BlobStore {
 		try {
 			return bafcMan.createBAFC(client.getFile(new ShockNodeId(node)),
 					true, sorted);
-		} catch (TokenExpiredException ete) {
-			//this should be impossible
-			throw new RuntimeException("Things are broke", ete);
 		} catch (IOException ioe) {
 			if (ioe.getCause() instanceof FileCacheLimitExceededException) {
 				throw (FileCacheLimitExceededException) ioe.getCause();
@@ -266,7 +224,7 @@ public class ShockBlobStore implements BlobStore {
 	public void removeBlob(final MD5 md5)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		updateAuth();
+		client.updateToken(getToken());
 		final String node;
 		try {
 			node = getNode(md5);
@@ -276,9 +234,6 @@ public class ShockBlobStore implements BlobStore {
 		
 		try {
 			client.deleteNode(new ShockNodeId(node));
-		} catch (TokenExpiredException ete) {
-			//this should be impossible
-			throw new RuntimeException("Things are broke", ete);
 		} catch (IOException ioe) {
 			throw new BlobStoreCommunicationException(
 					"Could not connect to the shock backend: " +
