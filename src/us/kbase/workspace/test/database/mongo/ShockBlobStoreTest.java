@@ -24,9 +24,10 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
-import us.kbase.auth.AuthService;
+import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthToken;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.test.TestCommon;
-import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
@@ -39,8 +40,8 @@ import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.kbase.TokenProvider;
 
 public class ShockBlobStoreTest {
 	
@@ -50,6 +51,7 @@ public class ShockBlobStoreTest {
 	private static ShockController shock;
 	private static MongoController mongoCon;
 	private static TempFilesManager tfm;
+	private static TokenProvider tp;
 	
 	private static final Pattern UUID =
 			Pattern.compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}");
@@ -58,8 +60,10 @@ public class ShockBlobStoreTest {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		String u1 = System.getProperty("test.user1");
-		String p1 = System.getProperty("test.pwd1");
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		final AuthToken t = TestCommon.getToken(1, auth);
 		
 		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		TestCommon.stfuLoggers();
@@ -89,22 +93,19 @@ public class ShockBlobStoreTest {
 		System.out.println("Using Shock temp dir " + shock.getTempDir());
 		URL url = new URL("http://localhost:" + shock.getServerPort());
 		System.out.println("Testing workspace shock backend pointed at: " + url);
-		try {
-			sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, u1, p1);
-		} catch (BlobStoreAuthorizationException bsae) {
-			throw new TestException("Unable to login with test.user1: " + u1 +
-					"\nPlease check the credentials in the test configuration.", bsae);
-		}
-		client = new BasicShockClient(url, AuthService.login(u1, p1).getToken());
+		System.out.println("Logging in with auth service " + auth);
+		tp = new TokenProvider(t, auth.getConfig().getAuthLoginURL());
+		sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, tp);
+		client = new BasicShockClient(url, tp.getToken());
 	}
 	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
-			shock.destroy(TestCommon.deleteTempFiles());
+			shock.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (mongoCon != null) {
-			mongoCon.destroy(TestCommon.deleteTempFiles());
+			mongoCon.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
 	
@@ -133,17 +134,18 @@ public class ShockBlobStoreTest {
 	@Test
 	public void badInit() throws Exception {
 		DBCollection col = mongo.getCollection(COLLECTION);
-		failInit(null, new URL("http://foo.com"), "u", "p");
-		failInit(col, null, "u", "p");
-		failInit(col, new URL("http://foo.com"), null, "p");
-		failInit(col, new URL("http://foo.com"), "u", null);
+		failInit(null, new URL("http://foo.com"),tp);
+		failInit(col, null, tp);
+		failInit(col, new URL("http://foo.com"), null);
 	}
 	
-	private void failInit(DBCollection collection, URL url, String user,
-			String pwd)
+	private void failInit(
+			final DBCollection collection,
+			final URL url,
+			final TokenProvider tp)
 			throws Exception {
 		try {
-			new ShockBlobStore(collection, url, user, pwd);
+			new ShockBlobStore(collection, url, tp);
 		} catch (NullPointerException npe) {
 			assertThat("correct exception message", npe.getLocalizedMessage(),
 					is("Arguments cannot be null"));

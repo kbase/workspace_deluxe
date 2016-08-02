@@ -71,6 +71,19 @@ public class WorkspaceClient {
         caller = new JsonClientCaller(url, token);
     }
 
+    /** Constructs a client with a custom URL
+     * and a custom authorization service URL.
+     * @param url the URL of the service.
+     * @param token the user's authorization token.
+     * @param auth the URL of the authorization server.
+     * @throws UnauthorizedException if the token is not valid.
+     * @throws IOException if an IOException occurs when checking the token's
+     * validity.
+     */
+    public WorkspaceClient(URL url, AuthToken token, URL auth) throws UnauthorizedException, IOException {
+        caller = new JsonClientCaller(url, token, auth);
+    }
+
     /** Constructs a client with a custom URL.
      * @param url the URL of the service.
      * @param user the user name.
@@ -81,6 +94,20 @@ public class WorkspaceClient {
      */
     public WorkspaceClient(URL url, String user, String password) throws UnauthorizedException, IOException {
         caller = new JsonClientCaller(url, user, password);
+    }
+
+    /** Constructs a client with a custom URL
+     * and a custom authorization service URL.
+     * @param url the URL of the service.
+     * @param user the user name.
+     * @param password the password for the user name.
+     * @param auth the URL of the authorization server.
+     * @throws UnauthorizedException if the credentials are not valid.
+     * @throws IOException if an IOException occurs when checking the user's
+     * credentials.
+     */
+    public WorkspaceClient(URL url, String user, String password, URL auth) throws UnauthorizedException, IOException {
+        caller = new JsonClientCaller(url, user, password, auth);
     }
 
     /** Constructs a client with the default URL.

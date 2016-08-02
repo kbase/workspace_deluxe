@@ -90,7 +90,7 @@ may optionally use:
 * The `Handle Service <https://github.com/kbase/handle_service>`_ 
   `b9de699 <https://github.com/kbase/handle_service/commit/b9de6991b851e9cd8fa9b5012db565f051e0894f>`_ +
   and `Handle Manager <https://github.com/kbase/handle_mngr>`_ 
-  `08c8da3 <https://github.com/kbase/handle_mngr/commit/08c8da3334e1c5907959b6f69124cf578cb926ba>`_ +
+  `3e60998 <https://github.com/kbase/handle_mngr/commit/3e60998fc22bb331e51b189ae1b71ebd54e58b90>`_ +
   to allow linking workspace objects to Shock nodes (see
   :ref:`shockintegration`).
   
@@ -119,8 +119,9 @@ MongoDB database itself and is set once by the configuration script (see
 
 .. warning::
    ``deploy.cfg`` contains several sets of credentials, and thus should be
-   protected like any other file containing unencryted passwords. It is especially important to protect the
-   password that the WSS uses to talk to Shock (``backend-secret``) as if
+   protected like any other file containing unencryted passwords or tokens.
+   It is especially important to protect the password / token that the WSS uses
+   to talk to Shock (``backend-secret`` or ``backend-token``) as if
    access to that account is lost, the new account owner has access to all
    the workspace object data, and recovery will be extremely time consuming
    (use shock admin account to change all the acls for every WSS owned object
@@ -161,17 +162,24 @@ mongodb-pwd
 **Description**: Password for an account with readWrite access to the MongoDB
 database
 
-kbase-admin-user
+auth-service-url
 """"""""""""""""
 **Required**: Yes
 
-**Description**: Username for an administrator of the Globus kbase_users group
+**Description**: URL of the KBase authentication service
 
-kbase-admin-pwd
-"""""""""""""""
+globus-url
+""""""""""
 **Required**: Yes
 
-**Description**: Password for an administrator of the Globus kbase_users group
+**Description**: URL of the Globus Nexus v1 authentication API
+
+kbase-admin-user, kbase-admin-pwd, kbase-admin-token
+""""""""""""""""""""""""""""""""""""""""""""""""""""
+**Required**: token or (user and pwd)
+
+**Description**: Credentials for an administrator of the Globus kbase_users
+group. Either a user id / password combination or a token may be supplied.
 
 ignore-handle-service
 """""""""""""""""""""
@@ -193,17 +201,12 @@ handle-manager-url
 
 **Description**: The URL of the Handle Manager
 
-handle-manager-user
-"""""""""""""""""""
-**Required**: If using handles
+handle-manager-user, handle-manager-pwd, handle-manager-token
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+**Required**: If using handles. Then token or (user and pwd).
 
-**Description**: Username for the account approved for Handle Manager use
-
-handle-manager-pwd
-""""""""""""""""""
-**Required**: If using handles
-
-**Description**: Password for the account approved for Handle Manger use
+**Description**: Credentials for the account approved for Handle Manager use.
+Either a user id / password combination or a token may be supplied.
 
 ws-admin
 """"""""
@@ -215,12 +218,14 @@ database and thus the administrator will change if this name is changed and the
 server restarted. This administrator cannot be removed by the ``administer``
 API call.
 
-backend-secret
-""""""""""""""
+backend-secret, backend-token
+"""""""""""""""""""""""""""""
 **Required**: If using Shock as the file backend
 
-**Description**: Password for the file backend user account used by the WSS
-to communicate with the backend. The user name is set in configuration script.
+**Description**: Password or token for the file backend user account used by
+the WSS to communicate with the backend. The user name is stored in the
+database after being determined by the configuration script. Either a token
+or a password is required.
 
 port
 """"
