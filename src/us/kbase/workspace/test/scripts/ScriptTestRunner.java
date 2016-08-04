@@ -234,14 +234,14 @@ public class ScriptTestRunner {
 		System.out.println("Started test workspace server on port " + port);
 		try {
 			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
-					t1, TestCommon.getAuthUrl());
+					t1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
 			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
-					t2, TestCommon.getAuthUrl());
+					t2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);

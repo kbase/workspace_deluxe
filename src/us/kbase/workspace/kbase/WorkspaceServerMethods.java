@@ -304,8 +304,7 @@ public class WorkspaceServerMethods {
 		params.setObjects(null); 
 		final IdReferenceHandlerSetFactory fac =
 				new IdReferenceHandlerSetFactory(maximumIDCount);
-		fac.addFactory(new HandleIdHandlerFactory(handleServiceUrl,
-				token, auth.getConfig().getAuthLoginURL()));
+		fac.addFactory(new HandleIdHandlerFactory(handleServiceUrl, token));
 		
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
 		return objInfoToTuple(meta, true);

@@ -94,7 +94,7 @@ public class ShockBlobStoreTest {
 		URL url = new URL("http://localhost:" + shock.getServerPort());
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		System.out.println("Logging in with auth service " + auth);
-		tp = new TokenProvider(t, auth.getConfig().getAuthLoginURL());
+		tp = new TokenProvider(t);
 		sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, tp);
 		client = new BasicShockClient(url, tp.getToken());
 	}
