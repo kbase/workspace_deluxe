@@ -5044,4 +5044,4 @@ class Workspace(object):
 
     def status(self, context=None):
         return self._client.call_method('Workspace.status',
-            [], self._service_ver, context)
+                                        [], self._service_ver, context)

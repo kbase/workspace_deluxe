@@ -264,8 +264,7 @@ public class InitWorkspaceServer {
 							"database, %s",
 							t.getUserName(), shockUserFromSettings));
 				}
-				return new TokenProvider(t,
-						auth.getConfig().getAuthLoginURL());
+				return new TokenProvider(t);
 			}
 		} catch (AuthException e) {
 			throw new WorkspaceInitException(
@@ -421,8 +420,7 @@ public class InitWorkspaceServer {
 			final TokenProvider tp;
 			if (token) {
 				tp = new TokenProvider(auth.validateToken(
-						cfg.getHandleManagerToken()),
-						auth.getConfig().getAuthLoginURL());
+						cfg.getHandleManagerToken()));
 			} else {
 				@SuppressWarnings("deprecation")
 				final TokenProvider tptemp = new TokenProvider(

@@ -205,21 +205,21 @@ public class JSONRPCLayerTester {
 		System.out.println("Started test server 1 on port " + port);
 		try {
 			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
-					t1, TestCommon.getAuthUrl());
+					t1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
 			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
-					t2, TestCommon.getAuthUrl());
+					t2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
 			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port),
-					t3, TestCommon.getAuthUrl());
+					t3);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user3: " + USER3 +
 					"\nPlease check the credentials in the test configuration.", ue);
@@ -230,7 +230,7 @@ public class JSONRPCLayerTester {
 		SERVER2 = startupWorkspaceServer(mongohost,
 				mongoClient.getDB(DB_WS_NAME_2), DB_TYPE_NAME_2, t1, p1);
 		CLIENT_FOR_SRV2 = new WorkspaceClient(new URL("http://localhost:" + 
-					SERVER2.getServerPort()), t2, TestCommon.getAuthUrl());
+					SERVER2.getServerPort()), t2);
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
