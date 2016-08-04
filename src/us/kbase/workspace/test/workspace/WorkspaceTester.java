@@ -290,7 +290,7 @@ public class WorkspaceTester {
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		final TokenProvider tp = new TokenProvider(t, TestCommon.getAuthUrl());
+		final TokenProvider tp = new TokenProvider(t);
 		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"),
 				shockUrl, tp);
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);

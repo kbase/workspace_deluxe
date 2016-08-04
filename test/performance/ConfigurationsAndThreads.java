@@ -393,7 +393,7 @@ public class ConfigurationsAndThreads {
 							db.getCollection("shock_map"), shockURL,
 							new TokenProvider(
 									AuthService.login("baduser", "badpwd")
-									.getToken(), new URL("https://fake"))),
+									.getToken())),
 					tfm);
 			ws = new Workspace(mwdb,
 					new ResourceUsageConfigurationBuilder().build(),
@@ -453,7 +453,7 @@ public class ConfigurationsAndThreads {
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
 			this.sb = new ShockBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0).getCollection(
-					"temp_shock_node_map"), shockURL, new TokenProvider(token, new URL("https://fake")));
+					"temp_shock_node_map"), shockURL, new TokenProvider(token));
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);

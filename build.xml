@@ -47,7 +47,7 @@
   <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
   <property name="jardir" location="${env.JENKINS_JARS_MODULE_PATH}/lib/jars"/>
 
-  <condition property="commonjar" value="kbase/common/kbase-common-0.0.18.jar">
+  <condition property="commonjar" value="kbase/common/kbase-common-0.0.19.jar">
     <or>
       <equals arg1="${env.JENKINS_JAVA_COMMON_JARFILE}" arg2=""/>
       <not>
@@ -100,8 +100,8 @@
     <include name="logback/logback-core-1.1.2.jar"/>
     <include name="logback/logback-classic-1.1.2.jar"/>
     <include name="google/guava-14.0.1.jar"/>
-    <include name="kbase/handle/HandleServiceClient-160728-b9de699.jar"/>
-    <include name="kbase/handle/HandleManagerClient-160728-08c8da3.jar"/>
+    <include name="kbase/handle/HandleServiceClient-160803-b9de699.jar"/>
+    <include name="kbase/handle/HandleManagerClient-160803-08c8da3.jar"/>
   </fileset>
 	
   <fileset dir="${jardir}" id="testlib">

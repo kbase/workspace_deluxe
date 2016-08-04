@@ -173,13 +173,13 @@ public class HandleTest {
 		
 		final URL url = new URL("http://localhost:" + port);
 		try {
-			CLIENT1 = new WorkspaceClient(url, t1, TestCommon.getAuthUrl());
+			CLIENT1 = new WorkspaceClient(url, t1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(url, t2, TestCommon.getAuthUrl());
+			CLIENT2 = new WorkspaceClient(url, t2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
@@ -192,7 +192,7 @@ public class HandleTest {
 		setUpSpecs();
 		
 		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
-				HANDLE.getHandleServerPort()), t1, TestCommon.getAuthUrl());
+				HANDLE.getHandleServerPort()), t1);
 		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
 		
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:"
@@ -617,8 +617,7 @@ public class HandleTest {
 		IdReferenceType type = HandleIdHandlerFactory.type;
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(4);
 		fac.addFactory(new HandleIdHandlerFactory(new URL("http://localhost:"
-				+ HANDLE.getHandleServerPort()), CLIENT1.getToken(),
-				TestCommon.getAuthUrl()));
+				+ HANDLE.getHandleServerPort()), CLIENT1.getToken()));
 		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
 		handlers.associateObject("foo");
 		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));

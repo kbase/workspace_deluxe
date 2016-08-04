@@ -31,23 +31,20 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	public static final IdReferenceType type = new IdReferenceType("handle");
 	private final URL handleService;
 	private final AuthToken userToken;
-	private final URL authURL;
 	
 	/** pass in null for the handle service URL to cause an exception to be
 	 * thrown if a handle id is encountered
 	 */
 	public HandleIdHandlerFactory(
 			final URL handleServiceURL,
-			final AuthToken userToken,
-			final URL authServiceURL) {
+			final AuthToken userToken) {
 		
-		if (userToken == null || authServiceURL == null) {
+		if (userToken == null) {
 			throw new NullPointerException(
-					"userToken and authServiceURL cannot be null");
+					"userToken cannot be null");
 		}
 		this.handleService = handleServiceURL;
 		this.userToken = userToken;
-		this.authURL = authServiceURL;
 	}
 	
 	@Override
@@ -118,7 +115,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			final Long allreadable;
 			try {
 				final AbstractHandleClient ahc = new AbstractHandleClient(
-						handleService, userToken, authURL);
+						handleService, userToken);
 				if (handleService.getProtocol().equals("http")) {
 					ahc.setIsInsecureHttpConnectionAllowed(true);
 				}

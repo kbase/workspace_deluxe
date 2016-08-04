@@ -19,23 +19,18 @@ public class TokenProvider {
 	private final AuthToken token;
 	@SuppressWarnings("deprecation")
 	private final us.kbase.auth.RefreshingToken rToken;
-	private final URL authURL;
 	
 	/** Create a token provider with a standard token.
 	 * @param token a token.
 	 * @param authURL the URL of the authorization service that created this
 	 * token.
 	 */
-	public TokenProvider(final AuthToken token, final URL authURL) {
+	public TokenProvider(final AuthToken token) {
 		if (token == null) {
 			throw new NullPointerException("token");
 		}
-		if (authURL == null) {
-			throw new NullPointerException();
-		}
 		this.token = token;
 		this.rToken = null;
-		this.authURL = authURL;
 	}
 	
 	/** Create a token provider with a refreshing token.
@@ -56,14 +51,6 @@ public class TokenProvider {
 		}
 		this.rToken = rToken;
 		this.token = null;
-		this.authURL = authURL;
-	}
-	
-	/** Get the URL of the authorization service that created this token.
-	 * @return
-	 */
-	public URL getAuthURL() {
-		return authURL;
 	}
 	
 	/** Get the token held in this token provider.
