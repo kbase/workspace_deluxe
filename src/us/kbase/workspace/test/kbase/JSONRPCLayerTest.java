@@ -87,7 +87,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0-dev6"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0-dev7"));
 	}
 	
 	public void status() throws Exception {
@@ -224,7 +224,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("created workspace without auth");
 		} catch (UnauthorizedException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("RPC method requires authentication but neither user nor token was set"));
+					is("RPC method requires authentication but credentials " +
+							"were not provided"));
 		}
 	}
 
