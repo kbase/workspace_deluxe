@@ -1654,7 +1654,7 @@ public class TypeDefinitionDB {
 			String newOwnerUserId = storage.getOwnerForNewModuleRegistrationRequest(newModuleName);
 			autoGenerateModuleInfo(newModuleName, newOwnerUserId);
 			storage.removeNewModuleRegistrationRequest(newModuleName, newOwnerUserId);
-			// TODO: send notification to e-mail of requesting user
+			// TODO NOTIFICATION send notification to e-mail of requesting user
 		} finally {
 			releaseWriteLock(newModuleName);
 		}
@@ -1667,7 +1667,7 @@ public class TypeDefinitionDB {
 		try {
 			String newOwnerUserId = storage.getOwnerForNewModuleRegistrationRequest(newModuleName);
 			storage.removeNewModuleRegistrationRequest(newModuleName, newOwnerUserId);
-			// TODO: send notification to e-mail of requesting user
+			// TODO NOTIFICATION send notification to e-mail of requesting user
 		} finally {
 			releaseWriteLock(newModuleName);
 		}

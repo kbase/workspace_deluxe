@@ -9,7 +9,7 @@ import java.util.List;
  */
 public class JsonDocumentLocation {
 	
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	public static final char DEFAULT_PATHSEP = '/';
 	private final String pathSep;

@@ -35,11 +35,7 @@ import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.auth.AuthException;
-import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.RefreshingToken;
-import us.kbase.auth.TokenExpiredException;
-import us.kbase.auth.TokenFormatException;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
@@ -272,7 +268,7 @@ public class ArgUtils {
 	}
 
 	public static List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>>>
-			translateObjectDataList(
+			translateObjectInfoList(
 					final List<Set<ObjectInformation>> lsoi,
 					final boolean logObjects) {
 		final List<List<Tuple11<Long, String, String, String, Long, String,
@@ -370,57 +366,11 @@ public class ArgUtils {
 		return ret;
 	}
 	
-	public static WorkspaceUser getUser(final String tokenstring,
-			final AuthToken token)
-			throws TokenExpiredException, TokenFormatException, IOException,
-			AuthException {
-		return getUser(tokenstring, token, false);
-	}
-	
-	public static WorkspaceUser getUser(final String tokenstring,
-			final AuthToken token, final boolean authrqd)
-			throws TokenExpiredException, TokenFormatException, IOException,
-			AuthException {
-		if (tokenstring != null) {
-			final AuthToken t = new AuthToken(tokenstring);
-			if (!AuthService.validateToken(t)) {
-				throw new AuthException("Token is invalid");
-			}
-			return new WorkspaceUser(t.getUserName());
-		}
-		if (token == null) {
-			if (authrqd) {
-				throw new AuthException("Authorization is required");
-			}
-			return null;
-		}
-		return new WorkspaceUser(token.getUserName());
-	}
-	
-	public static WorkspaceUser getUser(final AuthToken token) {
-		if (token == null) {
-			return null;
-		}
-		return new WorkspaceUser(token.getUserName());
-	}
-	
-	public static List<WorkspaceUser> convertUsers(final List<String> users) {
-		final List<WorkspaceUser> wsusers = new ArrayList<WorkspaceUser>();
-		if (users == null) {
-			return null;
-		}
-		for (String u: users) {
-			wsusers.add(new WorkspaceUser(u));
-		}
-		return wsusers;
-	}
-	
 	public static List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
 			final WorkspaceUser user,
-			final Set<ByteArrayFileCache> resourcesToDestroy,
 			final URL handleManagerURl,
-			final RefreshingToken handleManagertoken,
+			final TokenProvider handleManagertoken,
 			final boolean logObjects)
 			throws JsonParseException, IOException {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
@@ -450,7 +400,6 @@ public class ArgUtils {
 					.withExtractedIds(o.getExtractedIds())
 					.withHandleError(error.error)
 					.withHandleStacktrace(error.stackTrace));
-			resourcesToDestroy.add(resource);
 		}
 		return ret;
 	}
@@ -460,7 +409,7 @@ public class ArgUtils {
 			final List<WorkspaceObjectData> objects,
 			final WorkspaceUser user,
 			final URL handleManagerURl,
-			final RefreshingToken handleManagertoken,
+			final TokenProvider handleManagertoken,
 			final boolean logObjects) {
 		final List<us.kbase.workspace.ObjectProvenanceInfo> ret =
 				new ArrayList<us.kbase.workspace.ObjectProvenanceInfo>();
@@ -516,7 +465,7 @@ public class ArgUtils {
 			final WorkspaceObjectData o,
 			final WorkspaceUser user,
 			final URL handleManagerURL,
-			final RefreshingToken handleManagertoken) {
+			final TokenProvider handleManagertoken) {
 		final List<String> handles = o.getExtractedIds().get(
 				HandleIdHandlerFactory.type.getType());
 		if (handles == null || handles.isEmpty()) {
@@ -560,7 +509,11 @@ public class ArgUtils {
 					ExceptionUtils.getStackTrace(e));
 		}
 		try {
-			hmc.addReadAcl(handles, user.getUser());
+			if (user == null) {
+				hmc.setPublicRead(handles);
+			} else {
+				hmc.addReadAcl(handles, user.getUser());
+			}
 		} catch (IOException e) {
 			return new HandleError(
 					"There was an IO problem while attempting to set " +

@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -36,18 +37,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.ExtractedMetadata;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /**
  * Tests that ensure the proper subset is extracted from a typed object instance
@@ -69,7 +70,7 @@ public class MetadataExtractionTest {
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!!
 	 */
 	private final static Path TEST_DB_LOCATION =
-			Paths.get(WorkspaceTestCommon.getTempDir())
+			Paths.get(TestCommon.getTempDir())
 			.resolve("WsSubsetExtractionTest");
 	
 	/**
@@ -208,14 +209,14 @@ public class MetadataExtractionTest {
 		JsonNode exception = testdataJson.get("exception");
 		JsonNode maxMetadataSize = testdataJson.get("maxMetadataSize");
 		
-		long maxMetadataSizeLong = -1;
+		long maxMetadataSizeLong = 16000;
 		if(maxMetadataSize!=null)
 			maxMetadataSizeLong = maxMetadataSize.asLong();
 		
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(6);
 		IdReferenceHandlerSet<String> han =
 				fac.createHandlers(String.class).associateObject("foo");
-		TypedObjectValidationReport report = 
+		ValidatedTypedObject report = 
 			validator.validate(
 				instanceRootNode,
 				new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
@@ -228,7 +229,7 @@ public class MetadataExtractionTest {
 				report.isInstanceValid());
 		try {
 			ExtractedMetadata extraction = report.extractMetadata(maxMetadataSizeLong);
-			JsonNode actualMetadata = extraction.getMetadata();
+			Map<String, String> actualMetadata = extraction.getMetadata();
 			if(exception!=null) {
 				fail("  -("+instance.resourceName+") should throw an exception when getting subdata, but does not");
 			}
@@ -246,9 +247,10 @@ public class MetadataExtractionTest {
 		System.out.println("       PASS");
 	}
 
-	public void compare(JsonNode expectedSubset, JsonNode actualSubset, String resourceName) throws IOException {
+	public void compare(JsonNode expectedSubset, Map<String, String> actualMetadata, String resourceName) throws IOException {
 		assertEquals("  -("+resourceName+") extracted subset/metadata does not match expected extracted subset/metadata",
-				sortJson(expectedSubset), sortJson(actualSubset));
+				sortJson(expectedSubset), sortJson(
+						new ObjectMapper().valueToTree(actualMetadata)));
 	}
 
 	private static JsonNode sortJson(JsonNode tree) throws IOException {

@@ -18,7 +18,7 @@ import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
@@ -68,7 +68,7 @@ public class JsonTokenValidatorTester {
 					new IdReferenceHandlerSetFactory(6);
 			IdReferenceHandlerSet<String> han = fac.createHandlers(String.class);
 			han.associateObject("foo");
-			TypedObjectValidationReport report = new TypedObjectValidator(
+			ValidatedTypedObject report = new TypedObjectValidator(
 					new LocalTypeProvider(db)).validate(new UObject(jp, null), 
 					new TypeDefId(new TypeDefName(moduleName, typeName)), han);
 			Assert.assertTrue(report.isInstanceValid());

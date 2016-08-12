@@ -53,6 +53,8 @@ public class JsonTokenValidationSchema {
 	private static final String VALID_TYPEDEF_NAMES = "valid-typedef-names";
 	private static final String ATTRIBUTES = "attributes";
 	
+	private JsonTokenValidationSchema() {}
+	
 	@SuppressWarnings("unchecked")
 	public static JsonTokenValidationSchema parseJsonSchema(
 			final String document) 

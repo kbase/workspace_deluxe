@@ -6,7 +6,6 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -37,8 +36,8 @@ import org.productivity.java.syslog4j.SyslogIF;
 
 import us.kbase.common.service.JsonServerSyslog;
 import us.kbase.common.service.JsonServerSyslog.SyslogOutput;
+import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.docserver.DocServer;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class DocServerTest {
 	
@@ -65,15 +64,15 @@ public class DocServerTest {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		WorkspaceTestCommon.stfuLoggers();
+		TestCommon.stfuLoggers();
 		logout = new SysLogOutputMock();
 		DocServer.setLoggerOutput(logout);
-		Files.createDirectories(Paths.get(WorkspaceTestCommon.getTempDir())
+		Files.createDirectories(Paths.get(TestCommon.getTempDir())
 				.toAbsolutePath());
 		
 		server = createServer("TestDocServer",
 				"/us/kbase/workspace/test/docserver");
-		iniFile = new File(getenv().get("KB_DEPLOYMENT_CONFIG"));
+		iniFile = new File(TestCommon.getenv().get("KB_DEPLOYMENT_CONFIG"));
 		docURL = getServerURL(server);
 		System.out.println("Started doc server at " + docURL);
 	}
@@ -88,7 +87,7 @@ public class DocServerTest {
 			throws IOException, NoSuchFieldException, IllegalAccessException,
 			InterruptedException {
 		File iniFile = File.createTempFile("test", ".cfg",
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
 		if (serverName != null) {
@@ -103,7 +102,7 @@ public class DocServerTest {
 				iniFile.getAbsolutePath());
 		
 		//set up env
-		Map<String, String> env = getenv();
+		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 		
@@ -116,7 +115,7 @@ public class DocServerTest {
 	}
 	
 	private void restoreEnv() throws Exception {
-		Map<String, String> env = getenv();
+		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 		DocServer.setDefaultDocsLocation(DocServer.DEFAULT_DOCS_LOC);
@@ -127,18 +126,6 @@ public class DocServerTest {
 		if (server != null) {
 			server.stopServer();
 		}
-	}
-	
-	//TODO put this in test utils in common, used all over
-	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
-	@SuppressWarnings("unchecked")
-	protected static Map<String, String> getenv() throws NoSuchFieldException,
-	SecurityException, IllegalArgumentException, IllegalAccessException {
-		Map<String, String> unmodifiable = System.getenv();
-		Class<?> cu = unmodifiable.getClass();
-		Field m = cu.getDeclaredField("m");
-		m.setAccessible(true);
-		return (Map<String, String>) m.get(unmodifiable);
 	}
 	
 	protected static class ServerThread extends Thread {

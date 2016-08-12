@@ -1,8 +1,53 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.5.0 (Released 8/12/16)
+-----------------------------
+
+BACKWARDS INCOMPATIBILITIES:
+
+* The ``skip`` parameter of ``list_objects`` has been removed.
+* In order to save an object that contains handles to shock nodes, the user
+  must own the shock nodes. Previously, the user only needed read permissions.
+* Handle Service version b9de6991b851e9cd8fa9b5012db565f051e0894f+ is now
+  required.
+* Handle Manager version 3e60998fc22bb331e51b189ae1b71ebd54e58b90+ is now
+  required.
+* Shock version 0.9.6+ is now required.
+
+NEW FEATURES:
+
+* The ``status`` method now returns JVM memory stats and the status of MongoDB,
+  Shock, and the Handle service and manager (if using the latter three).
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* ``clone_workspace`` now preserves object IDs from the source workspace such
+  that the object name -> id mapping is identical for both workspaces at the
+  completion of the clone (unless changes are made to the source workspace
+  while the clone is in progress). Due to this change, the maximum object ID
+  returned in a ``workspace_info`` tuple may be larger than the number of
+  objects in the new workspace. The documentation has been clarified to
+  reflect this.
+* ``clone_workspace`` now prevents the new workspace from being accessed in any
+  way while the clone is in progress.
+* ``clone_workspace`` can now exclude user specified objects from the clone.
+* Fixed several bugs where various failures could leave temporary files on
+  disk.
+* Fixed a bug where accessing an object with handles to shock nodes
+  anonymously would cause a null pointer error.
+* A temporary file is created and deleted at startup to ensure the temporary
+  files directory is readable.
+* Fixed a bug where under certain circumstances more data than allowed could be
+  stored in memory or on disk and returned in a get_objects call.
+* The authorization URLs used by the server may now be configured.
+* All configuration user id / password combinations may now be alternately
+  fulfilled with a token.
+* The initialization script now takes a token rather than a user id and
+  password for the shock user account.
+
 VERSION: 0.4.1 (Released 5/27/16)
---------------------------------
+---------------------------------
 
 BACKWARDS INCOMPATIBILIES:
 

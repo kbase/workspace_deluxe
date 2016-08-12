@@ -6,7 +6,7 @@ import static us.kbase.common.utils.StringUtils.checkString;
 
 public class ObjectIdentifier {
 	
-	//TODO unittests
+	//TODO TEST unittests
 	
 	//this cannot be a legal object/workspace char
 	public final static String REFERENCE_SEP = "/";

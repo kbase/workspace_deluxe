@@ -8,7 +8,6 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
@@ -34,8 +33,10 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import us.kbase.auth.AuthService;
+import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
@@ -44,6 +45,7 @@ import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -151,8 +153,8 @@ public class JSONRPCLayerTester {
 	public static final Map<String, String> MT_META =
 			new HashMap<String, String>();
 	
-	private static List<TempFilesManager> tfms =
-			new LinkedList<TempFilesManager>();;
+	private static List<TempFilesManager> TFMS =
+			new LinkedList<TempFilesManager>();
 	
 	protected static class ServerThread extends Thread {
 		private WorkspaceServer server;
@@ -171,65 +173,64 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
-	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
-	@SuppressWarnings("unchecked")
-	protected static Map<String, String> getenv() throws NoSuchFieldException,
-			SecurityException, IllegalArgumentException, IllegalAccessException {
-		Map<String, String> unmodifiable = System.getenv();
-		Class<?> cu = unmodifiable.getClass();
-		Field m = cu.getDeclaredField("m");
-		m.setAccessible(true);
-		return (Map<String, String>) m.get(unmodifiable);
-	}
-	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		USER1 = System.getProperty("test.user1");
-		USER2 = System.getProperty("test.user2");
-		USER3 = System.getProperty("test.user3");
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		final AuthToken t1 = TestCommon.getToken(1, auth);
+		final AuthToken t2 = TestCommon.getToken(2, auth);
+		final AuthToken t3 = TestCommon.getToken(3, auth);
+		USER1 = t1.getUserName();
+		USER2 = t2.getUserName();
+		USER3 = t3.getUserName();
 		if (USER1.equals(USER2) || USER2.equals(USER3) || USER1.equals(USER3)) {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2, USER3), " "));
 		}
-		String p1 = System.getProperty("test.pwd1");
-		String p2 = System.getProperty("test.pwd2");
-		String p3 = System.getProperty("test.pwd3");
+		String p1 = TestCommon.getPwdNullIfToken(1);
 		
-		WorkspaceTestCommon.stfuLoggers();
-		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				WorkspaceTestCommon.useWiredTigerEngine());
+		TestCommon.stfuLoggers();
+		mongo = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 		
 		SERVER1 = startupWorkspaceServer(mongohost,
-				mongoClient.getDB(DB_WS_NAME_1), 
-				DB_TYPE_NAME_1, p1);
+				mongoClient.getDB(DB_WS_NAME_1), DB_TYPE_NAME_1, t1, p1);
 		int port = SERVER1.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
+			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
+					t1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
+			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
+					t2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port), USER3, p3);
+			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port),
+					t3);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user3: " + USER3 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
-		AUTH_USER1 = AuthService.login(USER1, p1);
-		AUTH_USER2 = AuthService.login(USER2, p2);
+		AUTH_USER1 = auth.getUserFromToken(t1);
+		AUTH_USER2 = auth.getUserFromToken(t2);
 
+		SERVER2 = startupWorkspaceServer(mongohost,
+				mongoClient.getDB(DB_WS_NAME_2), DB_TYPE_NAME_2, t1, p1);
+		CLIENT_FOR_SRV2 = new WorkspaceClient(new URL("http://localhost:" + 
+					SERVER2.getServerPort()), t2);
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
@@ -238,7 +239,12 @@ public class JSONRPCLayerTester {
 		CLIENT1.setStreamingModeOn(true); //for JSONRPCLayerLongTest
 		
 		//set up a basic type for test use that doesn't worry about type checking
-		CLIENT1.requestModuleOwnership("SomeModule");
+		try {
+			CLIENT1.requestModuleOwnership("SomeModule");
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
 		administerCommand(CLIENT2, "approveModRequest", "module", "SomeModule");
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
@@ -262,46 +268,41 @@ public class JSONRPCLayerTester {
 			.withSpec(specParseRef)
 			.withNewTypes(Arrays.asList("Ref")));
 		
-		SERVER2 = startupWorkspaceServer(mongohost,
-				mongoClient.getDB(DB_WS_NAME_2), 
-				DB_TYPE_NAME_2, p1);
+		
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
-		WorkspaceClient clientForSrv2 = new WorkspaceClient(new URL("http://localhost:" + 
-				SERVER2.getServerPort()), USER2, p2);
-		clientForSrv2.setIsInsecureHttpConnectionAllowed(true);
-		clientForSrv2.requestModuleOwnership("SomeModule");
-		administerCommand(clientForSrv2, "approveModRequest", "module", "SomeModule");
-		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+		CLIENT_FOR_SRV2.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_FOR_SRV2.requestModuleOwnership("SomeModule");
+		administerCommand(CLIENT_FOR_SRV2, "approveModRequest", "module", "SomeModule");
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {int thing;} AType;};")
 			.withNewTypes(Arrays.asList("AType")));
-		clientForSrv2.releaseModule("SomeModule");
-		clientForSrv2.requestModuleOwnership("DepModule");
-		administerCommand(clientForSrv2, "approveModRequest", "module", "DepModule");
-		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+		CLIENT_FOR_SRV2.releaseModule("SomeModule");
+		CLIENT_FOR_SRV2.requestModuleOwnership("DepModule");
+		administerCommand(CLIENT_FOR_SRV2, "approveModRequest", "module", "DepModule");
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("#include <SomeModule>\n" +
 					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
 			.withNewTypes(Arrays.asList("BType")));
-		clientForSrv2.releaseModule("DepModule");
-		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+		CLIENT_FOR_SRV2.releaseModule("DepModule");
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
 			.withNewTypes(Collections.<String>emptyList()));
-		clientForSrv2.releaseModule("SomeModule");
-		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+		CLIENT_FOR_SRV2.releaseModule("SomeModule");
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("#include <SomeModule>\n" +
 					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
 			.withNewTypes(Collections.<String>emptyList()));
-		clientForSrv2.releaseModule("DepModule");
-		clientForSrv2.requestModuleOwnership("UnreleasedModule");
-		administerCommand(clientForSrv2, "approveModRequest", "module", "UnreleasedModule");
-		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+		CLIENT_FOR_SRV2.releaseModule("DepModule");
+		CLIENT_FOR_SRV2.requestModuleOwnership("UnreleasedModule");
+		administerCommand(CLIENT_FOR_SRV2, "approveModRequest", "module", "UnreleasedModule");
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module UnreleasedModule {typedef int AType; funcdef aFunc(AType param) returns ();};")
 			.withNewTypes(Arrays.asList("AType")));
-		CLIENT_FOR_SRV2 = clientForSrv2;
 		System.out.println("Starting tests");
 	}
 
@@ -314,8 +315,12 @@ public class JSONRPCLayerTester {
 		client.administer(new UObject(releasemod));
 	}
 
-	private static WorkspaceServer startupWorkspaceServer(String mongohost,
-			DB db, String typedb, String user1Password)
+	private static WorkspaceServer startupWorkspaceServer(
+			final String mongohost,
+			final DB db,
+			final String typedb,
+			final AuthToken t,
+			final String pwd)
 			throws InvalidHostException, UnknownHostException, IOException,
 			NoSuchFieldException, IllegalAccessException, Exception,
 			InterruptedException {
@@ -323,7 +328,7 @@ public class JSONRPCLayerTester {
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
@@ -332,17 +337,24 @@ public class JSONRPCLayerTester {
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
+		ws.add("auth-service-url", TestCommon.getAuthUrl());
+		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
-		ws.add("kbase-admin-user", USER1);
-		ws.add("kbase-admin-pwd", user1Password);
-		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir()).resolve("tempForJSONRPCLayerTester"));
+		if (pwd == null || pwd.isEmpty()) {
+			ws.add("kbase-admin-token", t.getToken());
+		} else {
+			ws.add("kbase-admin-user", USER1);
+			ws.add("kbase-admin-pwd", pwd);
+		}
+		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
+				.resolve("tempForJSONRPCLayerTester"));
 		ws.add("ignore-handle-service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		
 		//set up env
-		Map<String, String> env = getenv();
+		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
@@ -356,7 +368,7 @@ public class JSONRPCLayerTester {
 						server.getWorkspaceResourceUsageConfig())
 				.withMaxIncomingDataMemoryUsage(24)
 				.withMaxReturnedDataMemoryUsage(24).build());
-		tfms.add(server.getTempFilesManager());
+		TFMS.add(server.getTempFilesManager());
 		new ServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
@@ -379,7 +391,7 @@ public class JSONRPCLayerTester {
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
 		JsonTokenStreamOCStat.showStat();
 	}
@@ -389,40 +401,13 @@ public class JSONRPCLayerTester {
 				DB_WS_NAME_1);
 		DB wsdb2 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 				DB_WS_NAME_2);
-		WorkspaceTestCommon.destroyDB(wsdb1);
-		WorkspaceTestCommon.destroyDB(wsdb2);
-	}
-	
-	public static void assertNoTempFilesExist(TempFilesManager tfm)
-			throws Exception {
-		assertNoTempFilesExist(Arrays.asList(tfm));
-	}
-	
-	
-	public static void assertNoTempFilesExist(List<TempFilesManager> tfms)
-			throws Exception {
-		int i = 0;
-		try {
-			for (TempFilesManager tfm: tfms) {
-				if (!tfm.isEmpty()) {
-					// Allow <=10 seconds to finish all activities
-					for (; i < 100; i++) {
-						Thread.sleep(100);
-						if (tfm.isEmpty())
-							break;
-					}
-				}
-				assertThat("There are tempfiles: " + tfm.getTempFileList(), tfm.isEmpty(), is(true));
-			}
-		} finally {
-			for (TempFilesManager tfm: tfms)
-				tfm.cleanup();
-		}
+		TestCommon.destroyDB(wsdb1);
+		TestCommon.destroyDB(wsdb2);
 	}
 	
 	@After
 	public void cleanupTempFilesAfterTest() throws Exception {
-		assertNoTempFilesExist(tfms);
+		TestCommon.assertNoTempFilesExist(TFMS);
 	}
 	
 	protected void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,
@@ -1317,11 +1302,11 @@ public class JSONRPCLayerTester {
 	}
 
 	protected void checkObjectPagination(String wsname,
-			Long skip, Long limit, int minid, int maxid) 
+			Long limit, int minid, int maxid) 
 			throws Exception {
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> res =
 				CLIENT1.listObjects(new ListObjectsParams()
-				.withWorkspaces(Arrays.asList(wsname)).withSkip(skip)
+				.withWorkspaces(Arrays.asList(wsname))
 				.withLimit(limit));
 				
 		assertThat("correct number of objects returned", res.size(), is(maxid - minid + 1));
@@ -1397,19 +1382,19 @@ public class JSONRPCLayerTester {
 			Long showDeleted, Long allVers, Long includeMeta, String exp)
 			throws Exception {
 		failListObjects(wsnames, wsids, type, perm, meta, showHidden,
-				showDeleted, allVers, includeMeta, -1, -1, exp);
+				showDeleted, allVers, includeMeta, -1, exp);
 	}
 
 	protected void failListObjects(List<String> wsnames, List<Long> wsids,
 			String type, String perm, Map<String, String> meta, Long showHidden,
-			Long showDeleted, Long allVers, Long includeMeta, long skip, long limit, String exp)
+			Long showDeleted, Long allVers, Long includeMeta, long limit, String exp)
 			throws Exception {
 		try {
 			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
 					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
 					.withIncludeMetadata(includeMeta).withPerm(perm).withMeta(meta)
-					.withSkip(skip).withLimit(limit));
+					.withLimit(limit));
 			fail("listed objects with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),

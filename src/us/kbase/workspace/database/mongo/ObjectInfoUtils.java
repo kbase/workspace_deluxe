@@ -34,8 +34,8 @@ import com.mongodb.MongoException;
  */
 public class ObjectInfoUtils {
 	
-	//TODO unit tests
-	//TODO javadoc
+	//TODO TEST unit tests
+	//TODO JAVADOC
 	
 	static final String LATEST_VERSION = "_latestVersion";
 	
@@ -83,7 +83,7 @@ public class ObjectInfoUtils {
 		}
 		final DBObject verq = buildQuery(params);
 		final DBObject projection = buildProjection(params);
-		final DBCursor cur = buildCursor(verq, projection, params.getSkip());
+		final DBCursor cur = buildCursor(verq, projection);
 		
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
@@ -121,18 +121,13 @@ public class ObjectInfoUtils {
 
 	private DBCursor buildCursor(
 			final DBObject verq,
-			final DBObject projection,
-			final int skip)
+			final DBObject projection)
 			throws WorkspaceCommunicationException {
 		final DBCursor cur;
 		try {
 			cur = query.getDatabase().getCollection(
 					query.getVersionCollection())
 					.find(verq, projection);
-			//TODO skip is deprecated, remove when possible
-			if (skip > 0) {
-				cur.skip(skip);
-			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -220,7 +215,7 @@ public class ObjectInfoUtils {
 			ids.put(rm.getID(), rm);
 		}
 		final Map<Long, Set<Long>> verdata = getObjectIDsFromVersions(verobjs);
-		//TODO This $or query might be better as multiple individual queries, test
+		//TODO PERFORMANCE This $or query might be better as multiple individual queries, test
 		final List<DBObject> orquery = new LinkedList<DBObject>();
 		for (final Long wsid: verdata.keySet()) {
 			final DBObject query = new BasicDBObject(Fields.VER_WS_ID, wsid);
@@ -373,7 +368,7 @@ public class ObjectInfoUtils {
 		if ((Integer) m.get(Fields.OBJ_LATEST) == null) {
 			latestVersion = (Integer) m.get(Fields.OBJ_VCNT);
 		} else {
-			//TODO check this works with GC
+			//TODO GC check this works with GC
 			latestVersion = (Integer) m.get(Fields.OBJ_LATEST);
 		}
 		m.put(LATEST_VERSION, latestVersion);

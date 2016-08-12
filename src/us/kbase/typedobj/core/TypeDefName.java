@@ -1,7 +1,7 @@
 package us.kbase.typedobj.core;
 
+import static us.kbase.common.utils.SizeUtils.checkSizeInBytes;
 import static us.kbase.common.utils.StringUtils.checkString;
-import static us.kbase.typedobj.util.SizeUtils.checkSizeInBytes;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

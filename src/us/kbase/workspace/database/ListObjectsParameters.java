@@ -17,7 +17,7 @@ import us.kbase.typedobj.core.TypeDefId;
  */
 public class ListObjectsParameters {
 	
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	private final static int MAX_INFO_COUNT = 10000;
 
@@ -38,7 +38,6 @@ public class ListObjectsParameters {
 	private boolean showAllVers = false;
 	private boolean includeMetaData = false;
 	private boolean excludeGlobal = false;
-	private int skip = -1;
 	private int limit = MAX_INFO_COUNT;
 	
 	/** Create a set of parameters for calling the list objects method.
@@ -367,27 +366,6 @@ public class ListObjectsParameters {
 		return this;
 	}
 
-	/** Get the number of objects to skip before listing objects.
-	 * @return the number of objects to skip.
-	 */
-	public int getSkip() {
-		return skip;
-	}
-
-	/** Get the number of objects to skip before listing objects.
-	 * If skip < 0, skip is set to 0.
-	 * @param skip the number of objects to skip.
-	 * @return this ListObjectsParameters instance.
-	 */
-	public ListObjectsParameters withSkip(final int skip) {
-		if (skip < 0) {
-			this.skip = 0;
-		} else {
-			this.skip = skip;
-		}
-		return this;
-	}
-
 	/** Get the maximum number of objects to list.
 	 * @return the maximum number of objects to list.
 	 */
@@ -417,7 +395,7 @@ public class ListObjectsParameters {
 		return new GetObjectInformationParameters(
 				perms, type, savers, meta, after, before, minObjectID,
 				maxObjectID, showHidden, showDeleted, showOnlyDeleted,
-				showAllVers, includeMetaData, skip, limit);
+				showAllVers, includeMetaData, limit);
 		
 	}
 }

@@ -1,5 +1,8 @@
 package us.kbase.workspace.test;
 
+import static us.kbase.common.test.TestCommon.getProp;
+import static us.kbase.common.test.TestCommon.destroyDB;
+
 import java.net.URL;
 
 import us.kbase.common.test.TestException;
@@ -10,65 +13,14 @@ import com.mongodb.DBObject;
 
 public class WorkspaceTestCommon {
 	
-	public static final String SHOCKEXE = "test.shock.exe";
-	public static final String SHOCKVER = "test.shock.version";
-	public static final String MONGOEXE = "test.mongo.exe";
-	public static final String MONGO_USE_WIRED_TIGER = "test.mongo.useWiredTiger";
-	public static final String MYSQLEXE = "test.mysql.exe";
-	public static final String MYSQL_INSTALL_EXE = "test.mysql.install.exe";
 	public static final String PLACKUPEXE = "test.plackup.exe";
 	public static final String HANDLE_SRV_PSGI = "test.handle.service.psgi";
 	public static final String HANDLE_MGR_PSGI = "test.handle.manager.psgi";
 	public static final String HANDLE_PERL5LIB = "test.handle.PERL5LIB";
 	
-	public static final String TEST_TEMP_DIR = "test.temp.dir";
-	public static final String KEEP_TEMP_DIR = "test.temp.dir.keep";
 	public static final String GRIDFS = "gridFS";
 	public static final String SHOCK = "shock";
 			
-	public static void stfuLoggers() {
-		((ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory
-				.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))
-			.setLevel(ch.qos.logback.classic.Level.OFF);
-		java.util.logging.Logger.getLogger("com.mongodb")
-			.setLevel(java.util.logging.Level.OFF);
-	}
-	
-	public static void printJava() {
-		System.out.println("Java: " + System.getProperty("java.runtime.version"));
-	}
-	
-	private static String getProp(String prop) {
-		if (System.getProperty(prop) == null || prop.isEmpty()) {
-			throw new TestException("Property " + prop + " cannot be null or the empty string.");
-		}
-		return System.getProperty(prop);
-	}
-	
-	public static String getTempDir() {
-		return getProp(TEST_TEMP_DIR);
-	}
-	
-	public static String getMongoExe() {
-		return getProp(MONGOEXE);
-	}
-	
-	public static String getShockExe() {
-		return getProp(SHOCKEXE);
-	}
-	
-	public static String getShockVersion() {
-		return getProp(SHOCKVER);
-	}
-
-	public static String getMySQLExe() {
-		return getProp(MYSQLEXE);
-	}
-	
-	public static String getMySQLInstallExe() {
-		return getProp(MYSQL_INSTALL_EXE);
-	}
-	
 	public static String getPlackupExe() {
 		return getProp(PLACKUPEXE);
 	}
@@ -85,14 +37,6 @@ public class WorkspaceTestCommon {
 		return getProp(HANDLE_PERL5LIB);
 	}
 	
-	public static boolean deleteTempFiles() {
-		return !"true".equals(System.getProperty(KEEP_TEMP_DIR));
-	}
-	
-	public static boolean useWiredTigerEngine() {
-		return "true".equals(System.getProperty(MONGO_USE_WIRED_TIGER));
-	}
-	
 	//useful for tests starting a server with GFS as the backend
 	public static void initializeGridFSWorkspaceDB(DB mdb, String typedb) {
 		destroyWSandTypeDBs(mdb, typedb);
@@ -106,15 +50,6 @@ public class WorkspaceTestCommon {
 	public static void destroyWSandTypeDBs(DB mdb, String typedb) {
 		destroyDB(mdb);
 		destroyDB(mdb.getSisterDB(typedb));
-	}
-	
-	public static void destroyDB(DB db) {
-		for (String name: db.getCollectionNames()) {
-			if (!name.startsWith("system.")) {
-				// dropping collection also drops indexes
-				db.getCollection(name).remove(new BasicDBObject());
-			}
-		}
 	}
 	
 	//useful for tests starting a server with shock as the backend

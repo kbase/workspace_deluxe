@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -72,6 +73,7 @@ import us.kbase.workspace.WorkspacePermissions;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.zafarkhaja.semver.Version;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -85,7 +87,53 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.4.1"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0"));
+	}
+	
+	public void status() throws Exception {
+		final Map<String, Object> st = CLIENT1.status();
+		System.out.println(st);
+		
+		//top level items
+		assertThat("incorrect state", st.get("state"), is((Object) "OK"));
+		assertThat("incorrect message", st.get("message"), is((Object) "OK"));
+		// should throw an error if not a valid semver
+		Version.valueOf((String) st.get("version")); 
+		assertThat("incorrect git url", st.get("git_url"),
+				is((Object) "https://github.com/kbase/workspace_deluxe"));
+		checkMem(st.get("freemem"), "freemem");
+		checkMem(st.get("totalmem"), "totalmem");
+		checkMem(st.get("maxmem"), "maxmem");
+		
+		//deps
+		@SuppressWarnings("unchecked")
+		final List<Map<String, String>> deps =
+				(List<Map<String, String>>) st.get("dependencies");
+		assertThat("missing dependencies", deps.size(), is(2));
+		
+		final List<String> exp = new ArrayList<String>();
+		exp.add("MongoDB");
+		exp.add("GridFS");
+		final Iterator<String> expiter = exp.iterator();
+		final Iterator<Map<String, String>> gotiter = deps.iterator();
+		while (expiter.hasNext()) {
+			final Map<String, String> g = gotiter.next();
+			assertThat("incorrect name", (String) g.get("name"),
+					is(expiter.next()));
+			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
+			assertThat("incorrect message", g.get("message"),
+					is((Object) "OK"));
+			Version.valueOf((String) g.get("version"));
+		}
+	}
+	
+	private void checkMem(final Object num, final String name)
+			throws Exception {
+		if (num instanceof Integer) {
+			assertThat("bad " + name, (Integer) num > 0, is(true));
+		} else {
+			assertThat("bad " + name, (Long) num > 0, is(true));
+		}
 	}
 	
 	@Test
@@ -176,7 +224,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("created workspace without auth");
 		} catch (UnauthorizedException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("RPC method requires authentication but neither user nor token was set"));
+					is("RPC method requires authentication but credentials " +
+							"were not provided"));
 		}
 	}
 
@@ -221,6 +270,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 		Map<String, String> expected = new HashMap<String, String>();
 		expected.put(USER1, "a");
+		@SuppressWarnings("deprecation")
 		Map<String, String> perms = CLIENT1.getPermissions(new WorkspaceIdentity().withWorkspace("badperms"));
 		assertThat("Bad permissions were added to a workspace", perms, is(expected));
 		
@@ -228,6 +278,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		.withWorkspace("badperms").withNewPermission("n"));
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Test
 	public void permissions() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("permspriv")
@@ -308,7 +359,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("Permissions set correctly", perms, is(expected));
 		
 		//test setting perms on multiple users at same time
-		//TODO add clearCaches method to auth client & use here
+		//TODO TEST add clearCaches method to auth client & use here
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("n").withUsers(Arrays.asList(USER2, USER3)));
 		expected.remove(USER2);
@@ -349,6 +400,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withWorkspace("permsglob").withNewPermission("n"));
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Test
 	public void permissionsWithNoCreds() throws Exception {
 		/* Tests the case for getting permissions for a workspace without
@@ -385,6 +437,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withWorkspace("PnoCglob").withNewPermission("n"));
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Test
 	public void badIdent() throws Exception {
 		try {
@@ -1070,7 +1123,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				conn.setConnectTimeout(10000);
 				conn.setDoOutput(true);
 				conn.setRequestMethod("POST");
-				conn.setRequestProperty("Authorization", CLIENT1.getToken().toString());
+				conn.setRequestProperty("Authorization",
+						CLIENT1.getToken().getToken());
 				conn.getOutputStream().write(breq);
 				conn.getResponseCode();
 				InputStream is = conn.getInputStream();
@@ -1198,9 +1252,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkListObjectsDep("depsave", null, null, AUTH_USER2.getTokenString(), Arrays.asList(obj1, obj3));
 		
 		String invalidToken = AUTH_USER2.getTokenString() + "a";
-		String invalidTokenExp = "Token is invalid";
+		String invalidTokenExp =
+				"Login failed! Server responded with code 401 UNAUTHORIZED";
 		String badFormatToken = "borkborkbork";
-		String badFormatTokenExp = "Auth token is in the incorrect format, near 'borkborkbork'";
+		String badFormatTokenExp = "Login failed! Invalid token";
 		
 		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
 				.withWorkspace("depsave").withAuth(invalidToken),
@@ -1501,7 +1556,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
-	public void saveBigMeta() throws Exception {
+	public void metadataBig() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta"));
 
 		Map<String, Object> moredata = new HashMap<String, Object>();
@@ -1788,9 +1843,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfoAndData(objs.get(1), copystack.get(1), "newclone", wsinfo.getE1(), "myname", 1L, 2);
 		
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo2 =
-				CLIENT1.cloneWorkspace(new CloneWorkspaceParams().withWorkspace("newclone2").withWsi(wssrc));
+				CLIENT1.cloneWorkspace(new CloneWorkspaceParams()
+					.withWorkspace("newclone2").withWsi(wssrc)
+					.withExclude(new LinkedList<ObjectIdentity>()));
 		checkWS(wsinfo2, wsinfo2.getE1(), wsinfo2.getE4(), "newclone2", USER1, 1, "a", "n", "unlocked", null, MT_META);
 		
+		wsinfo = CLIENT1.cloneWorkspace(new CloneWorkspaceParams()
+					.withWorkspace("newclone3").withWsi(wssrc)
+					.withExclude(Arrays.asList(new ObjectIdentity().withObjid(1L))));
+		assertThat("object exist in excluded clone", wsinfo.getE5(), is(0L));
 		
 		CloneWorkspaceParams cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity().withWorkspace("newclone"))
 				.withWorkspace("fake");
@@ -1811,6 +1872,19 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		} catch (ServerException se) {
 			assertThat("correct exception msg", se.getLocalizedMessage(),
 					is("globalread must be n or r"));
+		}
+		
+		cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity()
+				.withWorkspace("newclone"))
+				.withExclude(Arrays.asList(new ObjectIdentity().withName("bar"),
+						new ObjectIdentity().withName("foo")
+						.withObjid(1L)));
+		try {
+			CLIENT1.cloneWorkspace(cpo);
+			fail("cloned with bad params");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getLocalizedMessage(),
+					is("Error with excluded object #2: Must provide one and only one of object name (was: foo) or id (was: 1)"));
 		}
 	}
 	
@@ -2369,7 +2443,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
-	public void listObjectsPagination() throws Exception {
+	public void listObjectsLimit() throws Exception {
 		String ws = "pagination";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws));
 		
@@ -2382,19 +2456,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(objs));
 		
 		//this depends on the natural sort order of mongo
-		checkObjectPagination(ws, null, null, 1, 200);
-		checkObjectPagination(ws, -1L, 0L, 1, 200);
-		checkObjectPagination(ws, -1L, 50L, 1, 50);
-		checkObjectPagination(ws, 100L, 50L, 101, 150);
-		checkObjectPagination(ws, 100L, 100L, 101, 200);
-		checkObjectPagination(ws, 150L, 100L, 151, 200);
-		checkObjectPagination(ws, 150L, 1L, 151, 151);
-		checkObjectPagination(ws, 200L, -1L, 2, 1); //hack
+		checkObjectPagination(ws, null, 1, 200);
+		checkObjectPagination(ws, 0L, 1, 200);
+		checkObjectPagination(ws, 1L, 1, 1);
+		checkObjectPagination(ws, 50L, 1, 50);
+		checkObjectPagination(ws, 200L, 1, 200);
+		checkObjectPagination(ws, 201L, 1, 200);
 		
 		failListObjects(Arrays.asList(ws), null, null, null, null, 0L, 0L,
-				0L, 0L, 4000000000L, 1L, "Skip can be no greater than 2147483647");
-		failListObjects(Arrays.asList(ws), null, null, null, null, 0L, 0L,
-				0L, 0L, 1L, 4000000000L, "Limit can be no greater than 2147483647");
+				0L, 0L, 4000000000L, "Limit can be no greater than 2147483647");
 	}
 	
 	@Test
@@ -2771,7 +2841,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.set(0, new ObjectIdentity().withRef("referingobjs/std/2"));
 		try {
 			@SuppressWarnings({ "deprecation", "unused" })
-			List<Long> refcnts2 = CLIENT1.listReferencingObjectCounts(loi);
+			List<Long> foo = CLIENT1.listReferencingObjectCounts(loi);
 			fail("got ref counts with bad obj id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
@@ -3100,12 +3170,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		adminParams.put("params", ws);
 		@SuppressWarnings("unchecked")
 		Map<String, String> res = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
-		assertThat("admin gets correct params", res, is(CLIENT1.getPermissions(ws)));
+		assertThat("admin gets correct params", res, is(CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0)));
 		
 		adminParams.put("user", USER2);
 		@SuppressWarnings("unchecked")
 		Map<String, String> res2 = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
-		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissions(ws)));
+		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissionsMass(gPM(ws)).getPerms().get(0)));
 		
 		adminParams.put("user", "thisisacrazykbaseuserthatdoesntexistforsure");
 		failAdmin(CLIENT2, adminParams, "User thisisacrazykbaseuserthatdoesntexistforsure is not a valid user");
@@ -3121,14 +3191,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		Map<String, String> expected = new HashMap<String, String>();
 		expected.put(USER1, "a");
-		assertThat("admin set global perm correctly", CLIENT1.getPermissions(ws),
+		assertThat("admin set global perm correctly", CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0),
 				is(expected));
 		
 		adminParams.put("params", new SetGlobalPermissionsParams()
 				.withWorkspace(wsstr).withNewPermission("r"));
 		CLIENT2.administer(new UObject(adminParams));
 		expected.put("*", "r");
-		assertThat("admin set global perm correctly", CLIENT1.getPermissions(ws),
+		assertThat("admin set global perm correctly", CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0),
 				is(expected));
 		
 		adminParams.put("user", USER2);
@@ -3139,7 +3209,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 		CLIENT2.administer(new UObject(adminParams));
 		expected.put(USER2, "w");
-		assertThat("admin set perm correctly", CLIENT1.getPermissions(ws),
+		assertThat("admin set perm correctly", CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0),
 				is(expected));
 		
 		Map<String, Object> setWSownerParams = new HashMap<String, Object>();
@@ -3162,6 +3232,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception", se.getMessage(),
 					is("newUser cannot be null"));
 		}
+	}
+
+	private GetPermissionsMassParams gPM(WorkspaceIdentity ws) {
+		return new GetPermissionsMassParams().withWorkspaces(Arrays.asList(ws));
 	}
 	
 	@Test

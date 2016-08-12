@@ -133,8 +133,9 @@ module Workspace {
 		ws_name workspace - name of the workspace.
 		username owner - name of the user who owns (e.g. created) this workspace.
 		timestamp moddate - date when the workspace was last modified.
-		int objects - the number of objects created in this workspace,
-			including objects that have been deleted.
+		int max_objid - the maximum object ID appearing in this workspace.
+			Since cloning a workspace preserves object IDs, this number may be
+			greater than the number of objects in a newly cloned workspace.
 		permission user_permission - permissions for the authenticated user of
 			this workspace.
 		permission globalread - whether this workspace is globally readable.
@@ -144,7 +145,7 @@ module Workspace {
 			
 	*/
 	typedef tuple<ws_id id, ws_name workspace, username owner, timestamp moddate,
-		int object, permission user_permission, permission globalread,
+		int max_objid, permission user_permission, permission globalread,
 		lock_status lockstat, usermeta metadata> workspace_info;
 		
 	/* The unique, permanent numerical ID of an object. */
@@ -356,6 +357,8 @@ module Workspace {
 		usermeta metadata - arbitrary user-supplied metadata about
 			the object.
 		obj_id objid - the numerical id of the object.
+		
+		@deprecated object_info
 	*/
 	typedef tuple<obj_name id, type_string type, timestamp moddate,
 		int instance, string command, username lastmodifier, username owner,
@@ -598,6 +601,10 @@ module Workspace {
 			characters max. Longer strings will be mercilessly and brutally
 			truncated.
 		usermeta meta - arbitrary user-supplied metadata for the workspace.
+		list<ObjectIdentity> exclude - exclude the specified objects from the
+			cloned workspace. Either an object ID or a object name must be
+			specified in each ObjectIdentity - any supplied reference strings,
+			workspace names or IDs, and versions are ignored. 
 	*/
 	typedef structure { 
 		WorkspaceIdentity wsi;
@@ -605,6 +612,7 @@ module Workspace {
 		permission globalread;
 		string description;
 		usermeta meta;
+		list<ObjectIdentity> exclude;
 	} CloneWorkspaceParams;
 	
 	/*
@@ -764,6 +772,7 @@ module Workspace {
 	
 	/* 
 		Get permissions for a workspace.
+		@deprecated get_permissions_mass
 	*/
 	funcdef get_permissions(WorkspaceIdentity wsi) returns
 		(mapping<username, permission> perms) authentication optional;
@@ -1086,7 +1095,7 @@ module Workspace {
 		
 	/*
 		DEPRECATED
-		
+
 		List the number of times objects have been referenced.
 		
 		This count includes both provenance and object-to-object references
@@ -1280,8 +1289,6 @@ module Workspace {
 			metadata will be null.
 		boolean excludeGlobal - exclude objects in global workspaces. This
 			parameter only has an effect when filtering by types alone.
-		int skip - DEPRECATED. Skip the first X objects. Maximum value is 2^31,
-			skip values < 0 are treated as 0, the default.
 		int limit - limit the output to X objects. Default and maximum value
 			is 10000. Limit values < 1 are treated as 10000, the default.
 		
@@ -1305,7 +1312,6 @@ module Workspace {
 		boolean showAllVersions;
 		boolean includeMetadata;
 		boolean excludeGlobal;
-		int skip;
 		int limit;
 	} ListObjectsParams;
 	

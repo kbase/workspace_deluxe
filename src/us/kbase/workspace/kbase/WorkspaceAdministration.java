@@ -187,7 +187,7 @@ public class WorkspaceAdministration {
 		if (SET_PERMISSIONS.equals(fn)) {
 			final SetPermissionsParams params = getParams(cmd,
 					SetPermissionsParams.class);
-			//TODO maybe set perms should return wsinfo so can provide ID vs. name
+			//TODO FEATURE maybe set perms should return wsinfo so can provide ID vs. name
 			getLogger().info(SET_PERMISSIONS + " " + params.getId() + " " +
 					params.getWorkspace() + " " + params.getNewPermission() +
 					" " + StringUtils.join(params.getUsers(), " "));
@@ -198,7 +198,7 @@ public class WorkspaceAdministration {
 			final WorkspaceIdentity params = getParams(cmd,
 					WorkspaceIdentity.class);
 			final WorkspaceUser user = getUser(cmd);
-			//TODO would be better if could provide ID vs. name
+			//TODO FEATURE would be better if could provide ID vs. name
 			getLogger().info(GET_PERMISSIONS + " " + params.getId() + " " +
 					params.getWorkspace() + " " + user.getUser());
 			return wsmeth.getPermissions(params, user);
@@ -207,7 +207,7 @@ public class WorkspaceAdministration {
 			final SetGlobalPermissionsParams params = getParams(cmd,
 					SetGlobalPermissionsParams.class);
 			final WorkspaceUser user = getUser(cmd);
-			//TODO would be better if could provide ID vs. name
+			//TODO FEATURE would be better if could provide ID vs. name
 			getLogger().info(SET_GLOBAL_PERMISSION + " " + params.getId() +
 					" " + params.getWorkspace() + " " +
 					params.getNewPermission() + " " + user.getUser());

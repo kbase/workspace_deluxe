@@ -1,4 +1,4 @@
-package us.kbase.typedobj.util;
+package us.kbase.common.utils;
 
 /**
  * A simple counter class that can be initialized to
@@ -7,7 +7,7 @@ package us.kbase.typedobj.util;
  * see http://www.cs.duke.edu/csed/ap/subset/code/Counter.html
  */
 
-//TODO move to common
+//TODO MOVE move to common
 
 public class Counter
 {

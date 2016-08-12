@@ -6,7 +6,6 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -26,12 +25,16 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.productivity.java.syslog4j.SyslogIF;
 
+import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthToken;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.JsonServerSyslog;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.service.JsonServerSyslog.SyslogOutput;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.workspace.CopyObjectParams;
@@ -64,8 +67,12 @@ import com.mongodb.MongoClient;
  */
 public class LoggingTest {
 	
-	//TODO it'd be nice if JsonServerServlet integrated with slf4j
-
+	private static final String ARGUTILS = "us.kbase.workspace.kbase.ArgUtils";
+	private static final String SERV =
+			"us.kbase.workspace.WorkspaceServer";
+	private static final String ADMIN =
+			"us.kbase.workspace.kbase.WorkspaceAdministration";
+	
 	private static final String DB_WS_NAME = "LoggingTest";
 	private static final String DB_TYPE_NAME = "LoggingTest_Types";
 	
@@ -88,19 +95,24 @@ public class LoggingTest {
 	public static void setUpClass() throws Exception {
 		logout = new SysLogOutputMock();
 		
-		USER1 = System.getProperty("test.user1");
-		USER2 = System.getProperty("test.user2");
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		final AuthToken t1 = TestCommon.getToken(1, auth);
+		final AuthToken t2 = TestCommon.getToken(2, auth);
+		
+		USER1 = t1.getUserName();
+		USER2 = t2.getUserName();
 		if (USER1.equals(USER2)) {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2), " "));
 		}
-		String p1 = System.getProperty("test.pwd1");
-		String p2 = System.getProperty("test.pwd2");
+		String p1 = TestCommon.getPwdNullIfToken(1);
 		
 //		WorkspaceTestCommon.stfuLoggers();
-		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				WorkspaceTestCommon.useWiredTigerEngine());
+		mongo = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
@@ -108,20 +120,20 @@ public class LoggingTest {
 		
 		SERVER = startupWorkspaceServer(mongohost,
 				mongoClient.getDB(DB_WS_NAME), 
-				DB_TYPE_NAME, p1);
+				DB_TYPE_NAME, p1, t1);
 		SERVER.changeSyslogOutput(logout);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		try {
 			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
-					USER1, p1);
+					t1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
 			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
-					USER2, p2);
+					t2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
@@ -156,19 +168,6 @@ public class LoggingTest {
 		CLIENT1.releaseModule("SomeModule");
 	}
 	
-	//TODO move to common, used everywhere
-	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
-	@SuppressWarnings("unchecked")
-	protected static Map<String, String> getenv() throws NoSuchFieldException,
-			SecurityException, IllegalArgumentException,
-			IllegalAccessException {
-		Map<String, String> unmodifiable = System.getenv();
-		Class<?> cu = unmodifiable.getClass();
-		Field m = cu.getDeclaredField("m");
-		m.setAccessible(true);
-		return (Map<String, String>) m.get(unmodifiable);
-	}
-
 	public static void administerCommand(WorkspaceClient client,
 			String command, String... params)
 			throws IOException, JsonClientException {
@@ -179,14 +178,18 @@ public class LoggingTest {
 		client.administer(new UObject(releasemod));
 	}
 	
-	private static WorkspaceServer startupWorkspaceServer(String mongohost,
-			DB db, String typedb, String user1Password)
+	private static WorkspaceServer startupWorkspaceServer(
+			final String mongohost,
+			final DB db,
+			final String typedb,
+			final String pwd,
+			final AuthToken t)
 			throws Exception {
 		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
@@ -196,18 +199,24 @@ public class LoggingTest {
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
+		ws.add("auth-service-url", TestCommon.getAuthUrl());
+		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
-		ws.add("kbase-admin-user", USER1);
-		ws.add("kbase-admin-pwd", user1Password);
-		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir())
+		if (pwd == null || pwd.isEmpty()) {
+			ws.add("kbase-admin-token", t.getToken());
+		} else {
+			ws.add("kbase-admin-user", USER1);
+			ws.add("kbase-admin-pwd", pwd);
+		}
+		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForLoggingTest"));
 		ws.add("ignore-handle-service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		
 		//set up env
-		Map<String, String> env = getenv();
+		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
@@ -230,7 +239,7 @@ public class LoggingTest {
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
 
@@ -239,7 +248,7 @@ public class LoggingTest {
 		logout.reset();
 		DB wsdb1 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 				DB_WS_NAME);
-		WorkspaceTestCommon.destroyDB(wsdb1);
+		TestCommon.destroyDB(wsdb1);
 	}
 	
 	private static class LogEvent {
@@ -287,22 +296,22 @@ public class LoggingTest {
 		public String method;
 		public String message;
 		public String user;
-		boolean internal;
+		public String caller;
 
 		public ExpectedLog(int level, String method, String message,
-				String user, boolean internal) {
+				String user, String caller) {
 			this.level = level;
 			this.method = method;
 			this.message = message;
 			this.user = user;
-			this.internal = internal;
+			this.caller = caller;
 		}
 	}
 	
 	private static class LogObjExp extends ExpectedLog {
 		
-		public LogObjExp(String method, String message, boolean internal) {
-			super(INFO, method, message, USER1, internal);
+		public LogObjExp(String method, String message, String caller) {
+			super(INFO, method, message, USER1, caller);
 		}
 	}
 	
@@ -343,9 +352,7 @@ public class LoggingTest {
 		long now = new Date().getTime();
 		assertThat("log date < 5s ago", now - epochms < 5000, is(true));
 		//3 is user running the service
-		assertThat("caller correct", headerParts[4],
-				is("us.kbase.workspace.WorkspaceServer" +
-						(exp.internal ? "$1" : "")));
+		assertThat("caller correct", headerParts[4], is(exp.caller));
 		//5 is pid
 		assertThat("ip correct", headerParts[6], is("127.0.0.1"));
 		assertThat("remote user correct", headerParts[7], is(exp.user));
@@ -381,14 +388,14 @@ public class LoggingTest {
 				.withWorkspace(ws)
 				.withObjects(d));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("save_objects", "start method", false),
+				new LogObjExp("save_objects", "start method", SERV),
 				new LogObjExp("save_objects",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("save_objects",
-						"Object 1/2/1 SomeModule.BType-1.0", true),
+						"Object 1/2/1 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("save_objects",
-						"Object 1/3/1 SomeModule.AType-1.0", true),
-				new LogObjExp("save_objects", "end method", false))));
+						"Object 1/3/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("save_objects", "end method", SERV))));
 		logout.reset();
 		
 		// rename
@@ -396,10 +403,10 @@ public class LoggingTest {
 				.withNewName("bak")
 				.withObj(new ObjectIdentity().withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("rename_object", "start method", false),
+				new LogObjExp("rename_object", "start method", SERV),
 				new LogObjExp("rename_object",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("rename_object", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("rename_object", "end method", SERV))));
 		logout.reset();
 		
 		// copy
@@ -407,32 +414,32 @@ public class LoggingTest {
 				.withFrom(new ObjectIdentity().withRef("1/2"))
 				.withTo(new ObjectIdentity().withRef("1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("copy_object", "start method", false),
+				new LogObjExp("copy_object", "start method", SERV),
 				new LogObjExp("copy_object",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
-				new LogObjExp("copy_object", "end method", false))));
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
+				new LogObjExp("copy_object", "end method", SERV))));
 		logout.reset();
 		
 		// revert
 		CLIENT1.revertObject(new ObjectIdentity().withRef("1/1/1"));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("revert_object", "start method", false),
+				new LogObjExp("revert_object", "start method", SERV),
 				new LogObjExp("revert_object",
-						"Object 1/1/3 SomeModule.AType-1.0", true),
-				new LogObjExp("revert_object", "end method", false))));
+						"Object 1/1/3 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("revert_object", "end method", SERV))));
 		logout.reset();
 		
 		// history
 		CLIENT1.getObjectHistory(new ObjectIdentity().withRef("1/1"));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_object_history", "start method", false),
+				new LogObjExp("get_object_history", "start method", SERV),
 				new LogObjExp("get_object_history",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
 				new LogObjExp("get_object_history",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_object_history",
-						"Object 1/1/3 SomeModule.AType-1.0", true),
-				new LogObjExp("get_object_history", "end method", false))));
+						"Object 1/1/3 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_object_history", "end method", SERV))));
 		logout.reset();
 		
 		// get info
@@ -441,12 +448,12 @@ public class LoggingTest {
 						new ObjectSpecification().withRef("1/1/2"),
 						new ObjectSpecification().withRef("1/1/1"))));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_object_info_new", "start method", false),
+				new LogObjExp("get_object_info_new", "start method", SERV),
 				new LogObjExp("get_object_info_new",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_object_info_new",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("get_object_info_new", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_object_info_new", "end method", SERV))));
 		logout.reset();
 		
 		//get objs2
@@ -455,12 +462,12 @@ public class LoggingTest {
 				new ObjectSpecification().withRef("1/1/2"),
 				new ObjectSpecification().withRef("1/1/1"))));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_objects2", "start method", false),
+				new LogObjExp("get_objects2", "start method", SERV),
 				new LogObjExp("get_objects2",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_objects2",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("get_objects2", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_objects2", "end method", SERV))));
 		logout.reset();
 		
 		// get objs
@@ -469,28 +476,28 @@ public class LoggingTest {
 				new ObjectIdentity().withRef("1/1/2"),
 				new ObjectIdentity().withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_objects", "start method", false),
+				new LogObjExp("get_objects", "start method", SERV),
 				new LogObjExp("get_objects",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_objects",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("get_objects", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_objects", "end method", SERV))));
 		logout.reset();
 		
 		// get subobjs
 		@SuppressWarnings({ "unused", "deprecation" })
 		List<ObjectData> objectSubset = CLIENT1.getObjectSubset(Arrays.asList(
-				new us.kbase.workspace.SubObjectIdentity().withIncluded(Arrays.asList("/"))
-						.withRef("1/1/2"),
-				new us.kbase.workspace.SubObjectIdentity().withIncluded(Arrays.asList("/"))
-						.withRef("1/1/1")));
+				new us.kbase.workspace.SubObjectIdentity()
+						.withIncluded(Arrays.asList("/")).withRef("1/1/2"),
+				new us.kbase.workspace.SubObjectIdentity()
+						.withIncluded(Arrays.asList("/")).withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_object_subset", "start method", false),
+				new LogObjExp("get_object_subset", "start method", SERV),
 				new LogObjExp("get_object_subset",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_object_subset",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("get_object_subset", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_object_subset", "end method", SERV))));
 		logout.reset();
 		
 		// get prov
@@ -500,12 +507,12 @@ public class LoggingTest {
 				new ObjectIdentity().withRef("1/1/2"),
 				new ObjectIdentity().withRef("1/1/1")));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_object_provenance", "start method", false),
+				new LogObjExp("get_object_provenance", "start method", SERV),
 				new LogObjExp("get_object_provenance",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
 				new LogObjExp("get_object_provenance",
-						"Object 1/1/1 SomeModule.AType-1.0", true),
-				new LogObjExp("get_object_provenance", "end method", false))));
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_object_provenance", "end method", SERV))));
 		logout.reset();
 		
 		// get ref'd objects
@@ -525,10 +532,10 @@ public class LoggingTest {
 				new ObjectIdentity().withRef("1/ref/1"),
 				new ObjectIdentity().withRef("1/1/2"))));
 		checkLogging(convertLogObjExp(Arrays.asList(
-				new LogObjExp("get_referenced_objects", "start method", false),
+				new LogObjExp("get_referenced_objects", "start method", SERV),
 				new LogObjExp("get_referenced_objects",
-						"Object 1/1/2 SomeModule.BType-1.0", true),
-				new LogObjExp("get_referenced_objects", "end method", false))));
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
+				new LogObjExp("get_referenced_objects", "end method", SERV))));
 		logout.reset();
 										
 	}
@@ -543,8 +550,8 @@ public class LoggingTest {
 	
 	private static class AdminExp extends ExpectedLog {
 		
-		public AdminExp(String message, boolean internal) {
-			super(INFO, "administer", message, USER2, internal);
+		public AdminExp(String message, String caller) {
+			super(INFO, "administer", message, USER2, caller);
 		}
 	}
 	
@@ -566,27 +573,27 @@ public class LoggingTest {
 		ac.put("user", USER1);
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("addAdmin " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("addAdmin " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// remove
 		ac.put("command", "removeAdmin");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("removeAdmin " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("removeAdmin " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// list
 		ac.put("command", "listAdmins");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("listAdmins", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("listAdmins", ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 	}
@@ -599,9 +606,9 @@ public class LoggingTest {
 		ac.put("command", "listModRequests");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("listModRequests", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("listModRequests", ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// approve
@@ -611,9 +618,9 @@ public class LoggingTest {
 		ac.put("module", "suckmaster");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("approveModRequest suckmaster", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("approveModRequest suckmaster", ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// approve
@@ -623,9 +630,9 @@ public class LoggingTest {
 		ac.put("module", "burstingfoam");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("denyModRequest burstingfoam", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("denyModRequest burstingfoam", ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// add owner
@@ -636,9 +643,10 @@ public class LoggingTest {
 		ac.put("params", params);
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("grantModuleOwnership suckmaster " + USER2, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("grantModuleOwnership suckmaster " + USER2,
+						ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// remove owner
@@ -649,9 +657,10 @@ public class LoggingTest {
 		ac.put("params", params);
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("removeModuleOwnership suckmaster " + USER2, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("removeModuleOwnership suckmaster " + USER2,
+						ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 	}
 	
@@ -674,18 +683,18 @@ public class LoggingTest {
 		ac.put("params", params);
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("setWorkspaceOwner 1 " + USER2, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("setWorkspaceOwner 1 " + USER2, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// list owners
 		ac.put("command", "listWorkspaceOwners");
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("listWorkspaceOwners", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("listWorkspaceOwners", ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 	}
@@ -701,9 +710,9 @@ public class LoggingTest {
 		ac.put("params", new CreateWorkspaceParams().withWorkspace(ws));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("createWorkspace 1 " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("createWorkspace 1 " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// set perms
@@ -714,10 +723,10 @@ public class LoggingTest {
 				.withNewPermission("w"));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
+				new AdminExp("start method", SERV),
 				new AdminExp("setPermissions null myws w " + USER1 + " " +
-						USER2, true),
-				new AdminExp("end method", false))));
+						USER2, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		ac.put("params", new SetPermissionsParams().withId(1L)
@@ -725,9 +734,9 @@ public class LoggingTest {
 				.withNewPermission("a"));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("setPermissions 1 null a " + USER2, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("setPermissions 1 null a " + USER2, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// get perms
@@ -736,17 +745,17 @@ public class LoggingTest {
 		ac.put("params", new WorkspaceIdentity().withWorkspace(ws));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("getPermissions null myws " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("getPermissions null myws " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		ac.put("params", new WorkspaceIdentity().withId(1L));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("getPermissions 1 null " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("getPermissions 1 null " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// set global
@@ -756,18 +765,19 @@ public class LoggingTest {
 				.withNewPermission("r"));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("setGlobalPermission null myws r " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("setGlobalPermission null myws r " + USER1,
+						ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		ac.put("params", new SetGlobalPermissionsParams().withId(1L)
 				.withNewPermission("n"));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("setGlobalPermission 1 null n " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("setGlobalPermission 1 null n " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// save objs
@@ -780,10 +790,10 @@ public class LoggingTest {
 						.withType(ATYPE))));
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("saveObjects " + USER1, true),
-				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("saveObjects " + USER1, ADMIN),
+				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 		// list ws
@@ -792,9 +802,9 @@ public class LoggingTest {
 		ac.put("params", new ListWorkspaceInfoParams());
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
-				new AdminExp("start method", false),
-				new AdminExp("listWorkspaces " + USER1, true),
-				new AdminExp("end method", false))));
+				new AdminExp("start method", SERV),
+				new AdminExp("listWorkspaces " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
 		logout.reset();
 		
 	}

@@ -4,7 +4,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,27 +17,30 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.LocalTypeProvider;
+import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 public class TypedObjectValidationReportTest {
 	
@@ -57,9 +59,10 @@ public class TypedObjectValidationReportTest {
 	@BeforeClass
 	public static void setupTypeDB() throws Exception {
 		//ensure test location is available
-		final Path temppath = Paths.get(WorkspaceTestCommon.getTempDir());
+		final Path temppath = Paths.get(TestCommon.getTempDir());
 		Files.createDirectories(temppath);
-		tempdir = Files.createTempDirectory(temppath, "TypedObjectValReportTest");
+		tempdir = Files.createTempDirectory(temppath,
+				"TypedObjectValReportTest");
 		System.out.println("setting up temporary typed obj database");
 
 		// point the type definition db to point there
@@ -108,7 +111,7 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"m\": {\"z\": 1, \"b\": []}}";
 		
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"),
 				fac.createHandlers(String.class).associateObject("foo"));
 		List<String> errors = Arrays.asList(
@@ -142,7 +145,7 @@ public class TypedObjectValidationReportTest {
 						new HashMap<String, String>()));
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
 		
@@ -154,7 +157,7 @@ public class TypedObjectValidationReportTest {
 					is("Sorter factory cannot be null"));
 		}
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		try {
 			tovr.sort(null, tfm);
 			fail("sorted with no factory");
@@ -170,7 +173,7 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"m\": {\"c\": \"a\", \"z\": \"d\"}," +
 						"\"att\":[\"a1\", 3, \"a1\", \"a2\", \"a1\"]," +
 						"\"att2\":[\"b1\", 3, \"b2\", \"b3\", \"b4\"]}";
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), 
 				new IdReferenceHandlerSetFactory(1).createHandlers(String.class));
 		
@@ -209,7 +212,7 @@ public class TypedObjectValidationReportTest {
 		checkIDLocation(tovr, foo2Type, "b4", attrib1, null);
 	}
 
-	private void checkIDLocation(TypedObjectValidationReport tovr,
+	private void checkIDLocation(ValidatedTypedObject tovr,
 			IdReferenceType wsType, final String id, List<String> mtAttribs,
 			String expectedLoc) throws IOException {
 		JsonDocumentLocation loc = tovr.getIdReferenceLocation(
@@ -230,6 +233,7 @@ public class TypedObjectValidationReportTest {
 	
 	@Test
 	public void writeWithoutSort() throws Exception {
+		// test objects that do not require a sort
 		String json = "{\"m\": {\"c\": \"a\", \"z\": \"d\"}}";
 		String expectedJson = "{\"m\":{\"c\":\"a\",\"y\":\"whoop\"}}";
 		Map<String, String> refmap = new HashMap<String, String>();
@@ -238,29 +242,60 @@ public class TypedObjectValidationReportTest {
 		refmap.put("c", "c");
 		refmap.put("a", "a");
 		
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
-		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
+		IdReferenceHandlerSetFactory fac =
+				new IdReferenceHandlerSetFactory(100);
+		fac.addFactory(new DummyIdHandlerFactory(
+				new IdReferenceType("ws"), refmap));
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 
-		TypedObjectValidationReport tovr = validator.validate(json,
+		TempFilesManager tfm = new TempFilesManager(
+				new File(TestCommon.getTempDir()));
+		tfm.cleanup();
+		// in memory
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
-		tovr.getRelabeledSize();
-		ByteArrayOutputStream o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
+		failGetRelabeledSize(tovr);
+		failGetMD5(tovr);
+		assertThat("incorrect size", tovr.calculateRelabeledSize(), is(27L));
+		assertThat("incorrect size", tovr.getRelabeledSize(), is(27L));
+		failGetMD5(tovr);
+		// uses the naturally sorted path
+		tovr.sort(SORT_FAC);
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
+		String gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel correctly without sort", gotjson,
+				is(expectedJson));
+		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 		
-		
-		//sort unnecessarily
+		// in file
 		handlers = fac.createHandlers(String.class).associateObject("foo");
+		tfm.cleanup();
 		tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
-		tovr.sort(SORT_FAC);
-		o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel correctly with unecessary sort", o.toString("UTF-8"), is(expectedJson));
+		// uses the naturally sorted path
+		tovr.sort(SORT_FAC, tfm);
+		assertThat("incorrect size", tovr.getRelabeledSize(), is(27L));
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
+		gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel correctly without sort", gotjson,
+				is(expectedJson));
+		tovr.destroyCachedResources();
+		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
+	}
+
+	private void failGetMD5(ValidatedTypedObject tovr) {
+		try {
+			tovr.getMD5();
+			fail("got md5 for unsorted data");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must call sort() before getting the MD5"));
+		}
 	}
 
 	@Test
@@ -268,17 +303,23 @@ public class TypedObjectValidationReportTest {
 		String json = "{\"z\": \"a\", \"b\": \"d\"}";
 		String expectedJson = "{\"b\":\"d\",\"z\":\"a\"}";
 
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
+		IdReferenceHandlerSetFactory fac =
+				new IdReferenceHandlerSetFactory(100);
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
+		failGetMD5(tovr);
 		tovr.sort(SORT_FAC);
-		ByteArrayOutputStream o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel correctly without sort", o.toString("UTF-8"), is(expectedJson));
+		assertThat("incorrect size", tovr.getRelabeledSize(), is(17L));
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("16903d0745c0f47a90d92d1abd535b12")));
+		
+		String gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel correctly without sort", gotjson,
+				is(expectedJson));
 	}
 
 	@Test
@@ -297,17 +338,17 @@ public class TypedObjectValidationReportTest {
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		//sort via sort() method in memory
 		handlers.processIDs();
 		try {
-			tovr.createJsonWritable();
-			fail("created a writable on non-naturally sorted data");
+			tovr.getInputStream();
+			fail("created an inputstream on unsorted data");
 		} catch (IllegalStateException ise) {
 			assertThat("correct exception message on failing to write",
 					ise.getLocalizedMessage(),
-					is("You must call sort() prior to creating a Writeable."));
+					is("You must call sort() prior to accessing the object data."));
 		}
 	}
 	
@@ -325,18 +366,22 @@ public class TypedObjectValidationReportTest {
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
+		TempFilesManager tfm = new TempFilesManager(
+				new File(TestCommon.getTempDir()));
+		UTF8JsonSorterFactory sfac = new UTF8JsonSorterFactory(225);
 		try {
-			tovr.sort(SORT_FAC);
+			tovr.sort(sfac, tfm);
 			fail("sorting didn't detect duplicate keys");
 		} catch (KeyDuplicationException kde){
 			assertThat("correct exception message", kde.getLocalizedMessage(),
 					is("Duplicated key 'b' was found at /m"));
 		}
+		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 	}
-
+	
 	@Test
 	public void relabelAndSortInMemAndFile() throws Exception {
 		String json = "{\"m\": {\"z\": \"a\", \"b\": \"d\"}}";
@@ -347,21 +392,41 @@ public class TypedObjectValidationReportTest {
 		refmap.put("a", "a");
 		refmap.put("b", "b");
 		
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
-		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"), refmap));
+		IdReferenceHandlerSetFactory fac =
+				new IdReferenceHandlerSetFactory(100);
+		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
+				refmap));
 		IdReferenceHandlerSet<String> handlers =
 				fac.createHandlers(String.class).associateObject("foo");
 		
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
+		assertThat("incorrect typedef", tovr.getValidationTypeDefId(),
+				is(AbsoluteTypeDefId.fromAbsoluteTypeString(
+						"TestIDMap.IDMap-1.0")));
+		try {
+			tovr.calculateRelabeledSize();
+			fail("calculated size w/o processed IDs");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must process IDs in handler prior to relabling"));
+		}
 		handlers.processIDs();
 		
+		failGetRelabeledSize(tovr);
+		
 		//sort via sort() method in memory
+		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
 		assertThat("correct object size", tovr.getRelabeledSize(), is(27L));
+		// check twice, result is memoized
+		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
+		failGetMD5(tovr);
 		tovr.sort(SORT_FAC);
-		ByteArrayOutputStream o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"), is(expectedJson));
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("920d54af26c56df84e4c4df358952138")));
+		String gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel and sort in memory correctly", gotjson,
+				is(expectedJson));
 		
 		//sort via sort(TFM) method with null TFM, again in memory
 		handlers = fac.createHandlers(String.class).associateObject("foo");
@@ -370,9 +435,11 @@ public class TypedObjectValidationReportTest {
 		handlers.processIDs();
 		
 		tovr.sort(SORT_FAC, null);
-		o = new ByteArrayOutputStream();
-		tovr.createJsonWritable().write(o);
-		assertThat("Relabel and sort in memory correctly", o.toString("UTF-8"), is(expectedJson));
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("920d54af26c56df84e4c4df358952138")));
+		gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel and sort in memory correctly", gotjson,
+				is(expectedJson));
 		
 		//sort via sort(TFM) method with data stored in file
 		handlers = fac.createHandlers(String.class).associateObject("foo");
@@ -381,38 +448,52 @@ public class TypedObjectValidationReportTest {
 		handlers.processIDs();
 
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		tfm.cleanup();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 		tovr.sort(SORT_FAC, tfm);
 		assertThat("TFM is no longer empty", tfm.isEmpty(), is(false));
 		assertThat("TFM has one file", tfm.getTempFileList().size(), is(1));
-		o = new ByteArrayOutputStream();
-		Writable w = tovr.createJsonWritable();
-		w.write(o);
-		assertThat("Relabel and in file correctly", o.toString("UTF-8"), is(expectedJson));
-		w.releaseResources();
+		assertThat("incorrect md5", tovr.getMD5(),
+				is(new MD5("920d54af26c56df84e4c4df358952138")));
+		gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
+		assertThat("Relabel and in file correctly", gotjson,
+				is(expectedJson));
+		tovr.destroyCachedResources();
 		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
+	}
+
+	private void failGetRelabeledSize(ValidatedTypedObject tovr) {
+		try {
+			tovr.getRelabeledSize();
+			fail("got relabled size before calculation");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must call calculateRelabeledSize() before getting said size"));
+		}
 	}
 
 	@Test
 	public void keySize() throws Exception {
 		String json = "{\"z\":\"a\",\"b\":\"d\"}";
 		
-		IdReferenceHandlerSetFactory hfac = new IdReferenceHandlerSetFactory(100);
+		IdReferenceHandlerSetFactory hfac =
+				new IdReferenceHandlerSetFactory(100);
 		IdReferenceHandlerSet<String> handlers =
 				hfac.createHandlers(String.class).associateObject("foo");
-		TypedObjectValidationReport tovr = validator.validate(json,
+		ValidatedTypedObject tovr = validator.validate(json,
 				new TypeDefId("TestIDMap.IDMap"), handlers);
 		handlers.processIDs();
 		
 		int maxmem = 8 + 64 + 8 + 64;
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(maxmem);
 		
 		//test with json stored in file
 		tovr.sort(fac, tfm); //should work
+		tovr.destroyCachedResources();
+		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 		maxmem--;
 		fac = new UTF8JsonSorterFactory(maxmem);
 		try {
@@ -423,6 +504,7 @@ public class TypedObjectValidationReportTest {
 					is("Memory necessary for sorting map keys exceeds the limit " +
 					maxmem + " bytes at /"));
 		}
+		assertThat("Temp files manager is empty", tfm.isEmpty(), is(true));
 		
 		//test with json stored in memory
 		int filelength = json.getBytes("UTF-8").length;

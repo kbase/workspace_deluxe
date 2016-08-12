@@ -19,7 +19,7 @@ public interface WorkspaceDatabase {
 	
 	public String getBackendType();
 	
-	//TODO return workspace info insted of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
+	//TODO CODE return workspace info insted of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
 	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
@@ -59,11 +59,33 @@ public interface WorkspaceDatabase {
 	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
 			throws WorkspaceCommunicationException;
 	
-	public WorkspaceInformation cloneWorkspace(WorkspaceUser user,
-			ResolvedWorkspaceID wsid, String newname, boolean globalread,
-			String description, WorkspaceUserMetadata meta)
+	/** Clone a workspace.
+	 * @param user the user cloning the workspace
+	 * @param wsid the ID of the workspace to be cloned.
+	 * @param newname the name for the new workspace.
+	 * @param globalread whether the new workspace should be globally readable.
+	 * @param description the description of the new workspace.
+	 * @param meta the metadata of the new workspace.
+	 * @param exclude objects to exlude from the cloned workspace.
+	 * @return information about the new workspace
+	 * @throws PreExistingWorkspaceException if the workspace name already
+	 * exists.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is
+	 * corrupt.
+	 * @throws NoSuchObjectException if an excluded object doesn't exist.
+	 */
+	public WorkspaceInformation cloneWorkspace(
+			WorkspaceUser user,
+			ResolvedWorkspaceID wsid,
+			String newname,
+			boolean globalread,
+			String description,
+			WorkspaceUserMetadata meta,
+			Set<ObjectIDNoWSNoVer> exclude)
 			throws PreExistingWorkspaceException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+			WorkspaceCommunicationException, CorruptWorkspaceDBException,
+			NoSuchObjectException;
 	
 	public WorkspaceInformation lockWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid)
@@ -190,7 +212,13 @@ public interface WorkspaceDatabase {
 	
 	/** Get object data and provenance information from the workspace database.
 	 * @param objects the objects for which to retrieve data.
-	 * @param noData return provenance only if true.
+	 * @param dataManager the data manager. Reuse the same data manager over
+	 * multiple getObjects() calls to enforce limits on the combined returned
+	 * data. If null, only provenance information is returned.
+	 * @param usedDataAllocation the amount of data already pulled from prior
+	 * getObjects() calls. This amount will be added to the data amount pulled
+	 * this call and if the total exceeds the limit, an exception will be
+	 * thrown.
 	 * @param exceptIfDeleted throw an exception if deleted.
 	 * @param includeDeleted include information from deleted objects. Has no
 	 * effect if exceptIfDeleted is set.
@@ -207,7 +235,8 @@ public interface WorkspaceDatabase {
 	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
 			getObjects(
 					Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects,
-					boolean noData,
+					ByteArrayFileCacheManager dataManager,
+					long usedDataAllocation,
 					boolean exceptIfDeleted,
 					boolean includeDeleted,
 					boolean exceptIfMissing)
@@ -355,4 +384,9 @@ public interface WorkspaceDatabase {
 
 	public void setResourceUsageConfiguration(
 			ResourceUsageConfiguration rescfg);
+	
+	/** Returns the status of the databases' dependencies.
+	 * @return the dependency status.
+	 */
+	public List<DependencyStatus> status();
 }

@@ -31,6 +31,7 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
 import us.kbase.common.service.JsonTokenStream;
+import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.typedobj.core.TempFileListener;
@@ -48,6 +49,7 @@ import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ModuleInfo;
 import us.kbase.workspace.database.ObjIDWithChainAndSubset;
@@ -73,16 +75,17 @@ import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
+import us.kbase.workspace.database.exceptions.DeletedObjectException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-import us.kbase.workspace.test.kbase.JSONRPCLayerTester;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.zafarkhaja.semver.Version;
 import com.google.common.collect.Sets;
 
 public class WorkspaceTest extends WorkspaceTester {
@@ -93,6 +96,27 @@ public class WorkspaceTest extends WorkspaceTester {
 		super(config, backend, maxMemoryUsePerCall);
 	}
 
+	@Test
+	public void status() throws Exception {
+		List<DependencyStatus> deps = ws.status();
+		assertThat("incorrect number of dependencies", deps.size(), is(2));
+		DependencyStatus mwdb = deps.get(0);
+		assertThat("incorrect fail", mwdb.isOk(), is(true));
+		assertThat("incorrect name", mwdb.getName(), is("MongoDB"));
+		assertThat("incorrect status", mwdb.getStatus(), is("OK"));
+		//should throw an error if not a semantic version
+		Version.valueOf(mwdb.getVersion());
+		
+		DependencyStatus blob = deps.get(1);
+		assertThat("incorrect fail", blob.isOk(), is(true));
+		String n = blob.getName();
+		assertThat("incorrect name", n.equals("Shock") || n.equals("GridFS"),
+				is(true));
+		assertThat("incorrect status", blob.getStatus(), is("OK"));
+		//should throw an error if not a semantic version
+		Version.valueOf(blob.getVersion());
+	}
+	
 	@Test
 	public void workspaceDescription() throws Exception {
 		WorkspaceInformation ltinfo = ws.createWorkspace(SOMEUSER, "lt", false, LONG_TEXT, null);
@@ -555,20 +579,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkWSInfo(wsinfo, u1, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 	}
 	
-	
-	private void failSetWorkspaceOwner(WorkspaceUser user, WorkspaceIdentifier wsi,
-			WorkspaceUser newuser, String name, boolean asAdmin,
-			Exception expected) throws Exception {
-		try {
-			ws.setWorkspaceOwner(user, wsi, newuser, name, asAdmin);
-			fail("expected set owner to fail");
-		} catch (Exception got) {
-			assertThat("correct exception", got.getLocalizedMessage(),
-					is(expected.getLocalizedMessage()));
-			assertThat("correct exception type", got, is(expected.getClass()));
-		}
-	}
-	
 	@Test
 	public void permissionsBulk() throws Exception {
 		/* This test was added after the getPermissions method was converted
@@ -636,6 +646,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failGetPermissions(AUSER, wsis, new NoSuchWorkspaceException(
 				"No workspace with name permmass-doesntexist exists", wiow));
 		
+		wsis.remove(wsis.size() - 1);
 		wsis.add(new WorkspaceIdentifier(100000000));
 		failGetPermissions(AUSER, wsis, new NoSuchWorkspaceException(
 				"No workspace with id 100000000 exists", wiow));
@@ -1227,6 +1238,13 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 	@Test
 	public void metadataExtractedLargeTest() throws Exception {
+		//make sure all temporary files are deleted when errors occur here
+		final ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
+		final ResourceUsageConfigurationBuilder build =
+				new ResourceUsageConfigurationBuilder(oldcfg);
+		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(1).build());
+		tfm.cleanup();
+		
 		String module = "TestLargeMetadata";
 		String typeName = "BigMeta";
 		String nestmeta = "." + TEXT100.substring(16) + "." +
@@ -1265,6 +1283,7 @@ public class WorkspaceTest extends WorkspaceTester {
 					"@optional val3\n" +
 					"*/" +
 					"typedef structure {" +
+						"string a;" + 
 						"string val;" +
 						"string val2;" +
 						"string val3;" +
@@ -1287,6 +1306,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		Map<String, Object> dBig = new LinkedHashMap<String, Object>();
 		dBig.put("l", Arrays.asList(1,2,3,4,5,6,7,8));
+		dBig.put("a", "a"); //force sort
 
 		//test fail on large extracted values
 		dBig.put("val", TEXT1000.substring(103));
@@ -1356,6 +1376,9 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceUserMetadata(meta), mtprov, false)),
 				new IllegalArgumentException(
 						"Object #1, whooop: The user-provided metadata, when updated with object-extracted metadata, exceeds the allowed maximum of 16000B"));
+	
+		ws.setResourceConfig(oldcfg);
+		TestCommon.assertNoTempFilesExist(tfm);
 	}
 	
 	@Test
@@ -1426,10 +1449,13 @@ public class WorkspaceTest extends WorkspaceTester {
 				new ObjectIdentifier(wspace, 3),
 				new ObjectIdentifier(wspace, 4),
 				new ObjectIdentifier(wspace, 5)));
-		
-		for (WorkspaceObjectData wod: ret) {
-			assertThat("got correct object input in various encodings",
-					wod.getData(), is((Object) craycraymap));
+		try {
+			for (WorkspaceObjectData wod: ret) {
+				assertThat("got correct object input in various encodings",
+						wod.getData(), is((Object) craycraymap));
+		}
+		} finally {
+			destroyGetObjectsResources(ret);
 		}
 	}
 
@@ -1541,7 +1567,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		TypeDefId abstype6 = new TypeDefId(new TypeDefName(module, "type6"), 0, 1);
 		Set<String> keys = new TreeSet<String>(Arrays.asList("val1", "val2", "val3"));
 		
-		//TODO should try these tests with bytes vs. maps
+		//TODO TEST should try these tests with bytes vs. maps
 		Map<String, Object> data1 = new LinkedHashMap<String, Object>();
 		data1.put("val3", null);
 		data1.put("val2", null);
@@ -1552,8 +1578,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		long data1id = ws.saveObjects(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)),
 				getIdFactory()).get(0).getObjectId();
-		Map<String, Object> data1copy = (Map<String, Object>)ws.getObjects(userfoo, Arrays.asList(
-				new ObjectIdentifier(wspace, data1id))).get(0).getData();
+		final List<WorkspaceObjectData> objects = ws.getObjects(
+				userfoo, Arrays.asList(new ObjectIdentifier(wspace, data1id)));
+		final Map<String, Object> data1copy;
+		try {
+				data1copy = (Map<String, Object>)objects.get(0).getData();
+		} finally {
+			destroyGetObjectsResources(objects);
+		}
 		Assert.assertEquals(keys, new TreeSet<String>(data1copy.keySet()));
 		
 		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
@@ -1624,11 +1656,16 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, mtprov,
 						false)
 				), getIdFactory());
-		@SuppressWarnings("unchecked")
-		Map<String, Object> dataObj = (Map<String, Object>)
-				ws.getObjects(user, Arrays.asList(
-				new ObjectIdentifier(wspace, 1))).get(0).getData();
-		assertThat("data saved correctly", dataObj, is(data));
+		final List<WorkspaceObjectData> objects = ws.getObjects(
+				user, Arrays.asList(new ObjectIdentifier(wspace, 1)));
+		try {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> dataObj = (Map<String, Object>)
+					objects.get(0).getData();
+			assertThat("data saved correctly", dataObj, is(data));
+		} finally {
+			destroyGetObjectsResources(objects);
+		}
 	}
 	
 	@Test
@@ -1986,7 +2023,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"Object #1 has invalid provenance reference: There is no object with id referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
 								+ refwsid));
 		
-		//TODO test references against garbage collected objects
+		//TODO GC test references against garbage collected objects
 		
 		//test reference type checking
 		String refmod = "TestTypeCheckingRefType";
@@ -2093,10 +2130,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		for (int i = 3; i < 11; i++) {
 			WorkspaceObjectData wod = ws.getObjects(userfoo, Arrays.asList(
 					new ObjectIdentifier(reftypecheck, i))).get(0);
-			@SuppressWarnings("unchecked")
-			Map<String, Object> obj = (Map<String, Object>) wod.getData();
-			assertThat("reference rewritten correctly", (String) obj.get("ref"),
-					is(reftypewsid + "/2/1"));
+			try {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> obj = (Map<String, Object>) wod.getData();
+				assertThat("reference rewritten correctly",
+						(String) obj.get("ref"), is(reftypewsid + "/2/1"));
+			} finally {
+				destroyGetObjectsResources(Arrays.asList(wod));
+			}
 			assertThat("reference included correctly", wod.getReferences(),
 					is(Arrays.asList(reftypewsid + "/2/1")));
 			
@@ -2152,7 +2193,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		WorkspaceObjectData d =  ws.getObjects(user, Arrays.asList(
 				new ObjectIdentifier(wsi, "auto5-2"))).get(0);
-		assertThat("auto named correctly", d.getData(), is((Object) d2));
+		try {
+			assertThat("auto named correctly", d.getData(), is((Object) d2));
+		} finally {
+			destroyGetObjectsResources(Arrays.asList(d));
+		}
 	}
 
 	@Test
@@ -2226,7 +2271,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkExternalIds(user, copied, expected);
 		
 		WorkspaceIdentifier clone = new WorkspaceIdentifier("idextract_cloned");
-		ws.cloneWorkspace(user, wsi, clone.getName(), false, null, null);
+		ws.cloneWorkspace(user, wsi, clone.getName(), false, null, null, null);
 		ObjectIdentifier clonedobj = new ObjectIdentifier(clone, "copied");
 		checkExternalIds(user, clonedobj, expected);
 		
@@ -2746,7 +2791,10 @@ public class WorkspaceTest extends WorkspaceTester {
 				getIdFactory());
 		List<Date> dates = checkProvenanceCorrect(foo, p2, new ObjectIdentifier(provid, 5),
 				new HashMap<String, String>());
-		Provenance got2 = ws.getObjects(foo, Arrays.asList(new ObjectIdentifier(prov, 5))).get(0).getProvenance();
+		final List<WorkspaceObjectData> objects = ws.getObjects(
+				foo, Arrays.asList(new ObjectIdentifier(prov, 5)));
+		destroyGetObjectsResources(objects); // don't need the data
+		Provenance got2 = objects.get(0).getProvenance();
 		assertThat("Prov date constant", got2.getDate(), is(dates.get(0)));
 		Provenance gotProv2 = ws.getObjects(foo, Arrays.asList(
 				new ObjectIdentifier(prov, 5)), true).get(0).getProvenance();
@@ -3328,6 +3376,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ObjectInformation save13 = objs.get(2);
 		
 		WorkspaceObjectData wod = ws.getObjects(user1, Arrays.asList(oihide)).get(0);
+		destroyGetObjectsResources(Arrays.asList(wod));
 		WorkspaceObjectData woi = ws.getObjects(user1, Arrays.asList(oihide), true).get(0);
 		assertThat("copy ref for obj is null", wod.getCopyReference(), is((Reference) null));
 		assertThat("copy ref for prov is null", woi.getCopyReference(), is((Reference) null));
@@ -3661,8 +3710,14 @@ public class WorkspaceTest extends WorkspaceTester {
 				new LinkedList<List<WorkspaceObjectData>>();
 		
 		infos.add(ws.getObjects(user, testobjs, true));
-		infos.add(ws.getObjects(user, testobjs));
-		infos.add(ws.getObjects(user, testocs));
+		final List<WorkspaceObjectData> objects =
+				ws.getObjects(user, testobjs);
+		destroyGetObjectsResources(objects); // don't need the data
+		infos.add(objects);
+		final List<WorkspaceObjectData> objects2 =
+				ws.getObjects(user, testocs);
+		destroyGetObjectsResources(objects2); // ditto
+		infos.add(objects2);
 		
 		for (List<WorkspaceObjectData> info: infos) {
 			for (int i = 0; i < info.size(); i++) {
@@ -3671,10 +3726,224 @@ public class WorkspaceTest extends WorkspaceTester {
 					new TestReference(inf.getCopyReference()), is(testRef.get(i)));
 				assertThat("correct inaccessibility", inf.isCopySourceInaccessible(),
 						is(copyAccessible.get(i)));
-				
 			}
 		}
+	}
+	
+	@Test
+	public void cloneWithExclude() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("user1");
+		WorkspaceIdentifier source = new WorkspaceIdentifier("source");
+		ws.createWorkspace(user, source.getName(), false, null, null).getId();
+		List<WorkspaceSaveObject> objects = new LinkedList<WorkspaceSaveObject>();
+		Provenance p = new Provenance(user);
+		final HashMap<String, String> mt = new HashMap<String, String>();
+		objects.add(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("object1"), mt, SAFE_TYPE1, null, p, false));
+		objects.add(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("object2"), mt, SAFE_TYPE1, null, p, false));
+		objects.add(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("object3"), mt, SAFE_TYPE1, null, p, false));
+		ws.saveObjects(user, source, objects, getIdFactory());
 		
+		ws.cloneWorkspace(user, source, "new1", false, null, null, null);
+		checkWsObjectNames(user, "new1", "object1", "object2", "object3");
+		
+		ws.cloneWorkspace(user, source, "new2", false, null, null,
+				new HashSet<ObjectIDNoWSNoVer>());
+		checkWsObjectNames(user, "new2", "object1", "object2", "object3");
+		
+		Set<ObjectIDNoWSNoVer> exclude = new HashSet<ObjectIDNoWSNoVer>();
+		
+		exclude.add(new ObjectIDNoWSNoVer("object2"));
+		ws.cloneWorkspace(user, source, "new3", false, null, null, exclude);
+		checkWsObjectNames(user, "new3", "object1", "object3");
+		
+		exclude.add(new ObjectIDNoWSNoVer(1));
+		ws.cloneWorkspace(user, source, "new4", false, null, null, exclude);
+		checkWsObjectNames(user, "new4", "object3");
+		
+		exclude.remove(new ObjectIDNoWSNoVer("object2"));
+		ws.cloneWorkspace(user, source, "new5", false, null, null, exclude);
+		checkWsObjectNames(user, "new5", "object2", "object3");
+		
+		exclude.clear();
+		exclude.add(new ObjectIDNoWSNoVer("object4"));
+		failClone(user, source, "foo", null, exclude,
+				new NoSuchObjectException(
+						"No object with name object4 exists in workspace 1"));
+		
+		ws.setObjectsDeleted(user, Arrays.asList(
+				new ObjectIdentifier(source, "object3")), true);
+		exclude.clear();
+		exclude.add(new ObjectIDNoWSNoVer("object3"));
+		failClone(user, source, "foo", null, exclude,
+				new DeletedObjectException(
+						"Object 3 (name object3) in workspace 1 has been deleted"));
+	}
+	
+	private void checkWsObjectNames(WorkspaceUser user, String wsName,
+			String... objnames) throws Exception {
+		List<ObjectInformation> objs = ws.listObjects(
+				new ListObjectsParameters(user,
+				Arrays.asList(new WorkspaceIdentifier(wsName))));
+		Set<String> expected = new HashSet<String>(Arrays.asList(objnames));
+		Set<String> got = new HashSet<String>();
+		for (ObjectInformation o: objs) {
+			got.add(o.getObjectName());
+		}
+		assertThat("Got incorrect list of objects", got, is(expected));
+	}
+	
+	@Test
+	public void clonePreserveIDs() throws Exception {
+		/* test that cloning a workspace preserves the object IDs of the old
+		 * workspace. Issues - mongo return order, deleted objects, excluded
+		 * objects
+		 */
+		WorkspaceUser user = new WorkspaceUser("foo");
+		WorkspaceIdentifier source = new WorkspaceIdentifier("source");
+		Map<String, String> mt = new HashMap<String, String>();
+		Provenance p = new Provenance(user);
+		
+		ws.createWorkspace(user, source.getName(), false, null, null);
+		List<WorkspaceSaveObject> objects = Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o1"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o2"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o3"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o4"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o5"), mt,
+						SAFE_TYPE1, null, p, false)
+				);
+		
+		ws.saveObjects(user, source, objects, getIdFactory());
+		
+		//delete an object, should not get cloned and id should not be reused
+		ws.setObjectsDeleted(user, Arrays.asList(
+				new ObjectIdentifier(source, 2)), true);
+		
+		//set the touch order to 5 3 1 4 (going to exclude 4)
+		//this doesn't guarantee the mongo order will change, but it's the
+		//best that can be done
+		ws.saveObjects(user, source, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(1), mt,
+						SAFE_TYPE1, null, p, false)), getIdFactory());
+		ws.saveObjects(user, source, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(3), mt,
+						SAFE_TYPE1, null, p, false)), getIdFactory());
+		ws.saveObjects(user, source, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(5), mt,
+						SAFE_TYPE1, null, p, false)), getIdFactory());
+		
+		//clone
+		WorkspaceIdentifier target = new WorkspaceIdentifier("target");
+		ws.cloneWorkspace(user, source, target.getName(), false, null, null,
+				new HashSet<>(Arrays.asList(new ObjectIDNoWSNoVer(4))));
+		
+		//check ids are preserved
+		List<ObjectInformation> ol = ws.listObjects(new ListObjectsParameters(
+				user, Arrays.asList(target)));
+		Set<Long> seen = new HashSet<>();
+		
+		for (ObjectInformation oi: ol) {
+			seen.add(oi.getObjectId());
+			assertThat("didn't preserve id", "o" + oi.getObjectId(),
+					is(oi.getObjectName()));
+		}
+		assertThat("incorrect object list", seen,
+				is((Set<Long>) new HashSet<>(Arrays.asList(1L, 3L, 5L))));
+		failGetObjects(user, Arrays.asList(new ObjectIdentifier(target, 2)),
+				new NoSuchObjectException(
+						"No object with id 2 exists in workspace 2"));
+		failGetObjects(user, Arrays.asList(new ObjectIdentifier(target, 4)),
+				new NoSuchObjectException(
+						"No object with id 4 exists in workspace 2"));
+	}
+
+	@Test
+	public void cloneEmpty() throws Exception {
+		// test cloning an empty workspace
+		WorkspaceUser user = new WorkspaceUser("foo");
+		WorkspaceIdentifier source = new WorkspaceIdentifier("source");
+		Provenance p = new Provenance(user);
+		Map<String, String> mt = new HashMap<String, String>();
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("foo", "bar");
+		
+		ws.createWorkspace(user, source.getName(), true, "desc",
+				new WorkspaceUserMetadata(meta));
+		WorkspaceIdentifier target = new WorkspaceIdentifier("target");
+		WorkspaceInformation i = ws.cloneWorkspace(user, source, 
+				target.getName(), false, null, null, null);
+		checkWSInfo(target, user, target.getName(), 0L, Permission.OWNER,
+				false, 2, i.getModDate(), "unlocked", mt);
+		assertThat("incorrect description",
+				ws.getWorkspaceDescription(user, target), is((String) null));
+		
+		//test excluding and deleted objects
+		List<WorkspaceSaveObject> objects = Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o1"), mt,
+						SAFE_TYPE1, null, p, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o2"), mt,
+						SAFE_TYPE1, null, p, false)
+				);
+		ws.saveObjects(user, source, objects, getIdFactory());
+		ws.setObjectsDeleted(user, Arrays.asList(
+				new ObjectIdentifier(source, 2)), true);
+		
+		WorkspaceIdentifier target2 = new WorkspaceIdentifier("target2");
+		WorkspaceInformation i2 = ws.cloneWorkspace(user, source,
+				target2.getName(), true, null, null,
+				new HashSet<>(Arrays.asList(new ObjectIDNoWSNoVer(1))));
+		checkWSInfo(target2, user, target2.getName(), 0L, Permission.OWNER,
+				true, 3, i2.getModDate(), "unlocked", mt);
+		assertThat("incorrect description",
+				ws.getWorkspaceDescription(user, target2), is((String) null));
+	}
+	
+	@Test
+	public void cloneCopySave() throws Exception {
+		/* Test copying and saving into a cloned workspace. If the cloning
+		 * code is broken, stack overflows can occur.
+		 */
+		
+		WorkspaceUser user = new WorkspaceUser("foo");
+		WorkspaceIdentifier source = new WorkspaceIdentifier("source");
+		Map<String, String> mt = new HashMap<String, String>();
+		Provenance p = new Provenance(user);
+		
+		ws.createWorkspace(user, source.getName(), false, null, null);
+		List<WorkspaceSaveObject> objects = Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("o1"), mt,
+						SAFE_TYPE1, null, p, false)
+				);
+		
+		ws.saveObjects(user, source, objects, getIdFactory());
+		
+		//clone
+		WorkspaceIdentifier target = new WorkspaceIdentifier("target");
+		ws.cloneWorkspace(
+				user, source, target.getName(), false, null, null, null);
+		
+		ObjectInformation oi = ws.saveObjects(user, target, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("bar"), mt,
+						SAFE_TYPE1, null, p, false)),
+				getIdFactory()).get(0);
+		checkObjInfo(oi, 2L, "bar", SAFE_TYPE1.getTypeString(), 1, user, 2,
+				"target", "99914b932bd37a50b983c5e7c90ae93b", 2, mt);
+		ObjectInformation oi2 = ws.copyObject(user,
+				new ObjectIdentifier(source, "o1"),
+				new ObjectIdentifier(target, "foo"));
+		checkObjInfo(oi2, 3L, "foo", SAFE_TYPE1.getTypeString(), 1, user, 2,
+				"target", "99914b932bd37a50b983c5e7c90ae93b", 2, mt);
+		
+		WorkspaceInformation i = ws.getWorkspaceInformation(user, target);
+		checkWSInfo(target, user, target.getName(), 3L, Permission.OWNER,
+				false, 2, i.getModDate(), "unlocked", mt);
 	}
 	
 	@Test
@@ -3692,7 +3961,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		premeta.put("clone", "workspace");
 		WorkspaceUserMetadata meta = new WorkspaceUserMetadata(premeta);
 		
-		WorkspaceInformation info1 = ws.cloneWorkspace(user1, cp1, clone1.getName(), false, null, meta);
+		WorkspaceInformation info1 = ws.cloneWorkspace(
+				user1, cp1, clone1.getName(), false, null, meta, null);
 		
 		checkWSInfo(clone1, user1, "newclone", 3, Permission.OWNER, false, info1.getId(),
 				info1.getModDate(), "unlocked", premeta);
@@ -3732,9 +4002,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "hide")), true);
 		
 		WorkspaceIdentifier clone2 = new WorkspaceIdentifier("newclone2");
-		WorkspaceInformation info2 = ws.cloneWorkspace(user1, cp1, clone2.getName(), true, "my desc", null);
+		WorkspaceInformation info2 = ws.cloneWorkspace(
+				user1, cp1, clone2.getName(), true, "my desc", null, null);
 		
-		checkWSInfo(clone2, user1, "newclone2", 2, Permission.OWNER, true, info2.getId(),
+		checkWSInfo(clone2, user1, "newclone2", 3, Permission.OWNER, true, info2.getId(),
 				info2.getModDate(), "unlocked", MT_META);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone2), is("my desc"));
 		
@@ -3775,9 +4046,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.lockWorkspace(user1, cp1);
 		
 		WorkspaceIdentifier clone3 = new WorkspaceIdentifier("newclone3");
-		WorkspaceInformation info3 = ws.cloneWorkspace(user1, cp1, clone3.getName(), false, "my desc2", meta);
+		WorkspaceInformation info3 = ws.cloneWorkspace(
+				user1, cp1, clone3.getName(), false, "my desc2", meta, null);
 		
-		checkWSInfo(clone3, user1, "newclone3", 2, Permission.OWNER, false, info3.getId(),
+		checkWSInfo(clone3, user1, "newclone3", 3, Permission.OWNER, false, info3.getId(),
 				info3.getModDate(), "unlocked", premeta);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone3), is("my desc2"));
 		
@@ -3793,7 +4065,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkUnhiddenObjectCount(user1, clone3, 3, 4);
 		
 		WorkspaceIdentifier clone4 = new WorkspaceIdentifier("newclone4");
-		ws.cloneWorkspace(user1, cp1, clone4.getName(), true, LONG_TEXT, null);
+		ws.cloneWorkspace(
+				user1, cp1, clone4.getName(), true, LONG_TEXT, null, null);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone4), is(LONG_TEXT.subSequence(0, 1000)));
 		
 		ws.setGlobalPermission(user1, clone2, Permission.NONE);
@@ -3817,7 +4090,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceInformation info = ws.lockWorkspace(user, wsi);
 		checkWSInfo(info, user, "lock", 1, Permission.OWNER, false, "locked", meta);
 		successGetObjects(user, Arrays.asList(oi));
-		ws.cloneWorkspace(user, wsi, "lockclone", false, null, null);
+		ws.cloneWorkspace(user, wsi, "lockclone", false, null, null, null);
 		ws.copyObject(user, oi, new ObjectIdentifier(new WorkspaceIdentifier("lockclone"), "foo"));
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.NONE);
@@ -4775,8 +5048,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				.withShowAllVersions(true).withIncludeMetaData(true)),
 				new ArrayList<ObjectInformation>());
 		
-		//TODO move these to unit tests for LOP
-		//TODO you can test the 2 arg constructor, just cast the null idiot
+		//TODO MOVE move these to unit tests for LOP
+		//TODO TEST you can test the 2 arg constructor, just cast the null idiot
 		// can't test 2 argument constructor with the 2nd constructor argument
 		// null since then constructor is ambiguous
 		try {
@@ -4810,7 +5083,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 		failListObjects(user2, Arrays.asList(wsi, writeable), null,
 				new WorkspaceAuthorizationException("User listObjUser2 may not read workspace listObj1"));
-		failListObjects(null, Arrays.asList(wsi, writeable), null,
+		failListObjects(null, Arrays.asList(wsi), null,
 				new WorkspaceAuthorizationException("Anonymous users may not read workspace listObj1"));
 		failListObjects(user, Arrays.asList(writeable, new WorkspaceIdentifier("listfake")), null,
 				new NoSuchWorkspaceException("No workspace with name listfake exists", wsi));
@@ -5144,11 +5417,10 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
-	public void listObjectsSkipLimit() throws Exception {
-		/* Test the skip and limit parameters on list_objects. In particular,
+	public void listObjectsLimit() throws Exception {
+		/* Test the limit parameters on list_objects. In particular,
 		 * test that hidden/deleted/early version objects are taken into
-		 * account properly, which makes skip act weird, which is one reason
-		 * it needs to be removed.
+		 * account properly.
 		 */
 		
 		WorkspaceUser user = new WorkspaceUser("skiplimitUser");
@@ -5163,13 +5435,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 
 		//simple tests on full object ranges, depends on natural mongo ordering
-		checkObjectPagination(user, wsi, -1, 99, 1, 99);
-		checkObjectPagination(user, wsi, -1, 100, 1, 100);
-		checkObjectPagination(user, wsi, -1, 101, 1, 101);
-		checkObjectPagination(user, wsi, -1, 300, 1, 200);
-		checkObjectPagination(user, wsi, 150, 25, 151, 175);
-		checkObjectPagination(user, wsi, 150, 51, 151, 200);
-		checkObjectPagination(user, wsi, 200, 1, 2, 1); //hack so the method expects 0 objects
+		checkObjectLimit(user, wsi, 0, 1, 200);
+		checkObjectLimit(user, wsi, 1, 1, 1);
+		checkObjectLimit(user, wsi, 99, 1, 99);
+		checkObjectLimit(user, wsi, 100, 1, 100);
+		checkObjectLimit(user, wsi, 101, 1, 101);
+		checkObjectLimit(user, wsi, 300, 1, 200);
 		
 		objs.clear();
 		for (int i = 191; i < 201; i++) {
@@ -5182,11 +5453,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
-		//test the weird skip behavior with old versions
+		//test versions
 		//skips over the old versions internally since they're interleaved in the last 20 objects
-		checkObjectPagination(user, wsi, 190, 100, 191, 200);
-		//skips over the first 5 objects, so only 5 new objects left (e.g. old new old new etc)
-		checkObjectPagination(user, wsi, 200, 100, 196, 200);
+		checkObjectLimit(user, wsi, 195, 1, 195);
+		checkObjectLimit(user, wsi, 200, 1, 200);
+		checkObjectLimit(user, wsi, 210, 1, 200);
+		checkObjectLimit(user, wsi, 220, 1, 200);
+		
 		
 		wsi = new WorkspaceIdentifier("skiplimit2");
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
@@ -5215,15 +5488,17 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
 		//test object pagination with deleted and hidden objects
-		checkObjectPagination(user, wsi, -1, 26, 1, 30, nums(5, 7, 15, 17));
-		checkObjectPagination(user, wsi, 14, 10, 16, 26, nums(17));
-		checkObjectPagination(user, wsi, 15, 10, 16, 26, nums(17));
-		checkObjectPagination(user, wsi, 16, 10, 18, 27);
-		checkObjectPagination(user, wsi, 17, 10, 18, 27);
-		checkObjectPagination(user, wsi, 13, 10, 14, 25, nums(15, 17));
-		checkObjectPagination(user, wsi, 15, 10, 16, 26, nums(17));
-		checkObjectPagination(user, wsi, 13, 30, 14, 30, nums(15, 17));
-		checkObjectPagination(user, wsi, 14, 30, 16, 30, nums(17));
+		checkObjectLimit(user, wsi, 5, 1, 6, nums(5));
+		checkObjectLimit(user, wsi, 6, 1, 8, nums(5, 7));
+		checkObjectLimit(user, wsi, 12, 1, 14, nums(5, 7));
+		checkObjectLimit(user, wsi, 13, 1, 16, nums(5, 7, 15));
+		checkObjectLimit(user, wsi, 14, 1, 18, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 14, 1, 18, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 15, 1, 19, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 16, 1, 20, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 17, 1, 21, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 18, 1, 22, nums(5, 7, 15, 17));
+		checkObjectLimit(user, wsi, 26, 1, 30, nums(5, 7, 15, 17));
 		
 		wsi = new WorkspaceIdentifier("skiplimit3");
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
@@ -5251,13 +5526,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
 		//test several rounds of retrieving objects (the minimum # of objects
-		//pulled from mongo at a time is 100
-		checkObjectPagination(user, wsi, 0, 5, 251, 255);
-		checkObjectPagination(user, wsi, 20, 5, 251, 255);
-		checkObjectPagination(user, wsi, 130, 5, 251, 255);
-		checkObjectPagination(user, wsi, 206, 5, 251, 255);
-		checkObjectPagination(user, wsi, 255, 5, 256, 260);
-		checkObjectPagination(user, wsi, 0, 60, 251, 300);
+		//pulled from mongo at a time is 100)
+		checkObjectLimit(user, wsi, 5, 251, 255);
+		checkObjectLimit(user, wsi, 10, 251, 260);
+		checkObjectLimit(user, wsi, 60, 251, 300);
 	}
 	
 	private Set<Long> nums(Integer... nums) {
@@ -5448,10 +5720,14 @@ public class WorkspaceTest extends WorkspaceTester {
 				"			  ]" +
 				"}"
 				);
-		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
-		compareObjectAndInfo(got.get(1), o1, p1, expdata2, refs1, refmap1);
-		compareObjectAndInfo(got.get(2), o2, p2, expdata3, refs2, refmap2);
-		compareObjectAndInfo(got.get(3), o3, p2, expdata4, refs2, refmap2);
+		try {
+			compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
+			compareObjectAndInfo(got.get(1), o1, p1, expdata2, refs1, refmap1);
+			compareObjectAndInfo(got.get(2), o2, p2, expdata3, refs2, refmap2);
+			compareObjectAndInfo(got.get(3), o3, p2, expdata4, refs2, refmap2);
+		} finally {
+			destroyGetObjectsResources(got);
+		}
 		
 		// new test for extractor that fails on an array OOB
 		failGetSubset(user, Arrays.asList(
@@ -5480,8 +5756,12 @@ public class WorkspaceTest extends WorkspaceTester {
 				"			  ]" +
 				"}"
 				);
-		compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
-		compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
+		try {
+			compareObjectAndInfo(got.get(0), o1, p1, expdata1, refs1, refmap1);
+			compareObjectAndInfo(got.get(1), o2, p2, expdata2, refs2, refmap2);
+		} finally {
+			destroyGetObjectsResources(got);
+		}
 		
 		failGetSubset(user, Arrays.asList(
 				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
@@ -5984,18 +6264,21 @@ public class WorkspaceTest extends WorkspaceTester {
 						Arrays.asList(leaf1oi),
 						new ObjectPaths(Arrays.asList("/map/id3")))
 				));
-		assertThat("correct list size", lwod.size(), is(8));
 		List<String> mtlist = new LinkedList<String>();
 		Map<String, String> mtmap = new HashMap<String, String>();
-		compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, data2, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, data2resolved, refs, refmap);
-		compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, data1, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(3), leaf2, pU1_1, data2id22, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(4), leaf2, pU1_1, data2map, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(5), simpleref, pU2_2, data2id23, refs, refmap);
-		compareObjectAndInfo(lwod.get(6), leaf1, pU2_1, data1id1, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(7), leaf1, pU2_1, data1id3, mtlist, mtmap);
-		
+		try {
+			assertThat("correct list size", lwod.size(), is(8));
+			compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, data2, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, data2resolved, refs, refmap);
+			compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, data1, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(3), leaf2, pU1_1, data2id22, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(4), leaf2, pU1_1, data2map, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(5), simpleref, pU2_2, data2id23, refs, refmap);
+			compareObjectAndInfo(lwod.get(6), leaf1, pU2_1, data1id1, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(7), leaf1, pU2_1, data1id3, mtlist, mtmap);
+		} finally {
+			destroyGetObjectsResources(lwod);
+		}
 		// test getting provenance only
 		lwod = ws.getObjects(user1, Arrays.asList(
 				leaf2oi,
@@ -6003,10 +6286,13 @@ public class WorkspaceTest extends WorkspaceTester {
 				(ObjectIdentifier) new ObjectIDWithRefChain(
 						simplerefoi, Arrays.asList(leaf1oi))
 				), true);
-		compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, null, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, null, refs, refmap);
-		compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, null, mtlist, mtmap);
-		
+		try {
+			compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, null, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, null, refs, refmap);
+			compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, null, mtlist, mtmap);
+		} finally {
+			destroyGetObjectsResources(lwod);
+		}
 		// test getting info only
 		List<ObjectInformation> loi = ws.getObjectInformation(user1,
 				Arrays.asList(
@@ -6221,14 +6507,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		a.add(new ObjectIDWithRefChain(delptr2oi, Arrays.asList(del2oi, leaf1oi1)));
 		a.add(new ObjectIDWithRefChain(delptr2oi, Arrays.asList(del2oi, leaf2oi)));
 		List<WorkspaceObjectData> lwod = ws.getObjects(user1, a);
-		assertThat("correct list size", lwod.size(), is(7));
-		compareObjectAndInfo(lwod.get(0), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(1), leaf2, new Provenance(user2), data2, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(2), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(3), leaf2, new Provenance(user2), data2, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(4), leaf2, new Provenance(user2), data2, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(5), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(6), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		try {
+			assertThat("correct list size", lwod.size(), is(7));
+			compareObjectAndInfo(lwod.get(0), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(1), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(2), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(3), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(4), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(5), leaf1_1, new Provenance(user2), data1, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(6), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		} finally {
+			destroyGetObjectsResources(lwod);
+		}
 		List<ObjectInformation> loi = ws.getObjectInformation(user1, a, true, false);
 		assertThat("object info not same", loi, is(Arrays.asList(
 				leaf1_1, leaf2, leaf1_1, leaf2, leaf2, leaf1_1, leaf2)));
@@ -6251,9 +6541,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		a.add(new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del1oi, leaf2tempID)));
 		a.add(new ObjectIDWithRefChain(delptr12oi, Arrays.asList(del2oi, leaf2nover)));
 		lwod = ws.getObjects(user1, a);
-		compareObjectAndInfo(lwod.get(0), leaf2, new Provenance(user2), data2, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(1), leaf2, new Provenance(user2), data2, mtlist, mtmap);
-		compareObjectAndInfo(lwod.get(2), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		try {
+			compareObjectAndInfo(lwod.get(0), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(1), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(2), leaf2, new Provenance(user2), data2, mtlist, mtmap);
+		} finally {
+			destroyGetObjectsResources(lwod);
+		}
 		loi = ws.getObjectInformation(user1, a, true, false);
 		assertThat("object info not same", loi, is(Arrays.asList(
 				leaf2, leaf2, leaf2)));
@@ -6521,7 +6815,8 @@ public class WorkspaceTest extends WorkspaceTester {
 	@Test
 	public void maxReturnedObjectSize() throws Exception {
 
-		TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
+		TypeDefId reftype = new TypeDefId(
+				new TypeDefName("CopyRev", "RefType"), 1, 0);
 		WorkspaceUser user = new WorkspaceUser("MROSuser");
 		WorkspaceIdentifier wsiorig = new WorkspaceIdentifier("maxReturnedObjectSize");
 		ws.createWorkspace(user, wsiorig.getIdentifierString(),
@@ -6549,6 +6844,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<ObjectIDWithRefChain> refchain2 = 
 				Arrays.asList(new ObjectIDWithRefChain(ref, oi1l),
 				new ObjectIDWithRefChain(ref2, oi2l));
+		TestCommon.assertNoTempFilesExist(tfm);
 		
 		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
 		try {
@@ -6564,21 +6860,28 @@ public class WorkspaceTest extends WorkspaceTester {
 					Arrays.asList(new ObjIDWithChainAndSubset(oi1, null,
 					new ObjectPaths(new ArrayList<String>()))));
 			successGetObjects(user, oi1l);
-			ws.getObjects(user, ois1l);
-			ws.getObjects(user, ois1lmt);
-			ws.getObjects(user, refchain);
+			destroyGetObjectsResources(ws.getObjects(user, ois1l));
+			destroyGetObjectsResources(ws.getObjects(user, ois1lmt));
+			destroyGetObjectsResources(ws.getObjects(user, refchain));
+			TestCommon.assertNoTempFilesExist(tfm);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(19).build());
 			String errstr = "Too much data requested from the workspace at once; data requested " + 
 					"including potential subsets is %sB which exceeds maximum of %s.";
 			IllegalArgumentException err = new IllegalArgumentException(String.format(errstr, 20, 19));
 			failGetObjects(user, oi1l, err, true);
+			TestCommon.assertNoTempFilesExist(tfm);
 			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) ois1l, err);
+			TestCommon.assertNoTempFilesExist(tfm);
 			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) ois1lmt, err);
+			TestCommon.assertNoTempFilesExist(tfm);
 			failGetReferencedObjects(user,
 					(List<ObjectIDWithRefChain>)(List<?>) refchain, err, true);
+			TestCommon.assertNoTempFilesExist(tfm);
 			
 			ws.setResourceConfig(build.withMaxReturnedDataSize(40).build());
 			List<ObjectIdentifier> two = Arrays.asList(oi1, oi2);
+			List<ObjectIdentifier> mixed = Arrays.asList(oi1,
+					new ObjectIDWithRefChain(ref2, oi2l));
 			List<ObjIDWithChainAndSubset> ois1l2 = Arrays.asList(
 					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/fo"))),
 					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/ba"))));
@@ -6586,24 +6889,36 @@ public class WorkspaceTest extends WorkspaceTester {
 					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/fo"))),
 					new ObjIDWithChainAndSubset(oi2, null, new ObjectPaths(Arrays.asList("/ba"))));
 			successGetObjects(user, two);
-			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) ois1l2);
-			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) bothoi);
-			ws.getObjects(user, (List<ObjectIdentifier>)(List<?>) refchain2);
+			successGetObjects(user, mixed);
+			destroyGetObjectsResources(ws.getObjects(user,
+					(List<ObjectIdentifier>)(List<?>) ois1l2));
+			destroyGetObjectsResources(ws.getObjects(user,
+					(List<ObjectIdentifier>)(List<?>) bothoi));
+			destroyGetObjectsResources(ws.getObjects(user,
+					(List<ObjectIdentifier>)(List<?>) refchain2));
+			TestCommon.assertNoTempFilesExist(tfm);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(39).build());
 			err = new IllegalArgumentException(String.format(errstr, 40, 39));
 			failGetObjects(user, two, err, true);
+			TestCommon.assertNoTempFilesExist(tfm);
+			failGetObjects(user, mixed, err, true);
+			TestCommon.assertNoTempFilesExist(tfm);
 			failGetSubset(user, ois1l2, err);
+			TestCommon.assertNoTempFilesExist(tfm);
 			failGetSubset(user, bothoi, err);
+			TestCommon.assertNoTempFilesExist(tfm);
 			failGetReferencedObjects(user, refchain2, err, true);
+			TestCommon.assertNoTempFilesExist(tfm);
 			
 			List<ObjectIdentifier> all = new LinkedList<ObjectIdentifier>();
 			all.addAll(ois1l2);
 			all.addAll(bothoi);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(60).build());
-			ws.getObjects(user, all);
+			destroyGetObjectsResources(ws.getObjects(user, all));
 			ws.setResourceConfig(build.withMaxReturnedDataSize(59).build());
 			err = new IllegalArgumentException(String.format(errstr, 60, 59));
 			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) all, err);
+			TestCommon.assertNoTempFilesExist(tfm);
 		} finally {
 			ws.setResourceConfig(oldcfg);
 		}
@@ -6643,48 +6958,48 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		assertThat("created no temp files on save", filesCreated[0], is(0));
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(13).build());
-		ObjectIdentifier oi = new ObjectIdentifier(wsi, 1);
-		ws.getObjects(user, Arrays.asList(oi));
+		ObjectIdentifier oi1 = new ObjectIdentifier(wsi, 1);
+		ws.getObjects(user, Arrays.asList(oi1));
 		assertThat("created no temp files on get", filesCreated[0], is(0));
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oi, null,
+				new ObjIDWithChainAndSubset(oi1, null,
 				new ObjectPaths(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp file on get subdata", filesCreated[0], is(1));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		//files go to disk except for small subdata
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(12).build());
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		assertThat("created temp files on save", filesCreated[0], is(2));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(12).build());
-		oi = new ObjectIdentifier(wsi, 2);
-		ws.getObjects(user, Arrays.asList(oi)).get(0).getSerializedData().destroy();
+		ObjectIdentifier oi2 = new ObjectIdentifier(wsi, 2);
+		ws.getObjects(user, Arrays.asList(oi2)).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp files on get", filesCreated[0], is(1));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oi, null,
+				new ObjIDWithChainAndSubset(oi2, null,
 				new ObjectPaths(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp files on get subdata part object", filesCreated[0], is(1));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oi, null,
+				new ObjIDWithChainAndSubset(oi2, null,
 				new ObjectPaths(Arrays.asList("z", "y")))))).get(0).getSerializedData().destroy();
 		assertThat("created 2 temp files on get subdata full object", filesCreated[0], is(2));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		// test with multiple objects
 		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
 		data2.put("w", 1);
 		data2.put("f", 2);
-		//already sorted so no temp files will be created
+		//already sorted so only one temp file will be created
 		Map<String, Object> data3 = new LinkedHashMap<String, Object>();
 		data3.put("x", 1);
 		data3.put("z", 2);
@@ -6704,15 +7019,16 @@ public class WorkspaceTest extends WorkspaceTester {
 			wod.getSerializedData().destroy();
 		}
 		assertThat("created no temp files on get", filesCreated[0], is(0));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		//multiple objects to file
 		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(38).build());
 		filesCreated[0] = 0;
 		ws.saveObjects(user, wsi, objs, getIdFactory());
-		//two files per data - 1 for relabeling, 1 for sort
-		assertThat("created temp files on save", filesCreated[0], is(4));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		// two files per data - 1 for relabeling, 1 for sort
+		// except for sorted file, then just 1 for relabeling
+		assertThat("created temp files on save", filesCreated[0], is(5));
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(38).build());
@@ -6720,7 +7036,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			wod.getSerializedData().destroy();
 		}
 		assertThat("created 1 temp files on get", filesCreated[0], is(1));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(25).build());
@@ -6728,8 +7044,45 @@ public class WorkspaceTest extends WorkspaceTester {
 			wod.getSerializedData().destroy();
 		}
 		assertThat("created 2 temp files on get", filesCreated[0], is(2));
-		JSONRPCLayerTester.assertNoTempFilesExist(ws.getTempFilesManager());
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
+		//test with a referenced object and a standard object
+		TypeDefId reftype = new TypeDefId(
+				new TypeDefName("CopyRev", "RefType"), 1, 0);
+		Map<String, Object> refdata = new HashMap<String, Object>();
+		refdata.put("refs", Arrays.asList(wsi.getName() + "/2/1"));
+		saveObject(user, wsi, null, refdata, reftype, "ref", new Provenance(user));
+		ObjectIdentifier ref = new ObjectIdentifier(wsi, "ref", 1);
+		List<ObjectIdentifier> refAndStd = Arrays.asList(oi1,
+				new ObjectIDWithRefChain(ref, Arrays.asList(oi2)));
+
+		// ref obj and std obj in memory
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(39).build());
+		for (WorkspaceObjectData wod: ws.getObjects(user, refAndStd)) {
+			wod.getSerializedData().destroy();
+		}
+		assertThat("created no temp files on get", filesCreated[0], is(0));
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		// ref obj and std obj to files
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(38).build());
+		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+			wod.getSerializedData().destroy();
+		}
+		assertThat("created 1 temp files on get", filesCreated[0], is(1));
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		filesCreated[0] = 0;
+		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(25).build());
+		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+			wod.getSerializedData().destroy();
+		}
+		assertThat("created 2 temp files on get", filesCreated[0], is(2));
+		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
+		
+		// clean up and reset config
 		ws.getTempFilesManager().removeListener(listener);
 		ws.setResourceConfig(oldcfg);
 	}
@@ -6750,8 +7103,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		WorkspaceObjectData o = ws.getObjects(
 				user, Arrays.asList(new ObjectIdentifier(wsi, 1))).get(0);
-		String data = IOUtils.toString(o.getSerializedData().getJSON());
-		assertThat("data is sorted", data, is(expected));
+		try {
+			String data = IOUtils.toString(o.getSerializedData().getJSON());
+			assertThat("data is sorted", data, is(expected));
+		} finally {
+			destroyGetObjectsResources(Arrays.asList(o));
+		}
 		assertThat("data marked as sorted", o.getSerializedData().isSorted(),
 				is(true));
 	}

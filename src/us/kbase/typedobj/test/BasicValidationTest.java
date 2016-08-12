@@ -32,17 +32,17 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 
 /**
@@ -72,7 +72,7 @@ public class BasicValidationTest {
 	private static final int INVALID_TEST_COUNT = 29;
 
 	private final static Path TEST_DB_LOCATION =
-			Paths.get(WorkspaceTestCommon.getTempDir())
+			Paths.get(TestCommon.getTempDir())
 			.resolve("BasicValidationTest");
 	
 	private final static String TEST_RESOURCE_LOCATION = "files/BasicValidation/";
@@ -234,7 +234,7 @@ public class BasicValidationTest {
 			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 			
 			try {
-				TypedObjectValidationReport report = 
+				ValidatedTypedObject report = 
 					validator.validate(
 						instanceJson,
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
@@ -263,7 +263,7 @@ public class BasicValidationTest {
 			String instanceJson = loadResourceFile(TEST_RESOURCE_LOCATION+instance.resourceName);
 			
 			try {
-				TypedObjectValidationReport report = 
+				ValidatedTypedObject report = 
 					validator.validate(
 						instanceJson,
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),

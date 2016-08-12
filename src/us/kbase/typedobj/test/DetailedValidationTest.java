@@ -36,17 +36,17 @@ import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 
 /**
@@ -66,7 +66,7 @@ public class DetailedValidationTest {
 	 * WARNING: THIS DIRECTORY WILL BE WIPED OUT AFTER TESTS!!!
 	 */
 	private final static Path TEST_DB_LOCATION =
-			Paths.get(WorkspaceTestCommon.getTempDir())
+			Paths.get(TestCommon.getTempDir())
 			.resolve("DetailedValidationTest");
 	
 	private final static String TEST_RESOURCE_LOCATION = "files/DetailedValidation/";
@@ -235,7 +235,7 @@ public class DetailedValidationTest {
 		handler.associateObject("foo");
 		
 		try {
-			TypedObjectValidationReport report = 
+			ValidatedTypedObject report = 
 				validator.validate(
 					instance,
 					new TypeDefId(new TypeDefName(typeTokens[0],typeTokens[1])),

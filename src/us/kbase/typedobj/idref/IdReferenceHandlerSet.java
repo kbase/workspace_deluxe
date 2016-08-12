@@ -10,7 +10,8 @@ import java.util.Set;
 
 public class IdReferenceHandlerSet<T> {
 	
-	//TODO unit tests, docs
+	//TODO TEST unit tests
+	//TODO JAVADOC
 	
 	private final int maxUniqueIdCount;
 	private int currentUniqueIdCount = 0;
