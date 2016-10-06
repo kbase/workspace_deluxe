@@ -171,16 +171,19 @@
     <javac destdir="${client_classes}" includeantruntime="false" target="1.6" source="1.6"
       debug="true" classpathref="compile.classpath">
       <src path="${src}"/>
+      <exclude name="AllWorkspaceTestsRunner.java"/>
       <exclude name="us/kbase/typedobj/**"/>
+      <exclude name="us/kbase/common/**"/>
       <exclude name="us/kbase/workspace/WorkspaceServer.java"/>
       <exclude name="us/kbase/workspace/database/**"/>
+      <exclude name="us/kbase/workspace/docserver/**"/>
       <exclude name="us/kbase/workspace/exceptions/**"/>
       <exclude name="us/kbase/workspace/kbase/**"/>
       <exclude name="us/kbase/workspace/test/**"/>
       <exclude name="us/kbase/workspace/lib/**"/>
     </javac>
     <jar destfile="${dist}/client/${clientjar.file}" basedir="${client_classes}"/>
-  	<delete dir="${client_classes}"/>
+    <delete dir="${client_classes}"/>
   </target>
 
   <target name="compile" depends="init" description="compile the source">
