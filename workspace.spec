@@ -215,6 +215,21 @@ module Workspace {
 	*/
 	typedef list<ObjectIdentity> ref_chain;
 	
+	/* A chain of objects with references to one another as a string.
+	
+		A single string that is semantically identical to ref_chain above.
+		Represents a path from one workspace object to another through an
+		arbitrarily number of intermediate objects where each object has a
+		dependency or provenance reference to the next object. Each entry is
+		an obj_ref as defined earlier. Entries are separated by semicolons.
+		Whitespace is ignored.
+		
+		Examples:
+		3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2
+		aworkspace/6
+	*/
+	typedef string ref_string;
+	
 	/* A path into an object. 
 		Identify a sub portion of an object by providing the path, delimited by
 		a slash (/), to that portion of the object. Thus the path may not have
@@ -293,6 +308,8 @@ module Workspace {
 		chain, and those objects may be deleted.
 		
 		Optional reference following fields:
+		Note that only one of the following fields may be specified.
+		
 		ref_chain obj_path - a path to the desired object from the object
 			specified in this OS. In other words, the object specified in this
 			OS is assumed to be accessible to the user, and the objects in
@@ -300,8 +317,23 @@ module Workspace {
 			object at the end of the object path. If the references are all
 			valid, the desired object will be returned.
 		- OR -
-		list<obj_ref> obj_ref_path - shorthand for the obj_path. Only one of
-			obj_path or obj_ref_path may be specified.
+		list<obj_ref> obj_ref_path - shorthand for the obj_path.
+		- OR -
+		ref_chain to_obj_path - identical to obj_path, except that the path
+			is TO the object specified in this OS, rather than from the object.
+			In other words the object specified by wsid/objid etc. is the end
+			of the path, and to_obj_path is the rest of the path. The user must
+			have access to the first object in the to_obj_path.
+		- OR -
+		list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path.
+		- OR -
+		ref_string ref_string - A string representing a reference path from
+			one object to another. Unlike the previous reference following
+			options, the ref_string represents the ENTIRE path from the source
+			object to the target object. Including the fields wsid, workspace,
+			objid, name, ver, or ref is an error when including ref_string.
+			This is not the case for any other means of specifying an object
+			reference path.
 		
 		OBJECT SUBSETS:
 		
@@ -334,6 +366,9 @@ module Workspace {
 		obj_ref ref;
 		ref_chain obj_path;
 		list<obj_ref> obj_ref_path;
+		ref_chain to_obj_path;
+		list<obj_ref> to_obj_ref_path;
+		ref_string ref_string;
 		list<object_path> included;
 		boolean strict_maps;
 		boolean strict_arrays;
