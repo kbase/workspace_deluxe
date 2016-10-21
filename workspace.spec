@@ -288,12 +288,16 @@ module Workspace {
 		boolean strict_arrays;
 	} SubObjectIdentity;
 	
-	/* An Object Specification (OS). Inherits from ObjectIdentity.
+	/* An Object Specification (OS). Inherits from ObjectIdentity (OI).
 		Specifies which object, and which parts of that object, to retrieve
 		from the Workspace Service.
 		
-		The fields wsid, workspace, objid, name, ver, and ref are identical to
-		the ObjectIdentity fields.
+		The fields wsid, workspace, objid, name, and ver are identical to
+		the OI fields.
+		
+		The ref field's behavior is extended from OI. It maintains its
+		previous behavior, but now also can act as a reference string. See
+		reference following below for more information.
 		
 		REFERENCE FOLLOWING:
 		
@@ -321,19 +325,17 @@ module Workspace {
 		- OR -
 		ref_chain to_obj_path - identical to obj_path, except that the path
 			is TO the object specified in this OS, rather than from the object.
-			In other words the object specified by wsid/objid etc. is the end
-			of the path, and to_obj_path is the rest of the path. The user must
-			have access to the first object in the to_obj_path.
+			In other words the object specified by wsid/objid/ref etc. is the
+			end of the path, and to_obj_path is the rest of the path. The user
+			must have access to the first object in the to_obj_path.
 		- OR -
 		list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path.
 		- OR -
-		ref_string ref_string - A string representing a reference path from
+		ref_string ref - A string representing a reference path from
 			one object to another. Unlike the previous reference following
 			options, the ref_string represents the ENTIRE path from the source
-			object to the target object. Including the fields wsid, workspace,
-			objid, name, ver, or ref is an error when including ref_string.
-			This is not the case for any other means of specifying an object
-			reference path.
+			object to the target object. As with the OI object, the ref field
+			may contain a single reference.
 		
 		OBJECT SUBSETS:
 		
@@ -363,12 +365,11 @@ module Workspace {
 		obj_name name;
 		obj_id objid;
 		obj_ver ver;
-		obj_ref ref;
+		ref_string ref;
 		ref_chain obj_path;
 		list<obj_ref> obj_ref_path;
 		ref_chain to_obj_path;
 		list<obj_ref> to_obj_ref_path;
-		ref_string ref_string;
 		list<object_path> included;
 		boolean strict_maps;
 		boolean strict_arrays;
