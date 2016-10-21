@@ -1597,44 +1597,93 @@ class Workspace(object):
            references, and object_info for this object without the object
            data. Default false.) -> structure: parameter "objects" of list of
            type "ObjectSpecification" (An Object Specification (OS). Inherits
-           from ObjectIdentity. Specifies which object, and which parts of
-           that object, to retrieve from the Workspace Service. The fields
-           wsid, workspace, objid, name, ver, and ref are identical to the
-           ObjectIdentity fields. REFERENCE FOLLOWING: Reference following
-           guarantees that a user that has access to an object can always see
-           a) objects that are referenced inside the object and b) objects
-           that are referenced in the object's provenance. This ensures that
-           the user has visibility into the entire provenance of the object
-           and the object's object dependencies (e.g. references). The user
-           must have at least read access to the object specified in this SO,
-           but need not have access to any further objects in the reference
-           chain, and those objects may be deleted. Optional reference
-           following fields: ref_chain obj_path - a path to the desired
-           object from the object specified in this OS. In other words, the
-           object specified in this OS is assumed to be accessible to the
-           user, and the objects in the object path represent a chain of
-           references to the desired object at the end of the object path. If
-           the references are all valid, the desired object will be returned.
-           - OR - list<obj_ref> obj_ref_path - shorthand for the obj_path.
-           Only one of obj_path or obj_ref_path may be specified. OBJECT
-           SUBSETS: When selecting a subset of an array in an object, the
-           returned array is compressed to the size of the subset, but the
-           ordering of the array is maintained. For example, if the array
-           stored at the 'feature' key of a Genome object has 4000 entries,
-           and the object paths provided are: /feature/7 /feature/3015
-           /feature/700 The returned feature array will be of length three
-           and the entries will consist, in order, of the 7th, 700th, and
-           3015th entries of the original array. Optional object subset
-           fields: list<object_path> included - the portions of the object to
-           include in the object subset. boolean strict_maps - if true, throw
-           an exception if the subset specification traverses a non-existant
-           map key (default false) boolean strict_arrays - if true, throw an
-           exception if the subset specification exceeds the size of an array
-           (default true)) -> structure: parameter "workspace" of type
-           "ws_name" (A string used as a name for a workspace. Any string
-           consisting of alphanumeric characters and "_", ".", or "-" that is
-           not an integer is acceptable. The name may optionally be prefixed
-           with the workspace owner's user name and a colon, e.g.
+           from ObjectIdentity (OI). Specifies which object, and which parts
+           of that object, to retrieve from the Workspace Service. The fields
+           wsid, workspace, objid, name, and ver are identical to the OI
+           fields. The ref field's behavior is extended from OI. It maintains
+           its previous behavior, but now also can act as a reference string.
+           See reference following below for more information. REFERENCE
+           FOLLOWING: Reference following guarantees that a user that has
+           access to an object can always see a) objects that are referenced
+           inside the object and b) objects that are referenced in the
+           object's provenance. This ensures that the user has visibility
+           into the entire provenance of the object and the object's object
+           dependencies (e.g. references). The user must have at least read
+           access to the object specified in this SO, but need not have
+           access to any further objects in the reference chain, and those
+           objects may be deleted. Optional reference following fields: Note
+           that only one of the following fields may be specified. ref_chain
+           obj_path - a path to the desired object from the object specified
+           in this OS. In other words, the object specified in this OS is
+           assumed to be accessible to the user, and the objects in the
+           object path represent a chain of references to the desired object
+           at the end of the object path. If the references are all valid,
+           the desired object will be returned. - OR - list<obj_ref>
+           obj_ref_path - shorthand for the obj_path. - OR - ref_chain
+           to_obj_path - identical to obj_path, except that the path is TO
+           the object specified in this OS, rather than from the object. In
+           other words the object specified by wsid/objid/ref etc. is the end
+           of the path, and to_obj_path is the rest of the path. The user
+           must have access to the first object in the to_obj_path. - OR -
+           list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path. -
+           OR - ref_string ref - A string representing a reference path from
+           one object to another. Unlike the previous reference following
+           options, the ref_string represents the ENTIRE path from the source
+           object to the target object. As with the OI object, the ref field
+           may contain a single reference. OBJECT SUBSETS: When selecting a
+           subset of an array in an object, the returned array is compressed
+           to the size of the subset, but the ordering of the array is
+           maintained. For example, if the array stored at the 'feature' key
+           of a Genome object has 4000 entries, and the object paths provided
+           are: /feature/7 /feature/3015 /feature/700 The returned feature
+           array will be of length three and the entries will consist, in
+           order, of the 7th, 700th, and 3015th entries of the original
+           array. Optional object subset fields: list<object_path> included -
+           the portions of the object to include in the object subset.
+           boolean strict_maps - if true, throw an exception if the subset
+           specification traverses a non-existant map key (default false)
+           boolean strict_arrays - if true, throw an exception if the subset
+           specification exceeds the size of an array (default true)) ->
+           structure: parameter "workspace" of type "ws_name" (A string used
+           as a name for a workspace. Any string consisting of alphanumeric
+           characters and "_", ".", or "-" that is not an integer is
+           acceptable. The name may optionally be prefixed with the workspace
+           owner's user name and a colon, e.g. kbasetest:my_workspace.),
+           parameter "wsid" of type "ws_id" (The unique, permanent numerical
+           ID of a workspace.), parameter "name" of type "obj_name" (A string
+           used as a name for an object. Any string consisting of
+           alphanumeric characters and the characters |._- that is not an
+           integer is acceptable.), parameter "objid" of type "obj_id" (The
+           unique, permanent numerical ID of an object.), parameter "ver" of
+           type "obj_ver" (An object version. The version of the object,
+           starting at 1.), parameter "ref" of type "ref_string" (A chain of
+           objects with references to one another as a string. A single
+           string that is semantically identical to ref_chain above.
+           Represents a path from one workspace object to another through an
+           arbitrarily number of intermediate objects where each object has a
+           dependency or provenance reference to the next object. Each entry
+           is an obj_ref as defined earlier. Entries are separated by
+           semicolons. Whitespace is ignored. Examples: 3/5/6;
+           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "obj_path" of type "ref_chain" (A chain of objects with
+           references to one another. An object reference chain consists of a
+           list of objects where the nth object possesses a reference, either
+           in the object itself or in the object provenance, to the n+1th
+           object.) -> list of type "ObjectIdentity" (An object identifier.
+           Select an object by either: One, and only one, of the numerical id
+           or name of the workspace, where the name can also be a KBase ID
+           including the numerical id, e.g. kb|ws.35. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - name of the
+           workspace or the workspace ID in KBase format, e.g. kb|ws.78. AND
+           One, and only one, of the numerical id or name of the object.
+           obj_id objid- the numerical ID of the object. obj_name name - name
+           of the object. OPTIONALLY obj_ver ver - the version of the object.
+           OR an object reference string: obj_ref ref - an object reference
+           string.) -> structure: parameter "workspace" of type "ws_name" (A
+           string used as a name for a workspace. Any string consisting of
+           alphanumeric characters and "_", ".", or "-" that is not an
+           integer is acceptable. The name may optionally be prefixed with
+           the workspace owner's user name and a colon, e.g.
            kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
            unique, permanent numerical ID of a workspace.), parameter "name"
            of type "obj_name" (A string used as a name for an object. Any
@@ -1655,8 +1704,21 @@ class Workspace(object):
            - for example, "kb|ws.23.obj.567.ver.2" would identify the second
            version of an object with id 567 in a workspace with id 23. In all
            cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "obj_path" of type "ref_chain" (A
-           chain of objects with references to one another. An object
+           object is assumed.), parameter "obj_ref_path" of list of type
+           "obj_ref" (A string that uniquely identifies an object in the
+           workspace service. There are two ways to uniquely identify an
+           object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
+           - for example, "MyFirstWorkspace/MyFirstObject/3" would identify
+           the third version of an object called MyFirstObject in the
+           workspace called MyFirstWorkspace. 42/Panic/1 would identify the
+           first version of the object name Panic in workspace with id 42.
+           Towel/1/6 would identify the 6th version of the object with id 1
+           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
+           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
+           version of an object with id 567 in a workspace with id 23. In all
+           cases, if the version number is omitted, the latest version of the
+           object is assumed.), parameter "to_obj_path" of type "ref_chain"
+           (A chain of objects with references to one another. An object
            reference chain consists of a list of objects where the nth object
            possesses a reference, either in the object itself or in the
            object provenance, to the n+1th object.) -> list of type
@@ -1695,7 +1757,7 @@ class Workspace(object):
            example, "kb|ws.23.obj.567.ver.2" would identify the second
            version of an object with id 567 in a workspace with id 23. In all
            cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "obj_ref_path" of list of type
+           object is assumed.), parameter "to_obj_ref_path" of list of type
            "obj_ref" (A string that uniquely identifies an object in the
            workspace service. There are two ways to uniquely identify an
            object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
@@ -3379,10 +3441,13 @@ class Workspace(object):
            exception if an object cannot be accessed; return null for that
            object's information instead. Default false.) -> structure:
            parameter "objects" of list of type "ObjectSpecification" (An
-           Object Specification (OS). Inherits from ObjectIdentity. Specifies
-           which object, and which parts of that object, to retrieve from the
-           Workspace Service. The fields wsid, workspace, objid, name, ver,
-           and ref are identical to the ObjectIdentity fields. REFERENCE
+           Object Specification (OS). Inherits from ObjectIdentity (OI).
+           Specifies which object, and which parts of that object, to
+           retrieve from the Workspace Service. The fields wsid, workspace,
+           objid, name, and ver are identical to the OI fields. The ref
+           field's behavior is extended from OI. It maintains its previous
+           behavior, but now also can act as a reference string. See
+           reference following below for more information. REFERENCE
            FOLLOWING: Reference following guarantees that a user that has
            access to an object can always see a) objects that are referenced
            inside the object and b) objects that are referenced in the
@@ -3391,15 +3456,26 @@ class Workspace(object):
            dependencies (e.g. references). The user must have at least read
            access to the object specified in this SO, but need not have
            access to any further objects in the reference chain, and those
-           objects may be deleted. Optional reference following fields:
-           ref_chain obj_path - a path to the desired object from the object
-           specified in this OS. In other words, the object specified in this
-           OS is assumed to be accessible to the user, and the objects in the
+           objects may be deleted. Optional reference following fields: Note
+           that only one of the following fields may be specified. ref_chain
+           obj_path - a path to the desired object from the object specified
+           in this OS. In other words, the object specified in this OS is
+           assumed to be accessible to the user, and the objects in the
            object path represent a chain of references to the desired object
            at the end of the object path. If the references are all valid,
            the desired object will be returned. - OR - list<obj_ref>
-           obj_ref_path - shorthand for the obj_path. Only one of obj_path or
-           obj_ref_path may be specified. OBJECT SUBSETS: When selecting a
+           obj_ref_path - shorthand for the obj_path. - OR - ref_chain
+           to_obj_path - identical to obj_path, except that the path is TO
+           the object specified in this OS, rather than from the object. In
+           other words the object specified by wsid/objid/ref etc. is the end
+           of the path, and to_obj_path is the rest of the path. The user
+           must have access to the first object in the to_obj_path. - OR -
+           list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path. -
+           OR - ref_string ref - A string representing a reference path from
+           one object to another. Unlike the previous reference following
+           options, the ref_string represents the ENTIRE path from the source
+           object to the target object. As with the OI object, the ref field
+           may contain a single reference. OBJECT SUBSETS: When selecting a
            subset of an array in an object, the returned array is compressed
            to the size of the subset, but the ordering of the array is
            maintained. For example, if the array stored at the 'feature' key
@@ -3425,21 +3501,69 @@ class Workspace(object):
            integer is acceptable.), parameter "objid" of type "obj_id" (The
            unique, permanent numerical ID of an object.), parameter "ver" of
            type "obj_ver" (An object version. The version of the object,
-           starting at 1.), parameter "ref" of type "obj_ref" (A string that
-           uniquely identifies an object in the workspace service. There are
-           two ways to uniquely identify an object in one string: "[ws_name
-           or id]/[obj_name or id]/[obj_ver]" - for example,
-           "MyFirstWorkspace/MyFirstObject/3" would identify the third
-           version of an object called MyFirstObject in the workspace called
-           MyFirstWorkspace. 42/Panic/1 would identify the first version of
-           the object name Panic in workspace with id 42. Towel/1/6 would
-           identify the 6th version of the object with id 1 in the Towel
-           workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for
-           example, "kb|ws.23.obj.567.ver.2" would identify the second
+           starting at 1.), parameter "ref" of type "ref_string" (A chain of
+           objects with references to one another as a string. A single
+           string that is semantically identical to ref_chain above.
+           Represents a path from one workspace object to another through an
+           arbitrarily number of intermediate objects where each object has a
+           dependency or provenance reference to the next object. Each entry
+           is an obj_ref as defined earlier. Entries are separated by
+           semicolons. Whitespace is ignored. Examples: 3/5/6;
+           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "obj_path" of type "ref_chain" (A chain of objects with
+           references to one another. An object reference chain consists of a
+           list of objects where the nth object possesses a reference, either
+           in the object itself or in the object provenance, to the n+1th
+           object.) -> list of type "ObjectIdentity" (An object identifier.
+           Select an object by either: One, and only one, of the numerical id
+           or name of the workspace, where the name can also be a KBase ID
+           including the numerical id, e.g. kb|ws.35. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - name of the
+           workspace or the workspace ID in KBase format, e.g. kb|ws.78. AND
+           One, and only one, of the numerical id or name of the object.
+           obj_id objid- the numerical ID of the object. obj_name name - name
+           of the object. OPTIONALLY obj_ver ver - the version of the object.
+           OR an object reference string: obj_ref ref - an object reference
+           string.) -> structure: parameter "workspace" of type "ws_name" (A
+           string used as a name for a workspace. Any string consisting of
+           alphanumeric characters and "_", ".", or "-" that is not an
+           integer is acceptable. The name may optionally be prefixed with
+           the workspace owner's user name and a colon, e.g.
+           kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter "name"
+           of type "obj_name" (A string used as a name for an object. Any
+           string consisting of alphanumeric characters and the characters
+           |._- that is not an integer is acceptable.), parameter "objid" of
+           type "obj_id" (The unique, permanent numerical ID of an object.),
+           parameter "ver" of type "obj_ver" (An object version. The version
+           of the object, starting at 1.), parameter "ref" of type "obj_ref"
+           (A string that uniquely identifies an object in the workspace
+           service. There are two ways to uniquely identify an object in one
+           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
+           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           third version of an object called MyFirstObject in the workspace
+           called MyFirstWorkspace. 42/Panic/1 would identify the first
+           version of the object name Panic in workspace with id 42.
+           Towel/1/6 would identify the 6th version of the object with id 1
+           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
+           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
            version of an object with id 567 in a workspace with id 23. In all
            cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "obj_path" of type "ref_chain" (A
-           chain of objects with references to one another. An object
+           object is assumed.), parameter "obj_ref_path" of list of type
+           "obj_ref" (A string that uniquely identifies an object in the
+           workspace service. There are two ways to uniquely identify an
+           object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
+           - for example, "MyFirstWorkspace/MyFirstObject/3" would identify
+           the third version of an object called MyFirstObject in the
+           workspace called MyFirstWorkspace. 42/Panic/1 would identify the
+           first version of the object name Panic in workspace with id 42.
+           Towel/1/6 would identify the 6th version of the object with id 1
+           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
+           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
+           version of an object with id 567 in a workspace with id 23. In all
+           cases, if the version number is omitted, the latest version of the
+           object is assumed.), parameter "to_obj_path" of type "ref_chain"
+           (A chain of objects with references to one another. An object
            reference chain consists of a list of objects where the nth object
            possesses a reference, either in the object itself or in the
            object provenance, to the n+1th object.) -> list of type
@@ -3478,7 +3602,7 @@ class Workspace(object):
            example, "kb|ws.23.obj.567.ver.2" would identify the second
            version of an object with id 567 in a workspace with id 23. In all
            cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "obj_ref_path" of list of type
+           object is assumed.), parameter "to_obj_ref_path" of list of type
            "obj_ref" (A string that uniquely identifies an object in the
            workspace service. There are two ways to uniquely identify an
            object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"

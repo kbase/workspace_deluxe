@@ -15,11 +15,14 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 /**
  * <p>Original spec-file type: ObjectSpecification</p>
  * <pre>
- * An Object Specification (OS). Inherits from ObjectIdentity.
+ * An Object Specification (OS). Inherits from ObjectIdentity (OI).
  * Specifies which object, and which parts of that object, to retrieve
  * from the Workspace Service.
- * The fields wsid, workspace, objid, name, ver, and ref are identical to
- * the ObjectIdentity fields.
+ * The fields wsid, workspace, objid, name, and ver are identical to
+ * the OI fields.
+ * The ref field's behavior is extended from OI. It maintains its
+ * previous behavior, but now also can act as a reference string. See
+ * reference following below for more information.
  * REFERENCE FOLLOWING:
  * Reference following guarantees that a user that has access to an
  * object can always see a) objects that are referenced inside the object
@@ -30,6 +33,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * SO, but need not have access to any further objects in the reference
  * chain, and those objects may be deleted.
  * Optional reference following fields:
+ * Note that only one of the following fields may be specified.
  * ref_chain obj_path - a path to the desired object from the object
  *         specified in this OS. In other words, the object specified in this
  *         OS is assumed to be accessible to the user, and the objects in
@@ -37,8 +41,21 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         object at the end of the object path. If the references are all
  *         valid, the desired object will be returned.
  * - OR -
- * list<obj_ref> obj_ref_path - shorthand for the obj_path. Only one of
- *         obj_path or obj_ref_path may be specified.
+ * list<obj_ref> obj_ref_path - shorthand for the obj_path.
+ * - OR -
+ * ref_chain to_obj_path - identical to obj_path, except that the path
+ *         is TO the object specified in this OS, rather than from the object.
+ *         In other words the object specified by wsid/objid/ref etc. is the
+ *         end of the path, and to_obj_path is the rest of the path. The user
+ *         must have access to the first object in the to_obj_path.
+ * - OR -
+ * list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path.
+ * - OR -
+ * ref_string ref - A string representing a reference path from
+ *         one object to another. Unlike the previous reference following
+ *         options, the ref_string represents the ENTIRE path from the source
+ *         object to the target object. As with the OI object, the ref field
+ *         may contain a single reference.
  * OBJECT SUBSETS:
  * When selecting a subset of an array in an object, the returned
  * array is compressed to the size of the subset, but the ordering of
@@ -72,6 +89,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "ref",
     "obj_path",
     "obj_ref_path",
+    "to_obj_path",
+    "to_obj_ref_path",
     "included",
     "strict_maps",
     "strict_arrays"
@@ -94,6 +113,10 @@ public class ObjectSpecification {
     private List<ObjectIdentity> objPath;
     @JsonProperty("obj_ref_path")
     private List<String> objRefPath;
+    @JsonProperty("to_obj_path")
+    private List<ObjectIdentity> toObjPath;
+    @JsonProperty("to_obj_ref_path")
+    private List<String> toObjRefPath;
     @JsonProperty("included")
     private List<String> included;
     @JsonProperty("strict_maps")
@@ -222,6 +245,36 @@ public class ObjectSpecification {
         return this;
     }
 
+    @JsonProperty("to_obj_path")
+    public List<ObjectIdentity> getToObjPath() {
+        return toObjPath;
+    }
+
+    @JsonProperty("to_obj_path")
+    public void setToObjPath(List<ObjectIdentity> toObjPath) {
+        this.toObjPath = toObjPath;
+    }
+
+    public ObjectSpecification withToObjPath(List<ObjectIdentity> toObjPath) {
+        this.toObjPath = toObjPath;
+        return this;
+    }
+
+    @JsonProperty("to_obj_ref_path")
+    public List<String> getToObjRefPath() {
+        return toObjRefPath;
+    }
+
+    @JsonProperty("to_obj_ref_path")
+    public void setToObjRefPath(List<String> toObjRefPath) {
+        this.toObjRefPath = toObjRefPath;
+    }
+
+    public ObjectSpecification withToObjRefPath(List<String> toObjRefPath) {
+        this.toObjRefPath = toObjRefPath;
+        return this;
+    }
+
     @JsonProperty("included")
     public List<String> getIncluded() {
         return included;
@@ -279,7 +332,7 @@ public class ObjectSpecification {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((("ObjectSpecification"+" [workspace=")+ workspace)+", wsid=")+ wsid)+", name=")+ name)+", objid=")+ objid)+", ver=")+ ver)+", ref=")+ ref)+", objPath=")+ objPath)+", objRefPath=")+ objRefPath)+", included=")+ included)+", strictMaps=")+ strictMaps)+", strictArrays=")+ strictArrays)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((("ObjectSpecification"+" [workspace=")+ workspace)+", wsid=")+ wsid)+", name=")+ name)+", objid=")+ objid)+", ver=")+ ver)+", ref=")+ ref)+", objPath=")+ objPath)+", objRefPath=")+ objRefPath)+", toObjPath=")+ toObjPath)+", toObjRefPath=")+ toObjRefPath)+", included=")+ included)+", strictMaps=")+ strictMaps)+", strictArrays=")+ strictArrays)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
