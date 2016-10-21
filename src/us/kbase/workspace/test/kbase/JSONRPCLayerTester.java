@@ -177,7 +177,8 @@ public class JSONRPCLayerTester {
 	public static void setUpClass() throws Exception {
 		final ConfigurableAuthService auth = new ConfigurableAuthService(
 				new AuthConfig().withKBaseAuthServerURL(
-						TestCommon.getAuthUrl()));
+						TestCommon.getAuthUrl())
+				.withAllowInsecureURLs(true));
 		final AuthToken t1 = TestCommon.getToken(1, auth);
 		final AuthToken t2 = TestCommon.getToken(2, auth);
 		final AuthToken t3 = TestCommon.getToken(3, auth);
@@ -338,6 +339,7 @@ public class JSONRPCLayerTester {
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
 		ws.add("auth-service-url", TestCommon.getAuthUrl());
+		ws.add("auth-service-url-allow-insecure", "true");
 		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);

@@ -1252,10 +1252,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkListObjectsDep("depsave", null, null, AUTH_USER2.getTokenString(), Arrays.asList(obj1, obj3));
 		
 		String invalidToken = AUTH_USER2.getTokenString() + "a";
+		String badFormatToken = "borkborkbork";
+		// old auth service
 		String invalidTokenExp =
 				"Login failed! Server responded with code 401 UNAUTHORIZED";
-		String badFormatToken = "borkborkbork";
 		String badFormatTokenExp = "Login failed! Invalid token";
+		// new auth service
+//		String invalidTokenExp =
+//				"Login failed! Server responded with code 401 Unauthorized";
+//		String badFormatTokenExp = invalidTokenExp;
+		
 		
 		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
 				.withWorkspace("depsave").withAuth(invalidToken),
