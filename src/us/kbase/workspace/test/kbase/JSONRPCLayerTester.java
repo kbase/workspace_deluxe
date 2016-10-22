@@ -175,6 +175,7 @@ public class JSONRPCLayerTester {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
+		System.out.println("Using auth url " + TestCommon.getAuthUrl());
 		final ConfigurableAuthService auth = new ConfigurableAuthService(
 				new AuthConfig().withKBaseAuthServerURL(
 						TestCommon.getAuthUrl())
@@ -1486,49 +1487,6 @@ public class JSONRPCLayerTester {
 	}
 
 	@SuppressWarnings("deprecation")
-	protected void getReferencedObjectsCheckData(List<ObjectData> exp) throws IOException,
-			JsonClientException, Exception {
-		
-		//test get refed objs
-		List<ObjectData> res = CLIENT1.getReferencedObjects(Arrays.asList(
-				Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
-						new ObjectIdentity().withRef("referencedPriv/one")),
-				Arrays.asList(new ObjectIdentity().withRef("referenced/prov"),
-						new ObjectIdentity().withRef("referencedPriv/two"))));
-		compareData(exp, res);
-		
-		// test getobjs2 and getinfo with ref path
-		final List<ObjectSpecification> reflist = Arrays.asList(
-				new ObjectSpecification().withRef("referenced/ref").withObjRefPath(
-						Arrays.asList("referencedPriv/one")),
-				new ObjectSpecification().withRef("referenced/prov").withObjRefPath(
-						Arrays.asList("referencedPriv/two")));
-		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(reflist))
-				.getData();
-		compareData(exp, res);
-		
-		List<Tuple11<Long, String, String, String, Long, String, Long, String,
-		String, Long, Map<String, String>>> info =
-		CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-			.withObjects(reflist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
-		
-		// test getobjs2 and getinfo with obj ref path
-		final List<ObjectSpecification> refobjlist = Arrays.asList(
-				new ObjectSpecification().withRef("referenced/ref").withObjPath(
-						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"))),
-				new ObjectSpecification().withRef("referenced/prov").withObjPath(
-						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/two"))));
-		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(refobjlist))
-				.getData();
-		compareData(exp, res);
-		
-		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-				.withObjects(refobjlist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
-	}
-	
-	@SuppressWarnings("deprecation")
 	protected void failGetReferencedObjects(List<List<ObjectIdentity>> chains,
 			String excep) throws Exception {
 		try {
@@ -1582,13 +1540,13 @@ public class JSONRPCLayerTester {
 				refex = excep;
 			} else {
 				excep = "Error on ObjectSpecification #" + chainnum + 
-						": Invalid object id at position #" + (oidnum - 1) +
+						": Invalid object id at position #" + oidnum +
 						":" + e[2];
 				String ref = osr.get(chainnum - 1).getObjRefPath()
 						.get(oidnum - 2);
 				refex = String.format("Error on ObjectSpecification #%s" + 
 						": Invalid object reference (%s) at position #%s:%s",
-						chainnum, ref, oidnum - 1,
+						chainnum, ref, oidnum,
 						e[2].replace("ObjectIdentities", "Reference string"));
 			}
 		}

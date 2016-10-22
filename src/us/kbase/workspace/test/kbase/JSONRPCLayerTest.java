@@ -2896,8 +2896,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		 * obj ref = 1
 		 * obj prov = 2
 		 */
-		
-		getReferencedObjectsCheckData(exp);
+		try {
+			getReferencedObjectsCheckData(exp);
+		} catch (ServerException e) {
+			System.out.println(e.getData());
+			throw e;
+		}
 		
 		
 		try {
@@ -2908,7 +2912,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("get objects with bad params");
 		} catch (ServerException se) {
 			assertThat("wrong exception message", se.getLocalizedMessage(),
-					is("Error on ObjectSpecification #1: Only one of an object reference path or an object path may be specified"));
+					is("Error on ObjectSpecification #1: Only one of the 5 " +
+							"options for specifying an object reference " +
+							"path is allowed"));
 		}
 		
 		failGetReferencedObjects(null, "refChains may not be null");
@@ -2958,6 +2964,96 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"Object ref cannot be accessed: Workspace referenced is deleted");
 	}
 
+	@SuppressWarnings("deprecation")
+	protected void getReferencedObjectsCheckData(final List<ObjectData> exp)
+			throws Exception {
+		
+		//test get refed objs
+		List<ObjectData> res = CLIENT1.getReferencedObjects(Arrays.asList(
+				Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+						new ObjectIdentity().withRef("referencedPriv/one")),
+				Arrays.asList(new ObjectIdentity().withRef("referenced/prov"),
+						new ObjectIdentity().withRef("referencedPriv/two"))));
+		compareData(exp, res);
+		
+		// test getobjs2 and getinfo with full ref path
+		final List<ObjectSpecification> fullreflist = Arrays.asList(
+				new ObjectSpecification()
+						.withRef(" referenced/ref; \nreferencedPriv/one ; "),
+				new ObjectSpecification()
+						.withRef("referenced/prov;referencedPriv/two"));
+		res = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(fullreflist)).getData();
+		compareData(exp, res);
+
+		List<Tuple11<Long, String, String, String, Long, String, Long, String,
+				String, Long, Map<String, String>>> info =
+				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+							.withObjects(fullreflist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+		// test getobjs2 and getinfo with to ref path
+		final List<ObjectSpecification> toreflist = Arrays.asList(
+				new ObjectSpecification().withRef("referencedPriv/one")
+						.withToObjRefPath(Arrays.asList("referenced/ref")),
+				new ObjectSpecification().withRef("referencedPriv/two")
+						.withToObjRefPath(Arrays.asList("referenced/prov")));
+		res = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(toreflist)).getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+						.withObjects(toreflist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+		// test getobjs2 and getinfo with from ref path
+		final List<ObjectSpecification> reflist = Arrays.asList(
+				new ObjectSpecification().withRef("referenced/ref").withObjRefPath(
+						Arrays.asList("referencedPriv/one")),
+				new ObjectSpecification().withRef("referenced/prov").withObjRefPath(
+						Arrays.asList("referencedPriv/two")));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(reflist))
+				.getData();
+		compareData(exp, res);
+
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+						.withObjects(reflist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+
+		// test getobjs2 and getinfo with to obj path
+		final List<ObjectSpecification> torefobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referencedPriv/one")
+						.withToObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referenced/ref"))),
+				new ObjectSpecification().withRef("referencedPriv/two")
+						.withToObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referenced/prov"))));
+		res = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(torefobjlist)).getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(torefobjlist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+		// test getobjs2 and getinfo with from obj path
+		final List<ObjectSpecification> refobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referenced/ref")
+						.withObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referencedPriv/one"))),
+				new ObjectSpecification().withRef("referenced/prov")
+						.withObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referencedPriv/two"))));
+		res = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(refobjlist)).getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(refobjlist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+	}
+	
 	@Test
 	public void adminAddRemoveList() throws Exception {
 		checkAdmins(CLIENT2, Arrays.asList(USER2));

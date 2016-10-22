@@ -1,8 +1,16 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.5.1 (Released TBD)
+---------------------------------
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+* The ``ObjectSpecification`` structure now allows several new ways to provide
+  reference paths into the object graph.
+
+
 VERSION: 0.5.0 (Released 8/12/16)
------------------------------
+---------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
 
