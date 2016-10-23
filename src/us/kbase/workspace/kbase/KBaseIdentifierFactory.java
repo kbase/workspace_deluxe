@@ -24,6 +24,8 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 public class KBaseIdentifierFactory {
 	
 	//TODO TEST unit tests
+	//TODO JAVADOC
+	//TODO NOW rename to IdentifierUtils
 	
 	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws\\.(\\d+)");
 	private static final Pattern KB_OBJ_ID = Pattern.compile(
@@ -32,8 +34,7 @@ public class KBaseIdentifierFactory {
 	public static WorkspaceIdentifier processWorkspaceIdentifier(
 			final WorkspaceIdentity wsi) {
 		if (wsi == null) {
-			throw new IllegalArgumentException(
-					"WorkspaceIdentifier cannot be null");
+			throw new NullPointerException("wsi");
 		}
 		checkAddlArgs(wsi.getAdditionalProperties(), wsi.getClass());
 		return processWorkspaceIdentifier(wsi.getWorkspace(), wsi.getId());

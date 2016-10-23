@@ -2603,6 +2603,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 	}
 
+	@Test
 	public void getNamesByPrefix() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws1"));
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws2")
