@@ -250,13 +250,35 @@ public class IdentifierUtilsTest {
 	
 	@Test
 	public void failObjectIdentityRefAndMore() throws Exception {
-		final ObjectIdentity oi = new ObjectIdentity().withName("foo")
-				.withObjid(1L).withRef("yeah/whoo").withVer(2L)
-				.withWorkspace("baz").withWsid(3L);
+		final ObjectIdentity oi = new ObjectIdentity().withRef("yeah/boyeeee");
+		oi.withName("foo");
 		expectFailProcessObjectIdentifier(oi, new IllegalArgumentException(
-				"Object reference yeah/whoo provided; cannot provide any " +
-				"other means of identifying an object. Workspace: baz " +
-				"Workspace id: 3 Object name: foo Object id: 1 Version: 2"));
+				"Object reference yeah/boyeeee provided; cannot provide any " +
+				"other means of identifying an object. Object name: foo"));
+		
+		oi.withName(null);
+		oi.withObjid(1L);
+		expectFailProcessObjectIdentifier(oi, new IllegalArgumentException(
+				"Object reference yeah/boyeeee provided; cannot provide any " +
+				"other means of identifying an object. Object id: 1"));
+		
+		oi.withObjid(null);
+		oi.withVer(1L);
+		expectFailProcessObjectIdentifier(oi, new IllegalArgumentException(
+				"Object reference yeah/boyeeee provided; cannot provide any " +
+				"other means of identifying an object. Version: 1"));
+		
+		oi.withVer(null);
+		oi.withWorkspace("foo");
+		expectFailProcessObjectIdentifier(oi, new IllegalArgumentException(
+				"Object reference yeah/boyeeee provided; cannot provide any " +
+				"other means of identifying an object. Workspace: foo"));
+		
+		oi.withWorkspace(null);
+		oi.withWsid(1L);
+		expectFailProcessObjectIdentifier(oi, new IllegalArgumentException(
+				"Object reference yeah/boyeeee provided; cannot provide any " +
+				"other means of identifying an object. Workspace id: 1"));
 	}
 	
 	@Test
@@ -347,7 +369,6 @@ public class IdentifierUtilsTest {
 	@Test
 	public void successObjectIdentityWithKBRef() throws Exception {
 		final String ref = "kb|ws.4.obj.3";
-		
 		
 		final ObjectIdentity refoi = new ObjectIdentity().withRef(ref);
 		expectSuccessProcessObjectIdentity(refoi, null, 4L, null, 3L, null,

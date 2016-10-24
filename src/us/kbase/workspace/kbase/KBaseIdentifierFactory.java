@@ -55,29 +55,27 @@ public class KBaseIdentifierFactory {
 	}
 	
 	private static void verifyRefOnly(final ObjectIdentity oi) {
-		if (oi.getWorkspace() != null || oi.getWsid() != null 
-				|| oi.getName() != null || oi.getObjid() != null ||
-				oi.getVer() != null) {
-			final List<String> err = new ArrayList<String>(4);
-			if (oi.getWorkspace() != null) {
-				err.add("Workspace: " + oi.getWorkspace());
-			}
-			if (oi.getWsid() != null) {
-				err.add("Workspace id: " + oi.getWsid());
-			}
-			if (oi.getName() != null) {
-				err.add("Object name: " + oi.getName());
-			}
-			if (oi.getObjid() != null) {
-				err.add("Object id: " + oi.getObjid());
-			}
-			if (oi.getVer() != null) {
-				err.add("Version: " + oi.getVer());
-			}
+		final List<String> err = new LinkedList<String>();
+		if (oi.getWorkspace() != null) {
+			err.add("Workspace: " + oi.getWorkspace());
+		}
+		if (oi.getWsid() != null) {
+			err.add("Workspace id: " + oi.getWsid());
+		}
+		if (oi.getName() != null) {
+			err.add("Object name: " + oi.getName());
+		}
+		if (oi.getObjid() != null) {
+			err.add("Object id: " + oi.getObjid());
+		}
+		if (oi.getVer() != null) {
+			err.add("Version: " + oi.getVer());
+		}
+		if (!err.isEmpty()) {
 			throw new IllegalArgumentException(String.format(
 					"Object reference %s provided; cannot provide any other "+
-					"means of identifying an object. %s",
-					oi.getRef(), StringUtils.join(err, " ")));
+							"means of identifying an object. %s",
+							oi.getRef(), StringUtils.join(err, " ")));
 		}
 	}
 	
