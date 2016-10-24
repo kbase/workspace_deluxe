@@ -4,6 +4,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.junit.Test;
 
 import us.kbase.common.test.TestCommon;
@@ -391,5 +394,67 @@ public class IdentifierUtilsTest {
 				"4/3/2", "3", true);
 	}
 	
-	//TODO NOW finish testing verifyRefOnly
+	private void expectFailProcessObjectIdentifiers(
+			final List<ObjectIdentity> ois,
+			final Exception exp) {
+		try {
+			KBaseIdentifierFactory.processObjectIdentifiers(ois);
+			fail("Expected exception");
+		} catch (Exception e) {
+			TestCommon.assertExceptionCorrect(e, exp);
+		}
+	}
+	
+	@Test
+	public void failObjectIdentityListNull() throws Exception {
+		expectFailProcessObjectIdentifiers(null, new NullPointerException(
+				"The object identifier list cannot be null"));
+	}
+	
+	@Test
+	public void failObjectIdentityListEmpty() throws Exception {
+		expectFailProcessObjectIdentifiers(new LinkedList<>(),
+				new IllegalArgumentException(
+						"No object identifiers provided"));
+	}
+	
+	@Test
+	public void failObjectIdentityListNullEntry() throws Exception {
+		final List<ObjectIdentity> ois = new LinkedList<>();
+		ois.add(new ObjectIdentity().withRef("foo/bar"));
+		ois.add(null);
+		ois.add(new ObjectIdentity().withRef("baz/bat"));
+		expectFailProcessObjectIdentifiers(ois, new IllegalArgumentException(
+				"Error on ObjectIdentity #2: ObjectIdentity cannot be null"));
+	}
+	
+	@Test
+	public void failObjectIdentityListBadEntry() throws Exception {
+		final List<ObjectIdentity> ois = new LinkedList<>();
+		ois.add(new ObjectIdentity().withRef("foo/bar"));
+		ois.add(new ObjectIdentity().withRef("baz/bat"));
+		ois.add(new ObjectIdentity().withRef("foo/1").withVer(1L));
+		expectFailProcessObjectIdentifiers(ois, new IllegalArgumentException(
+				"Error on ObjectIdentity #3: Object reference foo/1 " +
+				"provided; cannot provide any other means of identifying an " +
+				"object. Version: 1"));
+	}
+	
+	@Test
+	public void successObjectIdentityList() throws Exception {
+		final List<ObjectIdentity> ois = new LinkedList<>();
+		ois.add(new ObjectIdentity().withRef("foo/bar"));
+		ois.add(new ObjectIdentity().withWorkspace("baz").withName("bat"));
+		ois.add(new ObjectIdentity().withWsid(1L).withObjid(2L).withVer(3L));
+		final List<ObjectIdentifier> pois = KBaseIdentifierFactory
+				.processObjectIdentifiers(ois);
+		assertThat("incorrect object count", pois.size(), is(3));
+		checkObjectIdentifier(pois.get(0), "foo", null, "bar", null, null,
+				"foo/bar", "bar", false);
+		checkObjectIdentifier(pois.get(1), "baz", null, "bat", null, null,
+				"baz/bat", "bat", false);
+		checkObjectIdentifier(pois.get(2), null, 1L, null, 2L, 3L,
+				"1/2/3", "2", true);
+	}
+
 }

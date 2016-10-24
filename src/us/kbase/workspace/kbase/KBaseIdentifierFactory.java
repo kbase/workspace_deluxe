@@ -82,7 +82,7 @@ public class KBaseIdentifierFactory {
 	public static List<ObjectIdentifier> processObjectIdentifiers(
 			List<ObjectIdentity> objectIDs) {
 		if (objectIDs == null) {
-			throw new IllegalArgumentException(
+			throw new NullPointerException(
 					"The object identifier list cannot be null");
 		}
 		if (objectIDs.isEmpty()) {
@@ -94,7 +94,7 @@ public class KBaseIdentifierFactory {
 		for (ObjectIdentity oi: objectIDs) {
 			try {
 				loi.add(processObjectIdentifier(oi));
-			} catch (IllegalArgumentException e) {
+			} catch (IllegalArgumentException | NullPointerException e) {
 				throw new IllegalArgumentException("Error on ObjectIdentity #"
 						+ objcount + ": " + e.getLocalizedMessage(), e);
 			}
