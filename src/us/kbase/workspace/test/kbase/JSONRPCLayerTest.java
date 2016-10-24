@@ -85,6 +85,8 @@ import com.github.zafarkhaja.semver.Version;
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
+	//TODO Test SaveObjectsParams withID
+	
 	@Test
 	public void ver() throws Exception {
 		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0"));
@@ -2715,7 +2717,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		ObjectData odn = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(
 				new ObjectSpecification().withRef("subdata/1")
-				.withIncluded(Arrays.asList("/map/id1", "/map/id3"))))).getData().get(0);
+				.withStrictMaps(0L)
+				.withIncluded(Arrays.asList(
+						"/map/id1", "/map/id3", "/map/id4")))))
+				.getData().get(0);
 		Map<String, Object> expdata = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
 				"					  \"thing\": \"foo\"}," +
@@ -2730,6 +2735,18 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkData(odn, 1, "std", SAFE_TYPE, 1, USER1, info1.getE1(), "subdata",
 				md5, 119, new HashMap<String, String>(),
 				expdata);
+		
+		try {
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
+					new ObjectSpecification().withRef("subdata/1")
+					.withStrictMaps(1L)
+					.withIncluded(Arrays.asList("/map/id1", "/map/id4")))));
+			fail("got objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Invalid selection: data does not contain a field or " +
+							"key named 'id4', at: /map/id4"));
+		}
 		
 		try {
 			@SuppressWarnings({ "deprecation", "unused" })
@@ -2802,8 +2819,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		ObjectData od2n = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(
-				new ObjectSpecification().withRef("subdata/2").withStrictArrays(0L)
-				.withIncluded(Arrays.asList("/features/2", "/features/3")))))
+				new ObjectSpecification().withRef("subdata/2")
+						.withStrictArrays(0L)
+						.withIncluded(Arrays.asList(
+								"/features/2", "/features/3", "/bar")))))
 				.getData().get(0);
 		Map<String, Object> od2nmap = od2n.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
 		Assert.assertEquals(1, od2nmap.size());

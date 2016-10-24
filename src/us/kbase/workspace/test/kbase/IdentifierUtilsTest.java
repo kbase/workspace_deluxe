@@ -58,7 +58,7 @@ public class IdentifierUtilsTest {
 	@Test
 	public void failNullWorkspaceIdentity() throws Exception {
 		expectFailProcessWorkspaceIdentifier(null, new NullPointerException(
-				"wsi"));
+				"WorkspaceIdentifier cannot be null"));
 	}
 	
 	@Test
