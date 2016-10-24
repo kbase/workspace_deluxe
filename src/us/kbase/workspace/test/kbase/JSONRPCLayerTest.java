@@ -889,6 +889,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
 				.withMeta(meta2).withType(SAFE_TYPE).withObjid(2L));
 		
+		// tests saving with workspace id instead of name
+		soc.withWorkspace(null).withId(wsid);
 		retmet = CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(1));
