@@ -85,8 +85,6 @@ import com.github.zafarkhaja.semver.Version;
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
-	//TODO Test SaveObjectsParams withID
-	
 	@Test
 	public void ver() throws Exception {
 		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0"));

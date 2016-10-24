@@ -75,7 +75,8 @@ public class KBaseIdentifierFactory {
 				err.add("Version: " + oi.getVer());
 			}
 			throw new IllegalArgumentException(String.format(
-					"Object reference %s provided; cannot provide any other means of identifying an object. %s",
+					"Object reference %s provided; cannot provide any other "+
+					"means of identifying an object. %s",
 					oi.getRef(), StringUtils.join(err, " ")));
 		}
 	}
@@ -87,7 +88,8 @@ public class KBaseIdentifierFactory {
 					"The object identifier list cannot be null");
 		}
 		if (objectIDs.isEmpty()) {
-			throw new IllegalArgumentException("No object identifiers provided");
+			throw new IllegalArgumentException(
+					"No object identifiers provided");
 		}
 		final List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
 		int objcount = 1;
@@ -106,7 +108,8 @@ public class KBaseIdentifierFactory {
 	public static ObjectIdentifier processObjectIdentifier(
 			final ObjectIdentity oi) {
 		if (oi == null) {
-			throw new IllegalArgumentException("ObjectIdentities cannot be null");
+			throw new NullPointerException(
+					"ObjectIdentity cannot be null");
 		}
 		checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
 		if (oi.getRef() != null) {
@@ -137,7 +140,7 @@ public class KBaseIdentifierFactory {
 
 	public static ObjectIdentifier processObjectReference(final String ref) {
 		if (ref == null) {
-			throw new IllegalArgumentException(
+			throw new NullPointerException(
 					"Reference string cannot be null");
 		}
 		final Matcher m = KB_OBJ_ID.matcher(ref);
