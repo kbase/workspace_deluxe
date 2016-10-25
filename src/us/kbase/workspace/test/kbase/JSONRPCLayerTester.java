@@ -1556,23 +1556,27 @@ public class JSONRPCLayerTester {
 			}
 		}
 		
-		try {
-			CLIENT1.getObjects2(new GetObjects2Params().withObjects(osl));
-			fail("got referenced objects with bad params");
-		} catch (ServerException se) {
-//			System.out.println(se.getData());
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(excep));
-		}
+		failGetObjects2(osl, excep);
+		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(osl),
+				excep);
 		if (excep.contains("Unexpected arguments in ObjectIdentity: foo")) {
 			return; // can't have UAs in a string ref
 		}
+		failGetObjects2(osr, refex);
+		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(osr),
+				refex);
+	}
+
+	private void failGetObjects2(
+			final List<ObjectSpecification> oss,
+			final String excep)
+			throws Exception {
 		try {
-			CLIENT1.getObjects2(new GetObjects2Params().withObjects(osr));
-			fail("got referenced objects with bad params");
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(oss));
+			fail("got objects with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(refex));
+					is(excep));
 		}
 	}
 
