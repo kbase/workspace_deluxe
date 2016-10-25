@@ -72,7 +72,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * list<object_path> included - the portions of the object to include
  *                 in the object subset.
  * boolean strict_maps - if true, throw an exception if the subset
- *         specification traverses a non-existant map key (default false)
+ *         specification traverses a non-existent map key (default false)
  * boolean strict_arrays - if true, throw an exception if the subset
  *         specification exceeds the size of an array (default true)
  * </pre>
