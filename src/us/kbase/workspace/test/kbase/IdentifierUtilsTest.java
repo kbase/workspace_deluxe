@@ -726,7 +726,7 @@ public class IdentifierUtilsTest {
 				"bar", false);
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
+		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(true));
 		final List<ObjectIdentifier> chain = oirc.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(2));
 		
@@ -755,7 +755,7 @@ public class IdentifierUtilsTest {
 				"bar", false);
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
+		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(true));
 		final List<ObjectIdentifier> chain = oirc.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(2));
 		
@@ -778,7 +778,7 @@ public class IdentifierUtilsTest {
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
-		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
+		assertThat("incorrect hasChain()", oi.hasRefPath(), is(false));
 		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
 				new LinkedList<ObjectIdentifier>()));
 		final SubsetSelection op = oi.getSubSet();
@@ -812,7 +812,7 @@ public class IdentifierUtilsTest {
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
-		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
+		assertThat("incorrect hasChain()", oi.hasRefPath(), is(false));
 		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
 				new LinkedList<ObjectIdentifier>()));
 		final SubsetSelection op = oi.getSubSet();
@@ -841,7 +841,7 @@ public class IdentifierUtilsTest {
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
-		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
+		assertThat("incorrect hasChain()", oi.hasRefPath(), is(false));
 		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
 				new LinkedList<ObjectIdentifier>()));
 		final SubsetSelection op = oi.getSubSet();
@@ -875,7 +875,7 @@ public class IdentifierUtilsTest {
 		
 		checkObjectIdentifier(oi, null, 3L, null, 2L, null, "3/2", "2", false);
 		
-		assertThat("incorrect hasChain()", oi.hasChain(), is(true));
+		assertThat("incorrect hasChain()", oi.hasRefPath(), is(true));
 		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
 		for (final String p: op) {
@@ -886,7 +886,7 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
 		assertThat("incorrect strict arrays", op.isStrictArrays(), is(true));
 		
-		assertThat("incorrect hasChain()", oi.hasChain(), is(true));
+		assertThat("incorrect hasChain()", oi.hasRefPath(), is(true));
 		final List<ObjectIdentifier> chain = oi.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(1));
 		
@@ -918,7 +918,7 @@ public class IdentifierUtilsTest {
 				"whoo/whee", "whee", false);
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
+		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(true));
 		final List<ObjectIdentifier> chain = oirc.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(1));
 		
@@ -946,7 +946,7 @@ public class IdentifierUtilsTest {
 				"3/4/1", "4", true);
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
+		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(true));
 		final List<ObjectIdentifier> chain = oirc.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(1));
 		
@@ -973,7 +973,7 @@ public class IdentifierUtilsTest {
 				"bar/2", "2", false);
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
+		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(true));
 		final List<ObjectIdentifier> chain = oirc.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(3));
 		

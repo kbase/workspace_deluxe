@@ -1449,7 +1449,7 @@ public class Workspace {
 				continue;
 			}
 			if (o instanceof ObjectIDWithRefPath && 
-					((ObjectIDWithRefPath) o).hasChain()) {
+					((ObjectIDWithRefPath) o).hasRefPath()) {
 				chains.add((ObjectIDWithRefPath) o);
 				heads.put(o, ws.get(o));
 			} else {

@@ -34,12 +34,12 @@ public class ObjectIDWithRefPath extends ObjectIdentifier {
 		return refpath;
 	}
 	
-	public boolean hasChain() {
+	public boolean hasRefPath() {
 		return !refpath.isEmpty();
 	}
 	
 	public ObjectIdentifier getLast() {
-		if (!hasChain()) {
+		if (!hasRefPath()) {
 			throw new IllegalStateException(
 					"This object identifier has no reference chain");
 		}
