@@ -983,8 +983,8 @@ public class Workspace {
 					new ArrayList<WorkspaceObjectData>();
 			for (final ObjectIdentifier o: loi) {
 				final SubsetSelection p;
-				if (o instanceof ObjIDWithChainAndSubset) {
-					p = ((ObjIDWithChainAndSubset) o).getSubSet();
+				if (o instanceof ObjIDWithRefPathAndSubset) {
+					p = ((ObjIDWithRefPathAndSubset) o).getSubSet();
 				} else {
 					p = SubsetSelection.EMPTY;
 				}
@@ -1074,8 +1074,8 @@ public class Workspace {
 			if (!paths.containsKey(roi)) {
 				paths.put(roi, new HashSet<SubsetSelection>());
 			}
-			if (o instanceof ObjIDWithChainAndSubset) {
-				paths.get(roi).add(((ObjIDWithChainAndSubset) o).getSubSet());
+			if (o instanceof ObjIDWithRefPathAndSubset) {
+				paths.get(roi).add(((ObjIDWithRefPathAndSubset) o).getSubSet());
 			} else {
 				paths.get(roi).add(SubsetSelection.EMPTY);
 			}

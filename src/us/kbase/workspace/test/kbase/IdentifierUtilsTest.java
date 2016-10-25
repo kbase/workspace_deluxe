@@ -15,7 +15,7 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
-import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -491,7 +491,7 @@ public class IdentifierUtilsTest {
 		final ObjectIdentifier oi = ret.get(0);
 		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(false));
-		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
 				is(false));
 		
 		checkObjectIdentifier(oi, wsname, wsid, name, id, ver, refstring,
@@ -719,7 +719,7 @@ public class IdentifierUtilsTest {
 		final ObjectIdentifier oi = ret.get(0);
 		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
 				is(false));
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
@@ -748,7 +748,7 @@ public class IdentifierUtilsTest {
 		final ObjectIdentifier oi = ret.get(0);
 		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
 				is(false));
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
@@ -773,8 +773,8 @@ public class IdentifierUtilsTest {
 		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
-		final ObjIDWithChainAndSubset oi =
-				(ObjIDWithChainAndSubset) ret.get(0);
+		final ObjIDWithRefPathAndSubset oi =
+				(ObjIDWithRefPathAndSubset) ret.get(0);
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
@@ -807,8 +807,8 @@ public class IdentifierUtilsTest {
 		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
-		final ObjIDWithChainAndSubset oi =
-				(ObjIDWithChainAndSubset) ret.get(0);
+		final ObjIDWithRefPathAndSubset oi =
+				(ObjIDWithRefPathAndSubset) ret.get(0);
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
@@ -836,8 +836,8 @@ public class IdentifierUtilsTest {
 		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
-		final ObjIDWithChainAndSubset oi =
-				(ObjIDWithChainAndSubset) ret.get(0);
+		final ObjIDWithRefPathAndSubset oi =
+				(ObjIDWithRefPathAndSubset) ret.get(0);
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
@@ -870,8 +870,8 @@ public class IdentifierUtilsTest {
 		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
-		final ObjIDWithChainAndSubset oi =
-				(ObjIDWithChainAndSubset) ret.get(0);
+		final ObjIDWithRefPathAndSubset oi =
+				(ObjIDWithRefPathAndSubset) ret.get(0);
 		
 		checkObjectIdentifier(oi, null, 3L, null, 2L, null, "3/2", "2", false);
 		
@@ -911,7 +911,7 @@ public class IdentifierUtilsTest {
 		final ObjectIdentifier oi = ret.get(0);
 		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
 				is(false));
 		
 		checkObjectIdentifier(oi, "whoo", null, "whee", null, null,
@@ -939,7 +939,7 @@ public class IdentifierUtilsTest {
 		final ObjectIdentifier oi = ret.get(0);
 		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
 				is(false));
 		
 		checkObjectIdentifier(oi, null, 3L, null, 4L, 1L,
@@ -966,7 +966,7 @@ public class IdentifierUtilsTest {
 		final ObjectIdentifier oi = ret.get(0);
 		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
 				is(false));
 		
 		checkObjectIdentifier(oi, "bar", null, null, 2L, null,

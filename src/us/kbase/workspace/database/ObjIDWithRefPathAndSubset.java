@@ -4,14 +4,14 @@ import java.util.List;
 
 import us.kbase.typedobj.core.SubsetSelection;
 
-public class ObjIDWithChainAndSubset extends ObjectIDWithRefPath {
+public class ObjIDWithRefPathAndSubset extends ObjectIDWithRefPath {
 
 	//TODO TEST unit tests
 	//TODO JAVADOC
 	
 	private final SubsetSelection subset;
 	
-	public ObjIDWithChainAndSubset(
+	public ObjIDWithRefPathAndSubset(
 			final ObjectIdentifier id,
 			final List<ObjectIdentifier> refpath,
 			final SubsetSelection subset) {
@@ -45,7 +45,7 @@ public class ObjIDWithChainAndSubset extends ObjectIDWithRefPath {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ObjIDWithChainAndSubset other = (ObjIDWithChainAndSubset) obj;
+		ObjIDWithRefPathAndSubset other = (ObjIDWithRefPathAndSubset) obj;
 		if (subset == null) {
 			if (other.subset != null)
 				return false;

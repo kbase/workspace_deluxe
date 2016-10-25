@@ -51,7 +51,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ListObjectsParameters;
-import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIDWithRefPath;
@@ -994,7 +994,7 @@ public class WorkspaceTester {
 	
 	protected void failGetSubset(
 			final WorkspaceUser user,
-			final List<ObjIDWithChainAndSubset> objs,
+			final List<ObjIDWithRefPathAndSubset> objs,
 			final Exception e)
 			throws Exception {
 		failGetSubset(ws, user, objs, e);
@@ -1004,7 +1004,7 @@ public class WorkspaceTester {
 	public static void failGetSubset(
 			final Workspace ws,
 			final WorkspaceUser user,
-			final List<ObjIDWithChainAndSubset> objs,
+			final List<ObjIDWithRefPathAndSubset> objs,
 			final Exception e)
 			throws Exception {
 		try {

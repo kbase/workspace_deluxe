@@ -50,7 +50,7 @@ import us.kbase.typedobj.test.DummyValidatedTypedObject;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ListObjectsParameters;
-import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIDWithRefPath;
@@ -291,7 +291,7 @@ public class MongoInternalsTest {
 				noObjExcp, false, new HashSet<>(Arrays.asList(0)));
 		
 		// test get subset
-		final ObjIDWithChainAndSubset os = new ObjIDWithChainAndSubset(
+		final ObjIDWithRefPathAndSubset os = new ObjIDWithRefPathAndSubset(
 				clnobj, null, new SubsetSelection(Arrays.asList("/foo")));
 		WorkspaceTester.failGetSubset(ws, user1, Arrays.asList(os), noObjExcp);
 		

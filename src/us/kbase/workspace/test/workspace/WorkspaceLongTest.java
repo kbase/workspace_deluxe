@@ -28,7 +28,7 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
-import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
@@ -392,7 +392,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				included.add("data/" + contigId + "/" + rnd.nextInt(featureCount));
 			long time2 = System.currentTimeMillis();
 			List<ObjectIdentifier> a = new LinkedList<ObjectIdentifier>();
-			a.add(new ObjIDWithChainAndSubset(
+			a.add(new ObjIDWithRefPathAndSubset(
 					new ObjectIdentifier(wspace, oi.getObjectId()), null,
 						new SubsetSelection(included)));
 			WorkspaceObjectData wod2 = ws.getObjects(userfoo, a).get(0);

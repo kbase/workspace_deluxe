@@ -16,7 +16,7 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
-import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -182,7 +182,7 @@ public class IdentifierUtils {
 							SubsetSelection.STRICT_MAPS_DEFAULT),
 					longToBoolean(soi.getStrictArrays(),
 							SubsetSelection.STRICT_ARRAYS_DEFAULT));
-			objs.add(new ObjIDWithChainAndSubset(oi, null, paths));
+			objs.add(new ObjIDWithRefPathAndSubset(oi, null, paths));
 			objcount++;
 		}
 		return objs;
@@ -272,7 +272,7 @@ public class IdentifierUtils {
 		} else if (paths == null) {
 			return new ObjectIDWithRefPath(oi, refchain);
 		} else {
-			return new ObjIDWithChainAndSubset(oi, refchain, paths);
+			return new ObjIDWithRefPathAndSubset(oi, refchain, paths);
 		}
 	}
 

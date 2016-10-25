@@ -52,7 +52,7 @@ import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ModuleInfo;
-import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIDWithRefPath;
@@ -5681,13 +5681,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		List<WorkspaceObjectData> got = ws.getObjects(user, 
 				new LinkedList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oident1, null, new SubsetSelection(
+				new ObjIDWithRefPathAndSubset(oident1, null, new SubsetSelection(
 						Arrays.asList("/map/id3", "/map/id1"))),
-				new ObjIDWithChainAndSubset(oident1, null, new SubsetSelection(
+				new ObjIDWithRefPathAndSubset(oident1, null, new SubsetSelection(
 						Arrays.asList("/map/id2"))),
-				new ObjIDWithChainAndSubset(oident2, null, new SubsetSelection(
+				new ObjIDWithRefPathAndSubset(oident2, null, new SubsetSelection(
 						Arrays.asList("/array/2", "/array/0"))),
-				new ObjIDWithChainAndSubset(oident3, null, new SubsetSelection(
+				new ObjIDWithRefPathAndSubset(oident3, null, new SubsetSelection(
 						Arrays.asList("/array/2", "/array/0", "/array/3"))))));
 		Map<String, Object> expdata1 = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
@@ -5731,15 +5731,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		// new test for extractor that fails on an array OOB
 		failGetSubset(user, Arrays.asList(
-				new ObjIDWithChainAndSubset(oident2, null, new SubsetSelection(
+				new ObjIDWithRefPathAndSubset(oident2, null, new SubsetSelection(
 						Arrays.asList("/array/3", "/array/0")))),
 				new TypedObjectExtractionException(
 						"Invalid selection: no array element exists at position '3', at: /array/3"));
 		
 		got = ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oident1, null, new SubsetSelection(
+				new ObjIDWithRefPathAndSubset(oident1, null, new SubsetSelection(
 						Arrays.asList("/map/*/thing"))),
-				new ObjIDWithChainAndSubset(oident2, null, new SubsetSelection(
+				new ObjIDWithRefPathAndSubset(oident2, null, new SubsetSelection(
 						Arrays.asList("/array/[*]/thing"))))));
 		expdata1 = createData(
 				"{\"map\": {\"id1\": {\"thing\": \"foo\"}," +
@@ -5764,27 +5764,27 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		
 		failGetSubset(user, Arrays.asList(
-				new ObjIDWithChainAndSubset(oident1, null, new SubsetSelection(
+				new ObjIDWithRefPathAndSubset(oident1, null, new SubsetSelection(
 						Arrays.asList("/map/id1/id/5")))),
 				new TypedObjectExtractionException(
 						"Invalid selection: the path given specifies fields or elements that do not exist "
 						+ "because data at this location is a scalar value (i.e. string, integer, float), at: /map/id1/id"));
 		failGetSubset(user2, Arrays.asList(
-				new ObjIDWithChainAndSubset(oident1, null, new SubsetSelection(
+				new ObjIDWithRefPathAndSubset(oident1, null, new SubsetSelection(
 						Arrays.asList("/map/*/thing")))),
 				new InaccessibleObjectException(
 						"Object o1 cannot be accessed: User subUser2 may not read workspace subData"));
 		
 		try {
 			ws.getObjects(user2, new LinkedList<ObjectIdentifier>(
-					Arrays.asList(new ObjIDWithChainAndSubset(
+					Arrays.asList(new ObjIDWithRefPathAndSubset(
 					new ObjectIdentifier(wsi, 2), null, null))));
 			fail("Able to get obj data from private workspace");
 		} catch (InaccessibleObjectException ioe) {
 			assertThat("correct exception message", ioe.getLocalizedMessage(),
 					is("Object 2 cannot be accessed: User subUser2 may not read workspace subData"));
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
-					is((ObjectIdentifier) new ObjIDWithChainAndSubset(
+					is((ObjectIdentifier) new ObjIDWithRefPathAndSubset(
 							new ObjectIdentifier(wsi, 2), null, null)));
 		}
 	}
@@ -6251,16 +6251,16 @@ public class WorkspaceTest extends WorkspaceTester {
 				simplerefoi,
 				(ObjectIdentifier) new ObjectIDWithRefPath(
 						simplerefoi, Arrays.asList(leaf1oi)),
-				(ObjectIdentifier) new ObjIDWithChainAndSubset(leaf2oi, null,
+				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(leaf2oi, null,
 						new SubsetSelection(Arrays.asList("/map/id22"))),
-				(ObjectIdentifier) new ObjIDWithChainAndSubset(leaf2oi, null,
+				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(leaf2oi, null,
 						new SubsetSelection(Arrays.asList("/map"))),
-				(ObjectIdentifier) new ObjIDWithChainAndSubset(simplerefoi, null,
+				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(simplerefoi, null,
 						new SubsetSelection(Arrays.asList("/map/id23"))),
-				(ObjectIdentifier) new ObjIDWithChainAndSubset(simplerefoi,
+				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(simplerefoi,
 						Arrays.asList(leaf1oi),
 						new SubsetSelection(Arrays.asList("/map/id1"))),
-				(ObjectIdentifier) new ObjIDWithChainAndSubset(simplerefoi,
+				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(simplerefoi,
 						Arrays.asList(leaf1oi),
 						new SubsetSelection(Arrays.asList("/map/id3")))
 				));
@@ -6854,10 +6854,10 @@ public class WorkspaceTest extends WorkspaceTester {
 			
 			ws.setResourceConfig(build.withMaxReturnedDataSize(20).build());
 			List<ObjectIdentifier> ois1l = new LinkedList<ObjectIdentifier>(
-					Arrays.asList(new ObjIDWithChainAndSubset(oi1, null,
+					Arrays.asList(new ObjIDWithRefPathAndSubset(oi1, null,
 					new SubsetSelection(Arrays.asList("/fo")))));
 			List<ObjectIdentifier> ois1lmt = new LinkedList<ObjectIdentifier>(
-					Arrays.asList(new ObjIDWithChainAndSubset(oi1, null,
+					Arrays.asList(new ObjIDWithRefPathAndSubset(oi1, null,
 					new SubsetSelection(new ArrayList<String>()))));
 			successGetObjects(user, oi1l);
 			destroyGetObjectsResources(ws.getObjects(user, ois1l));
@@ -6870,9 +6870,9 @@ public class WorkspaceTest extends WorkspaceTester {
 			IllegalArgumentException err = new IllegalArgumentException(String.format(errstr, 20, 19));
 			failGetObjects(user, oi1l, err, true);
 			TestCommon.assertNoTempFilesExist(tfm);
-			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) ois1l, err);
+			failGetSubset(user, (List<ObjIDWithRefPathAndSubset>)(List<?>) ois1l, err);
 			TestCommon.assertNoTempFilesExist(tfm);
-			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) ois1lmt, err);
+			failGetSubset(user, (List<ObjIDWithRefPathAndSubset>)(List<?>) ois1lmt, err);
 			TestCommon.assertNoTempFilesExist(tfm);
 			failGetReferencedObjects(user,
 					(List<ObjectIDWithRefPath>)(List<?>) refchain, err, true);
@@ -6882,12 +6882,12 @@ public class WorkspaceTest extends WorkspaceTester {
 			List<ObjectIdentifier> two = Arrays.asList(oi1, oi2);
 			List<ObjectIdentifier> mixed = Arrays.asList(oi1,
 					new ObjectIDWithRefPath(ref2, oi2l));
-			List<ObjIDWithChainAndSubset> ois1l2 = Arrays.asList(
-					new ObjIDWithChainAndSubset(oi1, null, new SubsetSelection(Arrays.asList("/fo"))),
-					new ObjIDWithChainAndSubset(oi1, null, new SubsetSelection(Arrays.asList("/ba"))));
-			List<ObjIDWithChainAndSubset> bothoi = Arrays.asList(
-					new ObjIDWithChainAndSubset(oi1, null, new SubsetSelection(Arrays.asList("/fo"))),
-					new ObjIDWithChainAndSubset(oi2, null, new SubsetSelection(Arrays.asList("/ba"))));
+			List<ObjIDWithRefPathAndSubset> ois1l2 = Arrays.asList(
+					new ObjIDWithRefPathAndSubset(oi1, null, new SubsetSelection(Arrays.asList("/fo"))),
+					new ObjIDWithRefPathAndSubset(oi1, null, new SubsetSelection(Arrays.asList("/ba"))));
+			List<ObjIDWithRefPathAndSubset> bothoi = Arrays.asList(
+					new ObjIDWithRefPathAndSubset(oi1, null, new SubsetSelection(Arrays.asList("/fo"))),
+					new ObjIDWithRefPathAndSubset(oi2, null, new SubsetSelection(Arrays.asList("/ba"))));
 			successGetObjects(user, two);
 			successGetObjects(user, mixed);
 			destroyGetObjectsResources(ws.getObjects(user,
@@ -6917,7 +6917,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			destroyGetObjectsResources(ws.getObjects(user, all));
 			ws.setResourceConfig(build.withMaxReturnedDataSize(59).build());
 			err = new IllegalArgumentException(String.format(errstr, 60, 59));
-			failGetSubset(user, (List<ObjIDWithChainAndSubset>)(List<?>) all, err);
+			failGetSubset(user, (List<ObjIDWithRefPathAndSubset>)(List<?>) all, err);
 			TestCommon.assertNoTempFilesExist(tfm);
 		} finally {
 			ws.setResourceConfig(oldcfg);
@@ -6962,7 +6962,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.getObjects(user, Arrays.asList(oi1));
 		assertThat("created no temp files on get", filesCreated[0], is(0));
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oi1, null,
+				new ObjIDWithRefPathAndSubset(oi1, null,
 				new SubsetSelection(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp file on get subdata", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -6983,14 +6983,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oi2, null,
+				new ObjIDWithRefPathAndSubset(oi2, null,
 				new SubsetSelection(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp files on get subdata part object", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oi2, null,
+				new ObjIDWithRefPathAndSubset(oi2, null,
 				new SubsetSelection(Arrays.asList("z", "y")))))).get(0).getSerializedData().destroy();
 		assertThat("created 2 temp files on get subdata full object", filesCreated[0], is(2));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
