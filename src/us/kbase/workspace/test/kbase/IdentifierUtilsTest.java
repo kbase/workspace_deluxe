@@ -418,7 +418,7 @@ public class IdentifierUtilsTest {
 	
 	@Test
 	public void failObjectIdentityListEmpty() throws Exception {
-		expectFailProcessObjectIdentifiers(new LinkedList<>(),
+		expectFailProcessObjectIdentifiers(new LinkedList<ObjectIdentity>(),
 				new IllegalArgumentException(
 						"No object identifiers provided"));
 	}
@@ -506,7 +506,8 @@ public class IdentifierUtilsTest {
 	
 	@Test
 	public void failObjectSpecListEmpty() throws Exception {
-		expectFailProcessObjectSpecifications(new LinkedList<>(),
+		expectFailProcessObjectSpecifications(
+				new LinkedList<ObjectSpecification>(),
 				new IllegalArgumentException(
 						"No object specifications provided"));
 	}
@@ -646,10 +647,10 @@ public class IdentifierUtilsTest {
 		
 		final ObjectSpecification os = new ObjectSpecification()
 				.withObjid(1L).withWorkspace("foo")
-				.withObjPath(new LinkedList<>())
-				.withToObjPath(new LinkedList<>())
-				.withObjRefPath(new LinkedList<>())
-				.withToObjRefPath(new LinkedList<>());
+				.withObjPath(new LinkedList<ObjectIdentity>())
+				.withToObjPath(new LinkedList<ObjectIdentity>())
+				.withObjRefPath(new LinkedList<String>())
+				.withToObjRefPath(new LinkedList<String>());
 		final List<ObjectSpecification> oss = new LinkedList<>();
 		oss.add(new ObjectSpecification().withWsid(1L).withObjid(2L));
 		oss.add(os);
@@ -658,15 +659,15 @@ public class IdentifierUtilsTest {
 			.withObjRefPath(Arrays.asList("ref"));
 		expectFailProcessObjectSpecifications(oss, exp);
 
-		os.withObjPath(new LinkedList<>())
+		os.withObjPath(new LinkedList<ObjectIdentity>())
 			.withToObjPath(Arrays.asList(oi));
 		expectFailProcessObjectSpecifications(oss, exp);
 
-		os.withToObjPath(new LinkedList<>())
+		os.withToObjPath(new LinkedList<ObjectIdentity>())
 			.withToObjRefPath(Arrays.asList("ref"));
 		expectFailProcessObjectSpecifications(oss, exp);
 	
-		os.withToObjRefPath(new LinkedList<>())
+		os.withToObjRefPath(new LinkedList<String>())
 			.withObjPath(Arrays.asList(oi));
 		expectFailProcessObjectSpecifications(oss, exp);
 	}
@@ -698,7 +699,7 @@ public class IdentifierUtilsTest {
 		// the important check is the class type check 
 		expectSuccessProcessSimpleObjectSpecification(new ObjectSpecification()
 				.withWsid(1L).withObjid(2L).withVer(3L)
-				.withIncluded(new LinkedList<>()),
+				.withIncluded(new LinkedList<String>()),
 				null, 1L, null, 2L, 3L, "1/2/3", "2", true);
 	}
 	
@@ -707,10 +708,10 @@ public class IdentifierUtilsTest {
 		//also tests that empty lists are ignored for the other path types
 		final List<ObjectSpecification> oss = new LinkedList<>();
 		oss.add(new ObjectSpecification()
-				.withObjPath(new LinkedList<>())
-				.withToObjPath(new LinkedList<>())
-				.withObjRefPath(new LinkedList<>())
-				.withToObjRefPath(new LinkedList<>())
+				.withObjPath(new LinkedList<ObjectIdentity>())
+				.withToObjPath(new LinkedList<ObjectIdentity>())
+				.withObjRefPath(new LinkedList<String>())
+				.withToObjRefPath(new LinkedList<String>())
 				.withRef("foo/bar \n; \n baz/bat ;whee/whoa"));
 		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
@@ -778,11 +779,13 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
 		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
-		assertThat("has ref chain", oi.getChain(),
-				is(new LinkedList<>()));
+		assertThat("has ref chain", oi.getChain(), is((List<ObjectIdentifier>)
+				new LinkedList<ObjectIdentifier>()));
 		final ObjectPaths op = oi.getPaths();
 		final List<String> paths = new LinkedList<>();
-		op.forEach(p -> paths.add(p));
+		for (final String p: op) {
+			paths.add(p);
+		}
 		assertThat("incorrect object paths", paths,
 				is(Arrays.asList("baz", "bat")));
 		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
@@ -797,10 +800,10 @@ public class IdentifierUtilsTest {
 				.withIncluded(Arrays.asList("whiz"))
 				.withStrictArrays(0L)
 				.withStrictMaps(0L)
-				.withObjPath(new LinkedList<>())
-				.withToObjPath(new LinkedList<>())
-				.withObjRefPath(new LinkedList<>())
-				.withToObjRefPath(new LinkedList<>()));
+				.withObjPath(new LinkedList<ObjectIdentity>())
+				.withToObjPath(new LinkedList<ObjectIdentity>())
+				.withObjRefPath(new LinkedList<String>())
+				.withToObjRefPath(new LinkedList<String>()));
 		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
@@ -810,11 +813,13 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
 		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
-		assertThat("has ref chain", oi.getChain(),
-				is(new LinkedList<>()));
+		assertThat("has ref chain", oi.getChain(), is((List<ObjectIdentifier>)
+				new LinkedList<ObjectIdentifier>()));
 		final ObjectPaths op = oi.getPaths();
 		final List<String> paths = new LinkedList<>();
-		op.forEach(p -> paths.add(p));
+		for (final String p: op) {
+			paths.add(p);
+		}
 		assertThat("incorrect object paths", paths,
 				is(Arrays.asList("whiz")));
 		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
@@ -837,11 +842,13 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
 		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
-		assertThat("has ref chain", oi.getChain(),
-				is(new LinkedList<>()));
+		assertThat("has ref chain", oi.getChain(), is((List<ObjectIdentifier>)
+				new LinkedList<ObjectIdentifier>()));
 		final ObjectPaths op = oi.getPaths();
 		final List<String> paths = new LinkedList<>();
-		op.forEach(p -> paths.add(p));
+		for (final String p: op) {
+			paths.add(p);
+		}
 		assertThat("incorrect object paths", paths,
 				is(Arrays.asList("whiz", "towel", "bleah")));
 		assertThat("incorrect strict maps", op.isStrictMaps(), is(true));
@@ -856,9 +863,9 @@ public class IdentifierUtilsTest {
 		oss.add(new ObjectSpecification().withWsid(3L).withObjid(2L)
 				.withObjPath(Arrays.asList(new ObjectIdentity()
 						.withName("whee").withWorkspace("whoo")))
-				.withToObjPath(new LinkedList<>())
-				.withObjRefPath(new LinkedList<>())
-				.withToObjRefPath(new LinkedList<>())
+				.withToObjPath(new LinkedList<ObjectIdentity>())
+				.withObjRefPath(new LinkedList<String>())
+				.withToObjRefPath(new LinkedList<String>())
 				.withIncluded(Arrays.asList("bar")));
 		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
@@ -871,7 +878,9 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect hasChain()", oi.hasChain(), is(true));
 		final ObjectPaths op = oi.getPaths();
 		final List<String> paths = new LinkedList<>();
-		op.forEach(p -> paths.add(p));
+		for (final String p: op) {
+			paths.add(p);
+		}
 		assertThat("incorrect object paths", paths,
 				is(Arrays.asList("bar")));
 		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
@@ -892,9 +901,9 @@ public class IdentifierUtilsTest {
 		oss.add(new ObjectSpecification().withWsid(3L).withObjid(2L)
 				.withToObjPath(Arrays.asList(new ObjectIdentity()
 						.withName("whee").withWorkspace("whoo")))
-				.withObjPath(new LinkedList<>())
-				.withObjRefPath(new LinkedList<>())
-				.withToObjRefPath(new LinkedList<>()));
+				.withObjPath(new LinkedList<ObjectIdentity>())
+				.withObjRefPath(new LinkedList<String>())
+				.withToObjRefPath(new LinkedList<String>()));
 		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));

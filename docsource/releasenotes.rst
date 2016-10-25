@@ -5,10 +5,12 @@ VERSION: 0.5.1 (Released TBD)
 ---------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
+
 * The kb|ws... style of addressing workspaces or objects has been deprecated
   and will be removed in a future release.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
+
 * The ``ObjectSpecification`` structure now allows several new ways to provide
   reference paths into the object graph.
 
