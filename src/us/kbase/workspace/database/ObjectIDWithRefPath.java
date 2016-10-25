@@ -5,13 +5,13 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-public class ObjectIDWithRefChain extends ObjectIdentifier {
+public class ObjectIDWithRefPath extends ObjectIdentifier {
 
 	//TODO TEST unit tests
 	
 	private List<ObjectIdentifier> chain;
 	
-	public ObjectIDWithRefChain(
+	public ObjectIDWithRefPath(
 			final ObjectIdentifier id,
 			List<ObjectIdentifier> chain) {
 		super(id);
@@ -67,7 +67,7 @@ public class ObjectIDWithRefChain extends ObjectIdentifier {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ObjectIDWithRefChain other = (ObjectIDWithRefChain) obj;
+		ObjectIDWithRefPath other = (ObjectIDWithRefPath) obj;
 		if (chain == null) {
 			if (other.chain != null)
 				return false;

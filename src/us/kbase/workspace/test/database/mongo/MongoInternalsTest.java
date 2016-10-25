@@ -53,7 +53,7 @@ import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjIDWithChainAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDWithRefChain;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -285,7 +285,7 @@ public class MongoInternalsTest {
 				noWSExcp);
 		
 		// test get referenced objects
-		final ObjectIDWithRefChain oc = new ObjectIDWithRefChain(
+		final ObjectIDWithRefPath oc = new ObjectIDWithRefPath(
 				clnobj, Arrays.asList(stdobj));
 		WorkspaceTester.failGetReferencedObjects(ws, user1, Arrays.asList(oc),
 				noObjExcp, false, new HashSet<>(Arrays.asList(0)));

@@ -54,7 +54,7 @@ import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjIDWithChainAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDWithRefChain;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -906,7 +906,7 @@ public class WorkspaceTester {
 	
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefChain> objs,
+			final List<ObjectIDWithRefPath> objs,
 			final Exception e)
 			throws Exception {
 		
@@ -915,7 +915,7 @@ public class WorkspaceTester {
 	
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefChain> objs,
+			final List<ObjectIDWithRefPath> objs,
 			final Exception e,
 			final Set<Integer> nulls)
 			throws Exception {
@@ -925,13 +925,13 @@ public class WorkspaceTester {
 	
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefChain> objs,
+			final List<ObjectIDWithRefPath> objs,
 			final Exception e,
 			final boolean onlyTestReturningData)
 			throws Exception {
 		Set<Integer> nulls = new HashSet<Integer>();
 		int count = 0;
-		for (@SuppressWarnings("unused") ObjectIDWithRefChain foo: objs) {
+		for (@SuppressWarnings("unused") ObjectIDWithRefPath foo: objs) {
 			nulls.add(count);
 			count++;
 		}
@@ -940,7 +940,7 @@ public class WorkspaceTester {
 	
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefChain> objs,
+			final List<ObjectIDWithRefPath> objs,
 			final Exception e,
 			final boolean onlyTestReturningData,
 			final Set<Integer> nulls)
@@ -952,7 +952,7 @@ public class WorkspaceTester {
 	public static void failGetReferencedObjects(
 			final Workspace ws,
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefChain> objs,
+			final List<ObjectIDWithRefPath> objs,
 			final Exception e,
 			final boolean onlyTestReturningData,
 			final Set<Integer> nulls)
@@ -1867,7 +1867,7 @@ public class WorkspaceTester {
 		assertThat("listed correct objects", g, is(new HashSet<ObjectInformation>(expected)));
 	}
 	
-	protected void checkReferencedObject(WorkspaceUser user, ObjectIDWithRefChain chain,
+	protected void checkReferencedObject(WorkspaceUser user, ObjectIDWithRefPath chain,
 			ObjectInformation oi, Provenance p, Map<String, ? extends Object> data,
 			List<String> refs, Map<String, String> refmap) throws Exception {
 		ObjectInformation info = ws.getObjectInformation(user,
@@ -1885,7 +1885,7 @@ public class WorkspaceTester {
 	protected void failCreateObjectChain(ObjectIdentifier oi, List<ObjectIdentifier> chain,
 			Exception e) {
 		try {
-			new ObjectIDWithRefChain(oi, chain);
+			new ObjectIDWithRefPath(oi, chain);
 			fail("bad args to object chain");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);

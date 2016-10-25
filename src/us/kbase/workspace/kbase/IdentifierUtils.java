@@ -17,15 +17,13 @@ import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.ObjIDWithChainAndSubset;
-import us.kbase.workspace.database.ObjectIDWithRefChain;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 
 public class IdentifierUtils {
 	
-	//TODO TEST unit tests
 	//TODO JAVADOC
-	//TODO NOW rename to IdentifierUtils
 	
 	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws\\.(\\d+)");
 	private static final Pattern KB_OBJ_ID = Pattern.compile(
@@ -272,7 +270,7 @@ public class IdentifierUtils {
 		if (paths == null && refchain == null) {
 			return oi;
 		} else if (paths == null) {
-			return new ObjectIDWithRefChain(oi, refchain);
+			return new ObjectIDWithRefPath(oi, refchain);
 		} else {
 			return new ObjIDWithChainAndSubset(oi, refchain, paths);
 		}

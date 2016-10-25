@@ -4,7 +4,7 @@ import java.util.List;
 
 import us.kbase.typedobj.core.ObjectPaths;
 
-public class ObjIDWithChainAndSubset extends ObjectIDWithRefChain {
+public class ObjIDWithChainAndSubset extends ObjectIDWithRefPath {
 
 	//TODO TEST unit tests
 	

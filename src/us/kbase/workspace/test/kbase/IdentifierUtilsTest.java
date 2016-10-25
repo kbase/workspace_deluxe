@@ -16,7 +16,7 @@ import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.ObjIDWithChainAndSubset;
-import us.kbase.workspace.database.ObjectIDWithRefChain;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.kbase.IdentifierUtils;
@@ -489,7 +489,7 @@ public class IdentifierUtilsTest {
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(false));
 		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
 				is(false));
@@ -717,7 +717,7 @@ public class IdentifierUtilsTest {
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(true));
 		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
 				is(false));
@@ -725,7 +725,7 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
 		
-		final ObjectIDWithRefChain oirc = (ObjectIDWithRefChain) oi;
+		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
 		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
 		final List<ObjectIdentifier> chain = oirc.getChain();
 		assertThat("incorrect chain size", chain.size(), is(2));
@@ -746,7 +746,7 @@ public class IdentifierUtilsTest {
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(true));
 		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
 				is(false));
@@ -754,7 +754,7 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
 		
-		final ObjectIDWithRefChain oirc = (ObjectIDWithRefChain) oi;
+		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
 		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
 		final List<ObjectIdentifier> chain = oirc.getChain();
 		assertThat("incorrect chain size", chain.size(), is(2));
@@ -909,7 +909,7 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect return size", ret.size(), is(1));
 
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(true));
 		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
 				is(false));
@@ -917,7 +917,7 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, "whoo", null, "whee", null, null,
 				"whoo/whee", "whee", false);
 		
-		final ObjectIDWithRefChain oirc = (ObjectIDWithRefChain) oi;
+		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
 		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
 		final List<ObjectIdentifier> chain = oirc.getChain();
 		assertThat("incorrect chain size", chain.size(), is(1));
@@ -937,7 +937,7 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect return size", ret.size(), is(1));
 
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(true));
 		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
 				is(false));
@@ -945,7 +945,7 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, null, 3L, null, 4L, 1L,
 				"3/4/1", "4", true);
 		
-		final ObjectIDWithRefChain oirc = (ObjectIDWithRefChain) oi;
+		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
 		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
 		final List<ObjectIdentifier> chain = oirc.getChain();
 		assertThat("incorrect chain size", chain.size(), is(1));
@@ -964,7 +964,7 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect return size", ret.size(), is(1));
 
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
 				is(true));
 		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
 				is(false));
@@ -972,7 +972,7 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, "bar", null, null, 2L, null,
 				"bar/2", "2", false);
 		
-		final ObjectIDWithRefChain oirc = (ObjectIDWithRefChain) oi;
+		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
 		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
 		final List<ObjectIdentifier> chain = oirc.getChain();
 		assertThat("incorrect chain size", chain.size(), is(3));

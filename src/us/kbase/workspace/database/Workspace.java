@@ -1085,7 +1085,7 @@ public class Workspace {
 	
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveReferenceChains(
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefChain> refchains,
+			final List<ObjectIDWithRefPath> refchains,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads,
 			final boolean ignoreErrors)
 			throws WorkspaceCommunicationException,
@@ -1100,7 +1100,7 @@ public class Workspace {
 		
 		final List<ObjectIdentifier> chains =
 				new LinkedList<ObjectIdentifier>();
-		for (final ObjectIDWithRefChain oc: refchains) {
+		for (final ObjectIDWithRefPath oc: refchains) {
 			if (oc != null) {
 				/* allow nulls in list to maintain object count in the case
 				 * calling method input includes objectIDs with and without
@@ -1125,7 +1125,7 @@ public class Workspace {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedChains =
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		int chnum = 1;
-		for (final ObjectIDWithRefChain chain: refchains) {
+		for (final ObjectIDWithRefPath chain: refchains) {
 			if (chain != null) {
 				final ObjectReferenceSet refs = headrefs.get(heads.get(chain));
 				if (refs != null && isValidRefChain(chain, refs, reschains,
@@ -1139,7 +1139,7 @@ public class Workspace {
 	}
 	
 	private boolean isValidRefChain(
-			final ObjectIDWithRefChain chain,
+			final ObjectIDWithRefPath chain,
 			final ObjectReferenceSet headref,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> reschains,
 			final Map<ObjectIDResolvedWS, ObjectReferenceSet> chainrefs,
@@ -1438,8 +1438,8 @@ public class Workspace {
 						nullIfInaccessible, nullIfInaccessible,
 						nullIfInaccessible);
 		
-		final List<ObjectIDWithRefChain> chains =
-				new LinkedList<ObjectIDWithRefChain>();
+		final List<ObjectIDWithRefPath> chains =
+				new LinkedList<ObjectIDWithRefPath>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads =
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> std =
@@ -1448,9 +1448,9 @@ public class Workspace {
 			if (ws.get(o) == null) {
 				continue;
 			}
-			if (o instanceof ObjectIDWithRefChain && 
-					((ObjectIDWithRefChain) o).hasChain()) {
-				chains.add((ObjectIDWithRefChain) o);
+			if (o instanceof ObjectIDWithRefPath && 
+					((ObjectIDWithRefPath) o).hasChain()) {
+				chains.add((ObjectIDWithRefPath) o);
 				heads.put(o, ws.get(o));
 			} else {
 				chains.add(null); // maintain count for error reporting
