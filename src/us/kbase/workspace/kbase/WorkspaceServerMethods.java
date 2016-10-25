@@ -7,7 +7,7 @@ import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.processProvenance;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.IOException;

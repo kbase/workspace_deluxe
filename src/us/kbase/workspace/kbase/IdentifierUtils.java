@@ -21,7 +21,7 @@ import us.kbase.workspace.database.ObjectIDWithRefChain;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 
-public class KBaseIdentifierFactory {
+public class IdentifierUtils {
 	
 	//TODO TEST unit tests
 	//TODO JAVADOC

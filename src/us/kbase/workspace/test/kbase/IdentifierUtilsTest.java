@@ -19,7 +19,7 @@ import us.kbase.workspace.database.ObjIDWithChainAndSubset;
 import us.kbase.workspace.database.ObjectIDWithRefChain;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
-import us.kbase.workspace.kbase.KBaseIdentifierFactory;
+import us.kbase.workspace.kbase.IdentifierUtils;
 
 public class IdentifierUtilsTest {
 	
@@ -31,7 +31,7 @@ public class IdentifierUtilsTest {
 			final WorkspaceIdentity wsi,
 			final Exception exp) {
 		try {
-			KBaseIdentifierFactory.processWorkspaceIdentifier(wsi);
+			IdentifierUtils.processWorkspaceIdentifier(wsi);
 			fail("Expected exception");
 		} catch (Exception e) {
 			TestCommon.assertExceptionCorrect(e, exp);
@@ -43,7 +43,7 @@ public class IdentifierUtilsTest {
 			final Long id,
 			final Exception exp) {
 		try {
-			KBaseIdentifierFactory.processWorkspaceIdentifier(name, id);
+			IdentifierUtils.processWorkspaceIdentifier(name, id);
 			fail("Expected exception");
 		} catch (Exception e) {
 			TestCommon.assertExceptionCorrect(e, exp);
@@ -55,13 +55,13 @@ public class IdentifierUtilsTest {
 			final String name,
 			final Long id,
 			final String idstring) throws Exception {
-		WorkspaceIdentifier pwsi = KBaseIdentifierFactory
+		WorkspaceIdentifier pwsi = IdentifierUtils
 				.processWorkspaceIdentifier(wsi);
 		assertThat("incorrect wsi name", pwsi.getName(), is(name));
 		assertThat("incorrect wsi id", pwsi.getId(), is(id));
 		assertThat("incorrect id string", pwsi.getIdentifierString(),
 				is(idstring));
-		pwsi = KBaseIdentifierFactory.processWorkspaceIdentifier(
+		pwsi = IdentifierUtils.processWorkspaceIdentifier(
 				wsi.getWorkspace(), wsi.getId());
 		assertThat("incorrect wsi name", pwsi.getName(), is(name));
 		assertThat("incorrect wsi id", pwsi.getId(), is(id));
@@ -125,7 +125,7 @@ public class IdentifierUtilsTest {
 			final ObjectIdentity oi,
 			final Exception exp) {
 		try {
-			KBaseIdentifierFactory.processObjectIdentifier(oi);
+			IdentifierUtils.processObjectIdentifier(oi);
 			fail("Expected exception");
 		} catch (Exception e) {
 			TestCommon.assertExceptionCorrect(e, exp);
@@ -174,7 +174,7 @@ public class IdentifierUtilsTest {
 			final String idstring,
 			final boolean isAbsolute)
 			throws Exception {
-		ObjectIdentifier poi = KBaseIdentifierFactory
+		ObjectIdentifier poi = IdentifierUtils
 				.processObjectIdentifier(wsnameprovided, wsidprovided,
 						nameprovided, idprovided, verprovided);
 		checkObjectIdentifier(poi, wsname, wsid, name, id, ver, refstring,
@@ -192,7 +192,7 @@ public class IdentifierUtilsTest {
 			final String idstring,
 			final boolean isAbsolute)
 			throws Exception {
-		ObjectIdentifier poi = KBaseIdentifierFactory
+		ObjectIdentifier poi = IdentifierUtils
 				.processObjectReference(ref);
 		checkObjectIdentifier(poi, wsname, wsid, name, id, ver, refstring,
 				idstring, isAbsolute);
@@ -209,7 +209,7 @@ public class IdentifierUtilsTest {
 			final String idstring,
 			final boolean isAbsolute)
 			throws Exception {
-		ObjectIdentifier poi = KBaseIdentifierFactory
+		ObjectIdentifier poi = IdentifierUtils
 				.processObjectIdentifier(oi);
 		checkObjectIdentifier(poi, wsname, wsid, name, id, ver, refstring,
 				idstring, isAbsolute);
@@ -298,7 +298,7 @@ public class IdentifierUtilsTest {
 				.withName("foo").withVer(ver);
 		expectFailProcessObjectIdentifier(oi, e);
 		try {
-			KBaseIdentifierFactory.processObjectIdentifier(
+			IdentifierUtils.processObjectIdentifier(
 					"baz", null, "foo", null, ver);
 			fail("expected exception");
 		} catch (IllegalArgumentException iae) {
@@ -310,7 +310,7 @@ public class IdentifierUtilsTest {
 	@Test
 	public void failNullObjectRef() throws Exception {
 		try {
-			KBaseIdentifierFactory.processObjectReference(null);
+			IdentifierUtils.processObjectReference(null);
 			fail("expected exception");
 		} catch (NullPointerException e) {
 			assertThat("incorrect exception", e.getMessage(),
@@ -403,7 +403,7 @@ public class IdentifierUtilsTest {
 			final List<ObjectIdentity> ois,
 			final Exception exp) {
 		try {
-			KBaseIdentifierFactory.processObjectIdentifiers(ois);
+			IdentifierUtils.processObjectIdentifiers(ois);
 			fail("Expected exception");
 		} catch (Exception e) {
 			TestCommon.assertExceptionCorrect(e, exp);
@@ -451,7 +451,7 @@ public class IdentifierUtilsTest {
 		ois.add(new ObjectIdentity().withRef("foo/bar"));
 		ois.add(new ObjectIdentity().withWorkspace("baz").withName("bat"));
 		ois.add(new ObjectIdentity().withWsid(1L).withObjid(2L).withVer(3L));
-		final List<ObjectIdentifier> pois = KBaseIdentifierFactory
+		final List<ObjectIdentifier> pois = IdentifierUtils
 				.processObjectIdentifiers(ois);
 		assertThat("incorrect object count", pois.size(), is(3));
 		checkObjectIdentifier(pois.get(0), "foo", null, "bar", null, null,
@@ -466,7 +466,7 @@ public class IdentifierUtilsTest {
 			final List<ObjectSpecification> oss,
 			final Exception exp) {
 		try {
-			KBaseIdentifierFactory.processObjectSpecifications(oss);
+			IdentifierUtils.processObjectSpecifications(oss);
 			fail("Expected exception");
 		} catch (Exception e) {
 			TestCommon.assertExceptionCorrect(e, exp);
@@ -485,7 +485,7 @@ public class IdentifierUtilsTest {
 			final boolean isAbsolute) {
 		final List<ObjectSpecification> oss = new LinkedList<>();
 		oss.add(os);
-		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjectIdentifier oi = ret.get(0);
@@ -712,7 +712,7 @@ public class IdentifierUtilsTest {
 				.withObjRefPath(new LinkedList<>())
 				.withToObjRefPath(new LinkedList<>())
 				.withRef("foo/bar \n; \n baz/bat ;whee/whoa"));
-		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjectIdentifier oi = ret.get(0);
@@ -741,7 +741,7 @@ public class IdentifierUtilsTest {
 		final List<ObjectSpecification> oss = new LinkedList<>();
 		oss.add(new ObjectSpecification()
 				.withRef("foo/bar \n; \n baz/bat ;whee/whoa"));
-		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjectIdentifier oi = ret.get(0);
@@ -769,7 +769,7 @@ public class IdentifierUtilsTest {
 		final List<ObjectSpecification> oss = new LinkedList<>();
 		oss.add(new ObjectSpecification().withRef("foo/bar")
 				.withIncluded(Arrays.asList("baz", "bat")));
-		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjIDWithChainAndSubset oi =
@@ -801,7 +801,7 @@ public class IdentifierUtilsTest {
 				.withToObjPath(new LinkedList<>())
 				.withObjRefPath(new LinkedList<>())
 				.withToObjRefPath(new LinkedList<>()));
-		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjIDWithChainAndSubset oi =
@@ -828,7 +828,7 @@ public class IdentifierUtilsTest {
 				.withIncluded(Arrays.asList("whiz", "towel", "bleah"))
 				.withStrictArrays(1L)
 				.withStrictMaps(1L));
-		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjIDWithChainAndSubset oi =
@@ -860,7 +860,7 @@ public class IdentifierUtilsTest {
 				.withObjRefPath(new LinkedList<>())
 				.withToObjRefPath(new LinkedList<>())
 				.withIncluded(Arrays.asList("bar")));
-		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjIDWithChainAndSubset oi =
@@ -895,7 +895,7 @@ public class IdentifierUtilsTest {
 				.withObjPath(new LinkedList<>())
 				.withObjRefPath(new LinkedList<>())
 				.withToObjRefPath(new LinkedList<>()));
-		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 
@@ -923,7 +923,7 @@ public class IdentifierUtilsTest {
 		oss.add(new ObjectSpecification().withWsid(3L).withObjid(4L)
 				.withVer(1L)
 				.withObjRefPath(Arrays.asList("bar/2")));
-		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 
@@ -950,7 +950,7 @@ public class IdentifierUtilsTest {
 		final List<ObjectSpecification> oss = new LinkedList<>();
 		oss.add(new ObjectSpecification().withWsid(3L).withObjid(4L)
 				.withToObjRefPath(Arrays.asList("bar/2", "5/6/7", "biz/baz")));
-		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 

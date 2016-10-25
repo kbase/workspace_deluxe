@@ -31,11 +31,11 @@ import static us.kbase.workspace.kbase.ArgUtils.translateObjectInfoList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectSpecifications;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectIdentifiers;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifiers;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
+import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifiers;
+import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.net.URL;
