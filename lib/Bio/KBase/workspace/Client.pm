@@ -2533,9 +2533,11 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
-	ref has a value which is a Workspace.obj_ref
+	ref has a value which is a Workspace.ref_string
 	obj_path has a value which is a Workspace.ref_chain
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	to_obj_path has a value which is a Workspace.ref_chain
+	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -2544,7 +2546,7 @@ ws_id is an int
 obj_name is a string
 obj_id is an int
 obj_ver is an int
-obj_ref is a string
+ref_string is a string
 ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
@@ -2553,6 +2555,7 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
+obj_ref is a string
 object_path is a string
 boolean is an int
 GetObjects2Results is a reference to a hash where the following keys are defined:
@@ -2643,9 +2646,11 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
-	ref has a value which is a Workspace.obj_ref
+	ref has a value which is a Workspace.ref_string
 	obj_path has a value which is a Workspace.ref_chain
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	to_obj_path has a value which is a Workspace.ref_chain
+	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -2654,7 +2659,7 @@ ws_id is an int
 obj_name is a string
 obj_id is an int
 obj_ver is an int
-obj_ref is a string
+ref_string is a string
 ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
@@ -2663,6 +2668,7 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
+obj_ref is a string
 object_path is a string
 boolean is an int
 GetObjects2Results is a reference to a hash where the following keys are defined:
@@ -4600,9 +4606,11 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
-	ref has a value which is a Workspace.obj_ref
+	ref has a value which is a Workspace.ref_string
 	obj_path has a value which is a Workspace.ref_chain
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	to_obj_path has a value which is a Workspace.ref_chain
+	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -4611,7 +4619,7 @@ ws_id is an int
 obj_name is a string
 obj_id is an int
 obj_ver is an int
-obj_ref is a string
+ref_string is a string
 ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
@@ -4620,6 +4628,7 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
+obj_ref is a string
 object_path is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
@@ -4657,9 +4666,11 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
-	ref has a value which is a Workspace.obj_ref
+	ref has a value which is a Workspace.ref_string
 	obj_path has a value which is a Workspace.ref_chain
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	to_obj_path has a value which is a Workspace.ref_chain
+	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -4668,7 +4679,7 @@ ws_id is an int
 obj_name is a string
 obj_id is an int
 obj_ver is an int
-obj_ref is a string
+ref_string is a string
 ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
@@ -4677,6 +4688,7 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
+obj_ref is a string
 object_path is a string
 boolean is an int
 object_info is a reference to a list containing 11 items:
@@ -8324,12 +8336,11 @@ a string
 
 A workspace identifier.
 
-                Select a workspace by one, and only one, of the numerical id or name,
-                        where the name can also be a KBase ID including the numerical id,
-                        e.g. kb|ws.35.
+                Select a workspace by one, and only one, of the numerical id or name.
+                        DEPRECATED: The name can also be a KBase ID including the numerical
+                                id, e.g. kb|ws.35.
                 ws_id id - the numerical ID of the workspace.
-                ws_name workspace - name of the workspace or the workspace ID in KBase
-                        format, e.g. kb|ws.78.
+                ws_name workspace - the name of the workspace.
 
 
 =item Definition
@@ -8597,7 +8608,8 @@ A string that uniquely identifies an object in the workspace service.
                 MyFirstWorkspace. 42/Panic/1 would identify the first version of
                 the object name Panic in workspace with id 42. Towel/1/6 would
                 identify the 6th version of the object with id 1 in the Towel
-                workspace. 
+                workspace.
+        DEPRECATED:
         "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example, 
                 "kb|ws.23.obj.567.ver.2" would identify the second version of an
                 object with id 567 in a workspace with id 23.
@@ -8636,12 +8648,11 @@ a string
 An object identifier.
 
 Select an object by either:
-        One, and only one, of the numerical id or name of the workspace,
-        where the name can also be a KBase ID including the numerical id,
-        e.g. kb|ws.35.
+        One, and only one, of the numerical id or name of the workspace.
+        DEPRECATED: The name can also be a KBase ID including the numerical
+                id, e.g. kb|ws.35.
                 ws_id wsid - the numerical ID of the workspace.
-                ws_name workspace - name of the workspace or the workspace ID
-                        in KBase format, e.g. kb|ws.78.
+                ws_name workspace - the name of the workspace.
         AND 
         One, and only one, of the numerical id or name of the object.
                 obj_id objid- the numerical ID of the object.
@@ -8714,6 +8725,48 @@ a reference to a list where each element is a Workspace.ObjectIdentity
 =begin text
 
 a reference to a list where each element is a Workspace.ObjectIdentity
+
+=end text
+
+=back
+
+
+
+=head2 ref_string
+
+=over 4
+
+
+
+=item Description
+
+A chain of objects with references to one another as a string.
+
+        A single string that is semantically identical to ref_chain above.
+        Represents a path from one workspace object to another through an
+        arbitrarily number of intermediate objects where each object has a
+        dependency or provenance reference to the next object. Each entry is
+        an obj_ref as defined earlier. Entries are separated by semicolons.
+        Whitespace is ignored.
+        
+        Examples:
+        3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2
+        aworkspace/6
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
 
 =end text
 
@@ -8851,12 +8904,16 @@ strict_arrays has a value which is a Workspace.boolean
 
 =item Description
 
-An Object Specification (OS). Inherits from ObjectIdentity.
+An Object Specification (OS). Inherits from ObjectIdentity (OI).
 Specifies which object, and which parts of that object, to retrieve
 from the Workspace Service.
 
-The fields wsid, workspace, objid, name, ver, and ref are identical to
-the ObjectIdentity fields.
+The fields wsid, workspace, objid, name, and ver are identical to
+the OI fields.
+
+The ref field's behavior is extended from OI. It maintains its
+previous behavior, but now also can act as a reference string. See
+reference following below for more information.
 
 REFERENCE FOLLOWING:
 
@@ -8871,6 +8928,8 @@ SO, but need not have access to any further objects in the reference
 chain, and those objects may be deleted.
 
 Optional reference following fields:
+Note that only one of the following fields may be specified.
+
 ref_chain obj_path - a path to the desired object from the object
         specified in this OS. In other words, the object specified in this
         OS is assumed to be accessible to the user, and the objects in
@@ -8878,8 +8937,21 @@ ref_chain obj_path - a path to the desired object from the object
         object at the end of the object path. If the references are all
         valid, the desired object will be returned.
 - OR -
-list<obj_ref> obj_ref_path - shorthand for the obj_path. Only one of
-        obj_path or obj_ref_path may be specified.
+list<obj_ref> obj_ref_path - shorthand for the obj_path.
+- OR -
+ref_chain to_obj_path - identical to obj_path, except that the path
+        is TO the object specified in this OS, rather than from the object.
+        In other words the object specified by wsid/objid/ref etc. is the
+        end of the path, and to_obj_path is the rest of the path. The user
+        must have access to the first object in the to_obj_path.
+- OR -
+list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path.
+- OR -
+ref_string ref - A string representing a reference path from
+        one object to another. Unlike the previous reference following
+        options, the ref_string represents the ENTIRE path from the source
+        object to the target object. As with the OI object, the ref field
+        may contain a single reference.
 
 OBJECT SUBSETS:
 
@@ -8899,7 +8971,7 @@ Optional object subset fields:
 list<object_path> included - the portions of the object to include
                 in the object subset.
 boolean strict_maps - if true, throw an exception if the subset
-        specification traverses a non-existant map key (default false)
+        specification traverses a non-existent map key (default false)
 boolean strict_arrays - if true, throw an exception if the subset
         specification exceeds the size of an array (default true)
 
@@ -8915,9 +8987,11 @@ wsid has a value which is a Workspace.ws_id
 name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
 ver has a value which is a Workspace.obj_ver
-ref has a value which is a Workspace.obj_ref
+ref has a value which is a Workspace.ref_string
 obj_path has a value which is a Workspace.ref_chain
 obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+to_obj_path has a value which is a Workspace.ref_chain
+to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 included has a value which is a reference to a list where each element is a Workspace.object_path
 strict_maps has a value which is a Workspace.boolean
 strict_arrays has a value which is a Workspace.boolean
@@ -8934,9 +9008,11 @@ wsid has a value which is a Workspace.ws_id
 name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
 ver has a value which is a Workspace.obj_ver
-ref has a value which is a Workspace.obj_ref
+ref has a value which is a Workspace.ref_string
 obj_path has a value which is a Workspace.ref_chain
 obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+to_obj_path has a value which is a Workspace.ref_chain
+to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 included has a value which is a reference to a list where each element is a Workspace.object_path
 strict_maps has a value which is a Workspace.boolean
 strict_arrays has a value which is a Workspace.boolean
@@ -9523,20 +9599,22 @@ exclude has a value which is a reference to a list where each element is a Works
 
 =item Description
 
-Input parameters for the "get_workspacemeta" function. Provided for
-backwards compatibility.
-        
-One, and only one of:
-ws_name workspace - name of the workspace or the workspace ID in KBase
-        format, e.g. kb|ws.78.
-ws_id id - the numerical ID of the workspace.
-        
-Optional arguments:
-string auth - the authentication token of the KBase account accessing
-        the workspace. Overrides the client provided authorization
-        credentials if they exist.
+DEPRECATED
 
-@deprecated Workspace.WorkspaceIdentity
+        Input parameters for the "get_workspacemeta" function. Provided for
+        backwards compatibility.
+
+        One, and only one of:
+        ws_name workspace - name of the workspace or the workspace ID in KBase
+                format, e.g. kb|ws.78.
+        ws_id id - the numerical ID of the workspace.
+                
+        Optional arguments:
+        string auth - the authentication token of the KBase account accessing
+                the workspace. Overrides the client provided authorization
+                credentials if they exist.
+        
+        @deprecated Workspace.WorkspaceIdentity
 
 
 =item Definition
@@ -9579,8 +9657,8 @@ Input parameters for the "set_permissions" function.
 
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
-        ws_name workspace - name of the workspace or the workspace ID in KBase
-                format, e.g. kb|ws.78.
+        ws_name workspace - the name of the workspace.
+                DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
         
         Required arguments:
         permission new_permission - the permission to assign to the users.
@@ -9629,8 +9707,8 @@ Input parameters for the "set_global_permission" function.
 
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
-        ws_name workspace - name of the workspace or the workspace ID in KBase
-                format, e.g. kb|ws.78.
+        ws_name workspace - the name of the workspace.
+                DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
         
         Required arguments:
         permission new_permission - the permission to assign to all users,
@@ -9679,8 +9757,8 @@ Input parameters for the "set_workspace_description" function.
 
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
-        ws_name workspace - name of the workspace or the workspace ID in KBase
-                format, e.g. kb|ws.78.
+        ws_name workspace - the name of the workspace.
+                DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
         
         Optional arguments:
         string description - A free-text description of the workspace, 1000
@@ -9935,8 +10013,8 @@ Input parameters for the "save_objects" function.
 
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
-        ws_name workspace - name of the workspace or the workspace ID in KBase
-                format, e.g. kb|ws.78.
+        ws_name workspace - the name of the workspace.
+                DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
         
         Required arguments:
         list<ObjectSaveData> objects - the objects to save.
@@ -10523,8 +10601,8 @@ Parameters for the 'list_objects' function.
                 recommended that the list is restricted to the workspaces of interest,
                 or the results may be very large:
                 list<ws_id> ids - the numerical IDs of the workspaces of interest.
-                list<ws_name> workspaces - names of the workspaces of interest or the
-                        workspace IDs in KBase format, e.g. kb|ws.78.
+                list<ws_name> workspaces - the names of the workspaces of interest.
+                        DEPRECATED: or the workspace IDs in KBase format, e.g. kb|ws.78.
                 type_string type - type of the objects to be listed.  Here, omitting
                         version information will find any objects that match the provided
                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any

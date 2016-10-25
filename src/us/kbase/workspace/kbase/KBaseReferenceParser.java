@@ -7,7 +7,7 @@ public class KBaseReferenceParser implements ReferenceParser {
 
 	@Override
 	public ObjectIdentifier parse(final String reference) {
-		return KBaseIdentifierFactory.processObjectReference(reference);
+		return IdentifierUtils.processObjectReference(reference);
 	}
 
 }

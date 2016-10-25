@@ -175,6 +175,7 @@ public class JSONRPCLayerTester {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
+		System.out.println("Using auth url " + TestCommon.getAuthUrl());
 		final ConfigurableAuthService auth = new ConfigurableAuthService(
 				new AuthConfig().withKBaseAuthServerURL(
 						TestCommon.getAuthUrl())
@@ -790,6 +791,11 @@ public class JSONRPCLayerTester {
 		}
 		return ret;
 	}
+	
+	private String exceptMessageOItoOS(final String message) {
+		return message.replace("identifiers", "specifications")
+				.replace("ObjectIdentity", "ObjectSpecification");
+	}
 
 	@SuppressWarnings("deprecation")
 	protected void failGetObjects(List<ObjectIdentity> loi, String exception)
@@ -800,7 +806,7 @@ public class JSONRPCLayerTester {
 			fail("got object with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+					is(exceptMessageOItoOS(exception)));
 		}
 		try {
 			CLIENT1.getObjects2(new GetObjects2Params().withNoData(1L)
@@ -808,7 +814,7 @@ public class JSONRPCLayerTester {
 			fail("got object with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+					is(exceptMessageOItoOS(exception)));
 		}
 		try {
 			CLIENT1.getObjects(loi);
@@ -837,7 +843,7 @@ public class JSONRPCLayerTester {
 			fail("got info with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+					is(exceptMessageOItoOS(exception)));
 		}
 		//deprecated, remove when removed from code.
 		try {
@@ -1486,49 +1492,6 @@ public class JSONRPCLayerTester {
 	}
 
 	@SuppressWarnings("deprecation")
-	protected void getReferencedObjectsCheckData(List<ObjectData> exp) throws IOException,
-			JsonClientException, Exception {
-		
-		//test get refed objs
-		List<ObjectData> res = CLIENT1.getReferencedObjects(Arrays.asList(
-				Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
-						new ObjectIdentity().withRef("referencedPriv/one")),
-				Arrays.asList(new ObjectIdentity().withRef("referenced/prov"),
-						new ObjectIdentity().withRef("referencedPriv/two"))));
-		compareData(exp, res);
-		
-		// test getobjs2 and getinfo with ref path
-		final List<ObjectSpecification> reflist = Arrays.asList(
-				new ObjectSpecification().withRef("referenced/ref").withObjRefPath(
-						Arrays.asList("referencedPriv/one")),
-				new ObjectSpecification().withRef("referenced/prov").withObjRefPath(
-						Arrays.asList("referencedPriv/two")));
-		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(reflist))
-				.getData();
-		compareData(exp, res);
-		
-		List<Tuple11<Long, String, String, String, Long, String, Long, String,
-		String, Long, Map<String, String>>> info =
-		CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-			.withObjects(reflist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
-		
-		// test getobjs2 and getinfo with obj ref path
-		final List<ObjectSpecification> refobjlist = Arrays.asList(
-				new ObjectSpecification().withRef("referenced/ref").withObjPath(
-						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"))),
-				new ObjectSpecification().withRef("referenced/prov").withObjPath(
-						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/two"))));
-		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(refobjlist))
-				.getData();
-		compareData(exp, res);
-		
-		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-				.withObjects(refobjlist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
-	}
-	
-	@SuppressWarnings("deprecation")
 	protected void failGetReferencedObjects(List<List<ObjectIdentity>> chains,
 			String excep) throws Exception {
 		try {
@@ -1582,34 +1545,38 @@ public class JSONRPCLayerTester {
 				refex = excep;
 			} else {
 				excep = "Error on ObjectSpecification #" + chainnum + 
-						": Invalid object id at position #" + (oidnum - 1) +
+						": Invalid object id at position #" + oidnum +
 						":" + e[2];
 				String ref = osr.get(chainnum - 1).getObjRefPath()
 						.get(oidnum - 2);
 				refex = String.format("Error on ObjectSpecification #%s" + 
 						": Invalid object reference (%s) at position #%s:%s",
-						chainnum, ref, oidnum - 1,
-						e[2].replace("ObjectIdentities", "Reference string"));
+						chainnum, ref, oidnum,
+						e[2].replace("ObjectIdentity", "Reference string"));
 			}
 		}
 		
-		try {
-			CLIENT1.getObjects2(new GetObjects2Params().withObjects(osl));
-			fail("got referenced objects with bad params");
-		} catch (ServerException se) {
-//			System.out.println(se.getData());
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(excep));
-		}
+		failGetObjects2(osl, excep);
+		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(osl),
+				excep);
 		if (excep.contains("Unexpected arguments in ObjectIdentity: foo")) {
 			return; // can't have UAs in a string ref
 		}
+		failGetObjects2(osr, refex);
+		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(osr),
+				refex);
+	}
+
+	private void failGetObjects2(
+			final List<ObjectSpecification> oss,
+			final String excep)
+			throws Exception {
 		try {
-			CLIENT1.getObjects2(new GetObjects2Params().withObjects(osr));
-			fail("got referenced objects with bad params");
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(oss));
+			fail("got objects with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(refex));
+					is(excep));
 		}
 	}
 

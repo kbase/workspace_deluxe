@@ -94,12 +94,11 @@ module Workspace {
 	
 	/* A workspace identifier.
 
-		Select a workspace by one, and only one, of the numerical id or name,
-			where the name can also be a KBase ID including the numerical id,
-			e.g. kb|ws.35.
+		Select a workspace by one, and only one, of the numerical id or name.
+			DEPRECATED: The name can also be a KBase ID including the numerical
+				id, e.g. kb|ws.35.
 		ws_id id - the numerical ID of the workspace.
-		ws_name workspace - name of the workspace or the workspace ID in KBase
-			format, e.g. kb|ws.78.
+		ws_name workspace - the name of the workspace.
 		
 	*/
 	typedef structure {
@@ -171,7 +170,8 @@ module Workspace {
 			MyFirstWorkspace. 42/Panic/1 would identify the first version of
 			the object name Panic in workspace with id 42. Towel/1/6 would
 			identify the 6th version of the object with id 1 in the Towel
-			workspace. 
+			workspace.
+		DEPRECATED:
 		"kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example, 
 			"kb|ws.23.obj.567.ver.2" would identify the second version of an
 			object with id 567 in a workspace with id 23.
@@ -183,12 +183,11 @@ module Workspace {
 	/* An object identifier.
 		
 		Select an object by either:
-			One, and only one, of the numerical id or name of the workspace,
-			where the name can also be a KBase ID including the numerical id,
-			e.g. kb|ws.35.
+			One, and only one, of the numerical id or name of the workspace.
+			DEPRECATED: The name can also be a KBase ID including the numerical
+				id, e.g. kb|ws.35.
 				ws_id wsid - the numerical ID of the workspace.
-				ws_name workspace - name of the workspace or the workspace ID
-					in KBase format, e.g. kb|ws.78.
+				ws_name workspace - the name of the workspace.
 			AND 
 			One, and only one, of the numerical id or name of the object.
 				obj_id objid- the numerical ID of the object.
@@ -214,6 +213,21 @@ module Workspace {
 		object provenance, to the n+1th object.
 	*/
 	typedef list<ObjectIdentity> ref_chain;
+	
+	/* A chain of objects with references to one another as a string.
+	
+		A single string that is semantically identical to ref_chain above.
+		Represents a path from one workspace object to another through an
+		arbitrarily number of intermediate objects where each object has a
+		dependency or provenance reference to the next object. Each entry is
+		an obj_ref as defined earlier. Entries are separated by semicolons.
+		Whitespace is ignored.
+		
+		Examples:
+		3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2
+		aworkspace/6
+	*/
+	typedef string ref_string;
 	
 	/* A path into an object. 
 		Identify a sub portion of an object by providing the path, delimited by
@@ -273,12 +287,16 @@ module Workspace {
 		boolean strict_arrays;
 	} SubObjectIdentity;
 	
-	/* An Object Specification (OS). Inherits from ObjectIdentity.
+	/* An Object Specification (OS). Inherits from ObjectIdentity (OI).
 		Specifies which object, and which parts of that object, to retrieve
 		from the Workspace Service.
 		
-		The fields wsid, workspace, objid, name, ver, and ref are identical to
-		the ObjectIdentity fields.
+		The fields wsid, workspace, objid, name, and ver are identical to
+		the OI fields.
+		
+		The ref field's behavior is extended from OI. It maintains its
+		previous behavior, but now also can act as a reference string. See
+		reference following below for more information.
 		
 		REFERENCE FOLLOWING:
 		
@@ -293,6 +311,8 @@ module Workspace {
 		chain, and those objects may be deleted.
 		
 		Optional reference following fields:
+		Note that only one of the following fields may be specified.
+		
 		ref_chain obj_path - a path to the desired object from the object
 			specified in this OS. In other words, the object specified in this
 			OS is assumed to be accessible to the user, and the objects in
@@ -300,8 +320,21 @@ module Workspace {
 			object at the end of the object path. If the references are all
 			valid, the desired object will be returned.
 		- OR -
-		list<obj_ref> obj_ref_path - shorthand for the obj_path. Only one of
-			obj_path or obj_ref_path may be specified.
+		list<obj_ref> obj_ref_path - shorthand for the obj_path.
+		- OR -
+		ref_chain to_obj_path - identical to obj_path, except that the path
+			is TO the object specified in this OS, rather than from the object.
+			In other words the object specified by wsid/objid/ref etc. is the
+			end of the path, and to_obj_path is the rest of the path. The user
+			must have access to the first object in the to_obj_path.
+		- OR -
+		list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path.
+		- OR -
+		ref_string ref - A string representing a reference path from
+			one object to another. Unlike the previous reference following
+			options, the ref_string represents the ENTIRE path from the source
+			object to the target object. As with the OI object, the ref field
+			may contain a single reference.
 		
 		OBJECT SUBSETS:
 		
@@ -321,7 +354,7 @@ module Workspace {
 		list<object_path> included - the portions of the object to include
 				in the object subset.
 		boolean strict_maps - if true, throw an exception if the subset
-			specification traverses a non-existant map key (default false)
+			specification traverses a non-existent map key (default false)
 		boolean strict_arrays - if true, throw an exception if the subset
 			specification exceeds the size of an array (default true)
 	*/
@@ -331,9 +364,11 @@ module Workspace {
 		obj_name name;
 		obj_id objid;
 		obj_ver ver;
-		obj_ref ref;
+		ref_string ref;
 		ref_chain obj_path;
 		list<obj_ref> obj_ref_path;
+		ref_chain to_obj_path;
+		list<obj_ref> to_obj_ref_path;
 		list<object_path> included;
 		boolean strict_maps;
 		boolean strict_arrays;
@@ -634,7 +669,9 @@ module Workspace {
 	funcdef lock_workspace(WorkspaceIdentity wsi) returns(workspace_info info)
 		authentication required;
 	
-	/* Input parameters for the "get_workspacemeta" function. Provided for
+	/* DEPRECATED
+	
+		Input parameters for the "get_workspacemeta" function. Provided for
 		backwards compatibility.
 	
 		One, and only one of:
@@ -679,8 +716,8 @@ module Workspace {
 	
 		One, and only one, of the following is required:
 		ws_id id - the numerical ID of the workspace.
-		ws_name workspace - name of the workspace or the workspace ID in KBase
-			format, e.g. kb|ws.78.
+		ws_name workspace - the name of the workspace.
+			DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
 		
 		Required arguments:
 		permission new_permission - the permission to assign to the users.
@@ -703,8 +740,8 @@ module Workspace {
 	
 		One, and only one, of the following is required:
 		ws_id id - the numerical ID of the workspace.
-		ws_name workspace - name of the workspace or the workspace ID in KBase
-			format, e.g. kb|ws.78.
+		ws_name workspace - the name of the workspace.
+			DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
 		
 		Required arguments:
 		permission new_permission - the permission to assign to all users,
@@ -728,8 +765,8 @@ module Workspace {
 	
 		One, and only one, of the following is required:
 		ws_id id - the numerical ID of the workspace.
-		ws_name workspace - name of the workspace or the workspace ID in KBase
-			format, e.g. kb|ws.78.
+		ws_name workspace - the name of the workspace.
+			DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
 		
 		Optional arguments:
 		string description - A free-text description of the workspace, 1000
@@ -857,8 +894,8 @@ module Workspace {
 	
 		One, and only one, of the following is required:
 		ws_id id - the numerical ID of the workspace.
-		ws_name workspace - name of the workspace or the workspace ID in KBase
-			format, e.g. kb|ws.78.
+		ws_name workspace - the name of the workspace.
+			DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
 		
 		Required arguments:
 		list<ObjectSaveData> objects - the objects to save.
@@ -1247,8 +1284,8 @@ module Workspace {
 		recommended that the list is restricted to the workspaces of interest,
 		or the results may be very large:
 		list<ws_id> ids - the numerical IDs of the workspaces of interest.
-		list<ws_name> workspaces - names of the workspaces of interest or the
-			workspace IDs in KBase format, e.g. kb|ws.78.
+		list<ws_name> workspaces - the names of the workspaces of interest.
+			DEPRECATED: or the workspace IDs in KBase format, e.g. kb|ws.78.
 		type_string type - type of the objects to be listed.  Here, omitting
 			version information will find any objects that match the provided
 			type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any

@@ -99,6 +99,10 @@ source.
 Addressing workspaces and objects
 ---------------------------------
 
+.. warning::
+   The kb|ws... style of addressing workspaces or objects has been deprecated
+   and will be removed in a future release.
+
 Workspaces may be addressed by either their name, ID, or the KBase formatted ID
 ``kb|ws.#`` where ``#`` is the workspace ID.
 
