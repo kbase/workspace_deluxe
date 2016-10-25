@@ -11,7 +11,7 @@ import java.util.List;
 import org.junit.Test;
 
 import us.kbase.common.test.TestCommon;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
@@ -781,7 +781,7 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
 		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
 				new LinkedList<ObjectIdentifier>()));
-		final ObjectPaths op = oi.getPaths();
+		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
 		for (final String p: op) {
 			paths.add(p);
@@ -815,7 +815,7 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
 		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
 				new LinkedList<ObjectIdentifier>()));
-		final ObjectPaths op = oi.getPaths();
+		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
 		for (final String p: op) {
 			paths.add(p);
@@ -844,7 +844,7 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
 		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
 				new LinkedList<ObjectIdentifier>()));
-		final ObjectPaths op = oi.getPaths();
+		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
 		for (final String p: op) {
 			paths.add(p);
@@ -876,7 +876,7 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, null, 3L, null, 2L, null, "3/2", "2", false);
 		
 		assertThat("incorrect hasChain()", oi.hasChain(), is(true));
-		final ObjectPaths op = oi.getPaths();
+		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
 		for (final String p: op) {
 			paths.add(p);

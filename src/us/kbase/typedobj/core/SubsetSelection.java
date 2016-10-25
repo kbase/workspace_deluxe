@@ -13,9 +13,9 @@ import java.util.List;
  * (http://tools.ietf.org/html/rfc6901).
  * @author rsutormin
  */
-public class ObjectPaths implements Iterable<String> {
+public class SubsetSelection implements Iterable<String> {
 	
-	public static final ObjectPaths EMPTY = new ObjectPaths(null);
+	public static final SubsetSelection EMPTY = new SubsetSelection(null);
 	
 	private final List<String> paths;
 	private final boolean strictMaps;
@@ -40,7 +40,7 @@ public class ObjectPaths implements Iterable<String> {
      * and strictArrays (true).
      * @param paths JSON Pointer paths
      */
-	public ObjectPaths(final List<String> paths) {
+	public SubsetSelection(final List<String> paths) {
 	    this(paths, STRICT_MAPS_DEFAULT, STRICT_ARRAYS_DEFAULT);
 	}
 
@@ -50,7 +50,7 @@ public class ObjectPaths implements Iterable<String> {
 	 * @param strictMaps restriction mode for maps
 	 * @param strictArrays restriction mode for arrays
 	 */
-	public ObjectPaths(final List<String> paths, boolean strictMaps, boolean strictArrays) {
+	public SubsetSelection(final List<String> paths, boolean strictMaps, boolean strictArrays) {
 	    if (paths == null) {
 			this.paths = Collections.unmodifiableList(
 					new LinkedList<String>());
@@ -156,7 +156,7 @@ public class ObjectPaths implements Iterable<String> {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        ObjectPaths other = (ObjectPaths) obj;
+        SubsetSelection other = (SubsetSelection) obj;
         if (paths == null) {
             if (other.paths != null)
                 return false;

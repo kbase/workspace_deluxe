@@ -31,7 +31,7 @@ import us.kbase.common.utils.CountingOutputStream;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ExtractedMetadata;
 import us.kbase.typedobj.core.MD5;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
@@ -2072,9 +2072,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_COPIED);
 	
 	@Override
-	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
+	public Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>>
 			getObjects(
-				final Map<ObjectIDResolvedWS, Set<ObjectPaths>> objs,
+				final Map<ObjectIDResolvedWS, Set<SubsetSelection>> objs,
 				final ByteArrayFileCacheManager dataMan,
 				final long usedDataAllocation,
 				final boolean exceptIfDeleted,
@@ -2096,8 +2096,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
 		final Map<String, ByteArrayFileCache> chksumToData =
 				new HashMap<String, ByteArrayFileCache>();
-		final Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>> ret =
-				new HashMap<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>();
+		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> ret =
+				new HashMap<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>>();
 		for (final ObjectIDResolvedWS o: objs.keySet()) {
 			final ResolvedMongoObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
@@ -2119,8 +2119,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final MongoObjectInfo info = ObjectInfoUtils.generateObjectInfo(
 					roi, vers.get(roi));
 			if (dataMan == null) {
-				ret.put(o, new HashMap<ObjectPaths, WorkspaceObjectData>());
-				ret.get(o).put(ObjectPaths.EMPTY, new WorkspaceObjectData(
+				ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
+				ret.get(o).put(SubsetSelection.EMPTY, new WorkspaceObjectData(
 						info, prov, refs, copied, extIDs));
 			} else {
 				try {
@@ -2129,7 +2129,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						throw new IllegalStateException(
 								"At least one ObjectPaths must be provided");
 					} else {
-						for (final ObjectPaths op: objs.get(o)) {
+						for (final SubsetSelection op: objs.get(o)) {
 							buildReturnedObjectData(
 									o, op, prov, refs, copied, extIDs, info,
 									chksumToData, dataMan, ret);
@@ -2150,7 +2150,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private void checkTotalFileSize(
 			final long usedDataAllocation,
-			final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths,
+			final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths,
 			final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs,
 			final Map<ResolvedMongoObjectID, Map<String, Object>> vers) {
 		//could take into account that identical md5s won't incur a real
@@ -2159,7 +2159,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final ObjectIDResolvedWS o: paths.keySet()) {
 			// works if resobjs.get(o) is null or vers doesn't contain
 			if (vers.containsKey(resobjs.get(o))) {
-				final Set<ObjectPaths> ops = paths.get(o);
+				final Set<SubsetSelection> ops = paths.get(o);
 				final long mult = ops.size() < 1 ? 1 : ops.size();
 				size += mult * (Long) vers.get(resobjs.get(o))
 						.get(Fields.VER_SIZE);
@@ -2176,7 +2176,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private void cleanUpTempObjectFiles(
 			final Map<String, ByteArrayFileCache> chksumToData,
-			final Map<ObjectIDResolvedWS, Map<ObjectPaths,
+			final Map<ObjectIDResolvedWS, Map<SubsetSelection,
 				WorkspaceObjectData>> ret) {
 		for (final ByteArrayFileCache f: chksumToData.values()) {
 			try {
@@ -2185,7 +2185,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				//continue
 			}
 		}
-		for (final Map<ObjectPaths, WorkspaceObjectData> m:
+		for (final Map<SubsetSelection, WorkspaceObjectData> m:
 			ret.values()) {
 			for (final WorkspaceObjectData wod: m.values()) {
 				try {
@@ -2201,7 +2201,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//yuck. Think more about the interface here
 	private void buildReturnedObjectData(
 			final ObjectIDResolvedWS o,
-			final ObjectPaths op,
+			final SubsetSelection op,
 			final MongoProvenance prov,
 			final List<String> refs,
 			final Reference copied,
@@ -2210,11 +2210,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<String, ByteArrayFileCache> chksumToData,
 			final ByteArrayFileCacheManager bafcMan,
 			final Map<ObjectIDResolvedWS,
-					Map<ObjectPaths, WorkspaceObjectData>> ret)
+					Map<SubsetSelection, WorkspaceObjectData>> ret)
 			throws TypedObjectExtractionException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (!ret.containsKey(o)) {
-			ret.put(o, new HashMap<ObjectPaths, WorkspaceObjectData>());
+			ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
 		}
 		if (chksumToData.containsKey(info.getCheckSum())) {
 			/* might be subsetting the same object the same way multiple
@@ -2257,7 +2257,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private ByteArrayFileCache getDataSubSet(final ByteArrayFileCache data,
-			final ObjectPaths paths, final ByteArrayFileCacheManager bafcMan)
+			final SubsetSelection paths, final ByteArrayFileCacheManager bafcMan)
 			throws TypedObjectExtractionException,
 			WorkspaceCommunicationException {
 		if (paths.isEmpty()) {

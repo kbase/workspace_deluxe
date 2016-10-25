@@ -20,7 +20,7 @@ import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.JsonDocumentLocation;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.ValidatedTypedObject;
@@ -955,9 +955,9 @@ public class Workspace {
 		final ResolvedResChains res = resolveObjects(user, loi,
 				nullIfInaccessible);
 		
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> chainpaths =
+		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> chainpaths =
 				setupObjectPaths(res.hadchain);
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> stdpaths =
+		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> stdpaths =
 				setupObjectPaths(res.nochain);
 		
 		//TODO CODE make an overall resource manager that takes the config as an arg and handles returned data as well as mem & file limits 
@@ -965,9 +965,9 @@ public class Workspace {
 		
 		//this is pretty gross, think about a better api here
 		Map<ObjectIDResolvedWS,
-				Map<ObjectPaths, WorkspaceObjectData>> stddata = null;
+				Map<SubsetSelection, WorkspaceObjectData>> stddata = null;
 		Map<ObjectIDResolvedWS,
-				Map<ObjectPaths, WorkspaceObjectData>> chaindata = null;
+				Map<SubsetSelection, WorkspaceObjectData>> chaindata = null;
 		try {
 			stddata = db.getObjects(stdpaths, dataMan, 0,
 					!nullIfInaccessible, false, !nullIfInaccessible);
@@ -982,11 +982,11 @@ public class Workspace {
 			final List<WorkspaceObjectData> ret =
 					new ArrayList<WorkspaceObjectData>();
 			for (final ObjectIdentifier o: loi) {
-				final ObjectPaths p;
+				final SubsetSelection p;
 				if (o instanceof ObjIDWithChainAndSubset) {
-					p = ((ObjIDWithChainAndSubset) o).getPaths();
+					p = ((ObjIDWithChainAndSubset) o).getSubSet();
 				} else {
-					p = ObjectPaths.EMPTY;
+					p = SubsetSelection.EMPTY;
 				}
 				final WorkspaceObjectData wod;
 				// works if res.nochain.get(o) is null or stddata doesn't have
@@ -1016,12 +1016,12 @@ public class Workspace {
 	}
 
 	private void destroyGetObjectsResources(
-			final Map<ObjectIDResolvedWS, Map<ObjectPaths,
+			final Map<ObjectIDResolvedWS, Map<SubsetSelection,
 					WorkspaceObjectData>> data) {
 		if (data == null) {
 			return;
 		}
-		for (final Map<ObjectPaths, WorkspaceObjectData> paths:
+		for (final Map<SubsetSelection, WorkspaceObjectData> paths:
 				data.values()) {
 			for (final WorkspaceObjectData d: paths.values()) {
 				try {
@@ -1034,10 +1034,10 @@ public class Workspace {
 	}
 
 	private long calculateDataSize(
-			final Map<ObjectIDResolvedWS, Map<ObjectPaths,
+			final Map<ObjectIDResolvedWS, Map<SubsetSelection,
 				WorkspaceObjectData>> stddata) {
 		long dataSize = 0;
-		for (final Map<ObjectPaths, WorkspaceObjectData> paths:
+		for (final Map<SubsetSelection, WorkspaceObjectData> paths:
 				stddata.values()) {
 			for (final WorkspaceObjectData d: paths.values()) {
 				if (d.hasData()) {
@@ -1065,19 +1065,19 @@ public class Workspace {
 		}
 	}
 
-	private Map<ObjectIDResolvedWS, Set<ObjectPaths>> setupObjectPaths(
+	private Map<ObjectIDResolvedWS, Set<SubsetSelection>> setupObjectPaths(
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> objs) {
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
+				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
 		for (final ObjectIdentifier o: objs.keySet()) {
 			final ObjectIDResolvedWS roi = objs.get(o);
 			if (!paths.containsKey(roi)) {
-				paths.put(roi, new HashSet<ObjectPaths>());
+				paths.put(roi, new HashSet<SubsetSelection>());
 			}
 			if (o instanceof ObjIDWithChainAndSubset) {
-				paths.get(roi).add(((ObjIDWithChainAndSubset) o).getPaths());
+				paths.get(roi).add(((ObjIDWithChainAndSubset) o).getSubSet());
 			} else {
-				paths.get(roi).add(ObjectPaths.EMPTY);
+				paths.get(roi).add(SubsetSelection.EMPTY);
 			}
 		}
 		return paths;

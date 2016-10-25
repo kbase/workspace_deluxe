@@ -33,7 +33,7 @@ import org.junit.Test;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFileListener;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -5681,13 +5681,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		List<WorkspaceObjectData> got = ws.getObjects(user, 
 				new LinkedList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident1, null, new SubsetSelection(
 						Arrays.asList("/map/id3", "/map/id1"))),
-				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident1, null, new SubsetSelection(
 						Arrays.asList("/map/id2"))),
-				new ObjIDWithChainAndSubset(oident2, null, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident2, null, new SubsetSelection(
 						Arrays.asList("/array/2", "/array/0"))),
-				new ObjIDWithChainAndSubset(oident3, null, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident3, null, new SubsetSelection(
 						Arrays.asList("/array/2", "/array/0", "/array/3"))))));
 		Map<String, Object> expdata1 = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
@@ -5731,15 +5731,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		// new test for extractor that fails on an array OOB
 		failGetSubset(user, Arrays.asList(
-				new ObjIDWithChainAndSubset(oident2, null, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident2, null, new SubsetSelection(
 						Arrays.asList("/array/3", "/array/0")))),
 				new TypedObjectExtractionException(
 						"Invalid selection: no array element exists at position '3', at: /array/3"));
 		
 		got = ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
-				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident1, null, new SubsetSelection(
 						Arrays.asList("/map/*/thing"))),
-				new ObjIDWithChainAndSubset(oident2, null, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident2, null, new SubsetSelection(
 						Arrays.asList("/array/[*]/thing"))))));
 		expdata1 = createData(
 				"{\"map\": {\"id1\": {\"thing\": \"foo\"}," +
@@ -5764,13 +5764,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		
 		failGetSubset(user, Arrays.asList(
-				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident1, null, new SubsetSelection(
 						Arrays.asList("/map/id1/id/5")))),
 				new TypedObjectExtractionException(
 						"Invalid selection: the path given specifies fields or elements that do not exist "
 						+ "because data at this location is a scalar value (i.e. string, integer, float), at: /map/id1/id"));
 		failGetSubset(user2, Arrays.asList(
-				new ObjIDWithChainAndSubset(oident1, null, new ObjectPaths(
+				new ObjIDWithChainAndSubset(oident1, null, new SubsetSelection(
 						Arrays.asList("/map/*/thing")))),
 				new InaccessibleObjectException(
 						"Object o1 cannot be accessed: User subUser2 may not read workspace subData"));
@@ -6252,17 +6252,17 @@ public class WorkspaceTest extends WorkspaceTester {
 				(ObjectIdentifier) new ObjectIDWithRefPath(
 						simplerefoi, Arrays.asList(leaf1oi)),
 				(ObjectIdentifier) new ObjIDWithChainAndSubset(leaf2oi, null,
-						new ObjectPaths(Arrays.asList("/map/id22"))),
+						new SubsetSelection(Arrays.asList("/map/id22"))),
 				(ObjectIdentifier) new ObjIDWithChainAndSubset(leaf2oi, null,
-						new ObjectPaths(Arrays.asList("/map"))),
+						new SubsetSelection(Arrays.asList("/map"))),
 				(ObjectIdentifier) new ObjIDWithChainAndSubset(simplerefoi, null,
-						new ObjectPaths(Arrays.asList("/map/id23"))),
+						new SubsetSelection(Arrays.asList("/map/id23"))),
 				(ObjectIdentifier) new ObjIDWithChainAndSubset(simplerefoi,
 						Arrays.asList(leaf1oi),
-						new ObjectPaths(Arrays.asList("/map/id1"))),
+						new SubsetSelection(Arrays.asList("/map/id1"))),
 				(ObjectIdentifier) new ObjIDWithChainAndSubset(simplerefoi,
 						Arrays.asList(leaf1oi),
-						new ObjectPaths(Arrays.asList("/map/id3")))
+						new SubsetSelection(Arrays.asList("/map/id3")))
 				));
 		List<String> mtlist = new LinkedList<String>();
 		Map<String, String> mtmap = new HashMap<String, String>();
@@ -6855,10 +6855,10 @@ public class WorkspaceTest extends WorkspaceTester {
 			ws.setResourceConfig(build.withMaxReturnedDataSize(20).build());
 			List<ObjectIdentifier> ois1l = new LinkedList<ObjectIdentifier>(
 					Arrays.asList(new ObjIDWithChainAndSubset(oi1, null,
-					new ObjectPaths(Arrays.asList("/fo")))));
+					new SubsetSelection(Arrays.asList("/fo")))));
 			List<ObjectIdentifier> ois1lmt = new LinkedList<ObjectIdentifier>(
 					Arrays.asList(new ObjIDWithChainAndSubset(oi1, null,
-					new ObjectPaths(new ArrayList<String>()))));
+					new SubsetSelection(new ArrayList<String>()))));
 			successGetObjects(user, oi1l);
 			destroyGetObjectsResources(ws.getObjects(user, ois1l));
 			destroyGetObjectsResources(ws.getObjects(user, ois1lmt));
@@ -6883,11 +6883,11 @@ public class WorkspaceTest extends WorkspaceTester {
 			List<ObjectIdentifier> mixed = Arrays.asList(oi1,
 					new ObjectIDWithRefPath(ref2, oi2l));
 			List<ObjIDWithChainAndSubset> ois1l2 = Arrays.asList(
-					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/fo"))),
-					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/ba"))));
+					new ObjIDWithChainAndSubset(oi1, null, new SubsetSelection(Arrays.asList("/fo"))),
+					new ObjIDWithChainAndSubset(oi1, null, new SubsetSelection(Arrays.asList("/ba"))));
 			List<ObjIDWithChainAndSubset> bothoi = Arrays.asList(
-					new ObjIDWithChainAndSubset(oi1, null, new ObjectPaths(Arrays.asList("/fo"))),
-					new ObjIDWithChainAndSubset(oi2, null, new ObjectPaths(Arrays.asList("/ba"))));
+					new ObjIDWithChainAndSubset(oi1, null, new SubsetSelection(Arrays.asList("/fo"))),
+					new ObjIDWithChainAndSubset(oi2, null, new SubsetSelection(Arrays.asList("/ba"))));
 			successGetObjects(user, two);
 			successGetObjects(user, mixed);
 			destroyGetObjectsResources(ws.getObjects(user,
@@ -6963,7 +6963,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("created no temp files on get", filesCreated[0], is(0));
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
 				new ObjIDWithChainAndSubset(oi1, null,
-				new ObjectPaths(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
+				new SubsetSelection(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp file on get subdata", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
@@ -6984,14 +6984,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		filesCreated[0] = 0;
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
 				new ObjIDWithChainAndSubset(oi2, null,
-				new ObjectPaths(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
+				new SubsetSelection(Arrays.asList("z")))))).get(0).getSerializedData().destroy();
 		assertThat("created 1 temp files on get subdata part object", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, new ArrayList<ObjectIdentifier>(Arrays.asList(
 				new ObjIDWithChainAndSubset(oi2, null,
-				new ObjectPaths(Arrays.asList("z", "y")))))).get(0).getSerializedData().destroy();
+				new SubsetSelection(Arrays.asList("z", "y")))))).get(0).getSerializedData().destroy();
 		assertThat("created 2 temp files on get subdata full object", filesCreated[0], is(2));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		

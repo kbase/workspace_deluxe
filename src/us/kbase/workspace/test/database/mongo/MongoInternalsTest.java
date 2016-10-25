@@ -35,7 +35,7 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.LocalTypeProvider;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -292,7 +292,7 @@ public class MongoInternalsTest {
 		
 		// test get subset
 		final ObjIDWithChainAndSubset os = new ObjIDWithChainAndSubset(
-				clnobj, null, new ObjectPaths(Arrays.asList("/foo")));
+				clnobj, null, new SubsetSelection(Arrays.asList("/foo")));
 		WorkspaceTester.failGetSubset(ws, user1, Arrays.asList(os), noObjExcp);
 		
 		//test get ws desc
@@ -858,8 +858,8 @@ public class MongoInternalsTest {
 			Set<ObjectIDResolvedWS> oidsetver, String msg)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException {
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
+				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
 		for (final ObjectIDResolvedWS o: oidsetver) {
 			paths.put(o, null);
 		}

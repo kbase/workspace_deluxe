@@ -24,7 +24,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
@@ -394,7 +394,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			List<ObjectIdentifier> a = new LinkedList<ObjectIdentifier>();
 			a.add(new ObjIDWithChainAndSubset(
 					new ObjectIdentifier(wspace, oi.getObjectId()), null,
-						new ObjectPaths(included)));
+						new SubsetSelection(included)));
 			WorkspaceObjectData wod2 = ws.getObjects(userfoo, a).get(0);
 			String data2 = UObject.getMapper().writeValueAsString(wod2.getData());
 			time2 = System.currentTimeMillis() - time2;
