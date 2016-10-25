@@ -2949,7 +2949,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"))),
 				"Error on object chain #1: The minimum size of a reference chain is 2 ObjectIdentities");
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"), null)),
-				"Error on object chain #1: Error on ObjectIdentity #2: ObjectIdentities cannot be null");
+				"Error on object chain #1: Error on ObjectIdentity #2: ObjectIdentity cannot be null");
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref").withName("foo"),
 				new ObjectIdentity().withRef("referenced/ref"))),
 				"Error on object chain #1: Error on ObjectIdentity #1: Object reference referenced/ref provided; cannot provide any other means of identifying an object. Object name: foo");

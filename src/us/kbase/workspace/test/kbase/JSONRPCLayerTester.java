@@ -791,6 +791,11 @@ public class JSONRPCLayerTester {
 		}
 		return ret;
 	}
+	
+	private String exceptMessageOItoOS(final String message) {
+		return message.replace("identifiers", "specifications")
+				.replace("ObjectIdentity", "ObjectSpecification");
+	}
 
 	@SuppressWarnings("deprecation")
 	protected void failGetObjects(List<ObjectIdentity> loi, String exception)
@@ -801,7 +806,7 @@ public class JSONRPCLayerTester {
 			fail("got object with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+					is(exceptMessageOItoOS(exception)));
 		}
 		try {
 			CLIENT1.getObjects2(new GetObjects2Params().withNoData(1L)
@@ -809,7 +814,7 @@ public class JSONRPCLayerTester {
 			fail("got object with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+					is(exceptMessageOItoOS(exception)));
 		}
 		try {
 			CLIENT1.getObjects(loi);
@@ -838,7 +843,7 @@ public class JSONRPCLayerTester {
 			fail("got info with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+					is(exceptMessageOItoOS(exception)));
 		}
 		//deprecated, remove when removed from code.
 		try {
@@ -1547,7 +1552,7 @@ public class JSONRPCLayerTester {
 				refex = String.format("Error on ObjectSpecification #%s" + 
 						": Invalid object reference (%s) at position #%s:%s",
 						chainnum, ref, oidnum,
-						e[2].replace("ObjectIdentities", "Reference string"));
+						e[2].replace("ObjectIdentity", "Reference string"));
 			}
 		}
 		

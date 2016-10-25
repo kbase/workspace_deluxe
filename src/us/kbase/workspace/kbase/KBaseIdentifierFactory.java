@@ -197,6 +197,10 @@ public class KBaseIdentifierFactory {
 			throw new NullPointerException(
 					"The object specification list cannot be null");
 		}
+		if (objects.isEmpty()) {
+			throw new IllegalArgumentException(
+					"No object specifications provided");
+		}
 		final List<ObjectIdentifier> objs =
 				new LinkedList<ObjectIdentifier>();
 		int objcount = 1;
@@ -220,8 +224,8 @@ public class KBaseIdentifierFactory {
 				checkAddlArgs(o.getAdditionalProperties(), o.getClass());
 			} catch (IllegalArgumentException e) {
 				throw new IllegalArgumentException(
-						"Error on ObjectSpecification #"
-						+ objcount + ": " + e.getLocalizedMessage(), e);
+						"Error on ObjectSpecification #" +
+						objcount + ": " + e.getLocalizedMessage(), e);
 			}
 			objs.add(buildObjectIdentifier(o, oi, objcount));
 			objcount++;
@@ -253,7 +257,7 @@ public class KBaseIdentifierFactory {
 			} else if (res.isToPath) {
 				refchain = new LinkedList<>();
 				if (res.path.size() > 1) {
-					refchain.addAll(res.path.subList(1, res.path.size() - 1));
+					refchain.addAll(res.path.subList(1, res.path.size()));
 				}
 				refchain.add(oi);
 				oi = res.path.get(0);
@@ -276,7 +280,7 @@ public class KBaseIdentifierFactory {
 
 	private static void mutateObjSpecByRefString(
 			final ObjectSpecification o) {
-		if (o.getRef() == null || o.getRef().trim().isEmpty()) {
+		if (o.getRef() == null) {
 			return;
 		}
 		final String[] reflist = o.getRef().trim().split(";");
@@ -358,7 +362,7 @@ public class KBaseIdentifierFactory {
 		for (final String r: objRefPath) {
 			try {
 				ret.add(processObjectReference(r));
-			} catch (IllegalArgumentException e) {
+			} catch (IllegalArgumentException | NullPointerException e) {
 				throw new IllegalArgumentException(String.format(
 						"Invalid object reference (%s) at position #%s: %s",
 						r, refcount, e.getLocalizedMessage()), e);
@@ -376,7 +380,7 @@ public class KBaseIdentifierFactory {
 		for (final ObjectIdentity oi: objPath) {
 			try {
 				ret.add(processObjectIdentifier(oi));
-			} catch (IllegalArgumentException e) {
+			} catch (IllegalArgumentException | NullPointerException e) {
 				throw new IllegalArgumentException(String.format(
 						"Invalid object id at position #%s: %s",
 						refcount, e.getLocalizedMessage()), e);

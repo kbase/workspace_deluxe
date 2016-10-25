@@ -4,14 +4,19 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Test;
 
 import us.kbase.common.test.TestCommon;
+import us.kbase.typedobj.core.ObjectPaths;
 import us.kbase.workspace.ObjectIdentity;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjectIDWithRefChain;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.kbase.KBaseIdentifierFactory;
@@ -455,6 +460,520 @@ public class IdentifierUtilsTest {
 				"baz/bat", "bat", false);
 		checkObjectIdentifier(pois.get(2), null, 1L, null, 2L, 3L,
 				"1/2/3", "2", true);
+	}
+	
+	private void expectFailProcessObjectSpecifications(
+			final List<ObjectSpecification> oss,
+			final Exception exp) {
+		try {
+			KBaseIdentifierFactory.processObjectSpecifications(oss);
+			fail("Expected exception");
+		} catch (Exception e) {
+			TestCommon.assertExceptionCorrect(e, exp);
+		}
+	}
+	
+	private void expectSuccessProcessSimpleObjectSpecification(
+			final ObjectSpecification os,
+			final String wsname,
+			final Long wsid,
+			final String name,
+			final Long id,
+			final Long ver,
+			final String refstring,
+			final String idstring,
+			final boolean isAbsolute) {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(os);
+		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+				.processObjectSpecifications(oss);
+		assertThat("incorrect return size", ret.size(), is(1));
+		final ObjectIdentifier oi = ret.get(0);
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+				is(false));
+		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+				is(false));
+		
+		checkObjectIdentifier(oi, wsname, wsid, name, id, ver, refstring,
+				idstring, isAbsolute);
+	}
+	
+	@Test
+	public void failObjectSpecListNull() throws Exception {
+		expectFailProcessObjectSpecifications(null, new NullPointerException(
+				"The object specification list cannot be null"));
+	}
+	
+	@Test
+	public void failObjectSpecListEmpty() throws Exception {
+		expectFailProcessObjectSpecifications(new LinkedList<>(),
+				new IllegalArgumentException(
+						"No object specifications provided"));
+	}
+	
+	@Test
+	public void failObjectSpecNullSpec() throws Exception {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withRef("3/4"));
+		oss.add(null);
+		oss.add(new ObjectSpecification().withWorkspace("foo")
+				.withName("bar"));
+		expectFailProcessObjectSpecifications(oss, new NullPointerException(
+				"Objects in the object specification list cannot be null"));
+	}
+	
+	@Test
+	public void failObjectSpecAdditionalArgs() throws Exception {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		final ObjectSpecification os = new ObjectSpecification()
+				.withWsid(1L).withObjid(2L);
+		os.setAdditionalProperties("foo", "bar");
+		oss.add(os);
+		oss.add(new ObjectSpecification().withRef("3/4"));
+		oss.add(new ObjectSpecification().withWorkspace("foo")
+				.withName("bar"));
+		expectFailProcessObjectSpecifications(oss,
+				new IllegalArgumentException("Error on ObjectSpecification " +
+				"#1: Unexpected arguments in ObjectSpecification: foo"));
+		
+	}
+	
+	@Test
+	public void failObjectSpecObjPathNullRef() throws Exception {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withRef("3/4"));
+		final ObjectSpecification os = new ObjectSpecification()
+				.withWsid(1L).withObjid(2L)
+				.withObjPath(Arrays.asList(new ObjectIdentity()
+						.withRef("foo/bar"), null));
+		oss.add(new ObjectSpecification().withWorkspace("foo")
+				.withName("bar"));
+		oss.add(os);
+		expectFailProcessObjectSpecifications(oss,
+				new IllegalArgumentException(
+						"Error on ObjectSpecification #3: Invalid object id " +
+						"at position #3: ObjectIdentity cannot be null"));
+	}
+	
+	@Test
+	public void failObjectSpecToObjPathBadRef() throws Exception {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		final ObjectSpecification os = new ObjectSpecification()
+				.withWsid(1L).withObjid(2L)
+				.withToObjPath(Arrays.asList(
+						new ObjectIdentity().withObjid(1L),
+						new ObjectIdentity().withName("foo").withWsid(2L)));
+		oss.add(os);
+		oss.add(new ObjectSpecification().withRef("3/4"));
+		oss.add(new ObjectSpecification().withWorkspace("foo")
+				.withName("bar"));
+		expectFailProcessObjectSpecifications(oss,
+				new IllegalArgumentException(
+						"Error on ObjectSpecification #1: Invalid object id " +
+						"at position #1: Must provide one and only one of " +
+						"workspace name (was: null) or id (was: null)"));
+	}
+	
+	@Test
+	public void failObjectSpecObjRefPathBadRef() throws Exception {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withRef("3/4"));
+		final ObjectSpecification os = new ObjectSpecification()
+				.withWsid(1L).withObjid(2L)
+				.withObjRefPath(Arrays.asList("foo/bar", "baz"));
+		oss.add(os);
+		oss.add(new ObjectSpecification().withWorkspace("foo")
+				.withName("bar"));
+		expectFailProcessObjectSpecifications(oss,
+				new IllegalArgumentException(
+						"Error on ObjectSpecification #2: Invalid object " +
+						"reference (baz) at position #3: Illegal number of " +
+						"separators / in object reference baz"));
+	}
+	
+	@Test
+	public void failObjectSpecToObjRefPathNullRef() throws Exception {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withRef("3/4"));
+		final ObjectSpecification os = new ObjectSpecification()
+				.withWsid(1L).withObjid(2L)
+				.withToObjRefPath(Arrays.asList("foo/bar", (String) null));
+		oss.add(os);
+		oss.add(new ObjectSpecification().withWorkspace("foo")
+				.withName("bar"));
+		expectFailProcessObjectSpecifications(oss,
+				new IllegalArgumentException(
+						"Error on ObjectSpecification #2: Invalid object " +
+						"reference (null) at position #2: Reference string " +
+						"cannot be null"));
+	}
+	
+	@Test
+	public void failObjectSpecStringRefPathWithOtherRefPaths()
+			throws Exception {
+		final ObjectIdentity oi = new ObjectIdentity().withName("foo")
+				.withWsid(1L);
+		final IllegalArgumentException exp = new IllegalArgumentException(
+				"Error on ObjectSpecification #1: Only one of the 5 options " +
+				"for specifying an object reference path is allowed");
+		
+		//process object spec mutates the spec
+		List<ObjectSpecification> oss = makeOSforSpecificTest();
+		oss.get(0).withObjPath(Arrays.asList(oi));
+		expectFailProcessObjectSpecifications(oss, exp);
+		
+		oss = makeOSforSpecificTest();
+		oss.get(0).withToObjPath(Arrays.asList(oi));
+		expectFailProcessObjectSpecifications(oss, exp);
+		
+		oss = makeOSforSpecificTest();
+		oss.get(0).withObjRefPath(Arrays.asList("foo/bar"));
+		expectFailProcessObjectSpecifications(oss, exp);
+
+		oss = makeOSforSpecificTest();
+		oss.get(0).withToObjRefPath(Arrays.asList("foo/bar"));
+		expectFailProcessObjectSpecifications(oss, exp);
+	}
+	
+	@Test
+	public void failObjectSpecMultipleRefPaths() throws Exception {
+		// doesn't tests string ref path, tested in another test
+		final ObjectIdentity oi = new ObjectIdentity().withName("foo")
+				.withWsid(1L);
+		final IllegalArgumentException exp = new IllegalArgumentException(
+				"Error on ObjectSpecification #2: Only one of the 5 options " +
+				"for specifying an object reference path is allowed");
+		
+		final ObjectSpecification os = new ObjectSpecification()
+				.withObjid(1L).withWorkspace("foo")
+				.withObjPath(new LinkedList<>())
+				.withToObjPath(new LinkedList<>())
+				.withObjRefPath(new LinkedList<>())
+				.withToObjRefPath(new LinkedList<>());
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withWsid(1L).withObjid(2L));
+		oss.add(os);
+		
+		os.withObjPath(Arrays.asList(oi))
+			.withObjRefPath(Arrays.asList("ref"));
+		expectFailProcessObjectSpecifications(oss, exp);
+
+		os.withObjPath(new LinkedList<>())
+			.withToObjPath(Arrays.asList(oi));
+		expectFailProcessObjectSpecifications(oss, exp);
+
+		os.withToObjPath(new LinkedList<>())
+			.withToObjRefPath(Arrays.asList("ref"));
+		expectFailProcessObjectSpecifications(oss, exp);
+	
+		os.withToObjRefPath(new LinkedList<>())
+			.withObjPath(Arrays.asList(oi));
+		expectFailProcessObjectSpecifications(oss, exp);
+	}
+	
+	public List<ObjectSpecification> makeOSforSpecificTest() {
+		final ObjectSpecification os = new ObjectSpecification()
+				.withRef("foo/bar \n; \n baz/bat ;whee/whoa");
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(os);
+		return oss;
+	}
+	
+	@Test
+	public void successObjectSpecRefWithSemiColon() throws Exception {
+		expectSuccessProcessSimpleObjectSpecification(
+				new ObjectSpecification().withRef("foo/bar \n; \n"),
+				"foo", null, "bar", null, null, "foo/bar", "bar", false);
+	}
+	
+	@Test
+	public void successObjectSpecNoRef() throws Exception {
+		expectSuccessProcessSimpleObjectSpecification(new ObjectSpecification()
+				.withWsid(1L).withObjid(2L).withVer(3L),
+				null, 1L, null, 2L, 3L, "1/2/3", "2", true);
+	}
+	
+	@Test
+	public void successObjectEmptyObjectPaths() throws Exception {
+		// the important check is the class type check 
+		expectSuccessProcessSimpleObjectSpecification(new ObjectSpecification()
+				.withWsid(1L).withObjid(2L).withVer(3L)
+				.withIncluded(new LinkedList<>()),
+				null, 1L, null, 2L, 3L, "1/2/3", "2", true);
+	}
+	
+	@Test
+	public void successObjectSpecRefStringPathEmptyLists() throws Exception {
+		//also tests that empty lists are ignored for the other path types
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification()
+				.withObjPath(new LinkedList<>())
+				.withToObjPath(new LinkedList<>())
+				.withObjRefPath(new LinkedList<>())
+				.withToObjRefPath(new LinkedList<>())
+				.withRef("foo/bar \n; \n baz/bat ;whee/whoa"));
+		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+				.processObjectSpecifications(oss);
+		assertThat("incorrect return size", ret.size(), is(1));
+		final ObjectIdentifier oi = ret.get(0);
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+				is(true));
+		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+				is(false));
+		
+		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
+				"bar", false);
+		
+		final ObjectIDWithRefChain oirc = (ObjectIDWithRefChain) oi;
+		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
+		final List<ObjectIdentifier> chain = oirc.getChain();
+		assertThat("incorrect chain size", chain.size(), is(2));
+		
+		checkObjectIdentifier(chain.get(0), "baz", null, "bat", null, null,
+				"baz/bat", "bat", false);
+		checkObjectIdentifier(chain.get(1), "whee", null, "whoa", null, null,
+				"whee/whoa", "whoa", false);
+	}
+	
+	@Test
+	public void successObjectSpecRefStringPathNullLists() throws Exception {
+		//also tests that null lists are ignored for the other path types
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification()
+				.withRef("foo/bar \n; \n baz/bat ;whee/whoa"));
+		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+				.processObjectSpecifications(oss);
+		assertThat("incorrect return size", ret.size(), is(1));
+		final ObjectIdentifier oi = ret.get(0);
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+				is(true));
+		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+				is(false));
+		
+		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
+				"bar", false);
+		
+		final ObjectIDWithRefChain oirc = (ObjectIDWithRefChain) oi;
+		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
+		final List<ObjectIdentifier> chain = oirc.getChain();
+		assertThat("incorrect chain size", chain.size(), is(2));
+		
+		checkObjectIdentifier(chain.get(0), "baz", null, "bat", null, null,
+				"baz/bat", "bat", false);
+		checkObjectIdentifier(chain.get(1), "whee", null, "whoa", null, null,
+				"whee/whoa", "whoa", false);
+	}
+	
+	@Test
+	public void sucessObjectSpecIncludedDefaultStrict() throws Exception {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withRef("foo/bar")
+				.withIncluded(Arrays.asList("baz", "bat")));
+		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+				.processObjectSpecifications(oss);
+		assertThat("incorrect return size", ret.size(), is(1));
+		final ObjIDWithChainAndSubset oi =
+				(ObjIDWithChainAndSubset) ret.get(0);
+		
+		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
+				"bar", false);
+		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
+		assertThat("has ref chain", oi.getChain(),
+				is(new LinkedList<>()));
+		final ObjectPaths op = oi.getPaths();
+		final List<String> paths = new LinkedList<>();
+		op.forEach(p -> paths.add(p));
+		assertThat("incorrect object paths", paths,
+				is(Arrays.asList("baz", "bat")));
+		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
+		assertThat("incorrect strict arrays", op.isStrictArrays(), is(true));
+	}
+	
+	@Test
+	public void sucessObjectSpecIncludedFalseStrict() throws Exception {
+		//also tests emtpy lists are ignored for paths
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withRef("foo/bar")
+				.withIncluded(Arrays.asList("whiz"))
+				.withStrictArrays(0L)
+				.withStrictMaps(0L)
+				.withObjPath(new LinkedList<>())
+				.withToObjPath(new LinkedList<>())
+				.withObjRefPath(new LinkedList<>())
+				.withToObjRefPath(new LinkedList<>()));
+		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+				.processObjectSpecifications(oss);
+		assertThat("incorrect return size", ret.size(), is(1));
+		final ObjIDWithChainAndSubset oi =
+				(ObjIDWithChainAndSubset) ret.get(0);
+		
+		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
+				"bar", false);
+		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
+		assertThat("has ref chain", oi.getChain(),
+				is(new LinkedList<>()));
+		final ObjectPaths op = oi.getPaths();
+		final List<String> paths = new LinkedList<>();
+		op.forEach(p -> paths.add(p));
+		assertThat("incorrect object paths", paths,
+				is(Arrays.asList("whiz")));
+		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
+		assertThat("incorrect strict arrays", op.isStrictArrays(), is(false));
+	}
+	
+	@Test
+	public void sucessObjectSpecIncludedTrueStrict() throws Exception {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withRef("foo/bar")
+				.withIncluded(Arrays.asList("whiz", "towel", "bleah"))
+				.withStrictArrays(1L)
+				.withStrictMaps(1L));
+		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+				.processObjectSpecifications(oss);
+		assertThat("incorrect return size", ret.size(), is(1));
+		final ObjIDWithChainAndSubset oi =
+				(ObjIDWithChainAndSubset) ret.get(0);
+		
+		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
+				"bar", false);
+		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
+		assertThat("has ref chain", oi.getChain(),
+				is(new LinkedList<>()));
+		final ObjectPaths op = oi.getPaths();
+		final List<String> paths = new LinkedList<>();
+		op.forEach(p -> paths.add(p));
+		assertThat("incorrect object paths", paths,
+				is(Arrays.asList("whiz", "towel", "bleah")));
+		assertThat("incorrect strict maps", op.isStrictMaps(), is(true));
+		assertThat("incorrect strict arrays", op.isStrictArrays(), is(true));
+	}
+	
+	@Test
+	public void successObjectSpecRefsObjPathLen2() throws Exception {
+		//also tests that empty lists are ignored for the other path types
+		//also also tests ObjectPath + ref ObjPath
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withWsid(3L).withObjid(2L)
+				.withObjPath(Arrays.asList(new ObjectIdentity()
+						.withName("whee").withWorkspace("whoo")))
+				.withToObjPath(new LinkedList<>())
+				.withObjRefPath(new LinkedList<>())
+				.withToObjRefPath(new LinkedList<>())
+				.withIncluded(Arrays.asList("bar")));
+		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+				.processObjectSpecifications(oss);
+		assertThat("incorrect return size", ret.size(), is(1));
+		final ObjIDWithChainAndSubset oi =
+				(ObjIDWithChainAndSubset) ret.get(0);
+		
+		checkObjectIdentifier(oi, null, 3L, null, 2L, null, "3/2", "2", false);
+		
+		assertThat("incorrect hasChain()", oi.hasChain(), is(true));
+		final ObjectPaths op = oi.getPaths();
+		final List<String> paths = new LinkedList<>();
+		op.forEach(p -> paths.add(p));
+		assertThat("incorrect object paths", paths,
+				is(Arrays.asList("bar")));
+		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
+		assertThat("incorrect strict arrays", op.isStrictArrays(), is(true));
+		
+		assertThat("incorrect hasChain()", oi.hasChain(), is(true));
+		final List<ObjectIdentifier> chain = oi.getChain();
+		assertThat("incorrect chain size", chain.size(), is(1));
+		
+		checkObjectIdentifier(chain.get(0), "whoo", null, "whee", null, null,
+				"whoo/whee", "whee", false);
+	}
+	
+	@Test
+	public void successObjectSpecRefsToObjPathLen2() throws Exception {
+		//also tests that empty lists are ignored for the other path types
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withWsid(3L).withObjid(2L)
+				.withToObjPath(Arrays.asList(new ObjectIdentity()
+						.withName("whee").withWorkspace("whoo")))
+				.withObjPath(new LinkedList<>())
+				.withObjRefPath(new LinkedList<>())
+				.withToObjRefPath(new LinkedList<>()));
+		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+				.processObjectSpecifications(oss);
+		assertThat("incorrect return size", ret.size(), is(1));
+
+		final ObjectIdentifier oi = ret.get(0);
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+				is(true));
+		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+				is(false));
+		
+		checkObjectIdentifier(oi, "whoo", null, "whee", null, null,
+				"whoo/whee", "whee", false);
+		
+		final ObjectIDWithRefChain oirc = (ObjectIDWithRefChain) oi;
+		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
+		final List<ObjectIdentifier> chain = oirc.getChain();
+		assertThat("incorrect chain size", chain.size(), is(1));
+		
+		checkObjectIdentifier(chain.get(0), null, 3L, null, 2L, null, "3/2",
+				"2", false);
+	}
+	
+	@Test
+	public void successObjectSpecRefsObjRefPathLen2() throws Exception {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withWsid(3L).withObjid(4L)
+				.withVer(1L)
+				.withObjRefPath(Arrays.asList("bar/2")));
+		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+				.processObjectSpecifications(oss);
+		assertThat("incorrect return size", ret.size(), is(1));
+
+		final ObjectIdentifier oi = ret.get(0);
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+				is(true));
+		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+				is(false));
+		
+		checkObjectIdentifier(oi, null, 3L, null, 4L, 1L,
+				"3/4/1", "4", true);
+		
+		final ObjectIDWithRefChain oirc = (ObjectIDWithRefChain) oi;
+		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
+		final List<ObjectIdentifier> chain = oirc.getChain();
+		assertThat("incorrect chain size", chain.size(), is(1));
+		
+		checkObjectIdentifier(chain.get(0), "bar", null, null, 2L, null,
+				"bar/2", "2", false);
+	}
+	
+	@Test
+	public void successObjectSpecRefsObjRefPathLen4() throws Exception {
+		final List<ObjectSpecification> oss = new LinkedList<>();
+		oss.add(new ObjectSpecification().withWsid(3L).withObjid(4L)
+				.withToObjRefPath(Arrays.asList("bar/2", "5/6/7", "biz/baz")));
+		final List<ObjectIdentifier> ret = KBaseIdentifierFactory
+				.processObjectSpecifications(oss);
+		assertThat("incorrect return size", ret.size(), is(1));
+
+		final ObjectIdentifier oi = ret.get(0);
+		assertThat("incorrect class", oi instanceof ObjectIDWithRefChain,
+				is(true));
+		assertThat("incorrect class", oi instanceof ObjIDWithChainAndSubset,
+				is(false));
+		
+		checkObjectIdentifier(oi, "bar", null, null, 2L, null,
+				"bar/2", "2", false);
+		
+		final ObjectIDWithRefChain oirc = (ObjectIDWithRefChain) oi;
+		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
+		final List<ObjectIdentifier> chain = oirc.getChain();
+		assertThat("incorrect chain size", chain.size(), is(3));
+		
+		checkObjectIdentifier(chain.get(0), null, 5L, null, 6L, 7L,
+				"5/6/7", "6", true);
+		checkObjectIdentifier(chain.get(1), "biz", null, "baz", null, null,
+				"biz/baz", "baz", false);
+		checkObjectIdentifier(chain.get(2), null, 3L, null, 4L, null,
+				"3/4", "4", false);
 	}
 
 }
