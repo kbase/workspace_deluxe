@@ -727,7 +727,7 @@ public class IdentifierUtilsTest {
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
 		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
-		final List<ObjectIdentifier> chain = oirc.getChain();
+		final List<ObjectIdentifier> chain = oirc.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(2));
 		
 		checkObjectIdentifier(chain.get(0), "baz", null, "bat", null, null,
@@ -756,7 +756,7 @@ public class IdentifierUtilsTest {
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
 		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
-		final List<ObjectIdentifier> chain = oirc.getChain();
+		final List<ObjectIdentifier> chain = oirc.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(2));
 		
 		checkObjectIdentifier(chain.get(0), "baz", null, "bat", null, null,
@@ -779,7 +779,7 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
 		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
-		assertThat("has ref chain", oi.getChain(), is((List<ObjectIdentifier>)
+		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
 				new LinkedList<ObjectIdentifier>()));
 		final ObjectPaths op = oi.getPaths();
 		final List<String> paths = new LinkedList<>();
@@ -813,7 +813,7 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
 		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
-		assertThat("has ref chain", oi.getChain(), is((List<ObjectIdentifier>)
+		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
 				new LinkedList<ObjectIdentifier>()));
 		final ObjectPaths op = oi.getPaths();
 		final List<String> paths = new LinkedList<>();
@@ -842,7 +842,7 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
 				"bar", false);
 		assertThat("incorrect hasChain()", oi.hasChain(), is(false));
-		assertThat("has ref chain", oi.getChain(), is((List<ObjectIdentifier>)
+		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
 				new LinkedList<ObjectIdentifier>()));
 		final ObjectPaths op = oi.getPaths();
 		final List<String> paths = new LinkedList<>();
@@ -887,7 +887,7 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect strict arrays", op.isStrictArrays(), is(true));
 		
 		assertThat("incorrect hasChain()", oi.hasChain(), is(true));
-		final List<ObjectIdentifier> chain = oi.getChain();
+		final List<ObjectIdentifier> chain = oi.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(1));
 		
 		checkObjectIdentifier(chain.get(0), "whoo", null, "whee", null, null,
@@ -919,7 +919,7 @@ public class IdentifierUtilsTest {
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
 		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
-		final List<ObjectIdentifier> chain = oirc.getChain();
+		final List<ObjectIdentifier> chain = oirc.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(1));
 		
 		checkObjectIdentifier(chain.get(0), null, 3L, null, 2L, null, "3/2",
@@ -947,7 +947,7 @@ public class IdentifierUtilsTest {
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
 		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
-		final List<ObjectIdentifier> chain = oirc.getChain();
+		final List<ObjectIdentifier> chain = oirc.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(1));
 		
 		checkObjectIdentifier(chain.get(0), "bar", null, null, 2L, null,
@@ -974,7 +974,7 @@ public class IdentifierUtilsTest {
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
 		assertThat("incorrect hasChain()", oirc.hasChain(), is(true));
-		final List<ObjectIdentifier> chain = oirc.getChain();
+		final List<ObjectIdentifier> chain = oirc.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(3));
 		
 		checkObjectIdentifier(chain.get(0), null, 5L, null, 6L, 7L,

@@ -1106,7 +1106,7 @@ public class Workspace {
 				 * calling method input includes objectIDs with and without
 				 * chains
 				 */
-				chains.addAll(oc.getChain());
+				chains.addAll(oc.getRefPath());
 			}
 		}
 		
@@ -1149,7 +1149,7 @@ public class Workspace {
 		ObjectIdentifier pos = chain;
 		ObjectReferenceSet refs = headref;
 		int posnum = 1;
-		for (final ObjectIdentifier oi: chain.getChain()) {
+		for (final ObjectIdentifier oi: chain.getRefPath()) {
 			/* refs are guaranteed to exist, so if the db didn't find
 			 * it the user specified it incorrectly
 			 */

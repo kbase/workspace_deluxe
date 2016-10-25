@@ -62,7 +62,7 @@ public class ObjIDWithChainAndSubset extends ObjectIDWithRefPath {
 		builder.append("ObjIDWithChainsAndSubset [paths=");
 		builder.append(paths);
 		builder.append(", getChain()=");
-		builder.append(getChain());
+		builder.append(getRefPath());
 		builder.append(", getWorkspaceIdentifier()=");
 		builder.append(getWorkspaceIdentifier());
 		builder.append(", getName()=");
