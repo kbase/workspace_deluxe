@@ -5,23 +5,24 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-public class ObjectIDWithRefChain extends ObjectIdentifier {
+public class ObjectIDWithRefPath extends ObjectIdentifier {
 
 	//TODO TEST unit tests
+	//TODO JAVADOC
 	
-	private List<ObjectIdentifier> chain;
+	private List<ObjectIdentifier> refpath;
 	
-	public ObjectIDWithRefChain(
+	public ObjectIDWithRefPath(
 			final ObjectIdentifier id,
-			List<ObjectIdentifier> chain) {
+			List<ObjectIdentifier> refpath) {
 		super(id);
-		if (chain == null || chain.isEmpty()) {
-			chain = new LinkedList<ObjectIdentifier>();
+		if (refpath == null || refpath.isEmpty()) {
+			refpath = new LinkedList<ObjectIdentifier>();
 		} 
-		this.chain = Collections.unmodifiableList(
-				new ArrayList<ObjectIdentifier>(chain));
+		this.refpath = Collections.unmodifiableList(
+				new ArrayList<ObjectIdentifier>(refpath));
 		
-		for (final ObjectIdentifier oi: this.chain) {
+		for (final ObjectIdentifier oi: this.refpath) {
 			if (oi == null) {
 				throw new IllegalArgumentException(
 						"Nulls are not allowed in reference chains");
@@ -29,20 +30,20 @@ public class ObjectIDWithRefChain extends ObjectIdentifier {
 		}
 	}
 	
-	public List<ObjectIdentifier> getChain() {
-		return chain;
+	public List<ObjectIdentifier> getRefPath() {
+		return refpath;
 	}
 	
-	public boolean hasChain() {
-		return !chain.isEmpty();
+	public boolean hasRefPath() {
+		return !refpath.isEmpty();
 	}
 	
 	public ObjectIdentifier getLast() {
-		if (!hasChain()) {
+		if (!hasRefPath()) {
 			throw new IllegalStateException(
 					"This object identifier has no reference chain");
 		}
-		return chain.get(chain.size() - 1);
+		return refpath.get(refpath.size() - 1);
 	}
 
 	/* (non-Javadoc)
@@ -52,7 +53,7 @@ public class ObjectIDWithRefChain extends ObjectIdentifier {
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
-		result = prime * result + ((chain == null) ? 0 : chain.hashCode());
+		result = prime * result + ((refpath == null) ? 0 : refpath.hashCode());
 		return result;
 	}
 
@@ -67,11 +68,11 @@ public class ObjectIDWithRefChain extends ObjectIdentifier {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ObjectIDWithRefChain other = (ObjectIDWithRefChain) obj;
-		if (chain == null) {
-			if (other.chain != null)
+		ObjectIDWithRefPath other = (ObjectIDWithRefPath) obj;
+		if (refpath == null) {
+			if (other.refpath != null)
 				return false;
-		} else if (!chain.equals(other.chain))
+		} else if (!refpath.equals(other.refpath))
 			return false;
 		return true;
 	}
@@ -82,8 +83,8 @@ public class ObjectIDWithRefChain extends ObjectIdentifier {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("ObjectIDWithRefChains [chain=");
-		builder.append(chain);
+		builder.append("ObjectIDWithRefChains [refpath=");
+		builder.append(refpath);
 		builder.append(", getWorkspaceIdentifier()=");
 		builder.append(getWorkspaceIdentifier());
 		builder.append(", getName()=");

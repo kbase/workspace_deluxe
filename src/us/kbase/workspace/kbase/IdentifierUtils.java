@@ -12,20 +12,18 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
-import us.kbase.workspace.database.ObjIDWithChainAndSubset;
-import us.kbase.workspace.database.ObjectIDWithRefChain;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 
 public class IdentifierUtils {
 	
-	//TODO TEST unit tests
 	//TODO JAVADOC
-	//TODO NOW rename to IdentifierUtils
 	
 	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws\\.(\\d+)");
 	private static final Pattern KB_OBJ_ID = Pattern.compile(
@@ -179,12 +177,12 @@ public class IdentifierUtils {
 						+ objcount + ": " + e.getLocalizedMessage(), e);
 			}
 					
-			ObjectPaths paths = new ObjectPaths(soi.getIncluded(),
+			SubsetSelection paths = new SubsetSelection(soi.getIncluded(),
 					longToBoolean(soi.getStrictMaps(),
-							ObjectPaths.STRICT_MAPS_DEFAULT),
+							SubsetSelection.STRICT_MAPS_DEFAULT),
 					longToBoolean(soi.getStrictArrays(),
-							ObjectPaths.STRICT_ARRAYS_DEFAULT));
-			objs.add(new ObjIDWithChainAndSubset(oi, null, paths));
+							SubsetSelection.STRICT_ARRAYS_DEFAULT));
+			objs.add(new ObjIDWithRefPathAndSubset(oi, null, paths));
 			objcount++;
 		}
 		return objs;
@@ -233,13 +231,13 @@ public class IdentifierUtils {
 		return objs;
 	}
 
-	private static ObjectPaths getObjectPaths(final ObjectSpecification o) {
+	private static SubsetSelection getObjectPaths(final ObjectSpecification o) {
 		if (o.getIncluded() != null && !o.getIncluded().isEmpty()) {
-			return new ObjectPaths(o.getIncluded(),
+			return new SubsetSelection(o.getIncluded(),
 					longToBoolean(o.getStrictMaps(),
-							ObjectPaths.STRICT_MAPS_DEFAULT),
+							SubsetSelection.STRICT_MAPS_DEFAULT),
 					longToBoolean(o.getStrictArrays(),
-							ObjectPaths.STRICT_ARRAYS_DEFAULT));
+							SubsetSelection.STRICT_ARRAYS_DEFAULT));
 		}
 		return null;
 	}
@@ -248,7 +246,7 @@ public class IdentifierUtils {
 			final ObjectSpecification o,
 			ObjectIdentifier oi,
 			final int objcount) {
-		final ObjectPaths paths = getObjectPaths(o);
+		final SubsetSelection paths = getObjectPaths(o);
 		final List<ObjectIdentifier> refchain;
 		try {
 			final RefChainResult res = processRefChains(o);
@@ -272,9 +270,9 @@ public class IdentifierUtils {
 		if (paths == null && refchain == null) {
 			return oi;
 		} else if (paths == null) {
-			return new ObjectIDWithRefChain(oi, refchain);
+			return new ObjectIDWithRefPath(oi, refchain);
 		} else {
-			return new ObjIDWithChainAndSubset(oi, refchain, paths);
+			return new ObjIDWithRefPathAndSubset(oi, refchain, paths);
 		}
 	}
 

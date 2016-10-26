@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -232,9 +232,9 @@ public interface WorkspaceDatabase {
 	 * @throws TypedObjectExtractionException if the subdata could not be
 	 * extracted.
 	 */
-	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
+	public Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>>
 			getObjects(
-					Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects,
+					Map<ObjectIDResolvedWS, Set<SubsetSelection>> objects,
 					ByteArrayFileCacheManager dataManager,
 					long usedDataAllocation,
 					boolean exceptIfDeleted,

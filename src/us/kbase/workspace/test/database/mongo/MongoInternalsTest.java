@@ -35,7 +35,7 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.LocalTypeProvider;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -50,10 +50,10 @@ import us.kbase.typedobj.test.DummyValidatedTypedObject;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ListObjectsParameters;
-import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDWithRefChain;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -285,14 +285,14 @@ public class MongoInternalsTest {
 				noWSExcp);
 		
 		// test get referenced objects
-		final ObjectIDWithRefChain oc = new ObjectIDWithRefChain(
+		final ObjectIDWithRefPath oc = new ObjectIDWithRefPath(
 				clnobj, Arrays.asList(stdobj));
 		WorkspaceTester.failGetReferencedObjects(ws, user1, Arrays.asList(oc),
 				noObjExcp, false, new HashSet<>(Arrays.asList(0)));
 		
 		// test get subset
-		final ObjIDWithChainAndSubset os = new ObjIDWithChainAndSubset(
-				clnobj, null, new ObjectPaths(Arrays.asList("/foo")));
+		final ObjIDWithRefPathAndSubset os = new ObjIDWithRefPathAndSubset(
+				clnobj, null, new SubsetSelection(Arrays.asList("/foo")));
 		WorkspaceTester.failGetSubset(ws, user1, Arrays.asList(os), noObjExcp);
 		
 		//test get ws desc
@@ -858,8 +858,8 @@ public class MongoInternalsTest {
 			Set<ObjectIDResolvedWS> oidsetver, String msg)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException {
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
+				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
 		for (final ObjectIDResolvedWS o: oidsetver) {
 			paths.put(o, null);
 		}

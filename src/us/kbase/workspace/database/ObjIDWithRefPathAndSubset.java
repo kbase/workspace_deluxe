@@ -2,24 +2,25 @@ package us.kbase.workspace.database;
 
 import java.util.List;
 
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 
-public class ObjIDWithChainAndSubset extends ObjectIDWithRefChain {
+public class ObjIDWithRefPathAndSubset extends ObjectIDWithRefPath {
 
 	//TODO TEST unit tests
+	//TODO JAVADOC
 	
-	private final ObjectPaths paths;
+	private final SubsetSelection subset;
 	
-	public ObjIDWithChainAndSubset(
+	public ObjIDWithRefPathAndSubset(
 			final ObjectIdentifier id,
-			final List<ObjectIdentifier> chain,
-			final ObjectPaths subset) {
-		super(id, chain);
-		this.paths = subset == null ? ObjectPaths.EMPTY : subset;
+			final List<ObjectIdentifier> refpath,
+			final SubsetSelection subset) {
+		super(id, refpath);
+		this.subset = subset == null ? SubsetSelection.EMPTY : subset;
 	}
 	
-	public ObjectPaths getPaths() {
-		return paths;
+	public SubsetSelection getSubSet() {
+		return subset;
 	}
 
 	/* (non-Javadoc)
@@ -29,7 +30,7 @@ public class ObjIDWithChainAndSubset extends ObjectIDWithRefChain {
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
-		result = prime * result + ((paths == null) ? 0 : paths.hashCode());
+		result = prime * result + ((subset == null) ? 0 : subset.hashCode());
 		return result;
 	}
 
@@ -44,11 +45,11 @@ public class ObjIDWithChainAndSubset extends ObjectIDWithRefChain {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ObjIDWithChainAndSubset other = (ObjIDWithChainAndSubset) obj;
-		if (paths == null) {
-			if (other.paths != null)
+		ObjIDWithRefPathAndSubset other = (ObjIDWithRefPathAndSubset) obj;
+		if (subset == null) {
+			if (other.subset != null)
 				return false;
-		} else if (!paths.equals(other.paths))
+		} else if (!subset.equals(other.subset))
 			return false;
 		return true;
 	}
@@ -59,10 +60,10 @@ public class ObjIDWithChainAndSubset extends ObjectIDWithRefChain {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("ObjIDWithChainsAndSubset [paths=");
-		builder.append(paths);
-		builder.append(", getChain()=");
-		builder.append(getChain());
+		builder.append("ObjIDWithChainsAndSubset [subset=");
+		builder.append(subset);
+		builder.append(", getRefPath()=");
+		builder.append(getRefPath());
 		builder.append(", getWorkspaceIdentifier()=");
 		builder.append(getWorkspaceIdentifier());
 		builder.append(", getName()=");
