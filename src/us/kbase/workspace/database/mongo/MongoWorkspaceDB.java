@@ -2651,10 +2651,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				if (o.getVersion().compareTo(latestVersion) > 0) {
 					if (exceptIfMissing) {
 						throw new NoSuchObjectException(String.format(
-								"No object with id %s (name %s) and version %s"
-								+ " exists in workspace %s", id, name,
-								o.getVersion(), 
-								o.getWorkspaceIdentifier().getID()), o);
+								"No object with id %s (name %s) and version %s exists in " +
+								"workspace %s (name %s)", id, name, o.getVersion(), 
+								o.getWorkspaceIdentifier().getID(),
+								o.getWorkspaceIdentifier().getName()), o);
 					}
 				} else {
 					ret.put(o, new ResolvedMongoObjectID(
@@ -2695,9 +2695,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				if (exceptIfMissing) {
 					final String err = oid.getId() == null ? "name" : "id";
 					throw new NoSuchObjectException(String.format(
-							"No object with %s %s exists in workspace %s",
-							err, oid.getIdentifierString(),
-							oid.getWorkspaceIdentifier().getID()), oid);
+							"No object with %s %s exists in workspace %s (name %s)",
+							err, oid.getIdentifierString(), oid.getWorkspaceIdentifier().getID(),
+							oid.getWorkspaceIdentifier().getName()), oid);
 				} else {
 					continue;
 				}
@@ -2707,8 +2707,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean deleted = (Boolean) ids.get(o).get(Fields.OBJ_DEL);
 			if (exceptIfDeleted && deleted) {
 				throw new DeletedObjectException(String.format(
-						"Object %s (name %s) in workspace %s has been deleted",
-						id, name, oid.getWorkspaceIdentifier().getID()), oid);
+						"Object %s (name %s) in workspace %s (name %s) has been deleted",
+						id, name, oid.getWorkspaceIdentifier().getID(),
+						oid.getWorkspaceIdentifier().getName()), oid);
 			}
 			if (!deleted || includeDeleted) {
 				ObjectInfoUtils.calcLatestObjVersion(ids.get(o));

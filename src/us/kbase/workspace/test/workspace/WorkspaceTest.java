@@ -1022,7 +1022,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, premeta2);
 		
 		failGetObjects(foo, Arrays.asList(new ObjectIdentifier(read, "booger")),
-				new NoSuchObjectException("No object with name booger exists in workspace " + readid));
+				new NoSuchObjectException(
+						"No object with name booger exists in workspace 1 (name saveobjread)"));
 		failGetObjects(foo, Arrays.asList(new ObjectIdentifier(new WorkspaceIdentifier("saveAndGetFakefake"), "booger")),
 				new InaccessibleObjectException("Object booger cannot be accessed: No workspace with name saveAndGetFakefake exists"));
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.NONE);
@@ -1986,15 +1987,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		refdata.put("ref", "referencetesting/2/1");
 		long refwsid = ws.getWorkspaceInformation(userfoo, reftest).getId();
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1 has invalid reference: There is no object with id referencetesting/2/1: No object with id 2 exists in workspace "
-								+ refwsid + " at /ref"));
+				new TypedObjectValidationException(String.format(
+						"Object #1 has invalid reference: There is no object with id " +
+						"referencetesting/2/1: No object with id 2 exists in workspace %s " +
+						 "(name referencetesting) at /ref", refwsid)));
 		Provenance noobjref = new Provenance(userfoo);
-		noobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/2/1")));
+		noobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(
+				Arrays.asList("referencetesting/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, noobjref,
-				new TypedObjectValidationException(
-						"Object #1 has invalid provenance reference: There is no object with id referencetesting/2/1: No object with id 2 exists in workspace "
-								+ refwsid));
+				new TypedObjectValidationException(String.format(
+						"Object #1 has invalid provenance reference: There is no object with id " +
+						"referencetesting/2/1: No object with id 2 exists in workspace %s " +
+						"(name referencetesting)", refwsid)));
 		
 		ws.saveObjects(userfoo, reftest, Arrays.asList(
 				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)),
@@ -2002,26 +2006,32 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setObjectsDeleted(userfoo, Arrays.asList(new ObjectIdentifier(reftest, 2)), true);
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has invalid reference: There is no object with id referencetesting/2/1: Object 2 (name auto2) in workspace %s has been deleted at /ref",
-								refwsid)));
+						"Object #1 has invalid reference: There is no object with id " +
+						"referencetesting/2/1: Object 2 (name auto2) in workspace %s " +
+						"(name referencetesting) has been deleted at /ref", refwsid)));
 		Provenance delobjref = new Provenance(userfoo);
-		delobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/2/1")));
+		delobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(
+				Arrays.asList("referencetesting/2/1")));
 		failSave(userfoo, wspace, data1, abstype0, delobjref,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has invalid provenance reference: There is no object with id referencetesting/2/1: Object 2 (name auto2) in workspace %s has been deleted",
-								refwsid)));
+						"Object #1 has invalid provenance reference: There is no object with id " +
+						"referencetesting/2/1: Object 2 (name auto2) in workspace %s " +
+						"(name referencetesting) has been deleted", refwsid)));
 		
 		refdata.put("ref", "referencetesting/1/2");
 		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1 has invalid reference: There is no object with id referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
-								+ refwsid + " at /ref"));
+				new TypedObjectValidationException(String.format(
+						"Object #1 has invalid reference: There is no object with id " +
+						"referencetesting/1/2: No object with id 1 (name auto1) and version 2 " +
+						"exists in workspace %s (name referencetesting) at /ref", refwsid)));
 		Provenance noverref = new Provenance(userfoo);
-		noverref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/1/2")));
+		noverref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(
+				Arrays.asList("referencetesting/1/2")));
 		failSave(userfoo, wspace, data1, abstype0, noverref,
-				new TypedObjectValidationException(
-						"Object #1 has invalid provenance reference: There is no object with id referencetesting/1/2: No object with id 1 (name auto1) and version 2 exists in workspace "
-								+ refwsid));
+				new TypedObjectValidationException(String.format(
+						"Object #1 has invalid provenance reference: There is no object with id " +
+						"referencetesting/1/2: No object with id 1 (name auto1) and version 2 " +
+						"exists in workspace %s (name referencetesting)", refwsid)));
 		
 		//TODO GC test references against garbage collected objects
 		
@@ -2153,7 +2163,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		//test that an id error returns the right id if multiple IDs exist
 		WorkspaceUser user = new WorkspaceUser("user1");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsIdErrorOrder");
-		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		Map<String, Object> d = new HashMap<String, Object>();
 		Provenance mtprov = new Provenance(user);
@@ -2165,8 +2175,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						wsi.getName() + "/auto1", wsi.getName() + "/auto2")));
 		objs.set(0, new WorkspaceSaveObject(d, SAFE_TYPE1, null, p, false));
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid provenance reference: There is no object with id wsIdErrorOrder/auto2: No object with name auto2 exists in workspace "
-				+ wsid));
+				"Object #1 has invalid provenance reference: There is no object with id " +
+				"wsIdErrorOrder/auto2: No object with name auto2 exists in workspace 1 " +
+				"(name wsIdErrorOrder)"));
 		
 	}
 	
@@ -2397,7 +2408,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		// test basic type checking with different versions
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsIDHandling");
-		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		Provenance emptyprov = new Provenance(user);
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(3);
@@ -2489,8 +2500,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		data.remove("ws_any");
 		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi, "t1")), true);
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: There is no object with id wsIDHandling/t1: Object 1 (name t1) in workspace " +
-						wsid + " has been deleted at /ws_12/0"));
+				"Object #1 has invalid reference: There is no object with id wsIDHandling/t1: " +
+				"Object 1 (name t1) in workspace 1 (name wsIDHandling) has been deleted at " +
+				"/ws_12/0"));
 	}
 	
 	@Test
@@ -2897,9 +2909,8 @@ public class WorkspaceTest extends WorkspaceTester {
 	@Test
 	public void getNonexistantObjects() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
-		WorkspaceIdentifier read = new WorkspaceIdentifier("nonexistantobjects");
+		WorkspaceIdentifier read = new WorkspaceIdentifier("nonexistentobjects");
 		ws.createWorkspace(foo, read.getIdentifierString(), false, null, null);
-		long readid = ws.getWorkspaceInformation(foo, read).getId();
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("fubar", "thingy");
 		JsonNode savedata = MAPPER.valueToTree(data);
@@ -2908,13 +2919,15 @@ public class WorkspaceTest extends WorkspaceTester {
 				savedata, SAFE_TYPE1, null, new Provenance(foo), false));
 		ws.saveObjects(foo, read, objects, getIdFactory());
 		getNonExistantObject(foo, new ObjectIdentifier(read, 2),
-				"No object with id 2 exists in workspace " + readid);
+				"No object with id 2 exists in workspace 1 (name nonexistentobjects)");
 		getNonExistantObject(foo, new ObjectIdentifier(read, 1, 2),
-				"No object with id 1 (name myname) and version 2 exists in workspace " + readid);
+				"No object with id 1 (name myname) and version 2 exists in workspace 1 " +
+				"(name nonexistentobjects)");
 		getNonExistantObject(foo, new ObjectIdentifier(read, "myname2"),
-				"No object with name myname2 exists in workspace " + readid);
+				"No object with name myname2 exists in workspace 1 (name nonexistentobjects)");
 		getNonExistantObject(foo, new ObjectIdentifier(read, "myname", 2),
-				"No object with id 1 (name myname) and version 2 exists in workspace " + readid);
+				"No object with id 1 (name myname) and version 2 exists in workspace 1 " +
+				"(name nonexistentobjects)");
 	}
 
 	@Test
@@ -3016,8 +3029,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		lastReadDate = ws.getWorkspaceInformation(user, read).getModDate();
 		ws.setObjectsDeleted(user, obj1, true);
-		lastReadDate = assertWorkspaceDateUpdated(user, read, lastReadDate, "ws date updated on delete");
-		String err = String.format("Object 1 (name obj) in workspace %s has been deleted", wsid);
+		lastReadDate = assertWorkspaceDateUpdated(user, read, lastReadDate,
+				"ws date updated on delete");
+		String err = String.format("Object 1 (name obj) in workspace %s (name deleteundelete) " +
+				"has been deleted", wsid);
 		failToGetDeletedObjects(user, objs, err);
 		failToGetDeletedObjects(user, obj1, err);
 		failToGetDeletedObjects(user, obj2, err);
@@ -3025,8 +3040,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		try {
 			ws.setObjectsDeleted(user, obj2, true); //should have no effect
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception", nsoe.getLocalizedMessage(),
-					is("Object 1 (name obj) in workspace " + wsid + " has been deleted"));
+			assertThat("correct exception", nsoe.getLocalizedMessage(), is(err));
 		}
 		failToGetDeletedObjects(user, objs, err);
 		failToGetDeletedObjects(user, obj1, err);
@@ -3525,31 +3539,32 @@ public class WorkspaceTest extends WorkspaceTester {
 
 		failCopy(null, new ObjectIdentifier(cp1, "whooga"),
 				new ObjectIdentifier(cp1, "hidetarget"), new InaccessibleObjectException(
-						"Object whooga cannot be accessed: Anonymous users may not read workspace copyrevert1"));
+						"Object whooga cannot be accessed: Anonymous users may not read " +
+						"workspace copyrevert1"));
 		failRevert(null, new ObjectIdentifier(cp1, "whooga"), new InaccessibleObjectException(
-						"Object whooga cannot be accessed: Anonymous users may not write to workspace copyrevert1"));
+				"Object whooga cannot be accessed: Anonymous users may not write to " +
+				"workspace copyrevert1"));
 		
 		failCopy(user1, new ObjectIdentifier(cp1, "foo"),
 				new ObjectIdentifier(cp1, "bar"), new NoSuchObjectException(
-						"No object with name foo exists in workspace " + wsid1));
+						"No object with name foo exists in workspace 2 (name copyrevert1)"));
 		failRevert(user1, new ObjectIdentifier(cp1, "foo"),  new NoSuchObjectException(
-						"No object with name foo exists in workspace " + wsid1));
+				"No object with name foo exists in workspace 2 (name copyrevert1)"));
 		failRevert(user1, new ObjectIdentifier(cp1, "orig", 4),  new NoSuchObjectException(
-						"No object with id 2 (name orig) and version 4 exists in workspace " + wsid1));
+				"No object with id 2 (name orig) and version 4 exists in workspace 2 " +
+						"(name copyrevert1)"));
 		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
 				new ObjectIdentifier(cp1, 7), new NoSuchObjectException(
-						"Copy destination is specified as object id 7 in workspace " + wsid1 + " which does not exist."));
+						"Copy destination is specified as object id 7 in workspace 2 " +
+						"which does not exist."));
 		
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(cp1, "copied")), true);
 		failCopy(user1, new ObjectIdentifier(cp1, "copied"),
 				new ObjectIdentifier(cp1, "hidetarget"), new NoSuchObjectException(
-						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
+						"Object 5 (name copied) in workspace 2 (name copyrevert1) has been " +
+						"deleted"));
 		failRevert(user1, new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
-						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
-		//now works
-//		failCopy(user1, new ObjectIdentifier(cp1, "orig"),
-//				new ObjectIdentifier(cp1, "copied"), new NoSuchObjectException(
-//						"Object 5 (name copied) in workspace " + wsid1 + " has been deleted"));
+				"Object 5 (name copied) in workspace 2 (name copyrevert1) has been deleted"));
 		
 		cp2LastDate = ws.getWorkspaceInformation(user1, cp2).getModDate();
 		ws.copyObject(user1, new ObjectIdentifier(cp1, "orig"), new ObjectIdentifier(cp2, "foo")); //should work
@@ -3771,7 +3786,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		exclude.add(new ObjectIDNoWSNoVer("object4"));
 		failClone(user, source, "foo", null, exclude,
 				new NoSuchObjectException(
-						"No object with name object4 exists in workspace 1"));
+						"No object with name object4 exists in workspace 1 (name source)"));
 		
 		ws.setObjectsDeleted(user, Arrays.asList(
 				new ObjectIdentifier(source, "object3")), true);
@@ -3779,7 +3794,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		exclude.add(new ObjectIDNoWSNoVer("object3"));
 		failClone(user, source, "foo", null, exclude,
 				new DeletedObjectException(
-						"Object 3 (name object3) in workspace 1 has been deleted"));
+						"Object 3 (name object3) in workspace 1 (name source) has been deleted"));
 	}
 	
 	private void checkWsObjectNames(WorkspaceUser user, String wsName,
@@ -3858,10 +3873,10 @@ public class WorkspaceTest extends WorkspaceTester {
 				is((Set<Long>) new HashSet<>(Arrays.asList(1L, 3L, 5L))));
 		failGetObjects(user, Arrays.asList(new ObjectIdentifier(target, 2)),
 				new NoSuchObjectException(
-						"No object with id 2 exists in workspace 2"));
+						"No object with id 2 exists in workspace 2 (name target)"));
 		failGetObjects(user, Arrays.asList(new ObjectIdentifier(target, 4)),
 				new NoSuchObjectException(
-						"No object with id 4 exists in workspace 2"));
+						"No object with id 4 exists in workspace 2 (name target)"));
 	}
 
 	@Test
@@ -4282,7 +4297,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "mynewname", new IllegalArgumentException(
 				"Object is already named mynewname"));
 		failObjRename(user, new ObjectIdentifier(wsi, "bar"), "foo", new NoSuchObjectException(
-				"No object with name bar exists in workspace " + wsid1));
+				"No object with name bar exists in workspace 1 (name renameObj)"));
 		failObjRename(user, new ObjectIdentifier(wsi2, "auto1"), "foo",
 				new InaccessibleObjectException(
 						"Object auto1 cannot be accessed: User renameObjUser may not rename objects in workspace renameObj2"));
@@ -4291,8 +4306,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						"Object auto1 cannot be accessed: Anonymous users may not rename objects in workspace renameObj2"));
 		
 		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi, "mynewname")), true);
-		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "foo", new InaccessibleObjectException(
-				"Object 1 (name mynewname) in workspace " + wsid1 + " has been deleted"));
+		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "foo",
+				new InaccessibleObjectException(
+				"Object 1 (name mynewname) in workspace 1 (name renameObj) has been deleted"));
 		ws.setWorkspaceDeleted(user, wsi, true);
 		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "foo", new InaccessibleObjectException(
 				"Object mynewname cannot be accessed: Workspace renameObj is deleted"));
@@ -4430,7 +4446,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		compareObjectInfo(ws.listObjects(lop), expected);
 		
 		failSetHide(user, new ObjectIdentifier(wsi, "fake"), true, new NoSuchObjectException(
-				"No object with name fake exists in workspace " + wsid1));
+				"No object with name fake exists in workspace 1 (name hideObj)"));
 		failSetHide(user, new ObjectIdentifier(new WorkspaceIdentifier("fake"), "fake"), true, new InaccessibleObjectException(
 				"Object fake cannot be accessed: No workspace with name fake exists"));
 		
@@ -4441,7 +4457,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi, 3)), true);
 		failSetHide(user, new ObjectIdentifier(wsi, 3), true, new NoSuchObjectException(
-				"Object 3 (name obj1) in workspace " + wsid1 + " has been deleted"));
+				"Object 3 (name obj1) in workspace 1 (name hideObj) has been deleted"));
 		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi, 3)), false);
 		
 		ws.setWorkspaceDeleted(user, wsi, true);
@@ -4746,10 +4762,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceIdentifier adminable = new WorkspaceIdentifier("listObjadmin");
 		WorkspaceIdentifier thirdparty = new WorkspaceIdentifier("thirdparty");
 		WorkspaceUser user2 = new WorkspaceUser("listObjUser2");
-		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		ws.createWorkspace(user2, readable.getName(), false, null, null).getId();
 		ws.setPermissions(user2, readable, Arrays.asList(user), Permission.READ);
-		long wsidwrite = ws.createWorkspace(user2, writeable.getName(), false, null, null).getId();
+		ws.createWorkspace(user2, writeable.getName(), false, null, null).getId();
 		ws.setPermissions(user2, writeable, Arrays.asList(user), Permission.WRITE);
 		ws.createWorkspace(user2, adminable.getName(), false, null, null).getId();
 		ws.setPermissions(user2, adminable, Arrays.asList(user), Permission.ADMIN);
@@ -5117,8 +5133,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				ws.getObjectHistory(user2, new ObjectIdentifier(writeable, "stdws2")),
 				is(Arrays.asList(stdws2)));
 		
-		failGetObjectHistory(user, new ObjectIdentifier(wsi, "booger"),
-				new NoSuchObjectException("No object with name booger exists in workspace " + wsid1));
+		failGetObjectHistory(user, new ObjectIdentifier(wsi, "booger"), new NoSuchObjectException(
+				"No object with name booger exists in workspace 1 (name listObj1)"));
 		failGetObjectHistory(user, new ObjectIdentifier(new WorkspaceIdentifier("listObjectsfake"), "booger"),
 				new InaccessibleObjectException("Object booger cannot be accessed: No workspace with name listObjectsfake exists"));
 		failGetObjectHistory(user, new ObjectIdentifier(new WorkspaceIdentifier("listdel"), "booger"),
@@ -5128,7 +5144,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		failGetObjectHistory(null, new ObjectIdentifier(wsi, 3),
 				new InaccessibleObjectException("Object 3 cannot be accessed: Anonymous users may not read workspace listObj1"));
 		failGetObjectHistory(user2, new ObjectIdentifier(writeable, "deleted"),
-				new InaccessibleObjectException("Object 3 (name deleted) in workspace " + wsidwrite + " has been deleted"));
+				new InaccessibleObjectException("Object 3 (name deleted) in workspace 3 " +
+						"(name listObjwrite) has been deleted"));
 		
 		ws.setGlobalPermission(user3, new WorkspaceIdentifier("thirdparty"), Permission.NONE);
 	}
@@ -6608,12 +6625,17 @@ public class WorkspaceTest extends WorkspaceTester {
 		// test various ways the root object could be inaccessible
 		failGetReferencedObjects(user2, new ArrayList<ObjectIDWithRefPath>(),
 				new IllegalArgumentException("No object identifiers provided"));
-		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefPath(new ObjectIdentifier(wsiun1, "leaf3"),
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsiun1, "leaf3"),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
-				new InaccessibleObjectException("Object leaf3 does not exist in workspace 3"));
-		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefPath(new ObjectIdentifier(wsiun1, "leaf1", 3),
+				new InaccessibleObjectException(
+						"No object with name leaf3 exists in workspace 3 (name refedunacc)"));
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsiun1, "leaf1", 3),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
-				new InaccessibleObjectException("Object leaf1 with version 3 does not exist in workspace 3"));
+				new InaccessibleObjectException(
+						"No object with id 1 (name leaf1) and version 3 exists in workspace 3 " +
+						"(name refedunacc)"));
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(new ObjectIdentifier(new WorkspaceIdentifier("fakefakefake"), "leaf1"),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: No workspace with name fakefakefake exists"));
@@ -6624,10 +6646,12 @@ public class WorkspaceTest extends WorkspaceTester {
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: Anonymous users may not read workspace 3"));
 		ws.setObjectsDeleted(user2, Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")), true);
-		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefPath(new ObjectIdentifier(wsiun1n, "leaf1"),
+		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsiun1n, "leaf1"),
 				Arrays.asList(new ObjectIdentifier(wsiun1, 1, 1)))),
 				new InaccessibleObjectException(
-						"Object leaf1 in workspace refedunacc has been deleted"));
+						"Object 1 (name leaf1) in workspace 3 (name refedunacc) " +
+						"has been deleted"));
 		ws.setObjectsDeleted(user2, Arrays.asList(new ObjectIdentifier(wsiun1, "leaf1")), false);
 		ws.setWorkspaceDeleted(user2, wsiun1, true);
 		failGetReferencedObjects(user2, Arrays.asList(new ObjectIDWithRefPath(new ObjectIdentifier(wsiun1n, "leaf1"),

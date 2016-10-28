@@ -744,16 +744,16 @@ public class MongoInternalsTest {
 		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw));
 		failGetObjectsNoSuchObjectExcp(oidset,
-				String.format("No object with name %s exists in workspace %s",
+				String.format("No object with name %s exists in workspace %s (name setGetRace)",
 						objname, rwsi.getID()));
 		
 		try {
 			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
 			fail("copied object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
-							objname, rwsi.getID())));
+			assertThat("correct exception message", nsoe.getMessage(), is(String.format(
+					"No object with name %s exists in workspace %s (name setGetRace)",
+					objname, rwsi.getID())));
 		}
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi2.getName(), false, null,
@@ -763,8 +763,8 @@ public class MongoInternalsTest {
 		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
 				rso.getObjectIdentifier().getName());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
-					Arrays.asList(oidrw2_1)),
-					String.format("No object with name %s exists in workspace %s",
+					Arrays.asList(oidrw2_1)), String.format(
+							"No object with name %s exists in workspace %s (name setGetRace2)",
 							objname, rwsi2.getID()));
 
 		ObjectIDResolvedWS oidrw2_2 = new ObjectIDResolvedWS(rwsi2,
@@ -782,15 +782,15 @@ public class MongoInternalsTest {
 		Set<ObjectIDResolvedWS> oidsetver = new HashSet<ObjectIDResolvedWS>();
 		oidsetver.add(oidrwWithVer);
 		failGetObjectsNoSuchObjectExcp(oidsetver,
-				String.format("No object with name %s exists in workspace %s",
+				String.format("No object with name %s exists in workspace %s (name setGetRace)",
 						objname, rwsi.getID()));
 		
 		try {
 			mwdb.copyObject(user, oidrwWithVer, new ObjectIDResolvedWS(rwsi, "foo"));
 			fail("copied object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
+			assertThat("correct exception message", nsoe.getMessage(), is(String.format(
+					"No object with name %s exists in workspace %s (name setGetRace)",
 							objname, rwsi.getID())));
 		}
 		
@@ -811,7 +811,7 @@ public class MongoInternalsTest {
 				rso.getObjectIdentifier().getName());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw3_1)),
-				String.format("No object with name %s exists in workspace %s",
+				String.format("No object with name %s exists in workspace %s (name setGetRace3)",
 						objname, rwsi3.getID()));
 
 		ObjectIDResolvedWS oidrw3_2 = new ObjectIDResolvedWS(rwsi3,
@@ -824,9 +824,9 @@ public class MongoInternalsTest {
 			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
 			fail("copied object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
-							objname, rwsi.getID())));
+			assertThat("correct exception message", nsoe.getMessage(), is(String.format(
+					"No object with name %s exists in workspace %s",
+					objname, rwsi.getID())));
 		}
 		
 		try {
