@@ -2977,9 +2977,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		getReferencedObjectsCheckData(exp);
 		
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("referenced/ref")));
-		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(
+				new ObjectIdentity().withRef("referenced/ref"),
 				new ObjectIdentity().withRef("referencedPriv/one"))),
-				"Object ref in workspace referenced has been deleted");
+				"Object 1 (name ref) in workspace 1 (name referenced) has been deleted");
 		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("referenced"));
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
 				new ObjectIdentity().withRef("referencedPriv/one"))),

@@ -45,7 +45,6 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
-import us.kbase.workspace.database.exceptions.DeletedObjectException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
@@ -1111,7 +1110,8 @@ public class Workspace {
 		}
 		
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> headrefs =
-				getObjectOutGoingReferences(heads, !ignoreErrors, false);
+				db.getObjectOutgoingReferences(new HashSet<ObjectIDResolvedWS>(heads.values()),
+						!ignoreErrors, false, !ignoreErrors);
 		/* ignore all errors when getting chain objects until actually getting
 		 * to the point where we need the data. Otherwise an attacker can
 		 * explore what objects exist in arbitrary workspaces.
@@ -1120,7 +1120,8 @@ public class Workspace {
 				checkPerms(user, allRefPathEntries, Permission.NONE,
 						"somthinsbroke", true, true, true);
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> outrefs =
-				getObjectOutGoingReferences(resolvedRefPathObjs, false, true);
+				db.getObjectOutgoingReferences(new HashSet<ObjectIDResolvedWS>(
+						resolvedRefPathObjs.values()), false, true, false);
 		
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedObjects =
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
@@ -1210,58 +1211,6 @@ public class Workspace {
 				from, to);
 	}
 
-	private Map<ObjectIDResolvedWS, ObjectReferenceSet>
-			getObjectOutGoingReferences(
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> objs,
-				final boolean exceptIfMissingOrDeleted,
-				final boolean includeDeleted)
-				throws WorkspaceCommunicationException, NoSuchObjectException {
-		final Map<ObjectIDResolvedWS, ObjectReferenceSet> refs;
-		try {
-			refs = db.getObjectOutgoingReferences(
-					new HashSet<ObjectIDResolvedWS>(objs.values()),
-					exceptIfMissingOrDeleted, includeDeleted,
-					exceptIfMissingOrDeleted);
-		} catch (NoSuchObjectException nsoe) {
-			final ObjectIDResolvedWS e = nsoe.getResolvedInaccessibleObject();
-			for (Entry<ObjectIdentifier, ObjectIDResolvedWS> entry:
-					objs.entrySet()) {
-				if (entry.getValue().equals(e)) {
-					throw new NoSuchObjectException(
-							formatInaccessibleObjectException(
-									entry.getKey(), nsoe),
-							entry.getValue(), nsoe);
-				}
-				
-			}
-			throw new RuntimeException("Something went very wrong here", nsoe);
-		}
-		return refs;
-	}
-	
-	private static String formatInaccessibleObjectException(
-			final ObjectIdentifier oi,
-			final InaccessibleObjectException nsoe) {
-		final StringBuilder sb = new StringBuilder("Object ");
-		sb.append(oi.getIdentifierString());
-		sb.append(oi.getVersion() == null ? "" :
-			" with version " + oi.getVersion());
-		if (nsoe instanceof DeletedObjectException) {
-			sb.append(" in workspace ");
-		} else if (nsoe instanceof NoSuchObjectException) {
-			sb.append(" does not exist in workspace ");
-		} else {
-			sb.append(" in workspace ");
-		}
-		sb.append(oi.getWorkspaceIdentifierString());
-		if (nsoe instanceof DeletedObjectException) {
-			sb.append(" has been deleted");
-		} else if (!(nsoe instanceof NoSuchObjectException)) {
-			sb.append(" is inaccessible");
-		}
-		return sb.toString();
-	}
-	
 	private void removeInaccessibleDataCopyReferences(
 			final WorkspaceUser user,
 			final List<WorkspaceObjectData> data)
