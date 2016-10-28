@@ -976,9 +976,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.set(2, new ObjectIdentity().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
 		failGetObjects(loi, "Object 1 cannot be accessed: No workspace with id 20000000000000000 exists");
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
-		failGetObjects(loi, "No object with id 300 exists in workspace " + wsid);
+		failGetObjects(loi, "No object with id 300 exists in workspace 1 (name saveget)");
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
-		failGetObjects(loi, "No object with name ultrafakeobj exists in workspace " + wsid);
+		failGetObjects(loi, "No object with name ultrafakeobj exists in workspace 1 " +
+				"(name saveget)");
 		
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("setgetunreadableto1"));
 		loi.set(2, new ObjectIdentity().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
@@ -1683,7 +1684,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("delundel")
 				.withDescription("foo"));
 		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("delundel");
-		long wsid = CLIENT1.getWorkspaceInfo(wsi).getE1();
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
@@ -1699,7 +1699,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkData(loi, data);
 		CLIENT1.deleteObjects(loi);
 		
-		failGetObjects(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name delundel) " +
+				"has been deleted");
 
 		CLIENT1.undeleteObjects(loi);
 		checkData(loi, data);
@@ -1720,7 +1721,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				is("foo"));
 		CLIENT1.deleteObjects(loi);
 		
-		failGetObjects(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name delundel) " +
+				"has been deleted");
 
 		CLIENT1.saveObjects(soc);
 		checkData(loi, data);
@@ -2059,7 +2061,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failHideUnHide(new ObjectIdentity().withWorkspace("hideObj"),
 				"Error on ObjectIdentity #1: Must provide one and only one of object name (was: null) or id (was: null)");
 		failHideUnHide(new ObjectIdentity().withWorkspace("hideObj").withName("wootwoot"),
-				"No object with name wootwoot exists in workspace " + wsid);
+				"No object with name wootwoot exists in workspace 1 (name hideObj)");
 	}
 
 	@Test
