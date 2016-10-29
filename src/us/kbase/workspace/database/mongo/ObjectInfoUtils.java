@@ -37,8 +37,6 @@ public class ObjectInfoUtils {
 	//TODO TEST unit tests
 	//TODO JAVADOC
 	
-	static final String LATEST_VERSION = "_latestVersion";
-	
 	private final QueryMethods query;
 	
 	ObjectInfoUtils(final QueryMethods query) {
@@ -55,7 +53,7 @@ public class ObjectInfoUtils {
 	
 	private static final Set<String> FLDS_LIST_OBJ = newHashSet(
 			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_HIDE,
-			Fields.OBJ_LATEST, Fields.OBJ_VCNT, Fields.OBJ_WS_ID);
+			Fields.OBJ_VCNT, Fields.OBJ_WS_ID);
 	
 	List<ObjectInformation> filter(
 			final GetObjectInformationParameters params)
@@ -236,7 +234,7 @@ public class ObjectInfoUtils {
 			final long id = (Long) vo.get(Fields.VER_ID);
 			final int ver = (Integer) vo.get(Fields.VER_VER);
 			final Map<String, Object> obj = objdata.get(wsid).get(id);
-			final int lastver = (Integer) obj.get(LATEST_VERSION);
+			final int lastver = (Integer) obj.get(Fields.OBJ_VCNT);
 			final ResolvedMongoWSID rwsi = (ResolvedMongoWSID) ids.get(wsid);
 			boolean isDeleted = (Boolean) obj.get(Fields.OBJ_DEL);
 			if (!includeAllVers && lastver != ver) {
@@ -354,7 +352,6 @@ public class ObjectInfoUtils {
 		for (final Map<String, Object> o: objs) {
 			final long wsid = (Long) o.get(Fields.OBJ_WS_ID);
 			final long objid = (Long) o.get(Fields.OBJ_ID);
-			calcLatestObjVersion(o);
 			if (!ret.containsKey(wsid)) {
 				ret.put(wsid, new HashMap<Long, Map<String, Object>>());
 			}
@@ -363,17 +360,6 @@ public class ObjectInfoUtils {
 		return ret;
 	}
 	
-	static void calcLatestObjVersion(Map<String, Object> m) {
-		final Integer latestVersion;
-		if ((Integer) m.get(Fields.OBJ_LATEST) == null) {
-			latestVersion = (Integer) m.get(Fields.OBJ_VCNT);
-		} else {
-			//TODO GC check this works with GC
-			latestVersion = (Integer) m.get(Fields.OBJ_LATEST);
-		}
-		m.put(LATEST_VERSION, latestVersion);
-	}
-
 	/* the following methods are duplicated in MongoWorkspaceDB class, but so
 	 * simple not worth worrying about it
 	 */
@@ -395,6 +381,4 @@ public class ObjectInfoUtils {
 		}
 		return set;
 	}
-	
-	
 }
