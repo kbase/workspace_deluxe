@@ -12,7 +12,7 @@ import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceClient;
 
-public class Get10KTaxonsTiming {
+public class Get10KObjectsTiming {
 	
 	public static final String WS_URL = "https://ci.kbase.us/services/ws";
 	public static final String WORKSPACE = "ReferenceTaxons";
