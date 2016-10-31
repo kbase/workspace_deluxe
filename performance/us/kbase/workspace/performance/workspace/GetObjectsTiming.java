@@ -1,6 +1,6 @@
-package getObjects;
+package us.kbase.workspace.performance.workspace;
 
-import static utils.Utils.printElapse;
+import static us.kbase.workspace.performance.utils.Utils.printElapse;
 
 import java.net.URL;
 import java.util.Arrays;

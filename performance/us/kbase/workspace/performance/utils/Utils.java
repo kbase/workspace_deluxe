@@ -1,4 +1,4 @@
-package utils;
+package us.kbase.workspace.performance.utils;
 
 public class Utils {
 

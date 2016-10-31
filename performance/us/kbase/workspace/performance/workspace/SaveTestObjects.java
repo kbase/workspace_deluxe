@@ -1,7 +1,7 @@
-package saveObjects;
+package us.kbase.workspace.performance.workspace;
 
-import static utils.Utils.printElapse;
-import static utils.Utils.makeString;
+import static us.kbase.workspace.performance.utils.Utils.makeString;
+import static us.kbase.workspace.performance.utils.Utils.printElapse;
 
 import java.net.URL;
 import java.util.HashMap;

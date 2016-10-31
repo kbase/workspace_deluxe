@@ -1,7 +1,7 @@
-package shock;
+package us.kbase.workspace.performance.shockclient;
 
-import static utils.Utils.makeString;
-import static utils.Utils.printElapse;
+import static us.kbase.workspace.performance.utils.Utils.makeString;
+import static us.kbase.workspace.performance.utils.Utils.printElapse;
 
 import java.io.ByteArrayInputStream;
 import java.net.URL;
