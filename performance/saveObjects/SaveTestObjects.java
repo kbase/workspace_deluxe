@@ -1,6 +1,7 @@
 package saveObjects;
 
 import static utils.Utils.printElapse;
+import static utils.Utils.makeString;
 
 import java.net.URL;
 import java.util.HashMap;
@@ -30,8 +31,8 @@ public class SaveTestObjects {
 	public static final int APPROX_OBJ_SIZE = 400;
 
 	public static void main(String[] args) throws Exception {
-		final String contents = makeString(400);
 		final String strtoken = args[0];
+		final String contents = makeString(400);
 		final AuthToken token = AuthService.validateToken(strtoken);
 		final WorkspaceClient ws = new WorkspaceClient(new URL(WS_URL), token);
 		ws.setIsInsecureHttpConnectionAllowed(true);
@@ -53,12 +54,5 @@ public class SaveTestObjects {
 			printElapse("save", now);
 		}
 	}
-	
-	private static String makeString(final int size) {
-		final StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < size; i++) {
-			sb.append("A");
-		}
-		return sb.toString();
-	}
+
 }
