@@ -1085,9 +1085,9 @@ public class Workspace {
 				InaccessibleObjectException, CorruptWorkspaceDBException,
 				NoSuchObjectException, NoSuchReferenceException {
 		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedObjectPaths = new HashMap<>();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedObjects = new HashMap<>();
 		if (!hasItems(objsWithRefpaths)) {
-			return resolvedObjectPaths;
+			return resolvedObjects;
 		}
 		
 		final List<ObjectIdentifier> allRefPathEntries = new LinkedList<>();
@@ -1128,13 +1128,13 @@ public class Workspace {
 						final ObjectIDResolvedWS end = resolvedRefPathObjs.get(owrp.getLast());
 						final ObjectIDResolvedWS res = new ObjectIDResolvedWS(
 								end.getWorkspaceIdentifier(), ref.getObjectID(), ref.getVersion());
-						resolvedObjectPaths.put(owrp, res);
+						resolvedObjects.put(owrp, res);
 					}
 				}
 			}
 			chnum++;
 		}
-		return resolvedObjectPaths;
+		return resolvedObjects;
 	}
 	
 	private List<Reference> getResolvedRefPath(
