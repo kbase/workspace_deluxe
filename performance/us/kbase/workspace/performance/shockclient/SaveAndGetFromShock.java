@@ -19,8 +19,9 @@ import us.kbase.shock.client.ShockNodeId;
 public class SaveAndGetFromShock {
 
 //	public static final String SHOCK_URL = "http://localhost:7044";
-	public static final String SHOCK_URL = "https://ci.kbase.us/services/shock-api";
-	public static final int COUNT = 10000;
+//	public static final String SHOCK_URL = "https://ci.kbase.us/services/shock-api";
+	public static final String SHOCK_URL = "https://kbase.us/services/shock-api";
+	public static final int COUNT = 1000;
 	public static final int FILE_SIZE = 400;
 	
 	public static void main(String[] args) throws Exception {
@@ -36,12 +37,13 @@ public class SaveAndGetFromShock {
 			final ShockNode node = bsc.addNode(bais, "foo", "text");
 			ids.add(node.getId().getId());
 		}
-		printElapse("shock load", presave);
+		double elapsed = printElapse("shock load", presave);
+		System.out.println((elapsed / COUNT) + " sec / node");
 		final long preget = System.nanoTime();
 		for (final String id: ids) {
 			bsc.getFile(new ShockNodeId(id), new NullOutputStream());
 		}
-		printElapse("shock get", preget);
+		elapsed = printElapse("shock get", preget);
+		System.out.println((elapsed / COUNT) + " sec / node");
 	}
-
 }

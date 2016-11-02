@@ -2,8 +2,10 @@ package us.kbase.workspace.performance.utils;
 
 public class Utils {
 
-	public static void printElapse(final String name, final long start) {
-		System.out.println(name + " elapsed " + ((System.nanoTime() - start) / 1000000000.0));
+	public static double printElapse(final String name, final long start) {
+		final double elapsed = (System.nanoTime() - start) / 1000000000.0;
+		System.out.println(name + " elapsed " + elapsed);
+		return elapsed;
 	}
 	
 	
