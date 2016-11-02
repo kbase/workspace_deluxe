@@ -745,9 +745,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			to = from;
 			rto = rfrom;
 		} else {
-			rto = resolveObjectIDs(
-					new HashSet<ObjectIDResolvedWS>(Arrays.asList(to)),
-					false, true, false, true).get(to); //don't except if there's no object
+			final ObjectIDResolvedWS toNoVer = to.getId() == null ?
+					new ObjectIDResolvedWS(to.getWorkspaceIdentifier(), to.getName()) :
+						new ObjectIDResolvedWS(to.getWorkspaceIdentifier(), to.getId());
+			rto = resolveObjectIDs(new HashSet<ObjectIDResolvedWS>(Arrays.asList(toNoVer)),
+					false, true, false).get(toNoVer); //don't except if there's no object
 		}
 		if (rto == null && to.getId() != null) {
 			throw new NoSuchObjectException(String.format(
@@ -2083,8 +2085,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			TypedObjectExtractionException, CorruptWorkspaceDBException {
 		
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs =
-				resolveObjectIDs(objs.keySet(), exceptIfDeleted,
-						includeDeleted, exceptIfMissing, false);
+				resolveObjectIDs(objs.keySet(), exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
@@ -2291,8 +2292,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<ObjectIDResolvedWS, ObjectReferenceSet>();
 		
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs = 
-				resolveObjectIDs(objs, exceptIfDeleted, includeDeleted,
-						exceptIfMissing, false);
+				resolveObjectIDs(objs, exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Map<ResolvedMongoObjectID, Map<String, Object>> refs =
 				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
@@ -2579,8 +2579,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
-				resolveObjectIDs(objectIDs, exceptIfDeleted, includeDeleted,
-						exceptIfMissing, false);
+				resolveObjectIDs(objectIDs, exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Set<String> fields;
 		if (includeMetadata) {
 			fields = new HashSet<String>(FLDS_VER_META);
@@ -2617,16 +2616,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean exceptIfDeleted, final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		return resolveObjectIDs(objectIDs, exceptIfDeleted, true,
-				exceptIfMissing, false);
+		return resolveObjectIDs(objectIDs, exceptIfDeleted, true, exceptIfMissing);
 	}
 	
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean exceptIfDeleted,
 			final boolean includeDeleted,
-			final boolean exceptIfMissing,
-			final boolean ignoreVersion)
+			final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, Map<String, Object>> ids = 
 				queryObjects(objectIDs, FLDS_RESOLVE_OBJS, exceptIfDeleted,
@@ -2637,29 +2634,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String name = (String) ids.get(o).get(Fields.OBJ_NAME);
 			final long id = (Long) ids.get(o).get(Fields.OBJ_ID);
 			final boolean deleted = (Boolean) ids.get(o).get(Fields.OBJ_DEL);
+			//TODO BUG this could be wrong if the vercount was incremented without a ver save, should verify and then sort if needed, or better yet, fix the schema so it can't happen
 			final int latestVersion = (Integer) ids.get(o).get(Fields.OBJ_VCNT);
-			if (o.getVersion() == null || ignoreVersion ||
-					o.getVersion().equals(latestVersion)) {
-				//TODO BUG this could be wrong if the vercount was incremented without a ver save, should verify and then sort if needed
-				ret.put(o, new ResolvedMongoOIDWithObjLastVer(
-						query.convertResolvedWSID(o.getWorkspaceIdentifier()),
-						name, id, latestVersion, deleted));
-			} else {
-				if (o.getVersion().compareTo(latestVersion) > 0) {
-					if (exceptIfMissing) {
-						throw new NoSuchObjectException(String.format(
-								"No object with id %s (name %s) and version %s exists in " +
-								"workspace %s (name %s)", id, name, o.getVersion(), 
-								o.getWorkspaceIdentifier().getID(),
-								o.getWorkspaceIdentifier().getName()), o);
-					}
-				} else {
-					ret.put(o, new ResolvedMongoObjectID(
-							query.convertResolvedWSID(
-									o.getWorkspaceIdentifier()),
-									name, id, o.getVersion().intValue(),
-									deleted));
+			final int version = o.getVersion() == null ? latestVersion: o.getVersion();
+			if (version > latestVersion) {
+				if (exceptIfMissing) {
+					throw new NoSuchObjectException(String.format(
+							"No object with id %s (name %s) and version %s exists in " +
+							"workspace %s (name %s)",
+							id, name, version, 
+							o.getWorkspaceIdentifier().getID(),
+							o.getWorkspaceIdentifier().getName()), o);
 				}
+			} else {
+				ret.put(o, new ResolvedMongoObjectID(
+						query.convertResolvedWSID(o.getWorkspaceIdentifier()),
+						name, id, version, deleted));
 			}
 		}
 		return ret;

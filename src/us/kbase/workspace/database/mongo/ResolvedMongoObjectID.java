@@ -14,7 +14,8 @@ import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
  * 
  * This is *not* the case for objects generated from different queries.
  * 
- * Versions are not resolved.
+ * The version is guaranteed to be equal to or less than the version count in the object document,
+ * e.g. under normal circumstances the version must exist.
  * 
  * @author gaprice@lbl.gov
  *
