@@ -50,6 +50,36 @@ public class ObjectInformation {
 			final long size,
 			final UncheckedUserMetadata meta) {
 		//no error checking for now, add if needed
+		if (id < 1) {
+			throw new IllegalArgumentException("id must be > 0");
+		}
+		if (version < 1) {
+			throw new IllegalArgumentException("version must be > 0");
+		}
+		if (size < 1) {
+			throw new IllegalArgumentException("size must be > 0");
+		}
+		if (name == null || name.isEmpty()) {
+			throw new IllegalArgumentException("name is null or empty");
+		}
+		if (typeString == null || typeString.isEmpty()) { // could switch to absolutetypedef input
+			throw new IllegalArgumentException("typeString is null or empty");
+		}
+		if (chksum == null|| chksum.isEmpty()) { // could switch to MD5
+			throw new IllegalArgumentException("chksum is null or empty");
+		}
+		if (savedDate == null) {
+			throw new NullPointerException("savedDate");
+		}
+		if (savedBy == null) {
+			throw new NullPointerException("savedBy");
+		}
+		if (workspaceID == null) {
+			throw new NullPointerException("workspaceID");
+		}
+		if (meta == null) {
+			throw new NullPointerException("meta");
+		}
 		this.id = id;
 		this.name = name;
 		this.type = typeString;
@@ -61,6 +91,7 @@ public class ObjectInformation {
 		this.chksum = chksum;
 		this.size = size;
 		this.meta = meta;
+		//could leave this as null and construct as needed to save mem, but meh for now
 		final List<Reference> refs = new LinkedList<>();
 		refs.add(new Reference(workspaceID.getID(), id, version));
 		this.refpath = Collections.unmodifiableList(refs);
