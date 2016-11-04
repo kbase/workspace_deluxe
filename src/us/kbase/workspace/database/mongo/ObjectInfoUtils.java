@@ -269,19 +269,19 @@ public class ObjectInfoUtils {
 		return ret;
 	}
 	
-	static MongoObjectInfo generateObjectInfo(
+	static ObjectInformation generateObjectInfo(
 			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
 		return generateObjectInfo(roi.getWorkspaceIdentifier(), roi.getId(),
 				roi.getName(), ver);
 	}
 	
-	static MongoObjectInfo generateObjectInfo(
+	static ObjectInformation generateObjectInfo(
 			final ResolvedMongoWSID rwsi, final long objid, final String name,
 			final Map<String, Object> ver) {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) ver.get(Fields.VER_META);
-		return new MongoObjectInfo(
+		return new ObjectInformation(
 				objid,
 				name,
 				(String) ver.get(Fields.VER_TYPE),

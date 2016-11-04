@@ -637,25 +637,34 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void checkObjInfo(ObjectInformation info, long id,
-			String name, String type, int version, WorkspaceUser user,
-			long wsid, String wsname, String chksum, long size,
-			Map<String, String> usermeta) {
+	protected void checkObjInfo(
+			final ObjectInformation info,
+			final long id,
+			final String name,
+			final String type,
+			final int version,
+			final WorkspaceUser user,
+			final long wsid,
+			final String wsname,
+			final String chksum,
+			final long size,
+			final Map<String, String> usermeta,
+			final List<Reference> refpath) {
 		
 		assertDateisRecent(info.getSavedDate());
-		assertThat("Object id correct", info.getObjectId(), is(id));
-		assertThat("Object name is correct", info.getObjectName(), is(name));
-		assertThat("Object type is correct", info.getTypeString(), is(type));
-		assertThat("Object version is correct", info.getVersion(), is(version));
-		assertThat("Object user is correct", info.getSavedBy(), is(user));
-		assertThat("Object workspace id is correct", info.getWorkspaceId(), is(wsid));
-		assertThat("Object workspace name is correct", info.getWorkspaceName(), is(wsname));
-		assertThat("Object chksum is correct", info.getCheckSum(), is(chksum));
-		assertThat("Object size is correct", info.getSize(), is(size));
+		assertThat("Object id incorrect", info.getObjectId(), is(id));
+		assertThat("Object name is incorrect", info.getObjectName(), is(name));
+		assertThat("Object type is incorrect", info.getTypeString(), is(type));
+		assertThat("Object version is incorrect", info.getVersion(), is(version));
+		assertThat("Object user is incorrect", info.getSavedBy(), is(user));
+		assertThat("Object workspace id is incorrect", info.getWorkspaceId(), is(wsid));
+		assertThat("Object workspace name is incorrect", info.getWorkspaceName(), is(wsname));
+		assertThat("Object chksum is incorrect", info.getCheckSum(), is(chksum));
+		assertThat("Object size is incorrect", info.getSize(), is(size));
 		Map<String, String> meta = info.getUserMetaData() == null ? null :
 			info.getUserMetaData().getMetadata();
-		assertThat("Object user meta is correct",
-				meta, is(usermeta));
+		assertThat("Object user meta is incorrect", meta, is(usermeta));
+		assertThat("Object refpath incorrect", info.getReferencePath(), is(refpath));
 	}
 	
 	protected void assertDateisRecent(Date orig) {
@@ -784,22 +793,26 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void checkObjectAndInfo(WorkspaceUser user,
-			List<ObjectIdentifier> ids, List<FakeObjectInfo> fakeinfo,
-			List<Map<String, Object>> data) throws Exception {
-		List<WorkspaceObjectData> retdata = ws.getObjects(user, ids);
+	// only checks that the received object info->saved date is recent, doesn't directly compare to
+	// provided obj info. 
+	protected void checkObjectAndInfo(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> ids,
+			final List<ObjectInformation> objinfo,
+			final List<Map<String, Object>> data)
+			throws Exception {
+		final List<WorkspaceObjectData> retdata = ws.getObjects(user, ids);
 		try {
-			List<WorkspaceObjectData> provdata =
-					ws.getObjects(user, ids, true);
-			Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
-			Iterator<WorkspaceObjectData> provi = provdata.iterator();
-			Iterator<FakeObjectInfo> info = fakeinfo.iterator();
-			Iterator<Map<String, Object>> dataiter = data.iterator();
+			final List<WorkspaceObjectData> provdata = ws.getObjects(user, ids, true);
+			final Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
+			final Iterator<WorkspaceObjectData> provi = provdata.iterator();
+			final Iterator<ObjectInformation> info = objinfo.iterator();
+			final Iterator<Map<String, Object>> dataiter = data.iterator();
 			while (ret1.hasNext()) {
-				FakeObjectInfo inf = info.next();
-				Map<String, Object> d = dataiter.next();
-				WorkspaceObjectData woprov = provi.next();
-				WorkspaceObjectData wod1 = ret1.next();
+				final ObjectInformation inf = info.next();
+				final Map<String, Object> d = dataiter.next();
+				final WorkspaceObjectData woprov = provi.next();
+				final WorkspaceObjectData wod1 = ret1.next();
 				checkObjectAndInfo(wod1, inf, d);
 				checkObjInfo(
 						woprov.getObjectInfo(),
@@ -812,7 +825,8 @@ public class WorkspaceTester {
 						inf.getWorkspaceName(),
 						inf.getCheckSum(),
 						inf.getSize(),
-						inf.getUserMetaData().getMetadata());
+						inf.getUserMetaData().getMetadata(),
+						inf.getReferencePath());
 			}
 			if (info.hasNext() || dataiter.hasNext() || provi.hasNext()) {
 				fail("mismatched iter counts");
@@ -821,16 +835,27 @@ public class WorkspaceTester {
 			destroyGetObjectsResources(retdata);
 		}
 	}
-
+	
+	// only checks that the wod->object info->saved date is recent, doesn't directly compare to
+	// provided obj info. 
 	protected void checkObjectAndInfo(
 			final WorkspaceObjectData wod,
-			final FakeObjectInfo info,
+			final ObjectInformation info,
 			final Map<String, Object> data)
 			throws Exception {
-		checkObjInfo(wod.getObjectInfo(), info.getObjectId(), info.getObjectName(),
-				info.getTypeString(), info.getVersion(), info.getSavedBy(),
-				info.getWorkspaceId(), info.getWorkspaceName(), info.getCheckSum(),
-				info.getSize(), info.getUserMetaData().getMetadata());
+		checkObjInfo(
+				wod.getObjectInfo(),
+				info.getObjectId(),
+				info.getObjectName(),
+				info.getTypeString(),
+				info.getVersion(),
+				info.getSavedBy(),
+				info.getWorkspaceId(),
+				info.getWorkspaceName(),
+				info.getCheckSum(),
+				info.getSize(),
+				info.getUserMetaData().getMetadata(),
+				info.getReferencePath());
 		assertThat("correct data", getData(wod), is((Object) data));
 		
 	}

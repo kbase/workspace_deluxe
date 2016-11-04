@@ -1396,7 +1396,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		saveObjectVersions(user, wsid, objectid, Arrays.asList(version),
 				pkg.wo.isHidden());
 		
-		return new MongoObjectInfo(
+		return new ObjectInformation(
 				objectid,
 				pkg.name,
 				pkg.wo.getRep().getValidationTypeDefId().getTypeString(),
@@ -2108,7 +2108,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<String> refs =
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
-			final MongoObjectInfo info = ObjectInfoUtils.generateObjectInfo(
+			final ObjectInformation info = ObjectInfoUtils.generateObjectInfo(
 					roi, vers.get(roi));
 			if (dataMan == null) {
 				ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
@@ -2198,7 +2198,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<String> refs,
 			final Reference copied,
 			final Map<String, List<String>> extIDs,
-			final MongoObjectInfo info,
+			final ObjectInformation info,
 			final Map<String, ByteArrayFileCache> chksumToData,
 			final ByteArrayFileCacheManager bafcMan,
 			final Map<ObjectIDResolvedWS,

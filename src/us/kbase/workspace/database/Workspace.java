@@ -64,6 +64,7 @@ public class Workspace {
 	//TODO SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
 	//TODO SEARCH separate service - get object changes since date (based on type collection and pointers collection
 	//TODO SEARCH index typespecs
+	//TODO CODE look into eliminating all the DB implementation specific classes, too much of a pain just to ensure not moving objects between implementations
 	
 	public static final User ALL_USERS = new AllUsers('*');
 	

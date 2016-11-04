@@ -906,11 +906,16 @@ public class WorkspaceTest extends WorkspaceTester {
 		readLastDate = assertWorkspaceDateUpdated(foo, read, readLastDate, "ws date modified on save");
 		String chksum1 = "36c4f68f2c98971b9736839232eb08f4";
 		String chksum2 = "3c59f762140806c36ab48a152f28e840";
-		checkObjInfo(objinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
-		checkObjInfo(objinfo.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
-		checkObjInfo(objinfo.get(2), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
-		checkObjInfo(objinfo.get(3), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, premeta2);
-		checkObjInfo(objinfo.get(4), 4, "auto4", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
+		checkObjInfo(objinfo.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid,
+				read.getName(), chksum1, 23, premeta, Arrays.asList(new Reference(readid, 1, 1)));
+		checkObjInfo(objinfo.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid,
+				read.getName(), chksum2, 24, premeta2, Arrays.asList(new Reference(readid, 1, 2)));
+		checkObjInfo(objinfo.get(2), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 1, foo, readid,
+				read.getName(), chksum1, 23, premeta, Arrays.asList(new Reference(readid, 2, 1)));
+		checkObjInfo(objinfo.get(3), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid,
+				read.getName(), chksum2, 24, premeta2, Arrays.asList(new Reference(readid, 3, 1)));
+		checkObjInfo(objinfo.get(4), 4, "auto4", SAFE_TYPE1.getTypeString(), 1, foo, readid,
+				read.getName(), chksum1, 23, premeta, Arrays.asList(new Reference(readid, 4, 1)));
 		
 		List<ObjectIdentifier> loi = new ArrayList<ObjectIdentifier>();
 		loi.add(new ObjectIdentifier(read, 1));
@@ -928,47 +933,107 @@ public class WorkspaceTest extends WorkspaceTester {
 
 		List<ObjectInformation> objinfo2 = ws.getObjectInformation(foo, loi, true, false);
 		List<ObjectInformation> objinfo2NoMeta = ws.getObjectInformation(foo, loi, false, false);
-		checkObjInfo(objinfo2.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
-		checkObjInfo(objinfo2.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
-		checkObjInfo(objinfo2.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
-		checkObjInfo(objinfo2.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
-		checkObjInfo(objinfo2.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
-		checkObjInfo(objinfo2.get(5), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
-		checkObjInfo(objinfo2.get(6), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, premeta2);
-		checkObjInfo(objinfo2.get(7), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, premeta);
-		checkObjInfo(objinfo2.get(8), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, premeta2);
-		checkObjInfo(objinfo2.get(9), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, premeta2);
-		checkObjInfo(objinfo2.get(10), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, premeta2);
-		checkObjInfo(objinfo2.get(11), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, premeta2);
-		checkObjInfo(objinfo2NoMeta.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjInfo(objinfo2NoMeta.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjInfo(objinfo2NoMeta.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(5), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjInfo(objinfo2NoMeta.get(6), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(7), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum1, 23, null);
-		checkObjInfo(objinfo2NoMeta.get(8), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(9), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(10), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
-		checkObjInfo(objinfo2NoMeta.get(11), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo, readid, read.getName(), chksum2, 24, null);
+		checkObjInfo(objinfo2.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
+				readid, read.getName(), chksum2, 24, premeta2,
+				Arrays.asList(new Reference(readid, 1, 2)));
+		checkObjInfo(objinfo2.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum1, 23, premeta,
+				Arrays.asList(new Reference(readid, 1, 1)));
+		checkObjInfo(objinfo2.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
+				readid, read.getName(), chksum2, 24, premeta2,
+				Arrays.asList(new Reference(readid, 1, 2)));
+		checkObjInfo(objinfo2.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum1, 23, premeta,
+				Arrays.asList(new Reference(readid, 1, 1)));
+		checkObjInfo(objinfo2.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
+				readid, read.getName(), chksum2, 24, premeta2,
+				Arrays.asList(new Reference(readid, 1, 2)));
+		checkObjInfo(objinfo2.get(5), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum1, 23, premeta,
+				Arrays.asList(new Reference(readid, 1, 1)));
+		checkObjInfo(objinfo2.get(6), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
+				readid, read.getName(), chksum2, 24, premeta2,
+				Arrays.asList(new Reference(readid, 1, 2)));
+		checkObjInfo(objinfo2.get(7), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum1, 23, premeta,
+				Arrays.asList(new Reference(readid, 1, 1)));
+		checkObjInfo(objinfo2.get(8), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum2, 24, premeta2,
+				Arrays.asList(new Reference(readid, 3, 1)));
+		checkObjInfo(objinfo2.get(9), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum2, 24, premeta2,
+				Arrays.asList(new Reference(readid, 3, 1)));
+		checkObjInfo(objinfo2.get(10), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum2, 24, premeta2,
+				Arrays.asList(new Reference(readid, 3, 1)));
+		checkObjInfo(objinfo2.get(11), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum2, 24, premeta2,
+				Arrays.asList(new Reference(readid, 3, 1)));
+		checkObjInfo(objinfo2NoMeta.get(0), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
+				readid, read.getName(), chksum2, 24, null,
+				Arrays.asList(new Reference(readid, 1, 2)));
+		checkObjInfo(objinfo2NoMeta.get(1), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum1, 23, null,
+				Arrays.asList(new Reference(readid, 1, 1)));
+		checkObjInfo(objinfo2NoMeta.get(2), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
+				readid, read.getName(), chksum2, 24, null,
+				Arrays.asList(new Reference(readid, 1, 2)));
+		checkObjInfo(objinfo2NoMeta.get(3), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum1, 23, null,
+				Arrays.asList(new Reference(readid, 1, 1)));
+		checkObjInfo(objinfo2NoMeta.get(4), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
+				readid, read.getName(), chksum2, 24, null,
+				Arrays.asList(new Reference(readid, 1, 2)));
+		checkObjInfo(objinfo2NoMeta.get(5), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum1, 23, null,
+				Arrays.asList(new Reference(readid, 1, 1)));
+		checkObjInfo(objinfo2NoMeta.get(6), 1, "auto3", SAFE_TYPE1.getTypeString(), 2, foo,
+				readid, read.getName(), chksum2, 24, null,
+				Arrays.asList(new Reference(readid, 1, 2)));
+		checkObjInfo(objinfo2NoMeta.get(7), 1, "auto3", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum1, 23, null,
+				Arrays.asList(new Reference(readid, 1, 1)));
+		checkObjInfo(objinfo2NoMeta.get(8), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum2, 24, null,
+				Arrays.asList(new Reference(readid, 3, 1)));
+		checkObjInfo(objinfo2NoMeta.get(9), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum2, 24, null,
+				Arrays.asList(new Reference(readid, 3, 1)));
+		checkObjInfo(objinfo2NoMeta.get(10), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum2, 24, null,
+				Arrays.asList(new Reference(readid, 3, 1)));
+		checkObjInfo(objinfo2NoMeta.get(11), 3, "auto3-2", SAFE_TYPE1.getTypeString(), 1, foo,
+				readid, read.getName(), chksum2, 24, null,
+				Arrays.asList(new Reference(readid, 3, 1)));
 		
-		List<FakeObjectInfo> retinfo = new ArrayList<FakeObjectInfo>();
+		List<ObjectInformation> retinfo = new ArrayList<ObjectInformation>();
 		FakeResolvedWSID fakews = new FakeResolvedWSID(read.getName(), readid);
 		UncheckedUserMetadata umeta = new UncheckedUserMetadata(meta);
 		UncheckedUserMetadata umeta2 = new UncheckedUserMetadata(meta2);
-		retinfo.add(new FakeObjectInfo(1L, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24L, umeta2));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, umeta));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, umeta));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, umeta));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2, foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new FakeObjectInfo(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum1, 23, umeta));
-		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, umeta2));
-		retinfo.add(new FakeObjectInfo(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1, foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new ObjectInformation(1L, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2,
+				foo, fakews, chksum2, 24L, umeta2));
+		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1,
+				foo, fakews, chksum1, 23, umeta));
+		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2,
+				foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1,
+				foo, fakews, chksum1, 23, umeta));
+		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2,
+				foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1,
+				foo, fakews, chksum1, 23, umeta));
+		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2,
+				foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new ObjectInformation(1, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 1,
+				foo, fakews, chksum1, 23, umeta));
+		retinfo.add(new ObjectInformation(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1,
+				foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new ObjectInformation(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1,
+				foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new ObjectInformation(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1,
+				foo, fakews, chksum2, 24, umeta2));
+		retinfo.add(new ObjectInformation(3, "auto3-2", SAFE_TYPE1.getTypeString(), new Date(), 1,
+				foo, fakews, chksum2, 24, umeta2));
 		List<Map<String, Object>> retdata = Arrays.asList(
 				data2, data, data2, data, data2, data, data2, data, data2, data2, data2, data2);
 		checkObjectAndInfo(foo, loi, retinfo, retdata);
@@ -981,9 +1046,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), savedata, SAFE_TYPE1, meta2, p, false));
 		objinfo = ws.saveObjects(foo, read, objects, foofac);
 		ws.saveObjects(foo, priv, objects, foofac);
-		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, premeta2);
-		objinfo2 = ws.getObjectInformation(foo, Arrays.asList(new ObjectIdentifier(read, 2)), true, false);
-		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid, read.getName(), chksum1, 23, premeta2);
+		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid,
+				read.getName(), chksum1, 23, premeta2, Arrays.asList(new Reference(readid, 2, 2)));
+		objinfo2 = ws.getObjectInformation(foo, Arrays.asList(new ObjectIdentifier(read, 2)), true,
+				false);
+		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, readid,
+				read.getName(), chksum1, 23, premeta2, Arrays.asList(new Reference(readid, 2, 2)));
 		
 		ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(read, 2)), true, false); //should work
 		try {
@@ -1007,11 +1075,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.READ);
-		objinfo2 = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true, false);
-		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid, priv.getName(), chksum1, 23, premeta2);
+		objinfo2 = ws.getObjectInformation(bar, Arrays.asList(new ObjectIdentifier(priv, 2)), true,
+				false);
+		checkObjInfo(objinfo2.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 2, foo, privid,
+				priv.getName(), chksum1, 23, premeta2, Arrays.asList(new Reference(privid, 2, 2)));
 		
 		checkObjectAndInfo(bar, Arrays.asList(new ObjectIdentifier(priv, 2)),
-				Arrays.asList(new FakeObjectInfo(2L, "auto3-1", SAFE_TYPE1.getTypeString(),
+				Arrays.asList(new ObjectInformation(2L, "auto3-1", SAFE_TYPE1.getTypeString(),
 						new Date(), 2, foo, new FakeResolvedWSID(priv.getName(), privid),
 						chksum1, 23L, umeta2)), Arrays.asList(data));
 		
@@ -1019,7 +1089,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		ws.setPermissions(foo, priv, Arrays.asList(bar), Permission.WRITE);
 		objinfo = ws.saveObjects(bar, priv, objects, barfac);
-		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 3, bar, privid, priv.getName(), chksum1, 23, premeta2);
+		checkObjInfo(objinfo.get(0), 2, "auto3-1", SAFE_TYPE1.getTypeString(), 3, bar, privid,
+				priv.getName(), chksum1, 23, premeta2, Arrays.asList(new Reference(privid, 2, 3)));
 		
 		failGetObjects(foo, Arrays.asList(new ObjectIdentifier(read, "booger")),
 				new NoSuchObjectException(
@@ -3950,13 +4021,15 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("bar"), mt,
 						SAFE_TYPE1, null, p, false)),
 				getIdFactory()).get(0);
-		checkObjInfo(oi, 2L, "bar", SAFE_TYPE1.getTypeString(), 1, user, 2,
-				"target", "99914b932bd37a50b983c5e7c90ae93b", 2, mt);
+		checkObjInfo(oi, 2L, "bar", SAFE_TYPE1.getTypeString(), 1, user, 2, "target",
+				"99914b932bd37a50b983c5e7c90ae93b", 2, mt,
+				Arrays.asList(new Reference(2, 2, 1)));
 		ObjectInformation oi2 = ws.copyObject(user,
 				new ObjectIdentifier(source, "o1"),
 				new ObjectIdentifier(target, "foo"));
-		checkObjInfo(oi2, 3L, "foo", SAFE_TYPE1.getTypeString(), 1, user, 2,
-				"target", "99914b932bd37a50b983c5e7c90ae93b", 2, mt);
+		checkObjInfo(oi2, 3L, "foo", SAFE_TYPE1.getTypeString(), 1, user, 2, "target",
+				"99914b932bd37a50b983c5e7c90ae93b", 2, mt,
+				Arrays.asList(new Reference(2, 3, 1)));
 		
 		WorkspaceInformation i = ws.getWorkspaceInformation(user, target);
 		checkWSInfo(target, user, target.getName(), 3L, Permission.OWNER,
@@ -4279,10 +4352,12 @@ public class WorkspaceTest extends WorkspaceTester {
 				new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)), getIdFactory());
 		lastWSDate = ws.getWorkspaceInformation(user, wsi).getModDate();
-		ObjectInformation info = ws.renameObject(user, new ObjectIdentifier(wsi, "auto1"), "mynewname");
+		ObjectInformation info = ws.renameObject(user, new ObjectIdentifier(wsi, "auto1"),
+				"mynewname");
 		assertWorkspaceDateUpdated(user, wsi, lastWSDate, "ws date updated on rename");
-		checkObjInfo(info, 1L, "mynewname", SAFE_TYPE1.getTypeString(), 1, user,
-				wsid1, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
+		checkObjInfo(info, 1L, "mynewname", SAFE_TYPE1.getTypeString(), 1, user, wsid1,
+				"renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null,
+				Arrays.asList(new Reference(wsid1, 1, 1)));
 		String newname = ws.listObjects(new ListObjectsParameters(user, Arrays.asList(wsi)))
 				.get(0).getObjectName();
 		assertThat("object renamed", newname, is("mynewname"));
