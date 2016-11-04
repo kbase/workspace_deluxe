@@ -1452,8 +1452,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				new ObjectIdentifier(wspace, 5)));
 		try {
 			for (WorkspaceObjectData wod: ret) {
-				assertThat("got correct object input in various encodings",
-						wod.getData(), is((Object) craycraymap));
+				assertThat("got correct object input in various encodings", getData(wod),
+						is((Object) craycraymap));
 		}
 		} finally {
 			destroyGetObjectsResources(ret);
@@ -1583,7 +1583,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				userfoo, Arrays.asList(new ObjectIdentifier(wspace, data1id)));
 		final Map<String, Object> data1copy;
 		try {
-				data1copy = (Map<String, Object>)objects.get(0).getData();
+				data1copy = (Map<String, Object>) getData(objects.get(0));
 		} finally {
 			destroyGetObjectsResources(objects);
 		}
@@ -1661,8 +1661,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				user, Arrays.asList(new ObjectIdentifier(wspace, 1)));
 		try {
 			@SuppressWarnings("unchecked")
-			Map<String, Object> dataObj = (Map<String, Object>)
-					objects.get(0).getData();
+			Map<String, Object> dataObj = (Map<String, Object>) getData(objects.get(0));
 			assertThat("data saved correctly", dataObj, is(data));
 		} finally {
 			destroyGetObjectsResources(objects);
@@ -2142,7 +2141,7 @@ public class WorkspaceTest extends WorkspaceTester {
 					new ObjectIdentifier(reftypecheck, i))).get(0);
 			try {
 				@SuppressWarnings("unchecked")
-				Map<String, Object> obj = (Map<String, Object>) wod.getData();
+				Map<String, Object> obj = (Map<String, Object>) getData(wod);
 				assertThat("reference rewritten correctly",
 						(String) obj.get("ref"), is(reftypewsid + "/2/1"));
 			} finally {
@@ -2205,7 +2204,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceObjectData d =  ws.getObjects(user, Arrays.asList(
 				new ObjectIdentifier(wsi, "auto5-2"))).get(0);
 		try {
-			assertThat("auto named correctly", d.getData(), is((Object) d2));
+			assertThat("auto named correctly", getData(d), is((Object) d2));
 		} finally {
 			destroyGetObjectsResources(Arrays.asList(d));
 		}

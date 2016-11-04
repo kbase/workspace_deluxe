@@ -438,6 +438,10 @@ public class WorkspaceTester {
 		return new IdReferenceHandlerSetFactory(100000);
 	}
 	
+	protected Object getData(final WorkspaceObjectData wod) throws Exception {
+		return wod.getSerializedData().getUObject().asClassInstance(Object.class);
+	}
+	
 	protected void failSetWSDesc(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -761,7 +765,7 @@ public class WorkspaceTester {
 				} else {
 					@SuppressWarnings("unchecked")
 					Map<String, Object> d =
-					(Map<String, Object>) gdata.getData();
+					(Map<String, Object>) getData(gdata);
 					assertThat("got expected obj info from getInfo",
 							ginf, is(einf));
 					assertThat("got expected obj info from getObj",
@@ -818,13 +822,16 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void checkObjectAndInfo(WorkspaceObjectData wod,
-			FakeObjectInfo info, Map<String, Object> data) throws IOException {
+	protected void checkObjectAndInfo(
+			final WorkspaceObjectData wod,
+			final FakeObjectInfo info,
+			final Map<String, Object> data)
+			throws Exception {
 		checkObjInfo(wod.getObjectInfo(), info.getObjectId(), info.getObjectName(),
 				info.getTypeString(), info.getVersion(), info.getSavedBy(),
 				info.getWorkspaceId(), info.getWorkspaceName(), info.getCheckSum(),
 				info.getSize(), info.getUserMetaData().getMetadata());
-		assertThat("correct data", wod.getData(), is((Object) data));
+		assertThat("correct data", getData(wod), is((Object) data));
 		
 	}
 
@@ -1339,8 +1346,8 @@ public class WorkspaceTester {
 		List<WorkspaceObjectData> d = ws.getObjects(foo, objs);
 		try {
 			for (int i = 0; i < d.size(); i++) {
-				assertThat("can get correct data from undeleted objects",
-						d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
+				assertThat("can get correct data from undeleted objects", getData(d.get(i)),
+						is((Object) idToData.get(objs.get(i))));
 			}
 		} finally {
 			destroyGetObjectsResources(d);
@@ -1436,7 +1443,7 @@ public class WorkspaceTester {
 							copied.getObjectId(), copied.getVersion()))).get(0);
 			compareObjectInfo(orig.getObjectInfo(), copy.getObjectInfo(), user, wsid, wsname, objectid,
 					objname, version);
-			assertThat("returned data same", copy.getData(), is(orig.getData()));
+			assertThat("returned data same", getData(copy), is(getData(orig)));
 			assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
 			assertThat("copy ref correct", copy.getCopyReference(), is(expectedCopyRef));
 			checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(),
@@ -1476,7 +1483,7 @@ public class WorkspaceTester {
 			assertNull("returned data when requested provenance only",
 					got.getSerializedData());
 		} else {
-			assertThat("returned data same", got.getData(), is((Object)data));
+			assertThat("returned data same", getData(got), is((Object)data));
 		}
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));

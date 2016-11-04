@@ -1,11 +1,8 @@
 package us.kbase.workspace.database;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
-
-import com.fasterxml.jackson.core.JsonParseException;
 
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 
@@ -162,22 +159,6 @@ public class WorkspaceObjectData {
 		}
 	}
 	
-	//TODO NOW remove this method, make a test method instead
-	/** Return the object 
-	 * @return Maps/lists/scalars
-	 * @throws IOException 
-	 * @throws JsonParseException 
-	 */
-	public Object getData() throws IOException {
-		try {
-			return data.getUObject().asClassInstance(Object.class);
-		} catch (JsonParseException jpe) {
-			//this should never happen since the data's already been type
-			//checked
-			throw new RuntimeException("somethin's dun broke", jpe);
-		}
-	}
-
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */

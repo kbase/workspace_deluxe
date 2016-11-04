@@ -182,7 +182,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				.get(0);
 		try {
 			@SuppressWarnings("unchecked")
-			Map<String, Object> ret = (Map<String, Object>) wod.getData();
+			Map<String, Object> ret = (Map<String, Object>) getData(wod);
 			@SuppressWarnings("unchecked")
 			Map<String, String> retrefs = (Map<String, String>) ret.get("map");
 			for (Entry<String, String> es: retrefs.entrySet()) {
@@ -232,8 +232,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		final Map<String, Object> newdata;
 		try {
 			@SuppressWarnings("unchecked")
-			Map<String, Object> newdatatmp =
-					(Map<String, Object>) objects.get(0).getData();
+			Map<String, Object> newdatatmp = (Map<String, Object>) getData(objects.get(0));
 			newdata = newdatatmp;
 		} finally {
 			destroyGetObjectsResources(objects);
@@ -256,7 +255,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2)));
 		try {
 			@SuppressWarnings("unchecked")
-			Map<String, Object> newdata2 = (Map<String, Object>) objects2.get(0).getData();
+			Map<String, Object> newdata2 = (Map<String, Object>) getData(objects2.get(0));
 			assertThat("unicode key correct", newdata2.keySet(),
 					is((Set<String>) new HashSet<String>(Arrays.asList(test))));
 			assertThat("value correct", (String) newdata2.get(test), is("foo"));
@@ -339,7 +338,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			long time1 = System.currentTimeMillis();
 			WorkspaceObjectData wod1 = ws.getObjects(userfoo,
 					Arrays.asList(new ObjectIdentifier(wspace, oi.getObjectId()))).get(0);
-			Map<String, Object> ret1 = (Map<String, Object>) wod1.getData();
+			Map<String, Object> ret1 = (Map<String, Object>) getData(wod1);
 			String data1 = UObject.getMapper().writeValueAsString(ret1);
 			Map<String, Object> contigIdsToFeatures = (Map<String, Object>)ret1.get("data");
 			contigId = contigIdsToFeatures.keySet().iterator().next();
@@ -396,7 +395,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 					new ObjectIdentifier(wspace, oi.getObjectId()), null,
 						new SubsetSelection(included)));
 			WorkspaceObjectData wod2 = ws.getObjects(userfoo, a).get(0);
-			String data2 = UObject.getMapper().writeValueAsString(wod2.getData());
+			String data2 = UObject.getMapper().writeValueAsString(getData(wod2));
 			time2 = System.currentTimeMillis() - time2;
 			avgTime2 += time2;
 			avgLen += data2.length();
