@@ -987,7 +987,8 @@ public class Workspace {
 				if (stddata.containsKey(res.nopath.get(o))) {
 					wod = stddata.get(res.nopath.get(o)).get(ss);
 				} else if (refdata.containsKey(res.withpath.get(o))) {
-					wod = refdata.get(res.withpath.get(o)).get(ss);
+					final WorkspaceObjectData prewod = refdata.get(res.withpath.get(o)).get(ss);
+					wod = prewod.updateObjectReferencePath(res.withpathRefPath.get(o));
 				} else {
 					wod = null;
 				}
@@ -995,6 +996,7 @@ public class Workspace {
 			}
 			res.nopath.clear();
 			res.withpath.clear();
+			res.withpathRefPath.clear();
 			refdata.clear();
 			stddata.clear();
 			removeInaccessibleDataCopyReferences(user, ret);
@@ -1076,7 +1078,7 @@ public class Workspace {
 		return paths;
 	}
 	
-	private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveReferencePaths(
+	private ResolvedRefPaths resolveReferencePaths(
 			final WorkspaceUser user,
 			final List<ObjectIDWithRefPath> objsWithRefpaths,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads,
@@ -1085,9 +1087,8 @@ public class Workspace {
 				InaccessibleObjectException, CorruptWorkspaceDBException,
 				NoSuchObjectException, NoSuchReferenceException {
 		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedObjects = new HashMap<>();
 		if (!hasItems(objsWithRefpaths)) {
-			return resolvedObjects;
+			return new ResolvedRefPaths(null, null);
 		}
 		
 		final List<ObjectIdentifier> allRefPathEntries = new LinkedList<>();
@@ -1115,6 +1116,8 @@ public class Workspace {
 				db.getObjectOutgoingReferences(new HashSet<ObjectIDResolvedWS>(
 						resolvedRefPathObjs.values()), false, true, false);
 		
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedObjects = new HashMap<>();
+		final Map<ObjectIdentifier, List<Reference>> refpaths = new HashMap<>();
 		int chnum = 1;
 		for (final ObjectIDWithRefPath owrp: objsWithRefpaths) {
 			if (owrp != null) {
@@ -1123,18 +1126,18 @@ public class Workspace {
 					final List<Reference> resRefPath = getResolvedRefPath(owrp, refs,
 							resolvedRefPathObjs, outrefs, ignoreErrors, chnum);
 					if (resRefPath != null) {
-						//TODO NOW return ref path
 						final Reference ref = resRefPath.get(resRefPath.size() - 1);
 						final ObjectIDResolvedWS end = resolvedRefPathObjs.get(owrp.getLast());
 						final ObjectIDResolvedWS res = new ObjectIDResolvedWS(
 								end.getWorkspaceIdentifier(), ref.getObjectID(), ref.getVersion());
 						resolvedObjects.put(owrp, res);
+						refpaths.put(owrp, resRefPath);
 					}
 				}
 			}
 			chnum++;
 		}
-		return resolvedObjects;
+		return new ResolvedRefPaths(resolvedObjects, refpaths);
 	}
 	
 	private List<Reference> getResolvedRefPath(
@@ -1329,13 +1332,20 @@ public class Workspace {
 	private static class ResolvedRefPaths {
 		public Map<ObjectIdentifier, ObjectIDResolvedWS> nopath;
 		public Map<ObjectIdentifier, ObjectIDResolvedWS> withpath;
+		public Map<ObjectIdentifier, List<Reference>> withpathRefPath;
 
 		private ResolvedRefPaths(
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> nopath,
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> withpath) {
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> withpath,
+				final Map<ObjectIdentifier, List<Reference>> withpathRefPath) {
 			super();
-			this.nopath = nopath;
 			this.withpath = withpath;
+			if (withpath == null) {
+				this.withpath = new HashMap<>();
+			}
+			this.withpathRefPath = withpathRefPath;
+			if (withpathRefPath == null) {
+				this.withpathRefPath = new HashMap<>();
+			}
 		}
 		
 	}
@@ -1365,7 +1375,8 @@ public class Workspace {
 			if (res.nopath.containsKey(o) && stdmeta.containsKey(res.nopath.get(o))) {
 				ret.add(stdmeta.get(res.nopath.get(o)));
 			} else if (res.withpath.containsKey(o) && resmeta.containsKey(res.withpath.get(o))) {
-				ret.add(resmeta.get(res.withpath.get(o)));
+				ret.add(resmeta.get(res.withpath.get(o))
+						.updateReferencePath(res.withpathRefPath.get(o)));
 			} else {
 				ret.add(null);
 			}
@@ -1406,10 +1417,11 @@ public class Workspace {
 		
 		// this should exclude any heads that are deleted, even if
 		// nullIfInaccessible is true
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedPaths =
+		final ResolvedRefPaths resolvedPaths =
 				resolveReferencePaths(user, refpaths, heads, nullIfInaccessible);
+		resolvedPaths.nopath = std;
 		
-		return new ResolvedRefPaths(std, resolvedPaths);
+		return resolvedPaths;
 	}
 	
 	/** Get object names based on a provided prefix. Returns at most 1000

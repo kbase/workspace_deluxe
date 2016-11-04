@@ -18,15 +18,14 @@ public class MongoObjRefSet implements ObjectReferenceSet {
 	
 	MongoObjRefSet(
 			final Reference objref,
-			final Set<MongoReference> refs,
+			final Set<Reference> refs,
 			final boolean incoming) {
 		super();
 		if (objref == null || refs == null) {
 			throw new NullPointerException("objref and refs cannot be null");
 		}
 		this.objref = objref;
-		this.refs = Collections.unmodifiableSet(
-				new HashSet<Reference>(refs));
+		this.refs = Collections.unmodifiableSet(new HashSet<Reference>(refs));
 		this.incoming = incoming;
 	}
 
@@ -55,8 +54,7 @@ public class MongoObjRefSet implements ObjectReferenceSet {
 		if (!oi.isAbsolute()) {
 			throw new IllegalArgumentException("oi must be absolute");
 		}
-		return refs.contains(new MongoReference(
-				oi.getWorkspaceIdentifier().getId(), oi.getId(),
+		return refs.contains(new Reference(oi.getWorkspaceIdentifier().getId(), oi.getId(),
 				oi.getVersion()));
 	}
 

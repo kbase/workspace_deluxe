@@ -60,6 +60,7 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.SubAction;
+import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.Provenance.ExternalData;
@@ -1423,7 +1424,7 @@ public class WorkspaceTester {
 		WorkspaceObjectData copy = null;
 		
 		try {
-			TestReference expectedCopyRef = new TestReference(original.getWorkspaceId(),
+			Reference expectedCopyRef = new Reference(original.getWorkspaceId(),
 					original.getObjectId(), original.getVersion());
 			
 			//getObjects
@@ -1437,8 +1438,7 @@ public class WorkspaceTester {
 					objname, version);
 			assertThat("returned data same", copy.getData(), is(orig.getData()));
 			assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
-			assertThat("copy ref correct", new TestReference(copy.getCopyReference()),
-					is(expectedCopyRef));
+			assertThat("copy ref correct", copy.getCopyReference(), is(expectedCopyRef));
 			checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(),
 					null, original.getWorkspaceId());
 			
@@ -1454,8 +1454,7 @@ public class WorkspaceTester {
 			compareObjectInfo(originfo.getObjectInfo(), copyinfo.getObjectInfo(), user, wsid, wsname, objectid,
 					objname, version);
 			assertThat("returned refs same", copyinfo.getReferences(), is(originfo.getReferences()));
-			assertThat("copy ref correct", new TestReference(copyinfo.getCopyReference()),
-					is(expectedCopyRef));
+			assertThat("copy ref correct", copyinfo.getCopyReference(), is(expectedCopyRef));
 			checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(),
 					null, original.getWorkspaceId());
 		} finally {
@@ -1867,9 +1866,15 @@ public class WorkspaceTester {
 		assertThat("listed correct objects", g, is(new HashSet<ObjectInformation>(expected)));
 	}
 	
-	protected void checkReferencedObject(WorkspaceUser user, ObjectIDWithRefPath chain,
-			ObjectInformation oi, Provenance p, Map<String, ? extends Object> data,
-			List<String> refs, Map<String, String> refmap) throws Exception {
+	protected void checkReferencedObject(
+			final WorkspaceUser user,
+			final ObjectIDWithRefPath chain,
+			final ObjectInformation oi,
+			final Provenance p,
+			final Map<String, ? extends Object> data,
+			final List<String> refs,
+			final Map<String, String> refmap)
+			throws Exception {
 		ObjectInformation info = ws.getObjectInformation(user,
 				Arrays.asList((ObjectIdentifier) chain), true, false).get(0);
 		WorkspaceObjectData wod = ws.getObjects(user,

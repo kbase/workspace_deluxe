@@ -624,8 +624,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					v.remove(Fields.MONGO_ID);
 					v.put(Fields.VER_SAVEDBY, user.getUser());
 					v.put(Fields.VER_RVRT, null);
-					v.put(Fields.VER_COPIED, new MongoReference(
-							fromWS.getID(), objid, ver).toString());
+					v.put(Fields.VER_COPIED, new Reference(fromWS.getID(), objid, ver).toString());
 				}
 				updateReferenceCountsForVersions(versions);
 				saveWorkspaceObject(toWS, objid, name);
@@ -776,9 +775,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				v.put(Fields.VER_RVRT, ver);
 			} else {
 				v.put(Fields.VER_RVRT, null);
-				v.put(Fields.VER_COPIED, new MongoReference(
-						rfrom.getWorkspaceIdentifier().getID(), rfrom.getId(),
-						ver).toString());
+				v.put(Fields.VER_COPIED, new Reference(
+						rfrom.getWorkspaceIdentifier().getID(), rfrom.getId(), ver).toString());
 			}
 		}
 		updateReferenceCountsForVersions(versions);
@@ -1618,11 +1616,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new RuntimeException("MD5 types are not accepted");
 			}
 			final ObjectSavePackage pkg = new ObjectSavePackage();
-			pkg.refs = checkRefsAreMongo(o.getRefs());
+			pkg.refs = refsToString(o.getRefs());
 			//cannot do by combining in one set since a non-MongoReference
 			//could be overwritten by a MongoReference if they have the same
 			//hash
-			pkg.provrefs = checkRefsAreMongo(o.getProvRefs());
+			pkg.provrefs = refsToString(o.getProvRefs());
 			pkg.wo = o;
 			checkObjectLength(o.getProvenance(), MAX_PROV_SIZE,
 					o.getObjectIdentifier(), objnum, "provenance");
@@ -1658,27 +1656,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	//is there some way to combine these with generics?
-	private Set<String> checkRefsAreMongo(final Set<Reference> refs) {
+	private Set<String> refsToString(final Set<Reference> refs) {
 		final Set<String> newrefs = new HashSet<String>();
-		checkRefsAreMongoInternal(refs, newrefs);
+		refsToString(refs, newrefs);
 		return newrefs;
 	}
 	
 	//order must be maintained
-	private List<String> checkRefsAreMongo(final List<Reference> refs) {
+	private List<String> refsToString(final List<Reference> refs) {
 		final List<String> newrefs = new LinkedList<String>();
-		checkRefsAreMongoInternal(refs, newrefs);
+		refsToString(refs, newrefs);
 		return newrefs;
 	}
 
-	private void checkRefsAreMongoInternal(final Collection<Reference> refs,
+	private void refsToString(final Collection<Reference> refs,
 			final Collection<String> newrefs) {
 		for (final Reference r: refs) {
-			if (!(r instanceof MongoReference)) {
-				throw new RuntimeException(
-						"Improper reference implementation: " +
-						(r == null ? null : r.getClass()));
-			}
 			newrefs.add(r.toString());
 		}
 	}
@@ -1997,10 +1990,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<String> provrefs = (List<String>) p.get(Fields.VER_PROVREF);
 //			objrefs.addAll(provrefs); //DON'T DO THIS YOU MORON
 			for (final String s: objrefs) {
-				refs.add(new MongoReference(s));
+				refs.add(new Reference(s));
 			}
 			for (final String s: provrefs) {
-				refs.add(new MongoReference(s));
+				refs.add(new Reference(s));
 			}
 			countReferences(refcounts, refs);
 		}
@@ -2107,8 +2100,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.get(Fields.VER_PROV));
 			final String copyref =
 					(String) vers.get(roi).get(Fields.VER_COPIED);
-			final Reference copied = copyref == null ? null :
-					new MongoReference(copyref);
+			final Reference copied = copyref == null ? null : new Reference(copyref);
 			@SuppressWarnings("unchecked")
 			final Map<String, List<String>> extIDs =
 					(Map<String, List<String>>) vers.get(roi).get(
@@ -2282,7 +2274,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public Map<ObjectIDResolvedWS, ObjectReferenceSet>
-			getObjectOutgoingReferences(
+				getObjectOutgoingReferences(
 			final Set<ObjectIDResolvedWS> objs,
 			final boolean exceptIfDeleted,
 			final boolean includeDeleted,
@@ -2305,18 +2297,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ResolvedMongoObjectID res = resobjs.get(oi);
 			final Map<String, Object> m = refs.get(res);
 			final int ver = (Integer) m.get(Fields.VER_VER);
-			final Reference ref = new MongoReference(
+			final Reference ref = new Reference(
 					res.getWorkspaceIdentifier().getID(), res.getId(), ver);
 			@SuppressWarnings("unchecked")
 			final List<String> rf = (List<String>) m.get(Fields.VER_REF);
 			@SuppressWarnings("unchecked")
 			final List<String> prf = (List<String>) m.get(Fields.VER_PROVREF);
-			final Set<MongoReference> r = new HashSet<MongoReference>();
+			final Set<Reference> r = new HashSet<Reference>();
 			for (String s: rf) {
-				r.add(new MongoReference(s));
+				r.add(new Reference(s));
 			}
 			for (String s: prf) {
-				r.add(new MongoReference(s));
+				r.add(new Reference(s));
 			}
 			ret.put(oi, new MongoObjRefSet(ref, r, false));
 		}
@@ -2482,8 +2474,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			ret.put(o, new TypeAndReference(
 					AbsoluteTypeDefId.fromAbsoluteTypeString(
 							(String) vers.get(roi).get(Fields.VER_TYPE)),
-					new MongoReference(roi.getWorkspaceIdentifier().getID(),
-							roi.getId(),
+					new Reference(roi.getWorkspaceIdentifier().getID(), roi.getId(),
 							(Integer) vers.get(roi).get(Fields.VER_VER))));
 		}
 		return ret;

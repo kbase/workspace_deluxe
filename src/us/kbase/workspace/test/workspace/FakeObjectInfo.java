@@ -1,8 +1,13 @@
 package us.kbase.workspace.test.workspace;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
+import us.kbase.common.exceptions.UnimplementedException;
 import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 
@@ -19,11 +24,18 @@ public class FakeObjectInfo implements ObjectInformation {
 	final private String chksum;
 	final private long size;
 	final private UncheckedUserMetadata meta;
+	final private List<Reference> refpath;
 	
-	public FakeObjectInfo(final long id, final String name,
-			final String typeString, final Date createdDate, final int version,
-			final WorkspaceUser creator, final FakeResolvedWSID workspaceid,
-			final String chksum, final long size,
+	public FakeObjectInfo(
+			final long id,
+			final String name,
+			final String typeString,
+			final Date createdDate,
+			final int version,
+			final WorkspaceUser creator,
+			final FakeResolvedWSID workspaceid,
+			final String chksum,
+			final long size,
 			final UncheckedUserMetadata meta) {
 		//no error checking for now, add if needed
 		this.id = id;
@@ -37,6 +49,9 @@ public class FakeObjectInfo implements ObjectInformation {
 		this.chksum = chksum;
 		this.size = size;
 		this.meta = meta;
+		final List<Reference> refs = new LinkedList<>();
+		refs.add(new Reference(workspaceid.getID(), id, version));
+		this.refpath = Collections.unmodifiableList(refs);
 	}
 
 	@Override
@@ -93,6 +108,16 @@ public class FakeObjectInfo implements ObjectInformation {
 	@Override
 	public UncheckedUserMetadata getUserMetaData() {
 		return meta;
+	}
+	
+	@Override
+	public List<Reference> getReferencePath() {
+		return refpath;
+	}
+
+	@Override
+	public ObjectInformation updateReferencePath(final List<Reference> refpath) {
+		throw new UnimplementedException();
 	}
 
 	@Override

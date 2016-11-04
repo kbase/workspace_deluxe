@@ -2,6 +2,8 @@ package us.kbase.workspace.database.mongo;
 
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 
+import us.kbase.workspace.database.Reference;
+
 /**
  * name is resolved *at the time the database was accessed and is not further
  * updated*
@@ -67,8 +69,8 @@ public class ResolvedMongoObjectID {
 		return false;
 	}
 	
-	public MongoReference getReference() {
-		return new MongoReference(rwsi.getID(), id, version);
+	public Reference getReference() {
+		return new Reference(rwsi.getID(), id, version);
 	}
 
 	public boolean isDeleted() {
