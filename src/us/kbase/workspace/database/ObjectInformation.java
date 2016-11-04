@@ -77,9 +77,6 @@ public class ObjectInformation {
 		if (workspaceID == null) {
 			throw new NullPointerException("workspaceID");
 		}
-		if (meta == null) {
-			throw new NullPointerException("meta");
-		}
 		this.id = id;
 		this.name = name;
 		this.type = typeString;

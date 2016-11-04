@@ -142,14 +142,6 @@ public class ObjectInformationTest {
 				new IllegalArgumentException("size must be > 0"));
 	}
 	
-	@Test
-	public void failConstructMeta() {
-		failConstruct(1, "foo", "foo", new Date(), 1, new WorkspaceUser("foo"),
-				new FakeResolvedWSID("foo", 1), "foo", 1, null,
-				new NullPointerException("meta"));
-	}
-	
-	
 	private void failConstruct(
 			final long id,
 			final String name,

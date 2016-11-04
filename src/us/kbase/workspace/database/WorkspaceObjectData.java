@@ -13,6 +13,8 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
  */
 public class WorkspaceObjectData {
 	
+	//TODO TEST unit tests
+	
 	private final ByteArrayFileCache data;
 	private final ObjectInformation info;
 	private final Provenance prov;
