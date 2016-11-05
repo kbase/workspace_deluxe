@@ -2464,12 +2464,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				resolveObjectIDs(objectIDs);
 		//instead of calling verifyVersions() just query the version here
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
-				queryVersions(
-						new HashSet<ResolvedMongoObjectID>(oids.values()),
+				queryVersions(new HashSet<ResolvedMongoObjectID>(oids.values()),
 						FLDS_VER_TYPE, false);
-		final Map<ObjectIDResolvedWS, TypeAndReference> ret =
-				new HashMap<ObjectIDResolvedWS, TypeAndReference>();
-		for (ObjectIDResolvedWS o: objectIDs) {
+		final Map<ObjectIDResolvedWS, TypeAndReference> ret = new HashMap<>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
 			ret.put(o, new TypeAndReference(
 					AbsoluteTypeDefId.fromAbsoluteTypeString(
