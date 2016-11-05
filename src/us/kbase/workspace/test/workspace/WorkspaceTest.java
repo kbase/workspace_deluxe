@@ -6622,6 +6622,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		
 		// test 2 hop reference chains with absolute references
+		// also tests that two different paths to the same object are resolved correctly, e.g.
+		// the returned path is correct for both objects
 		List<ObjectIdentifier> a = new LinkedList<ObjectIdentifier>();
 		a.add(new ObjectIDWithRefPath(delptr12oi, Arrays.asList(del1oi, leaf1oi1)));
 		a.add(new ObjectIDWithRefPath(delptr12oi, Arrays.asList(del1oi, leaf2oi)));

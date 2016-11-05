@@ -2310,7 +2310,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			for (String s: prf) {
 				r.add(new Reference(s));
 			}
-			ret.put(oi, new MongoObjRefSet(ref, r, false));
+			ret.put(oi, new ObjectReferenceSet(ref, r, false));
 		}
 		return ret;
 	}
