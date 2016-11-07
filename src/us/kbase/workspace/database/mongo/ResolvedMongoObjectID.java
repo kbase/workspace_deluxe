@@ -24,6 +24,9 @@ import us.kbase.workspace.database.Reference;
  */
 public class ResolvedMongoObjectID {
 	
+	//TODO TEST unit tests
+	//TODO JAVADOC
+	
 	private final ResolvedMongoWSID rwsi;
 	private final String name;
 	private final Long id;

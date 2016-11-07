@@ -2269,13 +2269,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private static final Set<String> FLDS_GETOBJREF = newHashSet(
-			Fields.VER_WS_ID, Fields.VER_PROVREF, Fields.VER_REF,
-			Fields.VER_VER);
+	private static final Set<String> FLDS_GET_REF_FROM_OBJ = newHashSet(
+			Fields.VER_PROVREF, Fields.VER_REF, Fields.VER_VER);
 	
 	@Override
-	public Map<ObjectIDResolvedWS, ObjectReferenceSet>
-				getObjectOutgoingReferences(
+	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectOutgoingReferences(
 			final Set<ObjectIDResolvedWS> objs,
 			final boolean exceptIfDeleted,
 			final boolean includeDeleted,
@@ -2289,7 +2287,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ResolvedMongoObjectID, Map<String, Object>> refs =
 				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
-						FLDS_GETOBJREF, !exceptIfMissing);
+						FLDS_GET_REF_FROM_OBJ, !exceptIfMissing);
 		
 		for (final ObjectIDResolvedWS oi: objs) {
 			if (!resobjs.containsKey(oi)) {
@@ -2312,6 +2310,96 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				r.add(new Reference(s));
 			}
 			ret.put(oi, new ObjectReferenceSet(ref, r, false));
+		}
+		return ret;
+	}
+	
+	private static final Set<String> FLDS_GET_REF_TO_OBJ = newHashSet(
+			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER, Fields.VER_PROVREF, Fields.VER_REF);
+	
+	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectIncomingReferencesForObjIDs(
+			final Set<ObjectIDResolvedWS> objs)
+			throws WorkspaceCommunicationException {
+		//TODO MEM add limit for number of refs returned (probably 50K, but make a method param) & throw exception if more than that returned
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> ret = new HashMap<>();
+		if (objs.isEmpty()) {
+			return ret;
+		}
+		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs;
+		try {
+			resobjs = resolveObjectIDs(objs, false, true, false);
+		} catch (NoSuchObjectException e) {
+			throw new RuntimeException("Threw exception when explicitly told not to", e);
+		}
+		final Set<Reference> refs = new HashSet<>();
+		for (final ResolvedMongoObjectID o: resobjs.values()) {
+			refs.add(o.getReference());
+		}
+		final Map<Reference, ObjectReferenceSet> refToRefs = getObjectIncomingReferences(refs);
+		for (final ObjectIDResolvedWS o: objs) {
+			final ResolvedMongoObjectID res = resobjs.get(o);
+			if (res != null) {
+				final Reference r = res.getReference();
+				ret.put(o, refToRefs.get(r));
+			}
+		}
+		return ret;
+	}
+
+	private Map<Reference, ObjectReferenceSet> getObjectIncomingReferences(
+			final Set<Reference> refs)
+			throws WorkspaceCommunicationException {
+		if (refs.isEmpty()) {
+			return new HashMap<>();
+		}
+		//TODO MEM add limit for number of refs returned (probably 50K, but make a method param) & throw exception if more than that returned
+		final List<String> refStrings = new LinkedList<>();
+		for (final Reference r: refs) {
+			refStrings.add(r.getId());
+		}
+		
+		final DBObject q = new BasicDBObject("$or", Arrays.asList(
+				new BasicDBObject(Fields.VER_REF, new BasicDBObject("$in", refStrings)),
+				new BasicDBObject(Fields.VER_PROVREF, new BasicDBObject("$in", refStrings))));
+		final List<Map<String, Object>> vers = query.queryCollection(
+				COL_WORKSPACE_VERS, q, FLDS_GET_REF_TO_OBJ);
+		return buildReferenceToReferencesMap(refs, vers);
+	}
+	
+	private Map<Reference, ObjectReferenceSet> buildReferenceToReferencesMap(
+			final Set<Reference> refs,
+			final List<Map<String, Object>> vers) {
+		final Map<Reference, Set<Reference>> refToRefs = new HashMap<Reference, Set<Reference>>();
+		for (final Reference r: refs) {
+			refToRefs.put(r, new HashSet<Reference>());
+		}
+		for (final Map<String, Object> v: vers) {
+			final long ws = (Long) v.get(Fields.VER_WS_ID);
+			final long obj = (Long) v.get(Fields.VER_ID);
+			final int ver = (Integer) v.get(Fields.VER_VER);
+			final Reference thisref = new Reference(ws, obj, ver);
+			
+			final Set<String> allrefs = new HashSet<String>();
+			@SuppressWarnings("unchecked")
+			final List<String> increfs = (List<String>) v.get(Fields.VER_REF);
+			allrefs.addAll(increfs);
+			increfs.clear();
+			@SuppressWarnings("unchecked")
+			final List<String> provrefs = (List<String>) v.get(
+					Fields.VER_PROVREF);
+			allrefs.addAll(provrefs);
+			provrefs.clear();
+			for (final String ref: allrefs) {
+				final Reference r = new Reference(ref);
+				if (refToRefs.containsKey(r)) {
+					refToRefs.get(r).add(thisref);
+				}
+			}
+			
+		}
+		final Map<Reference, ObjectReferenceSet> ret = new HashMap<>();
+		for (final Reference r: refToRefs.keySet()) {
+			ret.put(r, new ObjectReferenceSet(r, refToRefs.get(r), true));
 		}
 		return ret;
 	}

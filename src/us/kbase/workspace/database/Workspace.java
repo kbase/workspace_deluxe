@@ -1432,7 +1432,7 @@ public class Workspace {
 		}
 		ws.clear(); //GC
 		nolookup.clear();
-		final LookupStart lus = preprocessLookupObjects(user, lookup, std);
+		final SearchDAGStart lus = searchObjectDAGpreprocess(user, lookup, std);
 		
 		// this should exclude any heads that are deleted, even if
 		// nullIfInaccessible is true
@@ -1440,19 +1440,19 @@ public class Workspace {
 				resolveReferencePaths(user, refpaths, heads, nullIfInaccessible);
 		resolvedPaths.nopath = std;
 		
-		lookupObjects(lookup, lus, resolvedPaths);
+		searchObjectDAG(lookup, lus, resolvedPaths);
 		
 		return resolvedPaths;
 	}
 
-	private class LookupStart {
+	private class SearchDAGStart {
 		
-		public final Set<Long> wsids;
+		public final Set<Long> readableWorkspaceIDs;
 		public final Map<ObjectIdentifier, ObjectIDResolvedWS> objsResWS;
 		
-		public LookupStart(Set<Long> wsids, Map<ObjectIdentifier, ObjectIDResolvedWS> objsResWS) {
+		public SearchDAGStart(Set<Long> wsids, Map<ObjectIdentifier, ObjectIDResolvedWS> objsResWS) {
 			super();
-			this.wsids = wsids;
+			this.readableWorkspaceIDs = wsids;
 			this.objsResWS = objsResWS;
 		}
 		
@@ -1461,7 +1461,7 @@ public class Workspace {
 	/* Modifies lookup and std in place. Any object in lookup to which the user has direct read
 	 * permissions is removed from lookup (e.g. set to null) and added to std.
 	 */
-	private LookupStart preprocessLookupObjects(
+	private SearchDAGStart searchObjectDAGpreprocess(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> lookup,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> std)
@@ -1501,21 +1501,28 @@ public class Workspace {
 		}
 		final Set<Long> wsids = new HashSet<>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			wsids.add(rwsi.getID());
+			if (!rwsi.isDeleted()) {
+				wsids.add(rwsi.getID());
+			}
 		}
-		return new LookupStart(wsids, resois);
+		return new SearchDAGStart(wsids, resois);
 	}
 
 	/* Modifies resolvedPaths in place to add looked up objects. Note the reference path returned
-	 * for looked up object is currently incorrect. 
+	 * for looked up objects is currently incorrect. 
 	 */
-	private void lookupObjects(
+	private void searchObjectDAG(
 			final List<ObjectIdentifier> lookup,
-			final LookupStart lus,
-			final ResolvedRefPaths resolvedPaths) {
+			final SearchDAGStart lus,
+			final ResolvedRefPaths resolvedPaths)
+			throws WorkspaceCommunicationException {
 		if (!hasItems(lookup)) {
 			return;
 		}
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = lus.objsResWS;
+		final Set<Long> wsids = lus.readableWorkspaceIDs;
+		final Map<ObjectIDResolvedWS, ObjectReferenceSet> startrefs =
+				db.getObjectIncomingReferencesForObjIDs(new HashSet<>(resobjs.values()));
 		// TODO Auto-generated method stub
 		
 	}

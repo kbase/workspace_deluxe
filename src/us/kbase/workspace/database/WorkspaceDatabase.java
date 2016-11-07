@@ -256,13 +256,21 @@ public interface WorkspaceDatabase {
 	 * @throws WorkspaceCommunicationException if a communication error with
 	 * the backend occurs.
 	 */
-	public Map<ObjectIDResolvedWS, ObjectReferenceSet>
-			getObjectOutgoingReferences(
+	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectOutgoingReferences(
 					Set<ObjectIDResolvedWS> objs,
 					boolean exceptIfDeleted,
 					boolean includeDeleted,
 					boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
+	
+	/** Get the set of incoming references for an object. If the object cannot be found, it is not
+	 * included in the returned map.
+	 * @param objs the objects for which to retrieve references.
+	 * @return the set of references for each object.
+	 * @throws WorkspaceCommunicationException  if a communication error with the backend occurs.
+	 */
+	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectIncomingReferencesForObjIDs(
+			Set<ObjectIDResolvedWS> objs) throws WorkspaceCommunicationException;
 	
 	public Map<ObjectIDResolvedWS, Set<ObjectInformation>>
 			getReferencingObjects(PermissionSet perms,
