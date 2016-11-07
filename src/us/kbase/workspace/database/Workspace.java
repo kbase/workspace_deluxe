@@ -239,9 +239,12 @@ public class Workspace {
 	}
 	
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
-			final WorkspaceUser user, final List<ObjectIdentifier> loi,
-			final Permission perm, final String operation,
-			final boolean allowDeleted, final boolean allowMissing,
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final Permission perm,
+			final String operation,
+			final boolean allowDeleted,
+			final boolean allowMissing,
 			final boolean allowInaccessible)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
@@ -1393,20 +1396,33 @@ public class Workspace {
 			throws WorkspaceCommunicationException,
 				InaccessibleObjectException, CorruptWorkspaceDBException,
 				NoSuchObjectException, NoSuchReferenceException {
+		
+		final List<ObjectIdentifier> lookup = new LinkedList<>();
+		final Set<ObjectIdentifier> nolookup = new HashSet<>();
+		for (final ObjectIdentifier o: loi) {
+			if (o instanceof ObjectIDWithRefPath && ((ObjectIDWithRefPath) o).isLookupRequired()) {
+				lookup.add(o);
+			} else {
+				nolookup.add(o);
+				lookup.add(null); //keep position for error reporting
+			}
+		}
 
+		//handle the faster cases first, fail before the searches
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read", nullIfInaccessible,
-						nullIfInaccessible, nullIfInaccessible);
+				checkPerms(user, new LinkedList<>(nolookup), Permission.READ, "read",
+						nullIfInaccessible, nullIfInaccessible, nullIfInaccessible);
 		
 		final List<ObjectIDWithRefPath> refpaths = new LinkedList<>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads = new HashMap<>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> std = new HashMap<>();
 		for (final ObjectIdentifier o: loi) {
-			if (ws.get(o) == null) {
-				// error reporting is off, so no need to keep track of location in list as below
-				continue;
-			}
-			if (o instanceof ObjectIDWithRefPath && ((ObjectIDWithRefPath) o).hasRefPath()) {
+			if (!nolookup.contains(o)) {
+				refpaths.add(null); //maintain count for error reporting
+			} else if (ws.get(o) == null) { // do nothing
+				// error reporting is off, so no need to keep track of location in list
+			} else if (o instanceof ObjectIDWithRefPath &&
+					((ObjectIDWithRefPath) o).hasRefPath()) {
 				refpaths.add((ObjectIDWithRefPath) o);
 				heads.put(o, ws.get(o));
 			} else {
@@ -1415,6 +1431,8 @@ public class Workspace {
 			}
 		}
 		ws.clear(); //GC
+		nolookup.clear();
+		final LookupStart lus = preprocessLookupObjects(user, lookup, std);
 		
 		// this should exclude any heads that are deleted, even if
 		// nullIfInaccessible is true
@@ -1422,7 +1440,84 @@ public class Workspace {
 				resolveReferencePaths(user, refpaths, heads, nullIfInaccessible);
 		resolvedPaths.nopath = std;
 		
+		lookupObjects(lookup, lus, resolvedPaths);
+		
 		return resolvedPaths;
+	}
+
+	private class LookupStart {
+		
+		public final Set<Long> wsids;
+		public final Map<ObjectIdentifier, ObjectIDResolvedWS> objsResWS;
+		
+		public LookupStart(Set<Long> wsids, Map<ObjectIdentifier, ObjectIDResolvedWS> objsResWS) {
+			super();
+			this.wsids = wsids;
+			this.objsResWS = objsResWS;
+		}
+		
+	}
+	
+	/* Modifies lookup and std in place. Any object in lookup to which the user has direct read
+	 * permissions is removed from lookup (e.g. set to null) and added to std.
+	 */
+	private LookupStart preprocessLookupObjects(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> lookup,
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> std)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		if (!hasItems(lookup)) {
+			return null;
+		}
+		//could make a method to just get IDs of workspace with specific permission to save mem
+		final PermissionSet pset = db.getPermissions(user, Permission.READ, false);
+		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
+		for (final ObjectIdentifier o: lookup) {
+			if (o != null) {
+				wsis.add(o.getWorkspaceIdentifier());
+			}
+		}
+		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
+		try {
+			rwsis = db.resolveWorkspaces(wsis, true, true);
+		} catch (NoSuchWorkspaceException e) {
+			throw new RuntimeException("Threw exception when explicitly told not to", e);
+		}
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resois = new HashMap<>();
+		for (int i = 0; i < lookup.size(); i++) {
+			final ObjectIdentifier o = lookup.get(i);
+			final ResolvedWorkspaceID rwsi = rwsis.get(o.getWorkspaceIdentifier());
+			if (rwsi != null) {
+				final ObjectIDResolvedWS oid = o.getId() == null ?
+						new ObjectIDResolvedWS(rwsi, o.getName(), o.getVersion()) :
+							new ObjectIDResolvedWS(rwsi, o.getId(), o.getVersion());
+				if (pset.hasWorkspace(rwsi) && !rwsi.isDeleted()) { // workspace has read perm
+					std.put(o, oid);
+					lookup.set(i, null);
+				} else {
+					resois.put(o, oid);
+				}
+			}
+		}
+		final Set<Long> wsids = new HashSet<>();
+		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
+			wsids.add(rwsi.getID());
+		}
+		return new LookupStart(wsids, resois);
+	}
+
+	/* Modifies resolvedPaths in place to add looked up objects. Note the reference path returned
+	 * for looked up object is currently incorrect. 
+	 */
+	private void lookupObjects(
+			final List<ObjectIdentifier> lookup,
+			final LookupStart lus,
+			final ResolvedRefPaths resolvedPaths) {
+		if (!hasItems(lookup)) {
+			return;
+		}
+		// TODO Auto-generated method stub
+		
 	}
 	
 	/** Get object names based on a provided prefix. Returns at most 1000

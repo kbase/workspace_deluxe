@@ -936,7 +936,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
-			final Set<WorkspaceIdentifier> wsis, final boolean allowDeleted,
+			final Set<WorkspaceIdentifier> wsis,
+			final boolean allowDeleted,
 			final boolean allowMissing)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> ret =
