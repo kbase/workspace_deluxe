@@ -1397,27 +1397,27 @@ public class Workspace {
 				InaccessibleObjectException, CorruptWorkspaceDBException,
 				NoSuchObjectException, NoSuchReferenceException {
 		
-		final List<ObjectIdentifier> lookup = new LinkedList<>();
-		final Set<ObjectIdentifier> nolookup = new HashSet<>();
+		Set<ObjectIdentifier> lookup = new HashSet<>();
+		List<ObjectIdentifier> nolookup = new LinkedList<>();
 		for (final ObjectIdentifier o: loi) {
 			if (o instanceof ObjectIDWithRefPath && ((ObjectIDWithRefPath) o).isLookupRequired()) {
 				lookup.add(o);
 			} else {
 				nolookup.add(o);
-				lookup.add(null); //keep position for error reporting
 			}
 		}
 
 		//handle the faster cases first, fail before the searches
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, new LinkedList<>(nolookup), Permission.READ, "read",
+		Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
+				checkPerms(user, nolookup, Permission.READ, "read",
 						nullIfInaccessible, nullIfInaccessible, nullIfInaccessible);
+		nolookup = null; //gc
 		
 		final List<ObjectIDWithRefPath> refpaths = new LinkedList<>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads = new HashMap<>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> std = new HashMap<>();
 		for (final ObjectIdentifier o: loi) {
-			if (!nolookup.contains(o)) {
+			if (lookup.contains(o)) { // need to do a lookup on this one, skip
 				refpaths.add(null); //maintain count for error reporting
 			} else if (ws.get(o) == null) { // do nothing
 				// error reporting is off, so no need to keep track of location in list
@@ -1430,17 +1430,16 @@ public class Workspace {
 				std.put(o, ws.get(o));
 			}
 		}
-		ws.clear(); //GC
-		nolookup.clear();
+		ws = null; //GC
 		final SearchDAGStart lus = searchObjectDAGpreprocess(user, lookup, std);
 		
-		// this should exclude any heads that are deleted, even if
-		// nullIfInaccessible is true
+		// this should exclude any heads that are deleted, even if nullIfInaccessible is true
+		// do this before starting the search, fail early before the expensive part
 		final ResolvedRefPaths resolvedPaths =
 				resolveReferencePaths(user, refpaths, heads, nullIfInaccessible);
 		resolvedPaths.nopath = std;
 		
-		searchObjectDAG(lookup, lus, resolvedPaths);
+		searchObjectDAG(user, lookup, lus, resolvedPaths, nullIfInaccessible);
 		
 		return resolvedPaths;
 	}
@@ -1450,7 +1449,9 @@ public class Workspace {
 		public final Set<Long> readableWorkspaceIDs;
 		public final Map<ObjectIdentifier, ObjectIDResolvedWS> objsResWS;
 		
-		public SearchDAGStart(Set<Long> wsids, Map<ObjectIdentifier, ObjectIDResolvedWS> objsResWS) {
+		public SearchDAGStart(
+				final Set<Long> wsids,
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> objsResWS) {
 			super();
 			this.readableWorkspaceIDs = wsids;
 			this.objsResWS = objsResWS;
@@ -1463,10 +1464,10 @@ public class Workspace {
 	 */
 	private SearchDAGStart searchObjectDAGpreprocess(
 			final WorkspaceUser user,
-			final List<ObjectIdentifier> lookup,
+			final Set<ObjectIdentifier> lookup,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> std)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		if (!hasItems(lookup)) {
+		if (lookup.isEmpty()) {
 			return null;
 		}
 		//could make a method to just get IDs of workspace with specific permission to save mem
@@ -1484,8 +1485,9 @@ public class Workspace {
 			throw new RuntimeException("Threw exception when explicitly told not to", e);
 		}
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resois = new HashMap<>();
-		for (int i = 0; i < lookup.size(); i++) {
-			final ObjectIdentifier o = lookup.get(i);
+		final Iterator<ObjectIdentifier> oiter = lookup.iterator();
+		while (oiter.hasNext()) {
+			final ObjectIdentifier o = oiter.next();
 			final ResolvedWorkspaceID rwsi = rwsis.get(o.getWorkspaceIdentifier());
 			if (rwsi != null) {
 				final ObjectIDResolvedWS oid = o.getId() == null ?
@@ -1493,7 +1495,7 @@ public class Workspace {
 							new ObjectIDResolvedWS(rwsi, o.getId(), o.getVersion());
 				if (pset.hasWorkspace(rwsi) && !rwsi.isDeleted()) { // workspace has read perm
 					std.put(o, oid);
-					lookup.set(i, null);
+					oiter.remove();
 				} else {
 					resois.put(o, oid);
 				}
@@ -1508,25 +1510,151 @@ public class Workspace {
 		return new SearchDAGStart(wsids, resois);
 	}
 
+	//TODO REF LOOKUP PATH1 return reference PATH
+	//TODO REF LOOKUP PATH2 keep reference search tree in memory - calc mem
+	//TODO REF LOOKUP PATH3 prune tree on 1) dead end, 2) node already in tree (path must be shorter than current path)
+	//TODO REF LOOKUP PATH4 delete tree if > max mem size, & delete before pulling objects
+	//TODO REF LOOKUP positive and negative caches (?)
 	/* Modifies resolvedPaths in place to add looked up objects. Note the reference path returned
 	 * for looked up objects is currently incorrect. 
 	 */
 	private void searchObjectDAG(
-			final List<ObjectIdentifier> lookup,
+			final WorkspaceUser user,
+			final Set<ObjectIdentifier> lookup,
 			final SearchDAGStart lus,
-			final ResolvedRefPaths resolvedPaths)
-			throws WorkspaceCommunicationException {
-		if (!hasItems(lookup)) {
+			final ResolvedRefPaths resolvedPaths,
+			final boolean nullIfInaccessible)
+			throws WorkspaceCommunicationException, InaccessibleObjectException {
+		if (lookup.isEmpty()) {
 			return;
 		}
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = lus.objsResWS;
 		final Set<Long> wsids = lus.readableWorkspaceIDs;
-		final Map<ObjectIDResolvedWS, ObjectReferenceSet> startrefs =
+		Map<ObjectIDResolvedWS, ObjectReferenceSet> startrefs =
 				db.getObjectIncomingReferencesForObjIDs(new HashSet<>(resobjs.values()));
-		// TODO Auto-generated method stub
+		// this differs from resobjs in that the resolved objects are absolute
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resObjectIDs = new HashMap<>();
+		final Map<ObjectIdentifier, Set<Reference>> searchSet = new HashMap<>();
+		for (final ObjectIdentifier o: lookup) {
+			final ObjectIDResolvedWS res = resobjs.get(o);
+			final ObjectReferenceSet refset = startrefs.get(res);
+			if (refset != null) { // the object id is valid
+				final Reference objref = refset.getObjectReference();
+				resObjectIDs.put(o, new ObjectIDResolvedWS(res.getWorkspaceIdentifier(),
+						objref.getId(), objref.getVersion()));
+				searchSet.put(o, refset.getReferenceSet());
+			} else {
+				// don't throw errors yet so users can't probe arbitrary workspaces
+				searchSet.put(o, new HashSet<Reference>());
+			}
+		}
+		resobjs.clear();
+		startrefs = null;
 		
+		searchObjectDAG(user, wsids, resolvedPaths, resObjectIDs, searchSet,
+				nullIfInaccessible);
 	}
 	
+	// modifies resolvedPaths in place
+	private void searchObjectDAG(
+			final WorkspaceUser user,
+			final Set<Long> wsids,
+			final ResolvedRefPaths resolvedPaths,
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> resObjectIDs,
+			final Map<ObjectIdentifier, Set<Reference>> searchrefs,
+			final boolean nullIfInaccessible)
+			throws InaccessibleObjectException, WorkspaceCommunicationException {
+		//TODO NOW need to add ref search limit
+		while (!searchrefs.isEmpty()) {
+			final Iterator<ObjectIdentifier> oiter = searchrefs.keySet().iterator();
+			while (oiter.hasNext()) {
+				final ObjectIdentifier o = oiter.next();
+				if (searchrefs.get(o).isEmpty()) {
+					if (nullIfInaccessible) { // just skip errors
+						oiter.remove();
+					} else {
+						// only throw errors here so users can't probe arbitrary workspaces
+						// errors are thrown from same place whether on 1st or later iterations
+						final String verString = o.getVersion() == null ?
+								"The latest version of " :
+									String.format("Version %s of ", o.getVersion());
+						throw new InaccessibleObjectException(String.format(
+								"%s object %s in workspace %s is not accessible to user %s",
+								verString,
+								o.getIdentifierString(),
+								o.getWorkspaceIdentifierString(),
+								user));
+					}
+				}
+
+			}
+			Set<Reference> query = new HashSet<Reference>();
+			for (final Set<Reference> r: searchrefs.values()) {
+				query.addAll(r);
+			}
+			Map<Reference, ObjectReferenceSet> res = db.getObjectIncomingReferences(query);
+			query = null;
+			
+			for (final ObjectIdentifier oi: searchrefs.keySet()) {
+				final Set<Reference> newrefs = getNewRefsFromOldRefs(
+						user, searchrefs.get(oi), res);
+				searchrefs.put(oi, newrefs);
+			}
+			res = null;
+			findReadableReferences(wsids, searchrefs, resolvedPaths, resObjectIDs);
+		}
+	}
+	private Set<Reference> getNewRefsFromOldRefs(
+			final WorkspaceUser user,
+			final Set<Reference> increfs,
+			final Map<Reference, ObjectReferenceSet> res)
+					throws InaccessibleObjectException {
+		final Set<Reference> newrefs = new HashSet<Reference>();
+		for (final Reference r: increfs) {
+			if (res.containsKey(r)) {
+				newrefs.addAll(res.get(r).getReferenceSet());
+			}
+		}
+		return newrefs;
+	}
+	
+	/* Modifies searchrefs in place to remove objects with valid ref paths.
+	 * Modifies resolvedPaths in place to add objects with valid ref paths and fake paths.
+	 * 
+	 */
+	private void findReadableReferences(
+			final Set<Long> wsids,
+			final Map<ObjectIdentifier, Set<Reference>> searchrefs,
+			final ResolvedRefPaths resolvedPaths,
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> resObjectIDs)
+			throws WorkspaceCommunicationException {
+		Set<Reference> readable = new HashSet<>();
+		for (final ObjectIdentifier o: searchrefs.keySet()) {
+			for (final Reference r: searchrefs.get(o)) {
+				if (wsids.contains(r.getWorkspaceID())) {
+					readable.add(r);
+				}
+			}
+		}
+		if (readable.isEmpty()) {
+			return;
+		}
+		final Map<Reference, Boolean> exists = db.getObjectExistsRef(readable);
+		readable = null;
+		final Iterator<ObjectIdentifier> oiter = searchrefs.keySet().iterator();
+		while (oiter.hasNext()) {
+			final ObjectIdentifier o = oiter.next();
+			for (final Reference r: searchrefs.get(o)) {
+				if (exists.containsKey(r) && exists.get(r)) {
+					//TODO REF LOOKUP need to handle path here
+					resolvedPaths.withpath.put(o, resObjectIDs.get(o));
+					resolvedPaths.withpathRefPath.put(o, Arrays.asList(r)); //TODO REF LOOKUP this is wrong!
+					oiter.remove();
+				}
+			}
+		}
+	}
+
 	/** Get object names based on a provided prefix. Returns at most 1000
 	 * names in no particular order. Intended for use as an auto-completion
 	 * method.

@@ -2317,6 +2317,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_GET_REF_TO_OBJ = newHashSet(
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER, Fields.VER_PROVREF, Fields.VER_REF);
 	
+	@Override
 	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectIncomingReferencesForObjIDs(
 			final Set<ObjectIDResolvedWS> objs)
 			throws WorkspaceCommunicationException {
@@ -2346,13 +2347,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
-	private Map<Reference, ObjectReferenceSet> getObjectIncomingReferences(
+	@Override
+	public Map<Reference, ObjectReferenceSet> getObjectIncomingReferences(
 			final Set<Reference> refs)
 			throws WorkspaceCommunicationException {
 		if (refs.isEmpty()) {
 			return new HashMap<>();
 		}
-		//TODO MEM add limit for number of refs returned (probably 50K, but make a method param) & throw exception if more than that returned
+		//TODO NOW add limit for number of refs returned (probably 50K, but make a method param) & throw exception if more than that returned
 		final List<String> refStrings = new LinkedList<>();
 		for (final Reference r: refs) {
 			refStrings.add(r.getId());
@@ -2842,6 +2844,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
+	/* it's possible that a version was incremented on the object but the version data
+	 * was not yet saved. It's also possible that the db or server went down after the version
+	 * was incremented, leaving the db in an inconsistent state. This function verifies that
+	 * the versions of the provided objects exist.
+	 */
+	
 	private Map<ResolvedMongoObjectID, Boolean> verifyVersions(
 			final Set<ResolvedMongoObjectID> objs,
 			final boolean exceptIfMissing)
@@ -2852,6 +2860,38 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<ResolvedMongoObjectID, Boolean>();
 		for (final ResolvedMongoObjectID o: objs) {
 			ret.put(o, vers.containsKey(o));
+		}
+		return ret;
+	}
+	
+	@Override
+	public Map<Reference, Boolean> getObjectExistsRef(final Set<Reference> refs)
+			throws WorkspaceCommunicationException {
+		final Map<Reference, Boolean> ret = new HashMap<>();
+		if (refs.isEmpty()) {
+			return ret;
+		}
+		final Set<ObjectIDResolvedWSNoVer> objs = new HashSet<>();
+		for (final Reference r: refs) {
+			// this is a bit of a hack
+			objs.add(new ObjectIDResolvedWSNoVer(new ResolvedMongoWSID(
+					"a", r.getWorkspaceID(), false, false), r.getObjectID()));
+		}
+		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> res =
+				query.queryObjects(objs, newHashSet(Fields.OBJ_DEL));
+		for (final Reference r: refs) {
+			final ObjectIDResolvedWSNoVer o = new ObjectIDResolvedWSNoVer(new ResolvedMongoWSID(
+					"a", r.getWorkspaceID(), false, false), r.getObjectID());
+			if (res.containsKey(o)) {
+				final boolean deleted = (boolean) res.get(o).get(Fields.OBJ_DEL);
+				if (!deleted) {
+					ret.put(r, true);
+				} else {
+					ret.put(r, false);
+				}
+			} else {
+				ret.put(r, false);
+			}
 		}
 		return ret;
 	}
