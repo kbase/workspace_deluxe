@@ -6429,29 +6429,134 @@ public class WorkspaceTest extends WorkspaceTester {
 		final ObjectInformation leaf1_2 = saveObject(user2, wsUser2, makeMeta(2), MT_MAP,
 				SAFE_TYPE1, leaf1Name, p2);
 		final String leaf1_2ref = wsUser2.getName() + "/" + leaf1Name + "/" + 2;
+		final String leaf2Name = "leaf2";
+		final ObjectInformation leaf2_1 = saveObject(user2, wsUser2, makeMeta(3), MT_MAP,
+				SAFE_TYPE1, leaf2Name, p2);
+		final String leaf2_1ref = wsUser2.getName() + "/" + leaf2Name + "/" + 1;
 		
-		final String ref1Name = "ref1";
-		saveObject(user2, wsUser2, MT_MAP, makeRefData(leaf1_1ref), reftype, ref1Name, p2);
+		// this ref points to leaf 1-1 and leaf 2-1, so will test refs pointing away from the
+		// target object in the DAG
+		final String ref1Name = "ref1"; // 1 hop
+		saveObject(user2, wsUser2, MT_MAP, makeRefData(leaf1_1ref, leaf2_1ref), reftype, ref1Name,
+				p2);
 		final String ref1ref = wsUser2.getName() + "/" + ref1Name + "/" + 1;
 		
-		final String ref2Name = "ref2";
+		final String ref2Name = "ref2"; // 1 hop
 		saveObject(user2, wsUser2, MT_MAP, makeRefData(leaf1_2ref), reftype, ref2Name, p2);
 		final String ref2ref = wsUser2.getName() + "/" + ref2Name + "/" + 1;
 		
-		final String refref1Name = "refref1";
-		saveObject(user2, wsUser1, MT_MAP, makeRefData(ref1ref), reftype, refref1Name, p2);
-		final Reference refref1 = new Reference(1, 1, 1);
+		final String refref1Name = "refref1"; // 2 hops
+		final Provenance p2withRef = new Provenance(user2).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList(ref1ref)));
+		saveObject(user2, wsUser2, MT_MAP, MT_MAP, SAFE_TYPE1, refref1Name, p2withRef);
+		final String refref1ref = wsUser2.getName() + "/" + refref1Name + "/" + 1;
 		
-		final String refref2Name = "refref2";
+		// will traverse this ref but get nowhere since it's inaccessible and nothing refs it
+		final String deadEndRef1 = "deadEnd1"; // 2 hops
+		saveObject(user2, wsUser2, MT_MAP, makeRefData(ref1ref), reftype, deadEndRef1, p2);
+		
+		final String refrefref1Name = "refrefref1"; // 3 hops
+		saveObject(user2, wsUser1, MT_MAP, makeRefData(refref1ref), reftype, refrefref1Name, p2);
+		
+		final String refref2Name = "refref2"; // 2 hops
 		saveObject(user2, wsUser1, MT_MAP, makeRefData(ref2ref), reftype, refref2Name, p2);
-		final Reference refref2 = new Reference(1, 2, 1);
 		
-		checkReferencedObject(user1, new ObjectIDWithRefPath(
-				ObjectIdentifier.parseObjectReference(leaf1_1ref)),
-				leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+		//check target objects can't be accessed
 		failGetObjects(user1, Arrays.asList(ObjectIdentifier.parseObjectReference(leaf1_1ref)),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: User " +
 						"u1 may not read workspace wsu2"));
+		failGetObjects(user1, Arrays.asList(ObjectIdentifier.parseObjectReference(leaf1_2ref)),
+				new InaccessibleObjectException("Object leaf1 cannot be accessed: User " +
+						"u1 may not read workspace wsu2"));
+		failGetObjects(user1, Arrays.asList(ObjectIdentifier.parseObjectReference(leaf2_1ref)),
+				new InaccessibleObjectException("Object leaf2 cannot be accessed: User " +
+						"u1 may not read workspace wsu2"));
+		
+		// get multiple objects at the same time via various selectors
+		// not including leaf2 so that there will be a reference returned in the lookup at doesn't
+		// point to the target object
+		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier(2);
+		final List<ObjectIdentifier> a = new LinkedList<ObjectIdentifier>();
+		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)));
+		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 2)));
+		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsi2, 1, 1)));
+		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsi2, 1)));
+		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, leaf1Name, 1)));
+		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, leaf1Name)));
+		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsi2, leaf1Name, 1)));
+		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsi2, leaf1Name, 2)));
+		final List<WorkspaceObjectData> lwod = ws.getObjects(user1, a);
+		try {
+			assertThat("correct list size", lwod.size(), is(8));
+			compareObjectAndInfo(lwod.get(0), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(1), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(2), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(3), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(4), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(5), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(6), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(7), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
+		} finally {
+			destroyGetObjectsResources(lwod);
+		}
+
+		// test getting an object that has direct access
+		final ObjectInformation direct = saveObject(user2, wsUser1, makeMeta(100), MT_MAP,
+				SAFE_TYPE1, leaf1Name, p2);
+		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser1, 3, 1)),
+				direct, p2, MT_MAP, MT_LIST, MT_MAP);
+		
+		// fail getting an object due to a bad identifier
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(new WorkspaceIdentifier(3), 1))),
+				new InaccessibleObjectException("The latest version of object 1 in workspace 3 " +
+						"is not accessible to user u1"));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(new WorkspaceIdentifier("foo"), 1, 1))),
+				new InaccessibleObjectException(
+						"Version 1 of object 1 in workspace foo is not accessible to user u1"));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsUser2, 10, 1))), new InaccessibleObjectException(
+						"Version 1 of object 10 in workspace wsu2 is not accessible to user u1"));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsUser2, "foo"))), new InaccessibleObjectException(
+						"The latest version of object foo in workspace wsu2 is not accessible " +
+						"to user u1"));
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsUser2, 1, 10))), new InaccessibleObjectException(
+						"Version 10 of object 1 in workspace wsu2 is not accessible to user u1"));
+		
+		// fail getting an object because the head of the path is deleted
+		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsUser1, 1, 1)), true);
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsUser2, 1, 1))), new InaccessibleObjectException(
+						"Version 1 of object 1 in workspace wsu2 is not accessible to user u1"));
+		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsUser1, 1, 1)), false);
+		
+		// fail getting objects due to exceeding the allowed search size
+		try {
+			ws.setMaximumObjectSearchCount(3); // tests first time check - mongodb impl
+			failGetReferencedObjects(user1, Arrays.asList(
+					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)), // 5 nodes
+					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 2))), // 3 nodes
+					new InaccessibleObjectException("Reached reference search limit"));
+			
+			ws.setMaximumObjectSearchCount(7); // test later check - mongodb impl
+			failGetReferencedObjects(user1, Arrays.asList(
+					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)), // 5 nodes
+					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 2))), // 3 nodes
+					new InaccessibleObjectException("Reached reference search limit"),
+					false, Sets.newHashSet(0)); //checks for nulls under the hood
+			
+			ws.setMaximumObjectSearchCount(8);
+			final List<ObjectIdentifier> objs = new LinkedList<ObjectIdentifier>();
+			objs.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1))); //5 nodes
+			objs.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 2))); //3 nodes
+			destroyGetObjectsResources(ws.getObjects(user1, objs)); // should work
+			
+		} finally {
+			ws.setMaximumObjectSearchCount(50000);
+		}
 	}
 	
 	@Test

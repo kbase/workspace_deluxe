@@ -283,8 +283,9 @@ public interface WorkspaceDatabase {
 	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectIncomingReferencesForObjIDs(
 			Set<ObjectIDResolvedWS> objs) throws WorkspaceCommunicationException;
 	
-	/** Get the set of incoming references for an object. If the object cannot be found, it is not
-	 * included in the returned map. Includes deleted objects.
+	/** Get the set of incoming references for an object. The object referred to by the reference
+	 * is not checked for existence - if the reference does not exist, the reference set of
+	 * incoming references will be empty. Includes deleted objects.
 	 * @param objs the objects for which to retrieve references.
 	 * @return the set of references for each object.
 	 * @throws WorkspaceCommunicationException  if a communication error with the backend occurs.

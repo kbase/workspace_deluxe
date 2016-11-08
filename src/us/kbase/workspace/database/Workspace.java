@@ -1492,9 +1492,7 @@ public class Workspace {
 		final PermissionSet pset = db.getPermissions(user, Permission.READ, false);
 		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
 		for (final ObjectIdentifier o: lookup) {
-			if (o != null) {
-				wsis.add(o.getWorkspaceIdentifier());
-			}
+			wsis.add(o.getWorkspaceIdentifier());
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 		try {
@@ -1508,9 +1506,7 @@ public class Workspace {
 			final ObjectIdentifier o = oiter.next();
 			final ResolvedWorkspaceID rwsi = rwsis.get(o.getWorkspaceIdentifier());
 			if (rwsi != null) {
-				final ObjectIDResolvedWS oid = o.getId() == null ?
-						new ObjectIDResolvedWS(rwsi, o.getName(), o.getVersion()) :
-							new ObjectIDResolvedWS(rwsi, o.getId(), o.getVersion());
+				final ObjectIDResolvedWS oid = o.resolveWorkspace(rwsi);
 				if (pset.hasWorkspace(rwsi) && !rwsi.isDeleted()) { // workspace has read perm
 					std.put(o, oid);
 					oiter.remove();
@@ -1583,6 +1579,12 @@ public class Workspace {
 			final boolean nullIfInaccessible)
 			throws InaccessibleObjectException, WorkspaceCommunicationException {
 		int refcount = 0;
+		for (final Set<Reference> refs: searchrefs.values()) {
+			refcount += 1 + refs.size(); // 1 for the starting object
+		}
+		if (refCountExceeded(refcount, !nullIfInaccessible)) {
+			return;
+		}
 		while (!searchrefs.isEmpty()) {
 			final Iterator<ObjectIdentifier> oiter = searchrefs.keySet().iterator();
 			Set<Reference> query = new HashSet<Reference>();
@@ -1599,20 +1601,12 @@ public class Workspace {
 								"The latest version of " :
 								String.format("Version %s of ", o.getVersion());
 						throw new InaccessibleObjectException(String.format(
-								"%s object %s in workspace %s is not accessible to user %s",
+								"%sobject %s in workspace %s is not accessible to user %s",
 								verString, o.getIdentifierString(),
-								o.getWorkspaceIdentifierString(), user));
+								o.getWorkspaceIdentifierString(), user.getUser()));
 					}
 				} else { // could just always do this, has no effect, but since checking anyway...
-					refcount += refs.size();
 					query.addAll(refs);
-				}
-			}
-			if (refcount > maximumObjectSearchCount) {
-				if (nullIfInaccessible) {
-					return;
-				} else {
-					throw new InaccessibleObjectException("Reached reference search limit");
 				}
 			}
 			Map<Reference, ObjectReferenceSet> res = db.getObjectIncomingReferences(query);
@@ -1621,12 +1615,30 @@ public class Workspace {
 			for (final ObjectIdentifier oi: searchrefs.keySet()) {
 				final Set<Reference> newrefs = getNewRefsFromOldRefs(
 						user, searchrefs.get(oi), res);
+				refcount += newrefs.size();
 				searchrefs.put(oi, newrefs);
+			}
+			if (refCountExceeded(refcount, !nullIfInaccessible)) {
+				return;
 			}
 			res = null;
 			findReadableReferences(wsids, searchrefs, resolvedPaths, resObjectIDs);
 		}
 	}
+	
+	private boolean refCountExceeded(final int refcount, final boolean throwException)
+			throws InaccessibleObjectException {
+		if (refcount > maximumObjectSearchCount) {
+			if (throwException) {
+				throw new InaccessibleObjectException("Reached reference search limit");
+			} else {
+				return true;
+			}
+		} else {
+			return false;
+		}
+	}
+	
 	private Set<Reference> getNewRefsFromOldRefs(
 			final WorkspaceUser user,
 			final Set<Reference> increfs,
@@ -1634,9 +1646,7 @@ public class Workspace {
 					throws InaccessibleObjectException {
 		final Set<Reference> newrefs = new HashSet<Reference>();
 		for (final Reference r: increfs) {
-			if (res.containsKey(r)) {
-				newrefs.addAll(res.get(r).getReferenceSet());
-			}
+			newrefs.addAll(res.get(r).getReferenceSet());
 		}
 		return newrefs;
 	}

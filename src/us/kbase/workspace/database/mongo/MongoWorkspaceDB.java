@@ -2880,17 +2880,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> res =
 				query.queryObjects(objs, newHashSet(Fields.OBJ_DEL));
 		for (final Reference r: refs) {
+			ret.put(r, false);
 			final ObjectIDResolvedWSNoVer o = new ObjectIDResolvedWSNoVer(new ResolvedMongoWSID(
 					"a", r.getWorkspaceID(), false, false), r.getObjectID());
-			if (res.containsKey(o)) {
+			if (res.containsKey(o)) { // only false if the ref ws or obj id is bad
 				final boolean deleted = (boolean) res.get(o).get(Fields.OBJ_DEL);
 				if (!deleted) {
 					ret.put(r, true);
-				} else {
-					ret.put(r, false);
 				}
-			} else {
-				ret.put(r, false);
 			}
 		}
 		return ret;
