@@ -2387,8 +2387,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			allrefs.addAll(increfs);
 			increfs.clear();
 			@SuppressWarnings("unchecked")
-			final List<String> provrefs = (List<String>) v.get(
-					Fields.VER_PROVREF);
+			final List<String> provrefs = (List<String>) v.get(Fields.VER_PROVREF);
 			allrefs.addAll(provrefs);
 			provrefs.clear();
 			for (final String ref: allrefs) {
@@ -2435,20 +2434,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			ref2id.get(ref).add(oi);
 		}
-		final DBObject q = new BasicDBObject(Fields.VER_WS_ID,
-				new BasicDBObject("$in", wsids));
-		q.put("$or", Arrays.asList(
-				new BasicDBObject(Fields.VER_REF,
+		final DBObject q = new BasicDBObject(Fields.VER_WS_ID, new BasicDBObject("$in", wsids));
+		q.put("$or", Arrays.asList(new BasicDBObject(Fields.VER_REF,
 						new BasicDBObject("$in", ref2id.keySet())),
-				new BasicDBObject(Fields.VER_PROVREF,
-						new BasicDBObject("$in", ref2id.keySet()))));
+				new BasicDBObject(Fields.VER_PROVREF, new BasicDBObject("$in", ref2id.keySet()))));
 		final List<Map<String, Object>> vers = query.queryCollection(
 				COL_WORKSPACE_VERS, q, FLDS_GETREFOBJ);
-		final Map<Map<String, Object>, ObjectInformation> voi =
-				objutils.generateObjectInfo(
-						perms, vers, true, false, false, true);
-		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> ret = 
-				new HashMap<ObjectIDResolvedWS, Set<ObjectInformation>>();
+		final Map<Map<String, Object>, ObjectInformation> voi = objutils.generateObjectInfo(
+				perms, vers, true, false, false, true);
+		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> ret = new HashMap<>();
 		for (final ObjectIDResolvedWS o: objs) {
 			ret.put(o, new HashSet<ObjectInformation>());
 		}
@@ -2456,8 +2450,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<String> refs = (List<String>) ver.get(Fields.VER_REF);
 			@SuppressWarnings("unchecked")
-			final List<String> provrefs = (List<String>) ver.get(
-					Fields.VER_PROVREF);
+			final List<String> provrefs = (List<String>) ver.get(Fields.VER_PROVREF);
 			final Set<String> allrefs = new HashSet<String>();
 			allrefs.addAll(refs);
 			allrefs.addAll(provrefs);
@@ -2849,7 +2842,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	 * was incremented, leaving the db in an inconsistent state. This function verifies that
 	 * the versions of the provided objects exist.
 	 */
-	
 	private Map<ResolvedMongoObjectID, Boolean> verifyVersions(
 			final Set<ResolvedMongoObjectID> objs,
 			final boolean exceptIfMissing)

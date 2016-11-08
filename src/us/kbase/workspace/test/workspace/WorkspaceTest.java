@@ -6572,6 +6572,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		// fail getting objects due to exceeding the allowed search size
 		try {
 			ws.setMaximumObjectSearchCount(3); // tests first time check - mongodb impl
+			assertThat("incorrect obj search count", ws.getMaximumObjectSearchCount(), is(3));
 			failGetReferencedObjects(user1, Arrays.asList(
 					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)), // 7 nodes
 					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 2))), // 3 nodes
