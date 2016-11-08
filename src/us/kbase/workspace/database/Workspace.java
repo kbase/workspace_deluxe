@@ -78,12 +78,26 @@ public class Workspace {
 	private ResourceUsageConfiguration rescfg;
 	private final ReferenceParser parser;
 	private final TypedObjectValidator validator;
+	private final int maximumObjectSearchCount;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
 			final ReferenceParser parser,
 			final TypedObjectValidator validator) {
+		this(db, cfg, parser, validator, 50000);
+	}
+	
+	/* this is temporary until we have path returning code when searching for objects.
+	 * Will probably want to determine the max number of objects based on some max memory usage and
+	 * on speed.
+	 */
+	public Workspace(
+			final WorkspaceDatabase db,
+			final ResourceUsageConfiguration cfg,
+			final ReferenceParser parser,
+			final TypedObjectValidator validator,
+			final int maximumNodeSearchCount) {
 		if (db == null) {
 			throw new NullPointerException("db cannot be null");
 		}
@@ -102,13 +116,14 @@ public class Workspace {
 		rescfg = cfg;
 		this.parser = parser;
 		db.setResourceUsageConfiguration(rescfg);
+		this.maximumObjectSearchCount = maximumNodeSearchCount;
 	}
 	
 	public ResourceUsageConfiguration getResourceConfig() {
 		return rescfg;
 	}
 	
-	public void setResourceConfig(ResourceUsageConfiguration rescfg) {
+	public void setResourceConfig(final ResourceUsageConfiguration rescfg) {
 		if (rescfg == null) {
 			throw new NullPointerException("rescfg cannot be null");
 		}
@@ -1564,12 +1579,14 @@ public class Workspace {
 			final Map<ObjectIdentifier, Set<Reference>> searchrefs,
 			final boolean nullIfInaccessible)
 			throws InaccessibleObjectException, WorkspaceCommunicationException {
-		//TODO NOW need to add ref search limit
+		int refcount = 0;
 		while (!searchrefs.isEmpty()) {
 			final Iterator<ObjectIdentifier> oiter = searchrefs.keySet().iterator();
+			Set<Reference> query = new HashSet<Reference>();
 			while (oiter.hasNext()) {
 				final ObjectIdentifier o = oiter.next();
-				if (searchrefs.get(o).isEmpty()) {
+				final Set<Reference> refs = searchrefs.get(o);
+				if (refs.isEmpty()) {
 					if (nullIfInaccessible) { // just skip errors
 						oiter.remove();
 					} else {
@@ -1577,20 +1594,23 @@ public class Workspace {
 						// errors are thrown from same place whether on 1st or later iterations
 						final String verString = o.getVersion() == null ?
 								"The latest version of " :
-									String.format("Version %s of ", o.getVersion());
+								String.format("Version %s of ", o.getVersion());
 						throw new InaccessibleObjectException(String.format(
 								"%s object %s in workspace %s is not accessible to user %s",
-								verString,
-								o.getIdentifierString(),
-								o.getWorkspaceIdentifierString(),
-								user));
+								verString, o.getIdentifierString(),
+								o.getWorkspaceIdentifierString(), user));
 					}
+				} else { // could just always do this, has no effect, but since checking anyway...
+					refcount += refs.size();
+					query.addAll(refs);
 				}
-
 			}
-			Set<Reference> query = new HashSet<Reference>();
-			for (final Set<Reference> r: searchrefs.values()) {
-				query.addAll(r);
+			if (refcount > maximumObjectSearchCount) {
+				if (nullIfInaccessible) {
+					return;
+				} else {
+					throw new InaccessibleObjectException("Reached reference search limit");
+				}
 			}
 			Map<Reference, ObjectReferenceSet> res = db.getObjectIncomingReferences(query);
 			query = null;

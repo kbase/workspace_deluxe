@@ -2354,7 +2354,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (refs.isEmpty()) {
 			return new HashMap<>();
 		}
-		//TODO NOW add limit for number of refs returned (probably 50K, but make a method param) & throw exception if more than that returned
+		//TODO MEM add limit for number of refs returned (probably 50K, but make a method param) & throw exception if more than that returned
 		final List<String> refStrings = new LinkedList<>();
 		for (final Reference r: refs) {
 			refStrings.add(r.getId());
