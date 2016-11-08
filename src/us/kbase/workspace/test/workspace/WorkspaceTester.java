@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -126,8 +127,8 @@ public class WorkspaceTester {
 				.setLevel(Level.OFF);
 	}
 	
-	protected static final Map<String, String> MT_META =
-			new HashMap<String, String>();
+	protected static final Map<String, String> MT_MAP = new HashMap<>();
+	protected static final List<String> MT_LIST = new LinkedList<>();
 	
 	public static final String DB_WS_NAME = "WorkspaceBackendTest";
 	public static final String DB_TYPE_NAME = "WorkspaceBackendTest_types";
@@ -1445,6 +1446,9 @@ public class WorkspaceTester {
 		return data;
 	}
 	
+	protected Map<String, String> makeMeta(final int id) {
+		return makeSimpleMeta("m", "" + id);
+	}
 
 	protected void compareObjectAndInfo(ObjectInformation original,
 			ObjectInformation copied, WorkspaceUser user, long wsid, String wsname, 

@@ -191,14 +191,14 @@ public class WorkspaceTest extends WorkspaceTester {
 	public void createWorkspaceAndGetInfo() throws Exception {
 		String wsname = "foo_.-bar";
 		WorkspaceInformation info = ws.createWorkspace(SOMEUSER, wsname, false, "eeswaffertheen", null);
-		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, "unlocked", MT_META);
+		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, "unlocked", MT_MAP);
 		long id = info.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
 		Date moddate = info.getModDate();
 		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(id));
-		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
+		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, id, moddate, "unlocked", MT_MAP);
 		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(wsname));
-		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, id, moddate, "unlocked", MT_META);
+		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, id, moddate, "unlocked", MT_MAP);
 		
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put("foo", "bar");
@@ -226,13 +226,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		WorkspaceUser anotheruser = new WorkspaceUser("anotherfnuser");
 		info = ws.createWorkspace(anotheruser, "anotherfnuser:MrT", true, "Ipitythefoolthatdon'teatMrTbreakfastcereal", null);
-		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, "unlocked", MT_META);
+		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, "unlocked", MT_MAP);
 		id = info.getId();
 		moddate = info.getModDate();
 		info = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier(id));
-		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked", MT_META);
+		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked", MT_MAP);
 		info = ws.getWorkspaceInformation(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"));
-		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked", MT_META);
+		checkWSInfo(info, anotheruser, "anotherfnuser:MrT", 0, Permission.OWNER, true, id, moddate, "unlocked", MT_MAP);
 		
 		ws.setGlobalPermission(anotheruser, new WorkspaceIdentifier("anotherfnuser:MrT"), Permission.NONE);
 		ws.setGlobalPermission(SOMEUSER, new WorkspaceIdentifier("foo2"), Permission.NONE);
@@ -261,9 +261,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceInformation infoNo = ws.createWorkspace(user, wsiNo.getName(),
 				false, null, null);
 		checkWSInfo(infoNo, user, wsiNo.getName(), 0, Permission.OWNER, false,
-				infoNo.getId(), infoNo.getModDate(), "unlocked", MT_META);
+				infoNo.getId(), infoNo.getModDate(), "unlocked", MT_MAP);
 		checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false,
-				infoNo.getId(), infoNo.getModDate(), "unlocked", MT_META);
+				infoNo.getId(), infoNo.getModDate(), "unlocked", MT_MAP);
 		WorkspaceInformation infoNo2 = ws.createWorkspace(user, wsiNo2.getName(),
 				false, null, null);
 		
@@ -309,9 +309,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		assertDatesAscending(info.getModDate(), d1, d2, d3, d4, d5);
 		
-		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false, infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_META);
+		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false, infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_MAP);
 		ws.removeWorkspaceMetadata(user, wsiNo2, "somekey"); //should do nothing
-		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false, infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_META);
+		checkWSInfo(wsiNo2, user, wsiNo2.getName(), 0, Permission.OWNER, false, infoNo2.getId(), infoNo2.getModDate(), "unlocked", MT_MAP);
 		
 		
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
@@ -342,7 +342,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		failWSSetMeta(user, wsi, null, new IllegalArgumentException(
 				"Metadata cannot be null or empty"));
-		failWSSetMeta(user, wsi, MT_META, new IllegalArgumentException(
+		failWSSetMeta(user, wsi, MT_MAP, new IllegalArgumentException(
 				"Metadata cannot be null or empty"));
 	}
 	
@@ -705,7 +705,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
 				is("globaldesc"));
 		WorkspaceInformation info = ws.getWorkspaceInformation(null, wsiGL);
-		checkWSInfo(info, AUSER, "perms_global", 0, Permission.NONE, true, "unlocked", MT_META);
+		checkWSInfo(info, AUSER, "perms_global", 0, Permission.NONE, true, "unlocked", MT_MAP);
 		ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
 		expect.clear();
 		expect.put(AUSER, Permission.OWNER);
@@ -3144,7 +3144,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkNonDeletedObjs(user, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(user, read),
 				is("descrip"));
-		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_META);
+		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_MAP);
 		WorkspaceUser bar = new WorkspaceUser("bar");
 		ws.setPermissions(user, read, Arrays.asList(bar), Permission.ADMIN);
 		Map<User, Permission> p = new HashMap<User, Permission>();
@@ -3220,7 +3220,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkNonDeletedObjs(user, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(user, read),
 				is("descrip"));
-		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_META);
+		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_MAP);
 		ws.setPermissions(user, read, Arrays.asList(bar), Permission.ADMIN);
 		assertThat("can get perms", ws.getPermissions(
 				user, Arrays.asList(read)).get(0), is(p));
@@ -4096,7 +4096,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				user1, cp1, clone2.getName(), true, "my desc", null, null);
 		
 		checkWSInfo(clone2, user1, "newclone2", 3, Permission.OWNER, true, info2.getId(),
-				info2.getModDate(), "unlocked", MT_META);
+				info2.getModDate(), "unlocked", MT_MAP);
 		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone2), is("my desc"));
 		
 		origobjs = ws.getObjectHistory(user1, new ObjectIdentifier(clone2, "orig"));
@@ -4608,7 +4608,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkWSInfoList(ws.listWorkspaces(user, null, null, null, null, null,
 				true, false, false), expected);
 		checkWSInfoList(ws.listWorkspaces(user, null, null,
-				new WorkspaceUserMetadata(MT_META), null, null, true, false,
+				new WorkspaceUserMetadata(MT_MAP), null, null, true, false,
 				false), expected);
 		
 		expected.put(globalreadable, false);
@@ -6402,7 +6402,60 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
-	public void getReferencedObjects() throws Exception {
+	public void getReferencedObjectsBySearch() throws Exception {
+		/* Note that currently returned paths to an object from an object search are wrong and
+		 * only include the first object in the path
+		 */
+		final WorkspaceUser user1 = new WorkspaceUser("u1");
+		final WorkspaceUser user2 = new WorkspaceUser("u2");
+		final WorkspaceIdentifier wsUser1 = new WorkspaceIdentifier("wsu1");
+		final WorkspaceIdentifier wsUser2 = new WorkspaceIdentifier("wsu2");
+		ws.createWorkspace(user1, wsUser1.getName(), false, null, null);
+		ws.setPermissions(user1, wsUser1, Arrays.asList(user2), Permission.WRITE);
+		ws.createWorkspace(user2, wsUser2.getName(), false, null, null);
+		
+		final TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
+		
+		final Map<String, String> meta1 = new HashMap<>();
+		meta1.put("m", "1");
+		final Map<String, String> meta2 = new HashMap<>();
+		meta2.put("m", "2");
+		
+		final Provenance p2 = new Provenance(user2);
+		final String leaf1Name = "leaf1";
+		final ObjectInformation leaf1_1 = saveObject(user2, wsUser2, makeMeta(1), MT_MAP,
+				SAFE_TYPE1, leaf1Name, p2);
+		final String leaf1_1ref = wsUser2.getName() + "/" + leaf1Name + "/" + 1;
+		final ObjectInformation leaf1_2 = saveObject(user2, wsUser2, makeMeta(2), MT_MAP,
+				SAFE_TYPE1, leaf1Name, p2);
+		final String leaf1_2ref = wsUser2.getName() + "/" + leaf1Name + "/" + 2;
+		
+		final String ref1Name = "ref1";
+		saveObject(user2, wsUser2, MT_MAP, makeRefData(leaf1_1ref), reftype, ref1Name, p2);
+		final String ref1ref = wsUser2.getName() + "/" + ref1Name + "/" + 1;
+		
+		final String ref2Name = "ref2";
+		saveObject(user2, wsUser2, MT_MAP, makeRefData(leaf1_2ref), reftype, ref2Name, p2);
+		final String ref2ref = wsUser2.getName() + "/" + ref2Name + "/" + 1;
+		
+		final String refref1Name = "refref1";
+		saveObject(user2, wsUser1, MT_MAP, makeRefData(ref1ref), reftype, refref1Name, p2);
+		final Reference refref1 = new Reference(1, 1, 1);
+		
+		final String refref2Name = "refref2";
+		saveObject(user2, wsUser1, MT_MAP, makeRefData(ref2ref), reftype, refref2Name, p2);
+		final Reference refref2 = new Reference(1, 2, 1);
+		
+		checkReferencedObject(user1, new ObjectIDWithRefPath(
+				ObjectIdentifier.parseObjectReference(leaf1_1ref)),
+				leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+		failGetObjects(user1, Arrays.asList(ObjectIdentifier.parseObjectReference(leaf1_1ref)),
+				new InaccessibleObjectException("Object leaf1 cannot be accessed: User " +
+						"u1 may not read workspace wsu2"));
+	}
+	
+	@Test
+	public void getReferencedObjectsByPath() throws Exception {
 		WorkspaceUser user1 = new WorkspaceUser("refedUser");
 		WorkspaceUser user2 = new WorkspaceUser("refedUser2");
 		WorkspaceIdentifier wsiacc1n = new WorkspaceIdentifier("refedaccessible");
@@ -6464,13 +6517,13 @@ public class WorkspaceTest extends WorkspaceTester {
 				"Object 2 cannot be accessed: User refedUser may not read workspace 4"));
 		
 		final String leaf1r1 = "refedunacc/leaf1/1";
-		saveObject(user2, wsiacc1, MT_META, makeRefData(leaf1r1),reftype,
+		saveObject(user2, wsiacc1, MT_MAP, makeRefData(leaf1r1),reftype,
 				"simpleref", new Provenance(user2));
 		final String leaf1r2 = "refedunacc/leaf1/2";
-		saveObject(user2, wsiacc1, MT_META, makeRefData(leaf1r2),reftype,
+		saveObject(user2, wsiacc1, MT_MAP, makeRefData(leaf1r2),reftype,
 				"simpleref", new Provenance(user2));
 		final String leaf2r = "refedunacc2/leaf2";
-		saveObject(user2, wsiacc2, MT_META, makeRefData(leaf2r),reftype,
+		saveObject(user2, wsiacc2, MT_MAP, makeRefData(leaf2r),reftype,
 				"simpleref2", new Provenance(user2));
 		
 		/*
@@ -6492,10 +6545,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		 *   provref2 (2) v1 -> wsiun2/leaf2 v1
 		 */
 		
-		saveObject(user2, wsiacc1, MT_META, mtdata, SAFE_TYPE1, "provref", new Provenance(user2)
+		saveObject(user2, wsiacc1, MT_MAP, mtdata, SAFE_TYPE1, "provref", new Provenance(user2)
 				.addAction(new ProvenanceAction().withWorkspaceObjects(
 						Arrays.asList(leaf1r1))));
-		saveObject(user2, wsiacc2, MT_META, mtdata, SAFE_TYPE1, "provref2", new Provenance(user2)
+		saveObject(user2, wsiacc2, MT_MAP, mtdata, SAFE_TYPE1, "provref2", new Provenance(user2)
 				.addAction(new ProvenanceAction().withWorkspaceObjects(
 						Arrays.asList(leaf2r))));
 		
@@ -6573,15 +6626,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		final String delpointer12 = "delptr12";
 		final String delpointer2 = "delptr2";
 		final String deppointerWorkspace = "delptrws";
-		saveObject(user2, wsiacc1, MT_META, makeRefData("refedunacc/del1", "refedunacc2/del2"),
+		saveObject(user2, wsiacc1, MT_MAP, makeRefData("refedunacc/del1", "refedunacc2/del2"),
 				reftype, delpointer12, new Provenance(user2));
 		final ObjectIdentifier delptr12oi = new ObjectIdentifier(wsiacc1, 3);
 		final Reference dp12 = new Reference(1, 3, 1);
-		saveObject(user2, wsiacc2, MT_META, makeRefData("refedunacc2/del2"),
+		saveObject(user2, wsiacc2, MT_MAP, makeRefData("refedunacc2/del2"),
 				reftype, delpointer2, new Provenance(user2));
 		final ObjectIdentifier delptr2oi = new ObjectIdentifier(wsiacc2, 3);
 		final Reference dp2 = new Reference(2, 3, 1);
-		saveObject(user2, wsiacc2, MT_META, makeRefData("refeddel/delws"),
+		saveObject(user2, wsiacc2, MT_MAP, makeRefData("refeddel/delws"),
 				reftype, deppointerWorkspace, new Provenance(user2));
 		final ObjectIdentifier delptrwsoi = new ObjectIdentifier(wsiacc2, 4);
 		final Reference dpws = new Reference(2, 4, 1);

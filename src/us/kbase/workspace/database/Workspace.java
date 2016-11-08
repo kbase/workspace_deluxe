@@ -71,6 +71,7 @@ public class Workspace {
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	private final static int MAX_WS_COUNT = 1000;
 	private final static int NAME_LIMIT = 1000;
+	private final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 50000;
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
 	
@@ -78,26 +79,13 @@ public class Workspace {
 	private ResourceUsageConfiguration rescfg;
 	private final ReferenceParser parser;
 	private final TypedObjectValidator validator;
-	private final int maximumObjectSearchCount;
+	private int maximumObjectSearchCount;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
 			final ReferenceParser parser,
 			final TypedObjectValidator validator) {
-		this(db, cfg, parser, validator, 50000);
-	}
-	
-	/* this is temporary until we have path returning code when searching for objects.
-	 * Will probably want to determine the max number of objects based on some max memory usage and
-	 * on speed.
-	 */
-	public Workspace(
-			final WorkspaceDatabase db,
-			final ResourceUsageConfiguration cfg,
-			final ReferenceParser parser,
-			final TypedObjectValidator validator,
-			final int maximumNodeSearchCount) {
 		if (db == null) {
 			throw new NullPointerException("db cannot be null");
 		}
@@ -116,7 +104,19 @@ public class Workspace {
 		rescfg = cfg;
 		this.parser = parser;
 		db.setResourceUsageConfiguration(rescfg);
-		this.maximumObjectSearchCount = maximumNodeSearchCount;
+		this.maximumObjectSearchCount = MAX_OBJECT_SEARCH_COUNT_DEFAULT;
+	}
+	
+	/* this is temporary until we have path returning code when searching for objects.
+	 * Will probably want to determine the max number of objects based on some max memory usage and
+	 * on speed.
+	 */
+	public void setMaximumObjectSearchCount(final int count) {
+		maximumObjectSearchCount = count;
+	}
+	
+	public int getMaximumObjectSearchCount() {
+		return maximumObjectSearchCount;
 	}
 	
 	public ResourceUsageConfiguration getResourceConfig() {
@@ -295,8 +295,7 @@ public class Workspace {
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
 			try {
 				checkLocked(perm, r);
-				comparePermission(user, perm, perms.getPermission(r, true), o,
-						operation);
+				comparePermission(user, perm, perms.getPermission(r, true), o, operation);
 			} catch (WorkspaceAuthorizationException wae) {
 				if (allowInaccessible) {
 					continue;
@@ -1411,7 +1410,9 @@ public class Workspace {
 			throws WorkspaceCommunicationException,
 				InaccessibleObjectException, CorruptWorkspaceDBException,
 				NoSuchObjectException, NoSuchReferenceException {
-		
+		if (loi.isEmpty()) {
+			throw new IllegalArgumentException("No object identifiers provided");
+		}
 		Set<ObjectIdentifier> lookup = new HashSet<>();
 		List<ObjectIdentifier> nolookup = new LinkedList<>();
 		for (final ObjectIdentifier o: loi) {
@@ -1423,9 +1424,11 @@ public class Workspace {
 		}
 
 		//handle the faster cases first, fail before the searches
-		Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, nolookup, Permission.READ, "read",
+		Map<ObjectIdentifier, ObjectIDResolvedWS> ws = new HashMap<>();
+		if (!nolookup.isEmpty()) {
+			ws = checkPerms(user, nolookup, Permission.READ, "read",
 						nullIfInaccessible, nullIfInaccessible, nullIfInaccessible);
+		}
 		nolookup = null; //gc
 		
 		final List<ObjectIDWithRefPath> refpaths = new LinkedList<>();
@@ -1556,7 +1559,7 @@ public class Workspace {
 			if (refset != null) { // the object id is valid
 				final Reference objref = refset.getObjectReference();
 				resObjectIDs.put(o, new ObjectIDResolvedWS(res.getWorkspaceIdentifier(),
-						objref.getId(), objref.getVersion()));
+						objref.getObjectID(), objref.getVersion()));
 				searchSet.put(o, refset.getReferenceSet());
 			} else {
 				// don't throw errors yet so users can't probe arbitrary workspaces
@@ -1665,11 +1668,16 @@ public class Workspace {
 		while (oiter.hasNext()) {
 			final ObjectIdentifier o = oiter.next();
 			for (final Reference r: searchrefs.get(o)) {
-				if (exists.containsKey(r) && exists.get(r)) {
+				if (exists.containsKey(r) && exists.get(r)) { //search over
 					//TODO REF LOOKUP need to handle path here
-					resolvedPaths.withpath.put(o, resObjectIDs.get(o));
-					resolvedPaths.withpathRefPath.put(o, Arrays.asList(r)); //TODO REF LOOKUP this is wrong!
+					// is absolute at this point, made these absolute earlier
+					final ObjectIDResolvedWS res = resObjectIDs.get(o);
+					final Reference targetObj = new Reference(
+							res.getWorkspaceIdentifier().getID(), res.getId(), res.getVersion());
+					resolvedPaths.withpath.put(o, res);
+					resolvedPaths.withpathRefPath.put(o, Arrays.asList(targetObj)); //TODO REF LOOKUP this is wrong!
 					oiter.remove();
+					break;
 				}
 			}
 		}
