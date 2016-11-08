@@ -15,7 +15,7 @@ public class ObjectInformation {
 	final private long id;
 	final private String name;
 	final private String type;
-	final private Date savedDate;
+	final private long savedDate;
 	final private int version;
 	final private WorkspaceUser savedBy;
 	final private long workspaceID;
@@ -80,7 +80,7 @@ public class ObjectInformation {
 		this.id = id;
 		this.name = name;
 		this.type = typeString;
-		this.savedDate = savedDate;
+		this.savedDate = savedDate.getTime();
 		this.version = version;
 		this.savedBy = savedBy;
 		this.workspaceID = workspaceID.getID();
@@ -98,7 +98,7 @@ public class ObjectInformation {
 			final long id,
 			final String name,
 			final String typeString,
-			final Date savedDate,
+			final long savedDate,
 			final int version,
 			final WorkspaceUser savedBy,
 			final long workspaceID,
@@ -154,7 +154,7 @@ public class ObjectInformation {
 	 * @return the time the object was saved.
 	 */
 	public Date getSavedDate() {
-		return savedDate;
+		return new Date(savedDate);
 	}
 	
 	/** Returns the version of the object.
@@ -273,7 +273,7 @@ public class ObjectInformation {
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((refpath == null) ? 0 : refpath.hashCode());
 		result = prime * result + ((savedBy == null) ? 0 : savedBy.hashCode());
-		result = prime * result + ((savedDate == null) ? 0 : savedDate.hashCode());
+		result = prime * result + (int) (savedDate ^ (savedDate >>> 32));
 		result = prime * result + (int) (size ^ (size >>> 32));
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		result = prime * result + version;
@@ -332,11 +332,7 @@ public class ObjectInformation {
 		} else if (!savedBy.equals(other.savedBy)) {
 			return false;
 		}
-		if (savedDate == null) {
-			if (other.savedDate != null) {
-				return false;
-			}
-		} else if (!savedDate.equals(other.savedDate)) {
+		if (savedDate != other.savedDate) {
 			return false;
 		}
 		if (size != other.size) {
