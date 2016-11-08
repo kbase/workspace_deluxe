@@ -60,6 +60,7 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.SubAction;
+import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.Provenance.ExternalData;
@@ -437,6 +438,10 @@ public class WorkspaceTester {
 		return new IdReferenceHandlerSetFactory(100000);
 	}
 	
+	protected Object getData(final WorkspaceObjectData wod) throws Exception {
+		return wod.getSerializedData().getUObject().asClassInstance(Object.class);
+	}
+	
 	protected void failSetWSDesc(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -632,25 +637,34 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void checkObjInfo(ObjectInformation info, long id,
-			String name, String type, int version, WorkspaceUser user,
-			long wsid, String wsname, String chksum, long size,
-			Map<String, String> usermeta) {
+	protected void checkObjInfo(
+			final ObjectInformation info,
+			final long id,
+			final String name,
+			final String type,
+			final int version,
+			final WorkspaceUser user,
+			final long wsid,
+			final String wsname,
+			final String chksum,
+			final long size,
+			final Map<String, String> usermeta,
+			final List<Reference> refpath) {
 		
 		assertDateisRecent(info.getSavedDate());
-		assertThat("Object id correct", info.getObjectId(), is(id));
-		assertThat("Object name is correct", info.getObjectName(), is(name));
-		assertThat("Object type is correct", info.getTypeString(), is(type));
-		assertThat("Object version is correct", info.getVersion(), is(version));
-		assertThat("Object user is correct", info.getSavedBy(), is(user));
-		assertThat("Object workspace id is correct", info.getWorkspaceId(), is(wsid));
-		assertThat("Object workspace name is correct", info.getWorkspaceName(), is(wsname));
-		assertThat("Object chksum is correct", info.getCheckSum(), is(chksum));
-		assertThat("Object size is correct", info.getSize(), is(size));
+		assertThat("Object id incorrect", info.getObjectId(), is(id));
+		assertThat("Object name is incorrect", info.getObjectName(), is(name));
+		assertThat("Object type is incorrect", info.getTypeString(), is(type));
+		assertThat("Object version is incorrect", info.getVersion(), is(version));
+		assertThat("Object user is incorrect", info.getSavedBy(), is(user));
+		assertThat("Object workspace id is incorrect", info.getWorkspaceId(), is(wsid));
+		assertThat("Object workspace name is incorrect", info.getWorkspaceName(), is(wsname));
+		assertThat("Object chksum is incorrect", info.getCheckSum(), is(chksum));
+		assertThat("Object size is incorrect", info.getSize(), is(size));
 		Map<String, String> meta = info.getUserMetaData() == null ? null :
 			info.getUserMetaData().getMetadata();
-		assertThat("Object user meta is correct",
-				meta, is(usermeta));
+		assertThat("Object user meta is incorrect", meta, is(usermeta));
+		assertThat("Object refpath incorrect", info.getReferencePath(), is(refpath));
 	}
 	
 	protected void assertDateisRecent(Date orig) {
@@ -760,7 +774,7 @@ public class WorkspaceTester {
 				} else {
 					@SuppressWarnings("unchecked")
 					Map<String, Object> d =
-					(Map<String, Object>) gdata.getData();
+					(Map<String, Object>) getData(gdata);
 					assertThat("got expected obj info from getInfo",
 							ginf, is(einf));
 					assertThat("got expected obj info from getObj",
@@ -779,22 +793,26 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void checkObjectAndInfo(WorkspaceUser user,
-			List<ObjectIdentifier> ids, List<FakeObjectInfo> fakeinfo,
-			List<Map<String, Object>> data) throws Exception {
-		List<WorkspaceObjectData> retdata = ws.getObjects(user, ids);
+	// only checks that the received object info->saved date is recent, doesn't directly compare to
+	// provided obj info. 
+	protected void checkObjectAndInfo(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> ids,
+			final List<ObjectInformation> objinfo,
+			final List<Map<String, Object>> data)
+			throws Exception {
+		final List<WorkspaceObjectData> retdata = ws.getObjects(user, ids);
 		try {
-			List<WorkspaceObjectData> provdata =
-					ws.getObjects(user, ids, true);
-			Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
-			Iterator<WorkspaceObjectData> provi = provdata.iterator();
-			Iterator<FakeObjectInfo> info = fakeinfo.iterator();
-			Iterator<Map<String, Object>> dataiter = data.iterator();
+			final List<WorkspaceObjectData> provdata = ws.getObjects(user, ids, true);
+			final Iterator<WorkspaceObjectData> ret1 = retdata.iterator();
+			final Iterator<WorkspaceObjectData> provi = provdata.iterator();
+			final Iterator<ObjectInformation> info = objinfo.iterator();
+			final Iterator<Map<String, Object>> dataiter = data.iterator();
 			while (ret1.hasNext()) {
-				FakeObjectInfo inf = info.next();
-				Map<String, Object> d = dataiter.next();
-				WorkspaceObjectData woprov = provi.next();
-				WorkspaceObjectData wod1 = ret1.next();
+				final ObjectInformation inf = info.next();
+				final Map<String, Object> d = dataiter.next();
+				final WorkspaceObjectData woprov = provi.next();
+				final WorkspaceObjectData wod1 = ret1.next();
 				checkObjectAndInfo(wod1, inf, d);
 				checkObjInfo(
 						woprov.getObjectInfo(),
@@ -807,7 +825,8 @@ public class WorkspaceTester {
 						inf.getWorkspaceName(),
 						inf.getCheckSum(),
 						inf.getSize(),
-						inf.getUserMetaData().getMetadata());
+						inf.getUserMetaData().getMetadata(),
+						inf.getReferencePath());
 			}
 			if (info.hasNext() || dataiter.hasNext() || provi.hasNext()) {
 				fail("mismatched iter counts");
@@ -816,14 +835,28 @@ public class WorkspaceTester {
 			destroyGetObjectsResources(retdata);
 		}
 	}
-
-	protected void checkObjectAndInfo(WorkspaceObjectData wod,
-			FakeObjectInfo info, Map<String, Object> data) throws IOException {
-		checkObjInfo(wod.getObjectInfo(), info.getObjectId(), info.getObjectName(),
-				info.getTypeString(), info.getVersion(), info.getSavedBy(),
-				info.getWorkspaceId(), info.getWorkspaceName(), info.getCheckSum(),
-				info.getSize(), info.getUserMetaData().getMetadata());
-		assertThat("correct data", wod.getData(), is((Object) data));
+	
+	// only checks that the wod->object info->saved date is recent, doesn't directly compare to
+	// provided obj info. 
+	protected void checkObjectAndInfo(
+			final WorkspaceObjectData wod,
+			final ObjectInformation info,
+			final Map<String, Object> data)
+			throws Exception {
+		checkObjInfo(
+				wod.getObjectInfo(),
+				info.getObjectId(),
+				info.getObjectName(),
+				info.getTypeString(),
+				info.getVersion(),
+				info.getSavedBy(),
+				info.getWorkspaceId(),
+				info.getWorkspaceName(),
+				info.getCheckSum(),
+				info.getSize(),
+				info.getUserMetaData().getMetadata(),
+				info.getReferencePath());
+		assertThat("correct data", getData(wod), is((Object) data));
 		
 	}
 
@@ -1338,8 +1371,8 @@ public class WorkspaceTester {
 		List<WorkspaceObjectData> d = ws.getObjects(foo, objs);
 		try {
 			for (int i = 0; i < d.size(); i++) {
-				assertThat("can get correct data from undeleted objects",
-						d.get(i).getData(), is((Object) idToData.get(objs.get(i))));
+				assertThat("can get correct data from undeleted objects", getData(d.get(i)),
+						is((Object) idToData.get(objs.get(i))));
 			}
 		} finally {
 			destroyGetObjectsResources(d);
@@ -1423,7 +1456,7 @@ public class WorkspaceTester {
 		WorkspaceObjectData copy = null;
 		
 		try {
-			TestReference expectedCopyRef = new TestReference(original.getWorkspaceId(),
+			Reference expectedCopyRef = new Reference(original.getWorkspaceId(),
 					original.getObjectId(), original.getVersion());
 			
 			//getObjects
@@ -1435,10 +1468,9 @@ public class WorkspaceTester {
 							copied.getObjectId(), copied.getVersion()))).get(0);
 			compareObjectInfo(orig.getObjectInfo(), copy.getObjectInfo(), user, wsid, wsname, objectid,
 					objname, version);
-			assertThat("returned data same", copy.getData(), is(orig.getData()));
+			assertThat("returned data same", getData(copy), is(getData(orig)));
 			assertThat("returned refs same", copy.getReferences(), is(orig.getReferences()));
-			assertThat("copy ref correct", new TestReference(copy.getCopyReference()),
-					is(expectedCopyRef));
+			assertThat("copy ref correct", copy.getCopyReference(), is(expectedCopyRef));
 			checkProvenanceCorrect(orig.getProvenance(), copy.getProvenance(),
 					null, original.getWorkspaceId());
 			
@@ -1454,8 +1486,7 @@ public class WorkspaceTester {
 			compareObjectInfo(originfo.getObjectInfo(), copyinfo.getObjectInfo(), user, wsid, wsname, objectid,
 					objname, version);
 			assertThat("returned refs same", copyinfo.getReferences(), is(originfo.getReferences()));
-			assertThat("copy ref correct", new TestReference(copyinfo.getCopyReference()),
-					is(expectedCopyRef));
+			assertThat("copy ref correct", copyinfo.getCopyReference(), is(expectedCopyRef));
 			checkProvenanceCorrect(originfo.getProvenance(), copyinfo.getProvenance(),
 					null, original.getWorkspaceId());
 		} finally {
@@ -1477,7 +1508,7 @@ public class WorkspaceTester {
 			assertNull("returned data when requested provenance only",
 					got.getSerializedData());
 		} else {
-			assertThat("returned data same", got.getData(), is((Object)data));
+			assertThat("returned data same", getData(got), is((Object)data));
 		}
 		assertThat("returned refs same", new HashSet<String>(got.getReferences()),
 				is(new HashSet<String>(refs)));
@@ -1867,9 +1898,15 @@ public class WorkspaceTester {
 		assertThat("listed correct objects", g, is(new HashSet<ObjectInformation>(expected)));
 	}
 	
-	protected void checkReferencedObject(WorkspaceUser user, ObjectIDWithRefPath chain,
-			ObjectInformation oi, Provenance p, Map<String, ? extends Object> data,
-			List<String> refs, Map<String, String> refmap) throws Exception {
+	protected void checkReferencedObject(
+			final WorkspaceUser user,
+			final ObjectIDWithRefPath chain,
+			final ObjectInformation oi,
+			final Provenance p,
+			final Map<String, ? extends Object> data,
+			final List<String> refs,
+			final Map<String, String> refmap)
+			throws Exception {
 		ObjectInformation info = ws.getObjectInformation(user,
 				Arrays.asList((ObjectIdentifier) chain), true, false).get(0);
 		WorkspaceObjectData wod = ws.getObjects(user,

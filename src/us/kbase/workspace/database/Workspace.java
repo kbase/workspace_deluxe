@@ -64,6 +64,7 @@ public class Workspace {
 	//TODO SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
 	//TODO SEARCH separate service - get object changes since date (based on type collection and pointers collection
 	//TODO SEARCH index typespecs
+	//TODO CODE look into eliminating all the DB implementation specific classes, too much of a pain just to ensure not moving objects between implementations
 	
 	public static final User ALL_USERS = new AllUsers('*');
 	
@@ -951,8 +952,7 @@ public class Workspace {
 				WorkspaceCommunicationException, InaccessibleObjectException,
 				NoSuchReferenceException, TypedObjectExtractionException {
 		
-		final ResolvedRefPaths res = resolveObjects(user, loi,
-				nullIfInaccessible);
+		final ResolvedRefPaths res = resolveObjects(user, loi, nullIfInaccessible);
 		
 		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> refpaths =
 				setupObjectPaths(res.withpath);
@@ -963,23 +963,19 @@ public class Workspace {
 		final ByteArrayFileCacheManager dataMan = getDataManager(noData);
 		
 		//this is pretty gross, think about a better api here
-		Map<ObjectIDResolvedWS,
-				Map<SubsetSelection, WorkspaceObjectData>> stddata = null;
-		Map<ObjectIDResolvedWS,
-				Map<SubsetSelection, WorkspaceObjectData>> refdata = null;
+		Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> stddata = null;
+		Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> refdata = null;
 		try {
 			stddata = db.getObjects(stdpaths, dataMan, 0,
 					!nullIfInaccessible, false, !nullIfInaccessible);
-			refdata = db.getObjects(refpaths, dataMan,
-					calculateDataSize(stddata),
-					//object cannot be missing at this stage
+			refdata = db.getObjects(refpaths, dataMan, calculateDataSize(stddata),
+					//objects cannot be missing at this stage
 					false, true, true);
 			
 			refpaths.clear();
 			stdpaths.clear();
 			
-			final List<WorkspaceObjectData> ret =
-					new ArrayList<WorkspaceObjectData>();
+			final List<WorkspaceObjectData> ret = new ArrayList<>();
 			for (final ObjectIdentifier o: loi) {
 				final SubsetSelection ss;
 				if (o instanceof ObjIDWithRefPathAndSubset) {
@@ -988,12 +984,12 @@ public class Workspace {
 					ss = SubsetSelection.EMPTY;
 				}
 				final WorkspaceObjectData wod;
-				// works if res.nochain.get(o) is null or stddata doesn't have
-				// key
+				// works if res.nochain.get(o) is null or stddata doesn't have key
 				if (stddata.containsKey(res.nopath.get(o))) {
 					wod = stddata.get(res.nopath.get(o)).get(ss);
 				} else if (refdata.containsKey(res.withpath.get(o))) {
-					wod = refdata.get(res.withpath.get(o)).get(ss);
+					final WorkspaceObjectData prewod = refdata.get(res.withpath.get(o)).get(ss);
+					wod = prewod.updateObjectReferencePath(res.withpathRefPath.get(o));
 				} else {
 					wod = null;
 				}
@@ -1001,6 +997,7 @@ public class Workspace {
 			}
 			res.nopath.clear();
 			res.withpath.clear();
+			res.withpathRefPath.clear();
 			refdata.clear();
 			stddata.clear();
 			removeInaccessibleDataCopyReferences(user, ret);
@@ -1082,7 +1079,7 @@ public class Workspace {
 		return paths;
 	}
 	
-	private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveReferencePaths(
+	private ResolvedRefPaths resolveReferencePaths(
 			final WorkspaceUser user,
 			final List<ObjectIDWithRefPath> objsWithRefpaths,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads,
@@ -1091,14 +1088,11 @@ public class Workspace {
 				InaccessibleObjectException, CorruptWorkspaceDBException,
 				NoSuchObjectException, NoSuchReferenceException {
 		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ret =
-				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		if (!hasItems(objsWithRefpaths)) {
-			return ret;
+			return new ResolvedRefPaths(null, null);
 		}
 		
-		final List<ObjectIdentifier> allRefPathEntries =
-				new LinkedList<ObjectIdentifier>();
+		final List<ObjectIdentifier> allRefPathEntries = new LinkedList<>();
 		for (final ObjectIDWithRefPath oc: objsWithRefpaths) {
 			if (oc != null) {
 				/* allow nulls in list to maintain object count in the case
@@ -1123,24 +1117,31 @@ public class Workspace {
 				db.getObjectOutgoingReferences(new HashSet<ObjectIDResolvedWS>(
 						resolvedRefPathObjs.values()), false, true, false);
 		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedObjects =
-				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedObjects = new HashMap<>();
+		final Map<ObjectIdentifier, List<Reference>> refpaths = new HashMap<>();
 		int chnum = 1;
 		for (final ObjectIDWithRefPath owrp: objsWithRefpaths) {
 			if (owrp != null) {
 				final ObjectReferenceSet refs = headrefs.get(heads.get(owrp));
-				if (refs != null && isValidRefPath(owrp, refs,
-						resolvedRefPathObjs, outrefs, ignoreErrors, chnum)) {
-					resolvedObjects.put(
-							owrp, resolvedRefPathObjs.get(owrp.getLast()));
+				if (refs != null) {
+					final List<Reference> resRefPath = getResolvedRefPath(owrp, refs,
+							resolvedRefPathObjs, outrefs, ignoreErrors, chnum);
+					if (resRefPath != null) {
+						final Reference ref = resRefPath.get(resRefPath.size() - 1);
+						final ObjectIDResolvedWS end = resolvedRefPathObjs.get(owrp.getLast());
+						final ObjectIDResolvedWS res = new ObjectIDResolvedWS(
+								end.getWorkspaceIdentifier(), ref.getObjectID(), ref.getVersion());
+						resolvedObjects.put(owrp, res);
+						refpaths.put(owrp, resRefPath);
+					}
 				}
 			}
 			chnum++;
 		}
-		return resolvedObjects;
+		return new ResolvedRefPaths(resolvedObjects, refpaths);
 	}
 	
-	private boolean isValidRefPath(
+	private List<Reference> getResolvedRefPath(
 			final ObjectIDWithRefPath refpath,
 			final ObjectReferenceSet headrefs,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> resRefPathObjs,
@@ -1148,8 +1149,10 @@ public class Workspace {
 			final boolean ignoreErrors,
 			final int chainNumber)
 			throws NoSuchReferenceException {
+		final List<Reference> resolvedRefPath = new LinkedList<>();
 		ObjectIdentifier pos = refpath;
 		ObjectReferenceSet refs = headrefs;
+		resolvedRefPath.add(refs.getObjectReference());
 		int posnum = 1;
 		for (final ObjectIdentifier oi: refpath.getRefPath()) {
 			/* refs are guaranteed to exist, so if the db didn't find
@@ -1160,20 +1163,19 @@ public class Workspace {
 			 * ref chain is in the DB or not
 			 */
 			final ObjectIDResolvedWS oir = resRefPathObjs.get(oi);
-			final ObjectReferenceSet current = oir == null ? null :
-				outgoingRefs.get(oir);
-			if (current == null ||
-					!refs.contains(current.getObjectReference())) {
+			final ObjectReferenceSet current = oir == null ? null : outgoingRefs.get(oir);
+			if (current == null || !refs.contains(current.getObjectReference())) {
 				if (ignoreErrors) {
-					return false;
+					return null;
 				}
 				throwNoSuchRefException(pos, oi, chainNumber, posnum);
 			}
+			resolvedRefPath.add(current.getObjectReference());
 			pos = oi;
 			refs = current;
 			posnum++;
 		}
-		return true;
+		return resolvedRefPath;
 	}
 
 	private boolean hasItems(final List<?> l) {
@@ -1331,13 +1333,20 @@ public class Workspace {
 	private static class ResolvedRefPaths {
 		public Map<ObjectIdentifier, ObjectIDResolvedWS> nopath;
 		public Map<ObjectIdentifier, ObjectIDResolvedWS> withpath;
+		public Map<ObjectIdentifier, List<Reference>> withpathRefPath;
 
 		private ResolvedRefPaths(
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> nopath,
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> withpath) {
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> withpath,
+				final Map<ObjectIdentifier, List<Reference>> withpathRefPath) {
 			super();
-			this.nopath = nopath;
 			this.withpath = withpath;
+			if (withpath == null) {
+				this.withpath = new HashMap<>();
+			}
+			this.withpathRefPath = withpathRefPath;
+			if (withpathRefPath == null) {
+				this.withpathRefPath = new HashMap<>();
+			}
 		}
 		
 	}
@@ -1351,29 +1360,24 @@ public class Workspace {
 				CorruptWorkspaceDBException, InaccessibleObjectException,
 				NoSuchReferenceException {
 	
-		final ResolvedRefPaths res = resolveObjects(user, loi,
-				nullIfInaccessible);
+		final ResolvedRefPaths res = resolveObjects(user, loi, nullIfInaccessible);
 		
-		final Map<ObjectIDResolvedWS, ObjectInformation> stdmeta = 
-				db.getObjectInformation(
-						new HashSet<ObjectIDResolvedWS>(res.nopath.values()),
-						includeMetadata, !nullIfInaccessible, false,
-						!nullIfInaccessible);
-		final Map<ObjectIDResolvedWS, ObjectInformation> resmeta = 
-				db.getObjectInformation(
-						new HashSet<ObjectIDResolvedWS>(res.withpath.values()),
-						includeMetadata, false, true, true);
-						// at this point the object at the chain end must exist
-		final List<ObjectInformation> ret =
-				new ArrayList<ObjectInformation>();
+		final Map<ObjectIDResolvedWS, ObjectInformation> stdmeta = db.getObjectInformation(
+				new HashSet<ObjectIDResolvedWS>(res.nopath.values()),
+				includeMetadata, !nullIfInaccessible, false, !nullIfInaccessible);
 		
+		final Map<ObjectIDResolvedWS, ObjectInformation> resmeta = db.getObjectInformation(
+				new HashSet<ObjectIDResolvedWS>(res.withpath.values()),
+				includeMetadata, false, true, true);
+				// at this point the object at the chain end must exist
+		
+		final List<ObjectInformation> ret = new ArrayList<>();
 		for (final ObjectIdentifier o: loi) {
-			if (res.nopath.containsKey(o) &&
-					stdmeta.containsKey(res.nopath.get(o))) {
+			if (res.nopath.containsKey(o) && stdmeta.containsKey(res.nopath.get(o))) {
 				ret.add(stdmeta.get(res.nopath.get(o)));
-			} else if (res.withpath.containsKey(o) &&
-					resmeta.containsKey(res.withpath.get(o))) {
-				ret.add(resmeta.get(res.withpath.get(o)));
+			} else if (res.withpath.containsKey(o) && resmeta.containsKey(res.withpath.get(o))) {
+				ret.add(resmeta.get(res.withpath.get(o))
+						.updateReferencePath(res.withpathRefPath.get(o)));
 			} else {
 				ret.add(null);
 			}
@@ -1391,22 +1395,18 @@ public class Workspace {
 				NoSuchObjectException, NoSuchReferenceException {
 
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read",
-						nullIfInaccessible, nullIfInaccessible,
-						nullIfInaccessible);
+				checkPerms(user, loi, Permission.READ, "read", nullIfInaccessible,
+						nullIfInaccessible, nullIfInaccessible);
 		
-		final List<ObjectIDWithRefPath> refpaths =
-				new LinkedList<ObjectIDWithRefPath>();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads =
-				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> std =
-				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+		final List<ObjectIDWithRefPath> refpaths = new LinkedList<>();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads = new HashMap<>();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> std = new HashMap<>();
 		for (final ObjectIdentifier o: loi) {
 			if (ws.get(o) == null) {
+				// error reporting is off, so no need to keep track of location in list as below
 				continue;
 			}
-			if (o instanceof ObjectIDWithRefPath && 
-					((ObjectIDWithRefPath) o).hasRefPath()) {
+			if (o instanceof ObjectIDWithRefPath && ((ObjectIDWithRefPath) o).hasRefPath()) {
 				refpaths.add((ObjectIDWithRefPath) o);
 				heads.put(o, ws.get(o));
 			} else {
@@ -1418,11 +1418,11 @@ public class Workspace {
 		
 		// this should exclude any heads that are deleted, even if
 		// nullIfInaccessible is true
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedPaths =
-				resolveReferencePaths(user, refpaths, heads,
-						nullIfInaccessible);
+		final ResolvedRefPaths resolvedPaths =
+				resolveReferencePaths(user, refpaths, heads, nullIfInaccessible);
+		resolvedPaths.nopath = std;
 		
-		return new ResolvedRefPaths(std, resolvedPaths);
+		return resolvedPaths;
 	}
 	
 	/** Get object names based on a provided prefix. Returns at most 1000

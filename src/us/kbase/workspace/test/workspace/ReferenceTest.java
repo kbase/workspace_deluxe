@@ -1,34 +1,26 @@
-package us.kbase.workspace.test.database.mongo;
+package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+import static org.junit.Assert.fail;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.Test;
 
-import us.kbase.workspace.database.mongo.MongoReference;
+import us.kbase.workspace.database.Reference;
 
-public class MongoReferenceTest {
+public class ReferenceTest {
 
 	@Test
 	public void mongoRef() throws Exception {
-		Constructor<MongoReference> refConst =
-				MongoReference.class.getDeclaredConstructor(String.class);
-		refConst.setAccessible(true);
-		MongoReference r = refConst.newInstance("1/2/3");
+		Reference r = new Reference("1/2/3");
 		assertThat("ws id incorrect", r.getWorkspaceID(), is(1L));
 		assertThat("obj id incorrect", r.getObjectID(), is(2L));
 		assertThat("ver incorrect", r.getVersion(), is(3));
 		assertThat("str id incorrect", r.getId(), is("1/2/3"));
 		assertThat("to str incorrect", r.toString(), is("1/2/3"));
 		
-		refConst = MongoReference.class.getDeclaredConstructor(
-				long.class, long.class, int.class);
-		refConst.setAccessible(true);
-		r = refConst.newInstance(4L, 5L, 6);
+		r = new Reference(4L, 5L, 6);
 		assertThat("ws id incorrect", r.getWorkspaceID(), is(4L));
 		assertThat("obj id incorrect", r.getObjectID(), is(5L));
 		assertThat("ver incorrect", r.getVersion(), is(6));
@@ -56,32 +48,27 @@ public class MongoReferenceTest {
 		failMakeRef(1L, 2L, -3, "All arguments must be > 0");
 	}
 
-	private void failMakeRef(String ref, String exp) throws Exception {
-		Constructor<MongoReference> refConst =
-				MongoReference.class.getDeclaredConstructor(String.class);
-		refConst.setAccessible(true);
+	private void failMakeRef(final String ref, final String exp) throws Exception {
 		try {
-			refConst.newInstance(ref);
-		} catch (InvocationTargetException ite) {
-			IllegalArgumentException iae =
-					(IllegalArgumentException) ite.getCause();
+			new Reference(ref);
+			fail("made bad ref");
+		} catch (IllegalArgumentException iae) {
 			assertThat("incorrect message, trace:\n" +
 					ExceptionUtils.getMessage(iae),
 					iae.getLocalizedMessage(), is(exp));
 		}
 	}
 	
-	private void failMakeRef(Long wsid, Long objid, Integer ver, String exp)
+	private void failMakeRef(
+			final Long wsid,
+			final Long objid,
+			final Integer ver,
+			final String exp)
 			throws Exception {
-		Constructor<MongoReference> refConst =
-				MongoReference.class.getDeclaredConstructor(
-						long.class, long.class, int.class);
-		refConst.setAccessible(true);
 		try {
-			refConst.newInstance(wsid, objid, ver);
-		} catch (InvocationTargetException ite) {
-			IllegalArgumentException iae =
-					(IllegalArgumentException) ite.getCause();
+			new Reference(wsid, objid, ver);
+			fail("made bad ref");
+		} catch (IllegalArgumentException iae) {
 			assertThat("incorrect message, trace:\n" +
 					ExceptionUtils.getMessage(iae),
 					iae.getLocalizedMessage(), is(exp));

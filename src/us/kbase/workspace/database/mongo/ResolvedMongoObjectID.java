@@ -2,6 +2,8 @@ package us.kbase.workspace.database.mongo;
 
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 
+import us.kbase.workspace.database.Reference;
+
 /**
  * name is resolved *at the time the database was accessed and is not further
  * updated*
@@ -14,7 +16,8 @@ import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
  * 
  * This is *not* the case for objects generated from different queries.
  * 
- * Versions are not resolved.
+ * The version is guaranteed to be equal to or less than the version count in the object document,
+ * e.g. under normal circumstances the version must exist.
  * 
  * @author gaprice@lbl.gov
  *
@@ -66,8 +69,8 @@ public class ResolvedMongoObjectID {
 		return false;
 	}
 	
-	public MongoReference getReference() {
-		return new MongoReference(rwsi.getID(), id, version);
+	public Reference getReference() {
+		return new Reference(rwsi.getID(), id, version);
 	}
 
 	public boolean isDeleted() {

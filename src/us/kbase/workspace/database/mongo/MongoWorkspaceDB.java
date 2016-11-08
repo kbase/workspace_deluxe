@@ -2,7 +2,6 @@ package us.kbase.workspace.database.mongo;
 
 import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayToHash;
 import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
-import static us.kbase.workspace.database.mongo.ObjectInfoUtils.LATEST_VERSION;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -625,8 +624,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					v.remove(Fields.MONGO_ID);
 					v.put(Fields.VER_SAVEDBY, user.getUser());
 					v.put(Fields.VER_RVRT, null);
-					v.put(Fields.VER_COPIED, new MongoReference(
-							fromWS.getID(), objid, ver).toString());
+					v.put(Fields.VER_COPIED, new Reference(fromWS.getID(), objid, ver).toString());
 				}
 				updateReferenceCountsForVersions(versions);
 				saveWorkspaceObject(toWS, objid, name);
@@ -746,9 +744,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			to = from;
 			rto = rfrom;
 		} else {
-			rto = resolveObjectIDs(
-					new HashSet<ObjectIDResolvedWS>(Arrays.asList(to)),
-					false, true, false, true).get(to); //don't except if there's no object
+			final ObjectIDResolvedWS toNoVer = to.getId() == null ?
+					new ObjectIDResolvedWS(to.getWorkspaceIdentifier(), to.getName()) :
+						new ObjectIDResolvedWS(to.getWorkspaceIdentifier(), to.getId());
+			rto = resolveObjectIDs(new HashSet<ObjectIDResolvedWS>(Arrays.asList(toNoVer)),
+					false, true, false).get(toNoVer); //don't except if there's no object
 		}
 		if (rto == null && to.getId() != null) {
 			throw new NoSuchObjectException(String.format(
@@ -775,9 +775,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				v.put(Fields.VER_RVRT, ver);
 			} else {
 				v.put(Fields.VER_RVRT, null);
-				v.put(Fields.VER_COPIED, new MongoReference(
-						rfrom.getWorkspaceIdentifier().getID(), rfrom.getId(),
-						ver).toString());
+				v.put(Fields.VER_COPIED, new Reference(
+						rfrom.getWorkspaceIdentifier().getID(), rfrom.getId(), ver).toString());
 			}
 		}
 		updateReferenceCountsForVersions(versions);
@@ -1397,7 +1396,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		saveObjectVersions(user, wsid, objectid, Arrays.asList(version),
 				pkg.wo.isHidden());
 		
-		return new MongoObjectInfo(
+		return new ObjectInformation(
 				objectid,
 				pkg.name,
 				pkg.wo.getRep().getValidationTypeDefId().getTypeString(),
@@ -1562,7 +1561,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		dbo.put(Fields.OBJ_VCNT, 0); //Integer
 		dbo.put(Fields.OBJ_REFCOUNTS, new LinkedList<Integer>());
 		dbo.put(Fields.OBJ_NAME, newName);
-		dbo.put(Fields.OBJ_LATEST, null);
+		dbo.put(Fields.OBJ_LATEST, null); //TODO DBUPDATE remove this field. Deleting versions is out, just delete the entire object.
 		dbo.put(Fields.OBJ_DEL, false);
 		dbo.put(Fields.OBJ_HIDE, false);
 		try {
@@ -1617,11 +1616,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				throw new RuntimeException("MD5 types are not accepted");
 			}
 			final ObjectSavePackage pkg = new ObjectSavePackage();
-			pkg.refs = checkRefsAreMongo(o.getRefs());
+			pkg.refs = refsToString(o.getRefs());
 			//cannot do by combining in one set since a non-MongoReference
 			//could be overwritten by a MongoReference if they have the same
 			//hash
-			pkg.provrefs = checkRefsAreMongo(o.getProvRefs());
+			pkg.provrefs = refsToString(o.getProvRefs());
 			pkg.wo = o;
 			checkObjectLength(o.getProvenance(), MAX_PROV_SIZE,
 					o.getObjectIdentifier(), objnum, "provenance");
@@ -1657,27 +1656,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	//is there some way to combine these with generics?
-	private Set<String> checkRefsAreMongo(final Set<Reference> refs) {
+	private Set<String> refsToString(final Set<Reference> refs) {
 		final Set<String> newrefs = new HashSet<String>();
-		checkRefsAreMongoInternal(refs, newrefs);
+		refsToString(refs, newrefs);
 		return newrefs;
 	}
 	
 	//order must be maintained
-	private List<String> checkRefsAreMongo(final List<Reference> refs) {
+	private List<String> refsToString(final List<Reference> refs) {
 		final List<String> newrefs = new LinkedList<String>();
-		checkRefsAreMongoInternal(refs, newrefs);
+		refsToString(refs, newrefs);
 		return newrefs;
 	}
 
-	private void checkRefsAreMongoInternal(final Collection<Reference> refs,
+	private void refsToString(final Collection<Reference> refs,
 			final Collection<String> newrefs) {
 		for (final Reference r: refs) {
-			if (!(r instanceof MongoReference)) {
-				throw new RuntimeException(
-						"Improper reference implementation: " +
-						(r == null ? null : r.getClass()));
-			}
 			newrefs.add(r.toString());
 		}
 	}
@@ -1996,10 +1990,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<String> provrefs = (List<String>) p.get(Fields.VER_PROVREF);
 //			objrefs.addAll(provrefs); //DON'T DO THIS YOU MORON
 			for (final String s: objrefs) {
-				refs.add(new MongoReference(s));
+				refs.add(new Reference(s));
 			}
 			for (final String s: provrefs) {
-				refs.add(new MongoReference(s));
+				refs.add(new Reference(s));
 			}
 			countReferences(refcounts, refs);
 		}
@@ -2084,8 +2078,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			TypedObjectExtractionException, CorruptWorkspaceDBException {
 		
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs =
-				resolveObjectIDs(objs.keySet(), exceptIfDeleted,
-						includeDeleted, exceptIfMissing, false);
+				resolveObjectIDs(objs.keySet(), exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
@@ -2107,8 +2100,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.get(Fields.VER_PROV));
 			final String copyref =
 					(String) vers.get(roi).get(Fields.VER_COPIED);
-			final Reference copied = copyref == null ? null :
-					new MongoReference(copyref);
+			final Reference copied = copyref == null ? null : new Reference(copyref);
 			@SuppressWarnings("unchecked")
 			final Map<String, List<String>> extIDs =
 					(Map<String, List<String>>) vers.get(roi).get(
@@ -2116,7 +2108,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<String> refs =
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
-			final MongoObjectInfo info = ObjectInfoUtils.generateObjectInfo(
+			final ObjectInformation info = ObjectInfoUtils.generateObjectInfo(
 					roi, vers.get(roi));
 			if (dataMan == null) {
 				ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
@@ -2206,7 +2198,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<String> refs,
 			final Reference copied,
 			final Map<String, List<String>> extIDs,
-			final MongoObjectInfo info,
+			final ObjectInformation info,
 			final Map<String, ByteArrayFileCache> chksumToData,
 			final ByteArrayFileCacheManager bafcMan,
 			final Map<ObjectIDResolvedWS,
@@ -2282,7 +2274,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public Map<ObjectIDResolvedWS, ObjectReferenceSet>
-			getObjectOutgoingReferences(
+				getObjectOutgoingReferences(
 			final Set<ObjectIDResolvedWS> objs,
 			final boolean exceptIfDeleted,
 			final boolean includeDeleted,
@@ -2292,8 +2284,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new HashMap<ObjectIDResolvedWS, ObjectReferenceSet>();
 		
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs = 
-				resolveObjectIDs(objs, exceptIfDeleted, includeDeleted,
-						exceptIfMissing, false);
+				resolveObjectIDs(objs, exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Map<ResolvedMongoObjectID, Map<String, Object>> refs =
 				queryVersions(
 						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
@@ -2306,20 +2297,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ResolvedMongoObjectID res = resobjs.get(oi);
 			final Map<String, Object> m = refs.get(res);
 			final int ver = (Integer) m.get(Fields.VER_VER);
-			final Reference ref = new MongoReference(
+			final Reference ref = new Reference(
 					res.getWorkspaceIdentifier().getID(), res.getId(), ver);
 			@SuppressWarnings("unchecked")
 			final List<String> rf = (List<String>) m.get(Fields.VER_REF);
 			@SuppressWarnings("unchecked")
 			final List<String> prf = (List<String>) m.get(Fields.VER_PROVREF);
-			final Set<MongoReference> r = new HashSet<MongoReference>();
+			final Set<Reference> r = new HashSet<Reference>();
 			for (String s: rf) {
-				r.add(new MongoReference(s));
+				r.add(new Reference(s));
 			}
 			for (String s: prf) {
-				r.add(new MongoReference(s));
+				r.add(new Reference(s));
 			}
-			ret.put(oi, new MongoObjRefSet(ref, r, false));
+			ret.put(oi, new ObjectReferenceSet(ref, r, false));
 		}
 		return ret;
 	}
@@ -2342,7 +2333,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs =
 				resolveObjectIDs(objs);
-		verifyVersions(new HashSet<ResolvedMongoObjectID>(resobjs.values()));
+		verifyVersions(new HashSet<ResolvedMongoObjectID>(resobjs.values()), true);
 		final Map<String, Set<ObjectIDResolvedWS>> ref2id =
 				new HashMap<String, Set<ObjectIDResolvedWS>>();
 		for (final ObjectIDResolvedWS oi: objs) {
@@ -2391,8 +2382,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final Set<String> FLDS_REF_CNT = newHashSet(
-			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL,
-			Fields.OBJ_LATEST, Fields.OBJ_VCNT, Fields.OBJ_REFCOUNTS);
+			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_VCNT, Fields.OBJ_REFCOUNTS);
 
 	/** @deprecated */
 	@Override
@@ -2408,7 +2398,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//this is another place where extremely rare failures could cause
 			//problems
 			final int ver;
-			final int latestver = (Integer) objdata.get(o).get(LATEST_VERSION);
+			final int latestver = (Integer) objdata.get(o).get(Fields.OBJ_VCNT);
 			if (o.getVersion() == null) {
 				ver = latestver;
 			} else {
@@ -2474,18 +2464,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				resolveObjectIDs(objectIDs);
 		//instead of calling verifyVersions() just query the version here
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
-				queryVersions(
-						new HashSet<ResolvedMongoObjectID>(oids.values()),
+				queryVersions(new HashSet<ResolvedMongoObjectID>(oids.values()),
 						FLDS_VER_TYPE, false);
-		final Map<ObjectIDResolvedWS, TypeAndReference> ret =
-				new HashMap<ObjectIDResolvedWS, TypeAndReference>();
-		for (ObjectIDResolvedWS o: objectIDs) {
+		final Map<ObjectIDResolvedWS, TypeAndReference> ret = new HashMap<>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
 			ret.put(o, new TypeAndReference(
 					AbsoluteTypeDefId.fromAbsoluteTypeString(
 							(String) vers.get(roi).get(Fields.VER_TYPE)),
-					new MongoReference(roi.getWorkspaceIdentifier().getID(),
-							roi.getId(),
+					new Reference(roi.getWorkspaceIdentifier().getID(), roi.getId(),
 							(Integer) vers.get(roi).get(Fields.VER_VER))));
 		}
 		return ret;
@@ -2581,8 +2568,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
-				resolveObjectIDs(objectIDs, exceptIfDeleted, includeDeleted,
-						exceptIfMissing, false);
+				resolveObjectIDs(objectIDs, exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Set<String> fields;
 		if (includeMetadata) {
 			fields = new HashSet<String>(FLDS_VER_META);
@@ -2607,8 +2593,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final Set<String> FLDS_RESOLVE_OBJS =
-			newHashSet(Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL,
-					Fields.OBJ_LATEST, Fields.OBJ_VCNT);
+			newHashSet(Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_VCNT);
 	
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs)
@@ -2620,16 +2605,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean exceptIfDeleted, final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		return resolveObjectIDs(objectIDs, exceptIfDeleted, true,
-				exceptIfMissing, false);
+		return resolveObjectIDs(objectIDs, exceptIfDeleted, true, exceptIfMissing);
 	}
 	
 	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean exceptIfDeleted,
 			final boolean includeDeleted,
-			final boolean exceptIfMissing,
-			final boolean ignoreVersion)
+			final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, Map<String, Object>> ids = 
 				queryObjects(objectIDs, FLDS_RESOLVE_OBJS, exceptIfDeleted,
@@ -2640,29 +2623,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String name = (String) ids.get(o).get(Fields.OBJ_NAME);
 			final long id = (Long) ids.get(o).get(Fields.OBJ_ID);
 			final boolean deleted = (Boolean) ids.get(o).get(Fields.OBJ_DEL);
-			final int latestVersion = (Integer) ids.get(o).get(LATEST_VERSION);
-			if (o.getVersion() == null || ignoreVersion ||
-					o.getVersion().equals(latestVersion)) {
-				//TODO BUG this could be wrong if the vercount was incremented without a ver save, should verify and then sort if needed
-				ret.put(o, new ResolvedMongoOIDWithObjLastVer(
-						query.convertResolvedWSID(o.getWorkspaceIdentifier()),
-						name, id, latestVersion, deleted));
-			} else {
-				if (o.getVersion().compareTo(latestVersion) > 0) {
-					if (exceptIfMissing) {
-						throw new NoSuchObjectException(String.format(
-								"No object with id %s (name %s) and version %s exists in " +
-								"workspace %s (name %s)", id, name, o.getVersion(), 
-								o.getWorkspaceIdentifier().getID(),
-								o.getWorkspaceIdentifier().getName()), o);
-					}
-				} else {
-					ret.put(o, new ResolvedMongoObjectID(
-							query.convertResolvedWSID(
-									o.getWorkspaceIdentifier()),
-									name, id, o.getVersion().intValue(),
-									deleted));
+			//TODO BUG this could be wrong if the vercount was incremented without a ver save, should verify and then sort if needed, or better yet, fix the schema so it can't happen
+			final int latestVersion = (Integer) ids.get(o).get(Fields.OBJ_VCNT);
+			final int version = o.getVersion() == null ? latestVersion: o.getVersion();
+			if (version > latestVersion) {
+				if (exceptIfMissing) {
+					throw new NoSuchObjectException(String.format(
+							"No object with id %s (name %s) and version %s exists in " +
+							"workspace %s (name %s)",
+							id, name, version, 
+							o.getWorkspaceIdentifier().getID(),
+							o.getWorkspaceIdentifier().getName()), o);
 				}
+			} else {
+				ret.put(o, new ResolvedMongoObjectID(
+						query.convertResolvedWSID(o.getWorkspaceIdentifier()),
+						name, id, version, deleted));
 			}
 		}
 		return ret;
@@ -2670,11 +2646,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	
 	private Map<ObjectIDResolvedWS, Map<String, Object>> queryObjects(
-			final Set<ObjectIDResolvedWS> objectIDs, Set<String> fields,
-			final boolean exceptIfDeleted, final boolean includeDeleted,
+			final Set<ObjectIDResolvedWS> objectIDs,
+			final Set<String> fields,
+			final boolean exceptIfDeleted,
+			final boolean includeDeleted,
 			final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException,
-			DeletedObjectException {
+				DeletedObjectException {
 		final Map<ObjectIDResolvedWS, ObjectIDResolvedWSNoVer> nover =
 				new HashMap<ObjectIDResolvedWS, ObjectIDResolvedWSNoVer>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
@@ -2712,7 +2690,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						oid.getWorkspaceIdentifier().getName()), oid);
 			}
 			if (!deleted || includeDeleted) {
-				ObjectInfoUtils.calcLatestObjVersion(ids.get(o));
 				ret.put(oid, ids.get(o));
 			}
 		}
@@ -2777,12 +2754,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private Map<ResolvedMongoObjectID, Boolean> verifyVersions(
-			final Set<ResolvedMongoObjectID> objs)
-			throws NoSuchObjectException, WorkspaceCommunicationException {
-		return verifyVersions(objs, true);
-	}
-	
-	private Map<ResolvedMongoObjectID, Boolean> verifyVersions(
 			final Set<ResolvedMongoObjectID> objs,
 			final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException {
@@ -2795,7 +2766,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		return ret;
 	}
-	
 
 	@Override
 	public Map<ObjectIDResolvedWS, Boolean> getObjectExists(
