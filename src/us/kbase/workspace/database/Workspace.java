@@ -1449,15 +1449,14 @@ public class Workspace {
 			}
 		}
 		ws = null; //GC
-		final SearchDAGStart lus = searchObjectDAGpreprocess(user, lookup, std);
-		
+
 		// this should exclude any heads that are deleted, even if nullIfInaccessible is true
 		// do this before starting the search, fail early before the expensive part
 		final ResolvedRefPaths resolvedPaths =
 				resolveReferencePaths(user, refpaths, heads, nullIfInaccessible);
 		resolvedPaths.nopath = std;
 		
-		searchObjectDAG(user, lookup, lus, resolvedPaths, nullIfInaccessible);
+		searchObjectDAG(user, lookup, resolvedPaths, nullIfInaccessible);
 		
 		return resolvedPaths;
 	}
@@ -1477,17 +1476,14 @@ public class Workspace {
 		
 	}
 	
-	/* Modifies lookup and std in place. Any object in lookup to which the user has direct read
-	 * permissions is removed from lookup (e.g. set to null) and added to std.
+	/* Modifies lookup and resolvedpaths in place. Any object in lookup to which the user has direct read
+	 * permissions is removed from lookup (e.g. set to null) and added to resolvedpaths.
 	 */
 	private SearchDAGStart searchObjectDAGpreprocess(
 			final WorkspaceUser user,
 			final Set<ObjectIdentifier> lookup,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> std)
+			final ResolvedRefPaths resolvedPaths)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		if (lookup.isEmpty()) {
-			return null;
-		}
 		//could make a method to just get IDs of workspace with specific permission to save mem
 		final PermissionSet pset = db.getPermissions(user, Permission.READ, false);
 		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
@@ -1508,7 +1504,7 @@ public class Workspace {
 			if (rwsi != null) {
 				final ObjectIDResolvedWS oid = o.resolveWorkspace(rwsi);
 				if (pset.hasWorkspace(rwsi) && !rwsi.isDeleted()) { // workspace has read perm
-					std.put(o, oid);
+					resolvedPaths.nopath.put(o, oid);
 					oiter.remove();
 				} else {
 					resois.put(o, oid);
@@ -1529,19 +1525,20 @@ public class Workspace {
 	//TODO REF LOOKUP PATH3 prune tree on 1) dead end, 2) node already in tree (path must be shorter than current path)
 	//TODO REF LOOKUP PATH4 delete tree if > max mem size, & delete before pulling objects
 	//TODO REF LOOKUP positive and negative caches (?)
-	/* Modifies resolvedPaths in place to add looked up objects. Note the reference path returned
-	 * for looked up objects is currently incorrect. 
+	/* Modifies resolvedPaths in place to add looked up objects and object that don't require
+	 * lookup. Note the reference path returned for looked up objects is currently incorrect. 
 	 */
 	private void searchObjectDAG(
 			final WorkspaceUser user,
 			final Set<ObjectIdentifier> lookup,
-			final SearchDAGStart lus,
 			final ResolvedRefPaths resolvedPaths,
 			final boolean nullIfInaccessible)
-			throws WorkspaceCommunicationException, InaccessibleObjectException {
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+				CorruptWorkspaceDBException {
 		if (lookup.isEmpty()) {
 			return;
 		}
+		final SearchDAGStart lus = searchObjectDAGpreprocess(user, lookup, resolvedPaths);
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = lus.objsResWS;
 		final Set<Long> wsids = lus.readableWorkspaceIDs;
 		Map<ObjectIDResolvedWS, ObjectReferenceSet> startrefs =
