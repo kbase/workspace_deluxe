@@ -1366,6 +1366,23 @@ public class Workspace {
 			}
 		}
 		
+		public ResolvedRefPaths withStandardObjects(
+				final Map<ObjectIdentifier, ObjectIDResolvedWS> std) {
+			if (std == null) {
+				nopath = new HashMap<>();
+			} else {
+				nopath = std;
+			}
+			return this;
+		}
+
+		public ResolvedRefPaths merge(final ResolvedRefPaths merge) {
+			nopath.putAll(merge.nopath);
+			withpath.putAll(merge.withpath);
+			withpathRefPath.putAll(merge.withpathRefPath);
+			return this;
+		}
+		
 	}
 	
 	public List<ObjectInformation> getObjectInformation(
@@ -1452,13 +1469,10 @@ public class Workspace {
 
 		// this should exclude any heads that are deleted, even if nullIfInaccessible is true
 		// do this before starting the search, fail early before the expensive part
-		final ResolvedRefPaths resolvedPaths =
-				resolveReferencePaths(user, refpaths, heads, nullIfInaccessible);
-		resolvedPaths.nopath = std;
+		final ResolvedRefPaths resolvedPaths = resolveReferencePaths(
+				user, refpaths, heads, nullIfInaccessible).withStandardObjects(std);
 		
-		searchObjectDAG(user, lookup, resolvedPaths, nullIfInaccessible);
-		
-		return resolvedPaths;
+		return resolvedPaths.merge(searchObjectDAG(user, lookup, nullIfInaccessible));
 	}
 	
 	//TODO REF LOOKUP PATH1 return reference PATH
@@ -1466,27 +1480,26 @@ public class Workspace {
 	//TODO REF LOOKUP PATH3 prune tree on 1) dead end, 2) node already in tree (path must be shorter than current path)
 	//TODO REF LOOKUP PATH4 delete tree if > max mem size, & delete before pulling objects
 	//TODO REF LOOKUP positive and negative caches (?)
-	/* Modifies resolvedPaths in place to add looked up objects and objects that don't require
-	 * lookup.
-	 * Modifies lookup in place to remove objects that don't need lookup.
+
+	/* Modifies lookup in place to remove objects that don't need lookup.
 	 *  
 	 * Note the reference path returned for looked up objects is currently incorrect. 
 	 */
-	private void searchObjectDAG(
+	private ResolvedRefPaths searchObjectDAG(
 			final WorkspaceUser user,
 			final Set<ObjectIdentifier> lookup,
-			final ResolvedRefPaths resolvedPaths,
 			final boolean nullIfInaccessible)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 				CorruptWorkspaceDBException {
 		if (lookup.isEmpty()) {
-			return;
+			return new ResolvedRefPaths(null, null).withStandardObjects(null);
 		}
 		//could make a method to just get IDs of workspace with specific permission to save mem
 		PermissionSet pset = db.getPermissions(user, Permission.READ, false);
 		Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				searchObjectsResolveWorkspaces(lookup);
 		Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = new HashMap<>();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> nolookup = new HashMap<>();
 		final Iterator<ObjectIdentifier> oiter = lookup.iterator();
 		while (oiter.hasNext()) {
 			final ObjectIdentifier o = oiter.next();
@@ -1494,7 +1507,7 @@ public class Workspace {
 			if (rwsi != null) {
 				final ObjectIDResolvedWS oid = o.resolveWorkspace(rwsi);
 				if (pset.hasWorkspace(rwsi) && !rwsi.isDeleted()) { // workspace has read perm
-					resolvedPaths.nopath.put(o, oid);
+					nolookup.put(o, oid);
 					oiter.remove();
 				} else {
 					resobjs.put(o, oid);
@@ -1526,8 +1539,8 @@ public class Workspace {
 		resobjs = null;
 		startrefs = null;
 		// preprocessing done, move on to the main event
-		searchObjectDAG(user, wsIDs, resolvedPaths, resObjectIDs,
-				searchSet, nullIfInaccessible);
+		return searchObjectDAG(user, wsIDs, resObjectIDs, searchSet, nullIfInaccessible)
+				.withStandardObjects(nolookup);
 	}
 
 	private Set<Long> searchObjectsGetWorkspaceIDs(final PermissionSet pset) {
@@ -1555,10 +1568,9 @@ public class Workspace {
 	}
 	
 	// modifies resolvedPaths in place
-	private void searchObjectDAG(
+	private ResolvedRefPaths searchObjectDAG(
 			final WorkspaceUser user,
 			final Set<Long> wsids,
-			final ResolvedRefPaths resolvedPaths,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> resObjectIDs,
 			final Map<ObjectIdentifier, Set<Reference>> searchrefs,
 			final boolean nullIfInaccessible)
@@ -1567,8 +1579,9 @@ public class Workspace {
 		for (final Set<Reference> refs: searchrefs.values()) {
 			refcount += 1 + refs.size(); // 1 for the starting object
 		}
+		final ResolvedRefPaths resolvedPaths = new ResolvedRefPaths(null, null); //init empty
 		if (refCountExceeded(refcount, !nullIfInaccessible)) {
-			return;
+			return resolvedPaths;
 		}
 		while (!searchrefs.isEmpty()) {
 			final Iterator<ObjectIdentifier> oiter = searchrefs.keySet().iterator();
@@ -1582,15 +1595,7 @@ public class Workspace {
 					} else {
 						// only throw errors here so users can't probe arbitrary workspaces
 						// errors are thrown from same place whether on 1st or later iterations
-						final String verString = o.getVersion() == null ?
-								"The latest version of " :
-								String.format("Version %s of ", o.getVersion());
-						final String userStr = user == null ? "anonymous users" :
-							"user " + user.getUser();
-						throw new InaccessibleObjectException(String.format(
-								"%sobject %s in workspace %s is not accessible to %s",
-								verString, o.getIdentifierString(),
-								o.getWorkspaceIdentifierString(), userStr));
+						throwSearchDAGFailed(user, o);
 					}
 				} else { // could just always do this, has no effect, but since checking anyway...
 					query.addAll(refs);
@@ -1606,11 +1611,22 @@ public class Workspace {
 				searchrefs.put(oi, newrefs);
 			}
 			if (refCountExceeded(refcount, !nullIfInaccessible)) {
-				return;
+				return resolvedPaths;
 			}
 			res = null;
 			findReadableReferences(wsids, searchrefs, resolvedPaths, resObjectIDs);
 		}
+		return resolvedPaths;
+	}
+
+	private void throwSearchDAGFailed(final WorkspaceUser user, final ObjectIdentifier o)
+			throws InaccessibleObjectException {
+		final String verString = o.getVersion() == null ? "The latest version of " :
+				String.format("Version %s of ", o.getVersion());
+		final String userStr = user == null ? "anonymous users" : "user " + user.getUser();
+		throw new InaccessibleObjectException(String.format(
+				"%sobject %s in workspace %s is not accessible to %s",
+				verString, o.getIdentifierString(), o.getWorkspaceIdentifierString(), userStr));
 	}
 	
 	private boolean refCountExceeded(final int refcount, final boolean throwException)
