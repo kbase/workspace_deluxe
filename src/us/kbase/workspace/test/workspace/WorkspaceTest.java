@@ -6258,6 +6258,13 @@ public class WorkspaceTest extends WorkspaceTester {
 				"			}" +
 				"}"
 				);
+		Map<String, Object> data1id2 = createData(
+				"{\"map\": {" +
+				"			\"id2\": {\"id\": 2," +
+				"					  \"thing\": \"foo2\"}" +
+				"			}" +
+				"}"
+				);
 		Map<String, Object> data1id3 = createData(
 				"{\"map\": {" +
 				"			\"id3\": {\"id\": 3," +
@@ -6280,6 +6287,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, Object> data2resolved = createData(
 				data2string.replace("hidden/leaf1", "2/1/1"));
 		
+		Map<String, Object> data2id21 = createData(
+				"{\"map\": {" +
+				"			\"id21\": {\"id\": 1," +
+				"					  \"thing\": \"foo\"}" +
+				"			}" +
+				"}"
+				);
 		
 		Map<String, Object> data2id22 = createData(
 				"{\"map\": {" +
@@ -6343,6 +6357,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				leaf2oi,
 				simplerefoi,
 				(ObjectIdentifier) new ObjectIDWithRefPath(simplerefoi, Arrays.asList(leaf1oi)),
+				(ObjectIdentifier) new ObjectIDWithRefPath(leaf1oi), // auto lookup
 				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(leaf2oi, null,
 						new SubsetSelection(Arrays.asList("/map/id22"))),
 				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(leaf2oi, null,
@@ -6352,24 +6367,31 @@ public class WorkspaceTest extends WorkspaceTester {
 				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(simplerefoi,
 						Arrays.asList(leaf1oi),
 						new SubsetSelection(Arrays.asList("/map/id1"))),
+				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(leaf1oi, // auto lookup
+						new SubsetSelection(Arrays.asList("/map/id2"))),
 				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(simplerefoi,
 						Arrays.asList(leaf1oi),
-						new SubsetSelection(Arrays.asList("/map/id3")))
+						new SubsetSelection(Arrays.asList("/map/id3"))),
+				(ObjectIdentifier) new ObjectIDWithRefPath(leaf2oi), // auto lookup
+				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(simplerefoi, //auto lookup
+						new SubsetSelection(Arrays.asList("/map/id21")))
 				));
-		List<String> mtlist = new LinkedList<String>();
-		Map<String, String> mtmap = new HashMap<String, String>();
-		leaf1 = leaf1.updateReferencePath(Arrays.asList(new Reference(1, 2, 1),
-				new Reference(2, 1, 1)));
+		final ObjectInformation leaf1newPath = leaf1.updateReferencePath(Arrays.asList(
+				new Reference(1, 2, 1), new Reference(2, 1, 1)));
 		try {
-			assertThat("correct list size", lwod.size(), is(8));
-			compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, data2, mtlist, mtmap);
+			assertThat("correct list size", lwod.size(), is(12));
+			compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, data2, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, data2resolved, refs, refmap);
-			compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, data1, mtlist, mtmap);
-			compareObjectAndInfo(lwod.get(3), leaf2, pU1_1, data2id22, mtlist, mtmap);
-			compareObjectAndInfo(lwod.get(4), leaf2, pU1_1, data2map, mtlist, mtmap);
-			compareObjectAndInfo(lwod.get(5), simpleref, pU2_2, data2id23, refs, refmap);
-			compareObjectAndInfo(lwod.get(6), leaf1, pU2_1, data1id1, mtlist, mtmap);
-			compareObjectAndInfo(lwod.get(7), leaf1, pU2_1, data1id3, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(2), leaf1newPath, pU2_1, data1, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(3), leaf1, pU2_1, data1, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(4), leaf2, pU1_1, data2id22, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(5), leaf2, pU1_1, data2map, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(6), simpleref, pU2_2, data2id23, refs, refmap);
+			compareObjectAndInfo(lwod.get(7), leaf1newPath, pU2_1, data1id1, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(8), leaf1, pU2_1, data1id2, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(9), leaf1newPath, pU2_1, data1id3, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(10), leaf2, pU1_1, data2, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(11), simpleref, pU2_2, data2id21, refs, refmap);
 		} finally {
 			destroyGetObjectsResources(lwod);
 		}
@@ -6377,28 +6399,31 @@ public class WorkspaceTest extends WorkspaceTester {
 		lwod = ws.getObjects(user1, Arrays.asList(
 				leaf2oi,
 				simplerefoi,
-				(ObjectIdentifier) new ObjectIDWithRefPath(
-						simplerefoi, Arrays.asList(leaf1oi))
+				(ObjectIdentifier) new ObjectIDWithRefPath(leaf1oi), // auto lookup
+				(ObjectIdentifier) new ObjectIDWithRefPath(simplerefoi, Arrays.asList(leaf1oi)),
+				(ObjectIdentifier) new ObjectIDWithRefPath(leaf2oi) // auto lookup
 				), true);
 		try {
-			compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, null, mtlist, mtmap);
+			assertThat("correct list size", lwod.size(), is(5));
+			compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, null, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, null, refs, refmap);
-			compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, null, mtlist, mtmap);
+			compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, null, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(3), leaf1newPath, pU2_1, null, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(4), leaf2, pU1_1, null, MT_LIST, MT_MAP);
 		} finally {
 			destroyGetObjectsResources(lwod);
 		}
 		// test getting info only
-		List<ObjectInformation> loi = ws.getObjectInformation(user1,
-				Arrays.asList(
-						leaf2oi,
-						simplerefoi,
-						(ObjectIdentifier) new ObjectIDWithRefPath(
-								simplerefoi, Arrays.asList(leaf1oi)),
-						(ObjectIdentifier) new ObjectIDWithRefPath(
-								simplerefoi, null)
+		final List<ObjectInformation> loi = ws.getObjectInformation(user1, Arrays.asList(
+				leaf2oi,
+				simplerefoi,
+				(ObjectIdentifier) new ObjectIDWithRefPath(leaf1oi), // auto lookup
+				(ObjectIdentifier) new ObjectIDWithRefPath(simplerefoi, Arrays.asList(leaf1oi)),
+				(ObjectIdentifier) new ObjectIDWithRefPath(simplerefoi, null),
+				(ObjectIdentifier) new ObjectIDWithRefPath(leaf2oi) // auto lookup
 				), true, false);
 		assertThat("object info different", loi,
-				is(Arrays.asList(leaf2, simpleref, leaf1, simpleref)));
+				is(Arrays.asList(leaf2, simpleref, leaf1, leaf1newPath, simpleref, leaf2)));
 	}
 	
 	@Test
@@ -6589,6 +6614,20 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setPermissions(user2, wsUser2acc, Arrays.asList(user1), Permission.NONE);
 		ws.setWorkspaceDeleted(user1, wsUser1, false);
 		
+		/* test object position is maintained when failing to get an object by standard methods, 
+		 * a ref path and by lookup at the same time 
+		 */
+		failGetReferencedObjects(user1, Arrays.asList(
+				new ObjectIDWithRefPath(new ObjectIdentifier(wsUser1, 1), null), // should work
+				new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1)), // should work
+				new ObjectIDWithRefPath(new ObjectIdentifier(wsUser1, 2), Arrays.asList(
+						new ObjectIdentifier(wsUser2, ref2Name),
+						new ObjectIdentifier(wsUser2, 10)))),
+				new NoSuchReferenceException(
+						"Reference chain #3, position 2: Object ref2 in workspace wsu2 does " +
+						"not contain a reference to object 10 in workspace wsu2", null, null),
+				Sets.newHashSet(2));
+	
 		// fail getting objects due to exceeding the allowed search size
 		try {
 			ws.setMaximumObjectSearchCount(3); // tests first time check - mongodb impl
