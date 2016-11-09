@@ -2934,7 +2934,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("get objects with bad params");
 		} catch (ServerException se) {
 			assertThat("wrong exception message", se.getLocalizedMessage(),
-					is("Error on ObjectSpecification #1: Only one of the 5 " +
+					is("Error on ObjectSpecification #1: Only one of the 6 " +
 							"options for specifying an object reference " +
 							"path is allowed"));
 		}
