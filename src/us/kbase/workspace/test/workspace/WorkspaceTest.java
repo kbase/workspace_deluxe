@@ -6513,11 +6513,25 @@ public class WorkspaceTest extends WorkspaceTester {
 			destroyGetObjectsResources(lwod);
 		}
 		
+		// test getting an object anonymously
+		ws.setGlobalPermission(user1, wsUser1, Permission.READ);
+		checkReferencedObject(null, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)),
+				leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+		ws.setGlobalPermission(user1, wsUser1, Permission.NONE);
+		
 		// test getting a deleted object
 		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 2, 1)),
 				delleaf, p2, MT_MAP, MT_LIST, MT_MAP);
 		
 		// test getting an object in a deleted workspace
+			//that's readable
+		ws.setPermissions(user2, wsUser2, Arrays.asList(user1), Permission.READ);
+		ws.setWorkspaceDeleted(user2, wsUser2, true);
+		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)),
+				leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+			//that's unreadable
+		ws.setWorkspaceDeleted(user2, wsUser2, false);
+		ws.setPermissions(user2, wsUser2, Arrays.asList(user1), Permission.NONE);
 		ws.setWorkspaceDeleted(user2, wsUser2, true);
 		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)),
 				leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
@@ -6528,6 +6542,12 @@ public class WorkspaceTest extends WorkspaceTester {
 				SAFE_TYPE1, leaf1Name, p2);
 		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser1, 3, 1)),
 				direct, p2, MT_MAP, MT_LIST, MT_MAP);
+		
+		//fail getting an object anonymously
+		failGetReferencedObjects(null, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsUser2, 1))),
+				new InaccessibleObjectException("The latest version of object 1 in workspace " +
+						"wsu2 is not accessible to anonymous users"));
 		
 		// fail getting an object due to a bad identifier
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(

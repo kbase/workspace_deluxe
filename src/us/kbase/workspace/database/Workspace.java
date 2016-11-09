@@ -1437,7 +1437,7 @@ public class Workspace {
 		for (final ObjectIdentifier o: loi) {
 			if (lookup.contains(o)) { // need to do a lookup on this one, skip
 				refpaths.add(null); //maintain count for error reporting
-			} else if (ws.get(o) == null) { // do nothing
+			} else if (ws.get(o) == null) { // skip, workspace wasn't resolved
 				// error reporting is off, so no need to keep track of location in list
 			} else if (o instanceof ObjectIDWithRefPath &&
 					((ObjectIDWithRefPath) o).hasRefPath()) {
@@ -1600,10 +1600,12 @@ public class Workspace {
 						final String verString = o.getVersion() == null ?
 								"The latest version of " :
 								String.format("Version %s of ", o.getVersion());
+						final String userStr = user == null ? "anonymous users" :
+							"user " + user.getUser();
 						throw new InaccessibleObjectException(String.format(
-								"%sobject %s in workspace %s is not accessible to user %s",
+								"%sobject %s in workspace %s is not accessible to %s",
 								verString, o.getIdentifierString(),
-								o.getWorkspaceIdentifierString(), user.getUser()));
+								o.getWorkspaceIdentifierString(), userStr));
 					}
 				} else { // could just always do this, has no effect, but since checking anyway...
 					query.addAll(refs);
