@@ -1581,6 +1581,7 @@ public class Workspace {
 		if (refCountExceeded(refcount, !nullIfInaccessible)) {
 			return resolvedPaths;
 		}
+		findReadableReferences(wsids, searchrefs, resolvedPaths, resObjectIDs);
 		while (!searchrefs.isEmpty()) {
 			final Iterator<ObjectIdentifier> oiter = searchrefs.keySet().iterator();
 			Set<Reference> query = new HashSet<Reference>();
@@ -1654,7 +1655,6 @@ public class Workspace {
 	
 	/* Modifies searchrefs in place to remove objects with valid ref paths.
 	 * Modifies resolvedPaths in place to add objects with valid ref paths and fake paths.
-	 * 
 	 */
 	private void findReadableReferences(
 			final Set<Long> wsids,

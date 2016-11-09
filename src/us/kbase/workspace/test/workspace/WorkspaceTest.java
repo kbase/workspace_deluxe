@@ -6459,6 +6459,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		final ObjectInformation delleaf = saveObject(user2, wsUser2, makeMeta(3), MT_MAP,
 				SAFE_TYPE1, delLeafName, p2);
 		final String delLeafRef = wsUser2.getName() + "/" + delLeafName + "/" + 1;
+
+		// this leaf will only have a len 2 path
+		final String path2LeafName = "path2leaf";
+		final ObjectInformation path2 = saveObject(user2, wsUser2, makeMeta(4), MT_MAP,
+				SAFE_TYPE1, path2LeafName, p2);
+		final String path2LeafRef = wsUser2.getName() + "/" + path2LeafName + "/" + 1;
+		
+		/* LEVEL 1 REFS */
 		
 		// this ref points to leaf 1-1 and del leaf, so will test refs pointing away from the
 		// target object in the DAG
@@ -6472,6 +6480,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		final String ref2Name = "ref2"; // 1 hop
 		saveObject(user2, wsUser2, MT_MAP, makeRefData(leaf1_2ref), reftype, ref2Name, p2);
 		final String ref2ref = wsUser2.getName() + "/" + ref2Name + "/" + 1;
+		
+		final String path2refName = "path2ref";
+		saveObject(user2, wsUser1, MT_MAP, makeRefData(path2LeafRef), reftype, path2refName, p2);
+		
+		/* LEVEL 2 REFS */
 		
 		final String refref1Name = "refref1"; // 2 hops
 		final Provenance p2withRef = new Provenance(user2).addAction(new ProvenanceAction()
@@ -6488,6 +6501,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		saveObject(user2, wsDel, MT_MAP, makeRefData(ref1ref), reftype, delRef1, p2);
 		ws.setWorkspaceDeleted(user1, wsDel, true);
 		
+		final String refref2Name = "refref2"; // 2 hops
+		saveObject(user2, wsUser1, MT_MAP, makeRefData(ref2ref), reftype, refref2Name, p2);
+		
+		/* LEVEL 3 REFS */
+		
 		final String refrefref1Name = "refrefref1"; // 3 hops
 		saveObject(user2, wsUser1, MT_MAP, makeRefData(refref1ref), reftype, refrefref1Name, p2);
 		
@@ -6495,8 +6513,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		saveObject(user2, wsUser2acc, MT_MAP, makeRefData(refref1ref), reftype, refrefref1AccName,
 				p2);
 		
-		final String refref2Name = "refref2"; // 2 hops
-		saveObject(user2, wsUser1, MT_MAP, makeRefData(ref2ref), reftype, refref2Name, p2);
 		
 		//check target objects can't be accessed
 		failGetObjects(user1, Arrays.asList(ObjectIdentifier.parseObjectReference(leaf1_1ref)),
@@ -6523,9 +6539,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, leaf1Name)));
 		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsi2, leaf1Name, 1)));
 		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsi2, leaf1Name, 2)));
+		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsi2, path2LeafName, 1))); // 1 hop path
 		final List<WorkspaceObjectData> lwod = ws.getObjects(user1, a);
 		try {
-			assertThat("correct list size", lwod.size(), is(8));
+			assertThat("correct list size", lwod.size(), is(9));
 			compareObjectAndInfo(lwod.get(0), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(1), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(2), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
@@ -6534,9 +6551,14 @@ public class WorkspaceTest extends WorkspaceTester {
 			compareObjectAndInfo(lwod.get(5), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(6), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(7), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(8), path2, p2, MT_MAP, MT_LIST, MT_MAP);
 		} finally {
 			destroyGetObjectsResources(lwod);
 		}
+		
+		// test getting only an object with a 1 hop path (doesn't go through search loop)
+		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(
+				wsUser2, path2LeafName, 1)), path2, p2, MT_MAP, MT_LIST, MT_MAP);
 		
 		// test getting an object anonymously
 		ws.setGlobalPermission(user1, wsUser1, Permission.READ);
@@ -6565,7 +6587,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		// test getting an object that has direct access
 		final ObjectInformation direct = saveObject(user2, wsUser1, makeMeta(100), MT_MAP,
 				SAFE_TYPE1, leaf1Name, p2);
-		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser1, 3, 1)),
+		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser1, 4, 1)),
 				direct, p2, MT_MAP, MT_LIST, MT_MAP);
 		
 		//fail getting an object anonymously
@@ -6573,6 +6595,12 @@ public class WorkspaceTest extends WorkspaceTester {
 				new ObjectIdentifier(wsUser2, 1))),
 				new InaccessibleObjectException("The latest version of object 1 in workspace " +
 						"wsu2 is not accessible to anonymous users"));
+		
+		//fail getting an object with no references
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsUser2, deadEndRef1))),
+				new InaccessibleObjectException("The latest version of object deadEnd1 in " +
+						"workspace wsu2 is not accessible to user u1"));
 		
 		// fail getting an object due to a bad identifier
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
@@ -6595,11 +6623,18 @@ public class WorkspaceTest extends WorkspaceTester {
 						"Version 10 of object 1 in workspace wsu2 is not accessible to user u1"));
 		
 		// fail getting an object because the head of the path is deleted
+			// for a 1 hop path
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsUser1, 1, 1)), true);
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsUser2, 4, 1))), new InaccessibleObjectException(
+						"Version 1 of object 4 in workspace wsu2 is not accessible to user u1"));
+		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsUser1, 1, 1)), false);
+			// for a 3 hop path
+		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsUser1, 3, 1)), true);
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
 				new ObjectIdentifier(wsUser2, 1, 1))), new InaccessibleObjectException(
 						"Version 1 of object 1 in workspace wsu2 is not accessible to user u1"));
-		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsUser1, 1, 1)), false);
+		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsUser1, 3, 1)), false);
 		
 		/* fail getting an object because the head of the path is in a deleted workspace and
 		 * then test accessing the object from a newly readable workspace
@@ -6618,7 +6653,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		 * a ref path and by lookup at the same time 
 		 */
 		failGetReferencedObjects(user1, Arrays.asList(
-				new ObjectIDWithRefPath(new ObjectIdentifier(wsUser1, 1), null), // should work
+				new ObjectIDWithRefPath(new ObjectIdentifier(wsUser1, 3), null), // should work
 				new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1)), // should work
 				new ObjectIDWithRefPath(new ObjectIdentifier(wsUser1, 2), Arrays.asList(
 						new ObjectIdentifier(wsUser2, ref2Name),
