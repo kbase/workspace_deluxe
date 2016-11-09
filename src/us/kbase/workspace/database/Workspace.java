@@ -1475,14 +1475,13 @@ public class Workspace {
 		return resolvedPaths.merge(searchObjectDAG(user, lookup, nullIfInaccessible));
 	}
 	
-	//TODO REF LOOKUP PATH1 return reference PATH
+	//TODO REF LOOKUP PATH1 return reference path
 	//TODO REF LOOKUP PATH2 keep reference search tree in memory - calc mem
 	//TODO REF LOOKUP PATH3 prune tree on 1) dead end, 2) node already in tree (path must be shorter than current path)
 	//TODO REF LOOKUP PATH4 delete tree if > max mem size, & delete before pulling objects
 	//TODO REF LOOKUP positive and negative caches (?)
 
 	/* Modifies lookup in place to remove objects that don't need lookup.
-	 *  
 	 * Note the reference path returned for looked up objects is currently incorrect. 
 	 */
 	private ResolvedRefPaths searchObjectDAG(
@@ -1567,7 +1566,6 @@ public class Workspace {
 		}
 	}
 	
-	// modifies resolvedPaths in place
 	private ResolvedRefPaths searchObjectDAG(
 			final WorkspaceUser user,
 			final Set<Long> wsids,

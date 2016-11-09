@@ -335,6 +335,18 @@ module Workspace {
 			options, the ref_string represents the ENTIRE path from the source
 			object to the target object. As with the OI object, the ref field
 			may contain a single reference.
+		- OR -
+		boolean find_refence_path - This is the last, slowest, and most expensive resort
+			for getting a referenced object - do not use this method unless the
+			path to the object is unavailable by any other means. Setting the
+			find_refence_path parameter to true means that the workspace service will
+			search through the object reference graph from the object specified
+			in this OS to find an object that 1) the user can access, and 2)
+			has an unbroken reference path to the target object. If the search
+			succeeds, the object will be returned as normal. Note that the search
+			will automatically fail after a certain (but much larger than necessary
+			for the vast majority of cases) number of objects are traversed.
+			
 		
 		OBJECT SUBSETS:
 		
@@ -369,6 +381,7 @@ module Workspace {
 		list<obj_ref> obj_ref_path;
 		ref_chain to_obj_path;
 		list<obj_ref> to_obj_ref_path;
+		boolean find_reference_path;
 		list<object_path> included;
 		boolean strict_maps;
 		boolean strict_arrays;
