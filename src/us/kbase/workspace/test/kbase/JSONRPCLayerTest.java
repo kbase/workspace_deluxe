@@ -2925,7 +2925,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			throw e;
 		}
 		
-		
 		try {
 			CLIENT1.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
 					new ObjectSpecification().withRef("referenced/ref").withObjRefPath(
@@ -3068,12 +3067,22 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new ObjectSpecification().withRef("referenced/prov")
 						.withObjPath(Arrays.asList(new ObjectIdentity()
 								.withRef("referencedPriv/two"))));
-		res = CLIENT1.getObjects2(new GetObjects2Params()
-				.withObjects(refobjlist)).getData();
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(refobjlist)).getData();
 		compareData(exp, res);
 		
 		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
 				.withObjects(refobjlist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+		// test getobjs2 and getinfo with automatic lookup
+		final List<ObjectSpecification> searchobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referencedPriv/one").withFindReferencePath(1L),
+				new ObjectSpecification().withRef("referencedPriv/two").withFindReferencePath(1L));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(searchobjlist)).getData();
+		compareData(exp, res);
+
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(searchobjlist).withIncludeMetadata(1L));
 		compareInfo(info, exp);
 	}
 	

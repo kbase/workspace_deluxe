@@ -703,19 +703,16 @@ public class WorkspaceServer extends JsonServerServlet {
     public GetObjects2Results getObjects2(GetObjects2Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         GetObjects2Results returnVal = null;
         //BEGIN get_objects2
-		checkAddlArgs(params.getAdditionalProperties(),
-				GetObjects2Params.class);
+		checkAddlArgs(params.getAdditionalProperties(), GetObjects2Params.class);
 		final List<ObjectIdentifier> loi =
 				processObjectSpecifications(params.getObjects());
 		final boolean noData = longToBoolean(params.getNoData(), false);
-		final boolean ignoreErrors = longToBoolean(
-				params.getIgnoreErrors(), false);
+		final boolean ignoreErrors = longToBoolean(params.getIgnoreErrors(), false);
 		final List<WorkspaceObjectData> objects = ws.getObjects(
 				wsmeth.getUser(authPart), loi, noData, ignoreErrors);
 		resourcesToDelete.set(objects);
 		returnVal = new GetObjects2Results().withData(translateObjectData(
-				objects, wsmeth.getUser(authPart), handleManagerUrl,
-				handleMgrToken, true));
+				objects, wsmeth.getUser(authPart), handleManagerUrl, handleMgrToken, true));
         //END get_objects2
         return returnVal;
     }
