@@ -1460,73 +1460,17 @@ public class Workspace {
 		
 		return resolvedPaths;
 	}
-
-	private class SearchDAGStart {
-		
-		public final Set<Long> readableWorkspaceIDs;
-		public final Map<ObjectIdentifier, ObjectIDResolvedWS> objsResWS;
-		
-		public SearchDAGStart(
-				final Set<Long> wsids,
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> objsResWS) {
-			super();
-			this.readableWorkspaceIDs = wsids;
-			this.objsResWS = objsResWS;
-		}
-		
-	}
 	
-	/* Modifies lookup and resolvedpaths in place. Any object in lookup to which the user has direct read
-	 * permissions is removed from lookup (e.g. set to null) and added to resolvedpaths.
-	 */
-	private SearchDAGStart searchObjectDAGpreprocess(
-			final WorkspaceUser user,
-			final Set<ObjectIdentifier> lookup,
-			final ResolvedRefPaths resolvedPaths)
-			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		//could make a method to just get IDs of workspace with specific permission to save mem
-		final PermissionSet pset = db.getPermissions(user, Permission.READ, false);
-		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
-		for (final ObjectIdentifier o: lookup) {
-			wsis.add(o.getWorkspaceIdentifier());
-		}
-		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
-		try {
-			rwsis = db.resolveWorkspaces(wsis, true, true);
-		} catch (NoSuchWorkspaceException e) {
-			throw new RuntimeException("Threw exception when explicitly told not to", e);
-		}
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resois = new HashMap<>();
-		final Iterator<ObjectIdentifier> oiter = lookup.iterator();
-		while (oiter.hasNext()) {
-			final ObjectIdentifier o = oiter.next();
-			final ResolvedWorkspaceID rwsi = rwsis.get(o.getWorkspaceIdentifier());
-			if (rwsi != null) {
-				final ObjectIDResolvedWS oid = o.resolveWorkspace(rwsi);
-				if (pset.hasWorkspace(rwsi) && !rwsi.isDeleted()) { // workspace has read perm
-					resolvedPaths.nopath.put(o, oid);
-					oiter.remove();
-				} else {
-					resois.put(o, oid);
-				}
-			}
-		}
-		final Set<Long> wsids = new HashSet<>();
-		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			if (!rwsi.isDeleted()) {
-				wsids.add(rwsi.getID());
-			}
-		}
-		return new SearchDAGStart(wsids, resois);
-	}
-
 	//TODO REF LOOKUP PATH1 return reference PATH
 	//TODO REF LOOKUP PATH2 keep reference search tree in memory - calc mem
 	//TODO REF LOOKUP PATH3 prune tree on 1) dead end, 2) node already in tree (path must be shorter than current path)
 	//TODO REF LOOKUP PATH4 delete tree if > max mem size, & delete before pulling objects
 	//TODO REF LOOKUP positive and negative caches (?)
-	/* Modifies resolvedPaths in place to add looked up objects and object that don't require
-	 * lookup. Note the reference path returned for looked up objects is currently incorrect. 
+	/* Modifies resolvedPaths in place to add looked up objects and objects that don't require
+	 * lookup.
+	 * Modifies lookup in place to remove objects that don't need lookup.
+	 *  
+	 * Note the reference path returned for looked up objects is currently incorrect. 
 	 */
 	private void searchObjectDAG(
 			final WorkspaceUser user,
@@ -1538,9 +1482,29 @@ public class Workspace {
 		if (lookup.isEmpty()) {
 			return;
 		}
-		final SearchDAGStart lus = searchObjectDAGpreprocess(user, lookup, resolvedPaths);
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = lus.objsResWS;
-		final Set<Long> wsids = lus.readableWorkspaceIDs;
+		//could make a method to just get IDs of workspace with specific permission to save mem
+		PermissionSet pset = db.getPermissions(user, Permission.READ, false);
+		Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
+				searchObjectsResolveWorkspaces(lookup);
+		Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = new HashMap<>();
+		final Iterator<ObjectIdentifier> oiter = lookup.iterator();
+		while (oiter.hasNext()) {
+			final ObjectIdentifier o = oiter.next();
+			final ResolvedWorkspaceID rwsi = rwsis.get(o.getWorkspaceIdentifier());
+			if (rwsi != null) {
+				final ObjectIDResolvedWS oid = o.resolveWorkspace(rwsi);
+				if (pset.hasWorkspace(rwsi) && !rwsi.isDeleted()) { // workspace has read perm
+					resolvedPaths.nopath.put(o, oid);
+					oiter.remove();
+				} else {
+					resobjs.put(o, oid);
+				}
+			}
+		}
+		final Set<Long> wsIDs = searchObjectsGetWorkspaceIDs(pset);
+		pset = null;
+		rwsis = null;
+		
 		Map<ObjectIDResolvedWS, ObjectReferenceSet> startrefs =
 				db.getObjectIncomingReferencesForObjIDs(new HashSet<>(resobjs.values()));
 		// this differs from resobjs in that the resolved objects are absolute
@@ -1559,11 +1523,35 @@ public class Workspace {
 				searchSet.put(o, new HashSet<Reference>());
 			}
 		}
-		resobjs.clear();
+		resobjs = null;
 		startrefs = null;
-		
-		searchObjectDAG(user, wsids, resolvedPaths, resObjectIDs, searchSet,
-				nullIfInaccessible);
+		// preprocessing done, move on to the main event
+		searchObjectDAG(user, wsIDs, resolvedPaths, resObjectIDs,
+				searchSet, nullIfInaccessible);
+	}
+
+	private Set<Long> searchObjectsGetWorkspaceIDs(final PermissionSet pset) {
+		final Set<Long> wsids = new HashSet<>();
+		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
+			if (!rwsi.isDeleted()) {
+				wsids.add(rwsi.getID());
+			}
+		}
+		return wsids;
+	}
+
+	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> searchObjectsResolveWorkspaces(
+			final Set<ObjectIdentifier> lookup)
+			throws WorkspaceCommunicationException {
+		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
+		for (final ObjectIdentifier o: lookup) {
+			wsis.add(o.getWorkspaceIdentifier());
+		}
+		try {
+			return db.resolveWorkspaces(wsis, true, true);
+		} catch (NoSuchWorkspaceException e) {
+			throw new RuntimeException("Threw exception when explicitly told not to", e);
+		}
 	}
 	
 	// modifies resolvedPaths in place
