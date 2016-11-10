@@ -35,7 +35,7 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.LocalTypeProvider;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -50,10 +50,10 @@ import us.kbase.typedobj.test.DummyValidatedTypedObject;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ListObjectsParameters;
-import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDWithRefChain;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -285,14 +285,14 @@ public class MongoInternalsTest {
 				noWSExcp);
 		
 		// test get referenced objects
-		final ObjectIDWithRefChain oc = new ObjectIDWithRefChain(
+		final ObjectIDWithRefPath oc = new ObjectIDWithRefPath(
 				clnobj, Arrays.asList(stdobj));
 		WorkspaceTester.failGetReferencedObjects(ws, user1, Arrays.asList(oc),
 				noObjExcp, false, new HashSet<>(Arrays.asList(0)));
 		
 		// test get subset
-		final ObjIDWithChainAndSubset os = new ObjIDWithChainAndSubset(
-				clnobj, null, new ObjectPaths(Arrays.asList("/foo")));
+		final ObjIDWithRefPathAndSubset os = new ObjIDWithRefPathAndSubset(
+				clnobj, null, new SubsetSelection(Arrays.asList("/foo")));
 		WorkspaceTester.failGetSubset(ws, user1, Arrays.asList(os), noObjExcp);
 		
 		//test get ws desc
@@ -744,16 +744,16 @@ public class MongoInternalsTest {
 		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw));
 		failGetObjectsNoSuchObjectExcp(oidset,
-				String.format("No object with name %s exists in workspace %s",
+				String.format("No object with name %s exists in workspace %s (name setGetRace)",
 						objname, rwsi.getID()));
 		
 		try {
 			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
 			fail("copied object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
-							objname, rwsi.getID())));
+			assertThat("correct exception message", nsoe.getMessage(), is(String.format(
+					"No object with name %s exists in workspace %s (name setGetRace)",
+					objname, rwsi.getID())));
 		}
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi2.getName(), false, null,
@@ -763,8 +763,8 @@ public class MongoInternalsTest {
 		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
 				rso.getObjectIdentifier().getName());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
-					Arrays.asList(oidrw2_1)),
-					String.format("No object with name %s exists in workspace %s",
+					Arrays.asList(oidrw2_1)), String.format(
+							"No object with name %s exists in workspace %s (name setGetRace2)",
 							objname, rwsi2.getID()));
 
 		ObjectIDResolvedWS oidrw2_2 = new ObjectIDResolvedWS(rwsi2,
@@ -782,15 +782,15 @@ public class MongoInternalsTest {
 		Set<ObjectIDResolvedWS> oidsetver = new HashSet<ObjectIDResolvedWS>();
 		oidsetver.add(oidrwWithVer);
 		failGetObjectsNoSuchObjectExcp(oidsetver,
-				String.format("No object with name %s exists in workspace %s",
+				String.format("No object with name %s exists in workspace %s (name setGetRace)",
 						objname, rwsi.getID()));
 		
 		try {
 			mwdb.copyObject(user, oidrwWithVer, new ObjectIDResolvedWS(rwsi, "foo"));
 			fail("copied object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
+			assertThat("correct exception message", nsoe.getMessage(), is(String.format(
+					"No object with name %s exists in workspace %s (name setGetRace)",
 							objname, rwsi.getID())));
 		}
 		
@@ -811,7 +811,7 @@ public class MongoInternalsTest {
 				rso.getObjectIdentifier().getName());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw3_1)),
-				String.format("No object with name %s exists in workspace %s",
+				String.format("No object with name %s exists in workspace %s (name setGetRace3)",
 						objname, rwsi3.getID()));
 
 		ObjectIDResolvedWS oidrw3_2 = new ObjectIDResolvedWS(rwsi3,
@@ -824,9 +824,9 @@ public class MongoInternalsTest {
 			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
 			fail("copied object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
-							objname, rwsi.getID())));
+			assertThat("correct exception message", nsoe.getMessage(), is(String.format(
+					"No object with name %s exists in workspace %s",
+					objname, rwsi.getID())));
 		}
 		
 		try {
@@ -858,8 +858,8 @@ public class MongoInternalsTest {
 			Set<ObjectIDResolvedWS> oidsetver, String msg)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException {
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
+				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
 		for (final ObjectIDResolvedWS o: oidsetver) {
 			paths.put(o, null);
 		}

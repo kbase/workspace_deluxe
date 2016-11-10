@@ -32,7 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import us.kbase.common.test.TestException;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.SubdataExtractor;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
@@ -128,13 +128,13 @@ public class ObjectExtractionByPathTest {
 		for(int k=0; k<paths.size(); k++) {
 			pathStrings.add(paths.get(k).asText());
 		}
-		ObjectPaths op;
+		SubsetSelection op;
 		try {
 			JsonNode extract;
 			if (strict != null) {
-			    op = new ObjectPaths(pathStrings, strict.asBoolean(), ObjectPaths.STRICT_ARRAYS_DEFAULT);
+			    op = new SubsetSelection(pathStrings, strict.asBoolean(), SubsetSelection.STRICT_ARRAYS_DEFAULT);
 			} else {
-			    op = new ObjectPaths(pathStrings);
+			    op = new SubsetSelection(pathStrings);
 			}
             extract = SubdataExtractor.extract(op, data);
 			

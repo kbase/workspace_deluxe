@@ -47,7 +47,7 @@
   <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
   <property name="jardir" location="${env.JENKINS_JARS_MODULE_PATH}/lib/jars"/>
 
-  <condition property="commonjar" value="kbase/common/kbase-common-0.0.20.jar">
+  <condition property="commonjar" value="kbase/common/kbase-common-0.0.21.jar">
     <or>
       <equals arg1="${env.JENKINS_JAVA_COMMON_JARFILE}" arg2=""/>
       <not>
@@ -73,7 +73,7 @@
 
   <fileset dir="${jardir}" id="clientserverlib">
     <include name="junit/junit-4.9.jar"/>
-    <include name="kbase/auth/kbase-auth-0.4.1.jar"/>
+    <include name="kbase/auth/kbase-auth-0.4.2.jar"/>
     <include name="jackson/jackson-annotations-2.2.3.jar"/>
     <include name="jackson/jackson-core-2.2.3.jar"/>
     <include name="jackson/jackson-databind-2.2.3.jar"/>
@@ -171,16 +171,19 @@
     <javac destdir="${client_classes}" includeantruntime="false" target="1.6" source="1.6"
       debug="true" classpathref="compile.classpath">
       <src path="${src}"/>
+      <exclude name="AllWorkspaceTestsRunner.java"/>
       <exclude name="us/kbase/typedobj/**"/>
+      <exclude name="us/kbase/common/**"/>
       <exclude name="us/kbase/workspace/WorkspaceServer.java"/>
       <exclude name="us/kbase/workspace/database/**"/>
+      <exclude name="us/kbase/workspace/docserver/**"/>
       <exclude name="us/kbase/workspace/exceptions/**"/>
       <exclude name="us/kbase/workspace/kbase/**"/>
       <exclude name="us/kbase/workspace/test/**"/>
       <exclude name="us/kbase/workspace/lib/**"/>
     </javac>
     <jar destfile="${dist}/client/${clientjar.file}" basedir="${client_classes}"/>
-  	<delete dir="${client_classes}"/>
+    <delete dir="${client_classes}"/>
   </target>
 
   <target name="compile" depends="init" description="compile the source">

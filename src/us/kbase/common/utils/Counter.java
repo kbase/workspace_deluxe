@@ -8,6 +8,7 @@ package us.kbase.common.utils;
  */
 
 //TODO MOVE move to common
+//TODO TEST unittest
 
 public class Counter
 {

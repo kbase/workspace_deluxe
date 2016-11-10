@@ -3,7 +3,6 @@
 	<classpathentry excluding=".gitignore" kind="src" path="test"/>
 	<classpathentry kind="src" path="server_scripts"/>
 	<classpathentry excluding=".gitignore" kind="src" path="src"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-logging-1.1.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/slf4j/slf4j-api-1.7.7.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/ini4j/ini4j-0.5.2.jar"/>
@@ -58,7 +57,8 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/shock/shock-client-0.0.14.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/HandleManagerClient-160803-08c8da3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/HandleServiceClient-160803-b9de699.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.0.20.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth/kbase-auth-0.4.1.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth/kbase-auth-0.4.2.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.0.21.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

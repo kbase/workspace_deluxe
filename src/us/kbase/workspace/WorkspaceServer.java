@@ -31,11 +31,11 @@ import static us.kbase.workspace.kbase.ArgUtils.translateObjectInfoList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectSpecifications;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectIdentifiers;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifiers;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
+import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifiers;
+import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.net.URL;
@@ -67,7 +67,7 @@ import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.ObjectIDWithRefChain;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -113,7 +113,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.5.0";
+	private static final String VER = "0.5.1-dev1";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -703,19 +703,16 @@ public class WorkspaceServer extends JsonServerServlet {
     public GetObjects2Results getObjects2(GetObjects2Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         GetObjects2Results returnVal = null;
         //BEGIN get_objects2
-		checkAddlArgs(params.getAdditionalProperties(),
-				GetObjects2Params.class);
+		checkAddlArgs(params.getAdditionalProperties(), GetObjects2Params.class);
 		final List<ObjectIdentifier> loi =
 				processObjectSpecifications(params.getObjects());
 		final boolean noData = longToBoolean(params.getNoData(), false);
-		final boolean ignoreErrors = longToBoolean(
-				params.getIgnoreErrors(), false);
+		final boolean ignoreErrors = longToBoolean(params.getIgnoreErrors(), false);
 		final List<WorkspaceObjectData> objects = ws.getObjects(
 				wsmeth.getUser(authPart), loi, noData, ignoreErrors);
 		resourcesToDelete.set(objects);
 		returnVal = new GetObjects2Results().withData(translateObjectData(
-				objects, wsmeth.getUser(authPart), handleManagerUrl,
-				handleMgrToken, true));
+				objects, wsmeth.getUser(authPart), handleManagerUrl, handleMgrToken, true));
         //END get_objects2
         return returnVal;
     }
@@ -870,7 +867,7 @@ public class WorkspaceServer extends JsonServerServlet {
 						"Error on object chain #%s: The minimum size of a reference chain is 2 ObjectIdentities",
 						count));
 			}
-			chains.add(new ObjectIDWithRefChain(
+			chains.add(new ObjectIDWithRefPath(
 					lor.get(0), lor.subList(1, lor.size())));
 			count++;
 		}

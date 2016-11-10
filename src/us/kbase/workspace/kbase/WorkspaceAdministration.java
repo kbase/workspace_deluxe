@@ -1,7 +1,7 @@
 package us.kbase.workspace.kbase;
 
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 
 import java.io.IOException;
 import java.text.ParseException;

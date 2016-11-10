@@ -41,6 +41,7 @@ public class Fields {
 	public static final String OBJ_DEL = "del";
 	public static final String OBJ_HIDE = "hide";
 	public static final String OBJ_REFCOUNTS = "refcnt";
+	//TODO DBUPDATE remove this field. Deleting versions is out, just delete the entire object.
 	public static final String OBJ_LATEST = "latest";
 
 	// workspace version fields

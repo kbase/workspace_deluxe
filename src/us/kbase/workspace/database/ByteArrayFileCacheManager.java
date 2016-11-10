@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.SubdataExtractor;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
@@ -151,7 +151,7 @@ public class ByteArrayFileCacheManager {
 
 	@SuppressWarnings("resource")
 	public ByteArrayFileCache getSubdataExtraction(
-			final ByteArrayFileCache parent, final ObjectPaths paths)
+			final ByteArrayFileCache parent, final SubsetSelection paths)
 			throws TypedObjectExtractionException,
 			FileCacheLimitExceededException, FileCacheIOException {
 		final OutputStream[] origin = {new ByteArrayOutputStream()};
@@ -303,7 +303,7 @@ public class ByteArrayFileCacheManager {
 			}
 		}
 		
-		private void getSubdataExtractionAsStream(final ObjectPaths paths, 
+		private void getSubdataExtractionAsStream(final SubsetSelection paths, 
 				final OutputStream os)
 				throws TypedObjectExtractionException {
 			checkIfDestroyed();

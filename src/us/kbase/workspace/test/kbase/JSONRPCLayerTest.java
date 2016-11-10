@@ -87,7 +87,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.0"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.5.1-dev1"));
 	}
 	
 	public void status() throws Exception {
@@ -887,6 +887,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
 				.withMeta(meta2).withType(SAFE_TYPE).withObjid(2L));
 		
+		// tests saving with workspace id instead of name
+		soc.withWorkspace(null).withId(wsid);
 		retmet = CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(1));
@@ -974,9 +976,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.set(2, new ObjectIdentity().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
 		failGetObjects(loi, "Object 1 cannot be accessed: No workspace with id 20000000000000000 exists");
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
-		failGetObjects(loi, "No object with id 300 exists in workspace " + wsid);
+		failGetObjects(loi, "No object with id 300 exists in workspace 1 (name saveget)");
 		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
-		failGetObjects(loi, "No object with name ultrafakeobj exists in workspace " + wsid);
+		failGetObjects(loi, "No object with name ultrafakeobj exists in workspace 1 " +
+				"(name saveget)");
 		
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("setgetunreadableto1"));
 		loi.set(2, new ObjectIdentity().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
@@ -1252,10 +1255,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkListObjectsDep("depsave", null, null, AUTH_USER2.getTokenString(), Arrays.asList(obj1, obj3));
 		
 		String invalidToken = AUTH_USER2.getTokenString() + "a";
+		String badFormatToken = "borkborkbork";
+		// old auth service
 		String invalidTokenExp =
 				"Login failed! Server responded with code 401 UNAUTHORIZED";
-		String badFormatToken = "borkborkbork";
 		String badFormatTokenExp = "Login failed! Invalid token";
+		// new auth service
+//		String invalidTokenExp =
+//				"Login failed! Server responded with code 401 Unauthorized";
+//		String badFormatTokenExp = invalidTokenExp;
+		
 		
 		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
 				.withWorkspace("depsave").withAuth(invalidToken),
@@ -1675,7 +1684,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("delundel")
 				.withDescription("foo"));
 		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("delundel");
-		long wsid = CLIENT1.getWorkspaceInfo(wsi).getE1();
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
@@ -1691,7 +1699,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkData(loi, data);
 		CLIENT1.deleteObjects(loi);
 		
-		failGetObjects(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name delundel) " +
+				"has been deleted");
 
 		CLIENT1.undeleteObjects(loi);
 		checkData(loi, data);
@@ -1712,7 +1721,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				is("foo"));
 		CLIENT1.deleteObjects(loi);
 		
-		failGetObjects(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name delundel) " +
+				"has been deleted");
 
 		CLIENT1.saveObjects(soc);
 		checkData(loi, data);
@@ -2051,7 +2061,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failHideUnHide(new ObjectIdentity().withWorkspace("hideObj"),
 				"Error on ObjectIdentity #1: Must provide one and only one of object name (was: null) or id (was: null)");
 		failHideUnHide(new ObjectIdentity().withWorkspace("hideObj").withName("wootwoot"),
-				"No object with name wootwoot exists in workspace " + wsid);
+				"No object with name wootwoot exists in workspace 1 (name hideObj)");
 	}
 
 	@Test
@@ -2597,6 +2607,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 	}
 
+	@Test
 	public void getNamesByPrefix() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws1"));
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws2")
@@ -2708,7 +2719,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		ObjectData odn = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(
 				new ObjectSpecification().withRef("subdata/1")
-				.withIncluded(Arrays.asList("/map/id1", "/map/id3"))))).getData().get(0);
+				.withStrictMaps(0L)
+				.withIncluded(Arrays.asList(
+						"/map/id1", "/map/id3", "/map/id4")))))
+				.getData().get(0);
 		Map<String, Object> expdata = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
 				"					  \"thing\": \"foo\"}," +
@@ -2723,6 +2737,18 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkData(odn, 1, "std", SAFE_TYPE, 1, USER1, info1.getE1(), "subdata",
 				md5, 119, new HashMap<String, String>(),
 				expdata);
+		
+		try {
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
+					new ObjectSpecification().withRef("subdata/1")
+					.withStrictMaps(1L)
+					.withIncluded(Arrays.asList("/map/id1", "/map/id4")))));
+			fail("got objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Invalid selection: data does not contain a field or " +
+							"key named 'id4', at: /map/id4"));
+		}
 		
 		try {
 			@SuppressWarnings({ "deprecation", "unused" })
@@ -2795,8 +2821,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		ObjectData od2n = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(
-				new ObjectSpecification().withRef("subdata/2").withStrictArrays(0L)
-				.withIncluded(Arrays.asList("/features/2", "/features/3")))))
+				new ObjectSpecification().withRef("subdata/2")
+						.withStrictArrays(0L)
+						.withIncluded(Arrays.asList(
+								"/features/2", "/features/3", "/bar")))))
 				.getData().get(0);
 		Map<String, Object> od2nmap = od2n.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
 		Assert.assertEquals(1, od2nmap.size());
@@ -2890,9 +2918,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		 * obj ref = 1
 		 * obj prov = 2
 		 */
-		
-		getReferencedObjectsCheckData(exp);
-		
+		try {
+			getReferencedObjectsCheckData(exp);
+		} catch (ServerException e) {
+			System.out.println(e.getData());
+			throw e;
+		}
 		
 		try {
 			CLIENT1.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
@@ -2902,7 +2933,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("get objects with bad params");
 		} catch (ServerException se) {
 			assertThat("wrong exception message", se.getLocalizedMessage(),
-					is("Error on ObjectSpecification #1: Only one of an object reference path or an object path may be specified"));
+					is("Error on ObjectSpecification #1: Only one of the 6 " +
+							"options for specifying an object reference " +
+							"path is allowed"));
 		}
 		
 		failGetReferencedObjects(null, "refChains may not be null");
@@ -2917,7 +2950,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"))),
 				"Error on object chain #1: The minimum size of a reference chain is 2 ObjectIdentities");
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"), null)),
-				"Error on object chain #1: Error on ObjectIdentity #2: ObjectIdentities cannot be null");
+				"Error on object chain #1: Error on ObjectIdentity #2: ObjectIdentity cannot be null");
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref").withName("foo"),
 				new ObjectIdentity().withRef("referenced/ref"))),
 				"Error on object chain #1: Error on ObjectIdentity #1: Object reference referenced/ref provided; cannot provide any other means of identifying an object. Object name: foo");
@@ -2943,15 +2976,116 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		getReferencedObjectsCheckData(exp);
 		
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("referenced/ref")));
-		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(
+				new ObjectIdentity().withRef("referenced/ref"),
 				new ObjectIdentity().withRef("referencedPriv/one"))),
-				"Object ref in workspace referenced has been deleted");
+				"Object 1 (name ref) in workspace 1 (name referenced) has been deleted");
 		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("referenced"));
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
 				new ObjectIdentity().withRef("referencedPriv/one"))),
 				"Object ref cannot be accessed: Workspace referenced is deleted");
 	}
 
+	@SuppressWarnings("deprecation")
+	protected void getReferencedObjectsCheckData(final List<ObjectData> exp)
+			throws Exception {
+		
+		//test get refed objs
+		List<ObjectData> res = CLIENT1.getReferencedObjects(Arrays.asList(
+				Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+						new ObjectIdentity().withRef("referencedPriv/one")),
+				Arrays.asList(new ObjectIdentity().withRef("referenced/prov"),
+						new ObjectIdentity().withRef("referencedPriv/two"))));
+		compareData(exp, res);
+		
+		// test getobjs2 and getinfo with full ref path
+		final List<ObjectSpecification> fullreflist = Arrays.asList(
+				new ObjectSpecification()
+						.withRef(" referenced/ref; \nreferencedPriv/one ; "),
+				new ObjectSpecification()
+						.withRef("referenced/prov;referencedPriv/two"));
+		res = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(fullreflist)).getData();
+		compareData(exp, res);
+
+		List<Tuple11<Long, String, String, String, Long, String, Long, String,
+				String, Long, Map<String, String>>> info =
+				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+							.withObjects(fullreflist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+		// test getobjs2 and getinfo with to ref path
+		final List<ObjectSpecification> toreflist = Arrays.asList(
+				new ObjectSpecification().withRef("referencedPriv/one")
+						.withToObjRefPath(Arrays.asList("referenced/ref")),
+				new ObjectSpecification().withRef("referencedPriv/two")
+						.withToObjRefPath(Arrays.asList("referenced/prov")));
+		res = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(toreflist)).getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+						.withObjects(toreflist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+		// test getobjs2 and getinfo with from ref path
+		final List<ObjectSpecification> reflist = Arrays.asList(
+				new ObjectSpecification().withRef("referenced/ref").withObjRefPath(
+						Arrays.asList("referencedPriv/one")),
+				new ObjectSpecification().withRef("referenced/prov").withObjRefPath(
+						Arrays.asList("referencedPriv/two")));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(reflist))
+				.getData();
+		compareData(exp, res);
+
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+						.withObjects(reflist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+
+		// test getobjs2 and getinfo with to obj path
+		final List<ObjectSpecification> torefobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referencedPriv/one")
+						.withToObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referenced/ref"))),
+				new ObjectSpecification().withRef("referencedPriv/two")
+						.withToObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referenced/prov"))));
+		res = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(torefobjlist)).getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(torefobjlist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+		// test getobjs2 and getinfo with from obj path
+		final List<ObjectSpecification> refobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referenced/ref")
+						.withObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referencedPriv/one"))),
+				new ObjectSpecification().withRef("referenced/prov")
+						.withObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referencedPriv/two"))));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(refobjlist)).getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(refobjlist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+		
+		// test getobjs2 and getinfo with automatic lookup
+		final List<ObjectSpecification> searchobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referencedPriv/one").withFindReferencePath(1L),
+				new ObjectSpecification().withRef("referencedPriv/two").withFindReferencePath(1L));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(searchobjlist)).getData();
+		compareData(exp, res);
+
+		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				.withObjects(searchobjlist).withIncludeMetadata(1L));
+		compareInfo(info, exp);
+	}
+	
 	@Test
 	public void adminAddRemoveList() throws Exception {
 		checkAdmins(CLIENT2, Arrays.asList(USER2));
