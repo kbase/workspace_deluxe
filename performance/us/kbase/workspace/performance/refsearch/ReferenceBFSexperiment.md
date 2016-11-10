@@ -73,8 +73,8 @@ advisable to guard against rapid repeated requests.
 
 Again, however, a private object with a very large search tree is unlikely.
 
-TODOs for production
---------------------
+Potential TODOs
+---------------
 * It's possible that an object or object(s) could have so many references
   that the server goes OOM or slows down. Should there be some sort of limit?
 * The reference chain from the user accessible object to the requested object
