@@ -71,7 +71,7 @@ public class Workspace {
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	private final static int MAX_WS_COUNT = 1000;
 	private final static int NAME_LIMIT = 1000;
-	private final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 50000;
+	private final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 10000;
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
 	

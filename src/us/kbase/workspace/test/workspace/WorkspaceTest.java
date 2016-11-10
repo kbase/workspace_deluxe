@@ -6460,7 +6460,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				SAFE_TYPE1, delLeafName, p2);
 		final String delLeafRef = wsUser2.getName() + "/" + delLeafName + "/" + 1;
 
-		// this leaf will only have a len 2 path
+		// this leaf will only have a len 2 path, id is 3
 		final String path2LeafName = "path2leaf";
 		final ObjectInformation path2 = saveObject(user2, wsUser2, makeMeta(4), MT_MAP,
 				SAFE_TYPE1, path2LeafName, p2);
@@ -6586,7 +6586,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		// test getting an object that has direct access
 		final ObjectInformation direct = saveObject(user2, wsUser1, makeMeta(100), MT_MAP,
-				SAFE_TYPE1, leaf1Name, p2);
+				SAFE_TYPE1, leaf1Name, p2); // id is 4
 		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser1, 4, 1)),
 				direct, p2, MT_MAP, MT_LIST, MT_MAP);
 		
@@ -6626,8 +6626,8 @@ public class WorkspaceTest extends WorkspaceTester {
 			// for a 1 hop path
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsUser1, 1, 1)), true);
 		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
-				new ObjectIdentifier(wsUser2, 4, 1))), new InaccessibleObjectException(
-						"Version 1 of object 4 in workspace wsu2 is not accessible to user u1"));
+				new ObjectIdentifier(wsUser2, 3, 1))), new InaccessibleObjectException(
+						"Version 1 of object 3 in workspace wsu2 is not accessible to user u1"));
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsUser1, 1, 1)), false);
 			// for a 3 hop path
 		ws.setObjectsDeleted(user1, Arrays.asList(new ObjectIdentifier(wsUser1, 3, 1)), true);
