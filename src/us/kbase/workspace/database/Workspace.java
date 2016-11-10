@@ -1604,8 +1604,7 @@ public class Workspace {
 			query = null;
 			
 			for (final ObjectIdentifier oi: searchrefs.keySet()) {
-				final Set<Reference> newrefs = getNewRefsFromOldRefs(
-						user, searchrefs.get(oi), res);
+				final Set<Reference> newrefs = getNewRefsFromOldRefs(searchrefs.get(oi), res);
 				refcount += newrefs.size();
 				searchrefs.put(oi, newrefs);
 			}
@@ -1642,7 +1641,6 @@ public class Workspace {
 	}
 	
 	private Set<Reference> getNewRefsFromOldRefs(
-			final WorkspaceUser user,
 			final Set<Reference> increfs,
 			final Map<Reference, ObjectReferenceSet> res)
 					throws InaccessibleObjectException {
