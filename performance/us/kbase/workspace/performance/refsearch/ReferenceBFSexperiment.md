@@ -1,21 +1,10 @@
 Get referenced objects without providing a reference chain
 ==========================================================
 
-**NOTE**: This analysis was performed against the 0.3.5 version of the workspace
-service on code in a development branch [here](https://github.com/mrcreosote/workspace_deluxe/compare/5d790295cf0eb0c021b92e602fd5fd155a722a7a...dev-get_refs_BFS_expt?expand=1).
-It is not compatible with the current workspace service. 
+Tested on Workspace Service version 0.5.1-dev1.
 
-**NOTE**: There were bugs in the branched search tree tests and in the search implementation such
-that, when both are combined, made the search results about 10x faster than they should be,
-although they scaled with the tree size as one would expect. This bug is noted in the accompanying
-test code.
-
-The code in this branch is an experimental implementation of altering the
-getObjects function to return an object to a user if that user does not have
-direct access to the object, but does have access via a reference chain
-from another object. Currently the user would have to provide the reference
-chain to the getReferencedObject function to retrieve the object. These changes
-make retrieving referenced objects much more user friendly.
+Tests the performance of getting object via a reference data search (e.g. using the 
+``ObjectSpecification.find_reference_path`` field.
 
 The search is implemented as a referent to reference BFS (e.g. the search
 proceeds in the direction **opposite** to the references) to reduce database
@@ -29,7 +18,6 @@ Setup
 * Local MongoDB 2.4.3 instance running without journaling or auth
 * Tests call the Workspace library class directly, e.g. the server layer
   is bypassed
-* Performance tests are in test/performance/GetReferencedObjectWithBFS
 
 Results
 -------
@@ -53,7 +41,7 @@ Three measurements were made per tree.
 
 ![Branched search tree results](branchedsearchchain.png)
 
-Note that at a breadth of 4, the search must traverse 5461 nodes, and yet is
+Note that at a breadth of 2, the search must traverse 127 nodes, and yet is
 faster than a search with breadth 1 and depth 50 which only traverses 50 nodes.
 A possible explanation is that at lower node counts transport from the
 workspace service to mongoDB dominates, while at higher node counts mongoDB
@@ -65,8 +53,8 @@ time scales linearly with the tree size with trees > 5000 nodes.
 Discussion
 ----------
 
-Adding the code to the production server seems pretty reasonable and gives 
-a large benefit in terms of useability. The test cases above are fairly
+The search time of 100ms for 5000 objects (e.g. 20ns / object) seems pretty reasonable and
+reference searches give a large benefit in terms of useability. The test cases above are fairly
 outlandish and the larger search trees are extremely unlikely to happen in
 practice. Private objects are unlikely to have extremely large numbers of
 references (possibly private objects like the Biochem object might), and if
@@ -89,8 +77,6 @@ TODOs for production
 --------------------
 * It's possible that an object or object(s) could have so many references
   that the server goes OOM or slows down. Should there be some sort of limit?
-* Most of the get* methods should have the same behavior. Currently the code
-  is only implemented for getObjects().
 * The reference chain from the user accessible object to the requested object
   should be returned.
   * This necessitates saving the tree traversed in the search in server memory
@@ -106,9 +92,6 @@ TODOs for production
         error note with the object data rather than the path.
     * Delete the tree once paths are determined, prior to pulling objects from
       the backend.
-* Make the option available in the type compiled API.
-* Lots and lots of tests.
-* Possibly a cache, but this seems unnecessary as a 50k node tree search
-  returns in < 100ms. A short term (< 10s) cache of unaccessible objects might
-  be advisable to guard against repeated requests. Placing a reasonable limit
-  (50K?) on the search tree size seems to be an acceptable solution.
+* Possibly a cache. A short term (< 10s) cache of unaccessible objects might
+  be advisable to guard against repeated requests. A cache of a user's accessible objects mapped to
+  the accession path may also be advisable if search trees larger than 5000 objects are desired.
