@@ -6,8 +6,14 @@ VERSION: 0.5.1 (Released TBD)
 
 BACKWARDS INCOMPATIBILITIES:
 
-* The kb|ws... style of addressing workspaces or objects has been deprecated
+* The ``kb|ws...`` style of addressing workspaces or objects has been deprecated
   and will be removed in a future release.
+
+NEW FEATURES:
+
+* The ``ObjectSpecification`` structure now provides a ``find_reference_path``
+  field that allows specifying that the permissions for an object should be
+  automatically looked up via a search through the object reference graph.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
