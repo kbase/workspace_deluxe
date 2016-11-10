@@ -2,7 +2,7 @@ package us.kbase.workspace.database;
 
 import us.kbase.typedobj.idref.RemappedId;
 
-/** A absolute reference to a workspace object. getID() returns the reference as a string the the
+/** A absolute reference to a workspace object. getID() returns the reference as a string of the
  * form X/Y/Z where
  * 
  * X is the workspace ID

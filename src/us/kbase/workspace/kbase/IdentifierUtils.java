@@ -205,14 +205,12 @@ public class IdentifierUtils {
 		for (final ObjectSpecification o: objects) {
 			if (o == null) {
 				throw new NullPointerException(
-						"Objects in the object specification list cannot "+
-						"be null");
+						"Objects in the object specification list cannot be null");
 			}
 			final ObjectIdentifier oi;
 			try {
 				mutateObjSpecByRefString(o);
-				oi = processObjectIdentifier(
-					new ObjectIdentity()
+				oi = processObjectIdentifier(new ObjectIdentity()
 						.withWorkspace(o.getWorkspace())
 						.withWsid(o.getWsid())
 						.withName(o.getName())
@@ -221,8 +219,7 @@ public class IdentifierUtils {
 						.withRef(o.getRef()));
 				checkAddlArgs(o.getAdditionalProperties(), o.getClass());
 			} catch (IllegalArgumentException e) {
-				throw new IllegalArgumentException(
-						"Error on ObjectSpecification #" +
+				throw new IllegalArgumentException("Error on ObjectSpecification #" +
 						objcount + ": " + e.getLocalizedMessage(), e);
 			}
 			objs.add(buildObjectIdentifier(o, oi, objcount));
@@ -267,12 +264,21 @@ public class IdentifierUtils {
 					"Error on ObjectSpecification #"
 					+ objcount + ": " + e.getLocalizedMessage(), e);
 		}
-		if (paths == null && refchain == null) {
+		final boolean searchDAG = longToBoolean(o.getFindReferencePath());
+		if (paths == null && refchain == null && !searchDAG) {
 			return oi;
 		} else if (paths == null) {
-			return new ObjectIDWithRefPath(oi, refchain);
+			if (searchDAG) {
+				return new ObjectIDWithRefPath(oi);
+			} else {
+				return new ObjectIDWithRefPath(oi, refchain);
+			}
 		} else {
-			return new ObjIDWithRefPathAndSubset(oi, refchain, paths);
+			if (searchDAG) {
+				return new ObjIDWithRefPathAndSubset(oi, paths);
+			} else {
+				return new ObjIDWithRefPathAndSubset(oi, refchain, paths);
+			}
 		}
 	}
 
@@ -290,7 +296,7 @@ public class IdentifierUtils {
 		if (!refs.isEmpty()) {
 			if (countRefPathsInObjectSpec(o) > 0) {
 				throw new IllegalArgumentException(
-						"Only one of the 5 options for specifying an "+
+						"Only one of the 6 options for specifying an "+
 						"object reference path is allowed");
 			}
 			o.setObjRefPath(refs);
@@ -312,6 +318,9 @@ public class IdentifierUtils {
 		if (o.getToObjRefPath() != null && !o.getToObjRefPath().isEmpty()) {
 			count++;
 		}
+		if (longToBoolean(o.getFindReferencePath())) {
+			count++;
+		}
 		return count;
 	}
 
@@ -331,7 +340,7 @@ public class IdentifierUtils {
 	private static RefChainResult processRefChains(
 			final ObjectSpecification o) {
 		if (countRefPathsInObjectSpec(o) > 1) {
-			throw new IllegalArgumentException("Only one of the 5 options " +
+			throw new IllegalArgumentException("Only one of the 6 options " +
 					"for specifying an object reference path is allowed");
 		}
 		if (o.getObjPath() != null && !o.getObjPath().isEmpty()) {

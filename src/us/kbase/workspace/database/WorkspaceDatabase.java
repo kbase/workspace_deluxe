@@ -205,10 +205,21 @@ public interface WorkspaceDatabase {
 	public String getWorkspaceDescription(ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public List<ObjectInformation> saveObjects(WorkspaceUser user,
-			ResolvedWorkspaceID rwsi, List<ResolvedSaveObject> objects) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			NoSuchObjectException;
+	/** Save objects to a workspace. Note that any references passed into this method as part of
+	 * a ResolvedSaveObject are assumed to be correct. 
+	 * @param user the workspace user that is saving the objects.
+	 * @param rwsi the workspace to which the objects will be saved.
+	 * @param objects the objects to be saved.
+	 * @return information about each new object.
+	 * @throws WorkspaceCommunicationException if a communication exception with the backend
+	 * occurs.
+	 * @throws NoSuchObjectException if the object id specified to save over does not exist.
+	 */
+	public List<ObjectInformation> saveObjects(
+			WorkspaceUser user,
+			ResolvedWorkspaceID rwsi,
+			List<ResolvedSaveObject> objects)
+			throws WorkspaceCommunicationException, NoSuchObjectException;
 	
 	/** Get object data and provenance information from the workspace database.
 	 * @param objects the objects for which to retrieve data.
@@ -256,13 +267,31 @@ public interface WorkspaceDatabase {
 	 * @throws WorkspaceCommunicationException if a communication error with
 	 * the backend occurs.
 	 */
-	public Map<ObjectIDResolvedWS, ObjectReferenceSet>
-			getObjectOutgoingReferences(
+	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectOutgoingReferences(
 					Set<ObjectIDResolvedWS> objs,
 					boolean exceptIfDeleted,
 					boolean includeDeleted,
 					boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
+	
+	/** Get the set of incoming references for an object. If the object cannot be found, it is not
+	 * included in the returned map. Includes deleted objects.
+	 * @param objs the objects for which to retrieve references.
+	 * @return the set of references for each object.
+	 * @throws WorkspaceCommunicationException  if a communication error with the backend occurs.
+	 */
+	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectIncomingReferencesForObjIDs(
+			Set<ObjectIDResolvedWS> objs) throws WorkspaceCommunicationException;
+	
+	/** Get the set of incoming references for an object. The object referred to by the reference
+	 * is not checked for existence - if the reference does not exist, the reference set of
+	 * incoming references will be empty. Includes deleted objects.
+	 * @param objs the objects for which to retrieve references.
+	 * @return the set of references for each object.
+	 * @throws WorkspaceCommunicationException  if a communication error with the backend occurs.
+	 */
+	public Map<Reference, ObjectReferenceSet> getObjectIncomingReferences(
+			Set<Reference> objs) throws WorkspaceCommunicationException;
 	
 	public Map<ObjectIDResolvedWS, Set<ObjectInformation>>
 			getReferencingObjects(PermissionSet perms,
@@ -357,10 +386,26 @@ public interface WorkspaceDatabase {
 			GetObjectInformationParameters perms)
 			throws WorkspaceCommunicationException;
 
+	/** Verify that a set of objects exist in the database and are not in
+	 * the deleted state.
+	 * @param objectIDs the objects to check.
+	 * @return a map of objects to their state of existence in the database.
+	 * @throws WorkspaceCommunicationException if a communication exception
+	 * occurs.
+	 */
 	public Map<ObjectIDResolvedWS, Boolean> getObjectExists(
 			Set<ObjectIDResolvedWS> objectIDs)
 			throws WorkspaceCommunicationException;
 	
+	/** Verify that a set of objects as specified by absolute references exist and are not deleted.
+	 * This method does not verify the version exists.
+	 * @param refs the objects to check.
+	 * @return a mapping of each object to its state of existence / deletion.
+	 * @throws WorkspaceCommunicationException if a communication exception occurs. 
+	 */
+	public Map<Reference, Boolean> getObjectExistsRef(Set<Reference> refs)
+			throws WorkspaceCommunicationException;
+
 	public List<ObjectInformation> getObjectHistory(
 			ObjectIDResolvedWS objectIDResolvedWS)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
@@ -389,4 +434,5 @@ public interface WorkspaceDatabase {
 	 * @return the dependency status.
 	 */
 	public List<DependencyStatus> status();
+
 }

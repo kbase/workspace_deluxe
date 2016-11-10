@@ -2538,6 +2538,7 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	to_obj_path has a value which is a Workspace.ref_chain
 	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	find_reference_path has a value which is a Workspace.boolean
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -2556,8 +2557,8 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
 obj_ref is a string
-object_path is a string
 boolean is an int
+object_path is a string
 GetObjects2Results is a reference to a hash where the following keys are defined:
 	data has a value which is a reference to a list where each element is a Workspace.ObjectData
 ObjectData is a reference to a hash where the following keys are defined:
@@ -2651,6 +2652,7 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	to_obj_path has a value which is a Workspace.ref_chain
 	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	find_reference_path has a value which is a Workspace.boolean
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -2669,8 +2671,8 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
 obj_ref is a string
-object_path is a string
 boolean is an int
+object_path is a string
 GetObjects2Results is a reference to a hash where the following keys are defined:
 	data has a value which is a reference to a list where each element is a Workspace.ObjectData
 ObjectData is a reference to a hash where the following keys are defined:
@@ -4611,6 +4613,7 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	to_obj_path has a value which is a Workspace.ref_chain
 	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	find_reference_path has a value which is a Workspace.boolean
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -4629,8 +4632,8 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
 obj_ref is a string
-object_path is a string
 boolean is an int
+object_path is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -4671,6 +4674,7 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	to_obj_path has a value which is a Workspace.ref_chain
 	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	find_reference_path has a value which is a Workspace.boolean
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -4689,8 +4693,8 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
 obj_ref is a string
-object_path is a string
 boolean is an int
+object_path is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -8952,6 +8956,18 @@ ref_string ref - A string representing a reference path from
         options, the ref_string represents the ENTIRE path from the source
         object to the target object. As with the OI object, the ref field
         may contain a single reference.
+- OR -
+boolean find_refence_path - This is the last, slowest, and most expensive resort
+        for getting a referenced object - do not use this method unless the
+        path to the object is unavailable by any other means. Setting the
+        find_refence_path parameter to true means that the workspace service will
+        search through the object reference graph from the object specified
+        in this OS to find an object that 1) the user can access, and 2)
+        has an unbroken reference path to the target object. If the search
+        succeeds, the object will be returned as normal. Note that the search
+        will automatically fail after a certain (but much larger than necessary
+        for the vast majority of cases) number of objects are traversed.
+        
 
 OBJECT SUBSETS:
 
@@ -8992,6 +9008,7 @@ obj_path has a value which is a Workspace.ref_chain
 obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 to_obj_path has a value which is a Workspace.ref_chain
 to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+find_reference_path has a value which is a Workspace.boolean
 included has a value which is a reference to a list where each element is a Workspace.object_path
 strict_maps has a value which is a Workspace.boolean
 strict_arrays has a value which is a Workspace.boolean
@@ -9013,6 +9030,7 @@ obj_path has a value which is a Workspace.ref_chain
 obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
 to_obj_path has a value which is a Workspace.ref_chain
 to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+find_reference_path has a value which is a Workspace.boolean
 included has a value which is a reference to a list where each element is a Workspace.object_path
 strict_maps has a value which is a Workspace.boolean
 strict_arrays has a value which is a Workspace.boolean

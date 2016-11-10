@@ -56,6 +56,18 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         options, the ref_string represents the ENTIRE path from the source
  *         object to the target object. As with the OI object, the ref field
  *         may contain a single reference.
+ * - OR -
+ * boolean find_refence_path - This is the last, slowest, and most expensive resort
+ *         for getting a referenced object - do not use this method unless the
+ *         path to the object is unavailable by any other means. Setting the
+ *         find_refence_path parameter to true means that the workspace service will
+ *         search through the object reference graph from the object specified
+ *         in this OS to find an object that 1) the user can access, and 2)
+ *         has an unbroken reference path to the target object. If the search
+ *         succeeds, the object will be returned as normal. Note that the search
+ *         will automatically fail after a certain (but much larger than necessary
+ *         for the vast majority of cases) number of objects are traversed.
+ *         
  * OBJECT SUBSETS:
  * When selecting a subset of an array in an object, the returned
  * array is compressed to the size of the subset, but the ordering of
@@ -91,6 +103,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "obj_ref_path",
     "to_obj_path",
     "to_obj_ref_path",
+    "find_reference_path",
     "included",
     "strict_maps",
     "strict_arrays"
@@ -117,6 +130,8 @@ public class ObjectSpecification {
     private List<ObjectIdentity> toObjPath;
     @JsonProperty("to_obj_ref_path")
     private List<String> toObjRefPath;
+    @JsonProperty("find_reference_path")
+    private Long findReferencePath;
     @JsonProperty("included")
     private List<String> included;
     @JsonProperty("strict_maps")
@@ -275,6 +290,21 @@ public class ObjectSpecification {
         return this;
     }
 
+    @JsonProperty("find_reference_path")
+    public Long getFindReferencePath() {
+        return findReferencePath;
+    }
+
+    @JsonProperty("find_reference_path")
+    public void setFindReferencePath(Long findReferencePath) {
+        this.findReferencePath = findReferencePath;
+    }
+
+    public ObjectSpecification withFindReferencePath(Long findReferencePath) {
+        this.findReferencePath = findReferencePath;
+        return this;
+    }
+
     @JsonProperty("included")
     public List<String> getIncluded() {
         return included;
@@ -332,7 +362,7 @@ public class ObjectSpecification {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((("ObjectSpecification"+" [workspace=")+ workspace)+", wsid=")+ wsid)+", name=")+ name)+", objid=")+ objid)+", ver=")+ ver)+", ref=")+ ref)+", objPath=")+ objPath)+", objRefPath=")+ objRefPath)+", toObjPath=")+ toObjPath)+", toObjRefPath=")+ toObjRefPath)+", included=")+ included)+", strictMaps=")+ strictMaps)+", strictArrays=")+ strictArrays)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((("ObjectSpecification"+" [workspace=")+ workspace)+", wsid=")+ wsid)+", name=")+ name)+", objid=")+ objid)+", ver=")+ ver)+", ref=")+ ref)+", objPath=")+ objPath)+", objRefPath=")+ objRefPath)+", toObjPath=")+ toObjPath)+", toObjRefPath=")+ toObjRefPath)+", findReferencePath=")+ findReferencePath)+", included=")+ included)+", strictMaps=")+ strictMaps)+", strictArrays=")+ strictArrays)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

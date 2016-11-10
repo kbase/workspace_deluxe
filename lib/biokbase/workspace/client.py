@@ -1632,41 +1632,52 @@ class Workspace(object):
            one object to another. Unlike the previous reference following
            options, the ref_string represents the ENTIRE path from the source
            object to the target object. As with the OI object, the ref field
-           may contain a single reference. OBJECT SUBSETS: When selecting a
-           subset of an array in an object, the returned array is compressed
-           to the size of the subset, but the ordering of the array is
-           maintained. For example, if the array stored at the 'feature' key
-           of a Genome object has 4000 entries, and the object paths provided
-           are: /feature/7 /feature/3015 /feature/700 The returned feature
-           array will be of length three and the entries will consist, in
-           order, of the 7th, 700th, and 3015th entries of the original
-           array. Optional object subset fields: list<object_path> included -
-           the portions of the object to include in the object subset.
-           boolean strict_maps - if true, throw an exception if the subset
-           specification traverses a non-existent map key (default false)
-           boolean strict_arrays - if true, throw an exception if the subset
-           specification exceeds the size of an array (default true)) ->
-           structure: parameter "workspace" of type "ws_name" (A string used
-           as a name for a workspace. Any string consisting of alphanumeric
-           characters and "_", ".", or "-" that is not an integer is
-           acceptable. The name may optionally be prefixed with the workspace
-           owner's user name and a colon, e.g. kbasetest:my_workspace.),
-           parameter "wsid" of type "ws_id" (The unique, permanent numerical
-           ID of a workspace.), parameter "name" of type "obj_name" (A string
-           used as a name for an object. Any string consisting of
-           alphanumeric characters and the characters |._- that is not an
-           integer is acceptable.), parameter "objid" of type "obj_id" (The
-           unique, permanent numerical ID of an object.), parameter "ver" of
-           type "obj_ver" (An object version. The version of the object,
-           starting at 1.), parameter "ref" of type "ref_string" (A chain of
-           objects with references to one another as a string. A single
-           string that is semantically identical to ref_chain above.
-           Represents a path from one workspace object to another through an
-           arbitrarily number of intermediate objects where each object has a
-           dependency or provenance reference to the next object. Each entry
-           is an obj_ref as defined earlier. Entries are separated by
-           semicolons. Whitespace is ignored. Examples: 3/5/6;
-           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           may contain a single reference. - OR - boolean find_refence_path -
+           This is the last, slowest, and most expensive resort for getting a
+           referenced object - do not use this method unless the path to the
+           object is unavailable by any other means. Setting the
+           find_refence_path parameter to true means that the workspace
+           service will search through the object reference graph from the
+           object specified in this OS to find an object that 1) the user can
+           access, and 2) has an unbroken reference path to the target
+           object. If the search succeeds, the object will be returned as
+           normal. Note that the search will automatically fail after a
+           certain (but much larger than necessary for the vast majority of
+           cases) number of objects are traversed. OBJECT SUBSETS: When
+           selecting a subset of an array in an object, the returned array is
+           compressed to the size of the subset, but the ordering of the
+           array is maintained. For example, if the array stored at the
+           'feature' key of a Genome object has 4000 entries, and the object
+           paths provided are: /feature/7 /feature/3015 /feature/700 The
+           returned feature array will be of length three and the entries
+           will consist, in order, of the 7th, 700th, and 3015th entries of
+           the original array. Optional object subset fields:
+           list<object_path> included - the portions of the object to include
+           in the object subset. boolean strict_maps - if true, throw an
+           exception if the subset specification traverses a non-existent map
+           key (default false) boolean strict_arrays - if true, throw an
+           exception if the subset specification exceeds the size of an array
+           (default true)) -> structure: parameter "workspace" of type
+           "ws_name" (A string used as a name for a workspace. Any string
+           consisting of alphanumeric characters and "_", ".", or "-" that is
+           not an integer is acceptable. The name may optionally be prefixed
+           with the workspace owner's user name and a colon, e.g.
+           kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter "name"
+           of type "obj_name" (A string used as a name for an object. Any
+           string consisting of alphanumeric characters and the characters
+           |._- that is not an integer is acceptable.), parameter "objid" of
+           type "obj_id" (The unique, permanent numerical ID of an object.),
+           parameter "ver" of type "obj_ver" (An object version. The version
+           of the object, starting at 1.), parameter "ref" of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
            parameter "obj_path" of type "ref_chain" (A chain of objects with
            references to one another. An object reference chain consists of a
            list of objects where the nth object possesses a reference, either
@@ -1773,20 +1784,22 @@ class Workspace(object):
            "kb|ws.23.obj.567.ver.2" would identify the second version of an
            object with id 567 in a workspace with id 23. In all cases, if the
            version number is omitted, the latest version of the object is
-           assumed.), parameter "included" of list of type "object_path" (A
-           path into an object. Identify a sub portion of an object by
-           providing the path, delimited by a slash (/), to that portion of
-           the object. Thus the path may not have slashes in the structure or
-           mapping keys. Examples: /foo/bar/3 - specifies the bar key of the
-           foo mapping and the 3rd entry of the array if bar maps to an array
-           or the value mapped to the string "3" if bar maps to a map.
-           /foo/bar/[*]/baz - specifies the baz field of all the objects in
-           the list mapped by the bar key in the map foo. /foo/asterisk/baz -
-           specifies the baz field of all the objects in the values of the
-           foo mapping. Swap 'asterisk' for * in the path. In case you need
-           to use '/' or '~' in path items use JSON Pointer notation defined
-           here: http://tools.ietf.org/html/rfc6901), parameter "strict_maps"
-           of type "boolean" (A boolean. 0 = false, other = true.), parameter
+           assumed.), parameter "find_reference_path" of type "boolean" (A
+           boolean. 0 = false, other = true.), parameter "included" of list
+           of type "object_path" (A path into an object. Identify a sub
+           portion of an object by providing the path, delimited by a slash
+           (/), to that portion of the object. Thus the path may not have
+           slashes in the structure or mapping keys. Examples: /foo/bar/3 -
+           specifies the bar key of the foo mapping and the 3rd entry of the
+           array if bar maps to an array or the value mapped to the string
+           "3" if bar maps to a map. /foo/bar/[*]/baz - specifies the baz
+           field of all the objects in the list mapped by the bar key in the
+           map foo. /foo/asterisk/baz - specifies the baz field of all the
+           objects in the values of the foo mapping. Swap 'asterisk' for * in
+           the path. In case you need to use '/' or '~' in path items use
+           JSON Pointer notation defined here:
+           http://tools.ietf.org/html/rfc6901), parameter "strict_maps" of
+           type "boolean" (A boolean. 0 = false, other = true.), parameter
            "strict_arrays" of type "boolean" (A boolean. 0 = false, other =
            true.), parameter "ignoreErrors" of type "boolean" (A boolean. 0 =
            false, other = true.), parameter "no_data" of type "boolean" (A
@@ -3486,41 +3499,52 @@ class Workspace(object):
            one object to another. Unlike the previous reference following
            options, the ref_string represents the ENTIRE path from the source
            object to the target object. As with the OI object, the ref field
-           may contain a single reference. OBJECT SUBSETS: When selecting a
-           subset of an array in an object, the returned array is compressed
-           to the size of the subset, but the ordering of the array is
-           maintained. For example, if the array stored at the 'feature' key
-           of a Genome object has 4000 entries, and the object paths provided
-           are: /feature/7 /feature/3015 /feature/700 The returned feature
-           array will be of length three and the entries will consist, in
-           order, of the 7th, 700th, and 3015th entries of the original
-           array. Optional object subset fields: list<object_path> included -
-           the portions of the object to include in the object subset.
-           boolean strict_maps - if true, throw an exception if the subset
-           specification traverses a non-existent map key (default false)
-           boolean strict_arrays - if true, throw an exception if the subset
-           specification exceeds the size of an array (default true)) ->
-           structure: parameter "workspace" of type "ws_name" (A string used
-           as a name for a workspace. Any string consisting of alphanumeric
-           characters and "_", ".", or "-" that is not an integer is
-           acceptable. The name may optionally be prefixed with the workspace
-           owner's user name and a colon, e.g. kbasetest:my_workspace.),
-           parameter "wsid" of type "ws_id" (The unique, permanent numerical
-           ID of a workspace.), parameter "name" of type "obj_name" (A string
-           used as a name for an object. Any string consisting of
-           alphanumeric characters and the characters |._- that is not an
-           integer is acceptable.), parameter "objid" of type "obj_id" (The
-           unique, permanent numerical ID of an object.), parameter "ver" of
-           type "obj_ver" (An object version. The version of the object,
-           starting at 1.), parameter "ref" of type "ref_string" (A chain of
-           objects with references to one another as a string. A single
-           string that is semantically identical to ref_chain above.
-           Represents a path from one workspace object to another through an
-           arbitrarily number of intermediate objects where each object has a
-           dependency or provenance reference to the next object. Each entry
-           is an obj_ref as defined earlier. Entries are separated by
-           semicolons. Whitespace is ignored. Examples: 3/5/6;
-           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           may contain a single reference. - OR - boolean find_refence_path -
+           This is the last, slowest, and most expensive resort for getting a
+           referenced object - do not use this method unless the path to the
+           object is unavailable by any other means. Setting the
+           find_refence_path parameter to true means that the workspace
+           service will search through the object reference graph from the
+           object specified in this OS to find an object that 1) the user can
+           access, and 2) has an unbroken reference path to the target
+           object. If the search succeeds, the object will be returned as
+           normal. Note that the search will automatically fail after a
+           certain (but much larger than necessary for the vast majority of
+           cases) number of objects are traversed. OBJECT SUBSETS: When
+           selecting a subset of an array in an object, the returned array is
+           compressed to the size of the subset, but the ordering of the
+           array is maintained. For example, if the array stored at the
+           'feature' key of a Genome object has 4000 entries, and the object
+           paths provided are: /feature/7 /feature/3015 /feature/700 The
+           returned feature array will be of length three and the entries
+           will consist, in order, of the 7th, 700th, and 3015th entries of
+           the original array. Optional object subset fields:
+           list<object_path> included - the portions of the object to include
+           in the object subset. boolean strict_maps - if true, throw an
+           exception if the subset specification traverses a non-existent map
+           key (default false) boolean strict_arrays - if true, throw an
+           exception if the subset specification exceeds the size of an array
+           (default true)) -> structure: parameter "workspace" of type
+           "ws_name" (A string used as a name for a workspace. Any string
+           consisting of alphanumeric characters and "_", ".", or "-" that is
+           not an integer is acceptable. The name may optionally be prefixed
+           with the workspace owner's user name and a colon, e.g.
+           kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter "name"
+           of type "obj_name" (A string used as a name for an object. Any
+           string consisting of alphanumeric characters and the characters
+           |._- that is not an integer is acceptable.), parameter "objid" of
+           type "obj_id" (The unique, permanent numerical ID of an object.),
+           parameter "ver" of type "obj_ver" (An object version. The version
+           of the object, starting at 1.), parameter "ref" of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
            parameter "obj_path" of type "ref_chain" (A chain of objects with
            references to one another. An object reference chain consists of a
            list of objects where the nth object possesses a reference, either
@@ -3627,20 +3651,22 @@ class Workspace(object):
            "kb|ws.23.obj.567.ver.2" would identify the second version of an
            object with id 567 in a workspace with id 23. In all cases, if the
            version number is omitted, the latest version of the object is
-           assumed.), parameter "included" of list of type "object_path" (A
-           path into an object. Identify a sub portion of an object by
-           providing the path, delimited by a slash (/), to that portion of
-           the object. Thus the path may not have slashes in the structure or
-           mapping keys. Examples: /foo/bar/3 - specifies the bar key of the
-           foo mapping and the 3rd entry of the array if bar maps to an array
-           or the value mapped to the string "3" if bar maps to a map.
-           /foo/bar/[*]/baz - specifies the baz field of all the objects in
-           the list mapped by the bar key in the map foo. /foo/asterisk/baz -
-           specifies the baz field of all the objects in the values of the
-           foo mapping. Swap 'asterisk' for * in the path. In case you need
-           to use '/' or '~' in path items use JSON Pointer notation defined
-           here: http://tools.ietf.org/html/rfc6901), parameter "strict_maps"
-           of type "boolean" (A boolean. 0 = false, other = true.), parameter
+           assumed.), parameter "find_reference_path" of type "boolean" (A
+           boolean. 0 = false, other = true.), parameter "included" of list
+           of type "object_path" (A path into an object. Identify a sub
+           portion of an object by providing the path, delimited by a slash
+           (/), to that portion of the object. Thus the path may not have
+           slashes in the structure or mapping keys. Examples: /foo/bar/3 -
+           specifies the bar key of the foo mapping and the 3rd entry of the
+           array if bar maps to an array or the value mapped to the string
+           "3" if bar maps to a map. /foo/bar/[*]/baz - specifies the baz
+           field of all the objects in the list mapped by the bar key in the
+           map foo. /foo/asterisk/baz - specifies the baz field of all the
+           objects in the values of the foo mapping. Swap 'asterisk' for * in
+           the path. In case you need to use '/' or '~' in path items use
+           JSON Pointer notation defined here:
+           http://tools.ietf.org/html/rfc6901), parameter "strict_maps" of
+           type "boolean" (A boolean. 0 = false, other = true.), parameter
            "strict_arrays" of type "boolean" (A boolean. 0 = false, other =
            true.), parameter "includeMetadata" of type "boolean" (A boolean.
            0 = false, other = true.), parameter "ignoreErrors" of type
