@@ -1,9 +1,14 @@
 Get referenced objects without providing a reference chain
 ==========================================================
 
-NOTE: This analysis was performed against the 0.3.5 version of the workspace
+*NOTE*: This analysis was performed against the 0.3.5 version of the workspace
 service on code in a development branch [here](https://github.com/mrcreosote/workspace_deluxe/compare/5d790295cf0eb0c021b92e602fd5fd155a722a7a...dev-get_refs_BFS_expt?expand=1).
 It is not compatible with the current workspace service. 
+
+*NOTE*: There were bugs in the branched search tree tests and in the search implementation such
+that, when both are combined, made the search results about 10x faster than they should be,
+although they scaled with the tree size as one would expect. This bug is noted in the accompanying
+test code.
 
 The code in this branch is an experimental implementation of altering the
 getObjects function to return an object to a user if that user does not have

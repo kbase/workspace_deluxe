@@ -151,6 +151,8 @@ public class GetReferencedObjectWithBFS {
 		WorkspaceIdentifier priv = new WorkspaceIdentifier("brcpriv");
 		for (int breadth = 1; breadth <= 10; breadth++) {
 //			WorkspaceTestCommon.destroyDB(WSDB);
+			// note the below is a bug in the original code. The global read permissions should be
+			// switched.
 			WS.createWorkspace(u1, read.getName(), false, null, null);
 			WS.createWorkspace(u1, priv.getName(), true, null, null);
 			ObjectInformation o = WS.saveObjects(u1, priv, Arrays.asList(
