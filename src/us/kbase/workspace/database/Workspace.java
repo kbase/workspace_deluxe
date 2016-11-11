@@ -45,7 +45,7 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.refsearch.SearchReferenceDAG;
-import us.kbase.workspace.database.refsearch.SearchReferenceDAG.ReferenceDAGTopologyProvider;
+import us.kbase.workspace.database.refsearch.ReferenceDAGTopologyProvider;
 import us.kbase.workspace.database.refsearch.SearchReferenceDAG.ReferenceProviderException;
 import us.kbase.workspace.database.refsearch.SearchReferenceDAG.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
