@@ -46,8 +46,9 @@ import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.refsearch.SearchReferenceDAG;
 import us.kbase.workspace.database.refsearch.ReferenceDAGTopologyProvider;
-import us.kbase.workspace.database.refsearch.SearchReferenceDAG.ReferenceProviderException;
-import us.kbase.workspace.database.refsearch.SearchReferenceDAG.ReferenceSearchMaximumSizeExceededException;
+import us.kbase.workspace.database.refsearch.ReferenceProviderException;
+import us.kbase.workspace.database.refsearch.ReferenceSearchFailedException;
+import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -1583,7 +1584,7 @@ public class Workspace {
 			final SearchReferenceDAG search = new SearchReferenceDAG(wsIDs, startingRefs,
 					refProvider, maximumObjectSearchCount, !nullIfInaccessible);
 			return searchObjectDAGBuildResolvedObjectPaths(resobjs, objrefs, search);
-		} catch (final SearchReferenceDAG.ReferenceSearchFailedException |
+		} catch (final ReferenceSearchFailedException |
 				ObjectDAGSearchFromObjectIDFailedException e) {
 			final ObjectIdentifier failedOn = searchObjectDAGGetSearchFailedTarget(
 					e, objrefs, resobjs);
@@ -1645,9 +1646,8 @@ public class Workspace {
 
 		if (e instanceof ObjectDAGSearchFromObjectIDFailedException) {
 			return ((ObjectDAGSearchFromObjectIDFailedException) e).getSearchTarget();
-		} else if (e instanceof SearchReferenceDAG.ReferenceSearchFailedException) {
-			final Reference failedOn = ((SearchReferenceDAG.ReferenceSearchFailedException) e)
-					.getFailedReference();
+		} else if (e instanceof ReferenceSearchFailedException) {
+			final Reference failedOn = ((ReferenceSearchFailedException) e).getFailedReference();
 			for (final Entry<ObjectIdentifier, ObjectIDResolvedWS> es: resobjs.entrySet()) {
 				if (failedOn.equals(objrefs.get(es.getValue()))) {
 					return es.getKey();

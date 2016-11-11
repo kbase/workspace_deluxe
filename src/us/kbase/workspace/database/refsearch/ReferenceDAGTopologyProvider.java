@@ -5,7 +5,7 @@ import java.util.Set;
 
 import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.Reference;
-import us.kbase.workspace.database.refsearch.SearchReferenceDAG.ReferenceProviderException;
+import us.kbase.workspace.database.refsearch.ReferenceProviderException;
 
 /** Provides information necessary for searching the reference graph about one or more
  * references:

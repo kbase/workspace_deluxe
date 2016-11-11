@@ -29,63 +29,6 @@ public class SearchReferenceDAG {
 	private final ReferenceDAGTopologyProvider refProvider;
 	private final boolean throwExceptionOnFail;
 	
-	/** An exception thrown when a failure occurs in a reference provider.
-	 * @author gaprice@lbl.gov
-	 *
-	 */
-	@SuppressWarnings("serial")
-	public static class ReferenceProviderException extends Exception {
-		
-		/** Construct the exception.
-		 * @param message an exception message.
-		 * @cause the cause of the exception.
-		 */
-		public ReferenceProviderException(final String message, final Throwable cause) {
-			super(message, cause);
-		}
-	}
-	
-	/** An exception thrown when a search from a particular reference is exhausted without meeting
-	 * the search criteria.
-	 * @author gaprice@lbl.gov
-	 *
-	 */
-	@SuppressWarnings("serial")
-	public static class ReferenceSearchFailedException extends Exception {
-		
-		private final Reference failedRef;
-		
-		/** Construct the exception.
-		 * @param failedOn the reference for which the search failed.
-		 */
-		public ReferenceSearchFailedException(final Reference failedOn) {
-			super();
-			failedRef = failedOn;
-		}
-		
-		/** Get the reference for which the search failed.
-		 * @return the reference for which the search failed.
-		 */
-		public Reference getFailedReference() {
-			return failedRef;
-		}
-	}
-	
-	/** An exception thrown when a search has traversed the maximum number of references allowed.
-	 * @author gaprice@lbl.gov
-	 *
-	 */
-	@SuppressWarnings("serial")
-	public static class ReferenceSearchMaximumSizeExceededException extends Exception {
-		
-		/** Construct the exception.
-		 * @param message an exception message.
-		 */
-		public ReferenceSearchMaximumSizeExceededException(final String message) {
-			super(message);
-		}
-	}
-	
 	/** Construct and perform a search in a directed, acyclic reference graph from a set of target
 	 * references to objects that a) exist in one of a set of workspaces and b) are at the
 	 * head of a reference path leading to the target objects.
