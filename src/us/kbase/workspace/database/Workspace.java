@@ -44,6 +44,9 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
+import us.kbase.workspace.database.SearchReferenceDAG.ReferenceDAGTopologyProvider;
+import us.kbase.workspace.database.SearchReferenceDAG.ReferenceProviderException;
+import us.kbase.workspace.database.SearchReferenceDAG.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -54,7 +57,6 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.google.common.collect.Sets;
 
 public class Workspace {
 	
@@ -946,7 +948,8 @@ public class Workspace {
 			final List<ObjectIdentifier> loi)
 			throws CorruptWorkspaceDBException,
 				WorkspaceCommunicationException, InaccessibleObjectException,
-				NoSuchReferenceException, TypedObjectExtractionException {
+				NoSuchReferenceException, TypedObjectExtractionException,
+				ReferenceSearchMaximumSizeExceededException {
 			
 		return getObjects(user, loi, false);
 	}
@@ -957,7 +960,8 @@ public class Workspace {
 			final boolean noData)
 			throws CorruptWorkspaceDBException,
 				WorkspaceCommunicationException, InaccessibleObjectException,
-				NoSuchReferenceException, TypedObjectExtractionException {
+				NoSuchReferenceException, TypedObjectExtractionException,
+				ReferenceSearchMaximumSizeExceededException {
 		return getObjects(user, loi, noData, false);
 	}
 	
@@ -968,7 +972,8 @@ public class Workspace {
 			boolean nullIfInaccessible)
 			throws CorruptWorkspaceDBException,
 				WorkspaceCommunicationException, InaccessibleObjectException,
-				NoSuchReferenceException, TypedObjectExtractionException {
+				NoSuchReferenceException, TypedObjectExtractionException,
+				ReferenceSearchMaximumSizeExceededException {
 		
 		final ResolvedRefPaths res = resolveObjects(user, loi, nullIfInaccessible);
 		
@@ -1393,7 +1398,7 @@ public class Workspace {
 			final boolean nullIfInaccessible)
 			throws WorkspaceCommunicationException,
 				CorruptWorkspaceDBException, InaccessibleObjectException,
-				NoSuchReferenceException {
+				NoSuchReferenceException, ReferenceSearchMaximumSizeExceededException {
 	
 		final ResolvedRefPaths res = resolveObjects(user, loi, nullIfInaccessible);
 		
@@ -1427,7 +1432,8 @@ public class Workspace {
 			final boolean nullIfInaccessible)
 			throws WorkspaceCommunicationException,
 				InaccessibleObjectException, CorruptWorkspaceDBException,
-				NoSuchObjectException, NoSuchReferenceException {
+				NoSuchObjectException, NoSuchReferenceException,
+				ReferenceSearchMaximumSizeExceededException {
 		if (loi.isEmpty()) {
 			throw new IllegalArgumentException("No object identifiers provided");
 		}
@@ -1490,7 +1496,7 @@ public class Workspace {
 			final Set<ObjectIdentifier> lookup,
 			final boolean nullIfInaccessible)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
-				CorruptWorkspaceDBException {
+				CorruptWorkspaceDBException, ReferenceSearchMaximumSizeExceededException {
 		if (lookup.isEmpty()) {
 			return new ResolvedRefPaths(null, null).withStandardObjects(null);
 		}
@@ -1514,27 +1520,77 @@ public class Workspace {
 				}
 			}
 		}
+		if (lookup.isEmpty()) {
+			return new ResolvedRefPaths(null, null).withStandardObjects(nolookup);
+		}
 		final Set<Long> wsIDs = searchObjectDAGGetWorkspaceIDs(pset);
 		pset = null;
 		rwsis = null;
+		if (wsIDs.isEmpty()) {
+			if (nullIfInaccessible) {
+				return new ResolvedRefPaths(null, null).withStandardObjects(nolookup);
+			} else {
+				throw generateInaccessibleObjectException(user, lookup.iterator().next());
+			}
+		}
+		return searchObjectDAG(user, wsIDs, lookup, resobjs, nullIfInaccessible)
+				.withStandardObjects(nolookup);
+	}
+
+	private ResolvedRefPaths searchObjectDAG(
+			final WorkspaceUser user,
+			final Set<Long> wsIDs,
+			final Set<ObjectIdentifier> lookup,
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
+			final boolean nullIfInaccessible)
+			throws WorkspaceCommunicationException, ReferenceSearchMaximumSizeExceededException,
+				InaccessibleObjectException {
 		
 		final Map<ObjectIDResolvedWS, Reference> objrefs = db.getObjectReference(
 				new HashSet<>(resobjs.values()));
 		try {
+			// will throw an exception if can't find a ref for any object in lookup
 			final Set<Reference> startingRefs = searchObjectDAGGetStartingRefs(
 					lookup, resobjs, objrefs, nullIfInaccessible);
-			final Map<Reference, List<Reference>> paths = searchObjectDAG(
-					wsIDs, startingRefs, nullIfInaccessible);
-			final ResolvedRefPaths ret = searchObjectDAGBuildResolvedObjectPaths(
-					resobjs, objrefs, paths);
-			return ret.withStandardObjects(nolookup);
-		} catch (final ObjectDAGSearchFromReferenceFailedException |
+			//so starting refs can't be empty unless nullIfInaccessible is true
+			if (nullIfInaccessible && startingRefs.isEmpty()) {
+				return new ResolvedRefPaths(null, null);
+			}
+			final ReferenceDAGTopologyProvider refProvider = new ReferenceDAGTopologyProvider() {
+				
+				@Override
+				public Map<Reference, Boolean> getReferenceExists(final Set<Reference> refs)
+						throws ReferenceProviderException {
+					try {
+						return db.getObjectExistsRef(refs);
+					} catch (WorkspaceCommunicationException e) {
+						throw new ReferenceProviderException("foo", e);
+					}
+				}
+				
+				@Override
+				public Map<Reference, ObjectReferenceSet> getAssociatedReferences(
+						final Set<Reference> sourceRefs)
+						throws ReferenceProviderException {
+					try {
+						return db.getObjectIncomingReferences(sourceRefs);
+					} catch (WorkspaceCommunicationException e) {
+						throw new ReferenceProviderException("foo", e);
+					}
+				}
+			};
+			final SearchReferenceDAG search = new SearchReferenceDAG(wsIDs, startingRefs,
+					refProvider, maximumObjectSearchCount, !nullIfInaccessible);
+			return searchObjectDAGBuildResolvedObjectPaths(resobjs, objrefs, search);
+		} catch (final SearchReferenceDAG.ReferenceSearchFailedException |
 				ObjectDAGSearchFromObjectIDFailedException e) {
 			final ObjectIdentifier failedOn = searchObjectDAGGetSearchFailedTarget(
 					e, objrefs, resobjs);
 			// ensure exceptions are thrown from the same place so users can't probe arbitrary
 			// workspaces. Returning the stack trace for errors just might have been a bad idea.
 			throw generateInaccessibleObjectException(user, failedOn);
+		} catch (final ReferenceProviderException e) {
+			throw (WorkspaceCommunicationException) e.getCause();
 		}
 	}
 
@@ -1559,23 +1615,22 @@ public class Workspace {
 		}
 		return startingRefs;
 	}
-	
 
 	private ResolvedRefPaths searchObjectDAGBuildResolvedObjectPaths(
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
 			final Map<ObjectIDResolvedWS, Reference> objrefs,
-			final Map<Reference, List<Reference>> paths) {
+			final SearchReferenceDAG paths) {
 		
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> absObjectIDs = new HashMap<>();
 		final Map<ObjectIdentifier, List<Reference>> oiPaths = new HashMap<>();
 		
 		for (final Entry<ObjectIdentifier, ObjectIDResolvedWS> e: resobjs.entrySet()) {
 			final Reference r = objrefs.get(e.getValue());
-			if (paths.containsKey(r)) { // objid was valid and path was found
+			if (paths.isPathFound(r)) { // objid was valid and path was found
 				//absolutize the ObjectIDResolvedWS
 				absObjectIDs.put(e.getKey(), new ObjectIDResolvedWS(
 						e.getValue().getWorkspaceIdentifier(), r.getObjectID(), r.getVersion()));
-				oiPaths.put(e.getKey(), paths.get(r));
+				oiPaths.put(e.getKey(), paths.getPath(r));
 			}
 		}
 		return new ResolvedRefPaths(absObjectIDs, oiPaths);
@@ -1589,9 +1644,9 @@ public class Workspace {
 
 		if (e instanceof ObjectDAGSearchFromObjectIDFailedException) {
 			return ((ObjectDAGSearchFromObjectIDFailedException) e).getSearchTarget();
-		} else if (e instanceof ObjectDAGSearchFromReferenceFailedException) {
-			final Reference failedOn = ((ObjectDAGSearchFromReferenceFailedException) e)
-					.getSearchTarget();
+		} else if (e instanceof SearchReferenceDAG.ReferenceSearchFailedException) {
+			final Reference failedOn = ((SearchReferenceDAG.ReferenceSearchFailedException) e)
+					.getFailedReference();
 			for (final Entry<ObjectIdentifier, ObjectIDResolvedWS> es: resobjs.entrySet()) {
 				if (failedOn.equals(objrefs.get(es.getValue()))) {
 					return es.getKey();
@@ -1616,21 +1671,6 @@ public class Workspace {
 				verString, o.getIdentifierString(), o.getWorkspaceIdentifierString(), userStr));
 	}
 
-	@SuppressWarnings("serial")
-	private static class ObjectDAGSearchFromReferenceFailedException extends Exception {
-		
-		private final Reference reftarget;
-		
-		public ObjectDAGSearchFromReferenceFailedException(final Reference searchTarget) {
-			super();
-			reftarget = searchTarget;
-		}
-		
-		public Reference getSearchTarget() {
-			return reftarget;
-		}
-	}
-	
 	@SuppressWarnings("serial")
 	private static class ObjectDAGSearchFromObjectIDFailedException extends Exception {
 		
@@ -1667,113 +1707,6 @@ public class Workspace {
 			return db.resolveWorkspaces(wsis, true, true);
 		} catch (NoSuchWorkspaceException e) {
 			throw new RuntimeException("Threw exception when explicitly told not to", e);
-		}
-	}
-	
-	private Map<Reference, List<Reference>> searchObjectDAG(
-			final Set<Long> wsids,
-			final Set<Reference> startingRefs,
-			final boolean nullIfInaccessible)
-			throws ObjectDAGSearchFromReferenceFailedException, WorkspaceCommunicationException,
-				InaccessibleObjectException {
-		int refcount = startingRefs.size();
-		final Map<Reference, List<Reference>> ret = new HashMap<>();
-		if (refCountExceeded(refcount, !nullIfInaccessible)) {
-			return ret;
-		}
-		final Map<Reference, Set<Reference>> searchrefs = new HashMap<>();
-		for (final Reference r: startingRefs) {
-			searchrefs.put(r, Sets.newHashSet(r));
-		}
-		while (!searchrefs.isEmpty()) {
-			final Iterator<Reference> refiter = searchrefs.keySet().iterator();
-			Set<Reference> query = new HashSet<Reference>();
-			while (refiter.hasNext()) {
-				final Reference r = refiter.next();
-				final Set<Reference> refs = searchrefs.get(r);
-				if (refs.isEmpty()) {
-					if (nullIfInaccessible) { // just skip errors
-						refiter.remove();
-					} else {
-						throw new ObjectDAGSearchFromReferenceFailedException(r);
-					}
-				} else { // could just always do this, has no effect, but since checking anyway...
-					query.addAll(refs);
-				}
-			}
-			Map<Reference, ObjectReferenceSet> res = db.getObjectIncomingReferences(query);
-			query = null;
-			
-			for (final Reference oi: searchrefs.keySet()) {
-				final Set<Reference> newrefs = getNewRefsFromOldRefs(searchrefs.get(oi), res);
-				refcount += newrefs.size();
-				searchrefs.put(oi, newrefs);
-			}
-			if (refCountExceeded(refcount, !nullIfInaccessible)) {
-				return ret;
-			}
-			res = null;
-			findReadableReferences(wsids, searchrefs, ret);
-		}
-		return ret;
-	}
-
-	private boolean refCountExceeded(final int refcount, final boolean throwException)
-			throws InaccessibleObjectException {
-		if (refcount > maximumObjectSearchCount) {
-			if (throwException) {
-				throw new InaccessibleObjectException("Reached reference search limit");
-			} else {
-				return true;
-			}
-		} else {
-			return false;
-		}
-	}
-	
-	private Set<Reference> getNewRefsFromOldRefs(
-			final Set<Reference> increfs,
-			final Map<Reference, ObjectReferenceSet> res) {
-		final Set<Reference> newrefs = new HashSet<Reference>();
-		for (final Reference r: increfs) {
-			newrefs.addAll(res.get(r).getReferenceSet());
-		}
-		return newrefs;
-	}
-	
-	/* Modifies searchrefs in place to remove objects with valid ref paths.
-	 * Modifies paths in place to add found paths.
-	 */
-	private void findReadableReferences(
-			final Set<Long> wsids,
-			final Map<Reference, Set<Reference>> searchrefs,
-			final Map<Reference, List<Reference>> paths)
-			throws WorkspaceCommunicationException {
-		Set<Reference> readable = new HashSet<>();
-		for (final Reference startRef: searchrefs.keySet()) {
-			for (final Reference r: searchrefs.get(startRef)) {
-				if (wsids.contains(r.getWorkspaceID())) {
-					readable.add(r);
-				}
-			}
-		}
-		if (readable.isEmpty()) {
-			return;
-		}
-		final Map<Reference, Boolean> exists = db.getObjectExistsRef(readable);
-		readable = null;
-		final Iterator<Reference> refiter = searchrefs.keySet().iterator();
-		while (refiter.hasNext()) {
-			final Reference startRef = refiter.next();
-			for (final Reference r: searchrefs.get(startRef)) {
-				if (exists.containsKey(r) && exists.get(r)) { //search over
-					//TODO REF LOOKUP need to handle path here
-					// is absolute at this point, made these absolute earlier
-					paths.put(startRef, Arrays.asList(startRef));  //TODO REF LOOKUP this is wrong!
-					refiter.remove();
-					break;
-				}
-			}
 		}
 	}
 
