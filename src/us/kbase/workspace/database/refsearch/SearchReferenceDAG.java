@@ -1,4 +1,4 @@
-package us.kbase.workspace.database;
+package us.kbase.workspace.database.refsearch;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -10,6 +10,9 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+
+import us.kbase.workspace.database.ObjectReferenceSet;
+import us.kbase.workspace.database.Reference;
 
 /** Searches a reference graph from a set of target references to find references in a provided
  * set of workspaces, and returns the path from each found object to its respective target object.
