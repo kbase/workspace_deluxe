@@ -2318,30 +2318,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER, Fields.VER_PROVREF, Fields.VER_REF);
 	
 	@Override
-	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectIncomingReferencesForObjIDs(
+	public Map<ObjectIDResolvedWS, Reference> getObjectReference(
 			final Set<ObjectIDResolvedWS> objs)
 			throws WorkspaceCommunicationException {
-		//TODO MEM add limit for number of refs returned (probably 50K, but make a method param) & throw exception if more than that returned
-		final Map<ObjectIDResolvedWS, ObjectReferenceSet> ret = new HashMap<>();
+		final Map<ObjectIDResolvedWS, Reference> ret = new HashMap<>();
 		if (objs.isEmpty()) {
 			return ret;
 		}
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs;
+		final Map<ResolvedMongoObjectID, Boolean> exists;
 		try {
 			resobjs = resolveObjectIDs(objs, false, true, false);
+			// the only way exists can be false if if there's DB inconsistency
+			//TODO GC when schema is changed to ensure versions always exist, remove
+			exists = verifyVersions(new HashSet<>(resobjs.values()), false);
 		} catch (NoSuchObjectException e) {
 			throw new RuntimeException("Threw exception when explicitly told not to", e);
 		}
-		final Set<Reference> refs = new HashSet<>();
-		for (final ResolvedMongoObjectID o: resobjs.values()) {
-			refs.add(o.getReference());
-		}
-		final Map<Reference, ObjectReferenceSet> refToRefs = getObjectIncomingReferences(refs);
-		for (final ObjectIDResolvedWS o: objs) {
-			final ResolvedMongoObjectID res = resobjs.get(o);
-			if (res != null) {
-				final Reference r = res.getReference();
-				ret.put(o, refToRefs.get(r));
+		for (final Entry<ObjectIDResolvedWS, ResolvedMongoObjectID> o: resobjs.entrySet()) {
+			if (exists.get(o.getValue())) {
+				ret.put(o.getKey(), o.getValue().getReference());
 			}
 		}
 		return ret;
