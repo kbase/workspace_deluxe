@@ -68,6 +68,7 @@ import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
+import us.kbase.workspace.database.SearchReferenceDAG.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
@@ -6437,13 +6438,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		final WorkspaceIdentifier wsUser2 = new WorkspaceIdentifier("wsu2");
 		final WorkspaceIdentifier wsDel = new WorkspaceIdentifier("wsDel");
 		final WorkspaceIdentifier wsUser2acc = new WorkspaceIdentifier("wsu2acc");
+		// create, but never use, this workspace so the workspace id list isn't empty
+		final WorkspaceIdentifier idlist = new WorkspaceIdentifier("idlist");
 		ws.createWorkspace(user1, wsUser1.getName(), false, null, null);
 		ws.setPermissions(user1, wsUser1, Arrays.asList(user2), Permission.WRITE);
 		ws.createWorkspace(user2, wsUser2.getName(), false, null, null);
 		ws.createWorkspace(user1, wsDel.getName(), false, null, null);
 		ws.setPermissions(user1, wsDel, Arrays.asList(user2), Permission.WRITE);
 		ws.createWorkspace(user2, wsUser2acc.getName(), false, null, null);
-
+		ws.createWorkspace(user1, idlist.getName(), false, null, null);
 		
 		final TypeDefId reftype = new TypeDefId(new TypeDefName("CopyRev", "RefType"), 1, 0);
 		
@@ -6649,6 +6652,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setPermissions(user2, wsUser2acc, Arrays.asList(user1), Permission.NONE);
 		ws.setWorkspaceDeleted(user1, wsUser1, false);
 		
+		/* fail getting an object because the user has access to no workspaces */
+		ws.setWorkspaceDeleted(user1, wsUser1, true);
+		ws.setWorkspaceDeleted(user1, idlist, true);
+		failGetReferencedObjects(user1, Arrays.asList(new ObjectIDWithRefPath(
+				new ObjectIdentifier(wsUser2, 1, 1))), new InaccessibleObjectException(
+						"Version 1 of object 1 in workspace wsu2 is not accessible to user u1"));
+		ws.setWorkspaceDeleted(user1, wsUser1, false);
+		ws.setWorkspaceDeleted(user1, idlist, false);
+		
 		/* test object position is maintained when failing to get an object by standard methods, 
 		 * a ref path and by lookup at the same time 
 		 */
@@ -6670,13 +6682,15 @@ public class WorkspaceTest extends WorkspaceTester {
 			failGetReferencedObjects(user1, Arrays.asList(
 					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)), // 7 nodes
 					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 2))), // 3 nodes
-					new InaccessibleObjectException("Reached reference search limit"));
+					new ReferenceSearchMaximumSizeExceededException(
+							"Reached reference search limit"));
 			
 			ws.setMaximumObjectSearchCount(9); // test later check
 			failGetReferencedObjects(user1, Arrays.asList(
 					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)), // 7 nodes
 					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 2))), // 3 nodes
-					new InaccessibleObjectException("Reached reference search limit"),
+					new ReferenceSearchMaximumSizeExceededException(
+							"Reached reference search limit"),
 					false, Sets.newHashSet(0)); //checks for nulls under the hood
 			
 			ws.setMaximumObjectSearchCount(10);
