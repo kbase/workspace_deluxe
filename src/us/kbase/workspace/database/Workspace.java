@@ -54,6 +54,7 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.google.common.collect.Sets;
 
 public class Workspace {
 	
@@ -1496,8 +1497,8 @@ public class Workspace {
 		//could make a method to just get IDs of workspace with specific permission to save mem
 		PermissionSet pset = db.getPermissions(user, Permission.READ, false);
 		Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				searchObjectsResolveWorkspaces(lookup);
-		Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = new HashMap<>();
+				searchObjectDAGResolveWorkspaces(lookup);
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = new HashMap<>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> nolookup = new HashMap<>();
 		final Iterator<ObjectIdentifier> oiter = lookup.iterator();
 		while (oiter.hasNext()) {
@@ -1513,36 +1514,139 @@ public class Workspace {
 				}
 			}
 		}
-		final Set<Long> wsIDs = searchObjectsGetWorkspaceIDs(pset);
+		final Set<Long> wsIDs = searchObjectDAGGetWorkspaceIDs(pset);
 		pset = null;
 		rwsis = null;
 		
-		Map<ObjectIDResolvedWS, ObjectReferenceSet> startrefs =
-				db.getObjectIncomingReferencesForObjIDs(new HashSet<>(resobjs.values()));
-		// this differs from resobjs in that the resolved objects are absolute
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resObjectIDs = new HashMap<>();
-		final Map<ObjectIdentifier, Set<Reference>> searchSet = new HashMap<>();
-		for (final ObjectIdentifier o: lookup) {
-			final ObjectIDResolvedWS res = resobjs.get(o);
-			final ObjectReferenceSet refset = startrefs.get(res);
-			if (refset != null) { // the object id is valid
-				final Reference objref = refset.getObjectReference();
-				resObjectIDs.put(o, new ObjectIDResolvedWS(res.getWorkspaceIdentifier(),
-						objref.getObjectID(), objref.getVersion()));
-				searchSet.put(o, refset.getReferenceSet());
-			} else {
-				// don't throw errors yet so users can't probe arbitrary workspaces
-				searchSet.put(o, new HashSet<Reference>());
-			}
+		final Map<ObjectIDResolvedWS, Reference> objrefs = db.getObjectReference(
+				new HashSet<>(resobjs.values()));
+		try {
+			final Set<Reference> startingRefs = searchObjectDAGGetStartingRefs(
+					lookup, resobjs, objrefs, nullIfInaccessible);
+			final Map<Reference, List<Reference>> paths = searchObjectDAG(
+					wsIDs, startingRefs, nullIfInaccessible);
+			final ResolvedRefPaths ret = searchObjectDAGBuildResolvedObjectPaths(
+					resobjs, objrefs, paths);
+			return ret.withStandardObjects(nolookup);
+		} catch (final ObjectDAGSearchFromReferenceFailedException |
+				ObjectDAGSearchFromObjectIDFailedException e) {
+			final ObjectIdentifier failedOn = searchObjectDAGGetSearchFailedTarget(
+					e, objrefs, resobjs);
+			// ensure exceptions are thrown from the same place so users can't probe arbitrary
+			// workspaces. Returning the stack trace for errors just might have been a bad idea.
+			throw generateInaccessibleObjectException(user, failedOn);
 		}
-		resobjs = null;
-		startrefs = null;
-		// preprocessing done, move on to the main event
-		return searchObjectDAG(user, wsIDs, resObjectIDs, searchSet, nullIfInaccessible)
-				.withStandardObjects(nolookup);
 	}
 
-	private Set<Long> searchObjectsGetWorkspaceIDs(final PermissionSet pset) {
+	private Set<Reference> searchObjectDAGGetStartingRefs(
+			final Set<ObjectIdentifier> lookup,
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
+			final Map<ObjectIDResolvedWS, Reference> objrefs,
+			final boolean nullIfInaccessible)
+			throws ObjectDAGSearchFromObjectIDFailedException {
+
+		final Set<Reference> startingRefs = new HashSet<>();
+		for (final ObjectIdentifier o: lookup) {
+			final ObjectIDResolvedWS res = resobjs.get(o);
+			final Reference ref = objrefs.get(res);
+			if (ref == null) { // invalid objectidentifier
+				if (!nullIfInaccessible) {
+					throw new ObjectDAGSearchFromObjectIDFailedException(o);
+				}
+			} else {
+				startingRefs.add(ref);
+			}
+		}
+		return startingRefs;
+	}
+	
+
+	private ResolvedRefPaths searchObjectDAGBuildResolvedObjectPaths(
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
+			final Map<ObjectIDResolvedWS, Reference> objrefs,
+			final Map<Reference, List<Reference>> paths) {
+		
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> absObjectIDs = new HashMap<>();
+		final Map<ObjectIdentifier, List<Reference>> oiPaths = new HashMap<>();
+		
+		for (final Entry<ObjectIdentifier, ObjectIDResolvedWS> e: resobjs.entrySet()) {
+			final Reference r = objrefs.get(e.getValue());
+			if (paths.containsKey(r)) { // objid was valid and path was found
+				//absolutize the ObjectIDResolvedWS
+				absObjectIDs.put(e.getKey(), new ObjectIDResolvedWS(
+						e.getValue().getWorkspaceIdentifier(), r.getObjectID(), r.getVersion()));
+				oiPaths.put(e.getKey(), paths.get(r));
+			}
+		}
+		return new ResolvedRefPaths(absObjectIDs, oiPaths);
+	}
+	
+	// this is a little filthy
+	private ObjectIdentifier searchObjectDAGGetSearchFailedTarget(
+			final Exception e,
+			final Map<ObjectIDResolvedWS, Reference> objrefs,
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs) {
+
+		if (e instanceof ObjectDAGSearchFromObjectIDFailedException) {
+			return ((ObjectDAGSearchFromObjectIDFailedException) e).getSearchTarget();
+		} else if (e instanceof ObjectDAGSearchFromReferenceFailedException) {
+			final Reference failedOn = ((ObjectDAGSearchFromReferenceFailedException) e)
+					.getSearchTarget();
+			for (final Entry<ObjectIdentifier, ObjectIDResolvedWS> es: resobjs.entrySet()) {
+				if (failedOn.equals(objrefs.get(es.getValue()))) {
+					return es.getKey();
+				}
+				
+			}
+			throw new RuntimeException("Something is extremely wrong, couldn't find target objid");
+		} else {
+			throw new RuntimeException("Unexpected exception type");
+		}
+	}
+	
+	private InaccessibleObjectException generateInaccessibleObjectException(
+			final WorkspaceUser user,
+			final ObjectIdentifier o)
+			throws InaccessibleObjectException {
+		final String verString = o.getVersion() == null ? "The latest version of " :
+				String.format("Version %s of ", o.getVersion());
+		final String userStr = user == null ? "anonymous users" : "user " + user.getUser();
+		return new InaccessibleObjectException(String.format(
+				"%sobject %s in workspace %s is not accessible to %s",
+				verString, o.getIdentifierString(), o.getWorkspaceIdentifierString(), userStr));
+	}
+
+	@SuppressWarnings("serial")
+	private static class ObjectDAGSearchFromReferenceFailedException extends Exception {
+		
+		private final Reference reftarget;
+		
+		public ObjectDAGSearchFromReferenceFailedException(final Reference searchTarget) {
+			super();
+			reftarget = searchTarget;
+		}
+		
+		public Reference getSearchTarget() {
+			return reftarget;
+		}
+	}
+	
+	@SuppressWarnings("serial")
+	private static class ObjectDAGSearchFromObjectIDFailedException extends Exception {
+		
+		private final ObjectIdentifier objtarget;
+		
+		public ObjectDAGSearchFromObjectIDFailedException(final ObjectIdentifier searchTarget) {
+			super();
+			objtarget = searchTarget;
+		}
+		
+		public ObjectIdentifier getSearchTarget() {
+			return objtarget;
+		}
+	}
+	
+	private Set<Long> searchObjectDAGGetWorkspaceIDs(final PermissionSet pset) {
 		final Set<Long> wsids = new HashSet<>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
 			if (!rwsi.isDeleted()) {
@@ -1552,7 +1656,7 @@ public class Workspace {
 		return wsids;
 	}
 
-	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> searchObjectsResolveWorkspaces(
+	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> searchObjectDAGResolveWorkspaces(
 			final Set<ObjectIdentifier> lookup)
 			throws WorkspaceCommunicationException {
 		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
@@ -1566,35 +1670,32 @@ public class Workspace {
 		}
 	}
 	
-	private ResolvedRefPaths searchObjectDAG(
-			final WorkspaceUser user,
+	private Map<Reference, List<Reference>> searchObjectDAG(
 			final Set<Long> wsids,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> resObjectIDs,
-			final Map<ObjectIdentifier, Set<Reference>> searchrefs,
+			final Set<Reference> startingRefs,
 			final boolean nullIfInaccessible)
-			throws InaccessibleObjectException, WorkspaceCommunicationException {
-		int refcount = 0;
-		for (final Set<Reference> refs: searchrefs.values()) {
-			refcount += 1 + refs.size(); // 1 for the starting object
-		}
-		final ResolvedRefPaths resolvedPaths = new ResolvedRefPaths(null, null); //init empty
+			throws ObjectDAGSearchFromReferenceFailedException, WorkspaceCommunicationException,
+				InaccessibleObjectException {
+		int refcount = startingRefs.size();
+		final Map<Reference, List<Reference>> ret = new HashMap<>();
 		if (refCountExceeded(refcount, !nullIfInaccessible)) {
-			return resolvedPaths;
+			return ret;
 		}
-		findReadableReferences(wsids, searchrefs, resolvedPaths, resObjectIDs);
+		final Map<Reference, Set<Reference>> searchrefs = new HashMap<>();
+		for (final Reference r: startingRefs) {
+			searchrefs.put(r, Sets.newHashSet(r));
+		}
 		while (!searchrefs.isEmpty()) {
-			final Iterator<ObjectIdentifier> oiter = searchrefs.keySet().iterator();
+			final Iterator<Reference> refiter = searchrefs.keySet().iterator();
 			Set<Reference> query = new HashSet<Reference>();
-			while (oiter.hasNext()) {
-				final ObjectIdentifier o = oiter.next();
-				final Set<Reference> refs = searchrefs.get(o);
+			while (refiter.hasNext()) {
+				final Reference r = refiter.next();
+				final Set<Reference> refs = searchrefs.get(r);
 				if (refs.isEmpty()) {
 					if (nullIfInaccessible) { // just skip errors
-						oiter.remove();
+						refiter.remove();
 					} else {
-						// only throw errors here so users can't probe arbitrary workspaces
-						// errors are thrown from same place whether on 1st or later iterations
-						throwSearchDAGFailed(user, o);
+						throw new ObjectDAGSearchFromReferenceFailedException(r);
 					}
 				} else { // could just always do this, has no effect, but since checking anyway...
 					query.addAll(refs);
@@ -1603,30 +1704,20 @@ public class Workspace {
 			Map<Reference, ObjectReferenceSet> res = db.getObjectIncomingReferences(query);
 			query = null;
 			
-			for (final ObjectIdentifier oi: searchrefs.keySet()) {
+			for (final Reference oi: searchrefs.keySet()) {
 				final Set<Reference> newrefs = getNewRefsFromOldRefs(searchrefs.get(oi), res);
 				refcount += newrefs.size();
 				searchrefs.put(oi, newrefs);
 			}
 			if (refCountExceeded(refcount, !nullIfInaccessible)) {
-				return resolvedPaths;
+				return ret;
 			}
 			res = null;
-			findReadableReferences(wsids, searchrefs, resolvedPaths, resObjectIDs);
+			findReadableReferences(wsids, searchrefs, ret);
 		}
-		return resolvedPaths;
+		return ret;
 	}
 
-	private void throwSearchDAGFailed(final WorkspaceUser user, final ObjectIdentifier o)
-			throws InaccessibleObjectException {
-		final String verString = o.getVersion() == null ? "The latest version of " :
-				String.format("Version %s of ", o.getVersion());
-		final String userStr = user == null ? "anonymous users" : "user " + user.getUser();
-		throw new InaccessibleObjectException(String.format(
-				"%sobject %s in workspace %s is not accessible to %s",
-				verString, o.getIdentifierString(), o.getWorkspaceIdentifierString(), userStr));
-	}
-	
 	private boolean refCountExceeded(final int refcount, final boolean throwException)
 			throws InaccessibleObjectException {
 		if (refcount > maximumObjectSearchCount) {
@@ -1642,8 +1733,7 @@ public class Workspace {
 	
 	private Set<Reference> getNewRefsFromOldRefs(
 			final Set<Reference> increfs,
-			final Map<Reference, ObjectReferenceSet> res)
-					throws InaccessibleObjectException {
+			final Map<Reference, ObjectReferenceSet> res) {
 		final Set<Reference> newrefs = new HashSet<Reference>();
 		for (final Reference r: increfs) {
 			newrefs.addAll(res.get(r).getReferenceSet());
@@ -1652,17 +1742,16 @@ public class Workspace {
 	}
 	
 	/* Modifies searchrefs in place to remove objects with valid ref paths.
-	 * Modifies resolvedPaths in place to add objects with valid ref paths and fake paths.
+	 * Modifies paths in place to add found paths.
 	 */
 	private void findReadableReferences(
 			final Set<Long> wsids,
-			final Map<ObjectIdentifier, Set<Reference>> searchrefs,
-			final ResolvedRefPaths resolvedPaths,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> resObjectIDs)
+			final Map<Reference, Set<Reference>> searchrefs,
+			final Map<Reference, List<Reference>> paths)
 			throws WorkspaceCommunicationException {
 		Set<Reference> readable = new HashSet<>();
-		for (final ObjectIdentifier o: searchrefs.keySet()) {
-			for (final Reference r: searchrefs.get(o)) {
+		for (final Reference startRef: searchrefs.keySet()) {
+			for (final Reference r: searchrefs.get(startRef)) {
 				if (wsids.contains(r.getWorkspaceID())) {
 					readable.add(r);
 				}
@@ -1673,19 +1762,15 @@ public class Workspace {
 		}
 		final Map<Reference, Boolean> exists = db.getObjectExistsRef(readable);
 		readable = null;
-		final Iterator<ObjectIdentifier> oiter = searchrefs.keySet().iterator();
-		while (oiter.hasNext()) {
-			final ObjectIdentifier o = oiter.next();
-			for (final Reference r: searchrefs.get(o)) {
+		final Iterator<Reference> refiter = searchrefs.keySet().iterator();
+		while (refiter.hasNext()) {
+			final Reference startRef = refiter.next();
+			for (final Reference r: searchrefs.get(startRef)) {
 				if (exists.containsKey(r) && exists.get(r)) { //search over
 					//TODO REF LOOKUP need to handle path here
 					// is absolute at this point, made these absolute earlier
-					final ObjectIDResolvedWS res = resObjectIDs.get(o);
-					final Reference targetObj = new Reference(
-							res.getWorkspaceIdentifier().getID(), res.getId(), res.getVersion());
-					resolvedPaths.withpath.put(o, res);
-					resolvedPaths.withpathRefPath.put(o, Arrays.asList(targetObj)); //TODO REF LOOKUP this is wrong!
-					oiter.remove();
+					paths.put(startRef, Arrays.asList(startRef));  //TODO REF LOOKUP this is wrong!
+					refiter.remove();
 					break;
 				}
 			}

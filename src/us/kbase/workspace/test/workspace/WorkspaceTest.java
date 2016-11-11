@@ -6556,7 +6556,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			destroyGetObjectsResources(lwod);
 		}
 		
-		// test getting only an object with a 1 hop path (doesn't go through search loop)
+		// test getting only an object with a 1 hop path
 		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(
 				wsUser2, path2LeafName, 1)), path2, p2, MT_MAP, MT_LIST, MT_MAP);
 		
@@ -6665,14 +6665,14 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 		// fail getting objects due to exceeding the allowed search size
 		try {
-			ws.setMaximumObjectSearchCount(3); // tests first time check - mongodb impl
-			assertThat("incorrect obj search count", ws.getMaximumObjectSearchCount(), is(3));
+			ws.setMaximumObjectSearchCount(1); // tests first time check
+			assertThat("incorrect obj search count", ws.getMaximumObjectSearchCount(), is(1));
 			failGetReferencedObjects(user1, Arrays.asList(
 					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)), // 7 nodes
 					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 2))), // 3 nodes
 					new InaccessibleObjectException("Reached reference search limit"));
 			
-			ws.setMaximumObjectSearchCount(9); // test later check - mongodb impl
+			ws.setMaximumObjectSearchCount(9); // test later check
 			failGetReferencedObjects(user1, Arrays.asList(
 					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)), // 7 nodes
 					new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 2))), // 3 nodes
@@ -6686,7 +6686,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			destroyGetObjectsResources(ws.getObjects(user1, objs)); // should work
 			
 		} finally {
-			ws.setMaximumObjectSearchCount(50000);
+			ws.setMaximumObjectSearchCount(10000);
 		}
 	}
 	
