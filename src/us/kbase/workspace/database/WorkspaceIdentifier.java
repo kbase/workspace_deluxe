@@ -10,8 +10,9 @@ import org.apache.commons.lang3.StringUtils;
 public class WorkspaceIdentifier {
 	
 	public final static String WS_NAME_DELIMITER = ":";
-	private final static Pattern INVALID_WS_NAMES = 
+	private final static Pattern WS_NAME_INVALID = 
 			Pattern.compile("[^\\w" + WS_NAME_DELIMITER + "._-]");
+	private final static Pattern WS_NAME_INTEGER = Pattern.compile("^-?\\d+$");
 	public final static int MAX_NAME_LENGTH = 255;
 
 	private final Long id;
@@ -47,7 +48,7 @@ public class WorkspaceIdentifier {
 	public static void checkWorkspaceName(final String name,
 			final WorkspaceUser user) {
 		checkString(name, "Workspace name", MAX_NAME_LENGTH);
-		final Matcher m = INVALID_WS_NAMES.matcher(name);
+		Matcher m = WS_NAME_INVALID.matcher(name);
 		String wsname = name;
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(
@@ -75,12 +76,9 @@ public class WorkspaceIdentifier {
 			}
 			wsname = user_ws[1];
 		}
-		try {
-			Integer.parseInt(wsname);
-			throw new IllegalArgumentException(
-					"Workspace names cannot be integers: " + name);
-		} catch (NumberFormatException nfe) {
-			//do nothing, name is ok
+		m = WS_NAME_INTEGER.matcher(wsname);
+		if (m.find()) {
+			throw new IllegalArgumentException("Workspace names cannot be integers: " + name);
 		}
 	}
 	
