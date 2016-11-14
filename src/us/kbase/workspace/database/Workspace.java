@@ -45,7 +45,7 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.refsearch.SearchReferenceDAG;
-import us.kbase.workspace.database.refsearch.ReferenceDAGTopologyProvider;
+import us.kbase.workspace.database.refsearch.ReferenceGraphTopologyProvider;
 import us.kbase.workspace.database.refsearch.ReferenceProviderException;
 import us.kbase.workspace.database.refsearch.ReferenceSearchFailedException;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
@@ -1557,7 +1557,7 @@ public class Workspace {
 			if (nullIfInaccessible && startingRefs.isEmpty()) {
 				return new ResolvedRefPaths(null, null);
 			}
-			final ReferenceDAGTopologyProvider refProvider = new ReferenceDAGTopologyProvider() {
+			final ReferenceGraphTopologyProvider refProvider = new ReferenceGraphTopologyProvider() {
 				
 				@Override
 				public Map<Reference, Boolean> getReferenceExists(final Set<Reference> refs)

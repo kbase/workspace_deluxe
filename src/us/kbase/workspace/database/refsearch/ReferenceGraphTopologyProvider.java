@@ -15,7 +15,7 @@ import us.kbase.workspace.database.refsearch.ReferenceProviderException;
  * @author gaprice@lbl.gov
  *
  */
-public interface ReferenceDAGTopologyProvider {
+public interface ReferenceGraphTopologyProvider {
 
 	/** Given a set of references, returns the set of references associated with the target
 	 * references in the graph. The references may be the incoming or outgoing references to

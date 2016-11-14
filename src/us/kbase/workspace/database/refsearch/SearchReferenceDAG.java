@@ -23,7 +23,7 @@ public class SearchReferenceDAG {
 
 	private final int maximumReferenceSearchCount;
 	private final Map<Reference, List<Reference>> paths = new HashMap<>();
-	private final ReferenceDAGTopologyProvider refProvider;
+	private final ReferenceGraphTopologyProvider refProvider;
 	private final boolean throwExceptionOnFail;
 	
 	/** Construct and perform a search in a directed, acyclic reference graph from a set of target
@@ -51,7 +51,7 @@ public class SearchReferenceDAG {
 	public SearchReferenceDAG(
 			final Set<Long> workspaceIDs,
 			final Set<Reference> startingRefs,
-			final ReferenceDAGTopologyProvider refProvider,
+			final ReferenceGraphTopologyProvider refProvider,
 			final int maximumSearchSize,
 			final boolean throwExceptionOnFail)
 			throws ReferenceSearchFailedException, ReferenceSearchMaximumSizeExceededException,
