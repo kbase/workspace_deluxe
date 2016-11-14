@@ -76,6 +76,9 @@ public class Workspace {
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	private final static int MAX_WS_COUNT = 1000;
 	private final static int NAME_LIMIT = 1000;
+	/* may need to calculate memory for search tree and modify, or add a separate limit. 
+	 * for now this is low enough it's not really a concern.
+	 */
 	private final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 10000;
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
@@ -1484,10 +1487,6 @@ public class Workspace {
 		return resolvedPaths.merge(searchObjectDAG(user, lookup, nullIfInaccessible));
 	}
 	
-	//TODO REF LOOKUP PATH1 return reference path
-	//TODO REF LOOKUP PATH2 keep reference search tree in memory - calc mem
-	//TODO REF LOOKUP PATH3 prune tree on 1) dead end, 2) node already in tree (path must be shorter than current path)
-	//TODO REF LOOKUP PATH4 delete tree if > max mem size, & delete before pulling objects
 	//TODO REF LOOKUP positive and negative caches (?)
 
 	/* Modifies lookup in place to remove objects that don't need lookup.

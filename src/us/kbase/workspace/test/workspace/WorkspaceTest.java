@@ -6240,7 +6240,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(user1, wsaccessible.getName(), false, null, null);
 		ws.setPermissions(user1, wsaccessible, Arrays.asList(user2),
 				Permission.WRITE);
-		ws.createWorkspace(user2, wshidden.getName(), true, null, null);
+		ws.createWorkspace(user2, wshidden.getName(), false, null, null);
 		
 		Map<String, Object> data1 = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
@@ -6377,20 +6377,20 @@ public class WorkspaceTest extends WorkspaceTester {
 				(ObjectIdentifier) new ObjIDWithRefPathAndSubset(simplerefoi, //auto lookup
 						new SubsetSelection(Arrays.asList("/map/id21")))
 				));
-		final ObjectInformation leaf1newPath = leaf1.updateReferencePath(Arrays.asList(
+		leaf1 = leaf1.updateReferencePath(Arrays.asList(
 				new Reference(1, 2, 1), new Reference(2, 1, 1)));
 		try {
 			assertThat("correct list size", lwod.size(), is(12));
 			compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, data2, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, data2resolved, refs, refmap);
-			compareObjectAndInfo(lwod.get(2), leaf1newPath, pU2_1, data1, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, data1, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(3), leaf1, pU2_1, data1, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(4), leaf2, pU1_1, data2id22, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(5), leaf2, pU1_1, data2map, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(6), simpleref, pU2_2, data2id23, refs, refmap);
-			compareObjectAndInfo(lwod.get(7), leaf1newPath, pU2_1, data1id1, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(7), leaf1, pU2_1, data1id1, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(8), leaf1, pU2_1, data1id2, MT_LIST, MT_MAP);
-			compareObjectAndInfo(lwod.get(9), leaf1newPath, pU2_1, data1id3, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(9), leaf1, pU2_1, data1id3, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(10), leaf2, pU1_1, data2, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(11), simpleref, pU2_2, data2id21, refs, refmap);
 		} finally {
@@ -6409,7 +6409,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, null, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(1), simpleref, pU2_2, null, refs, refmap);
 			compareObjectAndInfo(lwod.get(2), leaf1, pU2_1, null, MT_LIST, MT_MAP);
-			compareObjectAndInfo(lwod.get(3), leaf1newPath, pU2_1, null, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(3), leaf1, pU2_1, null, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(4), leaf2, pU1_1, null, MT_LIST, MT_MAP);
 		} finally {
 			destroyGetObjectsResources(lwod);
@@ -6424,7 +6424,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				(ObjectIdentifier) new ObjectIDWithRefPath(leaf2oi) // auto lookup
 				), true, false);
 		assertThat("object info different", loi,
-				is(Arrays.asList(leaf2, simpleref, leaf1, leaf1newPath, simpleref, leaf2)));
+				is(Arrays.asList(leaf2, simpleref, leaf1, leaf1, simpleref, leaf2)));
 	}
 	
 	@Test
@@ -6455,17 +6455,17 @@ public class WorkspaceTest extends WorkspaceTester {
 		final ObjectInformation leaf1_1 = saveObject(user2, wsUser2, makeMeta(1), MT_MAP,
 				SAFE_TYPE1, leaf1Name, p2);
 		final String leaf1_1ref = wsUser2.getName() + "/" + leaf1Name + "/" + 1;
-		final ObjectInformation leaf1_2 = saveObject(user2, wsUser2, makeMeta(2), MT_MAP,
+		ObjectInformation leaf1_2 = saveObject(user2, wsUser2, makeMeta(2), MT_MAP,
 				SAFE_TYPE1, leaf1Name, p2);
 		final String leaf1_2ref = wsUser2.getName() + "/" + leaf1Name + "/" + 2;
 		final String delLeafName = "delleaf";
-		final ObjectInformation delleaf = saveObject(user2, wsUser2, makeMeta(3), MT_MAP,
+		ObjectInformation delleaf = saveObject(user2, wsUser2, makeMeta(3), MT_MAP,
 				SAFE_TYPE1, delLeafName, p2);
 		final String delLeafRef = wsUser2.getName() + "/" + delLeafName + "/" + 1;
 
 		// this leaf will only have a len 2 path, id is 3
 		final String path2LeafName = "path2leaf";
-		final ObjectInformation path2 = saveObject(user2, wsUser2, makeMeta(4), MT_MAP,
+		ObjectInformation path2 = saveObject(user2, wsUser2, makeMeta(4), MT_MAP,
 				SAFE_TYPE1, path2LeafName, p2);
 		final String path2LeafRef = wsUser2.getName() + "/" + path2LeafName + "/" + 1;
 		
@@ -6544,15 +6544,23 @@ public class WorkspaceTest extends WorkspaceTester {
 		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsi2, leaf1Name, 2)));
 		a.add(new ObjectIDWithRefPath(new ObjectIdentifier(wsi2, path2LeafName, 1))); // 1 hop path
 		final List<WorkspaceObjectData> lwod = ws.getObjects(user1, a);
+		
+		final ObjectInformation leaf1_1stdPath = leaf1_1.updateReferencePath(Arrays.asList(
+				new Reference("1/3/1"), new Reference("2/6/1"), new Reference("2/4/1"),
+				new Reference("2/1/1")));
+		leaf1_2 = leaf1_2.updateReferencePath(Arrays.asList(new Reference("1/2/1"),
+				new Reference("2/5/1"), new Reference("2/1/2")));
+		path2 = path2.updateReferencePath(Arrays.asList(
+				new Reference("1/1/1"), new Reference("2/3/1")));
 		try {
 			assertThat("correct list size", lwod.size(), is(9));
-			compareObjectAndInfo(lwod.get(0), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(0), leaf1_1stdPath, p2, MT_MAP, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(1), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
-			compareObjectAndInfo(lwod.get(2), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(2), leaf1_1stdPath, p2, MT_MAP, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(3), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
-			compareObjectAndInfo(lwod.get(4), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(4), leaf1_1stdPath, p2, MT_MAP, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(5), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
-			compareObjectAndInfo(lwod.get(6), leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+			compareObjectAndInfo(lwod.get(6), leaf1_1stdPath, p2, MT_MAP, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(7), leaf1_2, p2, MT_MAP, MT_LIST, MT_MAP);
 			compareObjectAndInfo(lwod.get(8), path2, p2, MT_MAP, MT_LIST, MT_MAP);
 		} finally {
@@ -6566,10 +6574,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		// test getting an object anonymously
 		ws.setGlobalPermission(user1, wsUser1, Permission.READ);
 		checkReferencedObject(null, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)),
-				leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+				leaf1_1stdPath, p2, MT_MAP, MT_LIST, MT_MAP);
 		ws.setGlobalPermission(user1, wsUser1, Permission.NONE);
 		
 		// test getting a deleted object
+		delleaf = delleaf.updateReferencePath(Arrays.asList(
+				new Reference("1/3/1"), new Reference("2/6/1"), new Reference("2/4/1"),
+				new Reference("2/2/1")));
 		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 2, 1)),
 				delleaf, p2, MT_MAP, MT_LIST, MT_MAP);
 		
@@ -6578,13 +6589,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setPermissions(user2, wsUser2, Arrays.asList(user1), Permission.READ);
 		ws.setWorkspaceDeleted(user2, wsUser2, true);
 		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)),
-				leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+				leaf1_1stdPath, p2, MT_MAP, MT_LIST, MT_MAP);
 			//that's unreadable
 		ws.setWorkspaceDeleted(user2, wsUser2, false);
 		ws.setPermissions(user2, wsUser2, Arrays.asList(user1), Permission.NONE);
 		ws.setWorkspaceDeleted(user2, wsUser2, true);
 		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)),
-				leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+				leaf1_1stdPath, p2, MT_MAP, MT_LIST, MT_MAP);
 		ws.setWorkspaceDeleted(user2, wsUser2, false);
 		
 		// test getting an object that has direct access
@@ -6648,7 +6659,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						"Version 1 of object 1 in workspace wsu2 is not accessible to user u1"));
 		ws.setPermissions(user2, wsUser2acc, Arrays.asList(user1), Permission.READ);
 		checkReferencedObject(user1, new ObjectIDWithRefPath(new ObjectIdentifier(wsUser2, 1, 1)),
-				leaf1_1, p2, MT_MAP, MT_LIST, MT_MAP);
+				leaf1_1.updateReferencePath(Arrays.asList(new Reference("4/1/1"),
+						new Reference("2/6/1"), new Reference("2/4/1"), new Reference("2/1/1"))),
+				p2, MT_MAP, MT_LIST, MT_MAP);
 		ws.setPermissions(user2, wsUser2acc, Arrays.asList(user1), Permission.NONE);
 		ws.setWorkspaceDeleted(user1, wsUser1, false);
 		

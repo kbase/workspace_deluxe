@@ -1,15 +1,12 @@
 package us.kbase.workspace.database.refsearch;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.google.common.collect.Sets;
 
 import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.Reference;
@@ -22,7 +19,7 @@ import us.kbase.workspace.database.Reference;
  */
 public class SearchReferenceDAG {
 	
-	//TODO TEST Unit tests
+	//TODO NOW TEST Unit tests
 
 	private final int maximumReferenceSearchCount;
 	private final Map<Reference, List<Reference>> paths = new HashMap<>();
@@ -83,49 +80,51 @@ public class SearchReferenceDAG {
 			throws ReferenceSearchFailedException, ReferenceSearchMaximumSizeExceededException,
 				ReferenceProviderException {
 		int refcount = startingRefs.size();
-		if (refCountExceeded(refcount, throwExceptionOnFail)) {
+		if (refCountExceeded(refcount)) {
 			return;
 		}
-		final Map<Reference, Set<Reference>> searchrefs = new HashMap<>();
+		final List<ReferenceSearchTree> trees = new LinkedList<>();
 		for (final Reference r: startingRefs) {
-			searchrefs.put(r, Sets.newHashSet(r));
+			trees.add(new ReferenceSearchTree(r, wsids));
 		}
-		while (!searchrefs.isEmpty()) {
-			final Iterator<Reference> refiter = searchrefs.keySet().iterator();
+		Map<Reference, Boolean> exists = new HashMap<>();
+		while (!trees.isEmpty()) {
+			final Iterator<ReferenceSearchTree> treeiter = trees.iterator();
 			Set<Reference> query = new HashSet<Reference>();
-			while (refiter.hasNext()) {
-				final Reference r = refiter.next();
-				final Set<Reference> refs = searchrefs.get(r);
-				if (refs.isEmpty()) {
-					if (throwExceptionOnFail) {
-						throw new ReferenceSearchFailedException(r);
-					} else {
-						refiter.remove();
+			while (treeiter.hasNext()) {
+				final ReferenceSearchTree tree = treeiter.next();
+				query.addAll(tree.checkForPaths(exists));
+				if (tree.isComplete()) {
+					treeiter.remove();
+					if (tree.isPathFound()) {
+						paths.put(tree.getRoot(), tree.getPath());
+					} else if (throwExceptionOnFail) { // otherwise do nothing
+						throw new ReferenceSearchFailedException(tree.getRoot());
 					}
-				} else { // could just always do this, has no effect, but since checking anyway...
-					query.addAll(refs);
 				}
 			}
+			exists = null;
 			Map<Reference, ObjectReferenceSet> res = refProvider.getAssociatedReferences(query);
 			query = null;
-			
-			for (final Reference oi: searchrefs.keySet()) {
-				final Set<Reference> newrefs = getNewRefsFromOldRefs(searchrefs.get(oi), res);
-				refcount += newrefs.size();
-				searchrefs.put(oi, newrefs);
+			for (final ObjectReferenceSet r: res.values()) {
+				refcount += r.getReferenceSet().size();
 			}
-			if (refCountExceeded(refcount, throwExceptionOnFail)) {
+			if (refCountExceeded(refcount)) {
 				return;
 			}
+			query = new HashSet<>();
+			for (final ReferenceSearchTree tree: trees) {
+				query.addAll(tree.updateTree(res));
+			}
 			res = null;
-			findReadableReferences(wsids, searchrefs);
+			exists = refProvider.getReferenceExists(query);
 		}
 	}
 
-	private boolean refCountExceeded(final int refcount, final boolean throwException)
+	private boolean refCountExceeded(final int refcount)
 			throws ReferenceSearchMaximumSizeExceededException {
 		if (refcount > maximumReferenceSearchCount) {
-			if (throwException) {
+			if (throwExceptionOnFail) {
 				throw new ReferenceSearchMaximumSizeExceededException(
 						"Reached reference search limit");
 			} else {
@@ -133,51 +132,6 @@ public class SearchReferenceDAG {
 			}
 		} else {
 			return false;
-		}
-	}
-	
-	private Set<Reference> getNewRefsFromOldRefs(
-			final Set<Reference> increfs,
-			final Map<Reference, ObjectReferenceSet> res) {
-		final Set<Reference> newrefs = new HashSet<Reference>();
-		for (final Reference r: increfs) {
-			newrefs.addAll(res.get(r).getReferenceSet());
-		}
-		return newrefs;
-	}
-	
-	/* Modifies searchrefs in place to remove objects with valid ref paths.
-	 * Modifies paths in place to add found paths.
-	 */
-	private void findReadableReferences(
-			final Set<Long> wsids,
-			final Map<Reference, Set<Reference>> searchrefs)
-			throws ReferenceProviderException {
-		Set<Reference> readable = new HashSet<>();
-		for (final Reference startRef: searchrefs.keySet()) {
-			for (final Reference r: searchrefs.get(startRef)) {
-				if (wsids.contains(r.getWorkspaceID())) {
-					readable.add(r);
-				}
-			}
-		}
-		if (readable.isEmpty()) {
-			return;
-		}
-		final Map<Reference, Boolean> exists = refProvider.getReferenceExists(readable);
-		readable = null;
-		final Iterator<Reference> refiter = searchrefs.keySet().iterator();
-		while (refiter.hasNext()) {
-			final Reference startRef = refiter.next();
-			for (final Reference r: searchrefs.get(startRef)) {
-				if (exists.containsKey(r) && exists.get(r)) { //search over
-					//TODO REF LOOKUP need to handle path here
-					// is absolute at this point, made these absolute earlier
-					paths.put(startRef, Collections.unmodifiableList(Arrays.asList(startRef)));  //TODO REF LOOKUP this is wrong!
-					refiter.remove();
-					break;
-				}
-			}
 		}
 	}
 	
