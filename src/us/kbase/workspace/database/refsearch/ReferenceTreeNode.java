@@ -10,9 +10,7 @@ public class ReferenceTreeNode {
 	
 	//TODO NOW TEST Unit tests
 	
-	private final long workspaceID;
-	private final long objectID;
-	private final int version;
+	private final Reference ref;
 	private final ReferenceTreeNode parent;
 	
 	/** Create a new search tree node.
@@ -21,9 +19,12 @@ public class ReferenceTreeNode {
 	 */
 	public ReferenceTreeNode(final Reference ref, final ReferenceTreeNode parent) {
 		super();
-		this.workspaceID = ref.getWorkspaceID();
-		this.objectID = ref.getObjectID();
-		this.version = ref.getVersion();
+		// no point in unpacking the ref since the search tree keeps a set of every reference in
+		// the tree
+		if (ref == null) {
+			throw new NullPointerException("ref");
+		}
+		this.ref = ref;
 		this.parent = parent;
 	}
 
@@ -38,19 +39,17 @@ public class ReferenceTreeNode {
 	 * @return this node's reference.
 	 */
 	public Reference getReference() {
-		return new Reference(workspaceID, objectID, version);
+		return ref;
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ReferenceTreeNode [ref = ");
-		builder.append(getReference().toString());
+		builder.append(ref);
 		builder.append(", parent ref = ");
 		builder.append(parent == null ? "null" : parent.getReference().toString());
 		builder.append("]");
 		return builder.toString();
 	}
-	
-	
 }
