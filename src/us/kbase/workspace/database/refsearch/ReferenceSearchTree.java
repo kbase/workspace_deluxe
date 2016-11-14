@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.Reference;
 
 public class ReferenceSearchTree {
@@ -19,20 +18,15 @@ public class ReferenceSearchTree {
 	/* Could prune tree from already seen nodes and dead ends if memory use becomes an issue */
 	
 	private final Reference root;
-	private final Set<Long> workspaceIDs;
 	private final Set<Reference> tree = new HashSet<>();
 	private List<ReferenceTreeNode> leaves = new LinkedList<>();
 	private List<Reference> path = null;
 	boolean complete = false;
 
-	public ReferenceSearchTree(final Reference root, final Set<Long> workspaceIDs) {
+	public ReferenceSearchTree(final Reference root) {
 		if (root == null) {
 			throw new NullPointerException("root");
 		}
-		if (workspaceIDs == null || workspaceIDs.isEmpty()) {
-			throw new IllegalArgumentException("workspaceIDs cannot be null or empty");
-		}
-		this.workspaceIDs = workspaceIDs;
 		this.root = root;
 		tree.add(root);
 		leaves.add(new ReferenceTreeNode(root, null));
@@ -44,52 +38,45 @@ public class ReferenceSearchTree {
 		}
 	}
 
-	public Set<Reference> checkForPaths(final Map<Reference, Boolean> readableAndExists) {
-		checkComplete();
-		final Set<Reference> leavesToReturn = new HashSet<>();
-		for (final ReferenceTreeNode n: leaves) {
-			final Reference r = n.getReference();
-			if (readableAndExists.containsKey(r) && readableAndExists.get(r)) {
-				generatePath(n);
-				leavesToReturn.clear();
-				break;
-			}
-			leavesToReturn.add(r);
-		}
-		if (leavesToReturn.isEmpty()) {
-			complete = true;
-			tree.clear();
-			leaves = null;
-		}
-		return leavesToReturn;
-	}
-	
-	public Set<Reference> updateTree(final Map<Reference, ObjectReferenceSet> newrefs) {
+	public Set<Reference> updateTree(final Map<Reference, Map<Reference, Boolean>> newrefs) {
 		checkComplete();
 		final List<ReferenceTreeNode> newleaves = new LinkedList<>();
-		final Set<Reference> checkread = new HashSet<>();
+		final Set<Reference> retrefs = new HashSet<>();
 		for (final ReferenceTreeNode leaf: leaves) {
 			final Reference r = leaf.getReference();
 			if (newrefs.containsKey(r)) {
-				for (final Reference newleaf: newrefs.get(r).getReferenceSet()) {
+				for (final Reference newleaf: newrefs.get(r).keySet()) {
+					if (newrefs.get(r).get(newleaf)) { //search is done
+						generatePath(leaf, newleaf);
+						completeSearch();
+						return new HashSet<>();
+					}
 					// if newleaf already seen, an <= length path exists in the tree
 					if (!tree.contains(newleaf)) {
 						tree.add(newleaf);
 						newleaves.add(new ReferenceTreeNode(newleaf, leaf));
-						if (workspaceIDs.contains(newleaf.getWorkspaceID())) {
-							checkread.add(newleaf);
-						}
+						retrefs.add(newleaf);
 					}
 				}
 			}
 		}
 		leaves = newleaves;
-		return checkread;
+		if (retrefs.isEmpty()) {
+			completeSearch();
+		}
+		return retrefs;
+	}
+
+	private void completeSearch() {
+		complete = true;
+		tree.clear();
+		leaves = null;
 	}
 	
-	private void generatePath(final ReferenceTreeNode leaf) {
+	private void generatePath(final ReferenceTreeNode leaf, final Reference newleaf) {
 		final List<Reference> foundpath = new ArrayList<>();
 		ReferenceTreeNode pos = leaf;
+		foundpath.add(newleaf);
 		foundpath.add(pos.getReference());
 		while (pos.getParent() != null) {
 			pos = pos.getParent();

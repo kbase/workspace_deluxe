@@ -8,16 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.Reference;
 
-/** Searches a reference graph from a set of target references to find references in a provided
- * set of workspaces, and returns the path from each found object to its respective target object.
- * The graph is assumed to be directed and acyclic (e.g. a DAG).
+/** Searches a reference graph from a set of target references to find references that meet search
+ * termination criteria, and returns the path from each found object to its respective target
+ * object.
  * @author gaprice@lbl.gov
  *
  */
-public class SearchReferenceDAG {
+public class ReferenceGraphSearch {
 	
 	//TODO NOW TEST Unit tests
 
@@ -26,39 +25,33 @@ public class SearchReferenceDAG {
 	private final ReferenceGraphTopologyProvider refProvider;
 	private final boolean throwExceptionOnFail;
 	
-	/** Construct and perform a search in a directed, acyclic reference graph from a set of target
-	 * references to objects that a) exist in one of a set of workspaces and b) are at the
-	 * head of a reference path leading to the target objects.
-	 * @param workspaceIDs the workspaces that terminate the search. When a reference is found in
-	 * one of these workspaces, the search ends for the target reference for that particular
-	 * search.
+	/** Construct and perform a search in a reference graph from a set of target
+	 * references to references that meet the search termination criteria as provided by the
+	 * reference graph topology provider.
 	 * @param startingRefs the references from where the search starts. The search will proceed
-	 * through the reference DAG until a reference is found in one of the provided workspaces or
-	 * the search is exhausted.
-	 * @param refProvider provides access to the reference DAG topology.
+	 * through the reference graph until a reference is found that meets the termination criteria
+	 * or the search is exhausted.
+	 * @param refProvider provides access to the reference graph topology and termination criteria.
 	 * @param maximumSearchSize the maximum number of references to search through. If the search
 	 * exceeds this size an exception is thrown or the search immediately ends.
-	 * @param throwExceptionOnFail if a) a search ends without finding a reference in one of the
-	 * provided workspaces or b) the maximum search size is exceeded, immediately clear all data
+	 * @param throwExceptionOnFail if a) a search ends without finding a reference that terminates
+	 * the search or b) the maximum search size is exceeded, immediately clear all data
 	 * and throw an exception containing the reference for which the search failed. Otherwise in
 	 * case a) the search proceeds as normal for the remainder of the starting references and in
 	 * case b) the searches that have not yet completed are terminated. The paths for any completed
 	 * searches will still be accessible. 
-	 * @throws ReferenceSearchMaximumSizeExceededException 
-	 * @throws ReferenceSearchFailedException 
-	 * @throws ReferenceProviderException 
+	 * @throws ReferenceSearchMaximumSizeExceededException if the maximum search size is reached.
+	 * @throws ReferenceSearchFailedException if the reference search completed without meeting its
+	 * termination criteria.
+	 * @throws ReferenceProviderException if the reference provider threw and exception. 
 	 */
-	public SearchReferenceDAG(
-			final Set<Long> workspaceIDs,
+	public ReferenceGraphSearch(
 			final Set<Reference> startingRefs,
 			final ReferenceGraphTopologyProvider refProvider,
 			final int maximumSearchSize,
 			final boolean throwExceptionOnFail)
 			throws ReferenceSearchFailedException, ReferenceSearchMaximumSizeExceededException,
 				ReferenceProviderException {
-		if (workspaceIDs == null || workspaceIDs.isEmpty()) {
-			throw new IllegalArgumentException("workspaceIDs cannot be null or empty");
-		}
 		if (startingRefs == null || startingRefs.isEmpty()) {
 			throw new IllegalArgumentException("startingRefs cannot be null or empty");
 		}
@@ -71,11 +64,10 @@ public class SearchReferenceDAG {
 		this.refProvider = refProvider;
 		this.throwExceptionOnFail = throwExceptionOnFail;
 		maximumReferenceSearchCount = maximumSearchSize;
-		searchObjectDAG(workspaceIDs, startingRefs);
+		searchObjectDAG(startingRefs);
 	}
 	
 	private void searchObjectDAG(
-			final Set<Long> wsids,
 			final Set<Reference> startingRefs)
 			throws ReferenceSearchFailedException, ReferenceSearchMaximumSizeExceededException,
 				ReferenceProviderException {
@@ -83,17 +75,27 @@ public class SearchReferenceDAG {
 		if (refCountExceeded(refcount)) {
 			return;
 		}
+		Set<Reference> query = new HashSet<>();
 		final List<ReferenceSearchTree> trees = new LinkedList<>();
 		for (final Reference r: startingRefs) {
-			trees.add(new ReferenceSearchTree(r, wsids));
+			trees.add(new ReferenceSearchTree(r));
+			query.add(r);
 		}
-		Map<Reference, Boolean> exists = new HashMap<>();
 		while (!trees.isEmpty()) {
+			final Map<Reference, Map<Reference, Boolean>> res =
+					refProvider.getAssociatedReferences(query);
+			query = null;
+			for (final Map<Reference, Boolean> r: res.values()) {
+				refcount += r.size();
+			}
+			if (refCountExceeded(refcount)) {
+				return;
+			}
+			query = new HashSet<>();
 			final Iterator<ReferenceSearchTree> treeiter = trees.iterator();
-			Set<Reference> query = new HashSet<Reference>();
 			while (treeiter.hasNext()) {
 				final ReferenceSearchTree tree = treeiter.next();
-				query.addAll(tree.checkForPaths(exists));
+				query.addAll(tree.updateTree(res));
 				if (tree.isComplete()) {
 					treeiter.remove();
 					if (tree.isPathFound()) {
@@ -103,21 +105,6 @@ public class SearchReferenceDAG {
 					}
 				}
 			}
-			exists = null;
-			Map<Reference, ObjectReferenceSet> res = refProvider.getAssociatedReferences(query);
-			query = null;
-			for (final ObjectReferenceSet r: res.values()) {
-				refcount += r.getReferenceSet().size();
-			}
-			if (refCountExceeded(refcount)) {
-				return;
-			}
-			query = new HashSet<>();
-			for (final ReferenceSearchTree tree: trees) {
-				query.addAll(tree.updateTree(res));
-			}
-			res = null;
-			exists = refProvider.getReferenceExists(query);
 		}
 	}
 
@@ -146,8 +133,7 @@ public class SearchReferenceDAG {
 	
 	/** Get the path found for a particular source reference.
 	 * @param ref the reference for which the path should be returned.
-	 * @return the path from a reference in one of the supplied workspaces to the source reference,
-	 * inclusive.
+	 * @return the path from a search terminating reference to the source reference, inclusive.
 	 * @throws IllegalStateException if no path was found for the reference or the reference was
 	 * not provided in the source reference set.
 	 */
