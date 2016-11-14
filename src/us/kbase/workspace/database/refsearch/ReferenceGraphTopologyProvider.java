@@ -15,13 +15,13 @@ import us.kbase.workspace.database.refsearch.ReferenceProviderException;
  */
 public interface ReferenceGraphTopologyProvider {
 
-	/** Given a set of references, returns the set of references associated with the target
-	 * references in the graph. The references may be the incoming or outgoing references to
+	/** Given a set of references, returns the set of references in the graph associated with those
+	 * references. The references may be the incoming or outgoing references to
 	 * or from the target references, depending on which way the search should proceed. Each
 	 * reference is further associated with a boolean which indicates whether the reference should
 	 * terminate the search for any search trees in which it exists.
 	 * @param sourceRefs the references for which associated references should be found.
-	 * @return a mapping from each source reference to the references that refer to the source
+	 * @return a mapping from each source reference to the references associated with the source
 	 * reference. Each of the referring references are mapped to a boolean indicating the search
 	 * should terminate when reaching that reference.
 	 */
