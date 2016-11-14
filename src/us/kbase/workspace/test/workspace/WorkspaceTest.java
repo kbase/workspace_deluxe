@@ -371,8 +371,11 @@ public class WorkspaceTest extends WorkspaceTester {
 				"Illegal character in workspace name afeaff/af*ea: /"));
 		userWS.add(new TestRig(crap, "af?eaff*afea",
 				"Illegal character in workspace name af?eaff*afea: ?"));
-		userWS.add(new TestRig(crap, "64",
-				"Workspace names cannot be integers: 64"));
+		userWS.add(new TestRig(crap, "-64", "Workspace names cannot be integers: -64"));
+		userWS.add(new TestRig(crap, "3456789012",
+				"Workspace names cannot be integers: 3456789012")); //long
+		userWS.add(new TestRig(crap, "45678901234567890123",
+				"Workspace names cannot be integers: 45678901234567890123")); // > long
 		//check missing ws name
 		userWS.add(new TestRig(crap, null,
 				"Workspace name cannot be null or the empty string"));
@@ -3011,6 +3014,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		testObjectIdentifier(goodWs, "", "Object name cannot be null or the empty string");
 		testObjectIdentifier(goodWs, "f|o.A-1_2+", "Illegal character in object name f|o.A-1_2+: +");
 		testObjectIdentifier(goodWs, "-1", "Object names cannot be integers: -1");
+		testObjectIdentifier(goodWs, "2345678901", "Object names cannot be integers: 2345678901"); //long
+		testObjectIdentifier(goodWs, "23456789012345678901",
+				"Object names cannot be integers: 23456789012345678901"); // > long
 		testObjectIdentifier(goodWs, "15", "Object names cannot be integers: 15");
 		testObjectIdentifier(goodWs, "f|o.A-1_2", 0, "Object version must be > 0");
 		testObjectIdentifier(goodWs, TEXT256, "Object name exceeds the maximum length of 255");
@@ -4126,6 +4132,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				"Workspace names cannot be integers: 9"));
 		failClone(user1, cp1, "foo:9", null, new IllegalArgumentException(
 				"Workspace names cannot be integers: foo:9"));
+		failClone(user1, cp1, "foo:45678901234567890123", null, new IllegalArgumentException(
+				"Workspace names cannot be integers: foo:45678901234567890123"));
 		failClone(user1, cp1, "foo:fake(name", null, new IllegalArgumentException(
 				"Illegal character in workspace name foo:fake(name: ("));
 		failClone(user2, cp1, "fakename", null, new WorkspaceAuthorizationException("User bar may not read workspace clone1"));
@@ -4370,6 +4378,9 @@ public class WorkspaceTest extends WorkspaceTester {
 				"Illegal character in object name bad%name: %"));
 		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "2", new IllegalArgumentException(
 				"Object names cannot be integers: 2"));
+		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "12345678901234567890",
+				new IllegalArgumentException(
+						"Object names cannot be integers: 12345678901234567890"));
 		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "myoldname", new IllegalArgumentException(
 				"There is already an object in the workspace named myoldname"));
 		failObjRename(user, new ObjectIdentifier(wsi, "mynewname"), "mynewname", new IllegalArgumentException(
@@ -4424,6 +4435,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				new IllegalArgumentException("Workspace names cannot be integers: renameWSUser:9"));
 		failWSRename(user, newwsi, "9",
 				new IllegalArgumentException("Workspace names cannot be integers: 9"));
+		failWSRename(user, newwsi, "90123456789012345678", new IllegalArgumentException(
+				"Workspace names cannot be integers: 90123456789012345678"));
 		failWSRename(user, newwsi, "foo:foobar",
 				new IllegalArgumentException(
 						"Workspace name foo:foobar must only contain the user name renameWSUser prior to the : delimiter"));

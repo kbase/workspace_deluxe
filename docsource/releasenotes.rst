@@ -19,6 +19,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 
 * The ``ObjectSpecification`` structure now allows several new ways to provide
   reference paths into the object graph.
+* Fixed a bug where integers > ~2^32 were allowed as workspace and object names.
 
 
 VERSION: 0.5.0 (Released 8/12/16)
