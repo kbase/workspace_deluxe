@@ -20,9 +20,10 @@ import us.kbase.common.service.UObject;
  * The data and supplemental info for an object.
  *         UnspecifiedObject data - the object's data or subset data.
  *         object_info info - information about the object.
+ *         list<obj_ref> path - the path to the object through the object reference graph. All the
+ *                 references in the path are absolute.
  *         list<ProvenanceAction> provenance - the object's provenance.
- *         username creator - the user that first saved the object to the
- *                 workspace.
+ *         username creator - the user that first saved the object to the workspace.
  *         ws_id orig_wsid - the id of the workspace in which this object was
  *                         originally saved. Missing for objects saved prior to version
  *                         0.4.1.
@@ -30,7 +31,7 @@ import us.kbase.common.service.UObject;
  *                 workspace.
  *         epoch epoch - the date the object was first saved to the
  *                 workspace.
- *         list<obj_ref> - the references contained within the object.
+ *         list<obj_ref> refs - the references contained within the object.
  *         obj_ref copied - the reference of the source object if this object is
  *                 a copy and the copy source exists and is accessible.
  *                 null otherwise.
@@ -50,6 +51,7 @@ import us.kbase.common.service.UObject;
 @JsonPropertyOrder({
     "data",
     "info",
+    "path",
     "provenance",
     "creator",
     "orig_wsid",
@@ -68,6 +70,8 @@ public class ObjectData {
     private UObject data;
     @JsonProperty("info")
     private Tuple11 <Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> info;
+    @JsonProperty("path")
+    private List<String> path;
     @JsonProperty("provenance")
     private List<ProvenanceAction> provenance;
     @JsonProperty("creator")
@@ -119,6 +123,21 @@ public class ObjectData {
 
     public ObjectData withInfo(Tuple11 <Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> info) {
         this.info = info;
+        return this;
+    }
+
+    @JsonProperty("path")
+    public List<String> getPath() {
+        return path;
+    }
+
+    @JsonProperty("path")
+    public void setPath(List<String> path) {
+        this.path = path;
+    }
+
+    public ObjectData withPath(List<String> path) {
+        this.path = path;
         return this;
     }
 
@@ -299,7 +318,7 @@ public class ObjectData {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", provenance=")+ provenance)+", creator=")+ creator)+", origWsid=")+ origWsid)+", created=")+ created)+", epoch=")+ epoch)+", refs=")+ refs)+", copied=")+ copied)+", copySourceInaccessible=")+ copySourceInaccessible)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((("ObjectData"+" [data=")+ data)+", info=")+ info)+", path=")+ path)+", provenance=")+ provenance)+", creator=")+ creator)+", origWsid=")+ origWsid)+", created=")+ created)+", epoch=")+ epoch)+", refs=")+ refs)+", copied=")+ copied)+", copySourceInaccessible=")+ copySourceInaccessible)+", extractedIds=")+ extractedIds)+", handleError=")+ handleError)+", handleStacktrace=")+ handleStacktrace)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
