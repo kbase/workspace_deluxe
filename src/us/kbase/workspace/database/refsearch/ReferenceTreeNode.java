@@ -8,8 +8,6 @@ import us.kbase.workspace.database.Reference;
  */
 public class ReferenceTreeNode {
 	
-	//TODO NOW TEST Unit tests
-	
 	private final Reference ref;
 	private final ReferenceTreeNode parent;
 	

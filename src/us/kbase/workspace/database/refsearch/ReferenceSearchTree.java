@@ -16,8 +16,6 @@ import us.kbase.workspace.database.Reference;
  */
 public class ReferenceSearchTree {
 	
-	//TODO NOW TEST Unit tests
-
 	/* Could prune tree from already seen nodes and dead ends if memory use becomes an issue */
 	
 	private final Reference root;
@@ -63,13 +61,13 @@ public class ReferenceSearchTree {
 			final Reference r = leaf.getReference();
 			if (newrefs.containsKey(r)) {
 				for (final Reference newleaf: newrefs.get(r).keySet()) {
-					if (newrefs.get(r).get(newleaf)) { //search is done
-						generatePath(leaf, newleaf);
-						completeSearch();
-						return new HashSet<>();
-					}
 					// if newleaf already seen, an <= length path exists in the tree
 					if (!tree.contains(newleaf)) {
+						if (newrefs.get(r).get(newleaf)) { //search is done
+							generatePath(leaf, newleaf);
+							completeSearch();
+							return new HashSet<>();
+						}
 						tree.add(newleaf);
 						newleaves.add(new ReferenceTreeNode(newleaf, leaf));
 						retrefs.add(newleaf);
