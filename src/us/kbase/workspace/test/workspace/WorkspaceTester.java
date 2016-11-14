@@ -1217,12 +1217,6 @@ public class WorkspaceTester {
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
-//		try {
-//			new ObjectIDResolvedWSNoVer(fakews, badId);
-//			fail("Initialized invalid object id");
-//		} catch (IllegalArgumentException e) {
-//			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-//		}
 		if (badWS != null) {
 			try {
 				new ObjectIDNoWSNoVer(badId);
