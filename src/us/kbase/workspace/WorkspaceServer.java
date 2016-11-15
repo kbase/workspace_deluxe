@@ -27,6 +27,7 @@ import static us.kbase.workspace.kbase.ArgUtils.objInfoToMetaTuple;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectProvInfo;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
+import static us.kbase.workspace.kbase.ArgUtils.toObjectPaths;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectInfoList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
@@ -71,6 +72,7 @@ import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
@@ -1106,6 +1108,15 @@ public class WorkspaceServer extends JsonServerServlet {
     public GetObjectInfo3Results getObjectInfo3(GetObjectInfo3Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         GetObjectInfo3Results returnVal = null;
         //BEGIN get_object_info3
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final List<ObjectIdentifier> loi = processObjectSpecifications(
+				params.getObjects());
+		final List<ObjectInformation> infos = ws.getObjectInformation(
+				wsmeth.getUser(authPart), loi,
+				longToBoolean(params.getIncludeMetadata()),
+				longToBoolean(params.getIgnoreErrors()));
+		returnVal = new GetObjectInfo3Results().withInfos(objInfoToTuple(infos, true))
+				.withPaths(toObjectPaths(infos));
         //END get_object_info3
         return returnVal;
     }

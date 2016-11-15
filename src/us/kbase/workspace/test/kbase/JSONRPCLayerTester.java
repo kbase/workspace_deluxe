@@ -51,7 +51,8 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.ExternalDataUnit;
-import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetObjectInfo3Params;
+import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
@@ -755,7 +756,31 @@ public class JSONRPCLayerTester {
 		return new StringEpoch(null);
 	}
 
-	protected void failGetObjectInfoNew(GetObjectInfoNewParams params, String exception)
+	@SuppressWarnings("deprecation")
+	protected void failGetObjectInfo(final GetObjectInfo3Params params, final String exception)
+			throws Exception {
+		try {
+			CLIENT1.getObjectInfo3(params);
+			fail("got object with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		final us.kbase.workspace.GetObjectInfoNewParams newp =
+				new us.kbase.workspace.GetObjectInfoNewParams()
+						.withObjects(params.getObjects())
+						.withIgnoreErrors(params.getIgnoreErrors())
+						.withIncludeMetadata(params.getIncludeMetadata());
+		for (final String key: params.getAdditionalProperties().keySet()) {
+			newp.setAdditionalProperties(key, params.getAdditionalProperties().get(key));
+		}
+		failGetObjectInfoNew(newp, exception.replace("GetObjectInfo3", "GetObjectInfoNew"));
+	}
+	
+	@SuppressWarnings("deprecation")
+	private void failGetObjectInfoNew(
+			final us.kbase.workspace.GetObjectInfoNewParams params,
+			final String exception)
 			throws Exception {
 		try {
 			CLIENT1.getObjectInfoNew(params);
@@ -817,6 +842,22 @@ public class JSONRPCLayerTester {
 					is(exceptMessageOItoOS(exception)));
 		}
 		try {
+			CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(toObjSpec(loi)));
+			fail("got info with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exceptMessageOItoOS(exception)));
+		}
+		try {
+			CLIENT1.listReferencingObjects(loi);
+			fail("got referring objs with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		// deprecated, remove when able.
+		try {
 			CLIENT1.getObjects(loi);
 			fail("got object with bad id");
 		} catch (ServerException se) {
@@ -838,14 +879,13 @@ public class JSONRPCLayerTester {
 					is(exception));
 		}
 		try {
-			CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+			CLIENT1.getObjectInfoNew(new us.kbase.workspace.GetObjectInfoNewParams()
 				.withObjects(toObjSpec(loi)));
 			fail("got info with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exceptMessageOItoOS(exception)));
 		}
-		//deprecated, remove when removed from code.
 		try {
 			CLIENT1.getObjectInfo(loi, 0L);
 			fail("got info with bad id");
@@ -853,13 +893,7 @@ public class JSONRPCLayerTester {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exception));
 		}
-		try {
-			CLIENT1.listReferencingObjects(loi);
-			fail("got referring objs with bad id");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception));
-		}
+		
 		try {
 			CLIENT1.listReferencingObjectCounts(loi);
 			fail("got referring obj counts with bad id");
@@ -912,9 +946,24 @@ public class JSONRPCLayerTester {
 					chksum, size, meta);
 		}
 		
+		//obj info 3 with metadata
+		GetObjectInfo3Results info3 = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(toObjSpec(loi)).withIncludeMetadata(1L)
+				.withIgnoreErrors(0L));
 		List<Tuple11<Long, String, String, String, Long, String, Long, String,
-				String, Long, Map<String, String>>> retusermeta =
-				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				String, Long, Map<String, String>>> retusermeta = info3.getInfos();
+
+		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
+		for (int i = 0; i < retusermeta.size(); i ++) {
+			Tuple11<Long, String, String, String, Long, String, Long,
+				String, String, Long, Map<String, String>> o = retusermeta.get(i);
+			checkInfo(o, id, name, type, ver, user, wsid, wsname, chksum, size, meta);
+			assertThat("path incorrect", info3.getPaths().get(i),
+					is(Arrays.asList(o.getE7() + "/" + o.getE1() + "/" + o.getE5())));
+		}
+		
+		//obj info new with metadata
+		retusermeta = CLIENT1.getObjectInfoNew(new us.kbase.workspace.GetObjectInfoNewParams()
 						.withObjects(toObjSpec(loi)).withIncludeMetadata(1L)
 						.withIgnoreErrors(0L));
 
@@ -924,8 +973,8 @@ public class JSONRPCLayerTester {
 			checkInfo(o, id, name, type, ver, user, wsid, wsname,
 					chksum, size, meta);
 		}
-
-		//deprecated, remove when removed from code.
+		
+		//obj info with metadata
 		retusermeta = CLIENT1.getObjectInfo(loi, 1L);
 		
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
@@ -935,7 +984,22 @@ public class JSONRPCLayerTester {
 					chksum, size, meta);
 		}
 		
-		retusermeta = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+		// obj info 3 without metadata
+		info3 = CLIENT1.getObjectInfo3(new us.kbase.workspace.GetObjectInfo3Params()
+				.withObjects(toObjSpec(loi)));
+		retusermeta = info3.getInfos();
+
+		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
+		for (int i = 0; i < retusermeta.size(); i ++) {
+			Tuple11<Long, String, String, String, Long, String, Long,
+			String, String, Long, Map<String, String>> o = retusermeta.get(i);
+			checkInfo(o, id, name, type, ver, user, wsid, wsname, chksum, size, null);
+			assertThat("path incorrect", info3.getPaths().get(i),
+					is(Arrays.asList(o.getE7() + "/" + o.getE1() + "/" + o.getE5())));
+		}
+
+		// obj info new without metadata
+		retusermeta = CLIENT1.getObjectInfoNew(new us.kbase.workspace.GetObjectInfoNewParams()
 			.withObjects(toObjSpec(loi)));
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
@@ -945,7 +1009,7 @@ public class JSONRPCLayerTester {
 					chksum, size, null);
 		}
 		
-		//deprecated, remove when removed from code.
+		// obj info without metadata
 		retusermeta = CLIENT1.getObjectInfo(loi, 0L);
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
@@ -1017,8 +1081,10 @@ public class JSONRPCLayerTester {
 			String chksum, long size, Map<String, String> meta, Map<String, Object> data) 
 			throws Exception {
 		
-		assertThat("object data is correct", retdata.getData().asClassInstance(Object.class),
+		assertThat("object data incorrect", retdata.getData().asClassInstance(Object.class),
 				is((Object) data));
+		assertThat("incorrect object path", retdata.getPath(),
+				is(Arrays.asList(wsid + "/" + id + "/" + ver)));
 		
 		checkInfo(retdata.getInfo(), id, name, typeString, ver, user,
 				wsid, wsname, chksum, size, meta);
@@ -1557,13 +1623,13 @@ public class JSONRPCLayerTester {
 		}
 		
 		failGetObjects2(osl, excep);
-		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(osl),
+		failGetObjectInfo(new GetObjectInfo3Params().withObjects(osl),
 				excep);
 		if (excep.contains("Unexpected arguments in ObjectIdentity: foo")) {
 			return; // can't have UAs in a string ref
 		}
 		failGetObjects2(osr, refex);
-		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(osr),
+		failGetObjectInfo(new GetObjectInfo3Params().withObjects(osr),
 				refex);
 	}
 

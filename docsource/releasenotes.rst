@@ -14,13 +14,18 @@ NEW FEATURES:
 * The ``ObjectSpecification`` structure now provides a ``find_reference_path``
   field that allows specifying that the permissions for an object should be
   automatically looked up via a search through the object reference graph.
+* The resolved (e.g. all references are absolute) path through the object reference graph from an
+  accessible object to the target object is now returned with ``get_objects2`` and the new method
+  ``get_object_info3``.
+* Added a new method, ``get_object_info3`` that returns the path from an accessible object to the
+  target object, but is otherwise equivalent to ``get_object_info_new``. ``get_object_info_new``
+  is now deprecated.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
 * The ``ObjectSpecification`` structure now allows several new ways to provide
   reference paths into the object graph.
 * Fixed a bug where integers > ~2^32 were allowed as workspace and object names.
-
 
 VERSION: 0.5.0 (Released 8/12/16)
 ---------------------------------
