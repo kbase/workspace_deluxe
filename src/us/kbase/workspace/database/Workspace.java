@@ -44,8 +44,8 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.refsearch.SearchReferenceDAG;
-import us.kbase.workspace.database.refsearch.ReferenceDAGTopologyProvider;
+import us.kbase.workspace.database.refsearch.ReferenceGraphSearch;
+import us.kbase.workspace.database.refsearch.ReferenceGraphTopologyProvider;
 import us.kbase.workspace.database.refsearch.ReferenceProviderException;
 import us.kbase.workspace.database.refsearch.ReferenceSearchFailedException;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
@@ -76,6 +76,9 @@ public class Workspace {
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	private final static int MAX_WS_COUNT = 1000;
 	private final static int NAME_LIMIT = 1000;
+	/* may need to calculate memory for search tree and modify, or add a separate limit. 
+	 * for now this is low enough it's not really a concern.
+	 */
 	private final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 10000;
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
@@ -1484,10 +1487,6 @@ public class Workspace {
 		return resolvedPaths.merge(searchObjectDAG(user, lookup, nullIfInaccessible));
 	}
 	
-	//TODO REF LOOKUP PATH1 return reference path
-	//TODO REF LOOKUP PATH2 keep reference search tree in memory - calc mem
-	//TODO REF LOOKUP PATH3 prune tree on 1) dead end, 2) node already in tree (path must be shorter than current path)
-	//TODO REF LOOKUP PATH4 delete tree if > max mem size, & delete before pulling objects
 	//TODO REF LOOKUP positive and negative caches (?)
 
 	/* Modifies lookup in place to remove objects that don't need lookup.
@@ -1558,30 +1557,40 @@ public class Workspace {
 			if (nullIfInaccessible && startingRefs.isEmpty()) {
 				return new ResolvedRefPaths(null, null);
 			}
-			final ReferenceDAGTopologyProvider refProvider = new ReferenceDAGTopologyProvider() {
+			final ReferenceGraphTopologyProvider refProvider = new ReferenceGraphTopologyProvider() {
 				
 				@Override
-				public Map<Reference, Boolean> getReferenceExists(final Set<Reference> refs)
-						throws ReferenceProviderException {
-					try {
-						return db.getObjectExistsRef(refs);
-					} catch (WorkspaceCommunicationException e) {
-						throw new ReferenceProviderException("foo", e);
-					}
-				}
-				
-				@Override
-				public Map<Reference, ObjectReferenceSet> getAssociatedReferences(
+				public Map<Reference, Map<Reference, Boolean>> getAssociatedReferences(
 						final Set<Reference> sourceRefs)
 						throws ReferenceProviderException {
 					try {
-						return db.getObjectIncomingReferences(sourceRefs);
+						final Map<Reference, ObjectReferenceSet> refs =
+								db.getObjectIncomingReferences(sourceRefs);
+						final Set<Reference> readable = new HashSet<>();
+						for (final ObjectReferenceSet refset: refs.values()) {
+							for (final Reference r: refset.getReferenceSet()) {
+								if (wsIDs.contains(r.getWorkspaceID())) {
+									readable.add(r);
+								}
+							}
+						}
+						final Map<Reference, Boolean> exists = db.getObjectExistsRef(readable);
+						final Map<Reference, Map<Reference, Boolean>> refToRefs = new HashMap<>();
+						for (final Reference r: refs.keySet()) {
+							final Map<Reference, Boolean> termCritera = new HashMap<>();
+							refToRefs.put(r, termCritera);
+							for (final Reference inc: refs.get(r).getReferenceSet()) {
+								termCritera.put(inc, exists.containsKey(inc) && exists.get(inc));
+							}
+							
+						}
+						return refToRefs;
 					} catch (WorkspaceCommunicationException e) {
 						throw new ReferenceProviderException("foo", e);
 					}
 				}
 			};
-			final SearchReferenceDAG search = new SearchReferenceDAG(wsIDs, startingRefs,
+			final ReferenceGraphSearch search = new ReferenceGraphSearch(startingRefs,
 					refProvider, maximumObjectSearchCount, !nullIfInaccessible);
 			return searchObjectDAGBuildResolvedObjectPaths(resobjs, objrefs, search);
 		} catch (final ReferenceSearchFailedException |
@@ -1621,7 +1630,7 @@ public class Workspace {
 	private ResolvedRefPaths searchObjectDAGBuildResolvedObjectPaths(
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
 			final Map<ObjectIDResolvedWS, Reference> objrefs,
-			final SearchReferenceDAG paths) {
+			final ReferenceGraphSearch paths) {
 		
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> absObjectIDs = new HashMap<>();
 		final Map<ObjectIdentifier, List<Reference>> oiPaths = new HashMap<>();

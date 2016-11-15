@@ -13,9 +13,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 
 /**
- * <p>Original spec-file type: GetObjectInfoNewParams</p>
+ * <p>Original spec-file type: GetObjectInfo3Params</p>
  * <pre>
- * Input parameters for the "get_object_info_new" function.
+ * Input parameters for the "get_object_info3" function.
  *         Required arguments:
  *         list<ObjectSpecification> objects - the objects for which the
  *                 information should be fetched. Subsetting related parameters are
@@ -25,10 +25,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         boolean includeMetadata - include the object metadata in the returned
  *                 information. Default false.
  *         boolean ignoreErrors - Don't throw an exception if an object cannot
- *                 be accessed; return null for that object's information instead.
+ *                 be accessed; return null for that object's information and path instead.
  *                 Default false.
- *                 
- *         @deprecated Workspace.GetObjectInfo3Params
  * </pre>
  * 
  */
@@ -39,7 +37,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "includeMetadata",
     "ignoreErrors"
 })
-public class GetObjectInfoNewParams {
+public class GetObjectInfo3Params {
 
     @JsonProperty("objects")
     private List<ObjectSpecification> objects;
@@ -59,7 +57,7 @@ public class GetObjectInfoNewParams {
         this.objects = objects;
     }
 
-    public GetObjectInfoNewParams withObjects(List<ObjectSpecification> objects) {
+    public GetObjectInfo3Params withObjects(List<ObjectSpecification> objects) {
         this.objects = objects;
         return this;
     }
@@ -74,7 +72,7 @@ public class GetObjectInfoNewParams {
         this.includeMetadata = includeMetadata;
     }
 
-    public GetObjectInfoNewParams withIncludeMetadata(Long includeMetadata) {
+    public GetObjectInfo3Params withIncludeMetadata(Long includeMetadata) {
         this.includeMetadata = includeMetadata;
         return this;
     }
@@ -89,7 +87,7 @@ public class GetObjectInfoNewParams {
         this.ignoreErrors = ignoreErrors;
     }
 
-    public GetObjectInfoNewParams withIgnoreErrors(Long ignoreErrors) {
+    public GetObjectInfo3Params withIgnoreErrors(Long ignoreErrors) {
         this.ignoreErrors = ignoreErrors;
         return this;
     }
@@ -106,7 +104,7 @@ public class GetObjectInfoNewParams {
 
     @Override
     public String toString() {
-        return ((((((((("GetObjectInfoNewParams"+" [objects=")+ objects)+", includeMetadata=")+ includeMetadata)+", ignoreErrors=")+ ignoreErrors)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((("GetObjectInfo3Params"+" [objects=")+ objects)+", includeMetadata=")+ includeMetadata)+", ignoreErrors=")+ ignoreErrors)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

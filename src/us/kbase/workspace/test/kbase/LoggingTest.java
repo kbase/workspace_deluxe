@@ -34,12 +34,13 @@ import us.kbase.common.service.JsonServerSyslog;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.service.JsonServerSyslog.SyslogOutput;
+import us.kbase.common.service.Tuple11;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
-import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
@@ -443,8 +444,24 @@ public class LoggingTest {
 		logout.reset();
 		
 		// get info
-		CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+		CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
 				.withObjects(Arrays.asList(
+						new ObjectSpecification().withRef("1/1/2"),
+						new ObjectSpecification().withRef("1/1/1"))));
+		checkLogging(convertLogObjExp(Arrays.asList(
+				new LogObjExp("get_object_info3", "start method", SERV),
+				new LogObjExp("get_object_info3",
+						"Object 1/1/2 SomeModule.BType-1.0", ARGUTILS),
+				new LogObjExp("get_object_info3",
+						"Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new LogObjExp("get_object_info3", "end method", SERV))));
+		logout.reset();
+		
+		// get info
+		@SuppressWarnings({ "deprecation", "unused" })
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+						Map<String, String>>> foo = CLIENT1.getObjectInfoNew(
+				new us.kbase.workspace.GetObjectInfoNewParams().withObjects(Arrays.asList(
 						new ObjectSpecification().withRef("1/1/2"),
 						new ObjectSpecification().withRef("1/1/1"))));
 		checkLogging(convertLogObjExp(Arrays.asList(

@@ -43,7 +43,8 @@ import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GetNamesByPrefixParams;
 import us.kbase.workspace.GetNamesByPrefixResults;
-import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetObjectInfo3Params;
+import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListAllTypesParams;
@@ -986,10 +987,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failGetObjects(loi, "Object 1 cannot be accessed: User " + USER1 + " may not read workspace setgetunreadableto1");
 		
 		//test get_object_info w/o errors
-		GetObjectInfoNewParams p = new GetObjectInfoNewParams().withObjects(Arrays.asList(toObjSpec(loi.get(0))));
+		GetObjectInfo3Params p = new GetObjectInfo3Params().withObjects(
+				Arrays.asList(toObjSpec(loi.get(0))));
 		p.setAdditionalProperties("wooga", "foo");
-		failGetObjectInfoNew(p, "Unexpected arguments in GetObjectInfoNewParams: wooga");
-		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(null),
+		failGetObjectInfo(p, "Unexpected arguments in GetObjectInfo3Params: wooga");
+		failGetObjectInfo(new GetObjectInfo3Params().withObjects(null),
 				"The object specification list cannot be null");
 		
 		List<ObjectSpecification> nullloi = new ArrayList<ObjectSpecification>();
@@ -1002,9 +1004,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		nullloi.add(new ObjectSpecification().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
 		nullloi.add(new ObjectSpecification().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
 		
-		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> nullret =
-				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(nullloi)
-				.withIgnoreErrors(1L).withIncludeMetadata(1L));
+		GetObjectInfo3Results nullret3 = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(nullloi).withIgnoreErrors(1L).withIncludeMetadata(1L));
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> nullret = nullret3.getInfos();
 		
 		assertNull("Got object info when expected null", nullret.get(0));
 		assertNull("Got object info when expected null", nullret.get(1));
@@ -1017,6 +1020,28 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
 		assertNull("Got object info when expected null", nullret.get(6));
 		assertNull("Got object info when expected null", nullret.get(7));
+		final List<String> targetPath = Arrays.asList(wsid + "/2/2");
+		assertThat("incorrect paths", nullret3.getPaths(), is(Arrays.asList(
+				null, null, targetPath, null, targetPath, targetPath, null, null)));
+		
+		@SuppressWarnings("deprecation")
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> nullret2 = CLIENT1.getObjectInfoNew(
+						new us.kbase.workspace.GetObjectInfoNewParams()
+								.withObjects(nullloi).withIgnoreErrors(1L)
+								.withIncludeMetadata(1L));
+		
+		assertNull("Got object info when expected null", nullret2.get(0));
+		assertNull("Got object info when expected null", nullret2.get(1));
+		checkInfo(nullret2.get(2), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret2.get(3));
+		checkInfo(nullret2.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		checkInfo(nullret2.get(5), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret2.get(6));
+		assertNull("Got object info when expected null", nullret2.get(7));
 		
 		List<ObjectData> nullobj = CLIENT1.getObjects2(new GetObjects2Params()
 			.withObjects(nullloi).withIgnoreErrors(1L)).getData();
@@ -1042,8 +1067,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		nullloi.set(5, new ObjectSpecification().withWorkspace("setgetunreadableto1")
 				.withName("foo"));
 		
-		nullret = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(nullloi)
+		nullret3 = CLIENT1.getObjectInfo3(new GetObjectInfo3Params().withObjects(nullloi)
 				.withIgnoreErrors(1L).withIncludeMetadata(1L));
+		nullret = nullret3.getInfos();
 		
 		assertNull("Got object info when expected null", nullret.get(0));
 		assertNull("Got object info when expected null", nullret.get(1));
@@ -1054,6 +1080,24 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertNull("Got object info when expected null", nullret.get(5));
 		assertNull("Got object info when expected null", nullret.get(6));
 		assertNull("Got object info when expected null", nullret.get(7));
+		assertThat("incorrect paths", nullret3.getPaths(), is(Arrays.asList(
+				null, null, null, null, targetPath, null, null, null)));
+		
+		@SuppressWarnings("deprecation")
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> nullret2_2 = CLIENT1.getObjectInfoNew(
+						new us.kbase.workspace.GetObjectInfoNewParams().withObjects(nullloi)
+						.withIgnoreErrors(1L).withIncludeMetadata(1L));
+		
+		assertNull("Got object info when expected null", nullret2_2.get(0));
+		assertNull("Got object info when expected null", nullret2_2.get(1));
+		assertNull("Got object info when expected null", nullret2_2.get(2));
+		assertNull("Got object info when expected null", nullret2_2.get(3));
+		checkInfo(nullret.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret2_2.get(5));
+		assertNull("Got object info when expected null", nullret2_2.get(6));
+		assertNull("Got object info when expected null", nullret2_2.get(7));
 
 		nullobj = CLIENT1.getObjects2(new GetObjects2Params().withObjects(nullloi)
 				.withIgnoreErrors(1L)).getData();
@@ -1953,8 +1997,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				CLIENT1.renameObject(new RenameObjectParams().withNewName("mynewname")
 				.withObj(new ObjectIdentity().withRef("renameObj/1")));
 		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
-		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(
-				Arrays.asList(new ObjectSpecification().withWorkspace("renameObj").withObjid(1L)))).get(0);
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params().withObjects(
+				Arrays.asList(new ObjectSpecification().withWorkspace("renameObj").withObjid(1L))))
+				.getInfos().get(0);
 		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
 		RenameObjectParams rop = new RenameObjectParams().withNewName("mynewname2")
 				.withObj(new ObjectIdentity().withRef("renameObj/1"));
@@ -3008,11 +3053,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(fullreflist)).getData();
 		compareData(exp, res);
 
-		List<Tuple11<Long, String, String, String, Long, String, Long, String,
-				String, Long, Map<String, String>>> info =
-				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+		final List<List<String>> paths = Arrays.asList(Arrays.asList("1/1/1", "2/1/1"),
+				Arrays.asList("1/2/1", "2/2/1"));
+		GetObjectInfo3Results info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
 							.withObjects(fullreflist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
 		
 		// test getobjs2 and getinfo with to ref path
 		final List<ObjectSpecification> toreflist = Arrays.asList(
@@ -3024,9 +3070,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(toreflist)).getData();
 		compareData(exp, res);
 		
-		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
 						.withObjects(toreflist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
 		
 		// test getobjs2 and getinfo with from ref path
 		final List<ObjectSpecification> reflist = Arrays.asList(
@@ -3038,9 +3085,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.getData();
 		compareData(exp, res);
 
-		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
 						.withObjects(reflist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
 		
 
 		// test getobjs2 and getinfo with to obj path
@@ -3055,9 +3103,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(torefobjlist)).getData();
 		compareData(exp, res);
 		
-		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
 				.withObjects(torefobjlist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
 		
 		// test getobjs2 and getinfo with from obj path
 		final List<ObjectSpecification> refobjlist = Arrays.asList(
@@ -3070,9 +3119,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(refobjlist)).getData();
 		compareData(exp, res);
 		
-		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
 				.withObjects(refobjlist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
 		
 		// test getobjs2 and getinfo with automatic lookup
 		final List<ObjectSpecification> searchobjlist = Arrays.asList(
@@ -3081,9 +3131,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(searchobjlist)).getData();
 		compareData(exp, res);
 
-		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
 				.withObjects(searchobjlist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
 	}
 	
 	@Test
