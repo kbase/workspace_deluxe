@@ -174,8 +174,7 @@ public class InitWorkspaceServer {
 		rep.reportInfo(String.format("Initialized %s backend",
 				wsdeps.mongoWS.getBackendType()));
 		Workspace ws = new Workspace(wsdeps.mongoWS,
-				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser(), wsdeps.validator);
+				new ResourceUsageConfigurationBuilder().build(), wsdeps.validator);
 		Types types = new Types(wsdeps.typeDB);
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
 				ws, types, cfg.getHandleServiceURL(),

@@ -6,8 +6,7 @@ VERSION: 0.5.1 (Released TBD)
 
 BACKWARDS INCOMPATIBILITIES:
 
-* The ``kb|ws...`` style of addressing workspaces or objects has been deprecated
-  and will be removed in a future release.
+* The ``kb|ws...`` style of addressing workspaces or objects has been removed.
 
 NEW FEATURES:
 

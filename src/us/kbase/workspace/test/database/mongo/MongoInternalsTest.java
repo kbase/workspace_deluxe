@@ -48,7 +48,6 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.test.DummyValidatedTypedObject;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
-import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -126,9 +125,7 @@ public class MongoInternalsTest {
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
 		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
-		ws = new Workspace(mwdb,
-				new ResourceUsageConfigurationBuilder().build(),
-				new DefaultReferenceParser(), val);
+		ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 		assertTrue("GridFS backend setup failed",
 				ws.getBackendType().equals("GridFS"));
 

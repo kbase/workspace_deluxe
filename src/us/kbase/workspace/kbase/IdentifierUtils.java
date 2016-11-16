@@ -7,8 +7,6 @@ import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -25,10 +23,6 @@ public class IdentifierUtils {
 	
 	//TODO JAVADOC
 	
-	private static final Pattern KB_WS_ID = Pattern.compile("kb\\|ws\\.(\\d+)");
-	private static final Pattern KB_OBJ_ID = Pattern.compile(
-			"kb\\|ws\\.(\\d+)\\.obj\\.(\\d+)(?:\\.ver\\.(\\d+))?");
-
 	public static WorkspaceIdentifier processWorkspaceIdentifier(
 			final WorkspaceIdentity wsi) {
 		if (wsi == null) {
@@ -44,10 +38,6 @@ public class IdentifierUtils {
 		xorNameId(workspace, id, "workspace");
 		if (id != null) {
 			return new WorkspaceIdentifier(id);
-		}
-		Matcher m = KB_WS_ID.matcher(workspace);
-		if (m.find()) {
-			return new WorkspaceIdentifier(new Long(m.group(1)));
 		}
 		return new WorkspaceIdentifier(workspace);
 	}
@@ -110,7 +100,7 @@ public class IdentifierUtils {
 		checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
 		if (oi.getRef() != null) {
 			verifyRefOnly(oi);
-			return processObjectReference(oi.getRef());
+			return ObjectIdentifier.parseObjectReference(oi.getRef());
 		}
 		return processObjectIdentifier(oi.getWorkspace(), oi.getWsid(),
 				oi.getName(), oi.getObjid(), oi.getVer());
@@ -132,25 +122,6 @@ public class IdentifierUtils {
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				workspace, wsid);
 		return ObjectIdentifier.create(wsi, objname, objid, intver);
-	}
-
-	public static ObjectIdentifier processObjectReference(final String ref) {
-		if (ref == null) {
-			throw new NullPointerException(
-					"Reference string cannot be null");
-		}
-		final Matcher m = KB_OBJ_ID.matcher(ref);
-		if (m.matches()) {
-			final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
-					Integer.parseInt(m.group(1)));
-			final int obj = Integer.parseInt(m.group(2));
-			if (m.group(3) == null) {
-				return new ObjectIdentifier(wsi, obj);
-			}
-			return new ObjectIdentifier(wsi, obj,
-					Integer.parseInt(m.group(3)));
-		}
-		return ObjectIdentifier.parseObjectReference(ref);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -368,7 +339,7 @@ public class IdentifierUtils {
 		final List<ObjectIdentifier> ret = new LinkedList<>();
 		for (final String r: objRefPath) {
 			try {
-				ret.add(processObjectReference(r));
+				ret.add(ObjectIdentifier.parseObjectReference(r));
 			} catch (IllegalArgumentException | NullPointerException e) {
 				throw new IllegalArgumentException(String.format(
 						"Invalid object reference (%s) at position #%s: %s",

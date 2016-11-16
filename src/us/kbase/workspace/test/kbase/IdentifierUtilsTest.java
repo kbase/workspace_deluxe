@@ -102,6 +102,14 @@ public class IdentifierUtilsTest {
 	}
 	
 	@Test
+	public void failWorkspaceIdentityKBID() throws Exception {
+		final WorkspaceIdentity wsi = new WorkspaceIdentity()
+				.withWorkspace("kb|ws.2");
+		expectFailProcessWorkspaceIdentifier(wsi, new IllegalArgumentException(
+				"Illegal character in workspace name kb|ws.2: |"));
+	}
+	
+	@Test
 	public void successWorkspaceIdentityIdString() throws Exception {
 		final WorkspaceIdentity wsi = new WorkspaceIdentity()
 				.withWorkspace("foobar");
@@ -113,14 +121,7 @@ public class IdentifierUtilsTest {
 		final WorkspaceIdentity wsi = new WorkspaceIdentity().withId(2L);
 		expectSuccessProcessWorkspaceIdentity(wsi, null, 2L, "2");
 	}
-	
-	@Test
-	public void successWorkspaceIdentityKBID() throws Exception {
-		final WorkspaceIdentity wsi = new WorkspaceIdentity()
-				.withWorkspace("kb|ws.2");
-		expectSuccessProcessWorkspaceIdentity(wsi, null, 2L, "2");
-	}
-	
+
 	private void expectFailProcessObjectIdentifier(
 			final ObjectIdentity oi,
 			final Exception exp) {
@@ -192,8 +193,7 @@ public class IdentifierUtilsTest {
 			final String idstring,
 			final boolean isAbsolute)
 			throws Exception {
-		ObjectIdentifier poi = IdentifierUtils
-				.processObjectReference(ref);
+		ObjectIdentifier poi = ObjectIdentifier.parseObjectReference(ref);
 		checkObjectIdentifier(poi, wsname, wsid, name, id, ver, refstring,
 				idstring, isAbsolute);
 	}
@@ -290,8 +290,7 @@ public class IdentifierUtilsTest {
 				.withName("foo").withVer(ver);
 		expectFailProcessObjectIdentifier(oi, e);
 		try {
-			IdentifierUtils.processObjectIdentifier(
-					"baz", null, "foo", null, ver);
+			IdentifierUtils.processObjectIdentifier("baz", null, "foo", null, ver);
 			fail("expected exception");
 		} catch (IllegalArgumentException iae) {
 			assertThat("incorrect exception message", iae.getMessage(),
@@ -300,14 +299,17 @@ public class IdentifierUtilsTest {
 	}
 	
 	@Test
-	public void failNullObjectRef() throws Exception {
-		try {
-			IdentifierUtils.processObjectReference(null);
-			fail("expected exception");
-		} catch (NullPointerException e) {
-			assertThat("incorrect exception", e.getMessage(),
-					is("Reference string cannot be null"));
-		}
+	public void failObjectIdentityWithKBRef() throws Exception {
+		final ObjectIdentity refoi = new ObjectIdentity().withRef("kb|ws.4.obj.3");
+		expectFailProcessObjectIdentifier(refoi, new IllegalArgumentException(
+				"Illegal number of separators / in object reference kb|ws.4.obj.3"));
+	}
+	
+	@Test
+	public void failObjectIdentityWithKBRefAndVer() throws Exception {
+		final ObjectIdentity refoi = new ObjectIdentity().withRef("kb|ws.4.obj.3.ver.2");
+		expectFailProcessObjectIdentifier(refoi, new IllegalArgumentException(
+				"Illegal number of separators / in object reference kb|ws.4.obj.3.ver.2"));
 	}
 	
 	@Test
@@ -365,32 +367,7 @@ public class IdentifierUtilsTest {
 		expectSuccessProcessObjectIdentity(wsname, wsid, name, id, ver,
 				ref, idstring, isAbsolute);
 	}
-	
-	@Test
-	public void successObjectIdentityWithKBRef() throws Exception {
-		final String ref = "kb|ws.4.obj.3";
-		
-		final ObjectIdentity refoi = new ObjectIdentity().withRef(ref);
-		expectSuccessProcessObjectIdentity(refoi, null, 4L, null, 3L, null,
-				"4/3", "3", false);
-		
-		expectSuccessProcessObjectIdentity(ref, null, 4L, null, 3L, null,
-				"4/3", "3", false);
-	}
-	
-	@Test
-	public void successObjectIdentityWithKBRefAndVer() throws Exception {
-		final String ref = "kb|ws.4.obj.3.ver.2";
-		
-		
-		final ObjectIdentity refoi = new ObjectIdentity().withRef(ref);
-		expectSuccessProcessObjectIdentity(refoi, null, 4L, null, 3L, 2L,
-				"4/3/2", "3", true);
-		
-		expectSuccessProcessObjectIdentity(refoi, null, 4L, null, 3L, 2L,
-				"4/3/2", "3", true);
-	}
-	
+
 	private void expectFailProcessObjectIdentifiers(
 			final List<ObjectIdentity> ois,
 			final Exception exp) {
@@ -596,9 +573,8 @@ public class IdentifierUtilsTest {
 				.withName("bar"));
 		expectFailProcessObjectSpecifications(oss,
 				new IllegalArgumentException(
-						"Error on ObjectSpecification #2: Invalid object " +
-						"reference (null) at position #2: Reference string " +
-						"cannot be null"));
+						"Error on ObjectSpecification #2: Invalid object reference (null) at " +
+						"position #2: reference cannot be null or the empty string"));
 	}
 	
 	@Test
