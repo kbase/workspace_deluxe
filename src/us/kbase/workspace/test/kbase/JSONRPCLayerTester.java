@@ -1615,12 +1615,15 @@ public class JSONRPCLayerTester {
 						":" + e[2];
 				String ref = osr.get(chainnum - 1).getObjRefPath()
 						.get(oidnum - 2);
+				if (e[2].equals(" ObjectIdentity cannot be null")) { // this is sick and wrong 
+					e[2] = " reference cannot be null or the empty string";
+				}
 				refex = String.format("Error on ObjectSpecification #%s" + 
 						": Invalid object reference (%s) at position #%s:%s",
 						chainnum, ref, oidnum,
 						e[2].replace("ObjectIdentity", "Reference string"));
 			}
-		}
+		} // i feel so ashamed
 		
 		failGetObjects2(osl, excep);
 		failGetObjectInfo(new GetObjectInfo3Params().withObjects(osl),

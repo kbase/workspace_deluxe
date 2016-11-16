@@ -23,7 +23,6 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
-import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -99,8 +98,7 @@ public class GetReferencedObjectWithBFS {
 		final TypedObjectValidator val = new TypedObjectValidator(new LocalTypeProvider(typeDB));
 		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(WSDB, new GridFSBlobStore(WSDB), tfm);
 		
-		WS = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(),
-				new DefaultReferenceParser(), val);
+		WS = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 		WS.setMaximumObjectSearchCount(10000000);
 		installTypes(new Types(typeDB));
 		if (DO_LINEAR) {

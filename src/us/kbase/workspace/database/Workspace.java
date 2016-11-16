@@ -85,20 +85,15 @@ public class Workspace {
 	
 	private final WorkspaceDatabase db;
 	private ResourceUsageConfiguration rescfg;
-	private final ReferenceParser parser;
 	private final TypedObjectValidator validator;
 	private int maximumObjectSearchCount;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
-			final ReferenceParser parser,
 			final TypedObjectValidator validator) {
 		if (db == null) {
 			throw new NullPointerException("db cannot be null");
-		}
-		if (parser == null) {
-			throw new NullPointerException("parser cannot be null");
 		}
 		if (cfg == null) {
 			throw new NullPointerException("cfg cannot be null");
@@ -110,7 +105,6 @@ public class Workspace {
 		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
 		this.validator = validator;
 		rescfg = cfg;
-		this.parser = parser;
 		db.setResourceUsageConfiguration(rescfg);
 		this.maximumObjectSearchCount = MAX_OBJECT_SEARCH_COUNT_DEFAULT;
 	}
@@ -1971,7 +1965,7 @@ public class Workspace {
 				for (final String id: ids.get(assObj).keySet()) {
 					final ObjectIdentifier oi;
 					try {
-						oi = parser.parse(id);
+						oi = ObjectIdentifier.parseObjectReference(id);
 						//Illegal arg is probably not the right exception
 					} catch (IllegalArgumentException iae) {
 						final List<String> attribs =
@@ -1990,7 +1984,7 @@ public class Workspace {
 
 			for (final T assObj: ids.keySet()) {
 				for (final String id: ids.get(assObj).keySet()) {
-					final ObjectIdentifier oi = parser.parse(id);
+					final ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(id);
 					final TypeAndReference tnr =
 							objtypes.get(wsresolvedids.get(oi));
 					typeCheckReference(id, tnr.getType(), assObj);
@@ -2119,7 +2113,7 @@ public class Workspace {
 				final String exception) {
 			for (final T assObj: ids.keySet()) {
 				for (final String id: ids.get(assObj).keySet()) {
-					final ObjectIdentifier oi = parser.parse(id);
+					final ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(id);
 					if (oi.equals(originalObject)) {
 						final List<String> attribs =
 								getAnyAttributeSet(assObj, id);

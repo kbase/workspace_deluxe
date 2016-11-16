@@ -495,7 +495,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		//should work 
 		CLIENT1.setPermissions(new SetPermissionsParams()
-				.withWorkspace("kb|ws." + meta.getE1())
+				.withWorkspace(meta.getE2())
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 		
 		try {
@@ -513,9 +513,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("Workspace name exceeds the maximum length of 255"));
 		}
-		
-		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
-				.withWorkspace(ws).withNewPermission("n"));
 	}
 	
 	@Test
@@ -897,7 +894,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		List<ObjectIdentity> loi = new ArrayList<ObjectIdentity>();
 		loi.add(new ObjectIdentity().withRef("saveget/2/1"));
-		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2.ver.1"));
 		loi.add(new ObjectIdentity().withRef(wsid + "/2/1"));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("auto2").withVer(1L));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L).withVer(1L));
@@ -908,7 +904,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.clear();
 		// w/o versions
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
-		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2"));
 		loi.add(new ObjectIdentity().withRef(wsid + "/2"));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("auto2"));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L));
@@ -916,7 +911,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L));
 		// w/ versions
 		loi.add(new ObjectIdentity().withRef("saveget/2/2"));
-		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2.ver.2"));
 		loi.add(new ObjectIdentity().withRef(wsid + "/2/2"));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("auto2").withVer(2L));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L).withVer(2L));
@@ -962,23 +956,23 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.set(2, oi);
 		failGetObjects(loi, "Error on ObjectIdentity #3: Unexpected arguments in ObjectIdentity: foo");
 		
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|wss." + wsid).withObjid(2L));
-		failGetObjects(loi, "Error on ObjectIdentity #3: Illegal character in workspace name kb|wss." + wsid + ": |");
+		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(2L));
+		failGetObjects(loi, "Error on ObjectIdentity #3: Illegal character in workspace name kb|ws." + wsid + ": |");
 		
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(-1L));
+		loi.set(2, new ObjectIdentity().withWsid(wsid).withObjid(-1L));
 		failGetObjects(loi, "Error on ObjectIdentity #3: Object id must be > 0");
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(0L));
+		loi.set(2, new ObjectIdentity().withWsid(wsid).withObjid(1L).withVer(0L));
 		failGetObjects(loi, "Error on ObjectIdentity #3: Object version must be > 0");
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(Integer.MAX_VALUE + 1L));
+		loi.set(2, new ObjectIdentity().withWsid(wsid).withObjid(1L).withVer(Integer.MAX_VALUE + 1L));
 		failGetObjects(loi, "Error on ObjectIdentity #3: Maximum object version is " + Integer.MAX_VALUE);
 		
 		loi.set(2, new ObjectIdentity().withWorkspace("ultrafakeworkspace").withObjid(1L).withVer(1L));
 		failGetObjects(loi, "Object 1 cannot be accessed: No workspace with name ultrafakeworkspace exists");
 		loi.set(2, new ObjectIdentity().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
 		failGetObjects(loi, "Object 1 cannot be accessed: No workspace with id 20000000000000000 exists");
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
+		loi.set(2, new ObjectIdentity().withWsid(wsid).withObjid(300L).withVer(1L));
 		failGetObjects(loi, "No object with id 300 exists in workspace 1 (name saveget)");
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
+		loi.set(2, new ObjectIdentity().withWsid(wsid).withName("ultrafakeobj").withVer(1L));
 		failGetObjects(loi, "No object with name ultrafakeobj exists in workspace 1 " +
 				"(name saveget)");
 		
@@ -998,10 +992,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		nullloi.add(new ObjectSpecification().withWorkspace("ultrafakeworkspace").withObjid(1L).withVer(1L));
 		nullloi.add(new ObjectSpecification().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
 		nullloi.add(new ObjectSpecification().withRef("saveget/2"));
-		nullloi.add(new ObjectSpecification().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
-		nullloi.add(new ObjectSpecification().withRef("kb|ws." + wsid + ".obj.2"));
+		nullloi.add(new ObjectSpecification().withWsid(wsid).withObjid(300L).withVer(1L));
 		nullloi.add(new ObjectSpecification().withRef(wsid + "/2"));
-		nullloi.add(new ObjectSpecification().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
+		nullloi.add(new ObjectSpecification().withWsid(wsid).withName("ultrafakeobj").withVer(1L));
 		nullloi.add(new ObjectSpecification().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
 		
 		GetObjectInfo3Results nullret3 = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
@@ -1016,13 +1009,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertNull("Got object info when expected null", nullret.get(3));
 		checkInfo(nullret.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
-		checkInfo(nullret.get(5), 2, "auto2", SAFE_TYPE, 2, USER1,
-				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret.get(5));
 		assertNull("Got object info when expected null", nullret.get(6));
-		assertNull("Got object info when expected null", nullret.get(7));
 		final List<String> targetPath = Arrays.asList(wsid + "/2/2");
 		assertThat("incorrect paths", nullret3.getPaths(), is(Arrays.asList(
-				null, null, targetPath, null, targetPath, targetPath, null, null)));
+				null, null, targetPath, null, targetPath, null, null)));
 		
 		@SuppressWarnings("deprecation")
 		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
@@ -1038,10 +1029,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertNull("Got object info when expected null", nullret2.get(3));
 		checkInfo(nullret2.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
-		checkInfo(nullret2.get(5), 2, "auto2", SAFE_TYPE, 2, USER1,
-				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret2.get(5));
 		assertNull("Got object info when expected null", nullret2.get(6));
-		assertNull("Got object info when expected null", nullret2.get(7));
 		
 		List<ObjectData> nullobj = CLIENT1.getObjects2(new GetObjects2Params()
 			.withObjects(nullloi).withIgnoreErrors(1L)).getData();
@@ -1053,10 +1042,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertNull("Got object info when expected null", nullobj.get(3));
 		checkData(nullobj.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
-		checkData(nullobj.get(5), 2, "auto2", SAFE_TYPE, 2, USER1,
-				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
+		assertNull("Got object info when expected null", nullobj.get(5));
 		assertNull("Got object info when expected null", nullobj.get(6));
-		assertNull("Got object info when expected null", nullobj.get(7));
 		
 		CLIENT2.setPermissions(new SetPermissionsParams().withNewPermission("r")
 				.withUsers(Arrays.asList(USER1)).withWorkspace("setgetunreadableto1"));
@@ -1079,9 +1066,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
 		assertNull("Got object info when expected null", nullret.get(5));
 		assertNull("Got object info when expected null", nullret.get(6));
-		assertNull("Got object info when expected null", nullret.get(7));
 		assertThat("incorrect paths", nullret3.getPaths(), is(Arrays.asList(
-				null, null, null, null, targetPath, null, null, null)));
+				null, null, null, null, targetPath, null, null)));
 		
 		@SuppressWarnings("deprecation")
 		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
@@ -1097,7 +1083,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
 		assertNull("Got object info when expected null", nullret2_2.get(5));
 		assertNull("Got object info when expected null", nullret2_2.get(6));
-		assertNull("Got object info when expected null", nullret2_2.get(7));
 
 		nullobj = CLIENT1.getObjects2(new GetObjects2Params().withObjects(nullloi)
 				.withIgnoreErrors(1L)).getData();
@@ -1110,7 +1095,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		assertNull("Got object info when expected null", nullobj.get(5));
 		assertNull("Got object info when expected null", nullobj.get(6));
-		assertNull("Got object info when expected null", nullobj.get(7));
 	}
 	
 	@Test
@@ -1687,13 +1671,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.saveObjects(soc);
 		data.clear();
 		Set<String> expectedRefs = new HashSet<String>();
-		data.put("ref1", "kb|ws." + wsid + ".obj.1");
+		data.put("ref1", wsid + "/1");
 		expectedRefs.add(wsid + "/1/3");
-		data.put("ref2", "kb|ws." + wsid + ".obj.1.ver.2");
+		data.put("ref2", wsid + "/1/2");
 		expectedRefs.add(wsid + "/1/2");
-		data.put("ref3", "kb|ws." + wsid + ".obj.2");
+		data.put("ref3", wsid + "/2");
 		expectedRefs.add(wsid + "/2/1");
-		data.put("ref4", "kb|ws." + wsid + ".obj.2.ver.1");
+		data.put("ref4", wsid + "/2/1");
 		expectedRefs.add(wsid + "/2/1");
 		objects.clear();
 		objects.add(new ObjectSaveData().withData(new UObject(data))
@@ -1711,7 +1695,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("correct refs returned", new HashSet<String>(od.getRefs()),
 				is(expectedRefs));
 		
-		data.put("ref5", "kb|ws." + wsid + ".obj.3");
+		data.put("ref5", wsid + "/3");
 		assertThat("test param hasn't changed", MAX_UNIQUE_IDS_PER_CALL, is(4));
 		try {
 			CLIENT1.saveObjects(soc);

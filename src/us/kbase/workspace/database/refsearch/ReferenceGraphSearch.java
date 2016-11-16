@@ -18,8 +18,6 @@ import us.kbase.workspace.database.Reference;
  */
 public class ReferenceGraphSearch {
 	
-	//TODO NOW TEST Unit tests
-
 	private final int maximumReferenceSearchCount;
 	private final Map<Reference, List<Reference>> paths = new HashMap<>();
 	private final ReferenceGraphTopologyProvider refProvider;

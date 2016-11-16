@@ -44,7 +44,6 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.kbase.TokenProvider;
 
 public class GetObjectsLibSpeedTest {
@@ -92,9 +91,7 @@ public class GetObjectsLibSpeedTest {
 								AuthService.login(shockuser, shockpwd)
 								.getToken())),
 				tfm);
-		Workspace ws = new Workspace(mwdb,
-				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser(), val);
+		Workspace ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 		Types types = new Types(typeDefDB);
 		
 		WorkspaceUser user = new WorkspaceUser("foo");
