@@ -8543,8 +8543,6 @@ a string
 A workspace identifier.
 
                 Select a workspace by one, and only one, of the numerical id or name.
-                        DEPRECATED: The name can also be a KBase ID including the numerical
-                                id, e.g. kb|ws.35.
                 ws_id id - the numerical ID of the workspace.
                 ws_name workspace - the name of the workspace.
 
@@ -8807,19 +8805,13 @@ an int
 
 A string that uniquely identifies an object in the workspace service.
 
-        There are two ways to uniquely identify an object in one string:
-        "[ws_name or id]/[obj_name or id]/[obj_ver]" - for example,
-                "MyFirstWorkspace/MyFirstObject/3" would identify the third version
-                of an object called MyFirstObject in the workspace called
-                MyFirstWorkspace. 42/Panic/1 would identify the first version of
-                the object name Panic in workspace with id 42. Towel/1/6 would
-                identify the 6th version of the object with id 1 in the Towel
-                workspace.
-        DEPRECATED:
-        "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example, 
-                "kb|ws.23.obj.567.ver.2" would identify the second version of an
-                object with id 567 in a workspace with id 23.
-        In all cases, if the version number is omitted, the latest version of
+        The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+        For example, MyFirstWorkspace/MyFirstObject/3 would identify the third version
+        of an object called MyFirstObject in the workspace called
+        MyFirstWorkspace. 42/Panic/1 would identify the first version of
+        the object name Panic in workspace with id 42. Towel/1/6 would
+        identify the 6th version of the object with id 1 in the Towel
+        workspace.If the version number is omitted, the latest version of
         the object is assumed.
 
 
@@ -8855,8 +8847,6 @@ An object identifier.
 
 Select an object by either:
         One, and only one, of the numerical id or name of the workspace.
-        DEPRECATED: The name can also be a KBase ID including the numerical
-                id, e.g. kb|ws.35.
                 ws_id wsid - the numerical ID of the workspace.
                 ws_name workspace - the name of the workspace.
         AND 
@@ -9037,12 +9027,9 @@ DEPRECATED
         
         Select a subset of an object by:
         EITHER
-                One, and only one, of the numerical id or name of the workspace,
-                where the name can also be a KBase ID including the numerical id,
-                e.g. kb|ws.35.
+                One, and only one, of the numerical id or name of the workspace.
                         ws_id wsid - the numerical ID of the workspace.
-                        ws_name workspace - name of the workspace or the workspace ID
-                                in KBase format, e.g. kb|ws.78.
+                        ws_name workspace - name of the workspace.
                 AND 
                 One, and only one, of the numerical id or name of the object.
                         obj_id objid- the numerical ID of the object.
@@ -9825,8 +9812,7 @@ DEPRECATED
         backwards compatibility.
 
         One, and only one of:
-        ws_name workspace - name of the workspace or the workspace ID in KBase
-                format, e.g. kb|ws.78.
+        ws_name workspace - name of the workspace.
         ws_id id - the numerical ID of the workspace.
                 
         Optional arguments:
@@ -9878,7 +9864,6 @@ Input parameters for the "set_permissions" function.
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
         ws_name workspace - the name of the workspace.
-                DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
         
         Required arguments:
         permission new_permission - the permission to assign to the users.
@@ -9928,7 +9913,6 @@ Input parameters for the "set_global_permission" function.
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
         ws_name workspace - the name of the workspace.
-                DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
         
         Required arguments:
         permission new_permission - the permission to assign to all users,
@@ -9978,7 +9962,6 @@ Input parameters for the "set_workspace_description" function.
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
         ws_name workspace - the name of the workspace.
-                DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
         
         Optional arguments:
         string description - A free-text description of the workspace, 1000
@@ -10234,7 +10217,6 @@ Input parameters for the "save_objects" function.
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
         ws_name workspace - the name of the workspace.
-                DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
         
         Required arguments:
         list<ObjectSaveData> objects - the objects to save.
@@ -10825,7 +10807,6 @@ Parameters for the 'list_objects' function.
                 or the results may be very large:
                 list<ws_id> ids - the numerical IDs of the workspaces of interest.
                 list<ws_name> workspaces - the names of the workspaces of interest.
-                        DEPRECATED: or the workspace IDs in KBase format, e.g. kb|ws.78.
                 type_string type - type of the objects to be listed.  Here, omitting
                         version information will find any objects that match the provided
                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any

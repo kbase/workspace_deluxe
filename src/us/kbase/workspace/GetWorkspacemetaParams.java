@@ -18,8 +18,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         Input parameters for the "get_workspacemeta" function. Provided for
  *         backwards compatibility.
  *         One, and only one of:
- *         ws_name workspace - name of the workspace or the workspace ID in KBase
- *                 format, e.g. kb|ws.78.
+ *         ws_name workspace - name of the workspace.
  *         ws_id id - the numerical ID of the workspace.
  *                 
  *         Optional arguments:

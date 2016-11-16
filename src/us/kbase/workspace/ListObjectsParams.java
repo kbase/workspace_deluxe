@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 or the results may be very large:
  *                 list<ws_id> ids - the numerical IDs of the workspaces of interest.
  *                 list<ws_name> workspaces - the names of the workspaces of interest.
- *                         DEPRECATED: or the workspace IDs in KBase format, e.g. kb|ws.78.
  *                 type_string type - type of the objects to be listed.  Here, omitting
  *                         version information will find any objects that match the provided
  *                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any

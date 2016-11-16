@@ -40,8 +40,6 @@ public class AlterWorkspaceMetadataParams {
      * <pre>
      * A workspace identifier.
      *                 Select a workspace by one, and only one, of the numerical id or name.
-     *                         DEPRECATED: The name can also be a KBase ID including the numerical
-     *                                 id, e.g. kb|ws.35.
      *                 ws_id id - the numerical ID of the workspace.
      *                 ws_name workspace - the name of the workspace.
      * </pre>
@@ -60,8 +58,6 @@ public class AlterWorkspaceMetadataParams {
      * <pre>
      * A workspace identifier.
      *                 Select a workspace by one, and only one, of the numerical id or name.
-     *                         DEPRECATED: The name can also be a KBase ID including the numerical
-     *                                 id, e.g. kb|ws.35.
      *                 ws_id id - the numerical ID of the workspace.
      *                 ws_name workspace - the name of the workspace.
      * </pre>
@@ -77,8 +73,6 @@ public class AlterWorkspaceMetadataParams {
      * <pre>
      * A workspace identifier.
      *                 Select a workspace by one, and only one, of the numerical id or name.
-     *                         DEPRECATED: The name can also be a KBase ID including the numerical
-     *                                 id, e.g. kb|ws.35.
      *                 ws_id id - the numerical ID of the workspace.
      *                 ws_name workspace - the name of the workspace.
      * </pre>
