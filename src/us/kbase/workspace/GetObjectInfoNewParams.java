@@ -27,6 +27,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *         boolean ignoreErrors - Don't throw an exception if an object cannot
  *                 be accessed; return null for that object's information instead.
  *                 Default false.
+ *                 
+ *         @deprecated Workspace.GetObjectInfo3Params
  * </pre>
  * 
  */

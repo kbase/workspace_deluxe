@@ -254,6 +254,16 @@ public interface WorkspaceDatabase {
 			throws NoSuchObjectException,WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException;
 	
+	/** Resolve a set of objects to absolute references. If the object cannot be found, it is not
+	 * included in the returned map. Includes deleted objects.
+	 * @param objects the objects to resolve.
+	 * @return a map of the objects to their resolved references.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the backend occurs.
+	 */
+	public Map<ObjectIDResolvedWS, Reference> getObjectReference(Set<ObjectIDResolvedWS> objects)
+			throws WorkspaceCommunicationException;
+	
 	/** Get the set of outgoing references for an object.
 	 * @param objs the objects for which to retrieve references.
 	 * @param exceptIfDeleted throw an exception if the object is deleted if
@@ -273,15 +283,6 @@ public interface WorkspaceDatabase {
 					boolean includeDeleted,
 					boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
-	
-	/** Get the set of incoming references for an object. If the object cannot be found, it is not
-	 * included in the returned map. Includes deleted objects.
-	 * @param objs the objects for which to retrieve references.
-	 * @return the set of references for each object.
-	 * @throws WorkspaceCommunicationException  if a communication error with the backend occurs.
-	 */
-	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectIncomingReferencesForObjIDs(
-			Set<ObjectIDResolvedWS> objs) throws WorkspaceCommunicationException;
 	
 	/** Get the set of incoming references for an object. The object referred to by the reference
 	 * is not checked for existence - if the reference does not exist, the reference set of
@@ -434,5 +435,4 @@ public interface WorkspaceDatabase {
 	 * @return the dependency status.
 	 */
 	public List<DependencyStatus> status();
-
 }

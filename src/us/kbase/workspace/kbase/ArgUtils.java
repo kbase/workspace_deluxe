@@ -45,6 +45,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.Provenance.SubAction;
+import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -385,6 +386,7 @@ public class ArgUtils {
 			ret.add(new ObjectData()
 					.withData(resource == null ? null : resource.getUObject())
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
+					.withPath(toObjectPath(o.getObjectInfo().getReferencePath()))
 					.withProvenance(translateProvenanceActions(
 							o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
@@ -404,6 +406,26 @@ public class ArgUtils {
 		return ret;
 	}
 	
+	public static List<List<String>> toObjectPaths(final List<ObjectInformation> ois) {
+		final List<List<String>> ret = new LinkedList<>();
+		for (final ObjectInformation oi: ois) {
+			if (oi == null) {
+				ret.add(null);
+			} else {
+				ret.add(toObjectPath(oi.getReferencePath()));
+			}
+		}
+		return ret;
+	}
+	
+	private static List<String> toObjectPath(final List<Reference> referencePath) {
+		final List<String> ret = new LinkedList<>();
+		for (final Reference r: referencePath) {
+			ret.add(r.getId());
+		}
+		return ret;
+	}
+
 	@SuppressWarnings("deprecation")
 	public static List<us.kbase.workspace.ObjectProvenanceInfo> translateObjectProvInfo(
 			final List<WorkspaceObjectData> objects,

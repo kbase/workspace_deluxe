@@ -50,7 +50,6 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.AllUsers;
-import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -315,9 +314,7 @@ public class WorkspaceTester {
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, bs, tfm);
-		Workspace work = new Workspace(mwdb,
-				new ResourceUsageConfigurationBuilder().build(),
-				new DefaultReferenceParser(), val);
+		Workspace work = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 		Types t = new Types(typeDefDB);
 		if (maxMemoryUsePerCall != null) {
 			final ResourceUsageConfigurationBuilder build =
@@ -1217,12 +1214,6 @@ public class WorkspaceTester {
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
-//		try {
-//			new ObjectIDResolvedWSNoVer(fakews, badId);
-//			fail("Initialized invalid object id");
-//		} catch (IllegalArgumentException e) {
-//			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-//		}
 		if (badWS != null) {
 			try {
 				new ObjectIDNoWSNoVer(badId);

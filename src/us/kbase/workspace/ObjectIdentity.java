@@ -17,8 +17,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * An object identifier.
  * Select an object by either:
  *         One, and only one, of the numerical id or name of the workspace.
- *         DEPRECATED: The name can also be a KBase ID including the numerical
- *                 id, e.g. kb|ws.35.
  *                 ws_id wsid - the numerical ID of the workspace.
  *                 ws_name workspace - the name of the workspace.
  *         AND 

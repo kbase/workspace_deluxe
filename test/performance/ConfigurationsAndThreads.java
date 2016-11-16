@@ -59,7 +59,6 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.KBaseReferenceParser;
 import us.kbase.workspace.kbase.TokenProvider;
 
 /* DO NOT run these tests on production workspaces.
@@ -395,9 +394,7 @@ public class ConfigurationsAndThreads {
 									AuthService.login("baduser", "badpwd")
 									.getToken())),
 					tfm);
-			ws = new Workspace(mwdb,
-					new ResourceUsageConfigurationBuilder().build(),
-					new KBaseReferenceParser(), val);
+			ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
 			ws.createWorkspace(foo, workspace, false, null, null);

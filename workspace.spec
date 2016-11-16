@@ -95,8 +95,6 @@ module Workspace {
 	/* A workspace identifier.
 
 		Select a workspace by one, and only one, of the numerical id or name.
-			DEPRECATED: The name can also be a KBase ID including the numerical
-				id, e.g. kb|ws.35.
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - the name of the workspace.
 		
@@ -163,19 +161,13 @@ module Workspace {
 	
 	/* A string that uniquely identifies an object in the workspace service.
 	
-		There are two ways to uniquely identify an object in one string:
-		"[ws_name or id]/[obj_name or id]/[obj_ver]" - for example,
-			"MyFirstWorkspace/MyFirstObject/3" would identify the third version
-			of an object called MyFirstObject in the workspace called
-			MyFirstWorkspace. 42/Panic/1 would identify the first version of
-			the object name Panic in workspace with id 42. Towel/1/6 would
-			identify the 6th version of the object with id 1 in the Towel
-			workspace.
-		DEPRECATED:
-		"kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example, 
-			"kb|ws.23.obj.567.ver.2" would identify the second version of an
-			object with id 567 in a workspace with id 23.
-		In all cases, if the version number is omitted, the latest version of
+		The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+		For example, MyFirstWorkspace/MyFirstObject/3 would identify the third version
+		of an object called MyFirstObject in the workspace called
+		MyFirstWorkspace. 42/Panic/1 would identify the first version of
+		the object name Panic in workspace with id 42. Towel/1/6 would
+		identify the 6th version of the object with id 1 in the Towel
+		workspace.If the version number is omitted, the latest version of
 		the object is assumed.
 	*/
 	typedef string obj_ref;
@@ -184,8 +176,6 @@ module Workspace {
 		
 		Select an object by either:
 			One, and only one, of the numerical id or name of the workspace.
-			DEPRECATED: The name can also be a KBase ID including the numerical
-				id, e.g. kb|ws.35.
 				ws_id wsid - the numerical ID of the workspace.
 				ws_name workspace - the name of the workspace.
 			AND 
@@ -251,12 +241,9 @@ module Workspace {
 		
 		Select a subset of an object by:
 		EITHER
-			One, and only one, of the numerical id or name of the workspace,
-			where the name can also be a KBase ID including the numerical id,
-			e.g. kb|ws.35.
+			One, and only one, of the numerical id or name of the workspace.
 				ws_id wsid - the numerical ID of the workspace.
-				ws_name workspace - name of the workspace or the workspace ID
-					in KBase format, e.g. kb|ws.78.
+				ws_name workspace - name of the workspace.
 			AND 
 			One, and only one, of the numerical id or name of the object.
 				obj_id objid- the numerical ID of the object.
@@ -688,8 +675,7 @@ module Workspace {
 		backwards compatibility.
 	
 		One, and only one of:
-		ws_name workspace - name of the workspace or the workspace ID in KBase
-			format, e.g. kb|ws.78.
+		ws_name workspace - name of the workspace.
 		ws_id id - the numerical ID of the workspace.
 			
 		Optional arguments:
@@ -730,7 +716,6 @@ module Workspace {
 		One, and only one, of the following is required:
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - the name of the workspace.
-			DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
 		
 		Required arguments:
 		permission new_permission - the permission to assign to the users.
@@ -754,7 +739,6 @@ module Workspace {
 		One, and only one, of the following is required:
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - the name of the workspace.
-			DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
 		
 		Required arguments:
 		permission new_permission - the permission to assign to all users,
@@ -779,7 +763,6 @@ module Workspace {
 		One, and only one, of the following is required:
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - the name of the workspace.
-			DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
 		
 		Optional arguments:
 		string description - A free-text description of the workspace, 1000
@@ -908,7 +891,6 @@ module Workspace {
 		One, and only one, of the following is required:
 		ws_id id - the numerical ID of the workspace.
 		ws_name workspace - the name of the workspace.
-			DEPRECATED: or the workspace ID in KBase format, e.g. kb|ws.78.
 		
 		Required arguments:
 		list<ObjectSaveData> objects - the objects to save.
@@ -1031,9 +1013,10 @@ module Workspace {
 	
 		UnspecifiedObject data - the object's data or subset data.
 		object_info info - information about the object.
+		list<obj_ref> path - the path to the object through the object reference graph. All the
+			references in the path are absolute.
 		list<ProvenanceAction> provenance - the object's provenance.
-		username creator - the user that first saved the object to the
-			workspace.
+		username creator - the user that first saved the object to the workspace.
 		ws_id orig_wsid - the id of the workspace in which this object was
 				originally saved. Missing for objects saved prior to version
 				0.4.1.
@@ -1041,7 +1024,7 @@ module Workspace {
 			workspace.
 		epoch epoch - the date the object was first saved to the
 			workspace.
-		list<obj_ref> - the references contained within the object.
+		list<obj_ref> refs - the references contained within the object.
 		obj_ref copied - the reference of the source object if this object is
 			a copy and the copy source exists and is accessible.
 			null otherwise.
@@ -1058,6 +1041,7 @@ module Workspace {
 	typedef structure {
 		UnspecifiedObject data;
 		object_info info;
+		list<obj_ref> path;
 		list<ProvenanceAction> provenance;
 		username creator;
 		ws_id orig_wsid;
@@ -1298,7 +1282,6 @@ module Workspace {
 		or the results may be very large:
 		list<ws_id> ids - the numerical IDs of the workspaces of interest.
 		list<ws_name> workspaces - the names of the workspaces of interest.
-			DEPRECATED: or the workspace IDs in KBase format, e.g. kb|ws.78.
 		type_string type - type of the objects to be listed.  Here, omitting
 			version information will find any objects that match the provided
 			type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
@@ -1399,7 +1382,7 @@ module Workspace {
 		workspace. Provides access to metadata for all versions of the object
 		via the instance parameter. Provided for backwards compatibility.
 		
-		@deprecated Workspace.get_object_info
+		@deprecated Workspace.get_object_info3
 	*/
 	funcdef get_objectmeta(get_objectmeta_params params) 
 		returns(object_metadata metadata) authentication optional; 
@@ -1413,7 +1396,7 @@ module Workspace {
 		This method will be replaced by the behavior of get_object_info_new
 		in the future.
 		
-		@deprecated Workspace.get_object_info_new
+		@deprecated Workspace.get_object_info3
 	*/
 	funcdef get_object_info(list<ObjectIdentity> object_ids,
 		boolean includeMetadata) returns (list<object_info> info)
@@ -1433,6 +1416,7 @@ module Workspace {
 			be accessed; return null for that object's information instead.
 			Default false.
 			
+		@deprecated Workspace.GetObjectInfo3Params
 	*/
 	typedef structure { 
 		list<ObjectSpecification> objects;
@@ -1443,9 +1427,45 @@ module Workspace {
 	/* 
 		Get information about objects from the workspace.
 		
+		@deprecated Workspace.get_object_info3
+		
 	*/
 	funcdef get_object_info_new(GetObjectInfoNewParams params)
 		returns (list<object_info> info) authentication optional;
+	
+	/* Input parameters for the "get_object_info3" function.
+	
+		Required arguments:
+		list<ObjectSpecification> objects - the objects for which the
+			information should be fetched. Subsetting related parameters are
+			ignored.
+		
+		Optional arguments:
+		boolean includeMetadata - include the object metadata in the returned
+			information. Default false.
+		boolean ignoreErrors - Don't throw an exception if an object cannot
+			be accessed; return null for that object's information and path instead.
+			Default false.
+	*/
+	typedef structure { 
+		list<ObjectSpecification> objects;
+		boolean includeMetadata;
+		boolean ignoreErrors;
+	} GetObjectInfo3Params;
+	
+	/* Output from the get_object_info3 function.
+	
+		list<object_info> infos - the object_info data for each object.
+		list<list<obj_ref> paths - the path to the object through the object reference graph for
+			each object. All the references in the path are absolute.
+	*/
+	typedef structure {
+		list<object_info> infos;
+		list<list<obj_ref>> paths;
+	} GetObjectInfo3Results;
+	
+	funcdef get_object_info3(GetObjectInfo3Params params)
+		returns (GetObjectInfo3Results results) authentication optional;
 	
 	/* Input parameters for the 'rename_workspace' function.
 		

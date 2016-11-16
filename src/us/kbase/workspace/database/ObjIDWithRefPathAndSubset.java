@@ -83,16 +83,15 @@ public class ObjIDWithRefPathAndSubset extends ObjectIDWithRefPath {
 		return true;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("ObjIDWithChainsAndSubset [subset=");
+		builder.append("ObjIDWithRefPathAndSubset [subset=");
 		builder.append(subset);
 		builder.append(", getRefPath()=");
 		builder.append(getRefPath());
+		builder.append(", isLookupRequired()=");
+		builder.append(isLookupRequired());
 		builder.append(", getWorkspaceIdentifier()=");
 		builder.append(getWorkspaceIdentifier());
 		builder.append(", getName()=");
