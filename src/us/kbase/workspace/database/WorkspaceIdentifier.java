@@ -45,22 +45,26 @@ public class WorkspaceIdentifier {
 		checkWorkspaceName(name, null);
 	}
 
-	public static void checkWorkspaceName(final String name,
+	private static void checkWorkspaceName(final String name,
 			final WorkspaceUser user) {
 		checkString(name, "Workspace name", MAX_NAME_LENGTH);
 		Matcher m = WS_NAME_INVALID.matcher(name);
-		String wsname = name;
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(
 					"Illegal character in workspace name %s: %s", name, m.group()));
 		}
-		int delimcount = StringUtils.countMatches(name, WS_NAME_DELIMITER);
+		//TODO LATER when workspace names are fixed disallow name:long names check the split name
+		m = WS_NAME_INTEGER.matcher(name);
+		if (m.find()) {
+			throw new IllegalArgumentException("Workspace names cannot be integers: " + name);
+		}
+		final int delimcount = StringUtils.countMatches(name, WS_NAME_DELIMITER);
 		if (delimcount > 1) {
 			throw new IllegalArgumentException(String.format(
 					"Workspace name %s may only contain one %s delimiter",
 					name, WS_NAME_DELIMITER));
 		} else if (delimcount == 1) {
-			String[] user_ws = name.split(WS_NAME_DELIMITER);
+			final String[] user_ws = name.split(WS_NAME_DELIMITER);
 			if (user_ws.length < 2) {
 				throw new IllegalArgumentException(String.format(
 						"Workspace name missing from %s", name));
@@ -74,11 +78,14 @@ public class WorkspaceIdentifier {
 						"Workspace name %s must only contain the user name %s prior to the %s delimiter",
 						name, user.getUser(), WS_NAME_DELIMITER));
 			}
-			wsname = user_ws[1];
-		}
-		m = WS_NAME_INTEGER.matcher(wsname);
-		if (m.find()) {
-			throw new IllegalArgumentException("Workspace names cannot be integers: " + name);
+			//TODO LATER when workspace names are fixed disallow name:long names check the split name
+			try {
+				Integer.parseInt(user_ws[1]);
+				throw new IllegalArgumentException(
+						"Workspace names cannot be integers: " + name);
+			} catch (NumberFormatException nfe) {
+				//do nothing, illegal name allowed for now
+			}
 		}
 	}
 	
