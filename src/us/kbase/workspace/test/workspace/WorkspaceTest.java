@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 
 import junit.framework.Assert;
 
@@ -116,6 +117,47 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("incorrect status", blob.getStatus(), is("OK"));
 		//should throw an error if not a semantic version
 		Version.valueOf(blob.getVersion());
+	}
+	
+	@Test
+	public void illegalWorkspaceNamesTemporarilyAllowed() throws Exception {
+		/* tests the officially illegal but temporarily allowed workspace names of the style
+		 * user:integer. These were allowed for integers > the java max int due to a bug, but
+		 * for backwards compatibility reasons we can't fix it yet.
+		 * TODO LATER change these to failing tests when they can be fixed
+		 */
+		ws.createWorkspace(new WorkspaceUser("fake"), "clone", true, null, null);
+		final WorkspaceIdentifier cloneid = new WorkspaceIdentifier("clone");
+		
+		final Map<String, WorkspaceUser> badnames = new HashMap<>();
+		badnames.put("foo:-3000000000", new WorkspaceUser("foo")); // long
+		badnames.put("user2:3000000000", new WorkspaceUser("user2")); // long
+		badnames.put("bar:90000000000000000000", new WorkspaceUser("bar")); // > long
+		for (final Entry<String, WorkspaceUser> b: badnames.entrySet()) {
+			new WorkspaceIdentifier(b.getKey(), b.getValue());
+			final WorkspaceInformation w = ws.createWorkspace(
+					b.getValue(), b.getKey(), false, null, null);
+			assertThat("unexpected workspace name", w.getName(), is(b.getKey()));
+			assertThat("unexpected user", w.getOwner(), is(b.getValue()));
+			ws.renameWorkspace(b.getValue(), new WorkspaceIdentifier(
+					b.getKey()), UUID.randomUUID().toString());
+			
+			final WorkspaceInformation c = ws.cloneWorkspace(
+					b.getValue(), cloneid, b.getKey(), false, null, null, null);
+			assertThat("unexpected workspace name", c.getName(), is(b.getKey()));
+			assertThat("unexpected user", c.getOwner(), is(b.getValue()));
+			ws.renameWorkspace(b.getValue(), new WorkspaceIdentifier(
+					b.getKey()), UUID.randomUUID().toString());
+			
+			final String renamename = b.getValue().getUser() + ":nicename";
+			ws.createWorkspace(b.getValue(), renamename, false, null, null);
+			final WorkspaceInformation r = ws.renameWorkspace(
+					b.getValue(), new WorkspaceIdentifier(renamename), b.getKey());
+			assertThat("unexpected workspace name", r.getName(), is(b.getKey()));
+			assertThat("unexpected user", r.getOwner(), is(b.getValue()));
+			
+			
+		}
 	}
 	
 	@Test
@@ -4132,8 +4174,9 @@ public class WorkspaceTest extends WorkspaceTester {
 				"Workspace names cannot be integers: 9"));
 		failClone(user1, cp1, "foo:9", null, new IllegalArgumentException(
 				"Workspace names cannot be integers: foo:9"));
-		failClone(user1, cp1, "foo:45678901234567890123", null, new IllegalArgumentException(
-				"Workspace names cannot be integers: foo:45678901234567890123"));
+		//TODO LATER readd this test when ws names are fixed so user:int is not allowed
+//		failClone(user1, cp1, "foo:45678901234567890123", null, new IllegalArgumentException(
+//				"Workspace names cannot be integers: foo:45678901234567890123"));
 		failClone(user1, cp1, "foo:fake(name", null, new IllegalArgumentException(
 				"Illegal character in workspace name foo:fake(name: ("));
 		failClone(user2, cp1, "fakename", null, new WorkspaceAuthorizationException("User bar may not read workspace clone1"));

@@ -7,6 +7,9 @@ VERSION: 0.5.1 (Released TBD)
 BACKWARDS INCOMPATIBILITIES:
 
 * The ``kb|ws...`` style of addressing workspaces or objects has been removed.
+* A bug allowed workspace names of the form user:X where X is an integer > ~2^32. This style of
+  name is temporarily allowed for backwards compatibility reasons but is deprecated and will be
+  removed in a future release.
 
 NEW FEATURES:
 
