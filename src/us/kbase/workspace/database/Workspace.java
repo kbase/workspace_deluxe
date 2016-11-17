@@ -2040,7 +2040,7 @@ public class Workspace {
 							break;
 						}
 					}
-					throw generateInaccessibleObjectException(nsoe, oi);
+					throw generateIDReferenceException(nsoe, oi);
 				} catch (WorkspaceCommunicationException e) {
 					throw new IdReferenceHandlerException(
 							"Workspace communication exception", getIdType(), e);
@@ -2058,7 +2058,7 @@ public class Workspace {
 				try {
 					return resolveObjects(user, new LinkedList<>(idset), false);
 				} catch (InaccessibleObjectException ioe) {
-					throw generateInaccessibleObjectException(ioe);
+					throw generateIDReferenceException(ioe);
 				} catch (WorkspaceCommunicationException e) {
 					throw new IdReferenceHandlerException("Workspace communication exception",
 							getIdType(), e);
@@ -2066,8 +2066,7 @@ public class Workspace {
 					throw new IdReferenceHandlerException("Corrupt workspace exception",
 							getIdType(), e);
 				} catch (NoSuchReferenceException e) {
-					//TODO NOW TEST
-					throw new RuntimeException(); //TODO NOW Fix
+					throw generateIDReferenceException(e);
 				} catch (ReferenceSearchMaximumSizeExceededException e) {
 					throw new RuntimeException("No search requested, yet got search error", e);
 				}
@@ -2076,22 +2075,47 @@ public class Workspace {
 			}
 		}
 
-		private IdReferenceException generateInaccessibleObjectException(
+		private IdReferenceException generateIDReferenceException(
+				final NoSuchReferenceException e) {
+			//TODO NOW TEST
+			final ObjectIdentifier start = e.getStartObject();
+			final String exception = String.format("Reference path starting with %s, position " +
+					"%s: Object %s does not contain a reference to %s",
+					start.getReferenceString(),
+					e.getFromPosition(),
+					e.getFromObject().getReferenceString(),
+					e.getToObject().getReferenceString());
+			for (final T assObj: ids.keySet()) {
+				for (final String id: ids.get(assObj).keySet()) {
+					final ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(id);
+					if (oi.equals(start)) {
+						final List<String> attribs = getAnyAttributeSet(assObj, id);
+						return new IdReferenceException(
+								exception, getIdType(), assObj, id, attribs, e);
+					}
+				}
+			}
+			throw new RuntimeException(String.format(
+					"Programming error: Lookup of object %s failed",
+					start.getReferenceString()));
+		}
+
+		private IdReferenceException generateIDReferenceException(
 				final InaccessibleObjectException ioe) {
 			final String exception = "No read access to id ";
-			return generateInaccessibleObjectException(ioe,
+			return generateIDReferenceException(ioe,
 					ioe.getInaccessibleObject(), exception);
 		}
 		
-		private IdReferenceException generateInaccessibleObjectException(
+		private IdReferenceException generateIDReferenceException(
 				final NoSuchObjectException ioe,
 				final ObjectIdentifier originalObject) {
 			final String exception = "There is no object with id ";
-			return generateInaccessibleObjectException(ioe, originalObject,
+			return generateIDReferenceException(ioe, originalObject,
 					exception);
 		}
 
-		private IdReferenceException generateInaccessibleObjectException(
+		private IdReferenceException generateIDReferenceException(
 				final InaccessibleObjectException ioe,
 				final ObjectIdentifier originalObject,
 				final String exception) {
