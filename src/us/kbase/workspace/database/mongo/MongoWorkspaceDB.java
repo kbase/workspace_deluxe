@@ -753,7 +753,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (rto == null && to.getId() != null) {
 			throw new NoSuchObjectException(String.format(
 					"Copy destination is specified as object id %s in workspace %s which does not exist.",
-					to.getId(), to.getWorkspaceIdentifier().getID()));
+					to.getId(), to.getWorkspaceIdentifier().getID()), to);
 		}
 		final List<Map<String, Object>> versions;
 		if (rto == null && from.getVersion() == null) {
@@ -1747,8 +1747,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				//the id or name wasn't found
 				if (o.getId() != null) {
 					//no such id, punt
-					throw new NoSuchObjectException(
-							"There is no object with id " + o.getId());
+					throw new NoSuchObjectException("There is no object with id " + o.getId(),
+							new ObjectIDResolvedWS(rwsi, o.getId()));
 				} else {
 					//no such name, add the unconfirmed name to all the packages
 					// and increment the counter for the object ids we need
@@ -2537,23 +2537,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_TYPE, Fields.VER_VER);
 	
 	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
-			final Set<ObjectIDResolvedWS> objectIDs) throws
+			final Set<ObjectIDResolvedWS> objectIDs,
+			final boolean ignoreErrors) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		//this method is a pattern - generalize somehow?
 		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
-				resolveObjectIDs(objectIDs);
+				resolveObjectIDs(objectIDs, !ignoreErrors, ignoreErrors, !ignoreErrors);
 		//instead of calling verifyVersions() just query the version here
 		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
 				queryVersions(new HashSet<ResolvedMongoObjectID>(oids.values()),
-						FLDS_VER_TYPE, false);
+						FLDS_VER_TYPE, ignoreErrors);
 		final Map<ObjectIDResolvedWS, TypeAndReference> ret = new HashMap<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedMongoObjectID roi = oids.get(o);
-			ret.put(o, new TypeAndReference(
-					AbsoluteTypeDefId.fromAbsoluteTypeString(
-							(String) vers.get(roi).get(Fields.VER_TYPE)),
-					new Reference(roi.getWorkspaceIdentifier().getID(), roi.getId(),
-							(Integer) vers.get(roi).get(Fields.VER_VER))));
+			final Map<String, Object> v = vers.get(roi);
+			if (v != null) {
+				ret.put(o, new TypeAndReference(AbsoluteTypeDefId.fromAbsoluteTypeString(
+								(String) v.get(Fields.VER_TYPE)),
+						new Reference(roi.getWorkspaceIdentifier().getID(), roi.getId(),
+								(Integer) v.get(Fields.VER_VER))));
+			}
 		}
 		return ret;
 	}

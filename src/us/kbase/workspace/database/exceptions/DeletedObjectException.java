@@ -11,20 +11,14 @@ public class DeletedObjectException extends NoSuchObjectException {
 
 	private static final long serialVersionUID = 1L;
 
-	public DeletedObjectException(String message) {
-		super(message);
-	}
-
-	public DeletedObjectException(String message, ObjectIDResolvedWS oi) {
+	public DeletedObjectException(final String message, final ObjectIDResolvedWS oi) {
 		super(message, oi);
 	}
 
-	public DeletedObjectException(String message, Throwable cause) {
-		super(message, cause);
-	}
-
-	public DeletedObjectException(String message, ObjectIDResolvedWS oi,
-			Throwable cause) {
+	public DeletedObjectException(
+			final String message,
+			final ObjectIDResolvedWS oi,
+			final Throwable cause) {
 		super(message, oi, cause);
 	}
 

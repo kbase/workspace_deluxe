@@ -36,7 +36,7 @@ public class WorkspaceSaveObject {
 	}
 	
 	public WorkspaceSaveObject(final Object data, final TypeDefId type,
-			final WorkspaceUserMetadata userMeta,  final Provenance provenance,
+			final WorkspaceUserMetadata userMeta, final Provenance provenance,
 			final boolean hidden) {
 		if (data == null || type == null || provenance == null) {
 			throw new IllegalArgumentException(

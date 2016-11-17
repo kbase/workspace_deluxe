@@ -864,17 +864,13 @@ public class WorkspaceTester {
 		destroyGetObjectsResources(ws.getObjects(user, objs, false));
 	}
 	
-	public void destroyGetObjectsResources(
-			final List<WorkspaceObjectData> objects) {
-		destroyGetObjectsResources(ws, objects);
-	}
-	
 	public static void destroyGetObjectsResources(
-			final Workspace ws,
 			final List<WorkspaceObjectData> objects) {
 		for (WorkspaceObjectData wo: objects) {
 			try {
-				wo.destroy();
+				if (wo != null) {
+					wo.destroy();
+				}
 			} catch (RuntimeException | Error e) {
 				//continue;
 			}
@@ -1374,7 +1370,7 @@ public class WorkspaceTester {
 	//TODO TEST this looks like it's redundant to failGetObjects
 	protected void failToGetDeletedObjects(WorkspaceUser user,
 			List<ObjectIdentifier> objs, String exception) throws Exception {
-		failGetObjects(user, objs, new NoSuchObjectException(exception));
+		failGetObjects(user, objs, new NoSuchObjectException(exception, null));
 		try {
 			ws.getObjectInformation(user, objs, true, false);
 			fail("got deleted object's history");
@@ -1431,8 +1427,8 @@ public class WorkspaceTester {
 		return map;
 	}
 	
-	protected Map<String, List<String>> makeRefData(String... refs) {
-		Map<String, List<String>> data = new HashMap<String, List<String>>();
+	protected Map<String, Object> makeRefData(String... refs) {
+		Map<String, Object> data = new HashMap<>();
 		data.put("refs", Arrays.asList(refs));
 		return data;
 	}

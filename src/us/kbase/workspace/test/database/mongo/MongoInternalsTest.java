@@ -252,7 +252,7 @@ public class MongoInternalsTest {
 				"No workspace with id 2 exists", cloning);
 		final InaccessibleObjectException noObjExcp =
 				new InaccessibleObjectException("Object 1 cannot be " +
-				"accessed: No workspace with id 2 exists");
+				"accessed: No workspace with id 2 exists", null);
 
 		//test clone
 		WorkspaceTester.failClone(ws, user1, cloning, "whee", null, null,
@@ -262,7 +262,7 @@ public class MongoInternalsTest {
 		WorkspaceTester.failCopy(ws, user1, stdobj,
 				new ObjectIdentifier(cloning, "foo"),
 				new InaccessibleObjectException("Object foo cannot be " +
-						"accessed: No workspace with id 2 exists"));
+						"accessed: No workspace with id 2 exists", null));
 		WorkspaceTester.failCopy(ws, user1, clnobj,
 				new ObjectIdentifier(std, "foo"), noObjExcp);
 		

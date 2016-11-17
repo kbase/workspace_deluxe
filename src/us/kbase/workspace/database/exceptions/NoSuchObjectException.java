@@ -7,26 +7,25 @@ import us.kbase.workspace.database.ObjectIDResolvedWS;
  * @author gaprice@lbl.gov
  *
  */
-public class NoSuchObjectException extends InaccessibleObjectException {
+public class NoSuchObjectException extends WorkspaceDBException {
 
 	private static final long serialVersionUID = 1L;
+	private final ObjectIDResolvedWS roi;
 	
-	public NoSuchObjectException(final String message) {
+	public NoSuchObjectException(final String message, final ObjectIDResolvedWS roi) {
 		super(message);
+		this.roi = roi;
 	}
 	
-	public NoSuchObjectException(final String message, 
-			final ObjectIDResolvedWS oi) {
-		super(message, oi);
-	}
-	
-	public NoSuchObjectException(final String message,
+	public NoSuchObjectException(
+			final String message,
+			final ObjectIDResolvedWS roi,
 			final Throwable cause) {
 		super(message, cause);
+		this.roi = roi;
 	}
 	
-	public NoSuchObjectException(final String message,
-			final ObjectIDResolvedWS oi, final Throwable cause) {
-		super(message, oi, cause);
+	public ObjectIDResolvedWS getResolvedInaccessibleObject() {
+		return roi;
 	}
 }
