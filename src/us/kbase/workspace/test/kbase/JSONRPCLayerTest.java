@@ -2991,13 +2991,19 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referencedPriv").withName("one"),
 				new ObjectIdentity().withRef("referencedPriv/two"))), "Object one cannot be accessed: User " + USER1 + " may not read workspace referencedPriv");
-		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referenced").withName("ref"),
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(
+				new ObjectIdentity().withWorkspace("referenced").withName("ref"),
 				new ObjectIdentity().withRef("referencedPrivfake/two"))),
-				"Reference chain #1, position 1: Object ref in workspace referenced does not contain a reference to object two in workspace referencedPrivfake");
+				"Reference path #1 starting with object ref in workspace referenced, position " +
+				"1: Object ref in workspace referenced does not contain a reference to object " +
+				"two in workspace referencedPrivfake");
 		
-		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referenced").withName("ref"),
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(
+				new ObjectIdentity().withWorkspace("referenced").withName("ref"),
 				new ObjectIdentity().withRef("referencedPriv/three"))),
-				"Reference chain #1, position 1: Object ref in workspace referenced does not contain a reference to object three in workspace referencedPriv");
+				"Reference path #1 starting with object ref in workspace referenced, position " +
+				"1: Object ref in workspace referenced does not contain a reference to object " +
+				"three in workspace referencedPriv");
 
 		CLIENT2.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"),
 				new ObjectIdentity().withRef("referencedPriv/two")));

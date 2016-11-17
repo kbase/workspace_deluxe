@@ -794,27 +794,25 @@ public class Workspace {
 		try {
 			idhandler.processIDs();
 		} catch (IdParseException ipe) {
-			final IDAssociation idloc =
-					(IDAssociation) ipe.getAssociatedObject();
+			final IDAssociation idloc = (IDAssociation) ipe.getAssociatedObject();
 			final WorkspaceSaveObject wo = objects.get(idloc.objnum - 1);
 			throw new TypedObjectValidationException(String.format(
 					"Object %s has unparseable %sreference %s: %s%s",
 					getObjectErrorId(wo, idloc.objnum),
 					(idloc.provenance ? "provenance " : ""),
 					ipe.getId(),
-					ipe.getLocalizedMessage(),
+					ipe.getMessage(),
 					idloc.provenance ? "" : " at " +
 							getIDPath(reports.get(wo), ipe.getIdReference())),
 					ipe);
 		} catch (IdReferenceException ire) {
-			final IDAssociation idloc =
-					(IDAssociation) ire.getAssociatedObject();
+			final IDAssociation idloc = (IDAssociation) ire.getAssociatedObject();
 			final WorkspaceSaveObject wo = objects.get(idloc.objnum - 1);
 			throw new TypedObjectValidationException(String.format(
 					"Object %s has invalid %sreference: %s%s",
 					getObjectErrorId(wo, idloc.objnum),
 					(idloc.provenance ? "provenance " : ""),
-					ire.getLocalizedMessage(),
+					ire.getMessage(),
 					idloc.provenance ? "" : " at " +
 							getIDPath(reports.get(wo), ire.getIdReference())),
 					ire);
@@ -825,8 +823,7 @@ public class Workspace {
 				throw (CorruptWorkspaceDBException) irhe.getCause();
 			} else {
 				throw new TypedObjectValidationException(
-						"An error occured while processing IDs: " +
-						irhe.getLocalizedMessage(), irhe);
+						"An error occured while processing IDs: " + irhe.getMessage(), irhe);
 			}
 		}
 	}
@@ -1190,7 +1187,7 @@ public class Workspace {
 				if (ignoreErrors) {
 					return null;
 				}
-				throwNoSuchRefException(pos, oi, chainNumber, posnum);
+				throw new NoSuchReferenceException(null, chainNumber, posnum, refpath, pos, oi);
 			}
 			resolvedRefPath.add(current.getObjectReference());
 			pos = oi;
@@ -1210,29 +1207,6 @@ public class Workspace {
 			}
 		}
 		return false;
-	}
-
-	private void throwNoSuchRefException(
-			final ObjectIdentifier from,
-			final ObjectIdentifier to,
-			final int chnum,
-			final int posnum)
-			throws NoSuchReferenceException {
-		throw new NoSuchReferenceException(
-				String.format(
-				"Reference chain #%s, position %s: Object %s %sin " +
-				"workspace %s does not contain a reference to " +
-				"object %s %sin workspace %s",
-				chnum, posnum,
-				from.getIdentifierString(),
-				from.getVersion() == null ? "" :
-					"with version " + from.getVersion() + " ",
-				from.getWorkspaceIdentifierString(),
-				to.getIdentifierString(),
-				to.getVersion() == null ? "" :
-					"with version " + to.getVersion() + " ",
-				to.getWorkspaceIdentifierString()),
-				from, to);
 	}
 
 	private void removeInaccessibleDataCopyReferences(
@@ -1911,10 +1885,8 @@ public class Workspace {
 		private final WorkspaceUser user;
 		
 		// associatedObject -> id -> list of attributes
-		private final Map<T, Map<String, Set<List<String>>>> ids =
-				new HashMap<T, Map<String, Set<List<String>>>>();
-		private final Map<String, RemappedId> remapped =
-				new HashMap<String, RemappedId>();
+		private final Map<T, Map<String, Set<List<String>>>> ids = new HashMap<>();
+		private final Map<String, RemappedId> remapped = new HashMap<>();
 		
 		private WorkspaceIDHandler(final WorkspaceUser user) {
 			super();
@@ -1941,12 +1913,10 @@ public class Workspace {
 				throws IdParseException {
 			boolean unique = true;
 			if (!ids.containsKey(associatedObject)) {
-				ids.put(associatedObject,
-						new HashMap<String, Set<List<String>>>());
+				ids.put(associatedObject, new HashMap<String, Set<List<String>>>());
 			}
 			if (!ids.get(associatedObject).containsKey(id)) {
-				ids.get(associatedObject).put(id,
-						new HashSet<List<String>>());
+				ids.get(associatedObject).put(id, new HashSet<List<String>>());
 			} else {
 				unique = false;
 			}
@@ -1959,46 +1929,66 @@ public class Workspace {
 		@Override
 		protected void processIdsImpl()
 				throws IdReferenceHandlerException {
-			final Set<ObjectIdentifier> idset =
-					new HashSet<ObjectIdentifier>();
+			final Set<ObjectIdentifier> idset = new HashSet<ObjectIdentifier>();
 			for (final T assObj: ids.keySet()) {
 				for (final String id: ids.get(assObj).keySet()) {
-					final ObjectIdentifier oi;
-					try {
-						oi = ObjectIdentifier.parseObjectReference(id);
-						//Illegal arg is probably not the right exception
-					} catch (IllegalArgumentException iae) {
-						final List<String> attribs =
-								getAnyAttributeSet(assObj, id);
-						throw new IdParseException(iae.getMessage(),
-								getIdType(), assObj, id, attribs, iae);
-					}
-					idset.add(oi);
+					idset.add(parseIDString(id, assObj));
 				}
 			}
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids =
-					resolveIDs(idset);
+			final ResolvedRefPaths wsresolvedids = resolveIDs(idset);
 			
 			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes =
 					getObjectTypes(wsresolvedids);
 
+			//TODO NOW handle objects with paths
 			for (final T assObj: ids.keySet()) {
 				for (final String id: ids.get(assObj).keySet()) {
 					final ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(id);
-					final TypeAndReference tnr =
-							objtypes.get(wsresolvedids.get(oi));
+					final TypeAndReference tnr = objtypes.get(wsresolvedids.nopath.get(oi));
 					typeCheckReference(id, tnr.getType(), assObj);
 					remapped.put(id, tnr.getReference());
 				}
 			}
+		}
+		
+		private ObjectIdentifier parseIDString(
+				final String id,
+				final T associatedObject)
+				throws IdParseException {
+			//TODO NOW TEST
+			// cannot be null or empty at this point
+			final String[] refs = id.trim().split(";");
+			final List<ObjectIdentifier> ois = new LinkedList<>();
+			for (int i = 0; i < refs.length; i++) {
+				try {
+					ois.add(ObjectIdentifier.parseObjectReference(refs[i]));
+					//Illegal arg is probably not the right exception
+				} catch (IllegalArgumentException iae) {
+					final List<String> attribs = getAnyAttributeSet(associatedObject, id);
+					final String messagePrefix;
+					if (refs.length == 1) {
+						messagePrefix = "";
+					} else {
+						messagePrefix = String.format(
+								"ID parse error in reference string %s at position %s: ",
+								id, i + 1);
+					}
+					throw new IdParseException(messagePrefix + iae.getMessage(),
+							getIdType(), associatedObject, id, attribs, iae);
+				}
+			}
+			if (ois.size() == 1) {
+				return ois.get(0);
+			}
+			return new ObjectIDWithRefPath(ois.get(0), ois.subList(1, ois.size()));
+			
 		}
 
 		//use this method when an ID is bad regardless of the attribute set
 		//parse error, deleted object, etc.
 		private List<String> getAnyAttributeSet(final T assObj, final String id) {
 			final List<String> attribs;
-			final Set<List<String>> attribset =
-					ids.get(assObj).get(id);
+			final Set<List<String>> attribset = ids.get(assObj).get(id);
 			if (attribset.isEmpty()) {
 				attribs = null;
 			} else {
@@ -2019,15 +2009,13 @@ public class Workspace {
 				return;
 			}
 			for (final List<String> allowed: typeSets) {
-				final List<TypeDefName> allowedTypes =
-						new ArrayList<TypeDefName>();
+				final List<TypeDefName> allowedTypes = new ArrayList<TypeDefName>();
 				for (final String t: allowed) {
 					allowedTypes.add(new TypeDefName(t));
 				}
 				if (!allowedTypes.contains(type.getType())) {
 					throw new IdReferenceException(String.format(
-							"The type %s of reference %s " + 
-							"in this object is not " +
+							"The type %s of reference %s in this object is not " +
 							"allowed - allowed types are %s",
 							type.getTypeString(), id, allowed),
 							getIdType(), assObj, id, allowed, null);
@@ -2036,20 +2024,18 @@ public class Workspace {
 		}
 
 		private Map<ObjectIDResolvedWS, TypeAndReference> getObjectTypes(
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids)
+				final ResolvedRefPaths wsresolvedids)
 				throws IdReferenceHandlerException {
 			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes;
-			if (!wsresolvedids.isEmpty()) {
+			//TODO NOW handle objects with paths
+			if (!wsresolvedids.nopath.isEmpty()) {
 				try {
-					objtypes = db.getObjectType(
-							new HashSet<ObjectIDResolvedWS>(
-									wsresolvedids.values()));
+					objtypes = db.getObjectType(new HashSet<>(wsresolvedids.nopath.values()));
 				} catch (NoSuchObjectException nsoe) {
-					final ObjectIDResolvedWS cause =
-							nsoe.getResolvedInaccessibleObject();
+					final ObjectIDResolvedWS cause = nsoe.getResolvedInaccessibleObject();
 					ObjectIdentifier oi = null;
-					for (final ObjectIdentifier o: wsresolvedids.keySet()) {
-						if (wsresolvedids.get(o).equals(cause)) {
+					for (final ObjectIdentifier o: wsresolvedids.nopath.keySet()) {
+						if (wsresolvedids.nopath.get(o).equals(cause)) {
 							oi = o;
 							break;
 						}
@@ -2057,8 +2043,7 @@ public class Workspace {
 					throw generateInaccessibleObjectException(nsoe, oi);
 				} catch (WorkspaceCommunicationException e) {
 					throw new IdReferenceHandlerException(
-							"Workspace communication exception", getIdType(),
-							e);
+							"Workspace communication exception", getIdType(), e);
 				}
 			} else {
 				objtypes = new HashMap<ObjectIDResolvedWS, TypeAndReference>();
@@ -2066,35 +2051,34 @@ public class Workspace {
 			return objtypes;
 		}
 
-		private Map<ObjectIdentifier, ObjectIDResolvedWS> resolveIDs(
+		private ResolvedRefPaths resolveIDs(
 				final Set<ObjectIdentifier> idset)
 				throws IdReferenceHandlerException {
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> wsresolvedids;
 			if (!idset.isEmpty()) {
 				try {
-					wsresolvedids = checkPerms(user, 
-							new LinkedList<ObjectIdentifier>(idset),
-							Permission.READ, "read");
+					return resolveObjects(user, new LinkedList<>(idset), false);
 				} catch (InaccessibleObjectException ioe) {
 					throw generateInaccessibleObjectException(ioe);
 				} catch (WorkspaceCommunicationException e) {
-					throw new IdReferenceHandlerException(
-							"Workspace communication exception",
+					throw new IdReferenceHandlerException("Workspace communication exception",
 							getIdType(), e);
 				} catch (CorruptWorkspaceDBException e) {
-					throw new IdReferenceHandlerException(
-							"Corrupt workspace exception", getIdType(), e);
+					throw new IdReferenceHandlerException("Corrupt workspace exception",
+							getIdType(), e);
+				} catch (NoSuchReferenceException e) {
+					//TODO NOW TEST
+					throw new RuntimeException(); //TODO NOW Fix
+				} catch (ReferenceSearchMaximumSizeExceededException e) {
+					throw new RuntimeException("No search requested, yet got search error", e);
 				}
 			} else {
-				wsresolvedids = new HashMap<ObjectIdentifier,
-						ObjectIDResolvedWS>();
+				return new ResolvedRefPaths(null, null).withStandardObjects(null);
 			}
-			return wsresolvedids;
 		}
 
 		private IdReferenceException generateInaccessibleObjectException(
 				final InaccessibleObjectException ioe) {
-			String exception = "No read access to id ";
+			final String exception = "No read access to id ";
 			return generateInaccessibleObjectException(ioe,
 					ioe.getInaccessibleObject(), exception);
 		}
@@ -2102,7 +2086,7 @@ public class Workspace {
 		private IdReferenceException generateInaccessibleObjectException(
 				final NoSuchObjectException ioe,
 				final ObjectIdentifier originalObject) {
-			String exception = "There is no object with id ";
+			final String exception = "There is no object with id ";
 			return generateInaccessibleObjectException(ioe, originalObject,
 					exception);
 		}
@@ -2115,16 +2099,15 @@ public class Workspace {
 				for (final String id: ids.get(assObj).keySet()) {
 					final ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(id);
 					if (oi.equals(originalObject)) {
-						final List<String> attribs =
-								getAnyAttributeSet(assObj, id);
-						return new IdReferenceException(
-								exception + id + ": " + ioe.getMessage(),
-								getIdType(), assObj,
-								id, attribs, ioe);
+						final List<String> attribs = getAnyAttributeSet(assObj, id);
+						return new IdReferenceException(exception + id + ": " + ioe.getMessage(),
+								getIdType(), assObj, id, attribs, ioe);
 					}
 				}
 			}
-			return null;
+			throw new RuntimeException(String.format(
+					"Programming error: Lookup of object %s failed",
+					originalObject.getReferenceString()));
 		}
 		
 		@Override
