@@ -219,8 +219,10 @@ The ID types currently supported are described below.
     @id ws [TYPEDEF_NAME] ... 
 
 The ID must reference a TO instance stored in the WSS. There are multiple valid
-ways to specify a workspace object, and all are acceptable. Optionally, one or
-more type definition names can be specified indicating that the ID must point
+ways to specify a workspace object, and all are acceptable. A reference path into the object graph
+may be provided by providing a string consisting of a list of references separated by semicolons.
+
+Optionally, one or more type definition names can be specified indicating that the ID must point
 to a TO instance that is one of the specified types. The typedef with which the
 ``@id`` annotation is associated must be a string.
 

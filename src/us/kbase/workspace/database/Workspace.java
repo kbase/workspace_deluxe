@@ -1943,7 +1943,6 @@ public class Workspace {
 			return unique;
 		}
 
-		//TODO NOW release notes and documentation for reference paths
 		@Override
 		protected void processIdsImpl()
 				throws IdReferenceHandlerException {

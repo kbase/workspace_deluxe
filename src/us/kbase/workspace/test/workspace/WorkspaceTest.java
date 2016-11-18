@@ -3012,7 +3012,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		final String type2name = "Type2";
 		final String type1RefName = "Type1Ref";
 		final String type2RefName = "Type2Ref";
-		final String type12RefName = "Type2Ref";
+		final String type12RefName = "Type12Ref";
 		
 		final String spec =
 				"module " + modname + " {" +
@@ -3078,25 +3078,21 @@ public class WorkspaceTest extends WorkspaceTester {
 		final Provenance p2 = new Provenance(u2);
 		final String leaf1Name = "leaf1";
 		// 2/1/1
-		final ObjectInformation leaf1_1 = saveObject(u2, privws, makeMeta(1), MT_MAP,
-				type1, leaf1Name, p2);
+		saveObject(u2, privws, makeMeta(1), MT_MAP, type1, leaf1Name, p2);
 		final String leaf1_1ref = privws.getName() + "/" + leaf1Name + "/" + 1;
 		
 		// 2/1/2
-		ObjectInformation leaf1_2 = saveObject(u2, privws, makeMeta(2), MT_MAP,
-				type2, leaf1Name, p2);
+		saveObject(u2, privws, makeMeta(2), MT_MAP, type2, leaf1Name, p2);
 		final String leaf1_2ref = privws.getName() + "/" + leaf1Name + "/" + 2;
 		
 		// 2/2/1
 		final String delLeafName = "delleaf";
-		ObjectInformation delleaf = saveObject(u2, privws, makeMeta(3), MT_MAP,
-				type1, delLeafName, p2);
+		saveObject(u2, privws, makeMeta(3), MT_MAP, type1, delLeafName, p2);
 		final String delLeafRef = privws.getName() + "/" + delLeafName + "/" + 1;
 
 		// 1/1/1
 		final String readleafName = "readable";
-		ObjectInformation readLeaf = saveObject(u2, readws, makeMeta(4), MT_MAP,
-				type1, readleafName, p2);
+		saveObject(u2, readws, makeMeta(4), MT_MAP, type1, readleafName, p2);
 		final String readleafRef = readws.getName() + "/" + readleafName + "/" + 1;
 		
 		/* LEVEL 1 REFS */
@@ -3155,12 +3151,16 @@ public class WorkspaceTest extends WorkspaceTester {
 		successSaveWithRefPaths(u1, testws, type1, Arrays.asList(refPaths1, refPaths2));
 		ws.setWorkspaceDeleted(u2, privws, false);
 		
+		// test saving an object with refs that specify types, but cover all types
+		successSaveWithRefPaths(u1, testws, type12Ref, Arrays.asList(refPaths1, refPaths2));
+		
 		// test fail save on bad reference
 		// also tests failing on objects with id attributes
 		final Provenance p1 = new Provenance(u1);
 		failSave(u1, testws,
 				makeRefData("  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ", "readws/readable",
-				"1/3/1 ; \n 2/ref1/1 ; 	privws/1"), type1Ref, p1, new TypedObjectValidationException(
+				"1/3/1 ; \n 2/ref1/1 ; 	privws/1"), type1Ref, p1,
+				new TypedObjectValidationException(
 						"Object #1 has invalid reference: Reference path starting with 1/3/1, "+
 						"position 1: Object 1/3/1 does not contain a reference to 2/ref1/1 at " +
 						"/refs/2"));
@@ -3190,8 +3190,31 @@ public class WorkspaceTest extends WorkspaceTester {
 						"in object reference 1 at /refs/0"));
 		
 		// test fail save on bad reference type
+		failSave(u1, testws,
+				makeRefData("  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ", "readws/readable",
+				"1/3/1 ; \n 2/ref2/1 ; 	privws/1"), type1Ref, p1,
+				new TypedObjectValidationException(
+						"Object #1 has invalid reference: The type TestSaveRefPaths.Type2-1.0 " +
+						"of reference 1/3/1 ; \n 2/ref2/1 ; \tprivws/1 in this object is not " +
+						"allowed - allowed types are [TestSaveRefPaths.Type1] at /refs/2"));
+		failSave(u1, testws,
+				makeRefData("  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ",
+				"1/3/1 ; \n 2/ref2/1 ; 	privws/1"), type2Ref, p1,
+				new TypedObjectValidationException(
+						"Object #1 has invalid reference: The type TestSaveRefPaths.Type1-1.0 " +
+						"of reference   \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;   in " +
+						"this object is not allowed - allowed types are " +
+						"[TestSaveRefPaths.Type2] at /refs/0"));
 		
-		
+		// test fail on inaccessible path head - just doing one basic test for this type of
+		// thing, most tests like this are handled in saveObjectWithTypeChecking()
+		failSave(u1, testws,
+				makeRefData("  2/refref1/1;2/3 ;  	2/leaf1/1;  ", "readws/readable",
+				"1/3/1 ; \n 2/ref2/1 ; 	privws/1"), type1Ref, p1,
+				new TypedObjectValidationException(
+						"Object #1 has invalid reference: No read access to id " +
+						"  2/refref1/1;2/3 ;  \t2/leaf1/1;  : Object refref1 cannot be " +
+						"accessed: User user1 may not read workspace 2 at /refs/0"));
 	}
 
 	private void successSaveWithRefPaths(

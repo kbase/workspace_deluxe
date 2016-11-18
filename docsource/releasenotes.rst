@@ -1,7 +1,7 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.5.1 (Released TBD)
+VERSION: 0.6.0 (Released TBD)
 ---------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
@@ -22,6 +22,9 @@ NEW FEATURES:
 * Added a new method, ``get_object_info3`` that returns the path from an accessible object to the
   target object, but is otherwise equivalent to ``get_object_info_new``. ``get_object_info_new``
   is now deprecated.
+* Objects containing a semicolon separated reference path rather than just embedded references
+  can now be saved. If the reference path is valid and the head of the path accessible, the
+  references will be rewritten to the absolute reference of the object at the end of the path.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
