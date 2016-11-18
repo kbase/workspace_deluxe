@@ -25,6 +25,8 @@ NEW FEATURES:
 * Objects containing a semicolon separated reference path rather than just embedded references
   can now be saved. If the reference path is valid and the head of the path accessible, the
   references will be rewritten to the absolute reference of the object at the end of the path.
+* Similarly, provenance references can now contain reference paths rather than just single
+  references.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 

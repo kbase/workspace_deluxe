@@ -3154,6 +3154,23 @@ public class WorkspaceTest extends WorkspaceTester {
 		// test saving an object with refs that specify types, but cover all types
 		successSaveWithRefPaths(u1, testws, type12Ref, Arrays.asList(refPaths1, refPaths2));
 		
+		// test saving object with provenance references
+		final WorkspaceIdentifier testwsid = new WorkspaceIdentifier(3);
+		Provenance prefs = new Provenance(u1).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList(
+						"  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ",
+						"readws/readable")));
+		saveObject(u1, testws, MT_MAP, MT_MAP, SAFE_TYPE1, "provtest1", prefs);
+		checkProvenanceCorrect(u1, prefs, new ObjectIdentifier(testwsid, "provtest1"), refPaths1);
+
+		prefs = new Provenance(u1).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList(
+						"1/3/1 ; \n 2/ref2/1 ; 	privws/1",
+						"  	readws/4 ; 2/refref1/1;2/3 ;  	privws/delleaf; \n ",
+						"1/readableRef;readws/1")));
+		saveObject(u1, testws, MT_MAP, MT_MAP, SAFE_TYPE1, "provtest2", prefs);
+		checkProvenanceCorrect(u1, prefs, new ObjectIdentifier(testwsid, "provtest2"), refPaths2);
+		
 		// test fail save on bad reference
 		// also tests failing on objects with id attributes
 		final Provenance p1 = new Provenance(u1);
@@ -3215,6 +3232,44 @@ public class WorkspaceTest extends WorkspaceTester {
 						"Object #1 has invalid reference: No read access to id " +
 						"  2/refref1/1;2/3 ;  \t2/leaf1/1;  : Object refref1 cannot be " +
 						"accessed: User user1 may not read workspace 2 at /refs/0"));
+		
+		/*  test failing on provenance references. Mechanisms are mostly the same so not 
+		 * copying every test. Can't fail on bad ref type, obviously
+		 */
+		
+		//bad ref
+		final Map<String, Object> mt = new HashMap<>();
+		Provenance pfail = new Provenance(u1).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList(
+						"  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ",
+						"readws/readable",
+						"1/3/1 ; \n 2/ref1/1 ; 	privws/1")));
+		failSave(u1, testws, mt, type1Ref, pfail,
+				new TypedObjectValidationException(
+						"Object #1 has invalid provenance reference: Reference path starting " +
+						"with 1/3/1, position 1: Object 1/3/1 does not contain a reference to " +
+						"2/ref1/1"));
+		
+		// bad parse
+		pfail = new Provenance(u1).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList("readws/4;;2/refref1/1")));
+		failSave(u1, testws, mt, type1, pfail,
+				new TypedObjectValidationException("Object #1 has unparseable provenance " +
+						"reference readws/4;;2/refref1/1: ID parse error in reference string " +
+						"readws/4;;2/refref1/1 at position 2: reference cannot be null or the " +
+						"empty string"));
+		
+		// inaccessible head
+		pfail = new Provenance(u1).addAction(new ProvenanceAction()
+				.withWorkspaceObjects(Arrays.asList(
+						"  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ",
+						"readws/readable",
+						"1/3/1 ; \n 2/ref2/1 ; 	privws/1",
+						"1/5/1 ; 1/1/1")));
+		failSave(u1, testws, mt, type1Ref, pfail,
+				new TypedObjectValidationException(
+						"Object #1 has invalid provenance reference: No read access to id " +
+						"1/5/1 ; 1/1/1: No object with id 5 exists in workspace 1 (name readws)"));
 	}
 
 	private void successSaveWithRefPaths(
