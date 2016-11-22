@@ -327,8 +327,16 @@ public interface WorkspaceDatabase {
 			boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
+	/** Get the type of an object. Includes an absolute reference for each object.
+	 * @param objectIDs the object for which the type should be returned.
+	 * @param ignoreErrors ignore missing objects and include deleted objects.
+	 * @return a type and reference for each object.
+	 * @throws NoSuchObjectException if an object does not exist.
+	 * @throws WorkspaceCommunicationException if a communication error with the backend occurs.
+	 */
 	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
-			final Set<ObjectIDResolvedWS> objectIDs) throws
+			final Set<ObjectIDResolvedWS> objectIDs,
+			final boolean ignoreErrors) throws
 			NoSuchObjectException, WorkspaceCommunicationException;
 
 	public ObjectInformation copyObject(WorkspaceUser user, 

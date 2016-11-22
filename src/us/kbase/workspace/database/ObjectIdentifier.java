@@ -6,7 +6,7 @@ import static us.kbase.common.utils.StringUtils.checkString;
 
 public class ObjectIdentifier {
 	
-	//TODO TEST unittests
+	//TODO TEST unittests (move from WorkspaceTest, mostly covered there)
 	
 	//this cannot be a legal object/workspace char
 	public final static String REFERENCE_SEP = "/";
@@ -153,15 +153,6 @@ public class ObjectIdentifier {
 			return new ObjectIdentifier(wsi, id);
 		}
 		return new ObjectIdentifier(wsi, id, ver);
-	}
-	
-	public static String createObjectReference(final long workspace,
-			final long object, final int version) {
-		if (workspace < 1 || object < 1 || version < 1) {
-			throw new IllegalArgumentException("All arguments must be > 0");
-		}
-		return workspace + REFERENCE_SEP + object + REFERENCE_SEP +
-				version;
 	}
 	
 	public static ObjectIdentifier parseObjectReference(final String reference) {

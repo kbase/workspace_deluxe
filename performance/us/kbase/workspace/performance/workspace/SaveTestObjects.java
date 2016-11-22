@@ -26,7 +26,7 @@ public class SaveTestObjects {
 	public static final String WS_URL = "http://localhost:7058";
 	public static final String WORKSPACE = "TestObjs";
 	public static final String TYPE = "Empty.AType-0.1";
-	public static final int ITERS = 10;
+	public static final int ITERS = 200;
 	public static final int BATCH_SIZE = 1000;
 	public static final int APPROX_OBJ_SIZE = 400;
 
@@ -51,7 +51,7 @@ public class SaveTestObjects {
 			}
 			final long now = System.nanoTime();
 			ws.saveObjects(sop);
-			printElapse("save", now);
+			printElapse("iter " + i + " save " + BATCH_SIZE, now);
 		}
 	}
 
