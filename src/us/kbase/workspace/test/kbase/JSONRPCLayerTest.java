@@ -3566,27 +3566,48 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	public void testSpecSync() throws Exception {
 		CLIENT1.requestModuleOwnership("DepModule");
 		administerCommand(CLIENT2, "approveModRequest", "module", "DepModule");
-		String urlForSrv2 = "http://localhost:" + SERVER2.getServerPort();
-		ModuleVersions vers = CLIENT_FOR_SRV2.listModuleVersions(
+		final String urlForSrv2 = "http://localhost:" + SERVER2.getServerPort();
+		final ModuleVersions vers = CLIENT_FOR_SRV2.listModuleVersions(
 				new ListModuleVersionsParams().withMod("DepModule"));
-		long lastVer = CLIENT_FOR_SRV2.getModuleInfo(
-				new GetModuleInfoParams().withMod("DepModule")).getVer();
+		final String excStart = "Can not find local module SomeModule synchronized with " +
+				"external version";
+		final String excEnd = "(md5=b38fc31dbccc829bba38a59e313c564e)";
+		/* the first two versions of DepModule don't have the necessary version of SomeModule
+		 * registered on server 1, and so registration will fail. version 3+ will succeed.
+		 */
+		int count = 0;
 		for (long ver : vers.getVers()) {
 			boolean ok = true;
 			try {
 				CLIENT1.registerTypespecCopy(new RegisterTypespecCopyParams()
 					.withExternalWorkspaceUrl(urlForSrv2).withMod("DepModule")
 					.withVersion(ver));
-			} catch (Exception ignore) {
+			} catch (Exception e) {
 				ok = false;
+				if (count < 2) {
+					assertThat("Incorrect exception start", e.getMessage().startsWith(excStart),
+							is(true));
+					assertThat("Incorrect exception end", e.getMessage().endsWith(excEnd),
+							is(true));
+				} else {
+					fail(String.format("Got exception when expected success on count %s: %s",
+							count, e));
+				}
 			}
-			Assert.assertEquals(ver == lastVer, ok);
 			if (ok) {
+				if (count < 2) {
+					fail("Register succeeded when fail expected on count " + count);
+				}
+				final String type = "DepModule.BType-" + (count - 1) + ".0";
 				CLIENT1.releaseModule("DepModule");
-				Assert.assertTrue(CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod(
-						"DepModule")).getTypes().containsKey("DepModule.BType-1.0"));
+				final Set<String> types = CLIENT1.getModuleInfo(
+						new GetModuleInfoParams().withMod("DepModule")).getTypes().keySet();
+				assertThat("Incorrect types on count " + count, types,
+						is((Set<String>) new HashSet<>(Arrays.asList(type))));
 			}
+			count++;
 		}
+		assertThat("incorrect number of specs processed", count, is(4));
 	}
 	
 	@Test

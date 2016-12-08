@@ -274,32 +274,51 @@ public class JSONRPCLayerTester {
 		
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
 		CLIENT_FOR_SRV2.setIsInsecureHttpConnectionAllowed(true);
+		
 		CLIENT_FOR_SRV2.requestModuleOwnership("SomeModule");
 		administerCommand(CLIENT_FOR_SRV2, "approveModRequest", "module", "SomeModule");
+		
+		// SomeModule ver 1
 		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {int thing;} AType;};")
 			.withNewTypes(Arrays.asList("AType")));
 		CLIENT_FOR_SRV2.releaseModule("SomeModule");
+		
 		CLIENT_FOR_SRV2.requestModuleOwnership("DepModule");
 		administerCommand(CLIENT_FOR_SRV2, "approveModRequest", "module", "DepModule");
+		
+		// DepModule ver 1 and 2 (2 comes from the release) (relies on SomeModule ver1)
 		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("#include <SomeModule>\n" +
 					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
 			.withNewTypes(Arrays.asList("BType")));
 		CLIENT_FOR_SRV2.releaseModule("DepModule");
+		
+		// SomeModule ver 2
 		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
 			.withNewTypes(Collections.<String>emptyList()));
 		CLIENT_FOR_SRV2.releaseModule("SomeModule");
+		
+		// DepModule ver 2 (relies on SomeModule ver 2)
 		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("#include <SomeModule>\n" +
 					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
 			.withNewTypes(Collections.<String>emptyList()));
 		CLIENT_FOR_SRV2.releaseModule("DepModule");
+		
+		// DepModule ver 3 (relies on SomeModule ver 2)
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
+				.withDryrun(0L)
+				.withSpec("#include <SomeModule>\n" +
+						"module DepModule {typedef structure {SomeModule.AType thing2;} BType;};")
+				.withNewTypes(Collections.<String>emptyList()));
+		CLIENT_FOR_SRV2.releaseModule("DepModule");
+		
 		CLIENT_FOR_SRV2.requestModuleOwnership("UnreleasedModule");
 		administerCommand(CLIENT_FOR_SRV2, "approveModRequest", "module", "UnreleasedModule");
 		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
