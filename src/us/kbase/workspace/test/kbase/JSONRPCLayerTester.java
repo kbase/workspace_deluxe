@@ -284,6 +284,8 @@ public class JSONRPCLayerTester {
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {int thing;} AType;};")
 			.withNewTypes(Arrays.asList("AType")));
 		CLIENT_FOR_SRV2.releaseModule("SomeModule");
+//		System.out.println(CLIENT_FOR_SRV2.getModuleInfo(new GetModuleInfoParams()
+//				.withMod("SomeModule")));
 		
 		CLIENT_FOR_SRV2.requestModuleOwnership("DepModule");
 		administerCommand(CLIENT_FOR_SRV2, "approveModRequest", "module", "DepModule");
@@ -1708,8 +1710,7 @@ public class JSONRPCLayerTester {
 				"{\"command\": \"listAdmins\"}"))).asInstance();
 		Set<String> got = new HashSet<String>(admins);
 		Set<String> expected = new HashSet<String>(expadmins);
-		assertTrue("correct admins", got.containsAll(expected));
-		assertThat("only the one built in admin", expected.size() + 1, is(got.size()));
+		assertThat("correct admins", got, is(expected));
 		
 	}
 	
