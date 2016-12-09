@@ -33,6 +33,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * The ``ObjectSpecification`` structure now allows several new ways to provide
   reference paths into the object graph.
 * Fixed a bug where integers > ~2^32 were allowed as workspace and object names.
+* Fixed a bug in ``register_typespec_copy`` where any types in common between the new and previous
+  version of the spec would be unregistered.
 
 VERSION: 0.5.0 (Released 8/12/16)
 ---------------------------------

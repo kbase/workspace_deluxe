@@ -16,14 +16,14 @@ import us.kbase.workspace.WorkspaceClient;
 
 public class GetObjectsTiming {
 	
-	public static final String WS_URL = "https://ci.kbase.us/services/ws";
-//	public static final String WS_URL = "http://localhost:7058";
+//	public static final String WS_URL = "https://ci.kbase.us/services/ws";
+	public static final String WS_URL = "http://localhost:7058";
 //	public static final String WORKSPACE = "ReferenceTaxons";
 	public static final String WORKSPACE = "TestObjs";
 //	public static final String TYPE = "KBaseGenomeAnnotations.Taxon";
 	public static final String TYPE = "Empty.AType-0.1";
 	
-	public static final int ITERS = 1; //10
+	public static final int ITERS = 20; //10
 	public static final long BATCH_SIZE = 10000L;
 	
 	public static void main(String[] args) throws Exception {
@@ -37,7 +37,7 @@ public class GetObjectsTiming {
 							.withMinObjectID(i * BATCH_SIZE + 1)
 							.withMaxObjectID((i + 1) * BATCH_SIZE)
 							);
-			printElapse("list", preiter);
+			printElapse("list iter " + i, preiter);
 			long totalsize = 0;
 			final List<ObjectSpecification> in = new LinkedList<>();
 			for (final Tuple11<Long, String, String, String, Long, String, Long, String, String,

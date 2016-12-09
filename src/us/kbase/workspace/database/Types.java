@@ -77,9 +77,12 @@ public class Types {
 	
 	//TODO should return the spec version as well?
 	public Map<TypeDefName, TypeChange> compileNewTypeSpec(
-			final WorkspaceUser user, final String typespec,
-			final List<String> newtypes, final List<String> removeTypes,
-			final Map<String, Long> moduleVers, final boolean dryRun,
+			final WorkspaceUser user,
+			final String typespec,
+			final List<String> newtypes,
+			final List<String> removeTypes,
+			final Map<String, Long> moduleVers,
+			final boolean dryRun,
 			final Long previousVer)
 			throws SpecParseException, TypeStorageException,
 			NoSuchPrivilegeException, NoSuchModuleException {
@@ -88,9 +91,12 @@ public class Types {
 	}
 	
 	public Map<TypeDefName, TypeChange> compileTypeSpec(
-			final WorkspaceUser user, final String module,
-			final List<String> newtypes, final List<String> removeTypes,
-			final Map<String, Long> moduleVers, boolean dryRun)
+			final WorkspaceUser user,
+			final String module,
+			final List<String> newtypes,
+			final List<String> removeTypes,
+			final Map<String, Long> moduleVers,
+			boolean dryRun)
 			throws SpecParseException, TypeStorageException,
 			NoSuchPrivilegeException, NoSuchModuleException {
 		return typedb.refreshModule(module, newtypes, removeTypes,
@@ -177,39 +183,51 @@ public class Types {
 		return ret;
 	}
 	
-	public long compileTypeSpecCopy(String moduleName, String specDocument, Set<String> extTypeSet,
-			String userId, Map<String, String> includesToMd5, Map<String, Long> extIncludedSpecVersions) 
-					throws NoSuchModuleException, TypeStorageException, SpecParseException, NoSuchPrivilegeException {
-		long lastLocalVer = typedb.getLatestModuleVersionWithUnreleased(moduleName, userId, false);
-		Map<String, Long> moduleVersionRestrictions = new HashMap<String, Long>();
+	public long compileTypeSpecCopy(
+			final String moduleName,
+			final String specDocument,
+			final Set<String> extTypeSet,
+			final String userId,
+			final Map<String, String> includesToMd5,
+			final Map<String, Long> extIncludedSpecVersions)
+			throws NoSuchModuleException, TypeStorageException, SpecParseException,
+			NoSuchPrivilegeException {
+		final long lastLocalVer = typedb.getLatestModuleVersionWithUnreleased
+				(moduleName, userId, false);
+		final Map<String, Long> moduleVersionRestrictions = new HashMap<>();
 		for (Map.Entry<String, String> entry : includesToMd5.entrySet()) {
-			String includedModule = entry.getKey();
-			String md5 = entry.getValue();
-			long extIncludedVer = extIncludedSpecVersions.get(includedModule);
-			List<ModuleDefId> localIncludeVersions = new ArrayList<ModuleDefId>(
+			final String includedModule = entry.getKey();
+			final String md5 = entry.getValue();
+			final long extIncludedVer = extIncludedSpecVersions.get(includedModule);
+			final List<ModuleDefId> localIncludeVersions = new ArrayList<>(
 					typedb.findModuleVersionsByMD5(includedModule, md5));
-			if (localIncludeVersions.size() == 0)
-				throw new NoSuchModuleException("Can not find local module " + includedModule + " synchronized " +
-						"with external version " + extIncludedVer + " (md5=" + md5 + ")");
-			us.kbase.typedobj.db.ModuleInfo localIncludedInfo =  typedb.getModuleInfo(includedModule, 
-					localIncludeVersions.get(0).getVersion());
-			moduleVersionRestrictions.put(localIncludedInfo.getModuleName(), localIncludedInfo.getVersionTime());
+			if (localIncludeVersions.size() == 0) {
+				throw new NoSuchModuleException("Can not find local module " + includedModule +
+						" synchronized with external version " + extIncludedVer +
+						" (md5=" + md5 + ")");
+			}
+			final us.kbase.typedobj.db.ModuleInfo localIncludedInfo =
+					typedb.getModuleInfo(includedModule, localIncludeVersions.get(0).getVersion());
+			moduleVersionRestrictions.put(
+					localIncludedInfo.getModuleName(), localIncludedInfo.getVersionTime());
 		}
-		Set<String> prevTypes = new HashSet<String>(typedb.getModuleInfo(moduleName, lastLocalVer).getTypes().keySet());
-		Set<String> typesToSave = new HashSet<String>(extTypeSet);
-		List<String> allTypes = new ArrayList<String>(prevTypes);
+		final Set<String> prevTypes = new HashSet<>(
+				typedb.getModuleInfo(moduleName, lastLocalVer).getTypes().keySet());
+		final Set<String> typesToSave = new HashSet<>(extTypeSet);
+		final Set<String> allTypes = new HashSet<>(prevTypes);
 		allTypes.addAll(typesToSave);
-		List<String> typesToUnregister = new ArrayList<String>();
-		for (String typeName : allTypes) {
+		final List<String> typesToUnregister = new ArrayList<>();
+		for (final String typeName : allTypes) {
 			if (prevTypes.contains(typeName)) {
 				if (typesToSave.contains(typeName)) {
 					typesToSave.remove(typeName);
 				} else {
+					//TODO TEST this is untested
 					typesToUnregister.add(typeName);
 				}
 			}
 		}
-		typedb.registerModule(specDocument, new ArrayList<String>(typesToSave), typesToUnregister, 
+		typedb.registerModule(specDocument, new ArrayList<>(typesToSave), typesToUnregister,
 				userId, false, moduleVersionRestrictions);
 		return typedb.getLatestModuleVersionWithUnreleased(moduleName, userId, false);
 	}
