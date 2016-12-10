@@ -115,7 +115,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.6.0-dev1";
+	private static final String VER = "0.6.0";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -1430,31 +1430,30 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final WorkspaceClient client = new WorkspaceClient(
 				new URL(params.getExternalWorkspaceUrl()), authPart);
-		if (!params.getExternalWorkspaceUrl().startsWith("https:"))
+		if (!params.getExternalWorkspaceUrl().startsWith("https:")) {
 			client.setIsInsecureHttpConnectionAllowed(true);
+		}
 		final GetModuleInfoParams gmiparams = new GetModuleInfoParams()
 			.withMod(params.getMod()).withVer(params.getVersion());
-		final us.kbase.workspace.ModuleInfo extInfo =
-				client.getModuleInfo(gmiparams);
+		final us.kbase.workspace.ModuleInfo extInfo = client.getModuleInfo(gmiparams);
 		final Map<String, String> includesToMd5 = new HashMap<String, String>();
-		for (final Map.Entry<String, Long> entry : extInfo
-				.getIncludedSpecVersion().entrySet()) {
+		for (final Map.Entry<String, Long> entry : extInfo.getIncludedSpecVersion().entrySet()) {
 			final String includedModule = entry.getKey();
 			final long extIncludedVer = entry.getValue();
 			final GetModuleInfoParams includeParams = new GetModuleInfoParams()
 				.withMod(includedModule).withVer(extIncludedVer);
-			final us.kbase.workspace.ModuleInfo extIncludedInfo = 
+			final us.kbase.workspace.ModuleInfo extIncludedInfo =
 					client.getModuleInfo(includeParams);
 			includesToMd5.put(includedModule, extIncludedInfo.getChsum());
 		}
 		final String userId = authPart.getUserName();
 		final String specDocument = extInfo.getSpec();
 		final Set<String> extTypeSet = new LinkedHashSet<String>();
-		for (final String typeDef : extInfo.getTypes().keySet())
+		for (final String typeDef : extInfo.getTypes().keySet()) {
 			extTypeSet.add(TypeDefId.fromTypeString(typeDef).getType().getName());
+		}
 		returnVal = types.compileTypeSpecCopy(params.getMod(), specDocument,
-				extTypeSet, userId, includesToMd5, 
-				extInfo.getIncludedSpecVersion());
+				extTypeSet, userId, includesToMd5, extInfo.getIncludedSpecVersion());
         //END register_typespec_copy
         return returnVal;
     }
