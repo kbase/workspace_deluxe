@@ -27,15 +27,16 @@ import static us.kbase.workspace.kbase.ArgUtils.objInfoToMetaTuple;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectProvInfo;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
+import static us.kbase.workspace.kbase.ArgUtils.toObjectPaths;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectInfoList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectSpecifications;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectIdentifiers;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifiers;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
+import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifiers;
+import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.net.URL;
@@ -67,10 +68,11 @@ import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.ObjectIDWithRefChain;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
@@ -113,7 +115,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.5.0";
+	private static final String VER = "0.6.0";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -703,19 +705,16 @@ public class WorkspaceServer extends JsonServerServlet {
     public GetObjects2Results getObjects2(GetObjects2Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         GetObjects2Results returnVal = null;
         //BEGIN get_objects2
-		checkAddlArgs(params.getAdditionalProperties(),
-				GetObjects2Params.class);
+		checkAddlArgs(params.getAdditionalProperties(), GetObjects2Params.class);
 		final List<ObjectIdentifier> loi =
 				processObjectSpecifications(params.getObjects());
 		final boolean noData = longToBoolean(params.getNoData(), false);
-		final boolean ignoreErrors = longToBoolean(
-				params.getIgnoreErrors(), false);
+		final boolean ignoreErrors = longToBoolean(params.getIgnoreErrors(), false);
 		final List<WorkspaceObjectData> objects = ws.getObjects(
 				wsmeth.getUser(authPart), loi, noData, ignoreErrors);
 		resourcesToDelete.set(objects);
 		returnVal = new GetObjects2Results().withData(translateObjectData(
-				objects, wsmeth.getUser(authPart), handleManagerUrl,
-				handleMgrToken, true));
+				objects, wsmeth.getUser(authPart), handleManagerUrl, handleMgrToken, true));
         //END get_objects2
         return returnVal;
     }
@@ -870,7 +869,7 @@ public class WorkspaceServer extends JsonServerServlet {
 						"Error on object chain #%s: The minimum size of a reference chain is 2 ObjectIdentities",
 						count));
 			}
-			chains.add(new ObjectIDWithRefChain(
+			chains.add(new ObjectIDWithRefPath(
 					lor.get(0), lor.subList(1, lor.size())));
 			count++;
 		}
@@ -1029,7 +1028,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * Retrieves the metadata for a specified object from the specified
      * workspace. Provides access to metadata for all versions of the object
      * via the instance parameter. Provided for backwards compatibility.
-     * @deprecated Workspace.get_object_info
+     * @deprecated Workspace.get_object_info3
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.GetObjectmetaParams GetObjectmetaParams} (original type "get_objectmeta_params")
      * @return   parameter "metadata" of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object, including copying the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object. @deprecated object_info) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
@@ -1056,7 +1055,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * Otherwise the metadata in the object_info will be null.
      * This method will be replaced by the behavior of get_object_info_new
      * in the future.
-     * @deprecated Workspace.get_object_info_new
+     * @deprecated Workspace.get_object_info3
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @param   includeMetadata   instance of original type "boolean" (A boolean. 0 = false, other = true.)
@@ -1078,6 +1077,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: get_object_info_new</p>
      * <pre>
      * Get information about objects from the workspace.
+     * @deprecated Workspace.get_object_info3
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.GetObjectInfoNewParams GetObjectInfoNewParams}
      * @return   parameter "info" of list of original type "object_info" (Information about an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username saved_by - the user that saved or copied the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta meta - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 11: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "version" of Long, parameter "saved_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "chsum" of String, parameter "size" of Long, parameter "meta" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
@@ -1094,6 +1094,30 @@ public class WorkspaceServer extends JsonServerServlet {
 						longToBoolean(params.getIncludeMetadata()),
 						longToBoolean(params.getIgnoreErrors())), true);
         //END get_object_info_new
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_object_info3</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetObjectInfo3Params GetObjectInfo3Params}
+     * @return   parameter "results" of type {@link us.kbase.workspace.GetObjectInfo3Results GetObjectInfo3Results}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_object_info3", authOptional=true, async=true)
+    public GetObjectInfo3Results getObjectInfo3(GetObjectInfo3Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
+        GetObjectInfo3Results returnVal = null;
+        //BEGIN get_object_info3
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final List<ObjectIdentifier> loi = processObjectSpecifications(
+				params.getObjects());
+		final List<ObjectInformation> infos = ws.getObjectInformation(
+				wsmeth.getUser(authPart), loi,
+				longToBoolean(params.getIncludeMetadata()),
+				longToBoolean(params.getIgnoreErrors()));
+		returnVal = new GetObjectInfo3Results().withInfos(objInfoToTuple(infos, true))
+				.withPaths(toObjectPaths(infos));
+        //END get_object_info3
         return returnVal;
     }
 
@@ -1406,31 +1430,30 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final WorkspaceClient client = new WorkspaceClient(
 				new URL(params.getExternalWorkspaceUrl()), authPart);
-		if (!params.getExternalWorkspaceUrl().startsWith("https:"))
+		if (!params.getExternalWorkspaceUrl().startsWith("https:")) {
 			client.setIsInsecureHttpConnectionAllowed(true);
+		}
 		final GetModuleInfoParams gmiparams = new GetModuleInfoParams()
 			.withMod(params.getMod()).withVer(params.getVersion());
-		final us.kbase.workspace.ModuleInfo extInfo =
-				client.getModuleInfo(gmiparams);
+		final us.kbase.workspace.ModuleInfo extInfo = client.getModuleInfo(gmiparams);
 		final Map<String, String> includesToMd5 = new HashMap<String, String>();
-		for (final Map.Entry<String, Long> entry : extInfo
-				.getIncludedSpecVersion().entrySet()) {
+		for (final Map.Entry<String, Long> entry : extInfo.getIncludedSpecVersion().entrySet()) {
 			final String includedModule = entry.getKey();
 			final long extIncludedVer = entry.getValue();
 			final GetModuleInfoParams includeParams = new GetModuleInfoParams()
 				.withMod(includedModule).withVer(extIncludedVer);
-			final us.kbase.workspace.ModuleInfo extIncludedInfo = 
+			final us.kbase.workspace.ModuleInfo extIncludedInfo =
 					client.getModuleInfo(includeParams);
 			includesToMd5.put(includedModule, extIncludedInfo.getChsum());
 		}
 		final String userId = authPart.getUserName();
 		final String specDocument = extInfo.getSpec();
 		final Set<String> extTypeSet = new LinkedHashSet<String>();
-		for (final String typeDef : extInfo.getTypes().keySet())
+		for (final String typeDef : extInfo.getTypes().keySet()) {
 			extTypeSet.add(TypeDefId.fromTypeString(typeDef).getType().getName());
+		}
 		returnVal = types.compileTypeSpecCopy(params.getMod(), specDocument,
-				extTypeSet, userId, includesToMd5, 
-				extInfo.getIncludedSpecVersion());
+				extTypeSet, userId, includesToMd5, extInfo.getIncludedSpecVersion());
         //END register_typespec_copy
         return returnVal;
     }

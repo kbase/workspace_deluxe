@@ -85,6 +85,7 @@ compile-typespec:
 		--pyclname biokbase.$(SERVICE).client \
 		--url $(URL) \
 		$(SERVICE).spec
+	rm lib/biokbase/workspace/authclient.py
 
 # configure endpoints used by scripts, and possibly other script runtime options in the future
 configure-scripts:

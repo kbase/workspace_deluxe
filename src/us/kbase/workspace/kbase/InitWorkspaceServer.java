@@ -174,8 +174,7 @@ public class InitWorkspaceServer {
 		rep.reportInfo(String.format("Initialized %s backend",
 				wsdeps.mongoWS.getBackendType()));
 		Workspace ws = new Workspace(wsdeps.mongoWS,
-				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser(), wsdeps.validator);
+				new ResourceUsageConfigurationBuilder().build(), wsdeps.validator);
 		Types types = new Types(wsdeps.typeDB);
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
 				ws, types, cfg.getHandleServiceURL(),
@@ -493,10 +492,17 @@ public class InitWorkspaceServer {
 	private static ConfigurableAuthService setUpAuthClient(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
-		final AuthConfig c;
+		final AuthConfig c = new AuthConfig();
+		if (cfg.getGlobusURL().getProtocol().equals("http")) {
+			c.withAllowInsecureURLs(true);
+			rep.reportInfo("Warning - the Globus url uses insecure http. https is recommended.");
+		}
+		if (cfg.getAuthURL().getProtocol().equals("http")) {
+			c.withAllowInsecureURLs(true);
+			rep.reportInfo("Warning - the Auth Service url uses insecure http. https is recommended.");
+		}
 		try {
-			c = new AuthConfig()
-				.withGlobusAuthURL(cfg.getGlobusURL())
+			c.withGlobusAuthURL(cfg.getGlobusURL())
 				.withKBaseAuthServerURL(cfg.getAuthURL());
 		} catch (URISyntaxException e) {
 			throw new RuntimeException("this should be impossible", e);

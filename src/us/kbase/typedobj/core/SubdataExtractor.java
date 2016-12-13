@@ -31,7 +31,7 @@ public class SubdataExtractor {
 	 * stored in memory as a tree rather than as token stream that could be processed
 	 * directly from a file.
 	 */
-	public static JsonNode extract(ObjectPaths objpaths, JsonNode input) 
+	public static JsonNode extract(SubsetSelection objpaths, JsonNode input) 
 			throws IOException, TypedObjectExtractionException {
 		TokenSequenceProvider tsp = createTokenSequenceProvider(new TreeTraversingParser(input));
 		JsonTreeGenerator jgen = new JsonTreeGenerator(mapper);
@@ -54,12 +54,12 @@ public class SubdataExtractor {
 	 * a mapping or array.
 	 * @throws TypedObjectExtractionException 
 	 */
-	public static void extract(ObjectPaths objpaths, JsonParser jp, JsonGenerator output) 
+	public static void extract(SubsetSelection objpaths, JsonParser jp, JsonGenerator output) 
 			throws IOException, TypedObjectExtractionException {
 		extractFields(objpaths, createTokenSequenceProvider(jp), output);
 	}
 	
-	private static void extractFields(ObjectPaths objpaths, TokenSequenceProvider jts, JsonGenerator output) 
+	private static void extractFields(SubsetSelection objpaths, TokenSequenceProvider jts, JsonGenerator output) 
 	        throws IOException, TypedObjectExtractionException {
 		//if the selection is empty, we return without adding anything
 		SubdataExtractionNode root = new SubdataExtractionNode();

@@ -34,12 +34,9 @@ public class RenameObjectParams {
      * <pre>
      * An object identifier.
      * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace,
-     *         where the name can also be a KBase ID including the numerical id,
-     *         e.g. kb|ws.35.
+     *         One, and only one, of the numerical id or name of the workspace.
      *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - name of the workspace or the workspace ID
-     *                         in KBase format, e.g. kb|ws.78.
+     *                 ws_name workspace - the name of the workspace.
      *         AND 
      *         One, and only one, of the numerical id or name of the object.
      *                 obj_id objid- the numerical ID of the object.
@@ -62,12 +59,9 @@ public class RenameObjectParams {
      * <pre>
      * An object identifier.
      * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace,
-     *         where the name can also be a KBase ID including the numerical id,
-     *         e.g. kb|ws.35.
+     *         One, and only one, of the numerical id or name of the workspace.
      *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - name of the workspace or the workspace ID
-     *                         in KBase format, e.g. kb|ws.78.
+     *                 ws_name workspace - the name of the workspace.
      *         AND 
      *         One, and only one, of the numerical id or name of the object.
      *                 obj_id objid- the numerical ID of the object.
@@ -89,12 +83,9 @@ public class RenameObjectParams {
      * <pre>
      * An object identifier.
      * Select an object by either:
-     *         One, and only one, of the numerical id or name of the workspace,
-     *         where the name can also be a KBase ID including the numerical id,
-     *         e.g. kb|ws.35.
+     *         One, and only one, of the numerical id or name of the workspace.
      *                 ws_id wsid - the numerical ID of the workspace.
-     *                 ws_name workspace - name of the workspace or the workspace ID
-     *                         in KBase format, e.g. kb|ws.78.
+     *                 ws_name workspace - the name of the workspace.
      *         AND 
      *         One, and only one, of the numerical id or name of the object.
      *                 obj_id objid- the numerical ID of the object.

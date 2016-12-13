@@ -1,8 +1,43 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.6.0 (Released 12/9/16)
+---------------------------------
+
+BACKWARDS INCOMPATIBILITIES:
+
+* The ``kb|ws...`` style of addressing workspaces or objects has been removed.
+* A bug allowed workspace names of the form user:X where X is an integer > ~2^32. This style of
+  name is temporarily allowed for backwards compatibility reasons but is deprecated and will be
+  removed in a future release.
+
+NEW FEATURES:
+
+* The ``ObjectSpecification`` structure now provides a ``find_reference_path``
+  field that allows specifying that the permissions for an object should be
+  automatically looked up via a search through the object reference graph.
+* The resolved (e.g. all references are absolute) path through the object reference graph from an
+  accessible object to the target object is now returned with ``get_objects2`` and the new method
+  ``get_object_info3``.
+* Added a new method, ``get_object_info3`` that returns the path from an accessible object to the
+  target object, but is otherwise equivalent to ``get_object_info_new``. ``get_object_info_new``
+  is now deprecated.
+* Objects containing a semicolon separated reference path rather than just embedded references
+  can now be saved. If the reference path is valid and the head of the path accessible, the
+  references will be rewritten to the absolute reference of the object at the end of the path.
+* Similarly, provenance references can now contain reference paths rather than just single
+  references.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* The ``ObjectSpecification`` structure now allows several new ways to provide
+  reference paths into the object graph.
+* Fixed a bug where integers > ~2^32 were allowed as workspace and object names.
+* Fixed a bug in ``register_typespec_copy`` where any types in common between the new and previous
+  version of the spec would be unregistered.
+
 VERSION: 0.5.0 (Released 8/12/16)
------------------------------
+---------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
 

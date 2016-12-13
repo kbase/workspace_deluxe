@@ -53,12 +53,9 @@ public class CloneWorkspaceParams {
      * <p>Original spec-file type: WorkspaceIdentity</p>
      * <pre>
      * A workspace identifier.
-     *                 Select a workspace by one, and only one, of the numerical id or name,
-     *                         where the name can also be a KBase ID including the numerical id,
-     *                         e.g. kb|ws.35.
+     *                 Select a workspace by one, and only one, of the numerical id or name.
      *                 ws_id id - the numerical ID of the workspace.
-     *                 ws_name workspace - name of the workspace or the workspace ID in KBase
-     *                         format, e.g. kb|ws.78.
+     *                 ws_name workspace - the name of the workspace.
      * </pre>
      * 
      */
@@ -80,12 +77,9 @@ public class CloneWorkspaceParams {
      * <p>Original spec-file type: WorkspaceIdentity</p>
      * <pre>
      * A workspace identifier.
-     *                 Select a workspace by one, and only one, of the numerical id or name,
-     *                         where the name can also be a KBase ID including the numerical id,
-     *                         e.g. kb|ws.35.
+     *                 Select a workspace by one, and only one, of the numerical id or name.
      *                 ws_id id - the numerical ID of the workspace.
-     *                 ws_name workspace - name of the workspace or the workspace ID in KBase
-     *                         format, e.g. kb|ws.78.
+     *                 ws_name workspace - the name of the workspace.
      * </pre>
      * 
      */
@@ -98,12 +92,9 @@ public class CloneWorkspaceParams {
      * <p>Original spec-file type: WorkspaceIdentity</p>
      * <pre>
      * A workspace identifier.
-     *                 Select a workspace by one, and only one, of the numerical id or name,
-     *                         where the name can also be a KBase ID including the numerical id,
-     *                         e.g. kb|ws.35.
+     *                 Select a workspace by one, and only one, of the numerical id or name.
      *                 ws_id id - the numerical ID of the workspace.
-     *                 ws_name workspace - name of the workspace or the workspace ID in KBase
-     *                         format, e.g. kb|ws.78.
+     *                 ws_name workspace - the name of the workspace.
      * </pre>
      * 
      */
