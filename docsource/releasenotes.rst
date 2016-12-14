@@ -1,6 +1,15 @@
 Workspace service release notes
 ===============================
 
+
+VERSION: 0.6.1 (Released TBD)
+-----------------------------
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+* When attempting to save an object with metadata containing a null key or value a more
+  illuminating error is thrown.
+
+
 VERSION: 0.6.0 (Released 12/9/16)
 ---------------------------------
 

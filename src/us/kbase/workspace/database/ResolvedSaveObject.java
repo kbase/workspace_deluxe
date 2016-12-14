@@ -84,8 +84,7 @@ public class ResolvedSaveObject {
 	 * @throws MetadataException if the metadata exeeds the allowed size or a
 	 * key or value exceeds the allowed key/value size.
 	 */
-	public void addUserMeta(Map<String,String> newUserMeta)
-			throws MetadataException {
+	public void addUserMeta(Map<String,String> newUserMeta) throws MetadataException {
 		userMeta.addMetadata(newUserMeta);
 	}
 
