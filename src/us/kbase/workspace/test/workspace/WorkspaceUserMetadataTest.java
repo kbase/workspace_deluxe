@@ -10,6 +10,7 @@ import java.util.Map;
 import org.junit.Test;
 
 import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataKeyValueSizeException;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
 
@@ -106,6 +107,27 @@ public class WorkspaceUserMetadataTest {
 		} catch (UnsupportedOperationException uoe) {
 			//pass
 		}
+	}
+	
+	@Test
+	public void nullKeysAndValues() throws Exception {
+		final Map<String, String> m = new HashMap<String, String>();
+		m.put(null, "foo");
+		m.put("bar", "baz");
+		final MetadataException nullkey = new MetadataException(
+				"Null values are not allowed for metadata keys");
+		failCreateMeta(m, nullkey);
+		final WorkspaceUserMetadata um = new WorkspaceUserMetadata();
+		failAddMeta(um, m, nullkey);
+		
+		m.clear();
+		m.put("foo", null);
+		m.put("baz", "bar");
+		final MetadataException nullvalue = new MetadataException(
+				"Null value for metadata key foo");
+		failCreateMeta(m, nullvalue);
+		failAddMeta(um, m, nullvalue);
+		
 	}
 	
 	@Test
