@@ -56,8 +56,7 @@ public class SizeUtils {
 		final CountingOutputStream cos = new CountingOutputStream();
 		try {
 			//TODO PERFORMANCE Writer copies the string into a char array, doubling memory. Use better implementation.
-			Writer writer = new OutputStreamWriter(cos,
-					StandardCharsets.UTF_8);
+			Writer writer = new OutputStreamWriter(cos, StandardCharsets.UTF_8);
 			try {
 				writer.write(s);
 				writer.flush();

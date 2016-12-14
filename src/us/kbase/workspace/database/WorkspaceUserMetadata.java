@@ -51,6 +51,12 @@ public class WorkspaceUserMetadata {
 	private void checkKeyValueSizes(final Map<String, String> meta)
 			throws MetadataException {
 		for (final Entry<String, String> e: meta.entrySet()) {
+			if (e.getKey() == null) {
+				throw new MetadataException("Null values are not allowed for metadata keys");
+			}
+			if (e.getValue() == null) {
+				throw new MetadataException("Null value for metadata key " + e.getKey());
+			}
 			if (checkSizeInBytes(e.getKey()) + checkSizeInBytes(e.getValue()) >
 					MAX_KEY_VALUE_SIZE) {
 				throw new MetadataKeyValueSizeException(String.format(
