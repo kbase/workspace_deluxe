@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -19,7 +19,7 @@ public interface WorkspaceDatabase {
 	
 	public String getBackendType();
 	
-	//TODO return workspace info insted of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
+	//TODO CODE return workspace info insted of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
 	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
@@ -59,11 +59,33 @@ public interface WorkspaceDatabase {
 	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
 			throws WorkspaceCommunicationException;
 	
-	public WorkspaceInformation cloneWorkspace(WorkspaceUser user,
-			ResolvedWorkspaceID wsid, String newname, boolean globalread,
-			String description, WorkspaceUserMetadata meta)
+	/** Clone a workspace.
+	 * @param user the user cloning the workspace
+	 * @param wsid the ID of the workspace to be cloned.
+	 * @param newname the name for the new workspace.
+	 * @param globalread whether the new workspace should be globally readable.
+	 * @param description the description of the new workspace.
+	 * @param meta the metadata of the new workspace.
+	 * @param exclude objects to exlude from the cloned workspace.
+	 * @return information about the new workspace
+	 * @throws PreExistingWorkspaceException if the workspace name already
+	 * exists.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if the workspace database is
+	 * corrupt.
+	 * @throws NoSuchObjectException if an excluded object doesn't exist.
+	 */
+	public WorkspaceInformation cloneWorkspace(
+			WorkspaceUser user,
+			ResolvedWorkspaceID wsid,
+			String newname,
+			boolean globalread,
+			String description,
+			WorkspaceUserMetadata meta,
+			Set<ObjectIDNoWSNoVer> exclude)
 			throws PreExistingWorkspaceException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+			WorkspaceCommunicationException, CorruptWorkspaceDBException,
+			NoSuchObjectException;
 	
 	public WorkspaceInformation lockWorkspace(WorkspaceUser user,
 			ResolvedWorkspaceID wsid)
@@ -183,14 +205,31 @@ public interface WorkspaceDatabase {
 	public String getWorkspaceDescription(ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public List<ObjectInformation> saveObjects(WorkspaceUser user,
-			ResolvedWorkspaceID rwsi, List<ResolvedSaveObject> objects) throws
-			NoSuchWorkspaceException, WorkspaceCommunicationException,
-			NoSuchObjectException;
+	/** Save objects to a workspace. Note that any references passed into this method as part of
+	 * a ResolvedSaveObject are assumed to be correct. 
+	 * @param user the workspace user that is saving the objects.
+	 * @param rwsi the workspace to which the objects will be saved.
+	 * @param objects the objects to be saved.
+	 * @return information about each new object.
+	 * @throws WorkspaceCommunicationException if a communication exception with the backend
+	 * occurs.
+	 * @throws NoSuchObjectException if the object id specified to save over does not exist.
+	 */
+	public List<ObjectInformation> saveObjects(
+			WorkspaceUser user,
+			ResolvedWorkspaceID rwsi,
+			List<ResolvedSaveObject> objects)
+			throws WorkspaceCommunicationException, NoSuchObjectException;
 	
 	/** Get object data and provenance information from the workspace database.
 	 * @param objects the objects for which to retrieve data.
-	 * @param noData return provenance only if true.
+	 * @param dataManager the data manager. Reuse the same data manager over
+	 * multiple getObjects() calls to enforce limits on the combined returned
+	 * data. If null, only provenance information is returned.
+	 * @param usedDataAllocation the amount of data already pulled from prior
+	 * getObjects() calls. This amount will be added to the data amount pulled
+	 * this call and if the total exceeds the limit, an exception will be
+	 * thrown.
 	 * @param exceptIfDeleted throw an exception if deleted.
 	 * @param includeDeleted include information from deleted objects. Has no
 	 * effect if exceptIfDeleted is set.
@@ -204,15 +243,26 @@ public interface WorkspaceDatabase {
 	 * @throws TypedObjectExtractionException if the subdata could not be
 	 * extracted.
 	 */
-	public Map<ObjectIDResolvedWS, Map<ObjectPaths, WorkspaceObjectData>>
+	public Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>>
 			getObjects(
-					Map<ObjectIDResolvedWS, Set<ObjectPaths>> objects,
-					boolean noData,
+					Map<ObjectIDResolvedWS, Set<SubsetSelection>> objects,
+					ByteArrayFileCacheManager dataManager,
+					long usedDataAllocation,
 					boolean exceptIfDeleted,
 					boolean includeDeleted,
 					boolean exceptIfMissing)
 			throws NoSuchObjectException,WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException;
+	
+	/** Resolve a set of objects to absolute references. If the object cannot be found, it is not
+	 * included in the returned map. Includes deleted objects.
+	 * @param objects the objects to resolve.
+	 * @return a map of the objects to their resolved references.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the backend occurs.
+	 */
+	public Map<ObjectIDResolvedWS, Reference> getObjectReference(Set<ObjectIDResolvedWS> objects)
+			throws WorkspaceCommunicationException;
 	
 	/** Get the set of outgoing references for an object.
 	 * @param objs the objects for which to retrieve references.
@@ -227,13 +277,22 @@ public interface WorkspaceDatabase {
 	 * @throws WorkspaceCommunicationException if a communication error with
 	 * the backend occurs.
 	 */
-	public Map<ObjectIDResolvedWS, ObjectReferenceSet>
-			getObjectOutgoingReferences(
+	public Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectOutgoingReferences(
 					Set<ObjectIDResolvedWS> objs,
 					boolean exceptIfDeleted,
 					boolean includeDeleted,
 					boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
+	
+	/** Get the set of incoming references for an object. The object referred to by the reference
+	 * is not checked for existence - if the reference does not exist, the reference set of
+	 * incoming references will be empty. Includes deleted objects.
+	 * @param objs the objects for which to retrieve references.
+	 * @return the set of references for each object.
+	 * @throws WorkspaceCommunicationException  if a communication error with the backend occurs.
+	 */
+	public Map<Reference, ObjectReferenceSet> getObjectIncomingReferences(
+			Set<Reference> objs) throws WorkspaceCommunicationException;
 	
 	public Map<ObjectIDResolvedWS, Set<ObjectInformation>>
 			getReferencingObjects(PermissionSet perms,
@@ -268,8 +327,16 @@ public interface WorkspaceDatabase {
 			boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
+	/** Get the type of an object. Includes an absolute reference for each object.
+	 * @param objectIDs the object for which the type should be returned.
+	 * @param ignoreErrors ignore missing objects and include deleted objects.
+	 * @return a type and reference for each object.
+	 * @throws NoSuchObjectException if an object does not exist.
+	 * @throws WorkspaceCommunicationException if a communication error with the backend occurs.
+	 */
 	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
-			final Set<ObjectIDResolvedWS> objectIDs) throws
+			final Set<ObjectIDResolvedWS> objectIDs,
+			final boolean ignoreErrors) throws
 			NoSuchObjectException, WorkspaceCommunicationException;
 
 	public ObjectInformation copyObject(WorkspaceUser user, 
@@ -328,10 +395,26 @@ public interface WorkspaceDatabase {
 			GetObjectInformationParameters perms)
 			throws WorkspaceCommunicationException;
 
+	/** Verify that a set of objects exist in the database and are not in
+	 * the deleted state.
+	 * @param objectIDs the objects to check.
+	 * @return a map of objects to their state of existence in the database.
+	 * @throws WorkspaceCommunicationException if a communication exception
+	 * occurs.
+	 */
 	public Map<ObjectIDResolvedWS, Boolean> getObjectExists(
 			Set<ObjectIDResolvedWS> objectIDs)
 			throws WorkspaceCommunicationException;
 	
+	/** Verify that a set of objects as specified by absolute references exist and are not deleted.
+	 * This method does not verify the version exists.
+	 * @param refs the objects to check.
+	 * @return a mapping of each object to its state of existence / deletion.
+	 * @throws WorkspaceCommunicationException if a communication exception occurs. 
+	 */
+	public Map<Reference, Boolean> getObjectExistsRef(Set<Reference> refs)
+			throws WorkspaceCommunicationException;
+
 	public List<ObjectInformation> getObjectHistory(
 			ObjectIDResolvedWS objectIDResolvedWS)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
@@ -355,4 +438,9 @@ public interface WorkspaceDatabase {
 
 	public void setResourceUsageConfiguration(
 			ResourceUsageConfiguration rescfg);
+	
+	/** Returns the status of the databases' dependencies.
+	 * @return the dependency status.
+	 */
+	public List<DependencyStatus> status();
 }

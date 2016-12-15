@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.SubdataExtractor;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
@@ -26,7 +26,7 @@ import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 
 public class ByteArrayFileCacheManager {
 	
-	//TODO unit tests
+	//TODO TEST unit tests
 	
 	private int sizeInMem = 0;
 	private final int maxSizeInMem;
@@ -34,7 +34,10 @@ public class ByteArrayFileCacheManager {
 	private final long maxSizeOnDisk;
 	private final TempFilesManager tfm;
 	
-	public ByteArrayFileCacheManager(int maxSizeInMem, long maxSizeOnDisk, TempFilesManager tfm) {
+	public ByteArrayFileCacheManager(
+			final int maxSizeInMem,
+			final long maxSizeOnDisk,
+			final TempFilesManager tfm) {
 		this.maxSizeInMem = maxSizeInMem;
 		this.maxSizeOnDisk = maxSizeOnDisk;
 		this.tfm = tfm;
@@ -116,7 +119,7 @@ public class ByteArrayFileCacheManager {
 				sizeOnDisk += size;
 				return new ByteArrayFileCache(null, tempFile,
 						new JsonTokenStream(tempFile)
-							.setTrustedWholeJson(trustedJson), sorted);
+							.setTrustedWholeJson(trustedJson), sorted, size);
 			} catch (IOException ioe) {
 				cleanUp(tempFile, os);
 				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
@@ -129,7 +132,7 @@ public class ByteArrayFileCacheManager {
 			try {
 				return new ByteArrayFileCache(null, null,
 						new JsonTokenStream(bufOs.toByteArray())
-							.setTrustedWholeJson(trustedJson), sorted);
+							.setTrustedWholeJson(trustedJson), sorted, size);
 			} catch (IOException ioe) {
 				throw new FileCacheIOException(
 						ioe.getLocalizedMessage(), ioe);
@@ -148,7 +151,7 @@ public class ByteArrayFileCacheManager {
 
 	@SuppressWarnings("resource")
 	public ByteArrayFileCache getSubdataExtraction(
-			final ByteArrayFileCache parent, final ObjectPaths paths)
+			final ByteArrayFileCache parent, final SubsetSelection paths)
 			throws TypedObjectExtractionException,
 			FileCacheLimitExceededException, FileCacheIOException {
 		final OutputStream[] origin = {new ByteArrayOutputStream()};
@@ -193,14 +196,14 @@ public class ByteArrayFileCacheManager {
 				return new ByteArrayFileCache(parent, tempFile[0],
 						new JsonTokenStream(tempFile[0])
 						.setTrustedWholeJson(parent.containsTrustedJson()),
-						parent.isSorted()); 
+						parent.isSorted(), size[0]); 
 			} else {
 				sizeInMem += (int)size[0];
 				byte[] arr = ((ByteArrayOutputStream)origin[0]).toByteArray();
 				return new ByteArrayFileCache(parent, null,
 						new JsonTokenStream(arr)
 						.setTrustedWholeJson(parent.containsTrustedJson()),
-						parent.isSorted());
+						parent.isSorted(), size[0]);
 			}
 		} catch (Throwable e) {
 			try {
@@ -239,11 +242,15 @@ public class ByteArrayFileCacheManager {
 		private ByteArrayFileCache parent = null;
 		private boolean destroyed = false;
 		private final boolean sorted;
+		private final long size;
 		
 		// sorted is ignored if a parent is present
-		private ByteArrayFileCache(final ByteArrayFileCache parent,
-				final File tempFile, final JsonTokenStream jts,
-				final boolean sorted) {
+		private ByteArrayFileCache(
+				final ByteArrayFileCache parent,
+				final File tempFile,
+				final JsonTokenStream jts,
+				final boolean sorted,
+				final long size) {
 			this.parent = parent;
 			this.tempFile = tempFile;
 			this.jts = jts;
@@ -252,10 +259,15 @@ public class ByteArrayFileCacheManager {
 			} else {
 				this.sorted = sorted;
 			}
+			this.size = size;
 		}
 		
 		public boolean isSorted() {
 			return sorted;
+		}
+		
+		public long getSize() {
+			return size;
 		}
 		
 		public UObject getUObject() throws JsonParseException, IOException {
@@ -291,7 +303,7 @@ public class ByteArrayFileCacheManager {
 			}
 		}
 		
-		private void getSubdataExtractionAsStream(final ObjectPaths paths, 
+		private void getSubdataExtractionAsStream(final SubsetSelection paths, 
 				final OutputStream os)
 				throws TypedObjectExtractionException {
 			checkIfDestroyed();
@@ -311,6 +323,10 @@ public class ByteArrayFileCacheManager {
 			}
 		}
 		
+		/** Destroys any data associated with this cache and calls destroy()
+		 * on this cache's parent. Only subdata objects have a parent, but
+		 * multiple subdata objects can share the same parent.
+		 */
 		public void destroy() {
 			if (destroyed) {
 				return;

@@ -18,8 +18,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * Input parameters for the "save_objects" function.
  *         One, and only one, of the following is required:
  *         ws_id id - the numerical ID of the workspace.
- *         ws_name workspace - name of the workspace or the workspace ID in KBase
- *                 format, e.g. kb|ws.78.
+ *         ws_name workspace - the name of the workspace.
  *         
  *         Required arguments:
  *         list<ObjectSaveData> objects - the objects to save.

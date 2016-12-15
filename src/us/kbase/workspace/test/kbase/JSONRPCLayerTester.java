@@ -8,7 +8,6 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
@@ -34,8 +33,10 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import us.kbase.auth.AuthService;
+import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
@@ -44,12 +45,14 @@ import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.ExternalDataUnit;
-import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetObjectInfo3Params;
+import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
@@ -68,13 +71,13 @@ import us.kbase.workspace.SubAction;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.test.workspace.FakeObjectInfo;
 import us.kbase.workspace.test.workspace.FakeResolvedWSID;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -151,8 +154,8 @@ public class JSONRPCLayerTester {
 	public static final Map<String, String> MT_META =
 			new HashMap<String, String>();
 	
-	private static List<TempFilesManager> tfms =
-			new LinkedList<TempFilesManager>();;
+	private static List<TempFilesManager> TFMS =
+			new LinkedList<TempFilesManager>();
 	
 	protected static class ServerThread extends Thread {
 		private WorkspaceServer server;
@@ -171,65 +174,66 @@ public class JSONRPCLayerTester {
 		}
 	}
 	
-	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
-	@SuppressWarnings("unchecked")
-	protected static Map<String, String> getenv() throws NoSuchFieldException,
-			SecurityException, IllegalArgumentException, IllegalAccessException {
-		Map<String, String> unmodifiable = System.getenv();
-		Class<?> cu = unmodifiable.getClass();
-		Field m = cu.getDeclaredField("m");
-		m.setAccessible(true);
-		return (Map<String, String>) m.get(unmodifiable);
-	}
-	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		USER1 = System.getProperty("test.user1");
-		USER2 = System.getProperty("test.user2");
-		USER3 = System.getProperty("test.user3");
+		System.out.println("Using auth url " + TestCommon.getAuthUrl());
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl())
+				.withAllowInsecureURLs(true));
+		final AuthToken t1 = TestCommon.getToken(1, auth);
+		final AuthToken t2 = TestCommon.getToken(2, auth);
+		final AuthToken t3 = TestCommon.getToken(3, auth);
+		USER1 = t1.getUserName();
+		USER2 = t2.getUserName();
+		USER3 = t3.getUserName();
 		if (USER1.equals(USER2) || USER2.equals(USER3) || USER1.equals(USER3)) {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2, USER3), " "));
 		}
-		String p1 = System.getProperty("test.pwd1");
-		String p2 = System.getProperty("test.pwd2");
-		String p3 = System.getProperty("test.pwd3");
+		String p1 = TestCommon.getPwdNullIfToken(1);
 		
-		WorkspaceTestCommon.stfuLoggers();
-		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				WorkspaceTestCommon.useWiredTigerEngine());
+		TestCommon.stfuLoggers();
+		mongo = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 		
 		SERVER1 = startupWorkspaceServer(mongohost,
-				mongoClient.getDB(DB_WS_NAME_1), 
-				DB_TYPE_NAME_1, p1);
+				mongoClient.getDB(DB_WS_NAME_1), DB_TYPE_NAME_1, t1, p1);
 		int port = SERVER1.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
+			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
+					t1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
+			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
+					t2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port), USER3, p3);
+			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port),
+					t3);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user3: " + USER3 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
-		AUTH_USER1 = AuthService.login(USER1, p1);
-		AUTH_USER2 = AuthService.login(USER2, p2);
+		AUTH_USER1 = auth.getUserFromToken(t1);
+		AUTH_USER2 = auth.getUserFromToken(t2);
 
+		SERVER2 = startupWorkspaceServer(mongohost,
+				mongoClient.getDB(DB_WS_NAME_2), DB_TYPE_NAME_2, t1, p1);
+		CLIENT_FOR_SRV2 = new WorkspaceClient(new URL("http://localhost:" + 
+					SERVER2.getServerPort()), t2);
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
@@ -238,7 +242,12 @@ public class JSONRPCLayerTester {
 		CLIENT1.setStreamingModeOn(true); //for JSONRPCLayerLongTest
 		
 		//set up a basic type for test use that doesn't worry about type checking
-		CLIENT1.requestModuleOwnership("SomeModule");
+		try {
+			CLIENT1.requestModuleOwnership("SomeModule");
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
 		administerCommand(CLIENT2, "approveModRequest", "module", "SomeModule");
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
@@ -262,46 +271,62 @@ public class JSONRPCLayerTester {
 			.withSpec(specParseRef)
 			.withNewTypes(Arrays.asList("Ref")));
 		
-		SERVER2 = startupWorkspaceServer(mongohost,
-				mongoClient.getDB(DB_WS_NAME_2), 
-				DB_TYPE_NAME_2, p1);
+		
 		System.out.println("Started test server 2 on port " + SERVER2.getServerPort());
-		WorkspaceClient clientForSrv2 = new WorkspaceClient(new URL("http://localhost:" + 
-				SERVER2.getServerPort()), USER2, p2);
-		clientForSrv2.setIsInsecureHttpConnectionAllowed(true);
-		clientForSrv2.requestModuleOwnership("SomeModule");
-		administerCommand(clientForSrv2, "approveModRequest", "module", "SomeModule");
-		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+		CLIENT_FOR_SRV2.setIsInsecureHttpConnectionAllowed(true);
+		
+		CLIENT_FOR_SRV2.requestModuleOwnership("SomeModule");
+		administerCommand(CLIENT_FOR_SRV2, "approveModRequest", "module", "SomeModule");
+		
+		// SomeModule ver 1
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {int thing;} AType;};")
 			.withNewTypes(Arrays.asList("AType")));
-		clientForSrv2.releaseModule("SomeModule");
-		clientForSrv2.requestModuleOwnership("DepModule");
-		administerCommand(clientForSrv2, "approveModRequest", "module", "DepModule");
-		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+		CLIENT_FOR_SRV2.releaseModule("SomeModule");
+//		System.out.println(CLIENT_FOR_SRV2.getModuleInfo(new GetModuleInfoParams()
+//				.withMod("SomeModule")));
+		
+		CLIENT_FOR_SRV2.requestModuleOwnership("DepModule");
+		administerCommand(CLIENT_FOR_SRV2, "approveModRequest", "module", "DepModule");
+		
+		// DepModule ver 1 and 2 (2 comes from the release) (relies on SomeModule ver1)
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("#include <SomeModule>\n" +
 					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
 			.withNewTypes(Arrays.asList("BType")));
-		clientForSrv2.releaseModule("DepModule");
-		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+		CLIENT_FOR_SRV2.releaseModule("DepModule");
+		
+		// SomeModule ver 2
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};")
 			.withNewTypes(Collections.<String>emptyList()));
-		clientForSrv2.releaseModule("SomeModule");
-		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+		CLIENT_FOR_SRV2.releaseModule("SomeModule");
+		
+		// DepModule ver 2 (relies on SomeModule ver 2)
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("#include <SomeModule>\n" +
 					"module DepModule {typedef structure {SomeModule.AType thing;} BType;};")
 			.withNewTypes(Collections.<String>emptyList()));
-		clientForSrv2.releaseModule("DepModule");
-		clientForSrv2.requestModuleOwnership("UnreleasedModule");
-		administerCommand(clientForSrv2, "approveModRequest", "module", "UnreleasedModule");
-		clientForSrv2.registerTypespec(new RegisterTypespecParams()
+		CLIENT_FOR_SRV2.releaseModule("DepModule");
+		
+		// DepModule ver 3 (relies on SomeModule ver 2)
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
+				.withDryrun(0L)
+				.withSpec("#include <SomeModule>\n" +
+						"module DepModule {typedef structure {SomeModule.AType thing2;} BType;};")
+				.withNewTypes(Collections.<String>emptyList()));
+		CLIENT_FOR_SRV2.releaseModule("DepModule");
+		
+		CLIENT_FOR_SRV2.requestModuleOwnership("UnreleasedModule");
+		administerCommand(CLIENT_FOR_SRV2, "approveModRequest", "module", "UnreleasedModule");
+		CLIENT_FOR_SRV2.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec("module UnreleasedModule {typedef int AType; funcdef aFunc(AType param) returns ();};")
 			.withNewTypes(Arrays.asList("AType")));
-		CLIENT_FOR_SRV2 = clientForSrv2;
 		System.out.println("Starting tests");
 	}
 
@@ -314,8 +339,12 @@ public class JSONRPCLayerTester {
 		client.administer(new UObject(releasemod));
 	}
 
-	private static WorkspaceServer startupWorkspaceServer(String mongohost,
-			DB db, String typedb, String user1Password)
+	private static WorkspaceServer startupWorkspaceServer(
+			final String mongohost,
+			final DB db,
+			final String typedb,
+			final AuthToken t,
+			final String pwd)
 			throws InvalidHostException, UnknownHostException, IOException,
 			NoSuchFieldException, IllegalAccessException, Exception,
 			InterruptedException {
@@ -323,7 +352,7 @@ public class JSONRPCLayerTester {
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
@@ -332,17 +361,25 @@ public class JSONRPCLayerTester {
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
+		ws.add("auth-service-url", TestCommon.getAuthUrl());
+		ws.add("auth-service-url-allow-insecure", "true");
+		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
-		ws.add("kbase-admin-user", USER1);
-		ws.add("kbase-admin-pwd", user1Password);
-		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir()).resolve("tempForJSONRPCLayerTester"));
+		if (pwd == null || pwd.isEmpty()) {
+			ws.add("kbase-admin-token", t.getToken());
+		} else {
+			ws.add("kbase-admin-user", USER1);
+			ws.add("kbase-admin-pwd", pwd);
+		}
+		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
+				.resolve("tempForJSONRPCLayerTester"));
 		ws.add("ignore-handle-service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 		
 		//set up env
-		Map<String, String> env = getenv();
+		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
@@ -356,7 +393,7 @@ public class JSONRPCLayerTester {
 						server.getWorkspaceResourceUsageConfig())
 				.withMaxIncomingDataMemoryUsage(24)
 				.withMaxReturnedDataMemoryUsage(24).build());
-		tfms.add(server.getTempFilesManager());
+		TFMS.add(server.getTempFilesManager());
 		new ServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
@@ -379,7 +416,7 @@ public class JSONRPCLayerTester {
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
 		JsonTokenStreamOCStat.showStat();
 	}
@@ -389,40 +426,13 @@ public class JSONRPCLayerTester {
 				DB_WS_NAME_1);
 		DB wsdb2 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
 				DB_WS_NAME_2);
-		WorkspaceTestCommon.destroyDB(wsdb1);
-		WorkspaceTestCommon.destroyDB(wsdb2);
-	}
-	
-	public static void assertNoTempFilesExist(TempFilesManager tfm)
-			throws Exception {
-		assertNoTempFilesExist(Arrays.asList(tfm));
-	}
-	
-	
-	public static void assertNoTempFilesExist(List<TempFilesManager> tfms)
-			throws Exception {
-		int i = 0;
-		try {
-			for (TempFilesManager tfm: tfms) {
-				if (!tfm.isEmpty()) {
-					// Allow <=10 seconds to finish all activities
-					for (; i < 100; i++) {
-						Thread.sleep(100);
-						if (tfm.isEmpty())
-							break;
-					}
-				}
-				assertThat("There are tempfiles: " + tfm.getTempFileList(), tfm.isEmpty(), is(true));
-			}
-		} finally {
-			for (TempFilesManager tfm: tfms)
-				tfm.cleanup();
-		}
+		TestCommon.destroyDB(wsdb1);
+		TestCommon.destroyDB(wsdb2);
 	}
 	
 	@After
 	public void cleanupTempFilesAfterTest() throws Exception {
-		assertNoTempFilesExist(tfms);
+		TestCommon.assertNoTempFilesExist(TFMS);
 	}
 	
 	protected void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,
@@ -767,7 +777,31 @@ public class JSONRPCLayerTester {
 		return new StringEpoch(null);
 	}
 
-	protected void failGetObjectInfoNew(GetObjectInfoNewParams params, String exception)
+	@SuppressWarnings("deprecation")
+	protected void failGetObjectInfo(final GetObjectInfo3Params params, final String exception)
+			throws Exception {
+		try {
+			CLIENT1.getObjectInfo3(params);
+			fail("got object with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		final us.kbase.workspace.GetObjectInfoNewParams newp =
+				new us.kbase.workspace.GetObjectInfoNewParams()
+						.withObjects(params.getObjects())
+						.withIgnoreErrors(params.getIgnoreErrors())
+						.withIncludeMetadata(params.getIncludeMetadata());
+		for (final String key: params.getAdditionalProperties().keySet()) {
+			newp.setAdditionalProperties(key, params.getAdditionalProperties().get(key));
+		}
+		failGetObjectInfoNew(newp, exception.replace("GetObjectInfo3", "GetObjectInfoNew"));
+	}
+	
+	@SuppressWarnings("deprecation")
+	private void failGetObjectInfoNew(
+			final us.kbase.workspace.GetObjectInfoNewParams params,
+			final String exception)
 			throws Exception {
 		try {
 			CLIENT1.getObjectInfoNew(params);
@@ -803,6 +837,11 @@ public class JSONRPCLayerTester {
 		}
 		return ret;
 	}
+	
+	private String exceptMessageOItoOS(final String message) {
+		return message.replace("identifiers", "specifications")
+				.replace("ObjectIdentity", "ObjectSpecification");
+	}
 
 	@SuppressWarnings("deprecation")
 	protected void failGetObjects(List<ObjectIdentity> loi, String exception)
@@ -813,7 +852,7 @@ public class JSONRPCLayerTester {
 			fail("got object with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+					is(exceptMessageOItoOS(exception)));
 		}
 		try {
 			CLIENT1.getObjects2(new GetObjects2Params().withNoData(1L)
@@ -821,8 +860,24 @@ public class JSONRPCLayerTester {
 			fail("got object with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+					is(exceptMessageOItoOS(exception)));
 		}
+		try {
+			CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(toObjSpec(loi)));
+			fail("got info with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exceptMessageOItoOS(exception)));
+		}
+		try {
+			CLIENT1.listReferencingObjects(loi);
+			fail("got referring objs with bad id");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is(exception));
+		}
+		// deprecated, remove when able.
 		try {
 			CLIENT1.getObjects(loi);
 			fail("got object with bad id");
@@ -845,14 +900,13 @@ public class JSONRPCLayerTester {
 					is(exception));
 		}
 		try {
-			CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+			CLIENT1.getObjectInfoNew(new us.kbase.workspace.GetObjectInfoNewParams()
 				.withObjects(toObjSpec(loi)));
 			fail("got info with bad id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception.replace("ObjectIdentity", "ObjectSpecification")));
+					is(exceptMessageOItoOS(exception)));
 		}
-		//deprecated, remove when removed from code.
 		try {
 			CLIENT1.getObjectInfo(loi, 0L);
 			fail("got info with bad id");
@@ -860,13 +914,7 @@ public class JSONRPCLayerTester {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(exception));
 		}
-		try {
-			CLIENT1.listReferencingObjects(loi);
-			fail("got referring objs with bad id");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exception));
-		}
+		
 		try {
 			CLIENT1.listReferencingObjectCounts(loi);
 			fail("got referring obj counts with bad id");
@@ -919,9 +967,24 @@ public class JSONRPCLayerTester {
 					chksum, size, meta);
 		}
 		
+		//obj info 3 with metadata
+		GetObjectInfo3Results info3 = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(toObjSpec(loi)).withIncludeMetadata(1L)
+				.withIgnoreErrors(0L));
 		List<Tuple11<Long, String, String, String, Long, String, Long, String,
-				String, Long, Map<String, String>>> retusermeta =
-				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+				String, Long, Map<String, String>>> retusermeta = info3.getInfos();
+
+		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
+		for (int i = 0; i < retusermeta.size(); i ++) {
+			Tuple11<Long, String, String, String, Long, String, Long,
+				String, String, Long, Map<String, String>> o = retusermeta.get(i);
+			checkInfo(o, id, name, type, ver, user, wsid, wsname, chksum, size, meta);
+			assertThat("path incorrect", info3.getPaths().get(i),
+					is(Arrays.asList(o.getE7() + "/" + o.getE1() + "/" + o.getE5())));
+		}
+		
+		//obj info new with metadata
+		retusermeta = CLIENT1.getObjectInfoNew(new us.kbase.workspace.GetObjectInfoNewParams()
 						.withObjects(toObjSpec(loi)).withIncludeMetadata(1L)
 						.withIgnoreErrors(0L));
 
@@ -931,8 +994,8 @@ public class JSONRPCLayerTester {
 			checkInfo(o, id, name, type, ver, user, wsid, wsname,
 					chksum, size, meta);
 		}
-
-		//deprecated, remove when removed from code.
+		
+		//obj info with metadata
 		retusermeta = CLIENT1.getObjectInfo(loi, 1L);
 		
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
@@ -942,7 +1005,22 @@ public class JSONRPCLayerTester {
 					chksum, size, meta);
 		}
 		
-		retusermeta = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
+		// obj info 3 without metadata
+		info3 = CLIENT1.getObjectInfo3(new us.kbase.workspace.GetObjectInfo3Params()
+				.withObjects(toObjSpec(loi)));
+		retusermeta = info3.getInfos();
+
+		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
+		for (int i = 0; i < retusermeta.size(); i ++) {
+			Tuple11<Long, String, String, String, Long, String, Long,
+			String, String, Long, Map<String, String>> o = retusermeta.get(i);
+			checkInfo(o, id, name, type, ver, user, wsid, wsname, chksum, size, null);
+			assertThat("path incorrect", info3.getPaths().get(i),
+					is(Arrays.asList(o.getE7() + "/" + o.getE1() + "/" + o.getE5())));
+		}
+
+		// obj info new without metadata
+		retusermeta = CLIENT1.getObjectInfoNew(new us.kbase.workspace.GetObjectInfoNewParams()
 			.withObjects(toObjSpec(loi)));
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
@@ -952,7 +1030,7 @@ public class JSONRPCLayerTester {
 					chksum, size, null);
 		}
 		
-		//deprecated, remove when removed from code.
+		// obj info without metadata
 		retusermeta = CLIENT1.getObjectInfo(loi, 0L);
 
 		assertThat("num usermeta correct", retusermeta.size(), is(loi.size()));
@@ -1024,8 +1102,10 @@ public class JSONRPCLayerTester {
 			String chksum, long size, Map<String, String> meta, Map<String, Object> data) 
 			throws Exception {
 		
-		assertThat("object data is correct", retdata.getData().asClassInstance(Object.class),
+		assertThat("object data incorrect", retdata.getData().asClassInstance(Object.class),
 				is((Object) data));
+		assertThat("incorrect object path", retdata.getPath(),
+				is(Arrays.asList(wsid + "/" + id + "/" + ver)));
 		
 		checkInfo(retdata.getInfo(), id, name, typeString, ver, user,
 				wsid, wsname, chksum, size, meta);
@@ -1317,11 +1397,11 @@ public class JSONRPCLayerTester {
 	}
 
 	protected void checkObjectPagination(String wsname,
-			Long skip, Long limit, int minid, int maxid) 
+			Long limit, int minid, int maxid) 
 			throws Exception {
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> res =
 				CLIENT1.listObjects(new ListObjectsParams()
-				.withWorkspaces(Arrays.asList(wsname)).withSkip(skip)
+				.withWorkspaces(Arrays.asList(wsname))
 				.withLimit(limit));
 				
 		assertThat("correct number of objects returned", res.size(), is(maxid - minid + 1));
@@ -1373,18 +1453,18 @@ public class JSONRPCLayerTester {
 			}
 			return;
 		}
-		Set<FakeObjectInfo> g = objInfoToFakeObjInfo(got);
-		Set<FakeObjectInfo> e = objInfoToFakeObjInfo(expected);
+		Set<ObjectInformation> g = tupleObjInfoToObjInfo(got);
+		Set<ObjectInformation> e = tupleObjInfoToObjInfo(expected);
 		assertThat("got same unordered objects", g, is(e));
 		
 	}
 
-	protected Set<FakeObjectInfo> objInfoToFakeObjInfo(
+	protected Set<ObjectInformation> tupleObjInfoToObjInfo(
 			List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> tpl)
 			throws Exception {
-		Set<FakeObjectInfo> s = new HashSet<FakeObjectInfo>();
+		Set<ObjectInformation> s = new HashSet<>();
 		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> t: tpl) {
-			s.add(new FakeObjectInfo(t.getE1(), t.getE2(), t.getE3(), DATE_FORMAT.parse(t.getE4()),
+			s.add(new ObjectInformation(t.getE1(), t.getE2(), t.getE3(), DATE_FORMAT.parse(t.getE4()),
 					t.getE5().intValue(), new WorkspaceUser(t.getE6()), 
 					new FakeResolvedWSID(t.getE8(), t.getE7()), t.getE9(),
 					t.getE10(), new UncheckedUserMetadata(t.getE11())));
@@ -1397,19 +1477,19 @@ public class JSONRPCLayerTester {
 			Long showDeleted, Long allVers, Long includeMeta, String exp)
 			throws Exception {
 		failListObjects(wsnames, wsids, type, perm, meta, showHidden,
-				showDeleted, allVers, includeMeta, -1, -1, exp);
+				showDeleted, allVers, includeMeta, -1, exp);
 	}
 
 	protected void failListObjects(List<String> wsnames, List<Long> wsids,
 			String type, String perm, Map<String, String> meta, Long showHidden,
-			Long showDeleted, Long allVers, Long includeMeta, long skip, long limit, String exp)
+			Long showDeleted, Long allVers, Long includeMeta, long limit, String exp)
 			throws Exception {
 		try {
 			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
 					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
 					.withIncludeMetadata(includeMeta).withPerm(perm).withMeta(meta)
-					.withSkip(skip).withLimit(limit));
+					.withLimit(limit));
 			fail("listed objects with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
@@ -1499,49 +1579,6 @@ public class JSONRPCLayerTester {
 	}
 
 	@SuppressWarnings("deprecation")
-	protected void getReferencedObjectsCheckData(List<ObjectData> exp) throws IOException,
-			JsonClientException, Exception {
-		
-		//test get refed objs
-		List<ObjectData> res = CLIENT1.getReferencedObjects(Arrays.asList(
-				Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
-						new ObjectIdentity().withRef("referencedPriv/one")),
-				Arrays.asList(new ObjectIdentity().withRef("referenced/prov"),
-						new ObjectIdentity().withRef("referencedPriv/two"))));
-		compareData(exp, res);
-		
-		// test getobjs2 and getinfo with ref path
-		final List<ObjectSpecification> reflist = Arrays.asList(
-				new ObjectSpecification().withRef("referenced/ref").withObjRefPath(
-						Arrays.asList("referencedPriv/one")),
-				new ObjectSpecification().withRef("referenced/prov").withObjRefPath(
-						Arrays.asList("referencedPriv/two")));
-		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(reflist))
-				.getData();
-		compareData(exp, res);
-		
-		List<Tuple11<Long, String, String, String, Long, String, Long, String,
-		String, Long, Map<String, String>>> info =
-		CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-			.withObjects(reflist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
-		
-		// test getobjs2 and getinfo with obj ref path
-		final List<ObjectSpecification> refobjlist = Arrays.asList(
-				new ObjectSpecification().withRef("referenced/ref").withObjPath(
-						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"))),
-				new ObjectSpecification().withRef("referenced/prov").withObjPath(
-						Arrays.asList(new ObjectIdentity().withRef("referencedPriv/two"))));
-		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(refobjlist))
-				.getData();
-		compareData(exp, res);
-		
-		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams()
-				.withObjects(refobjlist).withIncludeMetadata(1L));
-		compareInfo(info, exp);
-	}
-	
-	@SuppressWarnings("deprecation")
 	protected void failGetReferencedObjects(List<List<ObjectIdentity>> chains,
 			String excep) throws Exception {
 		try {
@@ -1595,34 +1632,41 @@ public class JSONRPCLayerTester {
 				refex = excep;
 			} else {
 				excep = "Error on ObjectSpecification #" + chainnum + 
-						": Invalid object id at position #" + (oidnum - 1) +
+						": Invalid object id at position #" + oidnum +
 						":" + e[2];
 				String ref = osr.get(chainnum - 1).getObjRefPath()
 						.get(oidnum - 2);
+				if (e[2].equals(" ObjectIdentity cannot be null")) { // this is sick and wrong 
+					e[2] = " reference cannot be null or the empty string";
+				}
 				refex = String.format("Error on ObjectSpecification #%s" + 
 						": Invalid object reference (%s) at position #%s:%s",
-						chainnum, ref, oidnum - 1,
-						e[2].replace("ObjectIdentities", "Reference string"));
+						chainnum, ref, oidnum,
+						e[2].replace("ObjectIdentity", "Reference string"));
 			}
-		}
+		} // i feel so ashamed
 		
-		try {
-			CLIENT1.getObjects2(new GetObjects2Params().withObjects(osl));
-			fail("got referenced objects with bad params");
-		} catch (ServerException se) {
-//			System.out.println(se.getData());
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(excep));
-		}
+		failGetObjects2(osl, excep);
+		failGetObjectInfo(new GetObjectInfo3Params().withObjects(osl),
+				excep);
 		if (excep.contains("Unexpected arguments in ObjectIdentity: foo")) {
 			return; // can't have UAs in a string ref
 		}
+		failGetObjects2(osr, refex);
+		failGetObjectInfo(new GetObjectInfo3Params().withObjects(osr),
+				refex);
+	}
+
+	private void failGetObjects2(
+			final List<ObjectSpecification> oss,
+			final String excep)
+			throws Exception {
 		try {
-			CLIENT1.getObjects2(new GetObjects2Params().withObjects(osr));
-			fail("got referenced objects with bad params");
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(oss));
+			fail("got objects with bad params");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(refex));
+					is(excep));
 		}
 	}
 
@@ -1666,8 +1710,7 @@ public class JSONRPCLayerTester {
 				"{\"command\": \"listAdmins\"}"))).asInstance();
 		Set<String> got = new HashSet<String>(admins);
 		Set<String> expected = new HashSet<String>(expadmins);
-		assertTrue("correct admins", got.containsAll(expected));
-		assertThat("only the one built in admin", expected.size() + 1, is(got.size()));
+		assertThat("correct admins", got, is(expected));
 		
 	}
 	

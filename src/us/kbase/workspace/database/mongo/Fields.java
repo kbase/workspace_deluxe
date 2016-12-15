@@ -21,6 +21,11 @@ public class Fields {
 	public static final String WS_DESC = "desc";
 	public static final String WS_LOCKED = "lock";
 	public static final String WS_META = "meta";
+	/* since 0.5.0
+	 * for workspaces that are being cloned and should not be accessed by any
+	 * other process. Either true or omitted, never false.
+	 */
+	public static final String WS_CLONING = "cloning";
 
 	// workspace acl fields
 	public static final String ACL_WSID = "id";
@@ -36,6 +41,7 @@ public class Fields {
 	public static final String OBJ_DEL = "del";
 	public static final String OBJ_HIDE = "hide";
 	public static final String OBJ_REFCOUNTS = "refcnt";
+	//TODO DBUPDATE remove this field. Deleting versions is out, just delete the entire object.
 	public static final String OBJ_LATEST = "latest";
 
 	// workspace version fields

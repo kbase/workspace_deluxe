@@ -21,8 +21,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
+import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonTokenStream;
+import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -42,8 +44,7 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.KBaseReferenceParser;
-import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.kbase.TokenProvider;
 
 public class GetObjectsLibSpeedTest {
 	
@@ -77,7 +78,7 @@ public class GetObjectsLibSpeedTest {
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, shockuser, null);
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		
 		DB db = GetMongoDB.getDB(mongohost, wsDB);
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(
@@ -86,11 +87,11 @@ public class GetObjectsLibSpeedTest {
 				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
 				new ShockBlobStore(db.getCollection("shock_map"),
-						new URL(shockurl), shockuser, shockpwd),
+						new URL(shockurl), new TokenProvider(
+								AuthService.login(shockuser, shockpwd)
+								.getToken())),
 				tfm);
-		Workspace ws = new Workspace(mwdb,
-				new ResourceUsageConfigurationBuilder().build(),
-				new KBaseReferenceParser(), val);
+		Workspace ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 		Types types = new Types(typeDefDB);
 		
 		WorkspaceUser user = new WorkspaceUser("foo");

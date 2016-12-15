@@ -6,7 +6,7 @@ import java.util.Set;
 
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 
@@ -36,7 +36,7 @@ public class WorkspaceSaveObject {
 	}
 	
 	public WorkspaceSaveObject(final Object data, final TypeDefId type,
-			final WorkspaceUserMetadata userMeta,  final Provenance provenance,
+			final WorkspaceUserMetadata userMeta, final Provenance provenance,
 			final boolean hidden) {
 		if (data == null || type == null || provenance == null) {
 			throw new IllegalArgumentException(
@@ -80,7 +80,7 @@ public class WorkspaceSaveObject {
 		return hidden;
 	}
 
-	public ResolvedSaveObject resolve(final TypedObjectValidationReport rep,
+	public ResolvedSaveObject resolve(final ValidatedTypedObject rep,
 			final Set<Reference> references,
 			final List<Reference> provenancerefs,
 			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {

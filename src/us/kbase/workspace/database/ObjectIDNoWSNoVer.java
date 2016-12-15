@@ -8,8 +8,10 @@ import java.util.regex.Pattern;
 
 public class ObjectIDNoWSNoVer {
 	
-	private final static Pattern INVALID_OBJ_NAMES = 
-			Pattern.compile("[^\\w\\|._-]");
+	//TODO TEST unit tests
+	
+	private final static Pattern OBJ_NAME_INVALID = Pattern.compile("[^\\w\\|._-]");
+	private final static Pattern OBJ_NAME_INTEGER = Pattern.compile("^-?\\d+$");
 	private final static int MAX_NAME_LENGTH = 255;
 	
 	private final String name;
@@ -53,21 +55,17 @@ public class ObjectIDNoWSNoVer {
 		return new ObjectIDNoWSNoVer(id);
 	}
 	
-	//TODO unit tests
-	public static void checkObjectName(String name) {
+	public static void checkObjectName(final String name) {
 		checkString(name, "Object name", MAX_NAME_LENGTH);
 		
-		final Matcher m = INVALID_OBJ_NAMES.matcher(name);
+		Matcher m = OBJ_NAME_INVALID.matcher(name);
 		if (m.find()) {
 			throw new IllegalArgumentException(String.format(
 					"Illegal character in object name %s: %s", name, m.group()));
 		}
-		try {
-			Integer.parseInt(name);
-			throw new IllegalArgumentException(
-					"Object names cannot be integers: " + name);
-		} catch (NumberFormatException nfe) {
-			//do nothing, name is ok
+		m = OBJ_NAME_INTEGER.matcher(name);
+		if (m.find()) {
+			throw new IllegalArgumentException("Object names cannot be integers: " + name);
 		}
 	}
 

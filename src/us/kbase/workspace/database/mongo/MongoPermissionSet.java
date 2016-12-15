@@ -13,7 +13,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 
 public class MongoPermissionSet implements PermissionSet {
 	
-	//TODO unit tests 
+	//TODO TEST unit tests 
 	
 	private static class Perms {
 		private final Permission perm;
@@ -30,6 +30,17 @@ public class MongoPermissionSet implements PermissionSet {
 
 		public boolean isWorldReadable() {
 			return worldRead;
+		}
+
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("Perms [perm=");
+			builder.append(perm);
+			builder.append(", worldRead=");
+			builder.append(worldRead);
+			builder.append("]");
+			return builder.toString();
 		}
 	}
 	private final WorkspaceUser user;

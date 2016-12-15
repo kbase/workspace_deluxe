@@ -99,14 +99,11 @@ source.
 Addressing workspaces and objects
 ---------------------------------
 
-Workspaces may be addressed by either their name, ID, or the KBase formatted ID
-``kb|ws.#`` where ``#`` is the workspace ID.
+Workspaces may be addressed by either their mutable name or permanent ID.
 
 Objects may be addressed by a combination of the workspace name or ID, the
-object name or ID, and optionally a version, in either reference format (e.g.
-``[workspace name or ID]/[object name or ID]/[version]`` or the KBase formatted
-ID ``kb|ws.#.obj.#.ver.#``, where ``#`` is the workspace ID, the object ID, and
-the version number, respectively. Version is again optional.
+object's mutable name or permanent ID, and optionally a version in the reference format 
+``[workspace name or ID]/[object name or ID]/[version]``.
 
 As an example, assume that an object with name ``MyObj``, ID 12, and 3
 versions exists in a workspace with name ``MyWS`` and ID 4. The following are
@@ -120,8 +117,7 @@ MyWs/12/2               2
 4/MyObj                 3
 4/12/1                  1
 4/12/3                  3
-kb|ws.4.obj.12.ver.2    2
-kb|ws.4.obj.12          3
+4/12                    3
 ====================    ===============
 
 The object graph

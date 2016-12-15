@@ -3,8 +3,7 @@ package performance;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +29,7 @@ import us.kbase.auth.AuthToken;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
+import us.kbase.common.test.TestCommon;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.typedobj.core.LocalTypeProvider;
@@ -37,7 +37,6 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
-import us.kbase.typedobj.core.Writable;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
@@ -60,12 +59,11 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.KBaseReferenceParser;
-import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.kbase.TokenProvider;
 
 /* DO NOT run these tests on production workspaces.
- * WARNING: extensive changes have been made to the workspace initialization
- * sequence. Read through the code before using, probably doesn't work 
+ * WARNING: extensive changes have been made to the code. Read through the code
+ * before using, probably doesn't work 
  * correctly any more. See TODOs
  * 
  * Removed all references to the 0.0.5 Perl workspace version 2016/01/23.
@@ -126,7 +124,6 @@ public class ConfigurationsAndThreads {
 	private static JsonNode jsonData;
 	private static Map<String, Object> mapData;
 	private static AuthToken token;
-	private static String password;
 	private static TempFilesManager tfm;
 	
 	private static URL shockURL;
@@ -144,7 +141,6 @@ public class ConfigurationsAndThreads {
 		System.out.println("Workspace url: " + workspaceURL);
 		System.out.println("logging in " + user);
 		
-		password = pwd;
 		token = AuthService.login(user, pwd).getToken();
 		shockURL = new URL(shockurl);
 		workspace0_1_0URL = new URL(workspaceURL);
@@ -165,7 +161,7 @@ public class ConfigurationsAndThreads {
 		System.setProperty("test.mongo.host", MONGO_HOST);
 		System.setProperty("test.shock.url", shockurl);
 		tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		//need to redo set up if this is used again
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, user, null);
@@ -299,16 +295,9 @@ public class ConfigurationsAndThreads {
 		return new Perf(writeNanoSec, readNanoSec, errors);
 	}
 	
-	private static Writable treeToWritable(final JsonNode value) {
-		return new Writable() {
-			@Override
-			public void write(OutputStream w) throws IOException {
-				MAP.writeValue(w, value);
-			}
-			@Override
-			public void releaseResources() throws IOException {
-			}
-		};
+	private static InputStream treeToWritable(final JsonNode value) {
+		//NOTE no idea if this was a good change or not, just made it compile
+		return IOUtils.toInputStream(value.toString());
 	}
 
 	public static class WorkspaceJsonRPCShock extends AbstractReadWriteTest {
@@ -392,19 +381,20 @@ public class ConfigurationsAndThreads {
 		
 		public WorkspaceLibShock() throws Exception {
 			super();
-			//NOTE check this still works
+			//NOTE check this still works NOTE2 it doesn't
 			DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
 			final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
 					new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)));
 			TypedObjectValidator val = new TypedObjectValidator(
 					new LocalTypeProvider(typeDefDB));
 			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-					new ShockBlobStore(db.getCollection("shock_map"),
-							shockURL, "baduser", "badpwd"),
+					new ShockBlobStore(
+							db.getCollection("shock_map"), shockURL,
+							new TokenProvider(
+									AuthService.login("baduser", "badpwd")
+									.getToken())),
 					tfm);
-			ws = new Workspace(mwdb,
-					new ResourceUsageConfigurationBuilder().build(),
-					new KBaseReferenceParser(), val);
+			ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
 			ws.createWorkspace(foo, workspace, false, null, null);
@@ -460,7 +450,7 @@ public class ConfigurationsAndThreads {
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
 			this.sb = new ShockBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0).getCollection(
-					"temp_shock_node_map"), shockURL, token.getUserName(), password);
+					"temp_shock_node_map"), shockURL, new TokenProvider(token));
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);

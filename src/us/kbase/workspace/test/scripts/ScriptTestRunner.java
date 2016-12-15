@@ -6,7 +6,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
@@ -23,11 +22,13 @@ import org.junit.Test;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
-import us.kbase.abstracthandle.AbstractHandleClient;
-import us.kbase.auth.AuthService;
+import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
+import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
@@ -49,13 +50,12 @@ import us.kbase.workspace.test.controllers.handle.HandleServiceController;
  */
 public class ScriptTestRunner {
 	
-	//TODO needs to run w/o dev container
+	//TODO TEST needs to run w/o dev container
 	
 	protected static WorkspaceClient CLIENT1 = null;
 	protected static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well
 	protected static String USER1 = null;
 	protected static String USER2 = null;
-	protected static String USER3 = null;
 	protected static AuthUser AUTH_USER1 = null;
 	protected static AuthUser AUTH_USER2 = null;
 	
@@ -65,8 +65,6 @@ public class ScriptTestRunner {
 	
 	private static HandleServiceController HANDLE;
 	private static WorkspaceServer SERVER;
-	
-	private static AbstractHandleClient HANDLE_CLIENT;
 	
 	final private static String TMP_FILE_SUBDIR = "tempForScriptTestRunner";
 	
@@ -89,17 +87,6 @@ public class ScriptTestRunner {
 				e.printStackTrace();
 			}
 		}
-	}
-	
-	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
-	@SuppressWarnings("unchecked")
-	private static Map<String, String> getenv() throws NoSuchFieldException,
-			SecurityException, IllegalArgumentException, IllegalAccessException {
-		Map<String, String> unmodifiable = System.getenv();
-		Class<?> cu = unmodifiable.getClass();
-		Field m = cu.getDeclaredField("m");
-		m.setAccessible(true);
-		return (Map<String, String>) m.get(unmodifiable);
 	}
 	
 	@Test
@@ -176,45 +163,35 @@ public class ScriptTestRunner {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		USER1 = System.getProperty("test.user1");
-		USER2 = System.getProperty("test.user2");
-		String u3 = System.getProperty("test.user3");
-		if (USER1.equals(USER2)) {
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(
+						TestCommon.getAuthUrl()));
+		final AuthToken t1 = TestCommon.getToken(1, auth);
+		final AuthToken t2 = TestCommon.getToken(2, auth);
+		final AuthToken t3 = TestCommon.getToken(3, auth);
+		USER1 = t1.getUserName();
+		USER2 = t2.getUserName();
+		final String u3 = t3.getUserName();
+		if (USER1.equals(USER2) || USER2.equals(u3) || USER1.equals(u3)) {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
 		}
-		if (USER1.equals(u3)) {
-			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
-		}
-		if (USER2.equals(u3)) {
-			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
-		}
-		String p1 = System.getProperty("test.pwd1");
-		String p2 = System.getProperty("test.pwd2");
-		String p3 = System.getProperty("test.pwd3");
+		String p3 = TestCommon.getPwdNullIfToken(3);
 		
-		try {
-			AuthService.login(u3, p3);
-		} catch (Exception e) {
-			throw new TestException("Could not log in test user test.user3: " + u3, e);
-		}
+		TestCommon.stfuLoggers();
 		
-		WorkspaceTestCommon.stfuLoggers();
-		
-		String tempDir = Paths.get(WorkspaceTestCommon.getTempDir())
+		String tempDir = Paths.get(TestCommon.getTempDir())
 							.resolve(TMP_FILE_SUBDIR).toString();
 		
-		MONGO = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(tempDir), WorkspaceTestCommon.useWiredTigerEngine());
+		MONGO = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(tempDir), TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 
 		SHOCK = new ShockController(
-				WorkspaceTestCommon.getShockExe(),
-				WorkspaceTestCommon.getShockVersion(),
+				TestCommon.getShockExe(),
+				TestCommon.getShockVersion(),
 				Paths.get(tempDir),
 				u3,
 				mongohost,
@@ -229,8 +206,8 @@ public class ScriptTestRunner {
 		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
 
 		MYSQL = new MySQLController(
-				WorkspaceTestCommon.getMySQLExe(),
-				WorkspaceTestCommon.getMySQLInstallExe(),
+				TestCommon.getMySQLExe(),
+				TestCommon.getMySQLInstallExe(),
 				Paths.get(tempDir));
 		System.out.println("Using MySQL temp dir " + MYSQL.getTempDir());
 		
@@ -241,7 +218,7 @@ public class ScriptTestRunner {
 				u3,
 				MYSQL,
 				"http://localhost:" + SHOCK.getServerPort(),
-				u3,
+				t3,
 				p3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(tempDir));
@@ -256,24 +233,21 @@ public class ScriptTestRunner {
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
 		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), USER1, p1);
+			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
+					t1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), USER2, p2);
+			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
+					t2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
-		
-		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
-				HANDLE.getHandleServerPort()), USER1, p1);
-		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
-		
 	}
 	
 	private static WorkspaceServer startupWorkspaceServer(
@@ -290,7 +264,7 @@ public class ScriptTestRunner {
 
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
@@ -300,6 +274,8 @@ public class ScriptTestRunner {
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
+		ws.add("auth-service-url", TestCommon.getAuthUrl());
+		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("handle-service-url", "http://localhost:" +
 				HANDLE.getHandleServerPort());
@@ -308,13 +284,13 @@ public class ScriptTestRunner {
 		ws.add("handle-manager-user", handleUser);
 		ws.add("handle-manager-pwd", handlePwd);
 		ws.add("ws-admin", USER2);
-		ws.add("temp-dir", Paths.get(WorkspaceTestCommon.getTempDir())
+		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve(TMP_FILE_SUBDIR));
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 
 		//set up env
-		Map<String, String> env = getenv();
+		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
 		env.put("KB_SERVICE_NAME", "Workspace");
 
@@ -338,22 +314,22 @@ public class ScriptTestRunner {
 		}
 		if (HANDLE != null) {
 			System.out.print("Destroying handle service... ");
-			HANDLE.destroy(WorkspaceTestCommon.deleteTempFiles());
+			HANDLE.destroy(TestCommon.getDeleteTempFiles());
 			System.out.println("Done");
 		}
 		if (SHOCK != null) {
 			System.out.print("Destroying shock service... ");
-			SHOCK.destroy(WorkspaceTestCommon.deleteTempFiles());
+			SHOCK.destroy(TestCommon.getDeleteTempFiles());
 			System.out.println("Done");
 		}
 		if (MONGO != null) {
 			System.out.print("Destroying mongo test service... ");
-			MONGO.destroy(WorkspaceTestCommon.deleteTempFiles());
+			MONGO.destroy(TestCommon.getDeleteTempFiles());
 			System.out.println("Done");
 		}
 		if (MYSQL != null) {
 			System.out.print("Destroying mysql test service... ");
-			MYSQL.destroy(WorkspaceTestCommon.deleteTempFiles());
+			MYSQL.destroy(TestCommon.getDeleteTempFiles());
 			System.out.println("Done");
 		}
 	}

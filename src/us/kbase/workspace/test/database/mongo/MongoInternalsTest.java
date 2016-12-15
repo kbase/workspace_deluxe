@@ -19,19 +19,23 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.jongo.Jongo;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.UObject;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.LocalTypeProvider;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -42,12 +46,16 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
-import us.kbase.typedobj.test.DummyTypedObjectValidationReport;
-import us.kbase.workspace.database.DefaultReferenceParser;
+import us.kbase.typedobj.test.DummyValidatedTypedObject;
+import us.kbase.workspace.database.ByteArrayFileCacheManager;
+import us.kbase.workspace.database.ListObjectsParameters;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedSaveObject;
@@ -60,7 +68,10 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
+import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
@@ -68,8 +79,8 @@ import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
 import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
-import us.kbase.workspace.database.mongo.TypeData;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.workspace.WorkspaceTester;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -94,12 +105,12 @@ public class MongoInternalsTest {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		mongo = new MongoController(WorkspaceTestCommon.getMongoExe(),
-				Paths.get(WorkspaceTestCommon.getTempDir()),
-				WorkspaceTestCommon.useWiredTigerEngine());
+		mongo = new MongoController(TestCommon.getMongoExe(),
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " +
 				mongo.getTempDir());
-		WorkspaceTestCommon.stfuLoggers();
+		TestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();
 		mongoClient = new MongoClient(mongohost);
 		final DB db = mongoClient.getDB("MongoInternalsTest");
@@ -108,15 +119,13 @@ public class MongoInternalsTest {
 		jdb = new Jongo(db);
 		
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
 				new MongoTypeStorage(GetMongoDB.getDB(mongohost, typedb)));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
 		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
-		ws = new Workspace(mwdb,
-				new ResourceUsageConfigurationBuilder().build(),
-				new DefaultReferenceParser(), val);
+		ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 		assertTrue("GridFS backend setup failed",
 				ws.getBackendType().equals("GridFS"));
 
@@ -135,15 +144,414 @@ public class MongoInternalsTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
-			mongo.destroy(WorkspaceTestCommon.deleteTempFiles());
+			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
+	}
+	
+	@Before
+	public void clearDB() throws Exception {
+		TestCommon.destroyDB(jdb.getDatabase());
+	}
+	
+	@Test
+	public void cloneCreateWorkspace() throws Exception {
+		/* test that creating a workspace to be cloned into creates the 
+		 * correct state.
+		 */
+		WorkspaceUser foo = new WorkspaceUser("foo");
+		final Map<String, String> m = new HashMap<>();
+		m.put("foo", "bar");
+		createWSForClone(foo, "myname", false, "desc1",
+				new WorkspaceUserMetadata(m));
+		checkClonedWorkspace(1L, null, foo, "desc1", m, false, false);
+		
+		//check that creating a workspace with the same name as the cloning
+		//workspace works
+		ws.createWorkspace(foo, "myname", false, null,
+				new WorkspaceUserMetadata());
+	}
+	
+	@Test
+	public void cloneCompleteClone() throws Exception {
+		/* test that completing a clone creates the correct state */
+		
+		WorkspaceUser user = new WorkspaceUser("foo");
+		final Map<String, String> meta = new HashMap<>();
+		
+		final Method update = mwdb.getClass()
+				.getDeclaredMethod("updateClonedWorkspaceInformation",
+						WorkspaceUser.class,
+						boolean.class,	//global read
+						long.class,		// ws id
+						String.class);	// name
+		update.setAccessible(true);
+
+		// test w global read
+		createWSForClone(user, "baz", false, null,
+				new WorkspaceUserMetadata());
+		update.invoke(mwdb, user, true, 1L, "baz");
+		checkClonedWorkspace(1, "baz", user, null, meta, true, true);
+		
+		//test w/o global read
+		meta.put("foo", "bar1");
+		createWSForClone(user, "whee", false, "mydesc",
+				new WorkspaceUserMetadata(meta));
+		update.invoke(mwdb, user, false, 2L, "whee2");
+		checkClonedWorkspace(2, "whee2", user, "mydesc", meta, false, true);
+		
+		//test fail on bad id
+		failUpdateClonedWS(user, 3, "foo", new IllegalStateException(
+				"A programming error occurred: there is no workspace with " +
+				"ID 3"));
+		
+		//test fail on existing name
+		failUpdateClonedWS(user, 2, "whee2", new PreExistingWorkspaceException(
+				"Workspace name whee2 already in use"));
+	}
+	
+	@Test
+	public void cloningWorkspaceInaccessible() throws Exception {
+		final WorkspaceUser user1 = new WorkspaceUser("shoopty");
+		final WorkspaceUser user2 = new WorkspaceUser("whoop");
+		
+		final Map<String, String> mt = new HashMap<>();
+		final Provenance p = new Provenance(user1);
+		
+		// make a normal workspace & save objects
+		ws.createWorkspace(user2, "bar", false, null,
+				new WorkspaceUserMetadata());
+		final WorkspaceIdentifier std = new WorkspaceIdentifier(1);
+		ws.saveObjects(user2, std, Arrays.asList(
+				new WorkspaceSaveObject(
+						new UObject(mt), SAFE_TYPE, null, p, false)),
+				fac);
+		final ObjectIdentifier stdobj = new ObjectIdentifier(std, 1);
+		ws.setPermissions(user2, std, Arrays.asList(user1), Permission.WRITE);
+		
+		// make a workspace to be cloned, save objects, and put into cloning
+		// state
+		ws.createWorkspace(user1, "baz", false, null,
+				new WorkspaceUserMetadata());
+		final WorkspaceIdentifier cloning = new WorkspaceIdentifier(2);
+		ws.saveObjects(user1, cloning, Arrays.asList(
+				new WorkspaceSaveObject(
+						new UObject(mt), SAFE_TYPE, null, p, false)),
+				fac);
+		final ObjectIdentifier clnobj = new ObjectIdentifier(cloning, 1);
+		
+		final DBObject cloneunset = new BasicDBObject();
+		cloneunset.put("name", "");
+		cloneunset.put("moddate", "");
+		final DBObject update = new BasicDBObject(
+				"$set", new BasicDBObject("cloning", true));
+		update.put("$unset", cloneunset);
+		jdb.getDatabase().getCollection("workspaces").update(
+				new BasicDBObject("ws", 2), update);
+		
+		final NoSuchWorkspaceException noWSExcp = new NoSuchWorkspaceException(
+				"No workspace with id 2 exists", cloning);
+		final InaccessibleObjectException noObjExcp =
+				new InaccessibleObjectException("Object 1 cannot be " +
+				"accessed: No workspace with id 2 exists", null);
+
+		//test clone
+		WorkspaceTester.failClone(ws, user1, cloning, "whee", null, null,
+				noWSExcp);
+		
+		//test copy to & from
+		WorkspaceTester.failCopy(ws, user1, stdobj,
+				new ObjectIdentifier(cloning, "foo"),
+				new InaccessibleObjectException("Object foo cannot be " +
+						"accessed: No workspace with id 2 exists", null));
+		WorkspaceTester.failCopy(ws, user1, clnobj,
+				new ObjectIdentifier(std, "foo"), noObjExcp);
+		
+		//test get names by prefix
+		WorkspaceTester.failGetNamesByPrefix(ws, user1, Arrays.asList(cloning),
+				"a", false, 1000, noWSExcp);
+		
+		//test get object history
+		WorkspaceTester.failGetObjectHistory(ws, user1, clnobj, noObjExcp);
+		
+		//test various get objects methods
+		WorkspaceTester.failGetObjects(ws, user1, Arrays.asList(clnobj),
+				noObjExcp, false);
+		
+		// test get perms
+		WorkspaceTester.failGetPermissions(ws, user1, Arrays.asList(cloning),
+				noWSExcp);
+		
+		// test get referenced objects
+		final ObjectIDWithRefPath oc = new ObjectIDWithRefPath(
+				clnobj, Arrays.asList(stdobj));
+		WorkspaceTester.failGetReferencedObjects(ws, user1, Arrays.asList(oc),
+				noObjExcp, false, new HashSet<>(Arrays.asList(0)));
+		
+		// test get subset
+		final ObjIDWithRefPathAndSubset os = new ObjIDWithRefPathAndSubset(
+				clnobj, null, new SubsetSelection(Arrays.asList("/foo")));
+		WorkspaceTester.failGetSubset(ws, user1, Arrays.asList(os), noObjExcp);
+		
+		//test get ws desc
+		WorkspaceTester.failGetWorkspaceDesc(ws, user1, cloning, noWSExcp);
+		
+		// test list objects - both direct fail and ignoring objects in
+		// cloning workspaces
+		WorkspaceTester.failListObjects(ws, user1, Arrays.asList(std, cloning),
+				null, noWSExcp);
+		
+		final List<ObjectInformation> listobj = ws.listObjects(
+				new ListObjectsParameters(user1, SAFE_TYPE));
+		assertThat("listed object count incorrect", listobj.size(), is(1));
+		assertThat("listed obj ws id incorrect",
+				listobj.get(0).getWorkspaceId(), is(1L));
+		
+		// test obj rename
+		WorkspaceTester.failObjRename(ws, user1, clnobj, "foo", noObjExcp);
+		
+		//test revert
+		WorkspaceTester.failRevert(ws, user1, clnobj, noObjExcp);
+		
+		//test save
+		WorkspaceTester.failSave(ws, user1, cloning, Arrays.asList(
+				new WorkspaceSaveObject(
+						new UObject(mt), SAFE_TYPE, null, p, false)),
+				fac, noWSExcp);
+		
+		// test set global perm
+		WorkspaceTester.failSetGlobalPerm(ws, user1, cloning, Permission.READ,
+				noWSExcp);
+		
+		// test hide
+		WorkspaceTester.failSetHide(ws, user1, clnobj, true, noObjExcp);
+		
+		// test set perms
+		WorkspaceTester.failSetPermissions(ws, user1, cloning,
+				Arrays.asList(new WorkspaceUser("foo1")), Permission.READ,
+				noWSExcp);
+		
+		// test set desc
+		WorkspaceTester.failSetWSDesc(ws, user1, cloning, "foo", noWSExcp);
+		
+		//test ws meta
+		WorkspaceTester.failWSMeta(ws, user1, cloning, "fo", "bar", noWSExcp);
+		
+		//test ws rename
+		WorkspaceTester.failWSRename(ws, user1, cloning, "foo", noWSExcp);
+		
+		//test set ws owner
+		WorkspaceTester.failSetWorkspaceOwner(ws, user1, cloning,
+				new WorkspaceUser("barbaz"), "barbaz", false, noWSExcp);
+		
+		//test list workspaces
+		List<WorkspaceInformation> wsl = ws.listWorkspaces(
+				user1, null, null, null, null, null, false, true, false);
+		assertThat("listed ws count incorrect", wsl.size(), is(1));
+		assertThat("listed ws id incorrect",
+				wsl.get(0).getId(), is(1L));
+		
+		// test delete object
+		try {
+			ws.setObjectsDeleted(user1, Arrays.asList(clnobj), true);
+			fail("set deleted on ws in clone state");
+		} catch (InaccessibleObjectException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is(noObjExcp.getMessage()));
+		}
+		
+		// test get workspace owners
+		assertThat("got owner of cloning workspace",
+				ws.getAllWorkspaceOwners(),
+				is((Set<WorkspaceUser>) new HashSet<>(Arrays.asList(user2))));
+		
+		// test get referencing objects
+		try {
+			ws.getReferencingObjects(user1, Arrays.asList(clnobj));
+			fail("Able to get ref obj data from cloning workspace");
+		} catch (InaccessibleObjectException ioe) {
+			assertThat("correct exception message", ioe.getLocalizedMessage(),
+					is(noObjExcp.getMessage()));
+			assertThat("correct object returned", ioe.getInaccessibleObject(),
+					is(new ObjectIdentifier(cloning, 1)));
+		}
+		
+		// test get workspace info
+		try {
+			ws.getWorkspaceInformation(user1, cloning);
+			fail("Got wsinfo from cloning ws");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("exception message ok", e.getLocalizedMessage(),
+					is(noWSExcp.getMessage()));
+		}
+		
+		// test lock workspace
+		try {
+			ws.lockWorkspace(user1, cloning);
+			fail("locked cloning workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception", e.getLocalizedMessage(),
+					is(noWSExcp.getMessage()));
+		}
+		
+		// test delete workspace
+		try {
+			ws.setWorkspaceDeleted(user1, cloning, true);
+			fail("deleted cloning workspace");
+		} catch (NoSuchWorkspaceException e) {
+			assertThat("correct exception msg", e.getLocalizedMessage(),
+					is(noWSExcp.getMessage()));
+		}
+		
+	}
+	
+	private void failUpdateClonedWS(
+			final WorkspaceUser user,
+			final long id,
+			final String name,
+			final Exception exp) throws Exception {
+		final Method update = mwdb.getClass()
+				.getDeclaredMethod("updateClonedWorkspaceInformation",
+						WorkspaceUser.class,
+						boolean.class,	//global read
+						long.class,		// ws id
+						String.class);	// name
+		update.setAccessible(true);
+		try {
+			update.invoke(mwdb, user, false, id, name);
+		} catch (Exception got) {
+			// exceptions are wrapped in invocation exception
+			TestCommon.assertExceptionCorrect((Exception) got.getCause(), exp);
+		}
+	}
+	
+	private void checkClonedWorkspace(
+			final long id,
+			final String name,
+			final WorkspaceUser owner,
+			final String description,
+			final Map<String, String> meta,
+			final boolean globalRead,
+			final boolean complete) {
+		DB db = jdb.getDatabase();
+		DBObject ws = db.getCollection("workspaces").findOne(
+				new BasicDBObject("ws", id));
+		assertThat("name was set incorrectly", (String) ws.get("name"),
+				is((String) name));
+		assertThat("owner set incorrectly", (String) ws.get("owner"),
+				is(owner.getUser()));
+		final Date minus1m = new Date(new Date().getTime() - (60 * 1000));
+		if (complete) {
+			assertThat("date set incorrectly",
+					minus1m.before((Date) ws.get("moddate")), is(true));
+		} else {
+			assertThat("date shouldn't be set", (Date) ws.get("moddate"),
+					is((Date) null));
+		}
+		assertThat("id set incorrectly", (long) ws.get("ws"), is(id)); //duh
+		assertThat("deleted set incorrectly", (boolean) ws.get("del"),
+				is(false));
+		assertThat("num objs set incorrectly", (long) ws.get("numObj"),
+				is(0L));
+		assertThat("desc set incorrectly", (String) ws.get("desc"),
+				is(description));
+		assertThat("locked set incorrectly", (boolean) ws.get("lock"),
+				is(false));
+		assertCloneWSMetadataCorrect(ws, meta);
+		assertThat("cloning set incorrectly", (Boolean) ws.get("cloning"),
+				is((Boolean) (complete ? null : true)));
+		assertCloneWSACLsCorrect(id, owner, globalRead, complete);
+	}
+
+	private void assertCloneWSACLsCorrect(
+			final long id,
+			final WorkspaceUser owner,
+			final boolean globalRead,
+			final boolean complete) {
+		final DB db = jdb.getDatabase();
+		final Set<Map<String, Object>> acls = new HashSet<>();
+		for (final DBObject acl: db.getCollection("workspaceACLs")
+				.find(new BasicDBObject("id", id))) {
+			/* fucking LazyBSONObjects, what the hell was mongo thinking */
+			Map<String, Object> a = new HashMap<>();
+			for (final String k: acl.keySet()) {
+				if (!k.equals("_id")) { //mongo id
+					a.put(k, acl.get(k));
+				}
+			}
+			acls.add(a);
+		}
+		final Set<Map<String, Object>> expacl = new HashSet<>();
+		if (complete) {
+			final Map<String, Object> useracl = new HashMap<>();
+			useracl.put("id", id);
+			useracl.put("perm", 40);
+			useracl.put("user", owner.getUser());
+			expacl.add(useracl);
+			if (globalRead) {
+				final Map<String, Object> globalacl = new HashMap<>();
+				globalacl.put("id", id);
+				globalacl.put("perm", 10);
+				globalacl.put("user", "*");
+				expacl.add(globalacl);
+			}
+		}
+		assertThat("acls incorrect", acls, is(expacl));
+	}
+
+	private void assertCloneWSMetadataCorrect(
+			final DBObject ws,
+			final Map<String, String> meta) {
+		final Set<Map<String, String>> gotmeta = new HashSet<>();
+		/* for some reason sometimes (but not always) get a LazyBsonList here
+		 * which doesn't support listIterator which equals uses, but this seems
+		 * to fix it. Doesn't support toMap() either.
+		 */
+		@SuppressWarnings("unchecked")
+		final List<DBObject> shittymeta = (List<DBObject>) ws.get("meta");
+		for (DBObject o: shittymeta) {
+			final Map<String, String> shittymetainner =
+					new HashMap<String, String>();
+			for (String k: o.keySet()) {
+				shittymetainner.put(k, (String) o.get(k));
+			}
+			gotmeta.add(shittymetainner);
+		}
+		final Set<Map<String, String>> expmeta = new HashSet<>();
+		for (final Entry<String, String> e: meta.entrySet()) {
+			final Map<String, String> inner = new HashMap<>();
+			inner.put("k", e.getKey());
+			inner.put("v", e.getValue());
+			expmeta.add(inner);
+		}
+		assertThat("meta set incorrectly", gotmeta, is(expmeta));
+	}
+
+	private void createWSForClone(
+			final WorkspaceUser foo,
+			final String wsname,
+			final boolean global,
+			final String desc,
+			final WorkspaceUserMetadata inmeta)
+			throws NoSuchMethodException, IllegalAccessException,
+			InvocationTargetException {
+		Method createClonedWorkspace = mwdb.getClass()
+				.getDeclaredMethod("createWorkspace",
+						WorkspaceUser.class,
+						String.class,
+						boolean.class,
+						String.class,
+						WorkspaceUserMetadata.class,
+						boolean.class);
+		createClonedWorkspace.setAccessible(true);
+		createClonedWorkspace.invoke(mwdb, foo, wsname, global, desc,
+				inmeta, true);
 	}
 	
 	@Test
 	public void startUpAndCheckConfigDoc() throws Exception {
 		final DB db = mongoClient.getDB("startUpAndCheckConfigDoc");
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 		
 		DBCursor c = db.getCollection("config").find();
@@ -213,7 +621,7 @@ public class MongoInternalsTest {
 	private void failMongoWSStart(final DB db, final Exception exp)
 			throws Exception {
 		TempFilesManager tfm = new TempFilesManager(
-				new File(WorkspaceTestCommon.getTempDir()));
+				new File(TestCommon.getTempDir()));
 		try {
 			new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 			fail("started mongo with bad config");
@@ -230,7 +638,7 @@ public class MongoInternalsTest {
 	
 	@Test
 	public void raceConditionRevertObjectId() throws Exception {
-		//TODO more tests like this to test internals that can't be tested otherwise
+		//TODO TEST more tests like this to test internals that can't be tested otherwise
 		
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("ws");
 		WorkspaceUser user = new WorkspaceUser("u");
@@ -252,8 +660,12 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("testobj"), new UObject(data), t,
 				new WorkspaceUserMetadata(meta), p, false);
+		final DummyValidatedTypedObject dummy =
+				new DummyValidatedTypedObject(at, wso.getData());
+		dummy.calculateRelabeledSize();
+		dummy.sort(new UTF8JsonSorterFactory(100000));
 		ResolvedSaveObject rso = wso.resolve(
-				new DummyTypedObjectValidationReport(at, wso.getData()),
+				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
 		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
@@ -320,7 +732,7 @@ public class MongoInternalsTest {
 				wsi);
 		
 		startSaveObject(rwsi, rso, 1, at);
-		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2));
+		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2)); //objid 2
 
 		//possible race condition 1 - no version provided, version not yet
 		//saved, version count not yet incremented
@@ -329,35 +741,36 @@ public class MongoInternalsTest {
 		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw));
 		failGetObjectsNoSuchObjectExcp(oidset,
-				String.format("No object with name %s exists in workspace %s",
+				String.format("No object with name %s exists in workspace %s (name setGetRace)",
 						objname, rwsi.getID()));
 		
 		try {
 			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
 			fail("copied object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
-							objname, rwsi.getID())));
+			assertThat("correct exception message", nsoe.getMessage(), is(String.format(
+					"No object with name %s exists in workspace %s (name setGetRace)",
+					objname, rwsi.getID())));
 		}
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi2.getName(), false, null,
-				new WorkspaceUserMetadata());
+				new WorkspaceUserMetadata(), null);
 		ResolvedMongoWSID rwsi2 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
 				wsi2);
 		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
 				rso.getObjectIdentifier().getName());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
-					Arrays.asList(oidrw2_1)),
-					String.format("No object with name %s exists in workspace %s",
+					Arrays.asList(oidrw2_1)), String.format(
+							"No object with name %s exists in workspace %s (name setGetRace2)",
 							objname, rwsi2.getID()));
 
 		ObjectIDResolvedWS oidrw2_2 = new ObjectIDResolvedWS(rwsi2,
 				rso2.getObjectIdentifier().getName());
 		
 		long id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
-				Arrays.asList(oidrw2_2)), false, true, false, true).get(oidrw2_2).getObjectId();
-		assertThat("correct object id", id, is(1L));
+				Arrays.asList(oidrw2_2)), false, true, false, true)
+				.get(oidrw2_2).getObjectId();
+		assertThat("correct object id", id, is(2L));
 
 		
 		//possible race condition 2 - as 1, but version provided
@@ -366,15 +779,15 @@ public class MongoInternalsTest {
 		Set<ObjectIDResolvedWS> oidsetver = new HashSet<ObjectIDResolvedWS>();
 		oidsetver.add(oidrwWithVer);
 		failGetObjectsNoSuchObjectExcp(oidsetver,
-				String.format("No object with name %s exists in workspace %s",
+				String.format("No object with name %s exists in workspace %s (name setGetRace)",
 						objname, rwsi.getID()));
 		
 		try {
 			mwdb.copyObject(user, oidrwWithVer, new ObjectIDResolvedWS(rwsi, "foo"));
 			fail("copied object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
+			assertThat("correct exception message", nsoe.getMessage(), is(String.format(
+					"No object with name %s exists in workspace %s (name setGetRace)",
 							objname, rwsi.getID())));
 		}
 		
@@ -388,29 +801,29 @@ public class MongoInternalsTest {
 			.with("{$inc: {numver: 1}}");
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null,
-				new WorkspaceUserMetadata());
+				new WorkspaceUserMetadata(), null);
 		ResolvedMongoWSID rwsi3 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
 				wsi3);
 		ObjectIDResolvedWS oidrw3_1 = new ObjectIDResolvedWS(rwsi3,
 				rso.getObjectIdentifier().getName());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw3_1)),
-				String.format("No object with name %s exists in workspace %s",
+				String.format("No object with name %s exists in workspace %s (name setGetRace3)",
 						objname, rwsi3.getID()));
 
 		ObjectIDResolvedWS oidrw3_2 = new ObjectIDResolvedWS(rwsi3,
 				rso2.getObjectIdentifier().getName());
 		id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw3_2)), false, true, false, true).get(oidrw3_2).getObjectId();
-		assertThat("correct object id", id, is(1L));
+		assertThat("correct object id", id, is(2L));
 		
 		try {
 			mwdb.copyObject(user, oidrw, new ObjectIDResolvedWS(rwsi, "foo"));
 			fail("copied object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(String.format("No object with name %s exists in workspace %s",
-							objname, rwsi.getID())));
+			assertThat("correct exception message", nsoe.getMessage(), is(String.format(
+					"No object with name %s exists in workspace %s",
+					objname, rwsi.getID())));
 		}
 		
 		try {
@@ -442,13 +855,15 @@ public class MongoInternalsTest {
 			Set<ObjectIDResolvedWS> oidsetver, String msg)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException, TypedObjectExtractionException {
-		final Map<ObjectIDResolvedWS, Set<ObjectPaths>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<ObjectPaths>>();
+		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
+				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
 		for (final ObjectIDResolvedWS o: oidsetver) {
 			paths.put(o, null);
 		}
+		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(
+				10000, 10000, mwdb.getTempFilesManager());
 		try {
-			mwdb.getObjects(paths, false, true, false, true);
+			mwdb.getObjects(paths, man, 0, true, false, true);
 			fail("operated on object with no version");
 		} catch (NoSuchObjectException nsoe) {
 			assertThat("correct exception message", nsoe.getMessage(),
@@ -462,8 +877,12 @@ public class MongoInternalsTest {
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer(objname),
 				new UObject(data), t, null, p, false);
+		final DummyValidatedTypedObject dummy =
+				new DummyValidatedTypedObject(at, wso.getData());
+		dummy.calculateRelabeledSize();
+		dummy.sort(new UTF8JsonSorterFactory(100000));
 		ResolvedSaveObject rso = wso.resolve(
-				new DummyTypedObjectValidationReport(at, wso.getData()),
+				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
 		return rso;
@@ -493,13 +912,10 @@ public class MongoInternalsTest {
 		Field wo = pkg.getClass().getDeclaredField("wo");
 		wo.setAccessible(true);
 		wo.set(pkg, rso);
-		Field td = pkg.getClass().getDeclaredField("td");
-		td.setAccessible(true);
-		td.set(pkg, new TypeData(rso.getRep().createJsonWritable(), abstype));
 		
 		Method incrementWorkspaceCounter = mwdb.getClass()
-				.getDeclaredMethod("incrementWorkspaceCounter", ResolvedMongoWSID.class,
-						int.class);
+				.getDeclaredMethod("incrementWorkspaceCounter",
+						ResolvedMongoWSID.class, long.class);
 		incrementWorkspaceCounter.setAccessible(true);
 		incrementWorkspaceCounter.invoke(mwdb, rwsi, 1);
 		
@@ -574,7 +990,8 @@ public class MongoInternalsTest {
 		checkRefCounts(wsid, expected, 2);
 		
 		WorkspaceIdentifier wspace3 = new WorkspaceIdentifier("refcount3");
-		ws.cloneWorkspace(userfoo, wspace2, wspace3.getName(), false, null, null);
+		ws.cloneWorkspace(userfoo, wspace2, wspace3.getName(), false, null,
+				null, null);
 		checkRefCounts(wsid, expected, 3);
 		
 		for (int i = 1; i <= 16; i++) {
@@ -674,7 +1091,8 @@ public class MongoInternalsTest {
 			
 		}
 		
-		long wsid2 = ws.cloneWorkspace(userfoo, copyrev, wsprefix + "2", false, null, null).getId();
+		long wsid2 = ws.cloneWorkspace(userfoo, copyrev, wsprefix + "2",
+				false, null, null, null).getId();
 		
 		checkRefCntInit(wsid2, 3, 1);
 		checkRefCntInit(wsid2, 4, 4);

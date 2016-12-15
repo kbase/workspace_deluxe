@@ -21,7 +21,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
  */
 public class IdReferenceHandlerSetFactory {
 	
-	//TODO unit tests
+	//TODO TEST unit tests
 
 	private final Map<IdReferenceType,IdReferenceHandlerFactory> factories = 
 			new HashMap<IdReferenceType,IdReferenceHandlerFactory>();

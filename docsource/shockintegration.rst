@@ -9,7 +9,8 @@ Overview
 `Shock <https://github.com/kbase/shock_service>`_ is a data storage system
 originally designed for metagenomics data. As such, it is designed for fast
 reads and writes of data structured, for the most part, as linear arrays of
-strings (such as FASTA biologic sequence files), but more generally bytestreams.
+strings (such as FASTA biologic sequence files), but more generally
+bytestreams.
 
 In contrast, the WSS is designed for storing the hierarchical data objects used
 in most programming languages and specifically as specified by the KIDL. In
@@ -35,6 +36,12 @@ sharees would not be able to access the Shock data.
    Shock nodes shared by the workspace are not unshared if the workspace object
    containing the Shock node handle is unshared. The Shock nodes can always be
    unshared via the Shock API.
+
+.. warning::
+   Sharing workspace objects containing handles to Shock nodes shares the
+   nodes as well. If a workspace object is copied into a user's workspace and
+   that workspace is made public, the Shock nodes are set to publically
+   readable.
 
 Resources
 ---------
@@ -262,8 +269,7 @@ in the VeryImportantModule module and has been registered and released.
       {}]]
 
 During the save, the Workspace checks with the Handle Service to confirm the
-user has rights to access the Shock data. If such is not the case, the save
-will fail.
+user owns the Shock data. If such is not the case, the save will fail.
 
 Step 4 - share data in the Workspace
 ------------------------------------

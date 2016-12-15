@@ -160,9 +160,10 @@ Returns the version of the workspace service.
 							       "Invalid argument count for function ver (received $n, expecting 0)");
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.ver",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.ver",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -210,7 +211,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -241,7 +242,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -285,9 +286,10 @@ Creates a new workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.create_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.create_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -384,9 +386,10 @@ Change the metadata associated with a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.alter_workspace_metadata",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.alter_workspace_metadata",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -427,6 +430,7 @@ CloneWorkspaceParams is a reference to a hash where the following keys are defin
 	globalread has a value which is a Workspace.permission
 	description has a value which is a string
 	meta has a value which is a Workspace.usermeta
+	exclude has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
@@ -434,12 +438,23 @@ ws_name is a string
 ws_id is an int
 permission is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
 workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -462,6 +477,7 @@ CloneWorkspaceParams is a reference to a hash where the following keys are defin
 	globalread has a value which is a Workspace.permission
 	description has a value which is a string
 	meta has a value which is a Workspace.usermeta
+	exclude has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
 WorkspaceIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	id has a value which is a Workspace.ws_id
@@ -469,12 +485,23 @@ ws_name is a string
 ws_id is an int
 permission is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+obj_ref is a string
 workspace_info is a reference to a list containing 9 items:
 	0: (id) a Workspace.ws_id
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -517,9 +544,10 @@ Clones a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.clone_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.clone_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -564,7 +592,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -593,7 +621,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -646,9 +674,10 @@ Lock a workspace, preventing further changes.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.lock_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.lock_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -763,9 +792,10 @@ Provided for backwards compatibility.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_workspacemeta",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_workspacemeta",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -810,7 +840,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -839,7 +869,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -884,9 +914,10 @@ Get information associated with a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_workspace_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_workspace_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -975,9 +1006,10 @@ Get a workspace's description.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_workspace_description",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_workspace_description",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1072,9 +1104,10 @@ Set permissions for a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.set_permissions",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.set_permissions",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1165,9 +1198,10 @@ Set the global permission for a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.set_global_permission",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.set_global_permission",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1256,9 +1290,10 @@ Set the description for a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.set_workspace_description",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.set_workspace_description",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1359,9 +1394,10 @@ Get permissions for multiple workspaces.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_permissions_mass",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_permissions_mass",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1426,6 +1462,7 @@ permission is a string
 =item Description
 
 Get permissions for a workspace.
+@deprecated get_permissions_mass
 
 =back
 
@@ -1454,9 +1491,10 @@ Get permissions for a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_permissions",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_permissions",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1593,9 +1631,10 @@ for backwards compatibility.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.save_object",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.save_object",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1659,7 +1698,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -1669,6 +1708,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	description has a value which is a string
 timestamp is a string
 epoch is an int
+ref_string is a string
 obj_ref is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
@@ -1737,7 +1777,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -1747,6 +1787,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	description has a value which is a string
 timestamp is a string
 epoch is an int
+ref_string is a string
 obj_ref is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
@@ -1813,9 +1854,10 @@ it.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.save_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.save_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -1954,9 +1996,10 @@ Provided for backwards compatibility.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -2044,7 +2087,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -2053,6 +2096,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 epoch is an int
+ref_string is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
@@ -2133,7 +2177,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -2142,6 +2186,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 epoch is an int
+ref_string is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
@@ -2198,9 +2243,10 @@ Get object provenance from the workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object_provenance",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_provenance",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -2251,6 +2297,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
 	orig_wsid has a value which is a Workspace.ws_id
@@ -2289,7 +2336,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -2298,6 +2345,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 epoch is an int
+ref_string is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
@@ -2341,6 +2389,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
 	orig_wsid has a value which is a Workspace.ws_id
@@ -2379,7 +2428,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -2388,6 +2437,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 epoch is an int
+ref_string is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
@@ -2443,9 +2493,10 @@ Get objects from the workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -2490,9 +2541,12 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
-	ref has a value which is a Workspace.obj_ref
+	ref has a value which is a Workspace.ref_string
 	obj_path has a value which is a Workspace.ref_chain
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	to_obj_path has a value which is a Workspace.ref_chain
+	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	find_reference_path has a value which is a Workspace.boolean
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -2501,7 +2555,7 @@ ws_id is an int
 obj_name is a string
 obj_id is an int
 obj_ver is an int
-obj_ref is a string
+ref_string is a string
 ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
@@ -2510,13 +2564,15 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
-object_path is a string
+obj_ref is a string
 boolean is an int
+object_path is a string
 GetObjects2Results is a reference to a hash where the following keys are defined:
 	data has a value which is a reference to a list where each element is a Workspace.ObjectData
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
 	orig_wsid has a value which is a Workspace.ws_id
@@ -2555,7 +2611,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -2600,9 +2656,12 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
-	ref has a value which is a Workspace.obj_ref
+	ref has a value which is a Workspace.ref_string
 	obj_path has a value which is a Workspace.ref_chain
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	to_obj_path has a value which is a Workspace.ref_chain
+	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	find_reference_path has a value which is a Workspace.boolean
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -2611,7 +2670,7 @@ ws_id is an int
 obj_name is a string
 obj_id is an int
 obj_ver is an int
-obj_ref is a string
+ref_string is a string
 ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
@@ -2620,13 +2679,15 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
-object_path is a string
+obj_ref is a string
 boolean is an int
+object_path is a string
 GetObjects2Results is a reference to a hash where the following keys are defined:
 	data has a value which is a reference to a list where each element is a Workspace.ObjectData
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
 	orig_wsid has a value which is a Workspace.ws_id
@@ -2665,7 +2726,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -2726,9 +2787,10 @@ Get objects from the workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_objects2",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_objects2",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -2784,6 +2846,7 @@ boolean is an int
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
 	orig_wsid has a value which is a Workspace.ws_id
@@ -2822,7 +2885,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -2831,6 +2894,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 epoch is an int
+ref_string is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
@@ -2878,6 +2942,7 @@ boolean is an int
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
 	orig_wsid has a value which is a Workspace.ws_id
@@ -2916,7 +2981,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -2925,6 +2990,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 epoch is an int
+ref_string is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
@@ -2991,9 +3057,10 @@ original array.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object_subset",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_subset",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3131,9 +3198,10 @@ ignored.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object_history",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_history",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3271,9 +3339,10 @@ in the deleted state are not returned.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_referencing_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_referencing_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3386,9 +3455,10 @@ inaccessible to the user.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_referencing_object_counts",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_referencing_object_counts",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3440,6 +3510,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
 	orig_wsid has a value which is a Workspace.ws_id
@@ -3478,7 +3549,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -3487,6 +3558,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 epoch is an int
+ref_string is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
@@ -3531,6 +3603,7 @@ obj_ref is a string
 ObjectData is a reference to a hash where the following keys are defined:
 	data has a value which is an UnspecifiedObject, which can hold any non-null object
 	info has a value which is a Workspace.object_info
+	path has a value which is a reference to a list where each element is a Workspace.obj_ref
 	provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 	creator has a value which is a Workspace.username
 	orig_wsid has a value which is a Workspace.ws_id
@@ -3569,7 +3642,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	script has a value which is a string
 	script_ver has a value which is a string
 	script_command_line has a value which is a string
-	input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+	input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 	resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 	intermediate_incoming has a value which is a reference to a list where each element is a string
 	intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -3578,6 +3651,7 @@ ProvenanceAction is a reference to a hash where the following keys are defined:
 	custom has a value which is a reference to a hash where the key is a string and the value is a string
 	description has a value which is a string
 epoch is an int
+ref_string is a string
 ExternalDataUnit is a reference to a hash where the following keys are defined:
 	resource_name has a value which is a string
 	resource_url has a value which is a string
@@ -3648,9 +3722,10 @@ DEPRECATED
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_referenced_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_referenced_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3767,9 +3842,10 @@ list_workspace_info
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_workspaces",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_workspaces",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -3826,7 +3902,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -3865,7 +3941,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -3908,9 +3984,10 @@ List workspaces viewable by the user.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_workspace_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_workspace_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4044,9 +4121,10 @@ specified type (or with any type). Provided for backwards compatibility.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_workspace_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_workspace_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4100,7 +4178,6 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	excludeGlobal has a value which is a Workspace.boolean
-	skip has a value which is an int
 	limit has a value which is an int
 ws_name is a string
 ws_id is an int
@@ -4153,7 +4230,6 @@ ListObjectsParams is a reference to a hash where the following keys are defined:
 	showAllVersions has a value which is a Workspace.boolean
 	includeMetadata has a value which is a Workspace.boolean
 	excludeGlobal has a value which is a Workspace.boolean
-	skip has a value which is an int
 	limit has a value which is an int
 ws_name is a string
 ws_id is an int
@@ -4213,9 +4289,10 @@ List objects in one or more workspaces.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4319,7 +4396,7 @@ Retrieves the metadata for a specified object from the specified
 workspace. Provides access to metadata for all versions of the object
 via the instance parameter. Provided for backwards compatibility.
 
-@deprecated Workspace.get_object_info
+@deprecated Workspace.get_object_info3
 
 =back
 
@@ -4348,9 +4425,10 @@ via the instance parameter. Provided for backwards compatibility.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_objectmeta",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_objectmeta",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4470,7 +4548,7 @@ Otherwise the metadata in the object_info will be null.
 This method will be replaced by the behavior of get_object_info_new
 in the future.
 
-@deprecated Workspace.get_object_info_new
+@deprecated Workspace.get_object_info3
 
 =back
 
@@ -4500,9 +4578,10 @@ in the future.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4547,9 +4626,12 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
-	ref has a value which is a Workspace.obj_ref
+	ref has a value which is a Workspace.ref_string
 	obj_path has a value which is a Workspace.ref_chain
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	to_obj_path has a value which is a Workspace.ref_chain
+	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	find_reference_path has a value which is a Workspace.boolean
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -4558,7 +4640,7 @@ ws_id is an int
 obj_name is a string
 obj_id is an int
 obj_ver is an int
-obj_ref is a string
+ref_string is a string
 ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
@@ -4567,8 +4649,9 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
-object_path is a string
+obj_ref is a string
 boolean is an int
+object_path is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -4604,9 +4687,12 @@ ObjectSpecification is a reference to a hash where the following keys are define
 	name has a value which is a Workspace.obj_name
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
-	ref has a value which is a Workspace.obj_ref
+	ref has a value which is a Workspace.ref_string
 	obj_path has a value which is a Workspace.ref_chain
 	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	to_obj_path has a value which is a Workspace.ref_chain
+	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	find_reference_path has a value which is a Workspace.boolean
 	included has a value which is a reference to a list where each element is a Workspace.object_path
 	strict_maps has a value which is a Workspace.boolean
 	strict_arrays has a value which is a Workspace.boolean
@@ -4615,7 +4701,7 @@ ws_id is an int
 obj_name is a string
 obj_id is an int
 obj_ver is an int
-obj_ref is a string
+ref_string is a string
 ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
 ObjectIdentity is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
@@ -4624,8 +4710,9 @@ ObjectIdentity is a reference to a hash where the following keys are defined:
 	objid has a value which is a Workspace.obj_id
 	ver has a value which is a Workspace.obj_ver
 	ref has a value which is a Workspace.obj_ref
-object_path is a string
+obj_ref is a string
 boolean is an int
+object_path is a string
 object_info is a reference to a list containing 11 items:
 	0: (objid) a Workspace.obj_id
 	1: (name) a Workspace.obj_name
@@ -4649,6 +4736,8 @@ usermeta is a reference to a hash where the key is a string and the value is a s
 =item Description
 
 Get information about objects from the workspace.
+
+@deprecated Workspace.get_object_info3
 
 =back
 
@@ -4677,9 +4766,10 @@ Get information about objects from the workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_object_info_new",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_info_new",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4695,6 +4785,198 @@ Get information about objects from the workspace.
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object_info_new",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'get_object_info_new',
+				       );
+    }
+}
+ 
+
+
+=head2 get_object_info3
+
+  $results = $obj->get_object_info3($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.GetObjectInfo3Params
+$results is a Workspace.GetObjectInfo3Results
+GetObjectInfo3Params is a reference to a hash where the following keys are defined:
+	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+	includeMetadata has a value which is a Workspace.boolean
+	ignoreErrors has a value which is a Workspace.boolean
+ObjectSpecification is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.ref_string
+	obj_path has a value which is a Workspace.ref_chain
+	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	to_obj_path has a value which is a Workspace.ref_chain
+	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	find_reference_path has a value which is a Workspace.boolean
+	included has a value which is a reference to a list where each element is a Workspace.object_path
+	strict_maps has a value which is a Workspace.boolean
+	strict_arrays has a value which is a Workspace.boolean
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+ref_string is a string
+ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+obj_ref is a string
+boolean is an int
+object_path is a string
+GetObjectInfo3Results is a reference to a hash where the following keys are defined:
+	infos has a value which is a reference to a list where each element is a Workspace.object_info
+	paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.GetObjectInfo3Params
+$results is a Workspace.GetObjectInfo3Results
+GetObjectInfo3Params is a reference to a hash where the following keys are defined:
+	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+	includeMetadata has a value which is a Workspace.boolean
+	ignoreErrors has a value which is a Workspace.boolean
+ObjectSpecification is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.ref_string
+	obj_path has a value which is a Workspace.ref_chain
+	obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	to_obj_path has a value which is a Workspace.ref_chain
+	to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+	find_reference_path has a value which is a Workspace.boolean
+	included has a value which is a reference to a list where each element is a Workspace.object_path
+	strict_maps has a value which is a Workspace.boolean
+	strict_arrays has a value which is a Workspace.boolean
+ws_name is a string
+ws_id is an int
+obj_name is a string
+obj_id is an int
+obj_ver is an int
+ref_string is a string
+ref_chain is a reference to a list where each element is a Workspace.ObjectIdentity
+ObjectIdentity is a reference to a hash where the following keys are defined:
+	workspace has a value which is a Workspace.ws_name
+	wsid has a value which is a Workspace.ws_id
+	name has a value which is a Workspace.obj_name
+	objid has a value which is a Workspace.obj_id
+	ver has a value which is a Workspace.obj_ver
+	ref has a value which is a Workspace.obj_ref
+obj_ref is a string
+boolean is an int
+object_path is a string
+GetObjectInfo3Results is a reference to a hash where the following keys are defined:
+	infos has a value which is a reference to a list where each element is a Workspace.object_info
+	paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+object_info is a reference to a list containing 11 items:
+	0: (objid) a Workspace.obj_id
+	1: (name) a Workspace.obj_name
+	2: (type) a Workspace.type_string
+	3: (save_date) a Workspace.timestamp
+	4: (version) an int
+	5: (saved_by) a Workspace.username
+	6: (wsid) a Workspace.ws_id
+	7: (workspace) a Workspace.ws_name
+	8: (chsum) a string
+	9: (size) an int
+	10: (meta) a Workspace.usermeta
+type_string is a string
+timestamp is a string
+username is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+
+
+=end text
+
+=item Description
+
+
+
+=back
+
+=cut
+
+ sub get_object_info3
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function get_object_info3 (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to get_object_info3:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'get_object_info3');
+	}
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_object_info3",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'get_object_info3',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method get_object_info3",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'get_object_info3',
 				       );
     }
 }
@@ -4727,7 +5009,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -4759,7 +5041,7 @@ workspace_info is a reference to a list containing 9 items:
 	1: (workspace) a Workspace.ws_name
 	2: (owner) a Workspace.username
 	3: (moddate) a Workspace.timestamp
-	4: (object) an int
+	4: (max_objid) an int
 	5: (user_permission) a Workspace.permission
 	6: (globalread) a Workspace.permission
 	7: (lockstat) a Workspace.lock_status
@@ -4804,9 +5086,10 @@ Rename a workspace.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.rename_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.rename_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -4949,9 +5232,10 @@ Rename an object. User meta data is always returned as null.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.rename_object",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.rename_object",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5094,9 +5378,10 @@ Copy an object. Returns the object_info for the newest version.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.copy_object",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.copy_object",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5236,9 +5521,10 @@ Revert an object.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.revert_object",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.revert_object",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5347,9 +5633,10 @@ This function is intended for use as an autocomplete helper function.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_names_by_prefix",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_names_by_prefix",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5454,9 +5741,10 @@ appear in the list_objects method.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.hide_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.hide_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5560,9 +5848,10 @@ of the version specified in the ObjectIdentity.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.unhide_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.unhide_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5666,9 +5955,10 @@ the version specified in the ObjectIdentity.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.delete_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.delete_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5773,9 +6063,10 @@ deleted, no error is thrown.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.undelete_objects",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.undelete_objects",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5862,9 +6153,10 @@ Delete a workspace. All objects contained in the workspace are deleted.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.delete_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.delete_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -5953,9 +6245,10 @@ deleted.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.undelete_workspace",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.undelete_workspace",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6035,9 +6328,10 @@ must approve the request.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.request_module_ownership",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.request_module_ownership",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6149,9 +6443,10 @@ Also see the release_types function.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.register_typespec",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.register_typespec",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6246,9 +6541,10 @@ Also see the release_types function.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.register_typespec_copy",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.register_typespec_copy",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6343,9 +6639,10 @@ two things to the module's types:
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.release_module",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.release_module",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6432,9 +6729,10 @@ List typespec modules.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_modules",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_modules",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6533,9 +6831,10 @@ List typespec module versions.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_module_versions",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_module_versions",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6656,9 +6955,10 @@ boolean is an int
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_module_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_module_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6741,9 +7041,10 @@ Get JSON schema for a type.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_jsonschema",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_jsonschema",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6824,9 +7125,10 @@ Translation from types qualified with MD5 to their semantic versions
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.translate_from_MD5_types",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.translate_from_MD5_types",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -6907,9 +7209,10 @@ Translation from types qualified with semantic versions to their MD5'ed versions
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.translate_to_MD5_types",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.translate_to_MD5_types",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7022,9 +7325,10 @@ func_string is a string
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_type_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_type_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7139,9 +7443,10 @@ func_string is a string
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_all_type_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_all_type_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7246,9 +7551,10 @@ type_string is a string
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_func_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_func_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7355,9 +7661,10 @@ type_string is a string
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.get_all_func_info",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.get_all_func_info",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7449,9 +7756,10 @@ module.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.grant_module_ownership",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.grant_module_ownership",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7539,9 +7847,10 @@ on the module.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.remove_module_ownership",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.remove_module_ownership",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7634,9 +7943,10 @@ version.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.list_all_types",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_all_types",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7715,9 +8025,10 @@ The administration interface.
 	}
     }
 
-    my $result = $self->{client}->call($self->{url}, $self->{headers}, {
-	method => "Workspace.administer",
-	params => \@args,
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.administer",
+	    params => \@args,
     });
     if ($result) {
 	if ($result->is_error) {
@@ -7738,6 +8049,36 @@ The administration interface.
 }
  
   
+sub status
+{
+    my($self, @args) = @_;
+    if ((my $n = @args) != 0) {
+        Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+                                   "Invalid argument count for function status (received $n, expecting 0)");
+    }
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+        method => "Workspace.status",
+        params => \@args,
+    });
+    if ($result) {
+        if ($result->is_error) {
+            Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+                           code => $result->content->{error}->{code},
+                           method_name => 'status',
+                           data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+                          );
+        } else {
+            return wantarray ? @{$result->result} : $result->result->[0];
+        }
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method status",
+                        status_line => $self->{client}->status_line,
+                        method_name => 'status',
+                       );
+    }
+}
+   
 
 sub version {
     my ($self) = @_;
@@ -8211,12 +8552,9 @@ a string
 
 A workspace identifier.
 
-                Select a workspace by one, and only one, of the numerical id or name,
-                        where the name can also be a KBase ID including the numerical id,
-                        e.g. kb|ws.35.
+                Select a workspace by one, and only one, of the numerical id or name.
                 ws_id id - the numerical ID of the workspace.
-                ws_name workspace - name of the workspace or the workspace ID in KBase
-                        format, e.g. kb|ws.78.
+                ws_name workspace - the name of the workspace.
 
 
 =item Definition
@@ -8320,8 +8658,9 @@ Information about a workspace.
         ws_name workspace - name of the workspace.
         username owner - name of the user who owns (e.g. created) this workspace.
         timestamp moddate - date when the workspace was last modified.
-        int objects - the number of objects created in this workspace,
-                including objects that have been deleted.
+        int max_objid - the maximum object ID appearing in this workspace.
+                Since cloning a workspace preserves object IDs, this number may be
+                greater than the number of objects in a newly cloned workspace.
         permission user_permission - permissions for the authenticated user of
                 this workspace.
         permission globalread - whether this workspace is globally readable.
@@ -8340,7 +8679,7 @@ a reference to a list containing 9 items:
 1: (workspace) a Workspace.ws_name
 2: (owner) a Workspace.username
 3: (moddate) a Workspace.timestamp
-4: (object) an int
+4: (max_objid) an int
 5: (user_permission) a Workspace.permission
 6: (globalread) a Workspace.permission
 7: (lockstat) a Workspace.lock_status
@@ -8357,7 +8696,7 @@ a reference to a list containing 9 items:
 1: (workspace) a Workspace.ws_name
 2: (owner) a Workspace.username
 3: (moddate) a Workspace.timestamp
-4: (object) an int
+4: (max_objid) an int
 5: (user_permission) a Workspace.permission
 6: (globalread) a Workspace.permission
 7: (lockstat) a Workspace.lock_status
@@ -8476,18 +8815,13 @@ an int
 
 A string that uniquely identifies an object in the workspace service.
 
-        There are two ways to uniquely identify an object in one string:
-        "[ws_name or id]/[obj_name or id]/[obj_ver]" - for example,
-                "MyFirstWorkspace/MyFirstObject/3" would identify the third version
-                of an object called MyFirstObject in the workspace called
-                MyFirstWorkspace. 42/Panic/1 would identify the first version of
-                the object name Panic in workspace with id 42. Towel/1/6 would
-                identify the 6th version of the object with id 1 in the Towel
-                workspace. 
-        "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example, 
-                "kb|ws.23.obj.567.ver.2" would identify the second version of an
-                object with id 567 in a workspace with id 23.
-        In all cases, if the version number is omitted, the latest version of
+        The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+        For example, MyFirstWorkspace/MyFirstObject/3 would identify the third version
+        of an object called MyFirstObject in the workspace called
+        MyFirstWorkspace. 42/Panic/1 would identify the first version of
+        the object name Panic in workspace with id 42. Towel/1/6 would
+        identify the 6th version of the object with id 1 in the Towel
+        workspace.If the version number is omitted, the latest version of
         the object is assumed.
 
 
@@ -8522,12 +8856,9 @@ a string
 An object identifier.
 
 Select an object by either:
-        One, and only one, of the numerical id or name of the workspace,
-        where the name can also be a KBase ID including the numerical id,
-        e.g. kb|ws.35.
+        One, and only one, of the numerical id or name of the workspace.
                 ws_id wsid - the numerical ID of the workspace.
-                ws_name workspace - name of the workspace or the workspace ID
-                        in KBase format, e.g. kb|ws.78.
+                ws_name workspace - the name of the workspace.
         AND 
         One, and only one, of the numerical id or name of the object.
                 obj_id objid- the numerical ID of the object.
@@ -8607,6 +8938,48 @@ a reference to a list where each element is a Workspace.ObjectIdentity
 
 
 
+=head2 ref_string
+
+=over 4
+
+
+
+=item Description
+
+A chain of objects with references to one another as a string.
+
+        A single string that is semantically identical to ref_chain above.
+        Represents a path from one workspace object to another through an
+        arbitrarily number of intermediate objects where each object has a
+        dependency or provenance reference to the next object. Each entry is
+        an obj_ref as defined earlier. Entries are separated by semicolons.
+        Whitespace is ignored.
+        
+        Examples:
+        3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2
+        aworkspace/6
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a string
+</pre>
+
+=end html
+
+=begin text
+
+a string
+
+=end text
+
+=back
+
+
+
 =head2 object_path
 
 =over 4
@@ -8664,12 +9037,9 @@ DEPRECATED
         
         Select a subset of an object by:
         EITHER
-                One, and only one, of the numerical id or name of the workspace,
-                where the name can also be a KBase ID including the numerical id,
-                e.g. kb|ws.35.
+                One, and only one, of the numerical id or name of the workspace.
                         ws_id wsid - the numerical ID of the workspace.
-                        ws_name workspace - name of the workspace or the workspace ID
-                                in KBase format, e.g. kb|ws.78.
+                        ws_name workspace - name of the workspace.
                 AND 
                 One, and only one, of the numerical id or name of the object.
                         obj_id objid- the numerical ID of the object.
@@ -8737,12 +9107,16 @@ strict_arrays has a value which is a Workspace.boolean
 
 =item Description
 
-An Object Specification (OS). Inherits from ObjectIdentity.
+An Object Specification (OS). Inherits from ObjectIdentity (OI).
 Specifies which object, and which parts of that object, to retrieve
 from the Workspace Service.
 
-The fields wsid, workspace, objid, name, ver, and ref are identical to
-the ObjectIdentity fields.
+The fields wsid, workspace, objid, name, and ver are identical to
+the OI fields.
+
+The ref field's behavior is extended from OI. It maintains its
+previous behavior, but now also can act as a reference string. See
+reference following below for more information.
 
 REFERENCE FOLLOWING:
 
@@ -8757,6 +9131,8 @@ SO, but need not have access to any further objects in the reference
 chain, and those objects may be deleted.
 
 Optional reference following fields:
+Note that only one of the following fields may be specified.
+
 ref_chain obj_path - a path to the desired object from the object
         specified in this OS. In other words, the object specified in this
         OS is assumed to be accessible to the user, and the objects in
@@ -8764,8 +9140,33 @@ ref_chain obj_path - a path to the desired object from the object
         object at the end of the object path. If the references are all
         valid, the desired object will be returned.
 - OR -
-list<obj_ref> obj_ref_path - shorthand for the obj_path. Only one of
-        obj_path or obj_ref_path may be specified.
+list<obj_ref> obj_ref_path - shorthand for the obj_path.
+- OR -
+ref_chain to_obj_path - identical to obj_path, except that the path
+        is TO the object specified in this OS, rather than from the object.
+        In other words the object specified by wsid/objid/ref etc. is the
+        end of the path, and to_obj_path is the rest of the path. The user
+        must have access to the first object in the to_obj_path.
+- OR -
+list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path.
+- OR -
+ref_string ref - A string representing a reference path from
+        one object to another. Unlike the previous reference following
+        options, the ref_string represents the ENTIRE path from the source
+        object to the target object. As with the OI object, the ref field
+        may contain a single reference.
+- OR -
+boolean find_refence_path - This is the last, slowest, and most expensive resort
+        for getting a referenced object - do not use this method unless the
+        path to the object is unavailable by any other means. Setting the
+        find_refence_path parameter to true means that the workspace service will
+        search through the object reference graph from the object specified
+        in this OS to find an object that 1) the user can access, and 2)
+        has an unbroken reference path to the target object. If the search
+        succeeds, the object will be returned as normal. Note that the search
+        will automatically fail after a certain (but much larger than necessary
+        for the vast majority of cases) number of objects are traversed.
+        
 
 OBJECT SUBSETS:
 
@@ -8785,7 +9186,7 @@ Optional object subset fields:
 list<object_path> included - the portions of the object to include
                 in the object subset.
 boolean strict_maps - if true, throw an exception if the subset
-        specification traverses a non-existant map key (default false)
+        specification traverses a non-existent map key (default false)
 boolean strict_arrays - if true, throw an exception if the subset
         specification exceeds the size of an array (default true)
 
@@ -8801,9 +9202,12 @@ wsid has a value which is a Workspace.ws_id
 name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
 ver has a value which is a Workspace.obj_ver
-ref has a value which is a Workspace.obj_ref
+ref has a value which is a Workspace.ref_string
 obj_path has a value which is a Workspace.ref_chain
 obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+to_obj_path has a value which is a Workspace.ref_chain
+to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+find_reference_path has a value which is a Workspace.boolean
 included has a value which is a reference to a list where each element is a Workspace.object_path
 strict_maps has a value which is a Workspace.boolean
 strict_arrays has a value which is a Workspace.boolean
@@ -8820,9 +9224,12 @@ wsid has a value which is a Workspace.ws_id
 name has a value which is a Workspace.obj_name
 objid has a value which is a Workspace.obj_id
 ver has a value which is a Workspace.obj_ver
-ref has a value which is a Workspace.obj_ref
+ref has a value which is a Workspace.ref_string
 obj_path has a value which is a Workspace.ref_chain
 obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+to_obj_path has a value which is a Workspace.ref_chain
+to_obj_ref_path has a value which is a reference to a list where each element is a Workspace.obj_ref
+find_reference_path has a value which is a Workspace.boolean
 included has a value which is a reference to a list where each element is a Workspace.object_path
 strict_maps has a value which is a Workspace.boolean
 strict_arrays has a value which is a Workspace.boolean
@@ -8860,6 +9267,8 @@ string chsum - the md5 checksum of the object.
 usermeta metadata - arbitrary user-supplied metadata about
         the object.
 obj_id objid - the numerical id of the object.
+
+@deprecated object_info
 
 
 =item Definition
@@ -9148,10 +9557,10 @@ A provenance action.
                 that performed this action. If workspace objects were provided in
                 the command line, also put the object reference in the
                 input_ws_object list.
-        list<obj_ref> input_ws_objects - the workspace objects that
+        list<ref_string> input_ws_objects - the workspace objects that
                 were used as input to this action; typically these will also be
                 present as parts of the method_params or the script_command_line
-                arguments.
+                arguments. A reference path into the object graph may be supplied.
         list<obj_ref> resolved_ws_objects - the workspace objects ids from 
                 input_ws_objects resolved to permanent workspace object references
                 by the workspace service.
@@ -9192,7 +9601,7 @@ method_params has a value which is a reference to a list where each element is a
 script has a value which is a string
 script_ver has a value which is a string
 script_command_line has a value which is a string
-input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 intermediate_incoming has a value which is a reference to a list where each element is a string
 intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -9218,7 +9627,7 @@ method_params has a value which is a reference to a list where each element is a
 script has a value which is a string
 script_ver has a value which is a string
 script_command_line has a value which is a string
-input_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
+input_ws_objects has a value which is a reference to a list where each element is a Workspace.ref_string
 resolved_ws_objects has a value which is a reference to a list where each element is a Workspace.obj_ref
 intermediate_incoming has a value which is a reference to a list where each element is a string
 intermediate_outgoing has a value which is a reference to a list where each element is a string
@@ -9359,6 +9768,10 @@ Input parameters for the "clone_workspace" function.
                 characters max. Longer strings will be mercilessly and brutally
                 truncated.
         usermeta meta - arbitrary user-supplied metadata for the workspace.
+        list<ObjectIdentity> exclude - exclude the specified objects from the
+                cloned workspace. Either an object ID or a object name must be
+                specified in each ObjectIdentity - any supplied reference strings,
+                workspace names or IDs, and versions are ignored.
 
 
 =item Definition
@@ -9372,6 +9785,7 @@ workspace has a value which is a Workspace.ws_name
 globalread has a value which is a Workspace.permission
 description has a value which is a string
 meta has a value which is a Workspace.usermeta
+exclude has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
 
 </pre>
 
@@ -9385,6 +9799,7 @@ workspace has a value which is a Workspace.ws_name
 globalread has a value which is a Workspace.permission
 description has a value which is a string
 meta has a value which is a Workspace.usermeta
+exclude has a value which is a reference to a list where each element is a Workspace.ObjectIdentity
 
 
 =end text
@@ -9401,20 +9816,21 @@ meta has a value which is a Workspace.usermeta
 
 =item Description
 
-Input parameters for the "get_workspacemeta" function. Provided for
-backwards compatibility.
-        
-One, and only one of:
-ws_name workspace - name of the workspace or the workspace ID in KBase
-        format, e.g. kb|ws.78.
-ws_id id - the numerical ID of the workspace.
-        
-Optional arguments:
-string auth - the authentication token of the KBase account accessing
-        the workspace. Overrides the client provided authorization
-        credentials if they exist.
+DEPRECATED
 
-@deprecated Workspace.WorkspaceIdentity
+        Input parameters for the "get_workspacemeta" function. Provided for
+        backwards compatibility.
+
+        One, and only one of:
+        ws_name workspace - name of the workspace.
+        ws_id id - the numerical ID of the workspace.
+                
+        Optional arguments:
+        string auth - the authentication token of the KBase account accessing
+                the workspace. Overrides the client provided authorization
+                credentials if they exist.
+        
+        @deprecated Workspace.WorkspaceIdentity
 
 
 =item Definition
@@ -9457,8 +9873,7 @@ Input parameters for the "set_permissions" function.
 
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
-        ws_name workspace - name of the workspace or the workspace ID in KBase
-                format, e.g. kb|ws.78.
+        ws_name workspace - the name of the workspace.
         
         Required arguments:
         permission new_permission - the permission to assign to the users.
@@ -9507,8 +9922,7 @@ Input parameters for the "set_global_permission" function.
 
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
-        ws_name workspace - name of the workspace or the workspace ID in KBase
-                format, e.g. kb|ws.78.
+        ws_name workspace - the name of the workspace.
         
         Required arguments:
         permission new_permission - the permission to assign to all users,
@@ -9557,8 +9971,7 @@ Input parameters for the "set_workspace_description" function.
 
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
-        ws_name workspace - name of the workspace or the workspace ID in KBase
-                format, e.g. kb|ws.78.
+        ws_name workspace - the name of the workspace.
         
         Optional arguments:
         string description - A free-text description of the workspace, 1000
@@ -9813,8 +10226,7 @@ Input parameters for the "save_objects" function.
 
         One, and only one, of the following is required:
         ws_id id - the numerical ID of the workspace.
-        ws_name workspace - name of the workspace or the workspace ID in KBase
-                format, e.g. kb|ws.78.
+        ws_name workspace - the name of the workspace.
         
         Required arguments:
         list<ObjectSaveData> objects - the objects to save.
@@ -10044,9 +10456,10 @@ The data and supplemental info for an object.
 
         UnspecifiedObject data - the object's data or subset data.
         object_info info - information about the object.
+        list<obj_ref> path - the path to the object through the object reference graph. All the
+                references in the path are absolute.
         list<ProvenanceAction> provenance - the object's provenance.
-        username creator - the user that first saved the object to the
-                workspace.
+        username creator - the user that first saved the object to the workspace.
         ws_id orig_wsid - the id of the workspace in which this object was
                         originally saved. Missing for objects saved prior to version
                         0.4.1.
@@ -10054,7 +10467,7 @@ The data and supplemental info for an object.
                 workspace.
         epoch epoch - the date the object was first saved to the
                 workspace.
-        list<obj_ref> - the references contained within the object.
+        list<obj_ref> refs - the references contained within the object.
         obj_ref copied - the reference of the source object if this object is
                 a copy and the copy source exists and is accessible.
                 null otherwise.
@@ -10076,6 +10489,7 @@ The data and supplemental info for an object.
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info
+path has a value which is a reference to a list where each element is a Workspace.obj_ref
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
 orig_wsid has a value which is a Workspace.ws_id
@@ -10097,6 +10511,7 @@ handle_stacktrace has a value which is a string
 a reference to a hash where the following keys are defined:
 data has a value which is an UnspecifiedObject, which can hold any non-null object
 info has a value which is a Workspace.object_info
+path has a value which is a reference to a list where each element is a Workspace.obj_ref
 provenance has a value which is a reference to a list where each element is a Workspace.ProvenanceAction
 creator has a value which is a Workspace.username
 orig_wsid has a value which is a Workspace.ws_id
@@ -10401,8 +10816,7 @@ Parameters for the 'list_objects' function.
                 recommended that the list is restricted to the workspaces of interest,
                 or the results may be very large:
                 list<ws_id> ids - the numerical IDs of the workspaces of interest.
-                list<ws_name> workspaces - names of the workspaces of interest or the
-                        workspace IDs in KBase format, e.g. kb|ws.78.
+                list<ws_name> workspaces - the names of the workspaces of interest.
                 type_string type - type of the objects to be listed.  Here, omitting
                         version information will find any objects that match the provided
                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
@@ -10443,8 +10857,6 @@ Parameters for the 'list_objects' function.
                         metadata will be null.
                 boolean excludeGlobal - exclude objects in global workspaces. This
                         parameter only has an effect when filtering by types alone.
-                int skip - DEPRECATED. Skip the first X objects. Maximum value is 2^31,
-                        skip values < 0 are treated as 0, the default.
                 int limit - limit the output to X objects. Default and maximum value
                         is 10000. Limit values < 1 are treated as 10000, the default.
 
@@ -10473,7 +10885,6 @@ showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 excludeGlobal has a value which is a Workspace.boolean
-skip has a value which is an int
 limit has a value which is an int
 
 </pre>
@@ -10501,7 +10912,6 @@ showHidden has a value which is a Workspace.boolean
 showAllVersions has a value which is a Workspace.boolean
 includeMetadata has a value which is a Workspace.boolean
 excludeGlobal has a value which is a Workspace.boolean
-skip has a value which is an int
 limit has a value which is an int
 
 
@@ -10587,6 +10997,8 @@ Input parameters for the "get_object_info_new" function.
         boolean ignoreErrors - Don't throw an exception if an object cannot
                 be accessed; return null for that object's information instead.
                 Default false.
+                
+        @deprecated Workspace.GetObjectInfo3Params
 
 
 =item Definition
@@ -10609,6 +11021,98 @@ a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 includeMetadata has a value which is a Workspace.boolean
 ignoreErrors has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 GetObjectInfo3Params
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "get_object_info3" function.
+
+        Required arguments:
+        list<ObjectSpecification> objects - the objects for which the
+                information should be fetched. Subsetting related parameters are
+                ignored.
+        
+        Optional arguments:
+        boolean includeMetadata - include the object metadata in the returned
+                information. Default false.
+        boolean ignoreErrors - Don't throw an exception if an object cannot
+                be accessed; return null for that object's information and path instead.
+                Default false.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+includeMetadata has a value which is a Workspace.boolean
+ignoreErrors has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
+includeMetadata has a value which is a Workspace.boolean
+ignoreErrors has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 GetObjectInfo3Results
+
+=over 4
+
+
+
+=item Description
+
+Output from the get_object_info3 function.
+
+        list<object_info> infos - the object_info data for each object.
+        list<list<obj_ref> paths - the path to the object through the object reference graph for
+                each object. All the references in the path are absolute.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+infos has a value which is a reference to a list where each element is a Workspace.object_info
+paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+infos has a value which is a reference to a list where each element is a Workspace.object_info
+paths has a value which is a reference to a list where each element is a reference to a list where each element is a Workspace.obj_ref
 
 
 =end text

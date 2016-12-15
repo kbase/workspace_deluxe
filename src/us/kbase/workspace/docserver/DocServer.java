@@ -75,7 +75,7 @@ public class DocServer extends HttpServlet {
 		 */
 		JsonServerSyslog templogger = new JsonServerSyslog(
 				DEFAULT_COMPANION_SERVICE_NAME, JsonServerServlet.KB_DEP,
-				JsonServerSyslog.LOG_LEVEL_INFO);
+				JsonServerSyslog.LOG_LEVEL_INFO, false);
 		if (sysLogOut != null) {
 			templogger.changeOutput(sysLogOut);
 		}
@@ -98,7 +98,7 @@ public class DocServer extends HttpServlet {
 			}
 		}
 		logger = new JsonServerSyslog(serverName, JsonServerServlet.KB_DEP,
-				JsonServerSyslog.LOG_LEVEL_INFO);
+				JsonServerSyslog.LOG_LEVEL_INFO, false);
 		if (sysLogOut != null) {
 			logger.changeOutput(sysLogOut);
 		}

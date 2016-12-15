@@ -27,8 +27,8 @@ import com.mongodb.MongoException;
 
 public class QueryMethods {
 	
-	//TODO unit tests
-	//TODO javadocs
+	//TODO TEST unit tests
+	//TODO JAVADOC
 	
 	private final DB wsmongo;
 	private final AllUsers allUsers;
@@ -165,8 +165,10 @@ public class QueryMethods {
 		}
 		fields.add(Fields.WS_NAME);
 		fields.add(Fields.WS_ID);
+		final BasicDBObject q = new BasicDBObject("$or", orquery);
+		q.put(Fields.WS_CLONING, new BasicDBObject("$exists", false));
 		final List<Map<String, Object>> res = queryCollection(
-				workspaceCollection, new BasicDBObject("$or", orquery), fields);
+				workspaceCollection, q, fields);
 		
 		final Map<WorkspaceIdentifier, Map<String, Object>> ret =
 				new HashMap<WorkspaceIdentifier, Map<String,Object>>();
@@ -197,6 +199,7 @@ public class QueryMethods {
 		if (excludeDeletedWorkspaces) {
 			q.put(Fields.WS_DEL, false);
 		}
+		q.put(Fields.WS_CLONING, new BasicDBObject("$exists", false));
 		final List<Map<String, Object>> queryres =
 				queryCollection(workspaceCollection, q, fields);
 		final Map<Long, Map<String, Object>> result =
@@ -243,7 +246,7 @@ public class QueryMethods {
 			}
 		}
 		
-		//TODO This $or query might be better as multiple individual queries, test
+		//TODO PERFORMANCE This $or query might be better as multiple individual queries, test
 		final List<DBObject> orquery = new LinkedList<DBObject>();
 		for (final ResolvedMongoWSID rwsi: names.keySet()) {
 			final DBObject query = new BasicDBObject(Fields.OBJ_WS_ID,
@@ -408,25 +411,28 @@ public class QueryMethods {
 	List<Map<String, Object>> queryCollection(final String collection,
 			final DBObject query, final Set<String> fields)
 			throws WorkspaceCommunicationException {
-		return queryCollection(collection, query, fields, -1);
+		return queryCollection(collection, query, fields, null, -1);
 	}
 	
 	List<Map<String, Object>> queryCollection(final String collection,
-			final DBObject query, final Set<String> fields, final int limit)
+	final DBObject query, final Set<String> fields, final int limit)
+	throws WorkspaceCommunicationException {
+		return queryCollection(collection, query, fields, null, limit);
+	}
+
+	List<Map<String, Object>> queryCollection(
+			final String collection,
+			final DBObject query,
+			final Set<String> fields,
+			// really shouldn't be necessary, but 2.4 sometimes isn't smart
+			final DBObject queryHint,
+			final int limit)
 			throws WorkspaceCommunicationException {
-		final DBObject projection = new BasicDBObject();
-		projection.put(Fields.MONGO_ID, 0);
-		for (final String field: fields) {
-			projection.put(field, 1);
-		}
 		final List<Map<String, Object>> result =
 				new ArrayList<Map<String,Object>>();
 		try {
-			final DBCursor im = wsmongo.getCollection(collection)
-					.find(query, projection);
-			if (limit > 0) {
-				im.limit(limit);
-			}
+			final DBCursor im = queryCollectionCursor(
+					collection, query, fields, queryHint, limit);
 			for (final DBObject o: im) {
 				result.add(dbObjectToMap(o));
 			}
@@ -435,6 +441,35 @@ public class QueryMethods {
 					"There was a problem communicating with the database", me);
 		}
 		return result;
+	}
+	
+	DBCursor queryCollectionCursor(
+			final String collection,
+			final DBObject query,
+			final Set<String> fields,
+			// really shouldn't be necessary, but 2.4 sometimes isn't smart
+			final DBObject queryHint,
+			final int limit)
+			throws WorkspaceCommunicationException {
+		final DBObject projection = new BasicDBObject();
+		projection.put(Fields.MONGO_ID, 0);
+		for (final String field: fields) {
+			projection.put(field, 1);
+		}
+		try {
+			final DBCursor im = wsmongo.getCollection(collection)
+					.find(query, projection);
+			if (limit > 0) {
+				im.limit(limit);
+			}
+			if (queryHint != null) {
+				im.hint(queryHint); //currently mdb only supports 1 index
+			}
+			return im;
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
 	}
 	
 	//since LazyBsonObject.toMap() is not supported

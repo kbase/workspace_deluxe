@@ -34,10 +34,8 @@ import com.mongodb.MongoException;
  */
 public class ObjectInfoUtils {
 	
-	//TODO unit tests
-	//TODO javadoc
-	
-	static final String LATEST_VERSION = "_latestVersion";
+	//TODO TEST unit tests
+	//TODO JAVADOC
 	
 	private final QueryMethods query;
 	
@@ -55,7 +53,7 @@ public class ObjectInfoUtils {
 	
 	private static final Set<String> FLDS_LIST_OBJ = newHashSet(
 			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_HIDE,
-			Fields.OBJ_LATEST, Fields.OBJ_VCNT, Fields.OBJ_WS_ID);
+			Fields.OBJ_VCNT, Fields.OBJ_WS_ID);
 	
 	List<ObjectInformation> filter(
 			final GetObjectInformationParameters params)
@@ -83,7 +81,7 @@ public class ObjectInfoUtils {
 		}
 		final DBObject verq = buildQuery(params);
 		final DBObject projection = buildProjection(params);
-		final DBCursor cur = buildCursor(verq, projection, params.getSkip());
+		final DBCursor cur = buildCursor(verq, projection);
 		
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
@@ -121,18 +119,13 @@ public class ObjectInfoUtils {
 
 	private DBCursor buildCursor(
 			final DBObject verq,
-			final DBObject projection,
-			final int skip)
+			final DBObject projection)
 			throws WorkspaceCommunicationException {
 		final DBCursor cur;
 		try {
 			cur = query.getDatabase().getCollection(
 					query.getVersionCollection())
 					.find(verq, projection);
-			//TODO skip is deprecated, remove when possible
-			if (skip > 0) {
-				cur.skip(skip);
-			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -220,7 +213,7 @@ public class ObjectInfoUtils {
 			ids.put(rm.getID(), rm);
 		}
 		final Map<Long, Set<Long>> verdata = getObjectIDsFromVersions(verobjs);
-		//TODO This $or query might be better as multiple individual queries, test
+		//TODO PERFORMANCE This $or query might be better as multiple individual queries, test
 		final List<DBObject> orquery = new LinkedList<DBObject>();
 		for (final Long wsid: verdata.keySet()) {
 			final DBObject query = new BasicDBObject(Fields.VER_WS_ID, wsid);
@@ -241,7 +234,7 @@ public class ObjectInfoUtils {
 			final long id = (Long) vo.get(Fields.VER_ID);
 			final int ver = (Integer) vo.get(Fields.VER_VER);
 			final Map<String, Object> obj = objdata.get(wsid).get(id);
-			final int lastver = (Integer) obj.get(LATEST_VERSION);
+			final int lastver = (Integer) obj.get(Fields.OBJ_VCNT);
 			final ResolvedMongoWSID rwsi = (ResolvedMongoWSID) ids.get(wsid);
 			boolean isDeleted = (Boolean) obj.get(Fields.OBJ_DEL);
 			if (!includeAllVers && lastver != ver) {
@@ -276,19 +269,19 @@ public class ObjectInfoUtils {
 		return ret;
 	}
 	
-	static MongoObjectInfo generateObjectInfo(
+	static ObjectInformation generateObjectInfo(
 			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
 		return generateObjectInfo(roi.getWorkspaceIdentifier(), roi.getId(),
 				roi.getName(), ver);
 	}
 	
-	static MongoObjectInfo generateObjectInfo(
+	static ObjectInformation generateObjectInfo(
 			final ResolvedMongoWSID rwsi, final long objid, final String name,
 			final Map<String, Object> ver) {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) ver.get(Fields.VER_META);
-		return new MongoObjectInfo(
+		return new ObjectInformation(
 				objid,
 				name,
 				(String) ver.get(Fields.VER_TYPE),
@@ -359,7 +352,6 @@ public class ObjectInfoUtils {
 		for (final Map<String, Object> o: objs) {
 			final long wsid = (Long) o.get(Fields.OBJ_WS_ID);
 			final long objid = (Long) o.get(Fields.OBJ_ID);
-			calcLatestObjVersion(o);
 			if (!ret.containsKey(wsid)) {
 				ret.put(wsid, new HashMap<Long, Map<String, Object>>());
 			}
@@ -368,17 +360,6 @@ public class ObjectInfoUtils {
 		return ret;
 	}
 	
-	static void calcLatestObjVersion(Map<String, Object> m) {
-		final Integer latestVersion;
-		if ((Integer) m.get(Fields.OBJ_LATEST) == null) {
-			latestVersion = (Integer) m.get(Fields.OBJ_VCNT);
-		} else {
-			//TODO check this works with GC
-			latestVersion = (Integer) m.get(Fields.OBJ_LATEST);
-		}
-		m.put(LATEST_VERSION, latestVersion);
-	}
-
 	/* the following methods are duplicated in MongoWorkspaceDB class, but so
 	 * simple not worth worrying about it
 	 */
@@ -400,6 +381,4 @@ public class ObjectInfoUtils {
 		}
 		return set;
 	}
-	
-	
 }

@@ -20,6 +20,21 @@
   <property name="clientjar.file" value="WorkspaceClient.jar"/>
   <property name="war.dir" value="war"/>
 
+  <!--
+   set user, pwd, token for the 3 users to nothing so ommitted properties
+   won't be set as ${test.user3} or whatever. Properties are immutable so
+   this won't overwrite already set properties
+   -->
+  <property name="test.user1" value="" />
+  <property name="test.user2" value="" />
+  <property name="test.user3" value="" />
+  <property name="test.pwd1" value="" />
+  <property name="test.pwd2" value="" />
+  <property name="test.pwd3" value="" />
+  <property name="test.token1" value="" />
+  <property name="test.token2" value="" />
+  <property name="test.token3" value="" />
+
   <property environment="env"/>
   <condition property="jardir" value="../jars/lib/jars/">
     <or>
@@ -32,7 +47,7 @@
   <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
   <property name="jardir" location="${env.JENKINS_JARS_MODULE_PATH}/lib/jars"/>
 
-  <condition property="commonjar" value="kbase/common/kbase-common-0.0.15.jar">
+  <condition property="commonjar" value="kbase/common/kbase-common-0.0.21.jar">
     <or>
       <equals arg1="${env.JENKINS_JAVA_COMMON_JARFILE}" arg2=""/>
       <not>
@@ -40,7 +55,7 @@
       </not>
     </or>
   </condition>
-  <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
+  <!-- Properties in ant are immutable, so the following assignment will only take place if commonjar was not set above. -->
   <property name="commonjar" value="${env.JENKINS_JAVA_COMMON_JARFILE}"/>
 
   <fileset dir="${jardir}" id="sourceslib">
@@ -58,7 +73,7 @@
 
   <fileset dir="${jardir}" id="clientserverlib">
     <include name="junit/junit-4.9.jar"/>
-    <include name="kbase/auth/kbase-auth-0.3.1.jar"/>
+    <include name="kbase/auth/kbase-auth-0.4.2.jar"/>
     <include name="jackson/jackson-annotations-2.2.3.jar"/>
     <include name="jackson/jackson-core-2.2.3.jar"/>
     <include name="jackson/jackson-databind-2.2.3.jar"/>
@@ -66,7 +81,7 @@
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
-    <include name="kbase/shock/shock-client-0.0.10.jar"/>
+    <include name="kbase/shock/shock-client-0.0.14.jar"/>
     <include name="apache_commons/commons-logging-1.1.1.jar"/>
     <include name="apache_commons/http/httpclient-4.3.1.jar"/>
     <include name="apache_commons/http/httpcore-4.3.jar"/>
@@ -81,14 +96,12 @@
     <include name="mongo/mongo-java-driver-2.13.3.jar"/>
     <include name="jongo/jongo-0.5-early-20130912-1506.jar"/>
     <include name="bson4jackson/bson4jackson-2.2.0-2.2.0.jar"/>
-    <include name="easystream/easystream-1.2.13.jar"/>
     <include name="slf4j/slf4j-api-1.7.7.jar"/>
     <include name="logback/logback-core-1.1.2.jar"/>
     <include name="logback/logback-classic-1.1.2.jar"/>
     <include name="google/guava-14.0.1.jar"/>
-    <!-- from github.com/brettin/handle-service -->
-    <include name="kbase/handle/HandleServiceClient-141020-5eda76e.jar"/>
-    <include name="kbase/handle/HandleManagerClient-141020-ff26a5d.jar"/>
+    <include name="kbase/handle/HandleServiceClient-160803-b9de699.jar"/>
+    <include name="kbase/handle/HandleManagerClient-160803-08c8da3.jar"/>
   </fileset>
 	
   <fileset dir="${jardir}" id="testlib">
@@ -96,6 +109,7 @@
     <include name="apache_commons/commons-lang-2.4.jar"/>
     <include name="apache_commons/commons-collections-3.2.1.jar"/>
     <include name="mysql/mysql-connector-java-5.1.22-bin.jar"/>
+    <include name="jsemver/java-semver-0.9.0.jar"/>
   </fileset>
 	
   <union id="serverside">
@@ -157,21 +171,25 @@
     <javac destdir="${client_classes}" includeantruntime="false" target="1.6" source="1.6"
       debug="true" classpathref="compile.classpath">
       <src path="${src}"/>
+      <exclude name="AllWorkspaceTestsRunner.java"/>
       <exclude name="us/kbase/typedobj/**"/>
+      <exclude name="us/kbase/common/**"/>
       <exclude name="us/kbase/workspace/WorkspaceServer.java"/>
       <exclude name="us/kbase/workspace/database/**"/>
+      <exclude name="us/kbase/workspace/docserver/**"/>
       <exclude name="us/kbase/workspace/exceptions/**"/>
       <exclude name="us/kbase/workspace/kbase/**"/>
       <exclude name="us/kbase/workspace/test/**"/>
       <exclude name="us/kbase/workspace/lib/**"/>
     </javac>
     <jar destfile="${dist}/client/${clientjar.file}" basedir="${client_classes}"/>
-  	<delete dir="${client_classes}"/>
+    <delete dir="${client_classes}"/>
   </target>
 
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
     <javac destdir="${classes}" includeantruntime="false"
+      target="1.7" source="1.7"
       debug="true" classpathref="compile.classpath">
       <src path="${src}"/>
     </javac>
@@ -239,6 +257,8 @@
   </target>
 
   <target name="test" depends="compile, preparejunitreportdir" description="run tests">
+    <fail unless="test.auth.url" message="property test.auth.url not set."/>
+    <fail unless="test.globus.url" message="property test.globus.url not set."/>
     <fail unless="test.shock.exe" message="property test.shock.exe not set."/>
     <fail unless="test.shock.version" message="property test.shock.version not set."/>
     <fail unless="test.mongo.exe" message="property test.mongo.exe not set."/>
@@ -250,17 +270,13 @@
     <fail unless="test.handle.manager.psgi" message="property test.handle.manager.psgi not set.}"/>
     <fail unless="test.handle.PERL5LIB" message="property test.handle.PERL5LIB not set.}"/>
     <fail unless="test.temp.dir" message="property test.temp.dir not set."/>
-    <fail unless="test.user1" message="property test.user1 not set."/>
-    <fail unless="test.pwd1" message="property test.pwd1 not set."/>
-    <fail unless="test.user2" message="property test.user2 not set."/>
-    <fail unless="test.pwd2" message="property test.pwd2 not set."/>
-    <fail unless="test.user3" message="property test.user3 not set."/>
-    <fail unless="test.pwd3" message="property test.pwd3 not set."/>
     <echo message="starting ${package} tests"/>
     <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
       <formatter type="xml" usefile="true" if="env.JENKINS_REPORT_DIR"/>
+      <sysproperty key="test.auth.url" value="${test.auth.url}" />
+      <sysproperty key="test.globus.url" value="${test.globus.url}" />
       <sysproperty key="test.shock.exe" value="${test.shock.exe}"/>
       <sysproperty key="test.shock.version" value="${test.shock.version}"/>
       <sysproperty key="test.mongo.exe" value="${test.mongo.exe}"/>
@@ -275,10 +291,13 @@
       <sysproperty key="test.temp.dir.keep" value="${test.temp.dir.keep}"/>
       <sysproperty key="test.user1" value="${test.user1}"/>
       <sysproperty key="test.pwd1" value="${test.pwd1}"/>
+      <sysproperty key="test.token1" value="${test.token1}"/>
       <sysproperty key="test.user2" value="${test.user2}"/>
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
+      <sysproperty key="test.token2" value="${test.token2}"/>
       <sysproperty key="test.user3" value="${test.user3}"/>
       <sysproperty key="test.pwd3" value="${test.pwd3}"/>
+      <sysproperty key="test.token3" value="${test.token3}"/>
       <batchtest todir="${env.JENKINS_REPORT_DIR}">
         <fileset dir="${src}">
           <include name="**/test/**/**Test.java"/>
@@ -289,6 +308,8 @@
   </target>
 
   <target name="test-scripts" depends="compile" description="run tests of scripts">
+    <fail unless="test.auth.url" message="property test.auth.url not set."/>
+    <fail unless="test.globus.url" message="property test.globus.url not set."/>
     <fail unless="test.shock.exe" message="property test.shock.exe not set."/>
     <fail unless="test.shock.version" message="property test.shock.version not set."/>
     <fail unless="test.mongo.exe" message="property test.mongo.exe not set."/>
@@ -300,16 +321,12 @@
     <fail unless="test.handle.manager.psgi" message="property test.handle.manager.psgi not set.}"/>
     <fail unless="test.handle.PERL5LIB" message="property test.handle.PERL5LIB not set.}"/>
     <fail unless="test.temp.dir" message="property test.temp.dir not set."/>
-    <fail unless="test.user1" message="property test.user1 not set."/>
-    <fail unless="test.pwd1" message="property test.pwd1 not set."/>
-    <fail unless="test.user2" message="property test.user2 not set."/>
-    <fail unless="test.pwd2" message="property test.pwd2 not set."/>
-    <fail unless="test.user3" message="property test.user3 not set."/>
-    <fail unless="test.pwd3" message="property test.pwd3 not set."/>
     <echo message="starting ${package} tests"/>
     <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
+      <sysproperty key="test.auth.url" value="${test.auth.url}" />
+      <sysproperty key="test.globus.url" value="${test.globus.url}" />
       <sysproperty key="test.shock.exe" value="${test.shock.exe}"/>
       <sysproperty key="test.shock.version" value="${test.shock.version}"/>
       <sysproperty key="test.mongo.exe" value="${test.mongo.exe}"/>
@@ -324,10 +341,13 @@
       <sysproperty key="test.temp.dir.keep" value="${test.temp.dir.keep}"/>
       <sysproperty key="test.user1" value="${test.user1}"/>
       <sysproperty key="test.pwd1" value="${test.pwd1}"/>
+      <sysproperty key="test.token1" value="${test.token1}"/>
       <sysproperty key="test.user2" value="${test.user2}"/>
       <sysproperty key="test.pwd2" value="${test.pwd2}"/>
+      <sysproperty key="test.token2" value="${test.token2}"/>
       <sysproperty key="test.user3" value="${test.user3}"/>
       <sysproperty key="test.pwd3" value="${test.pwd3}"/>
+      <sysproperty key="test.token3" value="${test.token3}"/>
       <test name="us.kbase.workspace.test.scripts.ScriptTestRunner"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />

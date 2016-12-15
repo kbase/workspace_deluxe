@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,7 +43,8 @@ import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GetNamesByPrefixParams;
 import us.kbase.workspace.GetNamesByPrefixResults;
-import us.kbase.workspace.GetObjectInfoNewParams;
+import us.kbase.workspace.GetObjectInfo3Params;
+import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListAllTypesParams;
@@ -72,6 +74,7 @@ import us.kbase.workspace.WorkspacePermissions;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.zafarkhaja.semver.Version;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -85,7 +88,53 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.4.1"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.6.0"));
+	}
+	
+	public void status() throws Exception {
+		final Map<String, Object> st = CLIENT1.status();
+		System.out.println(st);
+		
+		//top level items
+		assertThat("incorrect state", st.get("state"), is((Object) "OK"));
+		assertThat("incorrect message", st.get("message"), is((Object) "OK"));
+		// should throw an error if not a valid semver
+		Version.valueOf((String) st.get("version")); 
+		assertThat("incorrect git url", st.get("git_url"),
+				is((Object) "https://github.com/kbase/workspace_deluxe"));
+		checkMem(st.get("freemem"), "freemem");
+		checkMem(st.get("totalmem"), "totalmem");
+		checkMem(st.get("maxmem"), "maxmem");
+		
+		//deps
+		@SuppressWarnings("unchecked")
+		final List<Map<String, String>> deps =
+				(List<Map<String, String>>) st.get("dependencies");
+		assertThat("missing dependencies", deps.size(), is(2));
+		
+		final List<String> exp = new ArrayList<String>();
+		exp.add("MongoDB");
+		exp.add("GridFS");
+		final Iterator<String> expiter = exp.iterator();
+		final Iterator<Map<String, String>> gotiter = deps.iterator();
+		while (expiter.hasNext()) {
+			final Map<String, String> g = gotiter.next();
+			assertThat("incorrect name", (String) g.get("name"),
+					is(expiter.next()));
+			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
+			assertThat("incorrect message", g.get("message"),
+					is((Object) "OK"));
+			Version.valueOf((String) g.get("version"));
+		}
+	}
+	
+	private void checkMem(final Object num, final String name)
+			throws Exception {
+		if (num instanceof Integer) {
+			assertThat("bad " + name, (Integer) num > 0, is(true));
+		} else {
+			assertThat("bad " + name, (Long) num > 0, is(true));
+		}
 	}
 	
 	@Test
@@ -176,7 +225,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("created workspace without auth");
 		} catch (UnauthorizedException e) {
 			assertThat("correct exception message", e.getLocalizedMessage(),
-					is("RPC method requires authentication but neither user nor token was set"));
+					is("RPC method requires authentication but credentials " +
+							"were not provided"));
 		}
 	}
 
@@ -221,6 +271,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 		Map<String, String> expected = new HashMap<String, String>();
 		expected.put(USER1, "a");
+		@SuppressWarnings("deprecation")
 		Map<String, String> perms = CLIENT1.getPermissions(new WorkspaceIdentity().withWorkspace("badperms"));
 		assertThat("Bad permissions were added to a workspace", perms, is(expected));
 		
@@ -228,6 +279,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		.withWorkspace("badperms").withNewPermission("n"));
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Test
 	public void permissions() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("permspriv")
@@ -308,7 +360,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("Permissions set correctly", perms, is(expected));
 		
 		//test setting perms on multiple users at same time
-		//TODO add clearCaches method to auth client & use here
+		//TODO TEST add clearCaches method to auth client & use here
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace("permspriv")
 				.withNewPermission("n").withUsers(Arrays.asList(USER2, USER3)));
 		expected.remove(USER2);
@@ -349,6 +401,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withWorkspace("permsglob").withNewPermission("n"));
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Test
 	public void permissionsWithNoCreds() throws Exception {
 		/* Tests the case for getting permissions for a workspace without
@@ -385,6 +438,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withWorkspace("PnoCglob").withNewPermission("n"));
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Test
 	public void badIdent() throws Exception {
 		try {
@@ -441,7 +495,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		//should work 
 		CLIENT1.setPermissions(new SetPermissionsParams()
-				.withWorkspace("kb|ws." + meta.getE1())
+				.withWorkspace(meta.getE2())
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 		
 		try {
@@ -459,9 +513,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is("Workspace name exceeds the maximum length of 255"));
 		}
-		
-		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
-				.withWorkspace(ws).withNewPermission("n"));
 	}
 	
 	@Test
@@ -834,6 +885,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
 				.withMeta(meta2).withType(SAFE_TYPE).withObjid(2L));
 		
+		// tests saving with workspace id instead of name
+		soc.withWorkspace(null).withId(wsid);
 		retmet = CLIENT1.saveObjects(soc);
 		
 		assertThat("num metas correct", retmet.size(), is(1));
@@ -841,7 +894,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		List<ObjectIdentity> loi = new ArrayList<ObjectIdentity>();
 		loi.add(new ObjectIdentity().withRef("saveget/2/1"));
-		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2.ver.1"));
 		loi.add(new ObjectIdentity().withRef(wsid + "/2/1"));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("auto2").withVer(1L));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L).withVer(1L));
@@ -852,7 +904,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.clear();
 		// w/o versions
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
-		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2"));
 		loi.add(new ObjectIdentity().withRef(wsid + "/2"));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("auto2"));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L));
@@ -860,7 +911,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.add(new ObjectIdentity().withWsid(wsid).withObjid(2L));
 		// w/ versions
 		loi.add(new ObjectIdentity().withRef("saveget/2/2"));
-		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid + ".obj.2.ver.2"));
 		loi.add(new ObjectIdentity().withRef(wsid + "/2/2"));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withName("auto2").withVer(2L));
 		loi.add(new ObjectIdentity().withWorkspace("saveget").withObjid(2L).withVer(2L));
@@ -906,49 +956,51 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.set(2, oi);
 		failGetObjects(loi, "Error on ObjectIdentity #3: Unexpected arguments in ObjectIdentity: foo");
 		
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|wss." + wsid).withObjid(2L));
-		failGetObjects(loi, "Error on ObjectIdentity #3: Illegal character in workspace name kb|wss." + wsid + ": |");
+		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(2L));
+		failGetObjects(loi, "Error on ObjectIdentity #3: Illegal character in workspace name kb|ws." + wsid + ": |");
 		
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(-1L));
+		loi.set(2, new ObjectIdentity().withWsid(wsid).withObjid(-1L));
 		failGetObjects(loi, "Error on ObjectIdentity #3: Object id must be > 0");
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(0L));
+		loi.set(2, new ObjectIdentity().withWsid(wsid).withObjid(1L).withVer(0L));
 		failGetObjects(loi, "Error on ObjectIdentity #3: Object version must be > 0");
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(1L).withVer(Integer.MAX_VALUE + 1L));
+		loi.set(2, new ObjectIdentity().withWsid(wsid).withObjid(1L).withVer(Integer.MAX_VALUE + 1L));
 		failGetObjects(loi, "Error on ObjectIdentity #3: Maximum object version is " + Integer.MAX_VALUE);
 		
 		loi.set(2, new ObjectIdentity().withWorkspace("ultrafakeworkspace").withObjid(1L).withVer(1L));
 		failGetObjects(loi, "Object 1 cannot be accessed: No workspace with name ultrafakeworkspace exists");
 		loi.set(2, new ObjectIdentity().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
 		failGetObjects(loi, "Object 1 cannot be accessed: No workspace with id 20000000000000000 exists");
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
-		failGetObjects(loi, "No object with id 300 exists in workspace " + wsid);
-		loi.set(2, new ObjectIdentity().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
-		failGetObjects(loi, "No object with name ultrafakeobj exists in workspace " + wsid);
+		loi.set(2, new ObjectIdentity().withWsid(wsid).withObjid(300L).withVer(1L));
+		failGetObjects(loi, "No object with id 300 exists in workspace 1 (name saveget)");
+		loi.set(2, new ObjectIdentity().withWsid(wsid).withName("ultrafakeobj").withVer(1L));
+		failGetObjects(loi, "No object with name ultrafakeobj exists in workspace 1 " +
+				"(name saveget)");
 		
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("setgetunreadableto1"));
 		loi.set(2, new ObjectIdentity().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
 		failGetObjects(loi, "Object 1 cannot be accessed: User " + USER1 + " may not read workspace setgetunreadableto1");
 		
 		//test get_object_info w/o errors
-		GetObjectInfoNewParams p = new GetObjectInfoNewParams().withObjects(Arrays.asList(toObjSpec(loi.get(0))));
+		GetObjectInfo3Params p = new GetObjectInfo3Params().withObjects(
+				Arrays.asList(toObjSpec(loi.get(0))));
 		p.setAdditionalProperties("wooga", "foo");
-		failGetObjectInfoNew(p, "Unexpected arguments in GetObjectInfoNewParams: wooga");
-		failGetObjectInfoNew(new GetObjectInfoNewParams().withObjects(null),
+		failGetObjectInfo(p, "Unexpected arguments in GetObjectInfo3Params: wooga");
+		failGetObjectInfo(new GetObjectInfo3Params().withObjects(null),
 				"The object specification list cannot be null");
 		
 		List<ObjectSpecification> nullloi = new ArrayList<ObjectSpecification>();
 		nullloi.add(new ObjectSpecification().withWorkspace("ultrafakeworkspace").withObjid(1L).withVer(1L));
 		nullloi.add(new ObjectSpecification().withWsid(20000000000000000L).withObjid(1L).withVer(1L));
 		nullloi.add(new ObjectSpecification().withRef("saveget/2"));
-		nullloi.add(new ObjectSpecification().withWorkspace("kb|ws." + wsid).withObjid(300L).withVer(1L));
-		nullloi.add(new ObjectSpecification().withRef("kb|ws." + wsid + ".obj.2"));
+		nullloi.add(new ObjectSpecification().withWsid(wsid).withObjid(300L).withVer(1L));
 		nullloi.add(new ObjectSpecification().withRef(wsid + "/2"));
-		nullloi.add(new ObjectSpecification().withWorkspace("kb|ws." + wsid).withName("ultrafakeobj").withVer(1L));
+		nullloi.add(new ObjectSpecification().withWsid(wsid).withName("ultrafakeobj").withVer(1L));
 		nullloi.add(new ObjectSpecification().withWorkspace("setgetunreadableto1").withObjid(1L).withVer(1L));
 		
-		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> nullret =
-				CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(nullloi)
-				.withIgnoreErrors(1L).withIncludeMetadata(1L));
+		GetObjectInfo3Results nullret3 = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(nullloi).withIgnoreErrors(1L).withIncludeMetadata(1L));
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> nullret = nullret3.getInfos();
 		
 		assertNull("Got object info when expected null", nullret.get(0));
 		assertNull("Got object info when expected null", nullret.get(1));
@@ -957,10 +1009,28 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertNull("Got object info when expected null", nullret.get(3));
 		checkInfo(nullret.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
-		checkInfo(nullret.get(5), 2, "auto2", SAFE_TYPE, 2, USER1,
-				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret.get(5));
 		assertNull("Got object info when expected null", nullret.get(6));
-		assertNull("Got object info when expected null", nullret.get(7));
+		final List<String> targetPath = Arrays.asList(wsid + "/2/2");
+		assertThat("incorrect paths", nullret3.getPaths(), is(Arrays.asList(
+				null, null, targetPath, null, targetPath, null, null)));
+		
+		@SuppressWarnings("deprecation")
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> nullret2 = CLIENT1.getObjectInfoNew(
+						new us.kbase.workspace.GetObjectInfoNewParams()
+								.withObjects(nullloi).withIgnoreErrors(1L)
+								.withIncludeMetadata(1L));
+		
+		assertNull("Got object info when expected null", nullret2.get(0));
+		assertNull("Got object info when expected null", nullret2.get(1));
+		checkInfo(nullret2.get(2), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret2.get(3));
+		checkInfo(nullret2.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret2.get(5));
+		assertNull("Got object info when expected null", nullret2.get(6));
 		
 		List<ObjectData> nullobj = CLIENT1.getObjects2(new GetObjects2Params()
 			.withObjects(nullloi).withIgnoreErrors(1L)).getData();
@@ -972,10 +1042,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertNull("Got object info when expected null", nullobj.get(3));
 		checkData(nullobj.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
-		checkData(nullobj.get(5), 2, "auto2", SAFE_TYPE, 2, USER1,
-				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
+		assertNull("Got object info when expected null", nullobj.get(5));
 		assertNull("Got object info when expected null", nullobj.get(6));
-		assertNull("Got object info when expected null", nullobj.get(7));
 		
 		CLIENT2.setPermissions(new SetPermissionsParams().withNewPermission("r")
 				.withUsers(Arrays.asList(USER1)).withWorkspace("setgetunreadableto1"));
@@ -986,8 +1054,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		nullloi.set(5, new ObjectSpecification().withWorkspace("setgetunreadableto1")
 				.withName("foo"));
 		
-		nullret = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(nullloi)
+		nullret3 = CLIENT1.getObjectInfo3(new GetObjectInfo3Params().withObjects(nullloi)
 				.withIgnoreErrors(1L).withIncludeMetadata(1L));
+		nullret = nullret3.getInfos();
 		
 		assertNull("Got object info when expected null", nullret.get(0));
 		assertNull("Got object info when expected null", nullret.get(1));
@@ -997,7 +1066,23 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
 		assertNull("Got object info when expected null", nullret.get(5));
 		assertNull("Got object info when expected null", nullret.get(6));
-		assertNull("Got object info when expected null", nullret.get(7));
+		assertThat("incorrect paths", nullret3.getPaths(), is(Arrays.asList(
+				null, null, null, null, targetPath, null, null)));
+		
+		@SuppressWarnings("deprecation")
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> nullret2_2 = CLIENT1.getObjectInfoNew(
+						new us.kbase.workspace.GetObjectInfoNewParams().withObjects(nullloi)
+						.withIgnoreErrors(1L).withIncludeMetadata(1L));
+		
+		assertNull("Got object info when expected null", nullret2_2.get(0));
+		assertNull("Got object info when expected null", nullret2_2.get(1));
+		assertNull("Got object info when expected null", nullret2_2.get(2));
+		assertNull("Got object info when expected null", nullret2_2.get(3));
+		checkInfo(nullret.get(4), 2, "auto2", SAFE_TYPE, 2, USER1,
+				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2);
+		assertNull("Got object info when expected null", nullret2_2.get(5));
+		assertNull("Got object info when expected null", nullret2_2.get(6));
 
 		nullobj = CLIENT1.getObjects2(new GetObjects2Params().withObjects(nullloi)
 				.withIgnoreErrors(1L)).getData();
@@ -1010,7 +1095,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		assertNull("Got object info when expected null", nullobj.get(5));
 		assertNull("Got object info when expected null", nullobj.get(6));
-		assertNull("Got object info when expected null", nullobj.get(7));
 	}
 	
 	@Test
@@ -1070,7 +1154,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				conn.setConnectTimeout(10000);
 				conn.setDoOutput(true);
 				conn.setRequestMethod("POST");
-				conn.setRequestProperty("Authorization", CLIENT1.getToken().toString());
+				conn.setRequestProperty("Authorization",
+						CLIENT1.getToken().getToken());
 				conn.getOutputStream().write(breq);
 				conn.getResponseCode();
 				InputStream is = conn.getInputStream();
@@ -1198,9 +1283,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkListObjectsDep("depsave", null, null, AUTH_USER2.getTokenString(), Arrays.asList(obj1, obj3));
 		
 		String invalidToken = AUTH_USER2.getTokenString() + "a";
-		String invalidTokenExp = "Token is invalid";
 		String badFormatToken = "borkborkbork";
-		String badFormatTokenExp = "Auth token is in the incorrect format, near 'borkborkbork'";
+		// old auth service
+		String invalidTokenExp =
+				"Login failed! Server responded with code 401 UNAUTHORIZED";
+		String badFormatTokenExp = "Login failed! Invalid token";
+		// new auth service
+//		String invalidTokenExp =
+//				"Login failed! Server responded with code 401 Unauthorized";
+//		String badFormatTokenExp = invalidTokenExp;
+		
 		
 		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()
 				.withWorkspace("depsave").withAuth(invalidToken),
@@ -1501,7 +1593,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
-	public void saveBigMeta() throws Exception {
+	public void metadataBig() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta"));
 
 		Map<String, Object> moredata = new HashMap<String, Object>();
@@ -1579,13 +1671,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.saveObjects(soc);
 		data.clear();
 		Set<String> expectedRefs = new HashSet<String>();
-		data.put("ref1", "kb|ws." + wsid + ".obj.1");
+		data.put("ref1", wsid + "/1");
 		expectedRefs.add(wsid + "/1/3");
-		data.put("ref2", "kb|ws." + wsid + ".obj.1.ver.2");
+		data.put("ref2", wsid + "/1/2");
 		expectedRefs.add(wsid + "/1/2");
-		data.put("ref3", "kb|ws." + wsid + ".obj.2");
+		data.put("ref3", wsid + "/2");
 		expectedRefs.add(wsid + "/2/1");
-		data.put("ref4", "kb|ws." + wsid + ".obj.2.ver.1");
+		data.put("ref4", wsid + "/2/1");
 		expectedRefs.add(wsid + "/2/1");
 		objects.clear();
 		objects.add(new ObjectSaveData().withData(new UObject(data))
@@ -1603,7 +1695,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("correct refs returned", new HashSet<String>(od.getRefs()),
 				is(expectedRefs));
 		
-		data.put("ref5", "kb|ws." + wsid + ".obj.3");
+		data.put("ref5", wsid + "/3");
 		assertThat("test param hasn't changed", MAX_UNIQUE_IDS_PER_CALL, is(4));
 		try {
 			CLIENT1.saveObjects(soc);
@@ -1620,7 +1712,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("delundel")
 				.withDescription("foo"));
 		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("delundel");
-		long wsid = CLIENT1.getWorkspaceInfo(wsi).getE1();
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
@@ -1636,7 +1727,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkData(loi, data);
 		CLIENT1.deleteObjects(loi);
 		
-		failGetObjects(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name delundel) " +
+				"has been deleted");
 
 		CLIENT1.undeleteObjects(loi);
 		checkData(loi, data);
@@ -1657,7 +1749,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				is("foo"));
 		CLIENT1.deleteObjects(loi);
 		
-		failGetObjects(loi, "Object 1 (name myname) in workspace " + wsid + " has been deleted");
+		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name delundel) " +
+				"has been deleted");
 
 		CLIENT1.saveObjects(soc);
 		checkData(loi, data);
@@ -1788,9 +1881,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfoAndData(objs.get(1), copystack.get(1), "newclone", wsinfo.getE1(), "myname", 1L, 2);
 		
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> wsinfo2 =
-				CLIENT1.cloneWorkspace(new CloneWorkspaceParams().withWorkspace("newclone2").withWsi(wssrc));
+				CLIENT1.cloneWorkspace(new CloneWorkspaceParams()
+					.withWorkspace("newclone2").withWsi(wssrc)
+					.withExclude(new LinkedList<ObjectIdentity>()));
 		checkWS(wsinfo2, wsinfo2.getE1(), wsinfo2.getE4(), "newclone2", USER1, 1, "a", "n", "unlocked", null, MT_META);
 		
+		wsinfo = CLIENT1.cloneWorkspace(new CloneWorkspaceParams()
+					.withWorkspace("newclone3").withWsi(wssrc)
+					.withExclude(Arrays.asList(new ObjectIdentity().withObjid(1L))));
+		assertThat("object exist in excluded clone", wsinfo.getE5(), is(0L));
 		
 		CloneWorkspaceParams cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity().withWorkspace("newclone"))
 				.withWorkspace("fake");
@@ -1811,6 +1910,19 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		} catch (ServerException se) {
 			assertThat("correct exception msg", se.getLocalizedMessage(),
 					is("globalread must be n or r"));
+		}
+		
+		cpo = new CloneWorkspaceParams().withWsi(new WorkspaceIdentity()
+				.withWorkspace("newclone"))
+				.withExclude(Arrays.asList(new ObjectIdentity().withName("bar"),
+						new ObjectIdentity().withName("foo")
+						.withObjid(1L)));
+		try {
+			CLIENT1.cloneWorkspace(cpo);
+			fail("cloned with bad params");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getLocalizedMessage(),
+					is("Error with excluded object #2: Must provide one and only one of object name (was: foo) or id (was: 1)"));
 		}
 	}
 	
@@ -1869,8 +1981,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				CLIENT1.renameObject(new RenameObjectParams().withNewName("mynewname")
 				.withObj(new ObjectIdentity().withRef("renameObj/1")));
 		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
-		info = CLIENT1.getObjectInfoNew(new GetObjectInfoNewParams().withObjects(
-				Arrays.asList(new ObjectSpecification().withWorkspace("renameObj").withObjid(1L)))).get(0);
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params().withObjects(
+				Arrays.asList(new ObjectSpecification().withWorkspace("renameObj").withObjid(1L))))
+				.getInfos().get(0);
 		checkInfo(info, 1, "mynewname", SAFE_TYPE, 1, USER1, wsid, "renameObj", "99914b932bd37a50b983c5e7c90ae93b", 2, null);
 		RenameObjectParams rop = new RenameObjectParams().withNewName("mynewname2")
 				.withObj(new ObjectIdentity().withRef("renameObj/1"));
@@ -1977,7 +2090,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failHideUnHide(new ObjectIdentity().withWorkspace("hideObj"),
 				"Error on ObjectIdentity #1: Must provide one and only one of object name (was: null) or id (was: null)");
 		failHideUnHide(new ObjectIdentity().withWorkspace("hideObj").withName("wootwoot"),
-				"No object with name wootwoot exists in workspace " + wsid);
+				"No object with name wootwoot exists in workspace 1 (name hideObj)");
 	}
 
 	@Test
@@ -2369,7 +2482,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
-	public void listObjectsPagination() throws Exception {
+	public void listObjectsLimit() throws Exception {
 		String ws = "pagination";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws));
 		
@@ -2382,19 +2495,15 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(objs));
 		
 		//this depends on the natural sort order of mongo
-		checkObjectPagination(ws, null, null, 1, 200);
-		checkObjectPagination(ws, -1L, 0L, 1, 200);
-		checkObjectPagination(ws, -1L, 50L, 1, 50);
-		checkObjectPagination(ws, 100L, 50L, 101, 150);
-		checkObjectPagination(ws, 100L, 100L, 101, 200);
-		checkObjectPagination(ws, 150L, 100L, 151, 200);
-		checkObjectPagination(ws, 150L, 1L, 151, 151);
-		checkObjectPagination(ws, 200L, -1L, 2, 1); //hack
+		checkObjectPagination(ws, null, 1, 200);
+		checkObjectPagination(ws, 0L, 1, 200);
+		checkObjectPagination(ws, 1L, 1, 1);
+		checkObjectPagination(ws, 50L, 1, 50);
+		checkObjectPagination(ws, 200L, 1, 200);
+		checkObjectPagination(ws, 201L, 1, 200);
 		
 		failListObjects(Arrays.asList(ws), null, null, null, null, 0L, 0L,
-				0L, 0L, 4000000000L, 1L, "Skip can be no greater than 2147483647");
-		failListObjects(Arrays.asList(ws), null, null, null, null, 0L, 0L,
-				0L, 0L, 1L, 4000000000L, "Limit can be no greater than 2147483647");
+				0L, 0L, 4000000000L, "Limit can be no greater than 2147483647");
 	}
 	
 	@Test
@@ -2527,6 +2636,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 	}
 
+	@Test
 	public void getNamesByPrefix() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws1"));
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws2")
@@ -2638,7 +2748,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		ObjectData odn = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(
 				new ObjectSpecification().withRef("subdata/1")
-				.withIncluded(Arrays.asList("/map/id1", "/map/id3"))))).getData().get(0);
+				.withStrictMaps(0L)
+				.withIncluded(Arrays.asList(
+						"/map/id1", "/map/id3", "/map/id4")))))
+				.getData().get(0);
 		Map<String, Object> expdata = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
 				"					  \"thing\": \"foo\"}," +
@@ -2653,6 +2766,18 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkData(odn, 1, "std", SAFE_TYPE, 1, USER1, info1.getE1(), "subdata",
 				md5, 119, new HashMap<String, String>(),
 				expdata);
+		
+		try {
+			CLIENT1.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
+					new ObjectSpecification().withRef("subdata/1")
+					.withStrictMaps(1L)
+					.withIncluded(Arrays.asList("/map/id1", "/map/id4")))));
+			fail("got objects with bad params");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(),
+					is("Invalid selection: data does not contain a field or " +
+							"key named 'id4', at: /map/id4"));
+		}
 		
 		try {
 			@SuppressWarnings({ "deprecation", "unused" })
@@ -2725,8 +2850,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		ObjectData od2n = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(
-				new ObjectSpecification().withRef("subdata/2").withStrictArrays(0L)
-				.withIncluded(Arrays.asList("/features/2", "/features/3")))))
+				new ObjectSpecification().withRef("subdata/2")
+						.withStrictArrays(0L)
+						.withIncluded(Arrays.asList(
+								"/features/2", "/features/3", "/bar")))))
 				.getData().get(0);
 		Map<String, Object> od2nmap = od2n.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
 		Assert.assertEquals(1, od2nmap.size());
@@ -2771,7 +2898,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.set(0, new ObjectIdentity().withRef("referingobjs/std/2"));
 		try {
 			@SuppressWarnings({ "deprecation", "unused" })
-			List<Long> refcnts2 = CLIENT1.listReferencingObjectCounts(loi);
+			List<Long> foo = CLIENT1.listReferencingObjectCounts(loi);
 			fail("got ref counts with bad obj id");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
@@ -2820,9 +2947,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		 * obj ref = 1
 		 * obj prov = 2
 		 */
-		
-		getReferencedObjectsCheckData(exp);
-		
+		try {
+			getReferencedObjectsCheckData(exp);
+		} catch (ServerException e) {
+			System.out.println(e.getData());
+			throw e;
+		}
 		
 		try {
 			CLIENT1.getObjects2(new GetObjects2Params().withObjects(Arrays.asList(
@@ -2832,7 +2962,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("get objects with bad params");
 		} catch (ServerException se) {
 			assertThat("wrong exception message", se.getLocalizedMessage(),
-					is("Error on ObjectSpecification #1: Only one of an object reference path or an object path may be specified"));
+					is("Error on ObjectSpecification #1: Only one of the 6 " +
+							"options for specifying an object reference " +
+							"path is allowed"));
 		}
 		
 		failGetReferencedObjects(null, "refChains may not be null");
@@ -2847,7 +2979,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"))),
 				"Error on object chain #1: The minimum size of a reference chain is 2 ObjectIdentities");
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"), null)),
-				"Error on object chain #1: Error on ObjectIdentity #2: ObjectIdentities cannot be null");
+				"Error on object chain #1: Error on ObjectIdentity #2: ObjectIdentity cannot be null");
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref").withName("foo"),
 				new ObjectIdentity().withRef("referenced/ref"))),
 				"Error on object chain #1: Error on ObjectIdentity #1: Object reference referenced/ref provided; cannot provide any other means of identifying an object. Object name: foo");
@@ -2859,13 +2991,19 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referencedPriv").withName("one"),
 				new ObjectIdentity().withRef("referencedPriv/two"))), "Object one cannot be accessed: User " + USER1 + " may not read workspace referencedPriv");
-		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referenced").withName("ref"),
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(
+				new ObjectIdentity().withWorkspace("referenced").withName("ref"),
 				new ObjectIdentity().withRef("referencedPrivfake/two"))),
-				"Reference chain #1, position 1: Object ref in workspace referenced does not contain a reference to object two in workspace referencedPrivfake");
+				"Reference path #1 starting with object ref in workspace referenced, position " +
+				"1: Object ref in workspace referenced does not contain a reference to object " +
+				"two in workspace referencedPrivfake");
 		
-		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace("referenced").withName("ref"),
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(
+				new ObjectIdentity().withWorkspace("referenced").withName("ref"),
 				new ObjectIdentity().withRef("referencedPriv/three"))),
-				"Reference chain #1, position 1: Object ref in workspace referenced does not contain a reference to object three in workspace referencedPriv");
+				"Reference path #1 starting with object ref in workspace referenced, position " +
+				"1: Object ref in workspace referenced does not contain a reference to object " +
+				"three in workspace referencedPriv");
 
 		CLIENT2.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("referencedPriv/one"),
 				new ObjectIdentity().withRef("referencedPriv/two")));
@@ -2873,15 +3011,122 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		getReferencedObjectsCheckData(exp);
 		
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("referenced/ref")));
-		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+		failGetReferencedObjects(Arrays.asList(Arrays.asList(
+				new ObjectIdentity().withRef("referenced/ref"),
 				new ObjectIdentity().withRef("referencedPriv/one"))),
-				"Object ref in workspace referenced has been deleted");
+				"Object 1 (name ref) in workspace 1 (name referenced) has been deleted");
 		CLIENT1.deleteWorkspace(new WorkspaceIdentity().withWorkspace("referenced"));
 		failGetReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
 				new ObjectIdentity().withRef("referencedPriv/one"))),
 				"Object ref cannot be accessed: Workspace referenced is deleted");
 	}
 
+	@SuppressWarnings("deprecation")
+	protected void getReferencedObjectsCheckData(final List<ObjectData> exp)
+			throws Exception {
+		
+		//test get refed objs
+		List<ObjectData> res = CLIENT1.getReferencedObjects(Arrays.asList(
+				Arrays.asList(new ObjectIdentity().withRef("referenced/ref"),
+						new ObjectIdentity().withRef("referencedPriv/one")),
+				Arrays.asList(new ObjectIdentity().withRef("referenced/prov"),
+						new ObjectIdentity().withRef("referencedPriv/two"))));
+		compareData(exp, res);
+		
+		// test getobjs2 and getinfo with full ref path
+		final List<ObjectSpecification> fullreflist = Arrays.asList(
+				new ObjectSpecification()
+						.withRef(" referenced/ref; \nreferencedPriv/one ; "),
+				new ObjectSpecification()
+						.withRef("referenced/prov;referencedPriv/two"));
+		res = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(fullreflist)).getData();
+		compareData(exp, res);
+
+		final List<List<String>> paths = Arrays.asList(Arrays.asList("1/1/1", "2/1/1"),
+				Arrays.asList("1/2/1", "2/2/1"));
+		GetObjectInfo3Results info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+							.withObjects(fullreflist).withIncludeMetadata(1L));
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
+		
+		// test getobjs2 and getinfo with to ref path
+		final List<ObjectSpecification> toreflist = Arrays.asList(
+				new ObjectSpecification().withRef("referencedPriv/one")
+						.withToObjRefPath(Arrays.asList("referenced/ref")),
+				new ObjectSpecification().withRef("referencedPriv/two")
+						.withToObjRefPath(Arrays.asList("referenced/prov")));
+		res = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(toreflist)).getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+						.withObjects(toreflist).withIncludeMetadata(1L));
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
+		
+		// test getobjs2 and getinfo with from ref path
+		final List<ObjectSpecification> reflist = Arrays.asList(
+				new ObjectSpecification().withRef("referenced/ref").withObjRefPath(
+						Arrays.asList("referencedPriv/one")),
+				new ObjectSpecification().withRef("referenced/prov").withObjRefPath(
+						Arrays.asList("referencedPriv/two")));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(reflist))
+				.getData();
+		compareData(exp, res);
+
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+						.withObjects(reflist).withIncludeMetadata(1L));
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
+		
+
+		// test getobjs2 and getinfo with to obj path
+		final List<ObjectSpecification> torefobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referencedPriv/one")
+						.withToObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referenced/ref"))),
+				new ObjectSpecification().withRef("referencedPriv/two")
+						.withToObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referenced/prov"))));
+		res = CLIENT1.getObjects2(new GetObjects2Params()
+				.withObjects(torefobjlist)).getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(torefobjlist).withIncludeMetadata(1L));
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
+		
+		// test getobjs2 and getinfo with from obj path
+		final List<ObjectSpecification> refobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referenced/ref")
+						.withObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referencedPriv/one"))),
+				new ObjectSpecification().withRef("referenced/prov")
+						.withObjPath(Arrays.asList(new ObjectIdentity()
+								.withRef("referencedPriv/two"))));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(refobjlist)).getData();
+		compareData(exp, res);
+		
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(refobjlist).withIncludeMetadata(1L));
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
+		
+		// test getobjs2 and getinfo with automatic lookup
+		final List<ObjectSpecification> searchobjlist = Arrays.asList(
+				new ObjectSpecification().withRef("referencedPriv/one").withFindReferencePath(1L),
+				new ObjectSpecification().withRef("referencedPriv/two").withFindReferencePath(1L));
+		res = CLIENT1.getObjects2(new GetObjects2Params().withObjects(searchobjlist)).getData();
+		compareData(exp, res);
+
+		info = CLIENT1.getObjectInfo3(new GetObjectInfo3Params()
+				.withObjects(searchobjlist).withIncludeMetadata(1L));
+		compareInfo(info.getInfos(), exp);
+		assertThat("incorrect paths", info.getPaths(), is(paths));
+	}
+	
 	@Test
 	public void adminAddRemoveList() throws Exception {
 		checkAdmins(CLIENT2, Arrays.asList(USER2));
@@ -3100,12 +3345,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		adminParams.put("params", ws);
 		@SuppressWarnings("unchecked")
 		Map<String, String> res = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
-		assertThat("admin gets correct params", res, is(CLIENT1.getPermissions(ws)));
+		assertThat("admin gets correct params", res, is(CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0)));
 		
 		adminParams.put("user", USER2);
 		@SuppressWarnings("unchecked")
 		Map<String, String> res2 = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
-		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissions(ws)));
+		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissionsMass(gPM(ws)).getPerms().get(0)));
 		
 		adminParams.put("user", "thisisacrazykbaseuserthatdoesntexistforsure");
 		failAdmin(CLIENT2, adminParams, "User thisisacrazykbaseuserthatdoesntexistforsure is not a valid user");
@@ -3121,14 +3366,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		Map<String, String> expected = new HashMap<String, String>();
 		expected.put(USER1, "a");
-		assertThat("admin set global perm correctly", CLIENT1.getPermissions(ws),
+		assertThat("admin set global perm correctly", CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0),
 				is(expected));
 		
 		adminParams.put("params", new SetGlobalPermissionsParams()
 				.withWorkspace(wsstr).withNewPermission("r"));
 		CLIENT2.administer(new UObject(adminParams));
 		expected.put("*", "r");
-		assertThat("admin set global perm correctly", CLIENT1.getPermissions(ws),
+		assertThat("admin set global perm correctly", CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0),
 				is(expected));
 		
 		adminParams.put("user", USER2);
@@ -3139,7 +3384,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 		CLIENT2.administer(new UObject(adminParams));
 		expected.put(USER2, "w");
-		assertThat("admin set perm correctly", CLIENT1.getPermissions(ws),
+		assertThat("admin set perm correctly", CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0),
 				is(expected));
 		
 		Map<String, Object> setWSownerParams = new HashMap<String, Object>();
@@ -3162,6 +3407,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception", se.getMessage(),
 					is("newUser cannot be null"));
 		}
+	}
+
+	private GetPermissionsMassParams gPM(WorkspaceIdentity ws) {
+		return new GetPermissionsMassParams().withWorkspaces(Arrays.asList(ws));
 	}
 	
 	@Test
@@ -3317,27 +3566,50 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	public void testSpecSync() throws Exception {
 		CLIENT1.requestModuleOwnership("DepModule");
 		administerCommand(CLIENT2, "approveModRequest", "module", "DepModule");
-		String urlForSrv2 = "http://localhost:" + SERVER2.getServerPort();
-		ModuleVersions vers = CLIENT_FOR_SRV2.listModuleVersions(
+		final String urlForSrv2 = "http://localhost:" + SERVER2.getServerPort();
+		final ModuleVersions vers = CLIENT_FOR_SRV2.listModuleVersions(
 				new ListModuleVersionsParams().withMod("DepModule"));
-		long lastVer = CLIENT_FOR_SRV2.getModuleInfo(
-				new GetModuleInfoParams().withMod("DepModule")).getVer();
+		final String excStart = "Can not find local module SomeModule synchronized with " +
+				"external version";
+		//TODO TEST restore this part of the test when the MD5s are the same whether run in eclipse or via ant test
+//		final String excEnd = "(md5=b38fc31dbccc829bba38a59e313c564e)";
+		/* the first two versions of DepModule don't have the necessary version of SomeModule
+		 * registered on server 1, and so registration will fail. version 3+ will succeed.
+		 */
+		int count = 0;
 		for (long ver : vers.getVers()) {
 			boolean ok = true;
 			try {
 				CLIENT1.registerTypespecCopy(new RegisterTypespecCopyParams()
 					.withExternalWorkspaceUrl(urlForSrv2).withMod("DepModule")
 					.withVersion(ver));
-			} catch (Exception ignore) {
+			} catch (Exception e) {
 				ok = false;
+				if (count < 2) {
+					assertThat(String.format("Count %s: Incorrect exception start. Msg: %s",
+							count, e.getMessage()), e.getMessage().startsWith(excStart), is(true));
+					//TODO TEST restore this part of the test when the MD5s are the same whether run in eclipse or via ant test
+//					assertThat(String.format("Count %s: Incorrect exception end. Msg: %s",
+//							count, e.getMessage()), e.getMessage().endsWith(excEnd), is(true));
+				} else {
+					fail(String.format("Got exception when expected success on count %s: %s",
+							count, e));
+				}
 			}
-			Assert.assertEquals(ver == lastVer, ok);
 			if (ok) {
+				if (count < 2) {
+					fail("Register succeeded when fail expected on count " + count);
+				}
+				final String type = "DepModule.BType-" + (count - 1) + ".0";
 				CLIENT1.releaseModule("DepModule");
-				Assert.assertTrue(CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod(
-						"DepModule")).getTypes().containsKey("DepModule.BType-1.0"));
+				final Set<String> types = CLIENT1.getModuleInfo(
+						new GetModuleInfoParams().withMod("DepModule")).getTypes().keySet();
+				assertThat("Incorrect types on count " + count, types,
+						is((Set<String>) new HashSet<>(Arrays.asList(type))));
 			}
+			count++;
 		}
+		assertThat("incorrect number of specs processed", count, is(4));
 	}
 	
 	@Test

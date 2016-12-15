@@ -24,11 +24,11 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.core.ObjectPaths;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
-import us.kbase.workspace.database.ObjIDWithChainAndSubset;
+import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
@@ -180,17 +180,20 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		WorkspaceObjectData wod = ws.getObjects(userfoo,
 				Arrays.asList(new ObjectIdentifier(wspace, "auto10001")))
 				.get(0);
-		
-		@SuppressWarnings("unchecked")
-		Map<String, Object> ret = (Map<String, Object>) wod.getData();
-		@SuppressWarnings("unchecked")
-		Map<String, String> retrefs = (Map<String, String>) ret.get("map");
-		for (Entry<String, String> es: retrefs.entrySet()) {
-			long expected = Long.parseLong(es.getValue().split(" ")[1]);
-			ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(es.getKey());
-			assertThat("reference ws is correct", oi.getWorkspaceIdentifier().getId(), is(wsid));
-			assertThat("reference id is correct", oi.getId(), is(expected));
-			assertThat("reference ver is correct", oi.getVersion(), is(1));
+		try {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> ret = (Map<String, Object>) getData(wod);
+			@SuppressWarnings("unchecked")
+			Map<String, String> retrefs = (Map<String, String>) ret.get("map");
+			for (Entry<String, String> es: retrefs.entrySet()) {
+				long expected = Long.parseLong(es.getValue().split(" ")[1]);
+				ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(es.getKey());
+				assertThat("reference ws is correct", oi.getWorkspaceIdentifier().getId(), is(wsid));
+				assertThat("reference id is correct", oi.getId(), is(expected));
+				assertThat("reference ver is correct", oi.getVersion(), is(1));
+			}
+		} finally {
+			destroyGetObjectsResources(Arrays.asList(wod));
 		}
 		assertThat("returned refs correct", new HashSet<String>(wod.getReferences()),
 				is(expectedRefs));
@@ -224,9 +227,16 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
 				getIdFactory());
-		@SuppressWarnings("unchecked")
-		Map<String, Object> newdata = (Map<String, Object>) ws.getObjects(
-				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1))).get(0).getData();
+		final List<WorkspaceObjectData> objects = ws.getObjects(
+				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1)));
+		final Map<String, Object> newdata;
+		try {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> newdatatmp = (Map<String, Object>) getData(objects.get(0));
+			newdata = newdatatmp;
+		} finally {
+			destroyGetObjectsResources(objects);
+		}
 		assertThat("correct obj keys", newdata.keySet(),
 				is((Set<String>) new HashSet<String>(Arrays.asList("subset"))));
 		@SuppressWarnings("unchecked")
@@ -241,16 +251,21 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
 				getIdFactory());
-		@SuppressWarnings("unchecked")
-		Map<String, Object> newdata2 = (Map<String, Object>) ws.getObjects(
-				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2))).get(0).getData();
-		assertThat("unicode key correct", newdata2.keySet(),
-				is((Set<String>) new HashSet<String>(Arrays.asList(test))));
-		assertThat("value correct", (String) newdata2.get(test), is("foo"));
+		final List<WorkspaceObjectData> objects2 = ws.getObjects(
+				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2)));
+		try {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> newdata2 = (Map<String, Object>) getData(objects2.get(0));
+			assertThat("unicode key correct", newdata2.keySet(),
+					is((Set<String>) new HashSet<String>(Arrays.asList(test))));
+			assertThat("value correct", (String) newdata2.get(test), is("foo"));
+		} finally {
+			destroyGetObjectsResources(objects2);
+		}
 	}
 	
 	@Test
-	public void listObjectsPagination() throws Exception {
+	public void listObjectsLimit() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("pagUser");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("pagination");
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
@@ -263,15 +278,12 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		
 		//this depends on the natural sort order of mongo
-		checkObjectPagination(user, wsi, -1, 0, 1, 10000);
-		checkObjectPagination(user, wsi, -1, 10001, 1, 10000);
-		checkObjectPagination(user, wsi, -1, 1000000, 1, 10000);
-		checkObjectPagination(user, wsi, -1, 5000, 1, 5000);
-		checkObjectPagination(user, wsi, 10000, 5000, 10001, 15000);
-		checkObjectPagination(user, wsi, 10000, 10000, 10001, 20000);
-		checkObjectPagination(user, wsi, 15000, 10000, 15001, 20000);
-		checkObjectPagination(user, wsi, 15000, 1, 15001, 15001);
-		checkObjectPagination(user, wsi, 20000, -1, 2, 1); //hack so the method expects 0 objects
+		checkObjectLimit(user, wsi, 0, 1, 10000);
+		checkObjectLimit(user, wsi, 1, 1, 1);
+		checkObjectLimit(user, wsi, 10000, 1, 10000);
+		checkObjectLimit(user, wsi, 10001, 1, 10000);
+		checkObjectLimit(user, wsi, 1000000, 1, 10000);
+		checkObjectLimit(user, wsi, 5000, 1, 5000);
 	}
 	
 	//this test takes FOREVER and doesn't actually test anything, it's a performance measurement
@@ -326,7 +338,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			long time1 = System.currentTimeMillis();
 			WorkspaceObjectData wod1 = ws.getObjects(userfoo,
 					Arrays.asList(new ObjectIdentifier(wspace, oi.getObjectId()))).get(0);
-			Map<String, Object> ret1 = (Map<String, Object>) wod1.getData();
+			Map<String, Object> ret1 = (Map<String, Object>) getData(wod1);
 			String data1 = UObject.getMapper().writeValueAsString(ret1);
 			Map<String, Object> contigIdsToFeatures = (Map<String, Object>)ret1.get("data");
 			contigId = contigIdsToFeatures.keySet().iterator().next();
@@ -379,11 +391,11 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				included.add("data/" + contigId + "/" + rnd.nextInt(featureCount));
 			long time2 = System.currentTimeMillis();
 			List<ObjectIdentifier> a = new LinkedList<ObjectIdentifier>();
-			a.add(new ObjIDWithChainAndSubset(
+			a.add(new ObjIDWithRefPathAndSubset(
 					new ObjectIdentifier(wspace, oi.getObjectId()), null,
-						new ObjectPaths(included)));
+						new SubsetSelection(included)));
 			WorkspaceObjectData wod2 = ws.getObjects(userfoo, a).get(0);
-			String data2 = UObject.getMapper().writeValueAsString(wod2.getData());
+			String data2 = UObject.getMapper().writeValueAsString(getData(wod2));
 			time2 = System.currentTimeMillis() - time2;
 			avgTime2 += time2;
 			avgLen += data2.length();

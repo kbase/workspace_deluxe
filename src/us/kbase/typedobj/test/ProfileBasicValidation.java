@@ -28,7 +28,7 @@ import org.apache.commons.io.FileUtils;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.core.TypedObjectValidationReport;
+import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
@@ -187,7 +187,7 @@ public class ProfileBasicValidation {
 		if(instance.isValid) {
 
 			try {
-				TypedObjectValidationReport report = 
+				ValidatedTypedObject report = 
 					validator.validate(
 						instance.instanceJson,
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
@@ -205,7 +205,7 @@ public class ProfileBasicValidation {
 		} else {
 
 			try {
-				TypedObjectValidationReport report = 
+				ValidatedTypedObject report = 
 					validator.validate(
 						instance.instanceJson,
 						new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),

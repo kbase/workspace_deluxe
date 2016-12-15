@@ -1,7 +1,7 @@
 package us.kbase.workspace.kbase;
 
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -77,9 +77,6 @@ public class WorkspaceAdministration {
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final Types types;
-	//TODO remove hard coded admin
-	private static final String ROOT = "workspaceadmin";
-	
 	private final Set<String> internaladmins = new HashSet<String>(); 
 	
 	public WorkspaceAdministration(
@@ -90,7 +87,6 @@ public class WorkspaceAdministration {
 		this.ws = ws;
 		this.types = types;
 		this.wsmeth = wsmeth;
-		internaladmins.add(ROOT);
 		if (admin != null && !admin.isEmpty()) {
 			internaladmins.add(admin);
 		}
@@ -187,7 +183,7 @@ public class WorkspaceAdministration {
 		if (SET_PERMISSIONS.equals(fn)) {
 			final SetPermissionsParams params = getParams(cmd,
 					SetPermissionsParams.class);
-			//TODO maybe set perms should return wsinfo so can provide ID vs. name
+			//TODO FEATURE maybe set perms should return wsinfo so can provide ID vs. name
 			getLogger().info(SET_PERMISSIONS + " " + params.getId() + " " +
 					params.getWorkspace() + " " + params.getNewPermission() +
 					" " + StringUtils.join(params.getUsers(), " "));
@@ -198,7 +194,7 @@ public class WorkspaceAdministration {
 			final WorkspaceIdentity params = getParams(cmd,
 					WorkspaceIdentity.class);
 			final WorkspaceUser user = getUser(cmd);
-			//TODO would be better if could provide ID vs. name
+			//TODO FEATURE would be better if could provide ID vs. name
 			getLogger().info(GET_PERMISSIONS + " " + params.getId() + " " +
 					params.getWorkspace() + " " + user.getUser());
 			return wsmeth.getPermissions(params, user);
@@ -207,7 +203,7 @@ public class WorkspaceAdministration {
 			final SetGlobalPermissionsParams params = getParams(cmd,
 					SetGlobalPermissionsParams.class);
 			final WorkspaceUser user = getUser(cmd);
-			//TODO would be better if could provide ID vs. name
+			//TODO FEATURE would be better if could provide ID vs. name
 			getLogger().info(SET_GLOBAL_PERMISSION + " " + params.getId() +
 					" " + params.getWorkspace() + " " +
 					params.getNewPermission() + " " + user.getUser());

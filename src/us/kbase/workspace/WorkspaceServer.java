@@ -16,9 +16,10 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 
 //BEGIN_HEADER
+import us.kbase.common.service.ServiceChecker;
+import us.kbase.common.service.ServiceChecker.ServiceException;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.checkLong;
-import static us.kbase.workspace.kbase.ArgUtils.getUser;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToMetaTuple;
@@ -26,15 +27,16 @@ import static us.kbase.workspace.kbase.ArgUtils.objInfoToMetaTuple;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectProvInfo;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
-import static us.kbase.workspace.kbase.ArgUtils.translateObjectDataList;
+import static us.kbase.workspace.kbase.ArgUtils.toObjectPaths;
+import static us.kbase.workspace.kbase.ArgUtils.translateObjectInfoList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifier;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectIdentifiers;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processObjectSpecifications;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processSubObjectIdentifiers;
-import static us.kbase.workspace.kbase.KBaseIdentifierFactory.processWorkspaceIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifier;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifiers;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
+import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifiers;
+import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.net.URL;
@@ -51,14 +53,9 @@ import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.AppenderBase;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
-import us.kbase.auth.AuthException;
-import us.kbase.auth.AuthService;
-import us.kbase.auth.RefreshingToken;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -67,24 +64,26 @@ import us.kbase.typedobj.db.FuncDetailedInfo;
 import us.kbase.typedobj.db.ModuleDefId;
 import us.kbase.typedobj.db.TypeChange;
 import us.kbase.typedobj.db.TypeDetailedInfo;
-import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.ObjectIDWithRefChain;
+import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
-import us.kbase.workspace.kbase.ArgUtils;
 import us.kbase.workspace.kbase.InitWorkspaceServer.InitReporter;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig;
+import us.kbase.workspace.kbase.TokenProvider;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 //END_HEADER
@@ -110,15 +109,13 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "57ece4612f32e29a5788aca9a9ee2870ece79796";
+    private static final String gitCommitHash = "2a7a086e6ecf4417293b99eb0f28ba21407ca82e";
 
     //BEGIN_CLASS_HEADER
-	//TODO java doc - really low priority, sorry
-    //TODO timestamps for startup script
-    //TODO check shock version
-    //TODO shock client should ignore extra fields
-    
-	private static final String VER = "0.4.1";
+	//TODO JAVADOC really low priority, sorry
+	//TODO INIT timestamps for startup script
+
+	private static final String VER = "0.6.0";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -133,10 +130,10 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private final URL handleManagerUrl;
-	private final RefreshingToken handleMgrToken;
+	private final TokenProvider handleMgrToken;
 	
-	private ThreadLocal<Set<ByteArrayFileCache>> resourcesToDelete =
-			new ThreadLocal<Set<ByteArrayFileCache>>();
+	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
+			new ThreadLocal<List<WorkspaceObjectData>>();
 	
 	
 	public static void clearConfigForTests() {
@@ -156,9 +153,9 @@ public class WorkspaceServer extends JsonServerServlet {
 	protected void onRpcMethodDone() {
 		if (resourcesToDelete.get() != null &&
 				!resourcesToDelete.get().isEmpty()) {
-			for (final ByteArrayFileCache f : resourcesToDelete.get())
+			for (final WorkspaceObjectData o : resourcesToDelete.get())
 				try {
-					f.destroy();
+					o.destroy();
 				} catch (Exception ignore) {}
 			resourcesToDelete.set(null);
 		}
@@ -178,31 +175,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				org.slf4j.Logger.ROOT_LOGGER_NAME));
 		rootLogger.setLevel(Level.OFF);
 		rootLogger.detachAndStopAllAppenders();
-		final Logger kbaseRootLogger = (Logger) LoggerFactory.getLogger(
-				"us.kbase");
-		//would be better to also set the level here on calls to the server
-		//setLogLevel, but meh for now
-		kbaseRootLogger.setLevel(Level.ALL);
-		final AppenderBase<ILoggingEvent> kbaseAppender =
-				new AppenderBase<ILoggingEvent>() {
-
-			@Override
-			protected void append(final ILoggingEvent event) {
-				//for now only INFO is tested; test others as they're needed
-				final Level l = event.getLevel();
-				if (l.equals(Level.TRACE)) {
-					logDebug(event.getFormattedMessage(), 3);
-				} else if (l.equals(Level.DEBUG)) {
-					logDebug(event.getFormattedMessage());
-				} else if (l.equals(Level.INFO) || l.equals(Level.WARN)) {
-					logInfo(event.getFormattedMessage());
-				} else if (l.equals(Level.ERROR)) {
-					logErr(event.getFormattedMessage());
-				}
-			}
-		};
-		kbaseAppender.start();
-		kbaseRootLogger.addAppender(kbaseAppender);
 	}
 	
 	private class WorkspaceInitReporter extends InitReporter {
@@ -220,6 +192,18 @@ public class WorkspaceServer extends JsonServerServlet {
 			startupFailed();
 		}
 		
+	}
+	
+	public DependencyStatus checkHandleManager() {
+		try {
+			ServiceChecker.checkService(handleManagerUrl);
+			return new DependencyStatus(
+					true, "OK", "Handle manager", "Unknown");
+		} catch (ServiceException se) {
+			//tested manually, don't change without testing
+			return new DependencyStatus(
+					false, se.getMessage(), "Handle manager", "Unknown");
+		}
 	}
 	
     //END_CLASS_HEADER
@@ -253,8 +237,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		Types types = null;
 		WorkspaceAdministration wsadmin = null;
 		URL handleManagerUrl = null;
-		RefreshingToken handleMgrToken = null;
-		
+		TokenProvider handleMgrToken = null;
+		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
 			logErr("Workspace server configuration has errors - all calls will fail");
 			System.out.println(
@@ -307,13 +291,13 @@ public class WorkspaceServer extends JsonServerServlet {
      * Creates a new workspace.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.CreateWorkspaceParams CreateWorkspaceParams}
-     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      */
     @JsonServerMethod(rpc = "Workspace.create_workspace", async=true)
     public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> createWorkspace(CreateWorkspaceParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> returnVal = null;
         //BEGIN create_workspace
-		returnVal = wsmeth.createWorkspace(params, getUser(authPart));
+		returnVal = wsmeth.createWorkspace(params, wsmeth.getUser(authPart));
         //END create_workspace
         return returnVal;
     }
@@ -339,7 +323,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final WorkspaceIdentifier wsi =
 				processWorkspaceIdentifier(params.getWsi());
-		final WorkspaceUser user = getUser(authPart);
+		final WorkspaceUser user = wsmeth.getUser(authPart);
 		if (!noRemove) {
 			for (final String key: params.getRemove()) {
 				ws.removeWorkspaceMetadata(user, wsi, key);
@@ -358,20 +342,40 @@ public class WorkspaceServer extends JsonServerServlet {
      * Clones a workspace.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.CloneWorkspaceParams CloneWorkspaceParams}
-     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      */
     @JsonServerMethod(rpc = "Workspace.clone_workspace", async=true)
     public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> cloneWorkspace(CloneWorkspaceParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> returnVal = null;
         //BEGIN clone_workspace
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		Permission p = getGlobalWSPerm(params.getGlobalread());
+		Set<ObjectIDNoWSNoVer> exclude = null;
+		if (params.getExclude() != null && !params.getExclude().isEmpty()) {
+			exclude = new HashSet<ObjectIDNoWSNoVer>();
+			int count = 1;
+			for (final ObjectIdentity o: params.getExclude()) {
+				try {
+					exclude.add(ObjectIDNoWSNoVer.create(
+							o.getName(), o.getObjid()));
+				} catch (IllegalArgumentException e) {
+					throw new IllegalArgumentException(String.format(
+							"Error with excluded object #%s: %s",
+							count, e.getLocalizedMessage()), e);
+				}
+				count++;
+			}
+		}
+		final Permission p = getGlobalWSPerm(params.getGlobalread());
 		final WorkspaceIdentifier wsi =
 				processWorkspaceIdentifier(params.getWsi());
-		final WorkspaceInformation meta = ws.cloneWorkspace(getUser(authPart),
-				wsi, params.getWorkspace(), p.equals(Permission.READ),
+		final WorkspaceInformation meta = ws.cloneWorkspace(
+				wsmeth.getUser(authPart),
+				wsi,
+				params.getWorkspace(),
+				p.equals(Permission.READ),
 				params.getDescription(),
-				new WorkspaceUserMetadata(params.getMeta()));
+				new WorkspaceUserMetadata(params.getMeta()),
+				exclude);
 		returnVal = wsInfoToTuple(meta);
         //END clone_workspace
         return returnVal;
@@ -390,14 +394,15 @@ public class WorkspaceServer extends JsonServerServlet {
      *         workspace cannot be made private.
      * </pre>
      * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
-     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      */
     @JsonServerMethod(rpc = "Workspace.lock_workspace", async=true)
     public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> lockWorkspace(WorkspaceIdentity wsi, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> returnVal = null;
         //BEGIN lock_workspace
 		final WorkspaceIdentifier wsid = processWorkspaceIdentifier(wsi);
-		returnVal = wsInfoToTuple(ws.lockWorkspace(getUser(authPart), wsid));
+		returnVal = wsInfoToTuple(ws.lockWorkspace(
+				wsmeth.getUser(authPart), wsid));
         //END lock_workspace
         return returnVal;
     }
@@ -420,7 +425,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
 		final WorkspaceInformation meta = ws.getWorkspaceInformation(
-				getUser(params.getAuth(), authPart), wksp);
+				wsmeth.getUser(params.getAuth(), authPart), wksp);
 		returnVal = wsInfoToMetaTuple(meta);
         //END get_workspacemeta
         return returnVal;
@@ -432,7 +437,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * Get information associated with a workspace.
      * </pre>
      * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
-     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "info" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      */
     @JsonServerMethod(rpc = "Workspace.get_workspace_info", authOptional=true, async=true)
     public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> getWorkspaceInfo(WorkspaceIdentity wsi, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
@@ -440,7 +445,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_workspace_info
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		final WorkspaceInformation meta = ws.getWorkspaceInformation(
-				getUser(authPart), wksp);
+				wsmeth.getUser(authPart), wksp);
 		returnVal = wsInfoToTuple(meta);
         //END get_workspace_info
         return returnVal;
@@ -459,7 +464,7 @@ public class WorkspaceServer extends JsonServerServlet {
         String returnVal = null;
         //BEGIN get_workspace_description
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		returnVal = ws.getWorkspaceDescription(getUser(authPart), wksp);
+		returnVal = ws.getWorkspaceDescription(wsmeth.getUser(authPart), wksp);
         //END get_workspace_description
         return returnVal;
     }
@@ -474,7 +479,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions", async=true)
     public void setPermissions(SetPermissionsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN set_permissions
-		wsmeth.setPermissions(params, getUser(authPart));
+		wsmeth.setPermissions(params, wsmeth.getUser(authPart));
         //END set_permissions
     }
 
@@ -488,7 +493,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_global_permission", async=true)
     public void setGlobalPermission(SetGlobalPermissionsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN set_global_permission
-		wsmeth.setGlobalPermission(params, getUser(authPart));
+		wsmeth.setGlobalPermission(params, wsmeth.getUser(authPart));
         //END set_global_permission
     }
 
@@ -505,7 +510,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		ws.setWorkspaceDescription(getUser(authPart), wsi,
+		ws.setWorkspaceDescription(wsmeth.getUser(authPart), wsi,
 				params.getDescription());
         //END set_workspace_description
     }
@@ -524,7 +529,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_permissions_mass
 		checkAddlArgs(mass.getAdditionalProperties(), mass.getClass());
 		returnVal = wsmeth.getPermissions(
-				mass.getWorkspaces(), getUser(authPart));
+				mass.getWorkspaces(), wsmeth.getUser(authPart));
         //END get_permissions_mass
         return returnVal;
     }
@@ -533,6 +538,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: get_permissions</p>
      * <pre>
      * Get permissions for a workspace.
+     * @deprecated get_permissions_mass
      * </pre>
      * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
      * @return   parameter "perms" of mapping from original type "username" (Login name of a KBase user account.) to original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.)
@@ -541,7 +547,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> getPermissions(WorkspaceIdentity wsi, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN get_permissions
-        returnVal = wsmeth.getPermissions(wsi, getUser(authPart));
+        returnVal = wsmeth.getPermissions(wsi, wsmeth.getUser(authPart));
         //END get_permissions
         return returnVal;
     }
@@ -556,7 +562,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * @deprecated Workspace.save_objects
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.SaveObjectParams SaveObjectParams} (original type "save_object_params")
-     * @return   parameter "metadata" of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object, including copying the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object.) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
+     * @return   parameter "metadata" of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object, including copying the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object. @deprecated object_info) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
      */
     @JsonServerMethod(rpc = "Workspace.save_object", authOptional=true, async=true)
     public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> saveObject(SaveObjectParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
@@ -569,10 +575,7 @@ public class WorkspaceServer extends JsonServerServlet {
 						.withName(params.getId())
 						.withType(params.getType())));
 		if (params.getAuth() != null) {
-			authPart = new AuthToken(params.getAuth());
-			if (!AuthService.validateToken(authPart)) {
-				throw new AuthException("Token is invalid");
-			}
+			authPart = wsmeth.getAuth().validateToken(params.getAuth());
 		}
 		final Tuple11<Long, String, String, String, Long, String, Long, String,
 				String, Long, Map<String, String>> meta = saveObjects(
@@ -608,7 +611,8 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> saveObjects(SaveObjectsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN save_objects
-		returnVal = wsmeth.saveObjects(params, getUser(authPart), authPart);
+		returnVal = wsmeth.saveObjects(
+				params, wsmeth.getUser(authPart), authPart);
         //END save_objects
         return returnVal;
     }
@@ -632,13 +636,12 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getWorkspace(), null, params.getId(), null,
 				params.getInstance());
 		final WorkspaceObjectData ret = ws.getObjects(
-				getUser(params.getAuth(), authPart), Arrays.asList(oi)).get(0);
-		final ByteArrayFileCache resource = ret.getSerializedData();
+				wsmeth.getUser(params.getAuth(), authPart),
+				Arrays.asList(oi)).get(0);
+		resourcesToDelete.set(Arrays.asList(ret));
 		returnVal = new GetObjectOutput()
-			.withData(resource.getUObject())
+			.withData(ret.getSerializedData().getUObject())
 			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo(), true));
-			resourcesToDelete.set(new HashSet<ByteArrayFileCache>(
-					Arrays.asList(resource)));
         //END get_object
         return returnVal;
     }
@@ -659,8 +662,9 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_provenance
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = translateObjectProvInfo(
-				ws.getObjects(getUser(authPart), loi, true),
-					getUser(authPart), handleManagerUrl, handleMgrToken, true);
+				ws.getObjects(wsmeth.getUser(authPart), loi, true),
+						wsmeth.getUser(authPart), handleManagerUrl,
+						handleMgrToken, true);
         //END get_object_provenance
         return returnVal;
     }
@@ -680,12 +684,11 @@ public class WorkspaceServer extends JsonServerServlet {
         List<ObjectData> returnVal = null;
         //BEGIN get_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		final Set<ByteArrayFileCache> resources =
-				new HashSet<ByteArrayFileCache>();
-		returnVal = translateObjectData(
-				ws.getObjects(getUser(authPart), loi), getUser(authPart),
-					resources, handleManagerUrl, handleMgrToken, true);
-		resourcesToDelete.set(resources);
+		final List<WorkspaceObjectData> objects =
+				ws.getObjects(wsmeth.getUser(authPart), loi);
+		resourcesToDelete.set(objects);
+		returnVal = translateObjectData(objects, wsmeth.getUser(authPart),
+					handleManagerUrl, handleMgrToken, true);
         //END get_objects
         return returnVal;
     }
@@ -702,20 +705,16 @@ public class WorkspaceServer extends JsonServerServlet {
     public GetObjects2Results getObjects2(GetObjects2Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         GetObjects2Results returnVal = null;
         //BEGIN get_objects2
-		checkAddlArgs(params.getAdditionalProperties(),
-				GetObjects2Params.class);
+		checkAddlArgs(params.getAdditionalProperties(), GetObjects2Params.class);
 		final List<ObjectIdentifier> loi =
 				processObjectSpecifications(params.getObjects());
-		final Set<ByteArrayFileCache> resources =
-				new HashSet<ByteArrayFileCache>();
 		final boolean noData = longToBoolean(params.getNoData(), false);
-		final boolean ignoreErrors = longToBoolean(
-				params.getIgnoreErrors(), false);
+		final boolean ignoreErrors = longToBoolean(params.getIgnoreErrors(), false);
+		final List<WorkspaceObjectData> objects = ws.getObjects(
+				wsmeth.getUser(authPart), loi, noData, ignoreErrors);
+		resourcesToDelete.set(objects);
 		returnVal = new GetObjects2Results().withData(translateObjectData(
-				ws.getObjects(getUser(authPart), loi, noData, ignoreErrors),
-				getUser(authPart), resources, handleManagerUrl, handleMgrToken,
-				true));
-		resourcesToDelete.set(resources);
+				objects, wsmeth.getUser(authPart), handleManagerUrl, handleMgrToken, true));
         //END get_objects2
         return returnVal;
     }
@@ -747,12 +746,11 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_subset
 		final List<ObjectIdentifier> loi = processSubObjectIdentifiers(
 				subObjectIds);
-		final Set<ByteArrayFileCache> resources =
-				new HashSet<ByteArrayFileCache>();
-		returnVal = translateObjectData(
-				ws.getObjects(getUser(authPart), loi), getUser(authPart),
-						resources, handleManagerUrl, handleMgrToken, true);
-		resourcesToDelete.set(resources);
+		final List<WorkspaceObjectData> objects =
+				ws.getObjects(wsmeth.getUser(authPart), loi);
+		resourcesToDelete.set(objects);
+		returnVal = translateObjectData(objects, wsmeth.getUser(authPart),
+				handleManagerUrl, handleMgrToken, true);
         //END get_object_subset
         return returnVal;
     }
@@ -771,8 +769,8 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_history
 		final ObjectIdentifier oi = processObjectIdentifier(object);
-		returnVal = objInfoToTuple(ws.getObjectHistory(getUser(authPart), oi),
-				true);
+		returnVal = objInfoToTuple(ws.getObjectHistory(
+				wsmeth.getUser(authPart), oi), true);
         //END get_object_history
         return returnVal;
     }
@@ -791,8 +789,8 @@ public class WorkspaceServer extends JsonServerServlet {
         List<List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>>> returnVal = null;
         //BEGIN list_referencing_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		returnVal = translateObjectDataList(
-				ws.getReferencingObjects(getUser(authPart), loi), false);
+		returnVal = translateObjectInfoList(ws.getReferencingObjects(
+				wsmeth.getUser(authPart), loi), false);
         //END list_referencing_objects
         return returnVal;
     }
@@ -816,7 +814,8 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN list_referencing_object_counts
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = new LinkedList<Long>();
-		for (int i: ws.getReferencingObjectCounts(getUser(authPart), loi)) {
+		for (int i: ws.getReferencingObjectCounts(
+				wsmeth.getUser(authPart), loi)) {
 			returnVal.add((long) i);
 		}
         //END list_referencing_object_counts
@@ -870,16 +869,15 @@ public class WorkspaceServer extends JsonServerServlet {
 						"Error on object chain #%s: The minimum size of a reference chain is 2 ObjectIdentities",
 						count));
 			}
-			chains.add(new ObjectIDWithRefChain(
+			chains.add(new ObjectIDWithRefPath(
 					lor.get(0), lor.subList(1, lor.size())));
 			count++;
 		}
-		final Set<ByteArrayFileCache> resources =
-				new HashSet<ByteArrayFileCache>();
-		returnVal = translateObjectData(ws.getObjects(
-				getUser(authPart), chains), getUser(authPart), resources,
+		final List<WorkspaceObjectData> objects = ws.getObjects(
+				wsmeth.getUser(authPart), chains);
+		resourcesToDelete.set(objects);
+		returnVal = translateObjectData(objects, wsmeth.getUser(authPart),
 					handleManagerUrl, handleMgrToken, true);
-		resourcesToDelete.set(resources);	
         //END get_referenced_objects
         return returnVal;
     }
@@ -900,8 +898,9 @@ public class WorkspaceServer extends JsonServerServlet {
         List<Tuple7<String, String, String, Long, String, String, Long>> returnVal = null;
         //BEGIN list_workspaces
 		returnVal =  wsInfoToMetaTuple(ws.listWorkspaces(
-				getUser(params.getAuth(), authPart), null, null, null, null, null,
-				longToBoolean(params.getExcludeGlobal()), false, false));
+				wsmeth.getUser(params.getAuth(), authPart), null, null, null,
+				null, null, longToBoolean(params.getExcludeGlobal()), false,
+				false));
         //END list_workspaces
         return returnVal;
     }
@@ -912,13 +911,13 @@ public class WorkspaceServer extends JsonServerServlet {
      * List workspaces viewable by the user.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.ListWorkspaceInfoParams ListWorkspaceInfoParams}
-     * @return   parameter "wsinfo" of list of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "wsinfo" of list of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      */
     @JsonServerMethod(rpc = "Workspace.list_workspace_info", authOptional=true, async=true)
     public List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> listWorkspaceInfo(ListWorkspaceInfoParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>> returnVal = null;
         //BEGIN list_workspace_info
-		returnVal = wsmeth.listWorkspaceInfo(params, getUser(authPart));
+		returnVal = wsmeth.listWorkspaceInfo(params, wsmeth.getUser(authPart));
         //END list_workspace_info
         return returnVal;
     }
@@ -931,7 +930,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * @deprecated Workspace.list_objects
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.ListWorkspaceObjectsParams ListWorkspaceObjectsParams} (original type "list_workspace_objects_params")
-     * @return   parameter "objects" of list of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object, including copying the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object.) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
+     * @return   parameter "objects" of list of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object, including copying the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object. @deprecated object_info) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
      */
     @JsonServerMethod(rpc = "Workspace.list_workspace_objects", authOptional=true, async=true)
     public List<Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long>> listWorkspaceObjects(ListWorkspaceObjectsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
@@ -942,7 +941,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
 		
-		final WorkspaceUser user = getUser(params.getAuth(), authPart);
+		final WorkspaceUser user = wsmeth.getUser(params.getAuth(), authPart);
 		final ListObjectsParameters lop;
 		if (type == null) {
 			lop = new ListObjectsParameters(user, Arrays.asList(wsi));
@@ -986,7 +985,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			throw new IllegalArgumentException(
 					"At least one filter must be specified.");
 		}
-		final WorkspaceUser user = getUser(authPart);
+		final WorkspaceUser user = wsmeth.getUser(authPart);
 		final ListObjectsParameters lop;
 		if (type == null) {
 			lop = new ListObjectsParameters(user, wsis);
@@ -1004,7 +1003,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				"parameter");
 		lop.withMinimumPermission(params.getPerm() == null ? null :
 				translatePermission(params.getPerm()))
-			.withSavers(ArgUtils.convertUsers(params.getSavedby()))
+			.withSavers(wsmeth.convertUsers(params.getSavedby()))
 			.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
 			.withAfter(after)
 			.withBefore(before)
@@ -1016,7 +1015,6 @@ public class WorkspaceServer extends JsonServerServlet {
 			.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
 			.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
 			.withExcludeGlobal(longToBoolean(params.getExcludeGlobal()))
-			.withSkip(longToInt(params.getSkip(), "Skip", -1))
 			.withLimit(longToInt(params.getLimit(), "Limit", -1));
 		
 		returnVal = objInfoToTuple(ws.listObjects(lop), false);
@@ -1030,10 +1028,10 @@ public class WorkspaceServer extends JsonServerServlet {
      * Retrieves the metadata for a specified object from the specified
      * workspace. Provides access to metadata for all versions of the object
      * via the instance parameter. Provided for backwards compatibility.
-     * @deprecated Workspace.get_object_info
+     * @deprecated Workspace.get_object_info3
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.GetObjectmetaParams GetObjectmetaParams} (original type "get_objectmeta_params")
-     * @return   parameter "metadata" of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object, including copying the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object.) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
+     * @return   parameter "metadata" of original type "object_metadata" (Meta data associated with an object stored in a workspace. Provided for backwards compatibility. obj_name id - name of the object. type_string type - type of the object. timestamp moddate - date when the object was saved obj_ver instance - the version of the object string command - Deprecated. Always returns the empty string. username lastmodifier - name of the user who last saved the object, including copying the object username owner - Deprecated. Same as lastmodifier. ws_name workspace - name of the workspace in which the object is stored string ref - Deprecated. Always returns the empty string. string chsum - the md5 checksum of the object. usermeta metadata - arbitrary user-supplied metadata about the object. obj_id objid - the numerical id of the object. @deprecated object_info) &rarr; tuple of size 12: parameter "id" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "instance" of Long, parameter "command" of String, parameter "lastmodifier" of original type "username" (Login name of a KBase user account.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "ref" of String, parameter "chsum" of String, parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String, parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.)
      */
     @JsonServerMethod(rpc = "Workspace.get_objectmeta", authOptional=true, async=true)
     public Tuple12<String, String, String, Long, String, String, String, String, String, String, Map<String,String>, Long> getObjectmeta(GetObjectmetaParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
@@ -1042,9 +1040,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		final ObjectIdentifier oi = processObjectIdentifier(
 				params.getWorkspace(), null, params.getId(), null,
 				params.getInstance());
-		returnVal = objInfoToMetaTuple(
-				ws.getObjectInformation(getUser(params.getAuth(), authPart),
-						Arrays.asList(oi), true, false).get(0), true);
+		returnVal = objInfoToMetaTuple(ws.getObjectInformation(
+				wsmeth.getUser(params.getAuth(), authPart),
+				Arrays.asList(oi), true, false).get(0), true);
         //END get_objectmeta
         return returnVal;
     }
@@ -1057,7 +1055,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * Otherwise the metadata in the object_info will be null.
      * This method will be replaced by the behavior of get_object_info_new
      * in the future.
-     * @deprecated Workspace.get_object_info_new
+     * @deprecated Workspace.get_object_info3
      * </pre>
      * @param   objectIds   instance of list of type {@link us.kbase.workspace.ObjectIdentity ObjectIdentity}
      * @param   includeMetadata   instance of original type "boolean" (A boolean. 0 = false, other = true.)
@@ -1069,7 +1067,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_info
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = objInfoToTuple(
-				ws.getObjectInformation(getUser(authPart), loi,
+				ws.getObjectInformation(wsmeth.getUser(authPart), loi,
 						longToBoolean(includeMetadata), false), true);
         //END get_object_info
         return returnVal;
@@ -1079,6 +1077,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: get_object_info_new</p>
      * <pre>
      * Get information about objects from the workspace.
+     * @deprecated Workspace.get_object_info3
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.GetObjectInfoNewParams GetObjectInfoNewParams}
      * @return   parameter "info" of list of original type "object_info" (Information about an object, including user provided metadata. obj_id objid - the numerical id of the object. obj_name name - the name of the object. type_string type - the type of the object. timestamp save_date - the save date of the object. obj_ver ver - the version of the object. username saved_by - the user that saved or copied the object. ws_id wsid - the workspace containing the object. ws_name workspace - the workspace containing the object. string chsum - the md5 checksum of the object. int size - the size of the object in bytes. usermeta meta - arbitrary user-supplied metadata about the object.) &rarr; tuple of size 11: parameter "objid" of original type "obj_id" (The unique, permanent numerical ID of an object.), parameter "name" of original type "obj_name" (A string used as a name for an object. Any string consisting of alphanumeric characters and the characters |._- that is not an integer is acceptable.), parameter "type" of original type "type_string" (A type string. Specifies the type and its version in a single string in the format [module].[typename]-[major].[minor]: module - a string. The module name of the typespec containing the type. typename - a string. The name of the type as assigned by the typedef statement. major - an integer. The major version of the type. A change in the major version implies the type has changed in a non-backwards compatible way. minor - an integer. The minor version of the type. A change in the minor version implies that the type has changed in a way that is backwards compatible with previous type definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyType-3.1), parameter "save_date" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "version" of Long, parameter "saved_by" of original type "username" (Login name of a KBase user account.), parameter "wsid" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "chsum" of String, parameter "size" of Long, parameter "meta" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
@@ -1091,10 +1090,34 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<ObjectIdentifier> loi = processObjectSpecifications(
 				params.getObjects());
 		returnVal = objInfoToTuple(
-				ws.getObjectInformation(getUser(authPart), loi,
+				ws.getObjectInformation(wsmeth.getUser(authPart), loi,
 						longToBoolean(params.getIncludeMetadata()),
 						longToBoolean(params.getIgnoreErrors())), true);
         //END get_object_info_new
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: get_object_info3</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.GetObjectInfo3Params GetObjectInfo3Params}
+     * @return   parameter "results" of type {@link us.kbase.workspace.GetObjectInfo3Results GetObjectInfo3Results}
+     */
+    @JsonServerMethod(rpc = "Workspace.get_object_info3", authOptional=true, async=true)
+    public GetObjectInfo3Results getObjectInfo3(GetObjectInfo3Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
+        GetObjectInfo3Results returnVal = null;
+        //BEGIN get_object_info3
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final List<ObjectIdentifier> loi = processObjectSpecifications(
+				params.getObjects());
+		final List<ObjectInformation> infos = ws.getObjectInformation(
+				wsmeth.getUser(authPart), loi,
+				longToBoolean(params.getIncludeMetadata()),
+				longToBoolean(params.getIgnoreErrors()));
+		returnVal = new GetObjectInfo3Results().withInfos(objInfoToTuple(infos, true))
+				.withPaths(toObjectPaths(infos));
+        //END get_object_info3
         return returnVal;
     }
 
@@ -1104,7 +1127,7 @@ public class WorkspaceServer extends JsonServerServlet {
      * Rename a workspace.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.RenameWorkspaceParams RenameWorkspaceParams}
-     * @return   parameter "renamed" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int objects - the number of objects created in this workspace, including objects that have been deleted. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "object" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
+     * @return   parameter "renamed" of original type "workspace_info" (Information about a workspace. ws_id id - the numerical ID of the workspace. ws_name workspace - name of the workspace. username owner - name of the user who owns (e.g. created) this workspace. timestamp moddate - date when the workspace was last modified. int max_objid - the maximum object ID appearing in this workspace. Since cloning a workspace preserves object IDs, this number may be greater than the number of objects in a newly cloned workspace. permission user_permission - permissions for the authenticated user of this workspace. permission globalread - whether this workspace is globally readable. lock_status lockstat - the status of the workspace lock. usermeta metadata - arbitrary user-supplied metadata about the workspace.) &rarr; tuple of size 9: parameter "id" of original type "ws_id" (The unique, permanent numerical ID of a workspace.), parameter "workspace" of original type "ws_name" (A string used as a name for a workspace. Any string consisting of alphanumeric characters and "_", ".", or "-" that is not an integer is acceptable. The name may optionally be prefixed with the workspace owner's user name and a colon, e.g. kbasetest:my_workspace.), parameter "owner" of original type "username" (Login name of a KBase user account.), parameter "moddate" of original type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z (representing the UTC timezone) or the difference in time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC time)), parameter "max_objid" of Long, parameter "user_permission" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "globalread" of original type "permission" (Represents the permissions a user or users have to a workspace: 'a' - administrator. All operations allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.), parameter "lockstat" of original type "lock_status" (The lock status of a workspace. One of 'unlocked', 'locked', or 'published'.), parameter "metadata" of original type "usermeta" (User provided metadata about an object. Arbitrary key-value pairs provided by the user.) &rarr; mapping from String to String
      */
     @JsonServerMethod(rpc = "Workspace.rename_workspace", async=true)
     public Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>> renameWorkspace(RenameWorkspaceParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
@@ -1113,7 +1136,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi =
 				processWorkspaceIdentifier(params.getWsi());
-		returnVal = wsInfoToTuple(ws.renameWorkspace(getUser(authPart),
+		returnVal = wsInfoToTuple(ws.renameWorkspace(wsmeth.getUser(authPart),
 				wsi, params.getNewName()));
         //END rename_workspace
         return returnVal;
@@ -1133,7 +1156,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN rename_object
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final ObjectIdentifier oi = processObjectIdentifier(params.getObj());
-		returnVal = objInfoToTuple(ws.renameObject(getUser(authPart),
+		returnVal = objInfoToTuple(ws.renameObject(wsmeth.getUser(authPart),
 				oi, params.getNewName()), true);
         //END rename_object
         return returnVal;
@@ -1154,8 +1177,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final ObjectIdentifier from = processObjectIdentifier(params.getFrom());
 		final ObjectIdentifier to = processObjectIdentifier(params.getTo());
-		returnVal = objInfoToTuple(ws.copyObject(getUser(authPart), from, to),
-				true);
+		returnVal = objInfoToTuple(ws.copyObject(
+				wsmeth.getUser(authPart), from, to), true);
         //END copy_object
         return returnVal;
     }
@@ -1175,8 +1198,8 @@ public class WorkspaceServer extends JsonServerServlet {
         Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>> returnVal = null;
         //BEGIN revert_object
 		final ObjectIdentifier oi = processObjectIdentifier(object);
-		returnVal = objInfoToTuple(ws.revertObject(getUser(authPart), oi),
-				true);
+		returnVal = objInfoToTuple(ws.revertObject(
+				wsmeth.getUser(authPart), oi), true);
         //END revert_object
         return returnVal;
     }
@@ -1204,7 +1227,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		returnVal = new GetNamesByPrefixResults().withNames(
 				ws.getNamesByPrefix(
-						getUser(authPart),
+						wsmeth.getUser(authPart),
 						wsil,
 						params.getPrefix(),
 						longToBoolean(params.getIncludeHidden()),
@@ -1228,7 +1251,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public void hideObjects(List<ObjectIdentity> objectIds, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN hide_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		ws.setObjectsHidden(getUser(authPart), loi, true);
+		ws.setObjectsHidden(wsmeth.getUser(authPart), loi, true);
         //END hide_objects
     }
 
@@ -1244,7 +1267,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public void unhideObjects(List<ObjectIdentity> objectIds, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN unhide_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		ws.setObjectsHidden(getUser(authPart), loi, false);
+		ws.setObjectsHidden(wsmeth.getUser(authPart), loi, false);
         //END unhide_objects
     }
 
@@ -1260,7 +1283,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public void deleteObjects(List<ObjectIdentity> objectIds, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN delete_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		ws.setObjectsDeleted(getUser(authPart), loi, true);
+		ws.setObjectsDeleted(wsmeth.getUser(authPart), loi, true);
         //END delete_objects
     }
 
@@ -1277,7 +1300,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public void undeleteObjects(List<ObjectIdentity> objectIds, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN undelete_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		ws.setObjectsDeleted(getUser(authPart), loi, false);
+		ws.setObjectsDeleted(wsmeth.getUser(authPart), loi, false);
         //END undelete_objects
     }
 
@@ -1292,7 +1315,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public void deleteWorkspace(WorkspaceIdentity wsi, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN delete_workspace
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		ws.setWorkspaceDeleted(getUser(authPart), wksp, true);
+		ws.setWorkspaceDeleted(wsmeth.getUser(authPart), wksp, true);
         //END delete_workspace
     }
 
@@ -1309,7 +1332,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public void undeleteWorkspace(WorkspaceIdentity wsi, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN undelete_workspace
     	final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		ws.setWorkspaceDeleted(getUser(authPart), wksp, false);
+		ws.setWorkspaceDeleted(wsmeth.getUser(authPart), wksp, false);
         //END undelete_workspace
     }
 
@@ -1324,7 +1347,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.request_module_ownership", async=true)
     public void requestModuleOwnership(String mod, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN request_module_ownership
-		final WorkspaceUser u = getUser(authPart);
+		final WorkspaceUser u = wsmeth.getUser(authPart);
 		types.requestModuleRegistration(u, mod);
 		//bail on this, there's no mail daemon running on magellean AFAIK
 //		wsadmin.notifyOnModuleRegRequest(authPart, u, mod);
@@ -1360,11 +1383,13 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getDependencies() : new HashMap<String, Long>();
 		final Map<TypeDefName, TypeChange> res;
 		if (params.getMod() != null) {
-			 res = types.compileTypeSpec(getUser(authPart), params.getMod(),
+			 res = types.compileTypeSpec(
+					wsmeth.getUser(authPart), params.getMod(),
 					add, rem, deps, params.getDryrun() == null ? true :
 						params.getDryrun() != 0);
 		} else {
-			res = types.compileNewTypeSpec(getUser(authPart), params.getSpec(),
+			res = types.compileNewTypeSpec(
+					wsmeth.getUser(authPart), params.getSpec(),
 					add, rem, deps, params.getDryrun() == null ? true :
 						params.getDryrun() != 0, params.getPrevVer());
 		}
@@ -1405,31 +1430,30 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		final WorkspaceClient client = new WorkspaceClient(
 				new URL(params.getExternalWorkspaceUrl()), authPart);
-		if (!params.getExternalWorkspaceUrl().startsWith("https:"))
+		if (!params.getExternalWorkspaceUrl().startsWith("https:")) {
 			client.setIsInsecureHttpConnectionAllowed(true);
+		}
 		final GetModuleInfoParams gmiparams = new GetModuleInfoParams()
 			.withMod(params.getMod()).withVer(params.getVersion());
-		final us.kbase.workspace.ModuleInfo extInfo =
-				client.getModuleInfo(gmiparams);
+		final us.kbase.workspace.ModuleInfo extInfo = client.getModuleInfo(gmiparams);
 		final Map<String, String> includesToMd5 = new HashMap<String, String>();
-		for (final Map.Entry<String, Long> entry : extInfo
-				.getIncludedSpecVersion().entrySet()) {
+		for (final Map.Entry<String, Long> entry : extInfo.getIncludedSpecVersion().entrySet()) {
 			final String includedModule = entry.getKey();
 			final long extIncludedVer = entry.getValue();
 			final GetModuleInfoParams includeParams = new GetModuleInfoParams()
 				.withMod(includedModule).withVer(extIncludedVer);
-			final us.kbase.workspace.ModuleInfo extIncludedInfo = 
+			final us.kbase.workspace.ModuleInfo extIncludedInfo =
 					client.getModuleInfo(includeParams);
 			includesToMd5.put(includedModule, extIncludedInfo.getChsum());
 		}
 		final String userId = authPart.getUserName();
 		final String specDocument = extInfo.getSpec();
 		final Set<String> extTypeSet = new LinkedHashSet<String>();
-		for (final String typeDef : extInfo.getTypes().keySet())
+		for (final String typeDef : extInfo.getTypes().keySet()) {
 			extTypeSet.add(TypeDefId.fromTypeString(typeDef).getType().getName());
+		}
 		returnVal = types.compileTypeSpecCopy(params.getMod(), specDocument,
-				extTypeSet, userId, includesToMd5, 
-				extInfo.getIncludedSpecVersion());
+				extTypeSet, userId, includesToMd5, extInfo.getIncludedSpecVersion());
         //END register_typespec_copy
         return returnVal;
     }
@@ -1459,7 +1483,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN release_module
 		returnVal = new LinkedList<String>();
 		final List<AbsoluteTypeDefId> ret =
-				types.releaseTypes(getUser(authPart), mod);
+				types.releaseTypes(wsmeth.getUser(authPart), mod);
 		for (final AbsoluteTypeDefId t: ret) {
 			returnVal.add(t.getTypeString());
 		}
@@ -1509,11 +1533,12 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<Long> vers;
 		final String module;
 		if (params.getMod() != null) {
-			vers = types.getModuleVersions(params.getMod(), getUser(authPart));
+			vers = types.getModuleVersions(
+					params.getMod(), wsmeth.getUser(authPart));
 			module = params.getMod();
 		} else {
 			final TypeDefId type = TypeDefId.fromTypeString(params.getType());
-			vers = types.getModuleVersions(type, getUser(authPart));
+			vers = types.getModuleVersions(type, wsmeth.getUser(authPart));
 			module = type.getType().getModule();
 		}
 		returnVal = new ModuleVersions().withMod(module).withVers(vers);
@@ -1543,7 +1568,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		} else {
 			module = new ModuleDefId(params.getMod());
 		}
-		WorkspaceUser user = getUser(authPart);
+		WorkspaceUser user = wsmeth.getUser(authPart);
 		final us.kbase.workspace.database.ModuleInfo mi =
 				types.getModuleInfo(user, module);
 		final Map<String, String> types = new HashMap<String, String>();
@@ -1577,7 +1602,7 @@ public class WorkspaceServer extends JsonServerServlet {
         String returnVal = null;
         //BEGIN get_jsonschema
 		returnVal = types.getJsonSchema(TypeDefId.fromTypeString(type),
-				getUser(authPart));
+				wsmeth.getUser(authPart));
         //END get_jsonschema
         return returnVal;
     }
@@ -1611,7 +1636,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> translateToMD5Types(List<String> semTypes, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN translate_to_MD5_types
-        returnVal = types.translateToMd5Types(semTypes, getUser(authPart));
+        returnVal = types.translateToMd5Types(semTypes, wsmeth.getUser(authPart));
         //END translate_to_MD5_types
         return returnVal;
     }
@@ -1628,7 +1653,7 @@ public class WorkspaceServer extends JsonServerServlet {
         TypeInfo returnVal = null;
         //BEGIN get_type_info
         TypeDetailedInfo tdi = types.getTypeInfo(
-        		type, true, getUser(authPart));
+        		type, true, wsmeth.getUser(authPart));
         returnVal = new TypeInfo().withTypeDef(tdi.getTypeDefId())
         		.withDescription(tdi.getDescription())
         		.withSpecDef(tdi.getSpecDef())
@@ -1677,7 +1702,7 @@ public class WorkspaceServer extends JsonServerServlet {
         FuncInfo returnVal = null;
         //BEGIN get_func_info
         FuncDetailedInfo fdi = types.getFuncInfo(
-        		func, true, getUser(authPart));
+        		func, true, wsmeth.getUser(authPart));
         returnVal = new FuncInfo().withFuncDef(fdi.getFuncDefId())
         		.withDescription(fdi.getDescription())
         		.withSpecDef(fdi.getSpecDef())
@@ -1722,7 +1747,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.grant_module_ownership", async=true)
     public void grantModuleOwnership(GrantModuleOwnershipParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN grant_module_ownership
-		wsmeth.grantModuleOwnership(params, getUser(authPart), false);
+		wsmeth.grantModuleOwnership(params, wsmeth.getUser(authPart), false);
         //END grant_module_ownership
     }
 
@@ -1737,7 +1762,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.remove_module_ownership", async=true)
     public void removeModuleOwnership(RemoveModuleOwnershipParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN remove_module_ownership
-		wsmeth.removeModuleOwnership(params, getUser(authPart), false);
+		wsmeth.removeModuleOwnership(params, wsmeth.getUser(authPart), false);
         //END remove_module_ownership
     }
 
@@ -1782,18 +1807,45 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String, Object> status() {
         Map<String, Object> returnVal = null;
         //BEGIN_STATUS
-        returnVal = new LinkedHashMap<String, Object>();
-        //TODO check mongo and shock?
-        returnVal.put("state", "OK");
-        returnVal.put("message", "");
-        returnVal.put("version", VER);
-        returnVal.put("git_url", GIT);
-        @SuppressWarnings("unused")
-        String v = version;
-        @SuppressWarnings("unused")
-        String h = gitCommitHash;
-        @SuppressWarnings("unused")
-        String u = gitUrl;
+		//note failures are tested manually for now, if you make changes test
+		//things still work
+		//TODO TEST when the client supports this method
+		//TODO TEST add tests exercising failures
+		returnVal = new LinkedHashMap<String, Object>();
+		final List<DependencyStatus> deps = ws.status();
+		if (wsmeth.getHandleServiceURL() != null) {
+			deps.add(wsmeth.checkHandleService());
+		}
+		if (handleManagerUrl != null) {
+			deps.add(checkHandleManager());
+		}
+		boolean ok = true;
+		final List<Map<String, String>> dstate = new LinkedList<>();
+		for (final DependencyStatus ds: deps) {
+			if (!ds.isOk()) {
+				ok = false;
+			}
+			final Map<String, String> d = new HashMap<String, String>();
+			d.put("state", ds.isOk() ? "OK" : "Fail");
+			d.put("name", ds.getName());
+			d.put("message", ds.getStatus());
+			d.put("version", ds.getVersion());
+			dstate.add(d);
+		}
+		returnVal.put("state", ok ? "OK" : "Fail");
+		returnVal.put("message", ok ? "OK" : "Dependency failure");
+		returnVal.put("dependencies", dstate);
+		returnVal.put("version", VER);
+		returnVal.put("git_url", GIT);
+		returnVal.put("freemem", Runtime.getRuntime().freeMemory());
+		returnVal.put("totalmem", Runtime.getRuntime().totalMemory());
+		returnVal.put("maxmem", Runtime.getRuntime().maxMemory());
+		@SuppressWarnings("unused")
+		final String v = version;
+		@SuppressWarnings("unused")
+		final String h = gitCommitHash;
+		@SuppressWarnings("unused")
+		final String u = gitUrl;
         //END_STATUS
         return returnVal;
     }
