@@ -92,8 +92,6 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class WorkspaceTest extends WorkspaceTester {
 
-	//TODO NOW recompile spec
-	
 	public WorkspaceTest(String config, String backend,
 			Integer maxMemoryUsePerCall) throws Exception {
 		super(config, backend, maxMemoryUsePerCall);
