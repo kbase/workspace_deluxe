@@ -259,16 +259,13 @@ public class WorkspaceServerMethods {
 		}
 		for (ObjectSaveData d: params.getObjects()) {
 			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
-			ObjectIDNoWSNoVer oi = null;
-			if (d.getName() != null || d.getObjid() != null) {
-				 oi = ObjectIDNoWSNoVer.create(d.getName(), d.getObjid());
+			final ObjectIDNoWSNoVer oi;
+			try {
+				oi = ObjectIDNoWSNoVer.create(d.getName(), d.getObjid());
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException("Object " + count + ": " + e.getMessage(), e);
 			}
-			String errprefix = "Object ";
-			if (oi == null) {
-				errprefix += count;
-			} else {
-				errprefix += count + ", " + oi.getIdentifierString() + ",";
-			}
+			final String errprefix = "Object " + count + ", " + oi.getIdentifierString() + ",";
 			if (d.getData() == null) {
 				throw new IllegalArgumentException(errprefix + " has no data");
 			}
@@ -279,22 +276,11 @@ public class WorkspaceServerMethods {
 				throw new IllegalArgumentException(errprefix + " type error: "
 						+ iae.getLocalizedMessage(), iae);
 			}
-			final Provenance p = processProvenance(user,
-					d.getProvenance());
+			final Provenance p = processProvenance(user, d.getProvenance());
 			final boolean hidden = longToBoolean(d.getHidden());
 			try {
-				if (oi == null) {
-					woc.add(new WorkspaceSaveObject(d.getData(), t,
-							new WorkspaceUserMetadata(d.getMeta()), p,
-							hidden));
-				} else {
-					woc.add(new WorkspaceSaveObject(oi, d.getData(), t, 
-							new WorkspaceUserMetadata(d.getMeta()), p,
-							hidden));
-				}
-			} catch (IllegalArgumentException iae) {
-				throw new IllegalArgumentException(errprefix + " save error: "
-						+ iae.getLocalizedMessage(), iae);
+				woc.add(new WorkspaceSaveObject(oi, d.getData(), t, 
+						new WorkspaceUserMetadata(d.getMeta()), p, hidden));
 			} catch (MetadataException me) {
 				throw new IllegalArgumentException(errprefix + " save error: "
 						+ me.getLocalizedMessage(), me);

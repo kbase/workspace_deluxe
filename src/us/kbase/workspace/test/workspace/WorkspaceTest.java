@@ -25,12 +25,17 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import junit.framework.Assert;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.zafarkhaja.semver.Version;
+import com.google.common.collect.Sets;
+
+import junit.framework.Assert;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
@@ -62,18 +67,17 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ExternalData;
+import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
-import us.kbase.workspace.database.UncheckedUserMetadata;
-import us.kbase.workspace.database.WorkspaceSaveObject;
-import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
+import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
+import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
@@ -83,17 +87,13 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
+import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.zafarkhaja.semver.Version;
-import com.google.common.collect.Sets;
 
 public class WorkspaceTest extends WorkspaceTester {
 
-
+	//TODO NOW recompile spec
+	
 	public WorkspaceTest(String config, String backend,
 			Integer maxMemoryUsePerCall) throws Exception {
 		super(config, backend, maxMemoryUsePerCall);
@@ -942,11 +942,16 @@ public class WorkspaceTest extends WorkspaceTester {
 			assertThat("correct except", e.getLocalizedMessage(), is("No object identifiers provided"));
 		}
 		
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata, SAFE_TYPE1, meta, p, false));
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata2, SAFE_TYPE1, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-1"), savedata, SAFE_TYPE1, meta, p, false));
-		objects.add(new WorkspaceSaveObject(savedata2, SAFE_TYPE1, meta2, p, false));
-		objects.add(new WorkspaceSaveObject(savedata, SAFE_TYPE1, meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata, SAFE_TYPE1,
+				meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3"), savedata2, SAFE_TYPE1,
+				meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-1"), savedata, SAFE_TYPE1,
+				meta, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto3-2"), savedata2,
+				SAFE_TYPE1, meta2, p, false));
+		objects.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto4"), savedata, SAFE_TYPE1,
+				meta, p, false));
 		
 		readLastDate = ws.getWorkspaceInformation(foo, read).getModDate();
 		List<ObjectInformation> objinfo = ws.saveObjects(foo, read, objects, foofac);
@@ -1561,7 +1566,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				Charset.forName("UTF-32LE"), Charset.forName("UTF-32BE"));
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		for (Charset cs: csets) {
-			objs.add(new WorkspaceSaveObject(new JsonTokenStream(jsondata.getBytes(cs)),
+			objs.add(new WorkspaceSaveObject(getRandomName(),
+					new JsonTokenStream(jsondata.getBytes(cs)),
 					SAFE_TYPE1, null, emptyprov, false));
 		}
 		
@@ -1610,39 +1616,39 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, String> data3 = new HashMap<String, String>();
 		data3.put("val", "2");
 		try {
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject("data1", abstype1, null, emptyprov, false)),
+			ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+					getRandomName(), "data1", abstype1, null, emptyprov, false)),
 					getIdFactory());
 			Assert.fail("Method works but shouldn't");
 		} catch (TypedObjectValidationException ex) {
 			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
 		}
 		try {
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(Arrays.asList("data2"), 
-							abstype2, null, emptyprov, false)), getIdFactory());
-			Assert.fail("Method works but shouldn't");
-		} catch (TypedObjectValidationException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
-		}
-		try {
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)),
+			ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+					getRandomName(), Arrays.asList("data2"), abstype2, null, emptyprov, false)),
 					getIdFactory());
 			Assert.fail("Method works but shouldn't");
 		} catch (TypedObjectValidationException ex) {
 			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
 		}
 		try {
-			ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(Arrays.asList("data4", "data4"), 
-							abstype4, null, emptyprov, false)), getIdFactory());
+			ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+					getRandomName(), data3, abstype3, null, emptyprov, false)),
+					getIdFactory());
 			Assert.fail("Method works but shouldn't");
 		} catch (TypedObjectValidationException ex) {
 			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
 		}
-		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data3, abstype5, null, emptyprov, false)),
+		try {
+			ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+					getRandomName(), Arrays.asList("data4", "data4"), 
+					abstype4, null, emptyprov, false)), getIdFactory());
+			Assert.fail("Method works but shouldn't");
+		} catch (TypedObjectValidationException ex) {
+			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
+		}
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data3, abstype5, null, emptyprov, false)),
 				getIdFactory());
 	}
 	
@@ -1698,8 +1704,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		Assert.assertEquals(keys, new TreeSet<String>(data1.keySet()));
 		Assert.assertTrue(data1.containsKey("val1"));
 		Assert.assertNull(data1.get("val1"));
-		long data1id = ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)),
+		long data1id = ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data1, abstype1, null, emptyprov, false)),
 				getIdFactory()).get(0).getObjectId();
 		final List<WorkspaceObjectData> objects = ws.getObjects(
 				userfoo, Arrays.asList(new ObjectIdentifier(wspace, data1id)));
@@ -1713,55 +1719,62 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
 		data2.put("val", null);
-		failSave(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data2, abstype2, null, emptyprov, false)), 
-				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (null) does not match any allowed primitive type (allowed: [\"array\"]), at /val"));
+		failSave(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data2, abstype2, null, emptyprov, false)), 
+				new TypedObjectValidationException(String.format(
+						"Object #1, %s failed type checking:\ninstance type (null) does not " +
+						"match any allowed primitive type (allowed: [\"array\"]), at /val",
+						getLastRandomName())));
 		data2.put("val", Arrays.asList((String)null));
-		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data2, abstype2, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data2, abstype2, null, emptyprov, false)),
 				getIdFactory());
 		
 		Map<String, Object> data3 = new LinkedHashMap<String, Object>();
 		data3.put("val", null);
-		failSave(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)), 
-				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (null) does not match any allowed primitive type (allowed: [\"object\"]), at /val"));
+		failSave(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data3, abstype3, null, emptyprov, false)), 
+				new TypedObjectValidationException(String.format(
+						"Object #1, %s failed type checking:\ninstance type (null) does not match " +
+						"any allowed primitive type (allowed: [\"object\"]), at /val",
+						getLastRandomName())));
 		Map<String, Object> innerMap = new LinkedHashMap<String, Object>();
 		innerMap.put("key", null);
 		data3.put("val", innerMap);
-		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data3, abstype3, null, emptyprov, false)),
 				getIdFactory());
 		innerMap.put(null, "foo");
 		
-		failSave(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data3, abstype3, null, emptyprov, false)), 
-				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nKeys in maps/structures may not be null"));
+		failSave(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data3, abstype3, null, emptyprov, false)), 
+				new TypedObjectValidationException(String.format(
+						"Object #1, %s failed type checking:\nKeys in maps/structures may not " +
+						"be null", getLastRandomName())));
 		
 		Map<String, Object> data4 = new LinkedHashMap<String, Object>();
 		data4.put("val", null);
-		failSave(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data4, abstype4, null, emptyprov, false)), 
-				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (null) does not match any allowed primitive type (allowed: [\"array\"]), at /val"));
+		failSave(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data4, abstype4, null, emptyprov, false)), 
+				new TypedObjectValidationException(String.format(
+						"Object #1, %s failed type checking:\ninstance type (null) does not " +
+						"match any allowed primitive type (allowed: [\"array\"]), at /val",
+						getLastRandomName())));
 		data4.put("val", Arrays.asList((String)null, (String)null));
-		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data4, abstype4, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data4, abstype4, null, emptyprov, false)),
 				getIdFactory());
 		
 		Map<String, Object> data5 = new LinkedHashMap<String, Object>();
 		data5.put("val", Arrays.asList(2, (Integer)null, 1));
-		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data5, abstype5, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data5, abstype5, null, emptyprov, false)),
 				getIdFactory());
 		
 		Map<String, Object> data6 = new LinkedHashMap<String, Object>();
 		data6.put("val", Arrays.asList(1.2, (Float)null, 3.6));
-		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data6, abstype6, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data6, abstype6, null, emptyprov, false)),
 				getIdFactory());
 	}
 
@@ -1775,9 +1788,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("", 3);
 		//should work
-		ws.saveObjects(user, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, mtprov,
-						false)
+		ws.saveObjects(user, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data, SAFE_TYPE1, null, mtprov, false)
 				), getIdFactory());
 		final List<WorkspaceObjectData> objects = ws.getObjects(
 				user, Arrays.asList(new ObjectIdentifier(wspace, 1)));
@@ -1858,144 +1870,169 @@ public class WorkspaceTest extends WorkspaceTester {
 		data1.put("bar", Arrays.asList(-3, 1, 234567890));
 		
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false)),
+				new WorkspaceSaveObject(getRandomName(), data1, abstype0, null, emptyprov, false)),
 				getIdFactory()); //should work
 		
-		failSave(userfoo, wspace, data1, new TypeDefId("NoModHere.Foo"), emptyprov,
+		final ObjectIDNoWSNoVer fail = new ObjectIDNoWSNoVer("fail");
+		failSave(userfoo, wspace, fail, data1, new TypeDefId("NoModHere.Foo"), emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nModule doesn't exist: NoModHere"));
-		failSave(userfoo, wspace, data1, new TypeDefId("SomeModule.Foo"), emptyprov,
+						"Object #1, fail failed type checking:\nModule doesn't exist: NoModHere"));
+		failSave(userfoo, wspace, fail, data1, new TypeDefId("SomeModule.Foo"), emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nUnable to locate type: SomeModule.Foo"));
+						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"SomeModule.Foo"));
 		
-		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
+		failSave(userfoo, wspace, fail, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
-		failSave(userfoo, wspace, data1, relmintype1, emptyprov,
+						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"and you should be an owner to access unreleased version information"));
+		failSave(userfoo, wspace, fail, data1, relmintype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-1"));
-		failSave(userfoo, wspace, data1, abstype1, emptyprov,
+						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"TestTypeChecking.CheckType-1"));
+		failSave(userfoo, wspace, fail, data1, abstype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-1.0"));
-		failSave(userfoo, wspace, data1, relmaxtype, emptyprov,
+						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"TestTypeChecking.CheckType-1.0"));
+		failSave(userfoo, wspace, fail, data1, relmaxtype, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
+						"Object #1, fail failed type checking:\nThis type wasn't released yet " + 
+						"and you should be an owner to access unreleased version information"));
 		
 		types.releaseTypes(userfoo, mod);
 		
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, relmaxtype, null, emptyprov, false)),
 				getIdFactory());
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, abstype0, null, emptyprov, false)),
 				getIdFactory());
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, abstype1, null, emptyprov, false)),
 				getIdFactory());
-		failSave(userfoo, wspace, data1, relmintype0, emptyprov,
+		failSave(userfoo, wspace, fail, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)),
+						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"and you should be an owner to access unreleased version information"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, relmintype1, null, emptyprov, false)),
 				getIdFactory());
-		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
+		failSave(userfoo, wspace, fail, data1, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nUnable to locate type: TestTypeChecking.CheckType-2"));
+						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"TestTypeChecking.CheckType-2"));
 		
 		types.compileNewTypeSpec(userfoo, specTypeCheck2, null, null, null, false, null);
 		
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, relmaxtype, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, relmaxtype, null, emptyprov, false)),
 				getIdFactory());
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, relmintype1, null, emptyprov, false)),
 				getIdFactory());
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, abstype0, null, emptyprov, false)),
 				getIdFactory());
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, abstype1, null, emptyprov, false)),
 				getIdFactory());
-		failSave(userfoo, wspace, data1, abstype2, emptyprov,
+		failSave(userfoo, wspace, fail, data1, abstype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
-		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
+						"Object #1, fail failed type checking:\ninstance type (string) does " +
+						"not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+		failSave(userfoo, wspace, fail, data1, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
+						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"and you should be an owner to access unreleased version information"));
 		
 		
 		Map<String, Object> newdata = new HashMap<String, Object>(data1);
 		newdata.put("baz", 1);
-		ws.saveObjects(userfoo, wspace, Arrays.asList(
-					new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)),
-					getIdFactory());
-		failSave(userfoo, wspace, newdata, abstype0, emptyprov,
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), newdata, abstype2 , null, emptyprov, false)),
+				getIdFactory());
+		failSave(userfoo, wspace, fail, newdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
-		failSave(userfoo, wspace, newdata, abstype1, emptyprov,
+						"Object #1, fail failed type checking:\ninstance type (integer) does " +
+						"not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, fail, newdata, abstype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
-		failSave(userfoo, wspace, newdata, relmaxtype, emptyprov,
+						"Object #1, fail failed type checking:\ninstance type (integer) does " +
+						"not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, fail, newdata, relmaxtype, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
-		failSave(userfoo, wspace, newdata, relmintype1, emptyprov,
+						"Object #1, fail failed type checking:\ninstance type (integer) does " +
+						"not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, fail, newdata, relmintype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
-		failSave(userfoo, wspace, newdata, relmintype2, emptyprov,
+						"Object #1, fail failed type checking:\ninstance type (integer) does " +
+						"not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, fail, newdata, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\nThis type wasn't released yet and you should be an owner to access unreleased version information"));
+						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"and you should be an owner to access unreleased version information"));
 		
 		types.releaseTypes(userfoo, mod);
 		
-		failSave(userfoo, wspace, data1, relmaxtype, emptyprov, 
+		failSave(userfoo, wspace, fail, data1, relmaxtype, emptyprov, 
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, relmintype1, null, emptyprov, false)),
+						"Object #1, fail failed type checking:\ninstance type (string) does " +
+						"not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, relmintype1, null, emptyprov, false)),
 				getIdFactory());
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, abstype0, null, emptyprov, false)),
 				getIdFactory());
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(data1, abstype1, null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), data1, abstype1, null, emptyprov, false)),
 				getIdFactory());
-		failSave(userfoo, wspace, data1, abstype2, emptyprov,
+		failSave(userfoo, wspace, fail, data1, abstype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
-		failSave(userfoo, wspace, data1, relmintype2, emptyprov,
+						"Object #1, fail failed type checking:\ninstance type (string) does " +
+						"not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+		failSave(userfoo, wspace, fail, data1, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
+						"Object #1, fail failed type checking:\ninstance type (string) does " +
+						"not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
 		
-		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)),
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), newdata, abstype2 , null, emptyprov, false)),
 				getIdFactory());
-		failSave(userfoo, wspace, newdata, abstype0, emptyprov,
+		failSave(userfoo, wspace, fail, newdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
-		failSave(userfoo, wspace, newdata, abstype1, emptyprov,
+						"Object #1, fail failed type checking:\ninstance type (integer) does " +
+						"not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		failSave(userfoo, wspace, fail, newdata, abstype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(newdata, relmaxtype, null, emptyprov, false)),
+						"Object #1, fail failed type checking:\ninstance type (integer) does " +
+						"not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), newdata, relmaxtype, null, emptyprov, false)),
 				getIdFactory());
-		failSave(userfoo, wspace, newdata, relmintype1, emptyprov,
+		failSave(userfoo, wspace, fail, newdata, relmintype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
-		ws.saveObjects(userfoo, wspace, Arrays.asList( //should work
-				new WorkspaceSaveObject(newdata, relmintype2, null, emptyprov, false)),
+						"Object #1, fail failed type checking:\ninstance type (integer) does " +
+						"not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
+				getRandomName(), newdata, relmintype2, null, emptyprov, false)),
 				getIdFactory());
 		
 		
 		// test non-parseable references and typechecking with object count
 		List<WorkspaceSaveObject> data = new ArrayList<WorkspaceSaveObject>();
-		data.add(new WorkspaceSaveObject(data1, abstype0, null, emptyprov, false));
+		
+		final ObjectIDNoWSNoVer obj1 = new ObjectIDNoWSNoVer("obj1");
+		final ObjectIDNoWSNoVer obj2 = new ObjectIDNoWSNoVer("obj2");
+		data.add(new WorkspaceSaveObject(obj1, data1, abstype0, null, emptyprov, false));
 		Map<String, Object> data2 = new HashMap<String, Object>(data1);
 		data2.put("bar", Arrays.asList(-3, 1, "anotherstring"));
-		data.add(new WorkspaceSaveObject(data2, abstype0, null, emptyprov, false));
+		data.add(new WorkspaceSaveObject(obj2, data2, abstype0, null, emptyprov, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-					"Object #2 failed type checking:\ninstance type (string) does not match any allowed primitive type (allowed: [\"integer\"]), at /bar/2"));
+				"Object #2, obj2 failed type checking:\ninstance type (string) does not " +
+				"match any allowed primitive type (allowed: [\"integer\"]), at /bar/2"));
 		
-		data.set(1, new WorkspaceSaveObject(data2, abstype2, null, emptyprov, false));
+		data.set(1, new WorkspaceSaveObject(obj2, data2, abstype2, null, emptyprov, false));
 		@SuppressWarnings("unchecked")
 		List<Integer> intlist = (List<Integer>) data2.get("bar");
 		intlist.set(2, 42);
@@ -2004,155 +2041,174 @@ public class WorkspaceTest extends WorkspaceTester {
 		data2.put("map", inner);
 		data2.put("baz", 1);
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2 failed type checking:\ninstance type (integer) does not match any allowed primitive type (allowed: [\"string\"]), at /map/amapkey"));
+				"Object #2, obj2 failed type checking:\ninstance type (integer) does not match " +
+				"any allowed primitive type (allowed: [\"string\"]), at /map/amapkey"));
 		
 		Map<String, Object> data3 = new HashMap<String, Object>(data1);
 		data3.put("ref", "typecheck/1/1");
-		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, emptyprov, false));
+		data.set(1, new WorkspaceSaveObject(obj2, data3, abstype0, null, emptyprov, false));
 		ws.saveObjects(userfoo, wspace, data, getIdFactory()); //should work
 		
 		Map<String, Object> data4 = new HashMap<String, Object>(data1);
 		data4.put("ref", "foo/bar/baz");
-		data.set(1, new WorkspaceSaveObject(data4, abstype0, null, emptyprov, false));
+		final ObjectIDNoWSNoVer obj3 = new ObjectIDNoWSNoVer("obj3");
+		data.set(1, new WorkspaceSaveObject(obj3, data4, abstype0, null, emptyprov, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2 has unparseable reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer at /ref"));
+				"Object #2, obj3 has unparseable reference foo/bar/baz: Unable to parse version " +
+				"portion of object reference foo/bar/baz to an integer at /ref"));
 		
 		Map<String, Object> data5 = new HashMap<String, Object>(data1);
 		data5.put("ref", null);
-		data.set(1, new WorkspaceSaveObject(data5, abstype0, null, emptyprov, false));
+		data.set(1, new WorkspaceSaveObject(obj3, data5, abstype0, null, emptyprov, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"string\"]), at /ref"));
+				"Object #2, obj3 failed type checking:\ninstance type (null) not allowed for " +
+				"ID reference (allowed: [\"string\"]), at /ref"));
 		
 		Map<String, Object> data6 = new HashMap<String, Object>(data1);
 		data6.put("ref", "");
-		data.set(1, new WorkspaceSaveObject(data6, abstype0, null, emptyprov, false));
+		data.set(1, new WorkspaceSaveObject(obj3, data6, abstype0, null, emptyprov, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2 failed type checking:\nUnparseable id  of type ws: IDs may not be null or the empty string at /ref"));
+				"Object #2, obj3 failed type checking:\nUnparseable id  of type ws: IDs may not " +
+				"be null or the empty string at /ref"));
 		
 		
 		Provenance goodids = new Provenance(userfoo);
 		goodids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("typecheck/1/1")));
-		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, goodids, false));
+		data.set(1, new WorkspaceSaveObject(obj3, data3, abstype0, null, goodids, false));
 		ws.saveObjects(userfoo, wspace, data, getIdFactory()); //should work
 		
 		Provenance badids = new Provenance(userfoo);
 		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("foo/bar/baz")));
-		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, badids, false));
+		final ObjectIDNoWSNoVer obj4 = new ObjectIDNoWSNoVer("obj4");
+		data.set(1, new WorkspaceSaveObject(obj4, data3, abstype0, null, badids, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2 has unparseable provenance reference foo/bar/baz: Unable to parse version portion of object reference foo/bar/baz to an integer"));
+				"Object #2, obj4 has unparseable provenance reference foo/bar/baz: Unable to " +
+				"parse version portion of object reference foo/bar/baz to an integer"));
 		
 		badids = new Provenance(userfoo);
 		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList((String) null)));
-		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, badids, false));
+		data.set(1, new WorkspaceSaveObject(obj4, data3, abstype0, null, badids, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2 has a null provenance reference"));
+				"Object #2, obj4 has a null provenance reference"));
 		
 		badids = new Provenance(userfoo);
 		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("")));
-		data.set(1, new WorkspaceSaveObject(data3, abstype0, null, badids, false));
+		data.set(1, new WorkspaceSaveObject(obj4, data3, abstype0, null, badids, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2 has invalid provenance reference: IDs may not be null or the empty string"));
+				"Object #2, obj4 has invalid provenance reference: IDs may not be null or the " +
+				"empty string"));
 		
 		//test inaccessible references due to missing, deleted, or unreadable workspaces
 		Map<String, Object> refdata = new HashMap<String, Object>(data1);
 		refdata.put("ref", "thereisnoworkspaceofthisname/2/1");
-		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+		failSave(userfoo, wspace, fail, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has invalid reference: No read access to id thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists at /ref"));
+						"Object #1, fail has invalid reference: No read access to id " +
+						"thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No " +
+						"workspace with name thereisnoworkspaceofthisname exists at /ref"));
 		Provenance nowsref = new Provenance(userfoo);
 		nowsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("thereisnoworkspaceofthisname/2/1")));
-		failSave(userfoo, wspace, data1, abstype0, nowsref,
+		failSave(userfoo, wspace, new ObjectIDNoWSNoVer(67), data1, abstype0, nowsref,
 				new TypedObjectValidationException(
-						"Object #1 has invalid provenance reference: No read access to id thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No workspace with name thereisnoworkspaceofthisname exists"));
+						"Object #1, 67 has invalid provenance reference: No read access to id " +
+						"thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No " +
+						"workspace with name thereisnoworkspaceofthisname exists"));
 		
 		ws.createWorkspace(userfoo, "tobedeleted", false, null, null);
 		ws.setWorkspaceDeleted(userfoo, new WorkspaceIdentifier("tobedeleted"), true);
 		refdata.put("ref", "tobedeleted/2/1");
-		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+		failSave(userfoo, wspace, fail, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has invalid reference: No read access to id tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted at /ref"));
+						"Object #1, fail has invalid reference: No read access to id " +
+						"tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is " +
+						"deleted at /ref"));
 		Provenance delwsref = new Provenance(userfoo);
 		delwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("tobedeleted/2/1")));
-		failSave(userfoo, wspace, data1, abstype0, delwsref,
+		failSave(userfoo, wspace, fail, data1, abstype0, delwsref,
 				new TypedObjectValidationException(
-						"Object #1 has invalid provenance reference: No read access to id tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is deleted"));
+						"Object #1, fail has invalid provenance reference: No read access to " +
+						"id tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted " +
+						"is deleted"));
 		
 		ws.createWorkspace(new WorkspaceUser("stingyuser"), "stingyworkspace", false, null, null);
 		refdata.put("ref", "stingyworkspace/2/1");
-		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+		failSave(userfoo, wspace, fail, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1 has invalid reference: No read access to id stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace at /ref"));
+						"Object #1, fail has invalid reference: No read access to id " +
+						"stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not " +
+						"read workspace stingyworkspace at /ref"));
 		Provenance privwsref = new Provenance(userfoo);
 		privwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("stingyworkspace/2/1")));
-		failSave(userfoo, wspace, data1, abstype0, privwsref,
+		failSave(userfoo, wspace, fail, data1, abstype0, privwsref,
 				new TypedObjectValidationException(
-						"Object #1 has invalid provenance reference: No read access to id stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not read workspace stingyworkspace"));
+						"Object #1, fail has invalid provenance reference: No read access to " +
+						"id stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not " +
+						"read workspace stingyworkspace"));
 		
 		//test inaccessible reference due to missing or deleted objects, incl bad versions
 		ws.createWorkspace(userfoo, "referencetesting", false, null, null);
 		WorkspaceIdentifier reftest = new WorkspaceIdentifier("referencetesting");
-		ws.saveObjects(userfoo, reftest, Arrays.asList(
-				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftest, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto1"), newdata, abstype2 , null, emptyprov, false)),
 				getIdFactory());
 		
 		refdata.put("ref", "referencetesting/1/1");
-		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(refdata, abstype1 , null, emptyprov, false)),
-				getIdFactory());
+		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), refdata, abstype1 , null, emptyprov, false)), getIdFactory());
 		Provenance goodref = new Provenance(userfoo);
 		goodref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/1/1")));
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(refdata, abstype1 , null, goodref, false)),
-				getIdFactory());
+				new WorkspaceSaveObject(getRandomName(), refdata, abstype1 , null, goodref,
+						false)), getIdFactory());
 		
 		refdata.put("ref", "referencetesting/2/1");
 		long refwsid = ws.getWorkspaceInformation(userfoo, reftest).getId();
-		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+		failSave(userfoo, wspace, fail, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has invalid reference: There is no object with id " +
+						"Object #1, fail has invalid reference: There is no object with id " +
 						"referencetesting/2/1: No object with id 2 exists in workspace %s " +
 						 "(name referencetesting) at /ref", refwsid)));
 		Provenance noobjref = new Provenance(userfoo);
 		noobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(
 				Arrays.asList("referencetesting/2/1")));
-		failSave(userfoo, wspace, data1, abstype0, noobjref,
+		failSave(userfoo, wspace, fail, data1, abstype0, noobjref,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has invalid provenance reference: There is no object with id " +
-						"referencetesting/2/1: No object with id 2 exists in workspace %s " +
-						"(name referencetesting)", refwsid)));
+						"Object #1, fail has invalid provenance reference: There is no object " +
+						"with id referencetesting/2/1: No object with id 2 exists in workspace " +
+						"%s (name referencetesting)", refwsid)));
 		
-		ws.saveObjects(userfoo, reftest, Arrays.asList(
-				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftest, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto2"), newdata, abstype2 , null, emptyprov, false)),
 				getIdFactory());
 		ws.setObjectsDeleted(userfoo, Arrays.asList(new ObjectIdentifier(reftest, 2)), true);
-		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+		failSave(userfoo, wspace, fail, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has invalid reference: There is no object with id " +
+						"Object #1, fail has invalid reference: There is no object with id " +
 						"referencetesting/2/1: Object 2 (name auto2) in workspace %s " +
 						"(name referencetesting) has been deleted at /ref", refwsid)));
 		Provenance delobjref = new Provenance(userfoo);
 		delobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(
 				Arrays.asList("referencetesting/2/1")));
-		failSave(userfoo, wspace, data1, abstype0, delobjref,
+		failSave(userfoo, wspace, fail, data1, abstype0, delobjref,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has invalid provenance reference: There is no object with id " +
-						"referencetesting/2/1: Object 2 (name auto2) in workspace %s " +
+						"Object #1, fail has invalid provenance reference: There is no object " +
+						"with id referencetesting/2/1: Object 2 (name auto2) in workspace %s " +
 						"(name referencetesting) has been deleted", refwsid)));
 		
 		refdata.put("ref", "referencetesting/1/2");
-		failSave(userfoo, wspace, refdata, abstype0, emptyprov,
+		failSave(userfoo, wspace, fail, refdata, abstype0, emptyprov,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has invalid reference: There is no object with id " +
+						"Object #1, fail has invalid reference: There is no object with id " +
 						"referencetesting/1/2: No object with id 1 (name auto1) and version 2 " +
 						"exists in workspace %s (name referencetesting) at /ref", refwsid)));
 		Provenance noverref = new Provenance(userfoo);
 		noverref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(
 				Arrays.asList("referencetesting/1/2")));
-		failSave(userfoo, wspace, data1, abstype0, noverref,
+		failSave(userfoo, wspace, fail, data1, abstype0, noverref,
 				new TypedObjectValidationException(String.format(
-						"Object #1 has invalid provenance reference: There is no object with id " +
-						"referencetesting/1/2: No object with id 1 (name auto1) and version 2 " +
-						"exists in workspace %s (name referencetesting)", refwsid)));
+						"Object #1, fail has invalid provenance reference: There is no object " +
+						"with id referencetesting/1/2: No object with id 1 (name auto1) and " +
+						"version 2 exists in workspace %s (name referencetesting)", refwsid)));
 		
 		//TODO GC test references against garbage collected objects
 		
@@ -2166,94 +2222,94 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(userfoo, "referencetypecheck", false, null, null);
 		WorkspaceIdentifier reftypecheck = new WorkspaceIdentifier("referencetypecheck");
 		long reftypewsid = ws.getWorkspaceInformation(userfoo, reftypecheck).getId();
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(newdata, SAFE_TYPE1 , null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto1"), newdata, SAFE_TYPE1 , null, emptyprov, false)),
 				getIdFactory());
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(newdata, abstype2 , null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto2"), newdata, abstype2 , null, emptyprov, false)),
 				getIdFactory());
 		
 		refdata.put("ref", "referencetypecheck/2/1");
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory()); //should work
 		
 		refdata.put("ref", "referencetypecheck/2");
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory()); //should work
 		
 		refdata.put("ref", "referencetypecheck/auto2/1");
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory()); //should work
 		
 		refdata.put("ref", "referencetypecheck/auto2");
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory()); //should work
 		
 		refdata.put("ref", reftypewsid + "/2/1");
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory()); //should work
 		
 		refdata.put("ref", reftypewsid + "/2");
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory()); //should work
 		
 		refdata.put("ref", reftypewsid + "/auto2/1");
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory()); //should work
 		
 		refdata.put("ref", reftypewsid + "/auto2");
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(refdata, absreftype0, null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), refdata, absreftype0, null, emptyprov, false)),
 				getIdFactory()); //should work
 
-		String err = "Object #1 has invalid reference: The type " +
+		String err = "Object #1, fail has invalid reference: The type " +
 				"SomeModule.AType-0.1 of reference %s in this object is not " + 
 				"allowed - allowed types are [TestTypeChecking.CheckType] at /ref";
 		
 		refdata.put("ref", "referencetypecheck/1/1");
-		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+		failSave(userfoo, reftypecheck, fail, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(String.format(err,
 						"referencetypecheck/1/1")));
 		
 		refdata.put("ref", "referencetypecheck/1");
-		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+		failSave(userfoo, reftypecheck, fail, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(String.format(err,
 						"referencetypecheck/1")));
 		
 		refdata.put("ref", "referencetypecheck/auto1/1");
-		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+		failSave(userfoo, reftypecheck, fail, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(String.format(err,
 						"referencetypecheck/auto1/1")));
 		
 		refdata.put("ref", "referencetypecheck/auto1");
-		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+		failSave(userfoo, reftypecheck, fail, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(String.format(err,
 						"referencetypecheck/auto1")));
 		
 		refdata.put("ref", reftypewsid + "/1/1");
-		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+		failSave(userfoo, reftypecheck, fail, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(String.format(err,
 						reftypewsid + "/1/1")));
 		
 		refdata.put("ref", reftypewsid + "/1");
-		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+		failSave(userfoo, reftypecheck, fail, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(String.format(err,
 						reftypewsid + "/1")));
 		
 		refdata.put("ref", reftypewsid + "/auto1/1");
-		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+		failSave(userfoo, reftypecheck, fail, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(String.format(err,
 						reftypewsid + "/auto1/1")));
 		
 		refdata.put("ref", reftypewsid + "/auto1");
-		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
+		failSave(userfoo, reftypecheck, fail, refdata, absreftype0, emptyprov,
 				new TypedObjectValidationException(String.format(err,
 						reftypewsid + "/auto1")));
 
@@ -2288,50 +2344,21 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		Map<String, Object> d = new HashMap<String, Object>();
 		Provenance mtprov = new Provenance(user);
-		objs.add(new WorkspaceSaveObject(d, SAFE_TYPE1, null, mtprov, false));
+		objs.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), d, SAFE_TYPE1, null,
+				mtprov, false));
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
 		Provenance p = new Provenance(user).addAction(new ProvenanceAction()
 				.withWorkspaceObjects(Arrays.asList(
 						wsi.getName() + "/auto1", wsi.getName() + "/auto2")));
-		objs.set(0, new WorkspaceSaveObject(d, SAFE_TYPE1, null, p, false));
-		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid provenance reference: There is no object with id " +
+		objs.set(0, new WorkspaceSaveObject(getRandomName(), d, SAFE_TYPE1, null, p, false));
+		failSave(user, wsi, objs, new TypedObjectValidationException(String.format(
+				"Object #1, %s has invalid provenance reference: There is no object with id " +
 				"wsIdErrorOrder/auto2: No object with name auto2 exists in workspace 1 " +
-				"(name wsIdErrorOrder)"));
+				"(name wsIdErrorOrder)", getLastRandomName())));
 		
 	}
 	
-	@Test
-	public void duplicateAutoIds() throws Exception {
-		WorkspaceUser user = new WorkspaceUser("user1");
-		WorkspaceIdentifier wsi = new WorkspaceIdentifier("dupAutoIds");
-		ws.createWorkspace(user, wsi.getName(), false, null, null);
-		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
-		Map<String, Object> d1 = new HashMap<String, Object>();
-		Map<String, Object> d2 = new HashMap<String, Object>();
-		d2.put("d", 2);
-		Provenance mtprov = new Provenance(user);
-		objs.add(new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("auto5-foo"), d1, SAFE_TYPE1, null, mtprov, false));
-		objs.add(new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("auto5-1-1"), d1, SAFE_TYPE1, null, mtprov, false));
-		objs.add(new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("auto5"), d1, SAFE_TYPE1, null, mtprov, false));
-		objs.add(new WorkspaceSaveObject(
-				new ObjectIDNoWSNoVer("auto5-1"), d1, SAFE_TYPE1, null, mtprov, false));
-		objs.add(new WorkspaceSaveObject(d2, SAFE_TYPE1, null, mtprov, false));
-		
-		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
-		WorkspaceObjectData d =  ws.getObjects(user, Arrays.asList(
-				new ObjectIdentifier(wsi, "auto5-2"))).get(0);
-		try {
-			assertThat("auto named correctly", getData(d), is((Object) d2));
-		} finally {
-			destroyGetObjectsResources(Arrays.asList(d));
-		}
-	}
-
 	@Test
 	public void genericIdExtraction() throws Exception {
 		
@@ -2371,7 +2398,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(user, wsi.getName(), false, null, null);
 		Provenance emptyprov = new Provenance(user);
 		List<WorkspaceSaveObject> data = new LinkedList<WorkspaceSaveObject>();
-		data.add(new WorkspaceSaveObject(new HashMap<String, Object>(), idtype, null, emptyprov, false));
+		data.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"),
+				new HashMap<String, Object>(), idtype, null, emptyprov, false));
 		
 		Map<String, Object> iddata = new HashMap<String, Object>();
 		
@@ -2379,7 +2407,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		IdReferenceHandlerSetFactory fac = getIdFactory().addFactory(
 				new TestIDReferenceHandlerFactory(new IdReferenceType(idtype1)));
 
-		data.add(new WorkspaceSaveObject(iddata, idtype, null, emptyprov, false));
+		data.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto2"),
+				iddata, idtype, null, emptyprov, false));
 		iddata.put("an_id", "id here");
 		iddata.put("an_id2", "foo");
 //		iddata.put("an_int_id", 34);
@@ -2393,6 +2422,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkExternalIds(user, obj2, expected);
 		
 		fac.addFactory(new TestIDReferenceHandlerFactory(new IdReferenceType(idtype2)));
+		data.set(0, renameWSO(data.get(0), "auto3"));
+		data.set(1, renameWSO(data.get(1), "auto4"));
 		ws.saveObjects(user, wsi, data, fac); //should work
 		expected.put(idtype2, Arrays.asList("foo"));
 		ObjectIdentifier obj4 = new ObjectIdentifier(wsi, "auto4");
@@ -2434,26 +2465,31 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		iddata.put("an_id", "parseExcept");
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(
-				"Object #2 failed type checking:\nUnparseable id parseExcept of type someid: Parse exception for ID parseExcept at /an_id"));
+				"Object #2, auto4 failed type checking:\nUnparseable id parseExcept of type " +
+				"someid: Parse exception for ID parseExcept at /an_id"));
 		
 		iddata.clear();
 		iddata.put("an_id2", "refExcept");
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(
-				"Object #2 failed type checking:\nInvalid id refExcept of type someid2: Reference exception for ID refExcept at /an_id2"));
+				"Object #2, auto4 failed type checking:\nInvalid id refExcept of type someid2: " +
+				"Reference exception for ID refExcept at /an_id2"));
 		
 		iddata.clear();
 		iddata.put("an_id", "genExcept");
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(
-				"Object #2 failed type checking:\nId handling error for id type someid: General exception for ID genExcept at /an_id"));
+				"Object #2, auto4 failed type checking:\nId handling error for id type someid: " +
+				"General exception for ID genExcept at /an_id"));
 		
 		iddata.put("an_id", "procParseExcept");
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(
-				"Object #2 has unparseable reference procParseExcept: Process Parse exception for ID procParseExcept at /an_id"));
+				"Object #2, auto4 has unparseable reference procParseExcept: Process Parse " +
+				"exception for ID procParseExcept at /an_id"));
 		
 		iddata.clear();
 		iddata.put("an_id2", "procRefExcept");
 		failSave(user, wsi, data, fac, new TypedObjectValidationException(
-				"Object #2 has invalid reference: Process Reference exception for ID procRefExcept at /an_id2"));
+				"Object #2, auto4 has invalid reference: Process Reference exception for ID " +
+				"procRefExcept at /an_id2"));
 		
 		iddata.clear();
 		iddata.put("an_id", "procGenExcept");
@@ -2462,6 +2498,11 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	
+	private WorkspaceSaveObject renameWSO(final WorkspaceSaveObject obj, final String name) {
+		return new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), obj.getData(), obj.getType(),
+				obj.getUserMeta(), obj.getProvenance(), obj.isHidden());
+	}
+
 	@Test
 	public void wsIDHandling() throws Exception {
 		String mod = "WsIDHandling";
@@ -2561,69 +2602,88 @@ public class WorkspaceTest extends WorkspaceTester {
 		data.put("ws_23", Arrays.asList(ref2, ref3));
 		
 		objs.clear();
-		objs.add(new WorkspaceSaveObject(data, idtype, null, emptyprov, false));
+		objs.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("foo"), data, idtype, null,
+				emptyprov, false));
 		//should work
 		ws.saveObjects(user, wsi, objs, fac);
 		
 		innermap.put(ref2, 4);
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: The type WsIDHandling.Type2-0.1 of reference wsIDHandling/t2 in this object is not allowed - allowed types are [WsIDHandling.Type1] at /ws_1/0/wsIDHandling/t2"));
+				"Object #1, foo has invalid reference: The type WsIDHandling.Type2-0.1 of " +
+				"reference wsIDHandling/t2 in this object is not allowed - allowed types are " +
+				"[WsIDHandling.Type1] at /ws_1/0/wsIDHandling/t2"));
 		
 		innermap.remove(ref2);
 		innermap.put(ref3, 6);
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: The type WsIDHandling.Type3-0.1 of reference wsIDHandling/t3 in this object is not allowed - allowed types are [WsIDHandling.Type1] at /ws_1/0/wsIDHandling/t3"));
+				"Object #1, foo has invalid reference: The type WsIDHandling.Type3-0.1 of " +
+				"reference wsIDHandling/t3 in this object is not allowed - allowed types are " +
+				"[WsIDHandling.Type1] at /ws_1/0/wsIDHandling/t3"));
 		
 		innermap.remove(ref3);
 		innertuple.add(Arrays.asList("bar", ref1));
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: The type WsIDHandling.Type1-0.1 of reference wsIDHandling/t1 in this object is not allowed - allowed types are [WsIDHandling.Type2] at /ws_2/1/1"));
+				"Object #1, foo has invalid reference: The type WsIDHandling.Type1-0.1 of " +
+				"reference wsIDHandling/t1 in this object is not allowed - allowed types are " +
+				"[WsIDHandling.Type2] at /ws_2/1/1"));
 		
 		innertuple.clear();
 		innertuple.add(Arrays.asList("baz", ref3));
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: The type WsIDHandling.Type3-0.1 of reference wsIDHandling/t3 in this object is not allowed - allowed types are [WsIDHandling.Type2] at /ws_2/0/1"));
+				"Object #1, foo has invalid reference: The type WsIDHandling.Type3-0.1 of " +
+				"reference wsIDHandling/t3 in this object is not allowed - allowed types are " +
+				"[WsIDHandling.Type2] at /ws_2/0/1"));
 		
 		innertuple.set(0, Arrays.asList("foo", ref2));
 		innerlist.add(ref1);
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: The type WsIDHandling.Type1-0.1 of reference wsIDHandling/t1 in this object is not allowed - allowed types are [WsIDHandling.Type3] at /ws_3/0/1"));
+				"Object #1, foo has invalid reference: The type WsIDHandling.Type1-0.1 of " +
+				"reference wsIDHandling/t1 in this object is not allowed - allowed types are " +
+				"[WsIDHandling.Type3] at /ws_3/0/1"));
 		
 		innerlist.set(1, ref3);
 		innerlist.add(ref2);
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: The type WsIDHandling.Type2-0.1 of reference wsIDHandling/t2 in this object is not allowed - allowed types are [WsIDHandling.Type3] at /ws_3/0/2"));
+				"Object #1, foo has invalid reference: The type WsIDHandling.Type2-0.1 of " +
+				"reference wsIDHandling/t2 in this object is not allowed - allowed types are " +
+				"[WsIDHandling.Type3] at /ws_3/0/2"));
 		
 		innerlist.remove(2);
 		innerlist.remove(1);
 		data.put("ws_12", all3);
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: The type WsIDHandling.Type3-0.1 of reference wsIDHandling/t3 in this object is not allowed - allowed types are [WsIDHandling.Type1, WsIDHandling.Type2] at /ws_12/2"));
+				"Object #1, foo has invalid reference: The type WsIDHandling.Type3-0.1 of " +
+				"reference wsIDHandling/t3 in this object is not allowed - allowed types are " +
+				"[WsIDHandling.Type1, WsIDHandling.Type2] at /ws_12/2"));
 		
 		data.put("ws_12", Arrays.asList(ref1, ref2));
 		data.put("ws_13", all3);
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: The type WsIDHandling.Type2-0.1 of reference wsIDHandling/t2 in this object is not allowed - allowed types are [WsIDHandling.Type1, WsIDHandling.Type3] at /ws_13/1"));
+				"Object #1, foo has invalid reference: The type WsIDHandling.Type2-0.1 of " +
+				"reference wsIDHandling/t2 in this object is not allowed - allowed types are " +
+				"[WsIDHandling.Type1, WsIDHandling.Type3] at /ws_13/1"));
 		
 		data.put("ws_13", Arrays.asList(ref1, ref3));
 		data.put("ws_23", all3);
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: The type WsIDHandling.Type1-0.1 of reference wsIDHandling/t1 in this object is not allowed - allowed types are [WsIDHandling.Type2, WsIDHandling.Type3] at /ws_23/0"));
-		
+				"Object #1, foo has invalid reference: The type WsIDHandling.Type1-0.1 of " +
+				"reference wsIDHandling/t1 in this object is not allowed - allowed types are " +
+				"[WsIDHandling.Type2, WsIDHandling.Type3] at /ws_23/0"));
 		
 		//test id path returns on parse and inaccessible object exceptions
 		data.put("ws_23", Arrays.asList(ref2, ref3));
 		innertuple.set(0, Arrays.asList("foo", "YourMotherWasAHamster"));
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has unparseable reference YourMotherWasAHamster: Illegal number of separators / in object reference YourMotherWasAHamster at /ws_2/0/1"));
+				"Object #1, foo has unparseable reference YourMotherWasAHamster: Illegal number " +
+				"of separators / in object reference YourMotherWasAHamster at /ws_2/0/1"));
 		
 		innertuple.set(0, Arrays.asList("foo", ref2));
 		data.remove("ws_any");
 		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi, "t1")), true);
 		failSave(user, wsi, objs, new TypedObjectValidationException(
-				"Object #1 has invalid reference: There is no object with id wsIDHandling/t1: " +
-				"Object 1 (name t1) in workspace 1 (name wsIDHandling) has been deleted at " +
-				"/ws_12/0"));
+				"Object #1, foo has invalid reference: There is no object with id " +
+				"wsIDHandling/t1: Object 1 (name t1) in workspace 1 (name wsIDHandling) has " +
+				"been deleted at /ws_12/0"));
 	}
 	
 	@Test
@@ -2669,16 +2729,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("maxids");
 		ws.createWorkspace(user, wsi.getName(), false, null, null);
 		Provenance emptyprov = new Provenance(user);
-		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
-		WorkspaceSaveObject mtobj = new WorkspaceSaveObject(
-				new HashMap<String, String>(), listidtype, null, emptyprov, false);
-		objs.add(mtobj);
-		objs.add(mtobj);
 		
 		IdReferenceHandlerSetFactory fac = makeFacForMaxIDTests(
 				Arrays.asList(idtype1, idtype2), user, 8);
-		ws.saveObjects(user, wsi, objs, fac);
-		objs.clear();
+		ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"),
+						MT_MAP, listidtype, null, emptyprov, false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto2"),
+						MT_MAP, listidtype, null, emptyprov, false))
+				, fac);
 		
 		Map<String, Object> data1 = new HashMap<String, Object>();
 		data1.put("ws_ids", Arrays.asList("maxids/auto1", "maxids/auto2", "maxids/auto1"));
@@ -2686,13 +2745,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		data1.put("some_ids2", Arrays.asList("foo", "baz", "foo"));
 		data1.put("some_ids_a1", Arrays.asList("foo", "bak", "foo"));
 		data1.put("some_ids_a2", Arrays.asList("foo", "baf", "foo"));
-		objs.add(new WorkspaceSaveObject(data1, listidtype, null, emptyprov, false));
 		
 		//should work
-		ws.saveObjects(user, wsi, objs, fac);
+		final List<WorkspaceSaveObject> objs1 = Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data1, listidtype, null, emptyprov, false));
+		ws.saveObjects(user, wsi, objs1, fac);
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 7);
-		failSave(user, wsi, objs, fac, new TypedObjectValidationException(
+		failSave(user, wsi, objs1, fac, new TypedObjectValidationException(
 				"Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 7"));
 		
 		Provenance p = new Provenance(user).addAction(new ProvenanceAction()
@@ -2700,33 +2760,40 @@ public class WorkspaceTest extends WorkspaceTester {
 						"maxids/auto1", "maxids/auto2", "maxids/auto1")));
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 10);
-		objs.set(0, new WorkspaceSaveObject(data1, listidtype, null, p, false));
+		objs1.set(0, new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, p, false));
 		//should work
-		ws.saveObjects(user, wsi, objs, fac);
+		ws.saveObjects(user, wsi, objs1, fac);
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 9);
-		failSave(user, wsi, objs, fac, new TypedObjectValidationException(
+		failSave(user, wsi, objs1, fac, new TypedObjectValidationException(
 				"Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 9"));
 		
-		objs.set(0, new WorkspaceSaveObject(data1, listidtype, null, emptyprov, false));
-		objs.add(new WorkspaceSaveObject(data1, listidtype, null, emptyprov, false));
+		final List<WorkspaceSaveObject> objs2 = Arrays.asList(
+				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, emptyprov,
+						false),
+				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, emptyprov,
+						false));
+		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 16);
 		
 		//should work
-		ws.saveObjects(user, wsi, objs, fac);
+		ws.saveObjects(user, wsi, objs2, fac);
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 15);
-		failSave(user, wsi, objs, fac, new TypedObjectValidationException(
+		failSave(user, wsi, objs2, fac, new TypedObjectValidationException(
 				"Failed type checking at object #2 - the number of unique IDs in the saved objects exceeds the maximum allowed, 15"));
 		
-		objs.set(0, new WorkspaceSaveObject(data1, listidtype, null, p, false));
-		objs.set(1, new WorkspaceSaveObject(data1, listidtype, null, p, false));
+		final List<WorkspaceSaveObject> objs3 = Arrays.asList(
+				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, p,
+						false),
+				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, p,
+						false));
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 20);
 		
 		//should work
-		ws.saveObjects(user, wsi, objs, fac);
+		ws.saveObjects(user, wsi, objs3, fac);
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 19);
-		failSave(user, wsi, objs, fac, new TypedObjectValidationException(
+		failSave(user, wsi, objs3, fac, new TypedObjectValidationException(
 				"Failed type checking at object #2 - the number of unique IDs in the saved objects exceeds the maximum allowed, 19"));
 	}
 
@@ -2766,8 +2833,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		refdata.put("foo", 3);
 		refdata.put("baz", "astring");
 		refdata.put("bar", Arrays.asList(-3, 1, 234567890));
-		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(
-				new WorkspaceSaveObject(refdata, abstype0 , null, emptyprov, false)),
+		ws.saveObjects(userfoo, reftypecheck, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto1"), refdata, abstype0 , null, emptyprov, false)),
 				getIdFactory());
 		String refmod = "TestTypeCheckingRefTypeErr";
 		final String specTypeCheckRefs =
@@ -2796,10 +2863,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		refmap.put(wsName + "/auto1/1", "pootypoot");
 		assertThat("refmap has 2 refs", refmap.size(), is(2));
 		refdata.put("refmap", refmap);
-		failSave(userfoo, reftypecheck, refdata, absreftype0, emptyprov,
-				new TypedObjectValidationException(
-						"Object #1: Two references in a single hash are identical when resolved, resulting in a loss of data: " +
-						"Duplicated key '" + reftypewsid + "/1/1' was found at /refmap"));
+		failSave(userfoo, reftypecheck, getRandomName(), refdata, absreftype0, emptyprov,
+				new TypedObjectValidationException(String.format(
+						"Object #1, %s: Two references in a single hash are identical when " +
+						"resolved, resulting in a loss of data: Duplicated key '%s/1/1' was " +
+						"found at /refmap", getLastRandomName(), reftypewsid)));
 	}
 	
 	@Test
@@ -2815,14 +2883,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//already tested bad references in saveObjectWithTypeChecking, won't test again here
 		
-		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, emptyprov, false)),
+		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto1"), data, SAFE_TYPE1, null, emptyprov, false)),
 				getIdFactory());
-		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, emptyprov, false)),
+		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto2"), data, SAFE_TYPE1, null, emptyprov, false)),
 				getIdFactory());
-		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, emptyprov, false)),
+		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("auto3"), data, SAFE_TYPE1, null, emptyprov, false)),
 				getIdFactory());
 		
 		ws.saveObjects(foo, prov, Arrays.asList(
@@ -2878,8 +2946,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		p.addAction(new ProvenanceAction()
 				.withWorkspaceObjects(Arrays.asList("provenance/auto2/1", "provenance/auto1")));
 		
-		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p, false)),
+		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data, SAFE_TYPE1, null, p, false)),
 				getIdFactory());
 		Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("provenance/auto3", wsid + "/3/1");
@@ -2890,18 +2958,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkProvenanceCorrect(foo, p, new ObjectIdentifier(provid, 4), refmap);
 		
 		try {
-			new WorkspaceSaveObject(data, SAFE_TYPE1, null, null, false);
+			new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null, null, false);
 			fail("saved without provenance");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Neither data, provenance, nor type may be null"));
-		}
-		try {
-			new WorkspaceSaveObject(new ObjectIDNoWSNoVer("foo"), SAFE_TYPE1, null, null, false);
-			fail("saved without provenance");
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Neither data, provenance, nor type may be null"));
+					is("Neither id, provenance, data, nor type may be null"));
 		}
 		try {
 			new Provenance(null);
@@ -2919,8 +2980,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//Test minimal provenance
 		Provenance p2 = new Provenance(foo);
-		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p2, false)),
+		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data, SAFE_TYPE1, null, p2, false)),
 				getIdFactory());
 		List<Date> dates = checkProvenanceCorrect(foo, p2, new ObjectIdentifier(provid, 5),
 				new HashMap<String, String>());
@@ -2936,8 +2997,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		//make sure passing nulls for ws obj lists doesn't kill anything
 		Provenance p3 = new Provenance(foo);
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
-		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p3, false)),
+		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data, SAFE_TYPE1, null, p3, false)),
 				getIdFactory());
 		checkProvenanceCorrect(foo, p3, new ObjectIdentifier(provid, 6),
 				new HashMap<String, String>());
@@ -2947,8 +3008,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		pa.setWorkspaceObjects(null);
 		p4.addAction(pa);
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
-		ws.saveObjects(foo, prov, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p4, false)),
+		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), data, SAFE_TYPE1, null, p4, false)),
 				getIdFactory());
 		checkProvenanceCorrect(foo, p4, new ObjectIdentifier(provid, 7),
 				new HashMap<String, String>());
@@ -2968,7 +3029,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		Provenance p = new Provenance(foo);
 		p.addAction(new ProvenanceAction().withMethodParameters(methparams));
 		ws.saveObjects(foo, prov, Arrays.asList( //should work
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, p, false)),
+				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null, p, false)),
 				getIdFactory());
 		
 		
@@ -2977,12 +3038,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		p2.addAction(new ProvenanceAction().withMethodParameters(methparams));
 		try {
 			ws.saveObjects(foo, prov, Arrays.asList(
-					new WorkspaceSaveObject(data, SAFE_TYPE1, null, p, false)),
+					new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null, p, false)),
 					getIdFactory());
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("Object #1 provenance size 1000348 exceeds limit of 1000000"));
+					is(String.format("Object #1, %s provenance size 1000348 exceeds limit of " +
+							"1000000", getLastRandomName())));
 		}
 	}
 	
@@ -3174,62 +3236,65 @@ public class WorkspaceTest extends WorkspaceTester {
 		// test fail save on bad reference
 		// also tests failing on objects with id attributes
 		final Provenance p1 = new Provenance(u1);
-		failSave(u1, testws,
+		final ObjectIDNoWSNoVer fail = new ObjectIDNoWSNoVer("fail");
+		failSave(u1, testws, fail,
 				makeRefData("  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ", "readws/readable",
 				"1/3/1 ; \n 2/ref1/1 ; 	privws/1"), type1Ref, p1,
 				new TypedObjectValidationException(
-						"Object #1 has invalid reference: Reference path starting with 1/3/1, "+
-						"position 1: Object 1/3/1 does not contain a reference to 2/ref1/1 at " +
-						"/refs/2"));
-		failSave(u1, testws,
+						"Object #1, fail has invalid reference: Reference path starting with " +
+						"1/3/1, position 1: Object 1/3/1 does not contain a reference to " +
+						"2/ref1/1 at /refs/2"));
+		failSave(u1, testws, fail,
 				makeRefData("  \nreadws/4 ; 2/refref1/1;2/4 ;  	2/leaf1/1;  ", "readws/readable",
 				"1/3/1 ; \n 2/ref2/1 ; 	privws/1"), type1, p1, new TypedObjectValidationException(
-						"Object #1 has invalid reference: Reference path starting with readws/4, "+
-						"position 2: Object 2/refref1/1 does not contain a reference to 2/4 at " +
-						"/refs/0"));
+						"Object #1, fail has invalid reference: Reference path starting with " +
+						"readws/4, position 2: Object 2/refref1/1 does not contain a reference " +
+						"to 2/4 at /refs/0"));
 		
 		// test fail save on bad reference parse
 		// also tests failing on objects with id attributes
-		failSave(u1, testws, makeRefData("readws/4;;2/refref1/1"), type1, p1,
-				new TypedObjectValidationException("Object #1 has unparseable reference " +
+		failSave(u1, testws, fail, makeRefData("readws/4;;2/refref1/1"), type1, p1,
+				new TypedObjectValidationException("Object #1, fail has unparseable reference " +
 						"readws/4;;2/refref1/1: ID parse error in reference string " +
 						"readws/4;;2/refref1/1 at position 2: reference cannot be null or the " +
 						"empty string at /refs/0"));
-		failSave(u1, testws, makeRefData(" ; ; "), type2Ref, p1,
-				new TypedObjectValidationException("Object #1 has unparseable reference " +
+		failSave(u1, testws, fail, makeRefData(" ; ; "), type2Ref, p1,
+				new TypedObjectValidationException("Object #1, fail has unparseable reference " +
 						" ; ; : ID parse error in reference string " +
 						" ; ;  at position 1: reference cannot be null or the " +
 						"empty string at /refs/0"));
-		failSave(u1, testws, makeRefData("readws/4;1;2/refref1/1"), type12Ref, p1,
-				new TypedObjectValidationException("Object #1 has unparseable reference " +
+		failSave(u1, testws, fail, makeRefData("readws/4;1;2/refref1/1"), type12Ref, p1,
+				new TypedObjectValidationException("Object #1, fail has unparseable reference " +
 						"readws/4;1;2/refref1/1: ID parse error in reference string " +
 						"readws/4;1;2/refref1/1 at position 2: Illegal number of separators / " +
 						"in object reference 1 at /refs/0"));
 		
 		// test fail save on bad reference type
-		failSave(u1, testws,
+		failSave(u1, testws, fail,
 				makeRefData("  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ", "readws/readable",
 				"1/3/1 ; \n 2/ref2/1 ; 	privws/1"), type1Ref, p1,
 				new TypedObjectValidationException(
-						"Object #1 has invalid reference: The type TestSaveRefPaths.Type2-1.0 " +
-						"of reference 1/3/1 ; \n 2/ref2/1 ; \tprivws/1 in this object is not " +
+						"Object #1, fail has invalid reference: The type " +
+						"TestSaveRefPaths.Type2-1.0 of reference " + 
+						"1/3/1 ; \n 2/ref2/1 ; \tprivws/1 in this object is not " +
 						"allowed - allowed types are [TestSaveRefPaths.Type1] at /refs/2"));
-		failSave(u1, testws,
+		failSave(u1, testws, fail,
 				makeRefData("  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ",
 				"1/3/1 ; \n 2/ref2/1 ; 	privws/1"), type2Ref, p1,
 				new TypedObjectValidationException(
-						"Object #1 has invalid reference: The type TestSaveRefPaths.Type1-1.0 " +
-						"of reference   \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;   in " +
+						"Object #1, fail has invalid reference: The type " +
+						"TestSaveRefPaths.Type1-1.0 of reference " +
+						"  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;   in " +
 						"this object is not allowed - allowed types are " +
 						"[TestSaveRefPaths.Type2] at /refs/0"));
 		
 		// test fail on inaccessible path head - just doing one basic test for this type of
 		// thing, most tests like this are handled in saveObjectWithTypeChecking()
-		failSave(u1, testws,
+		failSave(u1, testws, fail,
 				makeRefData("  2/refref1/1;2/3 ;  	2/leaf1/1;  ", "readws/readable",
 				"1/3/1 ; \n 2/ref2/1 ; 	privws/1"), type1Ref, p1,
 				new TypedObjectValidationException(
-						"Object #1 has invalid reference: No read access to id " +
+						"Object #1, fail has invalid reference: No read access to id " +
 						"  2/refref1/1;2/3 ;  \t2/leaf1/1;  : Object refref1 cannot be " +
 						"accessed: User user1 may not read workspace 2 at /refs/0"));
 		
@@ -3244,17 +3309,17 @@ public class WorkspaceTest extends WorkspaceTester {
 						"  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ",
 						"readws/readable",
 						"1/3/1 ; \n 2/ref1/1 ; 	privws/1")));
-		failSave(u1, testws, mt, type1Ref, pfail,
+		failSave(u1, testws, fail, mt, type1Ref, pfail,
 				new TypedObjectValidationException(
-						"Object #1 has invalid provenance reference: Reference path starting " +
-						"with 1/3/1, position 1: Object 1/3/1 does not contain a reference to " +
-						"2/ref1/1"));
+						"Object #1, fail has invalid provenance reference: Reference path " +
+						"starting with 1/3/1, position 1: Object 1/3/1 does not contain a " +
+						"reference to 2/ref1/1"));
 		
 		// bad parse
 		pfail = new Provenance(u1).addAction(new ProvenanceAction()
 				.withWorkspaceObjects(Arrays.asList("readws/4;;2/refref1/1")));
-		failSave(u1, testws, mt, type1, pfail,
-				new TypedObjectValidationException("Object #1 has unparseable provenance " +
+		failSave(u1, testws, fail, mt, type1, pfail,
+				new TypedObjectValidationException("Object #1, fail has unparseable provenance " +
 						"reference readws/4;;2/refref1/1: ID parse error in reference string " +
 						"readws/4;;2/refref1/1 at position 2: reference cannot be null or the " +
 						"empty string"));
@@ -3266,9 +3331,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						"readws/readable",
 						"1/3/1 ; \n 2/ref2/1 ; 	privws/1",
 						"1/5/1 ; 1/1/1")));
-		failSave(u1, testws, mt, type1Ref, pfail,
+		failSave(u1, testws, fail, mt, type1Ref, pfail,
 				new TypedObjectValidationException(
-						"Object #1 has invalid provenance reference: No read access to id " +
+						"Object #1, fail has invalid provenance reference: No read access to id " +
 						"1/5/1 ; 1/1/1: No object with id 5 exists in workspace 1 (name readws)"));
 	}
 
@@ -3290,7 +3355,8 @@ public class WorkspaceTest extends WorkspaceTester {
 			}
 			final Map<String, Object> incdata = new HashMap<>();
 			incdata.put("refs", refs);
-			objs.add(new WorkspaceSaveObject(incdata, type1, null, new Provenance(u1), false));
+			objs.add(new WorkspaceSaveObject(getRandomName(), incdata, type1, null,
+					new Provenance(u1), false));
 			resolvedRefs.add(rrefs);
 		}
 		final List<ObjectInformation> ois = ws.saveObjects(
@@ -3745,8 +3811,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(user1, refs.getName(), false, null, null);
 		LinkedList<WorkspaceSaveObject> refobjs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 4; i++) {
-			refobjs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
-					SAFE_TYPE1, null, new Provenance(user1), false));
+			refobjs.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto" + (i + 1)),
+					new HashMap<String, String>(), SAFE_TYPE1, null, new Provenance(user1),
+					false));
 		}
 		ws.saveObjects(user1, refs, refobjs, getIdFactory());
 		List<WorkspaceSaveObject> wso = Arrays.asList(new WorkspaceSaveObject(
@@ -4073,10 +4140,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		Provenance emptyprov1 = new Provenance(user1);
 		Provenance emptyprov2 = new Provenance(user2);
 		List<WorkspaceSaveObject> data = new LinkedList<WorkspaceSaveObject>();
-		data.add(new WorkspaceSaveObject(new HashMap<String, Object>(), SAFE_TYPE1, null, emptyprov1, false));
+		data.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, Object>(),
+				SAFE_TYPE1, null, emptyprov1, false));
 		
 		ws.saveObjects(user1, wsiSource1, data, new IdReferenceHandlerSetFactory(0));
-		ws.saveObjects(user1, wsiSource2, data, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user1, wsiSource2, setRandomNames(data),
+				new IdReferenceHandlerSetFactory(0));
 		final ObjectIdentifier source1 = new ObjectIdentifier(wsiSource1, 1);
 		final ObjectIdentifier source2 = new ObjectIdentifier(wsiSource2, 1);
 		ObjectIdentifier copied1 = new ObjectIdentifier(wsiCid, "foo");
@@ -4086,24 +4155,25 @@ public class WorkspaceTest extends WorkspaceTester {
 		copied1 = new ObjectIdentifier(wsiCid, 1, 1);
 		copied2 = new ObjectIdentifier(wsiCid, 2, 1);
 		
-		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user2, wsiCopied, setRandomNames(data),
+				new IdReferenceHandlerSetFactory(0));
 		final ObjectIdentifier nocopy = new ObjectIdentifier(wsiCid, 3, 1);
 
 		data.clear();
 		Map<String, Object> ref = new HashMap<String, Object>();
 		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/foo"));
-		data.add(new WorkspaceSaveObject(ref, REF_TYPE, null, emptyprov2, false));
+		data.add(new WorkspaceSaveObject(getRandomName(), ref, REF_TYPE, null, emptyprov2, false));
 		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(1));
 		ObjectIDWithRefPath copyoc1 = new ObjectIDWithRefPath(new ObjectIdentifier(wsiCopied, 4L),
 				Arrays.asList(copied1));
 		
 		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/foo1"));
-		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(1));
+		ws.saveObjects(user2, wsiCopied, setRandomNames(data), new IdReferenceHandlerSetFactory(1));
 		ObjectIDWithRefPath copyoc2 = new ObjectIDWithRefPath(new ObjectIdentifier(wsiCopied, 5L),
 				Arrays.asList(copied2));
 		
 		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/3"));
-		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(1));
+		ws.saveObjects(user2, wsiCopied, setRandomNames(data), new IdReferenceHandlerSetFactory(1));
 		ObjectIDWithRefPath nocopyoc = new ObjectIDWithRefPath(new ObjectIdentifier(wsiCopied, 6L),
 				Arrays.asList(nocopy));
 		
@@ -4549,8 +4619,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		long wsid = ws.createWorkspace(user, wsi.getName(), false, null,
 				new WorkspaceUserMetadata(meta)).getId();
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE1, new WorkspaceUserMetadata(),
-				new Provenance(user), false)), getIdFactory());
+				new ObjectIDNoWSNoVer("auto1"), new HashMap<String, String>(), SAFE_TYPE1,
+				new WorkspaceUserMetadata(), new Provenance(user), false)), getIdFactory());
 		ObjectIdentifier oi = new ObjectIdentifier(wsi, "auto1");
 		//these should work
 		WorkspaceInformation info = ws.lockWorkspace(user, wsi);
@@ -4598,7 +4668,7 @@ public class WorkspaceTest extends WorkspaceTester {
 					is("Workspace lock2 is deleted"));
 		}
 		try {
-			ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+			ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(getRandomName(),
 					new HashMap<String, String>(), SAFE_TYPE1,
 					new WorkspaceUserMetadata(),
 					new Provenance(user), false)), getIdFactory());
@@ -4722,10 +4792,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		Date lastWSDate = info1.getModDate();
 		ws.createWorkspace(user2, wsi2.getName(), false, null, null);
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE1, null,
+				new ObjectIDNoWSNoVer("auto1"), new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)), getIdFactory());
 		ws.saveObjects(user2, wsi2, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE1, null,
+				new ObjectIDNoWSNoVer("auto2"), new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)), getIdFactory());
 		lastWSDate = ws.getWorkspaceInformation(user, wsi).getModDate();
 		ObjectInformation info = ws.renameObject(user, new ObjectIdentifier(wsi, "auto1"),
@@ -4883,10 +4953,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceUser user2 = new WorkspaceUser("hideObjUser2");
 		long wsid1 = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		ObjectInformation auto1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE1, null,
+				new ObjectIDNoWSNoVer("auto1"), new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), false)), getIdFactory()).get(0);
 		ObjectInformation auto2 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
-				new HashMap<String, String>(), SAFE_TYPE1, null,
+				new ObjectIDNoWSNoVer("auto2"), new HashMap<String, String>(), SAFE_TYPE1, null,
 				new Provenance(user), true)), getIdFactory()).get(0);
 		ObjectInformation obj1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("obj1"), new HashMap<String, String>(), SAFE_TYPE1, null,
@@ -5921,7 +5991,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 200; i++) {
-			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
+			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, new Provenance(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
@@ -5957,8 +6027,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		objs.clear();
 		for (int i = 0; i < 20; i++) {
-			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
-				null, new Provenance(user), false));
+			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
+					SAFE_TYPE1, null, new Provenance(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
@@ -5974,8 +6044,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		objs.clear();
 		for (int i = 21; i < 31; i++) {
-			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
-				null, new Provenance(user), false));
+			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
+					SAFE_TYPE1, null, new Provenance(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
 		
@@ -5996,7 +6066,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		objs.clear();
 		for (int i = 1; i < 251; i++) {
-			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
+			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, new Provenance(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
@@ -6012,7 +6082,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		objs.clear();
 		for (int i = 251; i < 301; i++) {
-			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
+			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, new Provenance(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
@@ -6044,7 +6114,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 10; i++) {
-			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(),
+			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, new Provenance(user), false));
 		}
 		ws.saveObjects(user, wsi1, objs, new IdReferenceHandlerSetFactory(0));
@@ -6148,8 +6218,10 @@ public class WorkspaceTest extends WorkspaceTester {
 				);
 		
 		ws.saveObjects(user, wsi, Arrays.asList(
-				new WorkspaceSaveObject(data1, SAFE_TYPE1, meta, new Provenance(user), false),
-				new WorkspaceSaveObject(data1, SAFE_TYPE1, meta, new Provenance(user), false)),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), data1, SAFE_TYPE1,
+						meta, new Provenance(user), false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto2"), data1, SAFE_TYPE1,
+						meta, new Provenance(user), false)),
 				getIdFactory());
 		ObjectInformation o1 = ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("o1"), data1, reftype, meta,
@@ -7681,8 +7753,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		JsonNode savedata = MAPPER.valueToTree(data);
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
-		List<WorkspaceSaveObject> objects = Arrays.asList(
-				new WorkspaceSaveObject(savedata, SAFE_TYPE1, null, p, false));
+		List<WorkspaceSaveObject> objects = Arrays.asList(new WorkspaceSaveObject(
+				getRandomName(), savedata, SAFE_TYPE1, null, p, false));
 		List<ObjectInformation> objinfo = ws.saveObjects(user, wsi, objects,
 				getIdFactory());
 		assertThat("workspace calculated md5 correct", objinfo.get(0).getCheckSum(),
@@ -7706,9 +7778,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		saveObject(user, wsi, null, data, SAFE_TYPE1, "foo", new Provenance(user)); //should work
 		data.put("foo", "90123456789");
 		failSave(user, wsi, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null,
-				new Provenance(user), false)), new IllegalArgumentException(
-						"Object #1 data size 21 exceeds limit of 20"));
+				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
+				new Provenance(user), false)), new IllegalArgumentException(String.format(
+						"Object #1, %s data size 21 exceeds limit of 20", getLastRandomName())));
 		ws.setResourceConfig(oldcfg);
 	}
 	
@@ -7837,7 +7909,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		Provenance p = new Provenance(user);
 		List<WorkspaceSaveObject> objs = new ArrayList<WorkspaceSaveObject>();
 		
-		objs.add(new WorkspaceSaveObject(data1, SAFE_TYPE1, null, p, false));
+		objs.add(new WorkspaceSaveObject(getRandomName(), data1, SAFE_TYPE1, null, p, false));
 		
 		final int[] filesCreated = {0};
 		TempFileListener listener = new TempFileListener() {
@@ -7871,6 +7943,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		//files go to disk except for small subdata
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(12).build());
+		objs.set(0, renameWSO(objs.get(0), "foo"));
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		assertThat("created temp files on save", filesCreated[0], is(2));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -7904,8 +7977,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, Object> data3 = new LinkedHashMap<String, Object>();
 		data3.put("x", 1);
 		data3.put("z", 2);
-		objs.add(new WorkspaceSaveObject(data2, SAFE_TYPE1, null, p, false));
-		objs.add(new WorkspaceSaveObject(data3, SAFE_TYPE1, null, p, false));
+		objs.set(0, renameWSO(objs.get(0), "foo1"));
+		objs.add(new WorkspaceSaveObject(getRandomName(), data2, SAFE_TYPE1, null, p, false));
+		objs.add(new WorkspaceSaveObject(getRandomName(), data3, SAFE_TYPE1, null, p, false));
 
 		//multiple objects in memory
 		filesCreated[0] = 0;
@@ -7925,6 +7999,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		//multiple objects to file
 		ws.setResourceConfig(build.withMaxIncomingDataMemoryUsage(38).build());
 		filesCreated[0] = 0;
+		objs.set(0, renameWSO(objs.get(0), "foo2"));
+		objs.set(1, renameWSO(objs.get(1), "bar"));
+		objs.set(2, renameWSO(objs.get(2), "baz"));
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		// two files per data - 1 for relabeling, 1 for sort
 		// except for sorted file, then just 1 for relabeling
@@ -8000,7 +8077,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		Provenance p = new Provenance(user);
 		List<WorkspaceSaveObject> objs = new ArrayList<WorkspaceSaveObject>();
-		objs.add(new WorkspaceSaveObject(data1, SAFE_TYPE1, null, p, false));
+		objs.add(new WorkspaceSaveObject(getRandomName(), data1, SAFE_TYPE1, null, p, false));
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		WorkspaceObjectData o = ws.getObjects(
 				user, Arrays.asList(new ObjectIdentifier(wsi, 1))).get(0);
@@ -8024,8 +8101,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		String safejson = "{\"z\":\"a\"}";
 		String json = "{\"z\":\"a\",\"b\":\"d\"}";
-		objs.add(new WorkspaceSaveObject(new JsonTokenStream(safejson), SAFE_TYPE1, null, p, false));
-		objs.add(new WorkspaceSaveObject(new JsonTokenStream(json), SAFE_TYPE1, null, p, false));
+		objs.add(new WorkspaceSaveObject(getRandomName(), new JsonTokenStream(safejson),
+				SAFE_TYPE1, null, p, false));
+		objs.add(new WorkspaceSaveObject(getRandomName(), new JsonTokenStream(json), SAFE_TYPE1,
+				null, p, false));
 		
 		ResourceUsageConfiguration oldcfg = ws.getResourceConfig();
 		ResourceUsageConfigurationBuilder build =
@@ -8040,9 +8119,9 @@ public class WorkspaceTest extends WorkspaceTester {
 			ws.saveObjects(user, wsi, objs, getIdFactory());
 			fail("sorted w/ too little mem");
 		} catch (TypedObjectValidationException tove) {
-			assertThat("got correct exception", tove.getMessage(),
-					is("Object #2: Memory necessary for sorting map keys exceeds the limit " + 
-							(maxmem - 1) + " bytes at /"));
+			assertThat("got correct exception", tove.getMessage(), is(String.format(
+					"Object #2, %s: Memory necessary for sorting map keys exceeds the limit " + 
+					"%s bytes at /", getLastRandomName(), maxmem - 1)));
 		}
 		ws.setResourceConfig(oldcfg);
 	}

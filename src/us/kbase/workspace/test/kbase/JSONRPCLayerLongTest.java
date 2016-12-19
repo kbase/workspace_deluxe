@@ -98,7 +98,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 			UObject data = new UObject(tempFile);
 			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("bigdata")
 					.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
-							.withData(data))));
+							.withName("biggiesmallsdata").withData(data))));
 		} finally {
 			tempFile.delete();
 		}
@@ -177,7 +177,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("unicode")
 				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
-						.withData(new UObject(edata)))));
+						.withName("uni").withData(new UObject(edata)))));
 		Map<String, Object> data = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification().withObjid(1L)
 				.withWorkspace("unicode")))).getData().get(0).getData().asInstance();
@@ -197,7 +197,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		data.put(test, "foo");
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("unicode")
 				.withObjects(Arrays.asList(new ObjectSaveData().withType(SAFE_TYPE)
-						.withData(new UObject(data)))));
+						.withName("uni2").withData(new UObject(data)))));
 		Map<String, Object> newdata = CLIENT1.getObjects2(new GetObjects2Params()
 			.withObjects(Arrays.asList(new ObjectSpecification().withObjid(2L)
 					.withWorkspace("unicode")))).getData().get(0).getData().asInstance();

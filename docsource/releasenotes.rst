@@ -2,8 +2,12 @@ Workspace service release notes
 ===============================
 
 
-VERSION: 0.6.1 (Released TBD)
+VERSION: 0.7.0 (Released TBD)
 -----------------------------
+
+BACKWARDS INCOMPATIBILITIES:
+
+* It is now required to provide either an object name or an object id when saving an object.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
