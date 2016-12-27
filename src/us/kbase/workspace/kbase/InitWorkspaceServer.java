@@ -54,7 +54,7 @@ public class InitWorkspaceServer {
 	
 	private static final int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
 	private static final String COL_SETTINGS = "settings";
-	private static final String COL_SHOCK_NODES = "shock_nodeMap";
+	public static final String COL_SHOCK_NODES = "shock_nodeMap";
 	
 	
 	private static int maxUniqueIdCountPerCall = 100000;
