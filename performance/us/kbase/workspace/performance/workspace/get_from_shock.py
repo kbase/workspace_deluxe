@@ -11,6 +11,8 @@ SHOCK_HOST = 'http://localhost:7044'
 
 def main():
     token = sys.argv[1]
+    if not token:
+        raise ValueError('no token')
     mcli = MongoClient()
     db = mcli[MONGO_DB]
     ws = -1
