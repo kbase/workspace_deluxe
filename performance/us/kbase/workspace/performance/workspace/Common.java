@@ -14,6 +14,7 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.kbase.InitWorkspaceServer;
 
 public class Common {
 
@@ -72,5 +73,18 @@ public class Common {
 		System.out.println("time to get objects: " +
 				(System.nanoTime() - startShock) / 1000000000.0);
 		return shocktimes;
+	}
+
+	public static List<String> getShockNodes(final DB db, final List<String> md5s) {
+		final List<String> nodes = new LinkedList<>();
+		final long startNodes = System.nanoTime();
+		for (final String md5: md5s) {
+			final DBObject node = db.getCollection(InitWorkspaceServer.COL_SHOCK_NODES)
+					.findOne(new BasicDBObject(Fields.SHOCK_CHKSUM, md5));
+			nodes.add((String) node.get(Fields.SHOCK_NODE));
+		}
+		System.out.println("Time to get nodes: " +
+				(System.nanoTime() - startNodes) / 1000000000.0);
+		return nodes;
 	}
 }
