@@ -12,9 +12,9 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.mongo.BlobStore;
+import us.kbase.workspace.database.mongo.CollectionNames;
 import us.kbase.workspace.database.mongo.Fields;
-import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.kbase.InitWorkspaceServer;
+import us.kbase.workspace.kbase.InitConstants;
 
 public class Common {
 
@@ -22,14 +22,14 @@ public class Common {
 	public static List<String> getMD5s(
 			final DB db,
 			final String workspace) {
-		final DBObject ws = db.getCollection(MongoWorkspaceDB.COL_WORKSPACES).findOne(
+		final DBObject ws = db.getCollection(CollectionNames.COL_WORKSPACES).findOne(
 				new BasicDBObject(Fields.WS_NAME, workspace));
 		final long id = (long) ws.get(Fields.WS_ID);
 		final DBObject sort = new BasicDBObject(Fields.VER_WS_ID, 1);
 		sort.put(Fields.VER_ID, 1);
 		final List<String> md5s = new LinkedList<>();
 		final long startvers = System.nanoTime();
-		for (final DBObject dbo: db.getCollection(MongoWorkspaceDB.COL_WORKSPACE_VERS)
+		for (final DBObject dbo: db.getCollection(CollectionNames.COL_WORKSPACE_VERS)
 				.find(new BasicDBObject(Fields.VER_WS_ID, id)).sort(sort)) {
 			md5s.add((String) dbo.get(Fields.VER_CHKSUM));
 		}
@@ -79,7 +79,7 @@ public class Common {
 		final List<String> nodes = new LinkedList<>();
 		final long startNodes = System.nanoTime();
 		for (final String md5: md5s) {
-			final DBObject node = db.getCollection(InitWorkspaceServer.COL_SHOCK_NODES)
+			final DBObject node = db.getCollection(InitConstants.COL_SHOCK_NODES)
 					.findOne(new BasicDBObject(Fields.SHOCK_CHKSUM, md5));
 			nodes.add((String) node.get(Fields.SHOCK_NODE));
 		}

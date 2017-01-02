@@ -89,14 +89,14 @@ import com.mongodb.WriteResult;
 
 public class MongoWorkspaceDB implements WorkspaceDatabase {
 
-	public static final String COL_ADMINS = "admins";
-	public static final String COL_WS_CNT = "workspaceCounter";
-	public static final String COL_WORKSPACES = "workspaces";
-	public static final String COL_WS_ACLS = "workspaceACLs";
-	public static final String COL_WORKSPACE_OBJS = "workspaceObjects";
-	public static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
-	public static final String COL_PROVENANCE = "provenance";
-	public static final String COL_CONFIG = "config";
+	public static final String COL_ADMINS = CollectionNames.COL_ADMINS;
+	public static final String COL_WS_CNT = CollectionNames.COL_WS_CNT;
+	public static final String COL_WORKSPACES = CollectionNames.COL_WORKSPACES;
+	public static final String COL_WS_ACLS = CollectionNames.COL_WS_ACLS;
+	public static final String COL_WORKSPACE_OBJS = CollectionNames.COL_WORKSPACE_OBJS;
+	public static final String COL_WORKSPACE_VERS = CollectionNames.COL_WORKSPACE_VERS;
+	public static final String COL_PROVENANCE = CollectionNames.COL_PROVENANCE;
+	public static final String COL_CONFIG = CollectionNames.COL_CONFIG;
 	public static final User ALL_USERS = Workspace.ALL_USERS;
 	
 
