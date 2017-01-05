@@ -13,7 +13,7 @@ SHOCK_HOST = 'http://localhost:7044'
 
 def main():
     token = sys.argv[1]
-    use_curl = sys.argv[2]
+    use_curl = len(sys.argv) > 2
     if not token:
         raise ValueError('no token')
     if use_curl:
