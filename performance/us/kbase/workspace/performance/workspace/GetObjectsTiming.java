@@ -23,31 +23,38 @@ public class GetObjectsTiming {
 //	public static final String TYPE = "KBaseGenomeAnnotations.Taxon";
 	public static final String TYPE = "Empty.AType-0.1";
 	
-	public static final int ITERS = 20; //10
-	public static final long BATCH_SIZE = 10000L;
+	public static final int ITERS = 5; //10
+	public static final long BATCH_SIZE = 40000L;
+	public static final int MAX_LIST = 10000;
 	
 	public static void main(String[] args) throws Exception {
 		final WorkspaceClient ws = new WorkspaceClient(new URL(WS_URL));
 		for (int i = 0; i < ITERS; i++) {
 			final long preiter = System.nanoTime();
-			final List<Tuple11<Long, String, String, String, Long, String, Long, String, String,
-					Long, Map<String, String>>> oi = ws.listObjects(new ListObjectsParams()
-							.withWorkspaces(Arrays.asList(WORKSPACE))
-							.withType(TYPE)
-							.withMinObjectID(i * BATCH_SIZE + 1)
-							.withMaxObjectID((i + 1) * BATCH_SIZE)
-							);
-			printElapse("list iter " + i, preiter);
 			long totalsize = 0;
 			final List<ObjectSpecification> in = new LinkedList<>();
-			for (final Tuple11<Long, String, String, String, Long, String, Long, String, String,
-					Long, Map<String, String>> t: oi) {
-				in.add(new ObjectSpecification()
-						.withWsid(t.getE7())
-						.withObjid(t.getE1())
-						.withVer(t.getE5())
-						);
-				totalsize += t.getE10();
+			final long end = (i + 1) * BATCH_SIZE;
+			for (long j = i * BATCH_SIZE; j < end; j += MAX_LIST) {
+				final long maxid = j + MAX_LIST > end ? end : j + MAX_LIST;
+				final long prelist = System.nanoTime();
+				final List<Tuple11<Long, String, String, String, Long, String, Long, String,
+						String, Long, Map<String, String>>> oi = ws.listObjects(
+								new ListObjectsParams()
+									.withWorkspaces(Arrays.asList(WORKSPACE))
+									.withType(TYPE)
+									.withMinObjectID(j + 1)
+									.withMaxObjectID(maxid)
+								);
+				printElapse(String.format("list iter %s:%s", i, j), prelist);
+				for (final Tuple11<Long, String, String, String, Long, String, Long, String,
+						String, Long, Map<String, String>> t: oi) {
+					in.add(new ObjectSpecification()
+							.withWsid(t.getE7())
+							.withObjid(t.getE1())
+							.withVer(t.getE5())
+							);
+					totalsize += t.getE10();
+				}
 			}
 			System.out.println(String.format("Objects: #%s, %sMB", in.size(),
 					totalsize / 1000000.0));
