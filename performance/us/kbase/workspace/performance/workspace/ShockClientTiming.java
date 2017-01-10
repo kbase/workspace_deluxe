@@ -23,7 +23,7 @@ public class ShockClientTiming {
 	
 	private static final String SHOCK_URL = "http://localhost:7044";
 	
-	public static void main(String args[]) throws Exception {
+	public static void main(String[] args) throws Exception {
 		final String token = args[0];
 		if (token == null || token.trim().isEmpty()) {
 			throw new IllegalArgumentException("no token in args");

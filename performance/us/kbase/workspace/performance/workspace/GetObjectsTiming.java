@@ -23,8 +23,8 @@ public class GetObjectsTiming {
 //	public static final String TYPE = "KBaseGenomeAnnotations.Taxon";
 	public static final String TYPE = "Empty.AType-0.1";
 	
-	public static final int ITERS = 5; //10
-	public static final long BATCH_SIZE = 40000L;
+	public static final int ITERS = 20; //10
+	public static final long BATCH_SIZE = 10000L;
 	public static final int MAX_LIST = 10000;
 	
 	public static void main(String[] args) throws Exception {
