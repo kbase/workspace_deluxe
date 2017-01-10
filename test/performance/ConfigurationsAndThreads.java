@@ -14,6 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
@@ -48,6 +49,7 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -428,6 +430,9 @@ public class ConfigurationsAndThreads {
 //				fac.addFactory(ws.getHandlerFactory(foo));
 				wsids.add(ws.saveObjects(foo, new WorkspaceIdentifier(workspace),
 						Arrays.asList(new WorkspaceSaveObject(
+								//added obj name when autonaming removed
+								new ObjectIDNoWSNoVer(UUID.randomUUID().toString()
+										.replace("-", "")),
 								o, type, null, new Provenance(foo), false)), fac)
 						.get(0).getObjectName());
 			}

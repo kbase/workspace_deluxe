@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.ini4j.Ini;
@@ -435,6 +436,10 @@ public class JSONRPCLayerTester {
 		TestCommon.assertNoTempFilesExist(TFMS);
 	}
 	
+	protected String getRandomName() {
+		return UUID.randomUUID().toString().replace("-", "");
+	}
+	
 	protected void checkWS(Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> info,
 			long id, String moddate, String name, String user, long objects, String perm,
 			String globalperm, String lockstat, String desc, Map<String, String> meta) 
@@ -460,18 +465,6 @@ public class JSONRPCLayerTester {
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
 					is(excep));
-		}
-	}
-
-	protected void saveBadObject(List<ObjectSaveData> objects, String exception) 
-			throws Exception {
-		try {
-			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("savebadpkg")
-					.withObjects(objects));
-			fail("saved invalid data package");
-		} catch (ServerException e) {
-			assertThat("correct exception message", e.getLocalizedMessage(),
-					is(exception));
 		}
 	}
 	
@@ -621,6 +614,7 @@ public class JSONRPCLayerTester {
 		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("provenance")
 				.withObjects(Arrays.asList(
 						new ObjectSaveData().withData(data).withType(SAFE_TYPE)
+						.withName(getRandomName())
 						.withProvenance(Arrays.asList(new ProvenanceAction()
 						.withTime(time)))));
 		try {
@@ -632,7 +626,7 @@ public class JSONRPCLayerTester {
 		}
 		
 		sop.setObjects(Arrays.asList(new ObjectSaveData()
-				.withData(data).withType(SAFE_TYPE)
+				.withData(data).withType(SAFE_TYPE).withName(getRandomName())
 				.withProvenance(Arrays.asList(new ProvenanceAction()
 						.withExternalData(Arrays.asList(
 								new ExternalDataUnit()

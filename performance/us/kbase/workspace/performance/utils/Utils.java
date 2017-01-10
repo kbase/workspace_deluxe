@@ -4,7 +4,7 @@ public class Utils {
 
 	public static double printElapse(final String name, final long start) {
 		final double elapsed = (System.nanoTime() - start) / 1000000000.0;
-		System.out.println(name + " elapsed " + elapsed);
+		System.out.println(name + " elapsed: " + elapsed);
 		return elapsed;
 	}
 	

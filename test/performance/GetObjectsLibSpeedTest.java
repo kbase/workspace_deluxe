@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.nocrala.tools.texttablefmt.Table;
@@ -34,6 +35,7 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -109,7 +111,10 @@ public class GetObjectsLibSpeedTest {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(1);
 //		fac.addFactory(ws.getHandlerFactory(user));
 		ws.saveObjects(user, wsi, Arrays.asList(
-				new WorkspaceSaveObject(o, td, null, new Provenance(user), false)), fac);
+				new WorkspaceSaveObject(//added obj name when autonaming removed
+						new ObjectIDNoWSNoVer(UUID.randomUUID().toString()
+								.replace("-", "")),
+						o, td, null, new Provenance(user), false)), fac);
 		o = null;
 		
 		ObjectIdentifier oi = new ObjectIdentifier(wsi, "auto1");

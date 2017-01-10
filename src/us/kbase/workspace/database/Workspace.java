@@ -569,16 +569,12 @@ public class Workspace {
 		return db.getBackendType();
 	}
 	
-	private static String getObjectErrorId(final WorkspaceSaveObject wo,
-			final int objcount) {
+	private static String getObjectErrorId(final WorkspaceSaveObject wo, final int objcount) {
 		return getObjectErrorId(wo.getObjectIdentifier(), objcount);
 	}
 	
-	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
-			final int objcount) {
-		String objErrId = "#" + objcount;
-		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
-		return objErrId;
+	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi, final int objcount) {
+		return "#" + objcount +  ", " + oi.getIdentifierString();
 	}
 	
 	private static class IDAssociation {

@@ -89,14 +89,14 @@ import com.mongodb.WriteResult;
 
 public class MongoWorkspaceDB implements WorkspaceDatabase {
 
-	public static final String COL_ADMINS = "admins";
-	public static final String COL_WS_CNT = "workspaceCounter";
-	public static final String COL_WORKSPACES = "workspaces";
-	public static final String COL_WS_ACLS = "workspaceACLs";
-	public static final String COL_WORKSPACE_OBJS = "workspaceObjects";
-	public static final String COL_WORKSPACE_VERS = "workspaceObjVersions";
-	public static final String COL_PROVENANCE = "provenance";
-	public static final String COL_CONFIG = "config";
+	public static final String COL_ADMINS = CollectionNames.COL_ADMINS;
+	public static final String COL_WS_CNT = CollectionNames.COL_WS_CNT;
+	public static final String COL_WORKSPACES = CollectionNames.COL_WORKSPACES;
+	public static final String COL_WS_ACLS = CollectionNames.COL_WS_ACLS;
+	public static final String COL_WORKSPACE_OBJS = CollectionNames.COL_WORKSPACE_OBJS;
+	public static final String COL_WORKSPACE_VERS = CollectionNames.COL_WORKSPACE_VERS;
+	public static final String COL_PROVENANCE = CollectionNames.COL_PROVENANCE;
+	public static final String COL_CONFIG = CollectionNames.COL_CONFIG;
 	public static final User ALL_USERS = Workspace.ALL_USERS;
 	
 
@@ -1502,66 +1502,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private static final String M_UNIQ_NAME_QRY = String.format(
-			"{%s: #, %s: {$regex: '^#(-\\\\d+)?$'}}", Fields.OBJ_WS_ID,
-			Fields.OBJ_NAME);
-	private static final String M_UNIQ_NAME_PROJ = String.format(
-			"{%s: 1, %s: 0}", Fields.OBJ_NAME, Fields.MONGO_ID);
-	
-	private String generateUniqueNameForObject(final ResolvedWorkspaceID wsid,
-			final long objectid) throws WorkspaceCommunicationException {
-		final String prefix = "auto" + objectid;
-		@SuppressWarnings("rawtypes")
-		final Iterable<Map> ids;
-		boolean exact = false;
-		final Set<Long> suffixes = new HashSet<Long>();
-		try {
-			ids = wsjongo.getCollection(COL_WORKSPACE_OBJS)
-					.find(M_UNIQ_NAME_QRY, wsid.getID(), prefix)
-					.projection(M_UNIQ_NAME_PROJ).as(Map.class);
-			for (@SuppressWarnings("rawtypes") Map m: ids) {
-				final String[] id = ((String) m.get(Fields.OBJ_NAME))
-						.split("-");
-				//regex for finding ids is ^prefix(-\d+)?$
-				if (id.length == 2) {
-					//2nd element must be a number based on the query regex
-					suffixes.add(Long.parseLong(id[1]));
-				} else {
-					//must be identical to the id based on the query regex
-					exact = true;
-				}
-			}
-		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
-		}
-		if (!exact) {
-			return prefix;
-		}
-		long counter = 1;
-		while (suffixes.contains(counter)) {
-			counter++;
-		}
-		return prefix + "-" + counter;
-	}
-	
 	//save brand new object - create container
 	//objectid *must not exist* in the workspace otherwise this method will recurse indefinitely
 	//the workspace must exist
 	private IDName saveWorkspaceObject(
-			final ResolvedMongoWSID wsid, final long objectid,
+			final ResolvedMongoWSID wsid,
+			final long objectid,
 			final String name)
 			throws WorkspaceCommunicationException {
-		String newName = name;
 		if (name == null) {
-			newName = generateUniqueNameForObject(wsid, objectid);
+			throw new NullPointerException("name");
 		}
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.OBJ_WS_ID, wsid.getID());
 		dbo.put(Fields.OBJ_ID, objectid);
 		dbo.put(Fields.OBJ_VCNT, 0); //Integer
 		dbo.put(Fields.OBJ_REFCOUNTS, new LinkedList<Integer>());
-		dbo.put(Fields.OBJ_NAME, newName);
+		dbo.put(Fields.OBJ_NAME, name);
 		dbo.put(Fields.OBJ_LATEST, null); //TODO DBUPDATE remove this field. Deleting versions is out, just delete the entire object.
 		dbo.put(Fields.OBJ_DEL, false);
 		dbo.put(Fields.OBJ_HIDE, false);
@@ -1575,11 +1532,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//asshole
 			//this should be a rare event
 			//TODO BUG if id dupe throw exception, stack overflow otherwise. Can't actually happen unless bug in code though.
-			if (name == null) {
-				//not much chance of this happening again, let's just recurse
-				//and make a new name again
-				return saveWorkspaceObject(wsid, objectid, name);
-			}
 			final ObjectIDNoWSNoVer o = new ObjectIDNoWSNoVer(name);
 			final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> objID =
 					resolveObjectIDsIgnoreExceptions(wsid,
@@ -1594,16 +1546,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return new IDName(objectid, newName);
+		return new IDName(objectid, name);
 	}
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
-	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi,
-			final int objcount) {
-		String objErrId = "#" + objcount;
-		objErrId += oi == null ? "" : ", " + oi.getIdentifierString();
-		return objErrId;
+	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi, final int objcount) {
+		return "#" + objcount + ", " + oi.getIdentifierString();
 	}
 	
 	//at this point the objects are expected to be validated and references rewritten
@@ -1720,21 +1669,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				objects);
 		final Map<ObjectIDNoWSNoVer, List<ObjectSavePackage>> idToPkg =
 				new HashMap<ObjectIDNoWSNoVer, List<ObjectSavePackage>>();
-		int newobjects = 0;
 		
 		//list all the save packages by object id/name
-		//find packages where an object id or name was not provided
 		for (final ObjectSavePackage p: packages) {
 			final ObjectIDNoWSNoVer o = p.wo.getObjectIdentifier();
-			if (o != null) {
-				if (idToPkg.get(o) == null) {
-					idToPkg.put(o, new ArrayList<ObjectSavePackage>());
-				}
-				idToPkg.get(o).add(p);
-			} else {
-				//no name or ID was given, we need to make an ID and autogenerate a name
-				newobjects++;
+			if (idToPkg.get(o) == null) {
+				idToPkg.put(o, new ArrayList<ObjectSavePackage>());
 			}
+			idToPkg.get(o).add(p);
 		}
 		
 		//confirm object IDs exist or get the id for a name, if any
@@ -1742,6 +1684,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				resolveObjectIDsIgnoreExceptions(wsidmongo, idToPkg.keySet());
 		
 		//check each id or name provided by the user
+		int newobjects = 0;
 		for (ObjectIDNoWSNoVer o: idToPkg.keySet()) {
 			if (!objIDs.containsKey(o)) {
 				//the id or name wasn't found
@@ -1790,12 +1733,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<String, Long> seenNames = new HashMap<String, Long>();
 		for (final ObjectSavePackage p: packages) {
 			final ObjectIDNoWSNoVer oi = p.wo.getObjectIdentifier();
-			if (oi == null) { //no name given, need to generate one
-				final IDName obj = saveWorkspaceObject(wsidmongo, newid++,
-						null);
-				p.name = obj.name;
-				ret.add(saveObjectVersion(user, wsidmongo, obj.id, p));
-			} else if (oi.getId() != null) { //confirmed ok id
+			if (oi.getId() != null) { //confirmed ok id
 				ret.add(saveObjectVersion(user, wsidmongo, oi.getId(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
 				ret.add(saveObjectVersion(user, wsidmongo, objIDs.get(oi).getId(), p));
@@ -1803,8 +1741,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				//we've already generated an id for this name
 				ret.add(saveObjectVersion(user, wsidmongo, seenNames.get(oi.getName()), p));
 			} else {//new name, need to generate new id
-				final IDName obj = saveWorkspaceObject(wsidmongo, newid++,
-						oi.getName());
+				final IDName obj = saveWorkspaceObject(wsidmongo, newid++, oi.getName());
 				p.name = obj.name;
 				seenNames.put(obj.name, obj.id);
 				ret.add(saveObjectVersion(user, wsidmongo, obj.id, p));
