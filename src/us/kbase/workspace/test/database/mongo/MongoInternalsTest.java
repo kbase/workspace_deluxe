@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 
 import org.jongo.Jongo;
 import org.junit.AfterClass;
@@ -153,6 +154,10 @@ public class MongoInternalsTest {
 		TestCommon.destroyDB(jdb.getDatabase());
 	}
 	
+	private static ObjectIDNoWSNoVer getRandomName() {
+		return new ObjectIDNoWSNoVer(UUID.randomUUID().toString().replace("-", ""));
+	}
+	
 	@Test
 	public void cloneCreateWorkspace() throws Exception {
 		/* test that creating a workspace to be cloned into creates the 
@@ -222,7 +227,7 @@ public class MongoInternalsTest {
 				new WorkspaceUserMetadata());
 		final WorkspaceIdentifier std = new WorkspaceIdentifier(1);
 		ws.saveObjects(user2, std, Arrays.asList(
-				new WorkspaceSaveObject(
+				new WorkspaceSaveObject(getRandomName(),
 						new UObject(mt), SAFE_TYPE, null, p, false)),
 				fac);
 		final ObjectIdentifier stdobj = new ObjectIdentifier(std, 1);
@@ -234,7 +239,7 @@ public class MongoInternalsTest {
 				new WorkspaceUserMetadata());
 		final WorkspaceIdentifier cloning = new WorkspaceIdentifier(2);
 		ws.saveObjects(user1, cloning, Arrays.asList(
-				new WorkspaceSaveObject(
+				new WorkspaceSaveObject(getRandomName(),
 						new UObject(mt), SAFE_TYPE, null, p, false)),
 				fac);
 		final ObjectIdentifier clnobj = new ObjectIdentifier(cloning, 1);
@@ -314,7 +319,7 @@ public class MongoInternalsTest {
 		
 		//test save
 		WorkspaceTester.failSave(ws, user1, cloning, Arrays.asList(
-				new WorkspaceSaveObject(
+				new WorkspaceSaveObject(getRandomName(),
 						new UObject(mt), SAFE_TYPE, null, p, false)),
 				fac, noWSExcp);
 		
@@ -971,12 +976,14 @@ public class MongoInternalsTest {
 			expected[obj][ver]++;
 			if (i % 2 == 0) {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
-						new WorkspaceSaveObject(new UObject(withRef(data1, wsid, "obj" + obj, ver)),
-						refcounttype, null, emptyprov, false)), fac);
+						new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto" + (i + 5)),
+								new UObject(withRef(data1, wsid, "obj" + obj, ver)),
+								refcounttype, null, emptyprov, false)), fac);
 			} else {
 				ws.saveObjects(userfoo, wspace, Arrays.asList(
-						new WorkspaceSaveObject(new UObject(withRef(data1, wsid, obj, ver)),
-						refcounttype, null, emptyprov, false)), fac);
+						new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto" + (i + 5)),
+								new UObject(withRef(data1, wsid, obj, ver)),
+								refcounttype, null, emptyprov, false)), fac);
 			}
 		}
 		checkRefCounts(wsid, expected, 1);
@@ -1040,11 +1047,11 @@ public class MongoInternalsTest {
 		
 		Map<String, Object> data = new HashMap<String, Object>();
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
-				new WorkspaceSaveObject(new UObject(data), SAFE_TYPE, null, new Provenance(userfoo), hide)),
-				fac);
+				new WorkspaceSaveObject(getRandomName(), new UObject(data), SAFE_TYPE, null,
+						new Provenance(userfoo), hide)), fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
-				new WorkspaceSaveObject(new UObject(data), SAFE_TYPE, null, new Provenance(userfoo), hide)),
-				fac);
+				new WorkspaceSaveObject(getRandomName(), new UObject(data), SAFE_TYPE, null,
+						new Provenance(userfoo), hide)), fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), new UObject(data), SAFE_TYPE,
 						null, new Provenance(userfoo), hide)), fac);

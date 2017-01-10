@@ -52,9 +52,9 @@ public class InitWorkspaceServer {
 	//TODO AUTH LATER Remove Refreshing tokens.
 	//TODO TEST unittests
 	
-	private static final int TOKEN_REFRESH_INTERVAL_SEC = 24 * 60 * 60;
-	private static final String COL_SETTINGS = "settings";
-	private static final String COL_SHOCK_NODES = "shock_nodeMap";
+	private static final int TOKEN_REFRESH_INTERVAL_SEC = InitConstants.TOKEN_REFRESH_INTERVAL_SEC;
+	private static final String COL_SETTINGS = InitConstants.COL_SETTINGS;
+	public static final String COL_SHOCK_NODES = InitConstants.COL_SHOCK_NODES;
 	
 	
 	private static int maxUniqueIdCountPerCall = 100000;

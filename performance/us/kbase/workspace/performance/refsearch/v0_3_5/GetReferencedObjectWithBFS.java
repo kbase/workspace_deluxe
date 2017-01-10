@@ -140,6 +140,11 @@ public class GetReferencedObjectWithBFS {
 //				Arrays.asList(LEAF_TYPE_STR, REF_TYPE_STR), null, null, false, null);
 //		WS.releaseTypes(foo, MOD_NAME_STR);
 	}
+	
+	//added obj name when autonaming removed
+	private static ObjectIDNoWSNoVer getRandomName() {
+		return new ObjectIDNoWSNoVer(UUID.randomUUID().toString().replace("-", ""));
+	}
 
 
 	private static void runBranchedReferencesTest() throws Exception {
@@ -156,8 +161,8 @@ public class GetReferencedObjectWithBFS {
 			WS.createWorkspace(u1, read.getName(), false, null, null);
 			WS.createWorkspace(u1, priv.getName(), true, null, null);
 			ObjectInformation o = WS.saveObjects(u1, priv, Arrays.asList(
-					new WorkspaceSaveObject(new HashMap<String, String>(), LEAF_TYPE,
-							null, p, false)), fac).get(0);
+					new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
+							LEAF_TYPE, null, p, false)), fac).get(0);
 			List<ObjectInformation> increfs = new LinkedList<ObjectInformation>();
 			increfs.add(o);
 			for (int depth = 1; depth <= 6; depth++) {
@@ -218,7 +223,7 @@ public class GetReferencedObjectWithBFS {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(10000);
 		Provenance p = new Provenance(u1);
 		ObjectInformation o = WS.saveObjects(u1, priv, Arrays.asList(
-				new WorkspaceSaveObject(new HashMap<String, String>(), LEAF_TYPE,
+				new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(), LEAF_TYPE,
 						null, p, false)), fac).get(0);
 		
 		for (int i = 2; i <= 50; i++) {
@@ -249,7 +254,8 @@ public class GetReferencedObjectWithBFS {
 		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(10000);
 		Provenance p = new Provenance(u1);
 		return WS.saveObjects(u1, priv, Arrays.asList(
-				new WorkspaceSaveObject(refdata, REF_TYPE, null, p, false)), fac).get(0);
+				new WorkspaceSaveObject(getRandomName(), refdata, REF_TYPE, null, p, false)), fac)
+				.get(0);
 	}
 
 }
