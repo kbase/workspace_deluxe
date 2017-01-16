@@ -1,6 +1,7 @@
 package us.kbase.workspace.performance.workspace;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -28,7 +29,7 @@ public class Common {
 		final long id = (long) ws.get(Fields.WS_ID);
 		final DBObject sort = new BasicDBObject(Fields.VER_WS_ID, 1);
 		sort.put(Fields.VER_ID, 1);
-		final List<String> md5s = new LinkedList<>();
+		final List<String> md5s = new ArrayList<>();
 		final long startvers = System.nanoTime();
 		for (final DBObject dbo: db.getCollection(CollectionNames.COL_WORKSPACE_VERS)
 				.find(new BasicDBObject(Fields.VER_WS_ID, id)).sort(sort)) {
