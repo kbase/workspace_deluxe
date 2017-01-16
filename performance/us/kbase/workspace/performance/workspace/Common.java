@@ -11,6 +11,7 @@ import com.mongodb.DBObject;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
+import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.CollectionNames;
 import us.kbase.workspace.database.mongo.Fields;
@@ -53,7 +54,10 @@ public class Common {
 		System.out.println("Stddev (sample): " + stddev);
 	}
 	
-	public static List<Long> getObjects(final BlobStore blob, final List<String> md5s)
+	public static List<Long> getObjects(
+			final BlobStore blob,
+			final List<String> md5s,
+			final int batch)
 			throws Exception {
 		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(2000000000, 2000000000,
 				new TempFilesManager(new File("temp_BlobBackendTiming")));
@@ -61,14 +65,23 @@ public class Common {
 		final List<Long> shocktimes = new LinkedList<>();
 		final long startShock = System.nanoTime();
 		int count = 1;
-		for (final String md5: md5s) {
-			final long startNode = System.nanoTime();
-			blob.getBlob(new MD5(md5), man); // reads into memory
-			shocktimes.add(System.nanoTime() - startNode);
-			if (count % 10000 == 0) {
-				System.out.println(count);
+		for (int i = 0; i < md5s.size(); i += batch) {
+			final List<ByteArrayFileCache> l = new LinkedList<>();
+			final long startBatch = System.nanoTime();
+			for (int j = i + 1; j <= i + batch; j++) {
+				final long startNode = System.nanoTime();
+				l.add(blob.getBlob(new MD5(md5s.get(j - 1)), man)); // reads into memory
+				shocktimes.add(System.nanoTime() - startNode);
+				if (count % 10000 == 0) {
+					System.out.println(count);
+				}
+				count++;
 			}
-			count++;
+			for (final ByteArrayFileCache b: l) {
+				b.destroy();
+			}
+			System.out.println("time to get batch: " +
+					(System.nanoTime() - startBatch) / 1000000000.0);
 		}
 		System.out.println("time to get objects: " +
 				(System.nanoTime() - startShock) / 1000000000.0);

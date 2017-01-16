@@ -22,6 +22,7 @@ public class ShockBackendTiming {
 	private static final String WS_DB = "ws_test";
 	
 	private static final String SHOCK_URL = "http://localhost:7044";
+	private static final int BATCH_SIZE = 10000;
 	
 	public static void main(final String[] args) throws Exception {
 		final String token = args[0];
@@ -36,7 +37,7 @@ public class ShockBackendTiming {
 		final BlobStore blob = new ShockBlobStore(
 				db.getCollection(InitWorkspaceServer.COL_SHOCK_NODES),
 				new URL(SHOCK_URL), new TokenProvider(AuthService.validateToken(token)));
-		final List<Long> shocktimes = getObjects(blob, md5s);
+		final List<Long> shocktimes = getObjects(blob, md5s, BATCH_SIZE);
 		printStats(shocktimes);
 	}
 }

@@ -23,7 +23,7 @@ public class GridFSBackendTiming {
 		final List<String> md5s = getMD5s(db, WORKSPACE);
 		
 		final BlobStore blob = new GridFSBlobStore(db);
-		final List<Long> shocktimes = getObjects(blob, md5s);
+		final List<Long> shocktimes = getObjects(blob, md5s, md5s.size());
 		printStats(shocktimes);
 	}
 	
