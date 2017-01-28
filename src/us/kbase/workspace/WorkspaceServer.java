@@ -1330,7 +1330,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.undelete_workspace", async=true)
     public void undeleteWorkspace(WorkspaceIdentity wsi, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN undelete_workspace
-    	final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
+		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		ws.setWorkspaceDeleted(wsmeth.getUser(authPart), wksp, false);
         //END undelete_workspace
     }

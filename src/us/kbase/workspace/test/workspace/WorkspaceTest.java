@@ -3578,15 +3578,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<User, Permission> p = new HashMap<User, Permission>();
 		p.put(user, Permission.OWNER);
 		p.put(bar, Permission.ADMIN);
-		assertThat("can get perms", ws.getPermissions(
-				user, Arrays.asList(read)).get(0), is(p));
-		try {
-			ws.setWorkspaceDeleted(bar, read, true);
-			fail("Non owner deleted workspace");
-		} catch (WorkspaceAuthorizationException e) {
-			assertThat("correct exception msg", e.getLocalizedMessage(),
-					is("User bar may not delete workspace deleteundelete"));
-		}
+		assertThat("can get perms", ws.getPermissions(user, Arrays.asList(read)).get(0), is(p));
+		failDeleteWorkspace(bar, read, true, new WorkspaceAuthorizationException(
+				"User bar may not delete workspace deleteundelete"));
 		WorkspaceInformation read1 = ws.getWorkspaceInformation(user, read);
 		ws.setWorkspaceDeleted(user, read, true);
 		WorkspaceInformation read2 = ws.listWorkspaces(user, null, null, null,
@@ -3648,13 +3642,46 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkNonDeletedObjs(user, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(user, read),
 				is("descrip"));
-		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_MAP);
+		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1,
+				Permission.OWNER, false, "unlocked", MT_MAP);
 		ws.setPermissions(user, read, Arrays.asList(bar), Permission.ADMIN);
 		assertThat("can get perms", ws.getPermissions(
 				user, Arrays.asList(read)).get(0), is(p));
 		
 		assertTrue("date changed on delete", read1.getModDate().before(read2.getModDate()));
 		assertTrue("date changed on undelete", read2.getModDate().before(read3.getModDate()));
+	}
+	
+	@Test
+	public void adminDeleteWorkspace() throws Exception {
+		// test un/delete workspace as admin
+		final WorkspaceUser u1 = new WorkspaceUser("foo");
+		final WorkspaceUser u2 = new WorkspaceUser("bar");
+		final WorkspaceIdentifier delws = new WorkspaceIdentifier("foobar");
+		final WorkspaceIdentifier delwsid = new WorkspaceIdentifier(1L);
+		ws.createWorkspace(u1, delws.getName(), false, "whee", null);
+		
+		//test undelete
+		ws.setWorkspaceDeleted(u1, delws, true);
+		failGetWorkspaceDesc(u1, delws, new NoSuchWorkspaceException(
+				"Workspace foobar is deleted", delws));
+		failDeleteWorkspace(u2, delwsid, false, new WorkspaceAuthorizationException(
+				"User bar may not undelete workspace 1"));
+		failDeleteWorkspaceAsAdmin(u2, delws, false, false,
+				new WorkspaceAuthorizationException("User bar may not undelete workspace foobar"));
+		failDeleteWorkspaceAsAdmin(u2, delws, true, true,
+				new NoSuchWorkspaceException("Workspace foobar is deleted", delws));
+		ws.setWorkspaceDeleted(u2, delwsid, false, true);
+		assertThat("incorrect ws desc", ws.getWorkspaceDescription(u1, delws), is("whee"));
+		
+		//test delete
+		failDeleteWorkspace(u2, delwsid, true, new WorkspaceAuthorizationException(
+				"User bar may not delete workspace 1"));
+		failDeleteWorkspaceAsAdmin(u2, delws, true, false,
+				new WorkspaceAuthorizationException("User bar may not delete workspace foobar"));
+		ws.setWorkspaceDeleted(u2, delwsid, true, true);
+		failGetWorkspaceDesc(u1, delws, new NoSuchWorkspaceException(
+				"Workspace foobar is deleted", delws));
 	}
 
 	@Test

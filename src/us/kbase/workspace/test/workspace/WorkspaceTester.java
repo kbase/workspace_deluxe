@@ -1638,6 +1638,33 @@ public class WorkspaceTester {
 		}
 	}
 	
+	protected void failDeleteWorkspace(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final boolean delete,
+			final Exception e) {
+		try {
+			ws.setWorkspaceDeleted(user, wsi, delete);
+			fail("Non owner deleted workspace");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+	
+	protected void failDeleteWorkspaceAsAdmin(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final boolean delete,
+			final boolean asAdmin,
+			final Exception e) {
+		try {
+			ws.setWorkspaceDeleted(user, wsi, delete, asAdmin);
+			fail("Non owner deleted workspace");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+	
 	protected void failSetWorkspaceOwner(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
