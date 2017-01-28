@@ -52,6 +52,8 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class WorkspaceAdministration {
 	
+	//TODO JAVADOC
+	
 	private static final String REMOVE_MODULE_OWNERSHIP =
 			"removeModuleOwnership";
 	private static final String GRANT_MODULE_OWNERSHIP =
@@ -70,6 +72,8 @@ public class WorkspaceAdministration {
 	private static final String DENY_MOD_REQUEST = "denyModRequest";
 	private static final String APPROVE_MOD_REQUEST = "approveModRequest";
 	private static final String LIST_MOD_REQUESTS = "listModRequests";
+	private static final String DELETE_WS = "deleteWorkspace";
+	private static final String UNDELETE_WS = "undeleteWorkspace";
 
 	private final static ObjectMapper MAPPER = new ObjectMapper()
 			.registerModule(new JacksonTupleModule());
@@ -107,8 +111,7 @@ public class WorkspaceAdministration {
 		final String putativeAdmin = token.getUserName();
 		if (!(internaladmins.contains(putativeAdmin) ||
 				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
-			throw new IllegalArgumentException("User " + putativeAdmin
-					+ " is not an admin");
+			throw new IllegalArgumentException("User " + putativeAdmin + " is not an admin");
 		}
 		final AdminCommand cmd;
 		try {
@@ -224,6 +227,22 @@ public class WorkspaceAdministration {
 			final WorkspaceUser user = getUser(cmd);
 			getLogger().info(LIST_WORKSPACES + " " + user.getUser());
 			return wsmeth.listWorkspaceInfo(params, user);
+		}
+		if (DELETE_WS.equals(fn)) {
+			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
+			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
+			//TODO FEATURE would be better if could provide ID vs. name
+			getLogger().info(DELETE_WS + " " + params.getId() + " " + params.getWorkspace());
+			ws.setWorkspaceDeleted(null, wksp, true, true);
+			return null;
+		}
+		if (UNDELETE_WS.equals(fn)) {
+			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
+			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
+			//TODO FEATURE would be better if could provide ID vs. name
+			getLogger().info(UNDELETE_WS + " " + params.getId() + " " + params.getWorkspace());
+			ws.setWorkspaceDeleted(null, wksp, false, true);
+			return null;
 		}
 		if (LIST_WORKSPACE_OWNERS.equals(fn)) {
 			getLogger().info(LIST_WORKSPACE_OWNERS);

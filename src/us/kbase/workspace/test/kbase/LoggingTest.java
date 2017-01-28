@@ -824,5 +824,24 @@ public class LoggingTest {
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
+		
+		// del ws
+		ac.put("command", "deleteWorkspace");
+		ac.put("params", new WorkspaceIdentity().withWorkspace(ws));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("deleteWorkspace null myws", ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		ac.put("command", "undeleteWorkspace");
+		ac.put("params", new WorkspaceIdentity().withId(1L));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("undeleteWorkspace 1 null", ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
 	}
 }
