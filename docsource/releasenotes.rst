@@ -9,6 +9,11 @@ BACKWARDS INCOMPATIBILITIES:
 
 * It is now required to provide either an object name or an object id when saving an object.
 
+NEW FEATURES:
+
+* ``deleteWorkspace`` and ``undeleteWorkspace`` commands have been added to the administration
+  interface.
+
 UPDATED FEATURES / MAJOR BUG FIXES:
 
 * When attempting to save an object with metadata containing a null key or value a more

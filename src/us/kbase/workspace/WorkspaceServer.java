@@ -115,7 +115,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.7.0-dev1";
+	private static final String VER = "0.7.0-dev2";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -1330,7 +1330,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.undelete_workspace", async=true)
     public void undeleteWorkspace(WorkspaceIdentity wsi, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN undelete_workspace
-    	final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
+		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		ws.setWorkspaceDeleted(wsmeth.getUser(authPart), wksp, false);
         //END undelete_workspace
     }

@@ -2057,7 +2057,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					if (objs.get(o).isEmpty()) {
 						// this can never happen based on the Workspace code
 						throw new IllegalStateException(
-								"At least one ObjectPaths must be provided");
+								"At least one SubsetSelection must be provided");
 					} else {
 						for (final SubsetSelection op: objs.get(o)) {
 							buildReturnedObjectData(

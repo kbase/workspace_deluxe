@@ -1823,13 +1823,30 @@ public class Workspace {
 		db.setObjectsDeleted(new HashSet<ObjectIDResolvedWS>(ws.values()),
 				delete);
 	}
-
-	public void setWorkspaceDeleted(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final boolean delete)
+	
+	public void setWorkspaceDeleted(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final boolean delete)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.OWNER,
+		setWorkspaceDeleted(user, wsi, delete, false);
+	}
+
+	public void setWorkspaceDeleted(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final boolean delete,
+			final boolean asAdmin)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid;
+		if (asAdmin) {
+			wsid = db.resolveWorkspace(wsi, !delete);
+		} else {
+			wsid = checkPerms(user, wsi, Permission.OWNER,
 				(delete ? "" : "un") + "delete", !delete, false);
+		}
 		db.setWorkspaceDeleted(wsid, delete);
 	}
 
