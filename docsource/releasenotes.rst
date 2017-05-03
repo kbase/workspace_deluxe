@@ -18,7 +18,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 
 * When attempting to save an object with metadata containing a null key or value a more
   illuminating error is thrown.
-
+* The administration script now uses the authentication service url set in the deploy.cfg file as
+  opposed to a hard coded url.
 
 VERSION: 0.6.0 (Released 12/9/16)
 ---------------------------------
