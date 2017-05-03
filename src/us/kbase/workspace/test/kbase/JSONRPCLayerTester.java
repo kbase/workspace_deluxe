@@ -1284,6 +1284,15 @@ public class JSONRPCLayerTester {
 					is(excep));
 		}
 	}
+	
+	protected void failGetWSDesc(final WorkspaceIdentity wsi, final String exp) throws Exception {
+		try {
+			CLIENT1.getWorkspaceDescription(wsi);
+			fail("got desc from WS when expected failure");
+		} catch (ServerException se) {
+			assertThat("correct excep message", se.getLocalizedMessage(), is(exp));
+		}
+	}
 
 	protected void failSetGlobalPerm(SetGlobalPermissionsParams sgpp,
 			String exp) throws Exception {

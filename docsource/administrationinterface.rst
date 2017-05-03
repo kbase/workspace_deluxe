@@ -128,6 +128,8 @@ getPermissions         yes
 setGlobalPermission    yes
 saveObjects            yes
 listWorkspaces         yes
+deleteWorkspace        no
+undeleteWorkspace      no
 grantModuleOwnership   no
 removeModuleOwnership  no
 =====================  =================

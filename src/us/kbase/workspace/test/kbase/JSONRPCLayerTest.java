@@ -88,7 +88,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.0-dev1"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.0-dev2"));
 	}
 	
 	public void status() throws Exception {
@@ -1763,13 +1763,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		failGetObjects(loi, "Object myname cannot be accessed: Workspace delundel is deleted");
 
-		try {
-			CLIENT1.getWorkspaceDescription(wsi);
-			fail("got desc from deleted WS");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Workspace delundel is deleted"));
-		}
+		failGetWSDesc(wsi, "Workspace delundel is deleted");
+
 		CLIENT1.undeleteWorkspace(wsi);
 		checkData(loi, data);
 		assertThat("can get description", CLIENT1.getWorkspaceDescription(wsi),
@@ -3442,6 +3437,32 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 	private GetPermissionsMassParams gPM(WorkspaceIdentity ws) {
 		return new GetPermissionsMassParams().withWorkspaces(Arrays.asList(ws));
+	}
+	
+	@Test
+	public void adminDeleteWorkspace() throws Exception {
+		final WorkspaceIdentity delws = new WorkspaceIdentity().withWorkspace("delws");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(delws.getWorkspace())
+				.withDescription("foo"));
+		final WorkspaceIdentity delwsid = new WorkspaceIdentity().withId(1L);
+		final Map<String, Object> params = new HashMap<>();
+		params.put("command", "deleteWorkspace");
+		params.put("params", delws);
+		
+		//test delete
+		CLIENT2.administer(new UObject(params));
+		failGetWSDesc(delws, "Workspace delws is deleted");
+		params.put("params", new WorkspaceIdentity().withWorkspace("foo"));
+		failAdmin(CLIENT2, params, "No workspace with name foo exists");
+		
+		
+		//test undelete
+		params.put("command", "undeleteWorkspace");
+		params.put("params", delwsid);
+		CLIENT2.administer(new UObject(params));
+		assertThat("incorrect ws description", CLIENT1.getWorkspaceDescription(delws), is("foo"));
+		params.put("params", new WorkspaceIdentity().withId(2L));
+		failAdmin(CLIENT2, params, "No workspace with id 2 exists");
 	}
 	
 	@Test
