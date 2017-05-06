@@ -2,8 +2,8 @@ Workspace service release notes
 ===============================
 
 
-VERSION: 0.7.0 (Released TBD)
------------------------------
+VERSION: 0.7.0 (Released 5/5/17)
+--------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
 
