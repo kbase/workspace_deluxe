@@ -72,10 +72,11 @@ public class ServiceCheckerTest {
 		test();
 	}
 	
-	@Test
-	public void testHTTP() throws Exception {
-		test();
-	}
+	// no longer any http SDK services available
+//	@Test
+//	public void testHTTP() throws Exception {
+//		test();
+//	}
 	
 	@Test
 	public void test500() throws Exception {
