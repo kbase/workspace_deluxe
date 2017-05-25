@@ -124,7 +124,7 @@ Method                 ``user`` required
 =====================  =================
 createWorkspace        yes
 setPermissions         no
-getPermissions         yes
+getPermissions         optional (1)
 setGlobalPermission    yes
 saveObjects            yes
 listWorkspaces         yes
@@ -133,6 +133,8 @@ undeleteWorkspace      no
 grantModuleOwnership   no
 removeModuleOwnership  no
 =====================  =================
+
+(1) If omitted, returns the permissions as if the user is an administrator of the workspace.
 
 Example usage:
 

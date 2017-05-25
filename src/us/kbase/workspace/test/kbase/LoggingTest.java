@@ -768,10 +768,11 @@ public class LoggingTest {
 		logout.reset();
 		
 		ac.put("params", new WorkspaceIdentity().withId(1L));
+		ac.remove("user"); // test w/o user param
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("getPermissions 1 null " + USER1, ADMIN),
+				new AdminExp("getPermissions 1 null", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		

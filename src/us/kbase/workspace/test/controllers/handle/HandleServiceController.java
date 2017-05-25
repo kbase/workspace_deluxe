@@ -107,7 +107,7 @@ public class HandleServiceController {
 		env.put("KB_DEPLOYMENT_CONFIG", hmIniFile.toString());
 		handleManager = handlemgrpb.start();
 		
-		Thread.sleep(1000); //let the manager start up
+		Thread.sleep(2000); //let the manager start up
 		
 	}
 

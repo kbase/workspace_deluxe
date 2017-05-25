@@ -11,6 +11,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -75,6 +76,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.zafarkhaja.semver.Version;
+import com.google.common.collect.ImmutableMap;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -88,7 +90,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.0"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.1-dev1"));
 	}
 	
 	public void status() throws Exception {
@@ -3366,21 +3368,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
 		
 		Map<String, Object> adminParams = new HashMap<String, Object>();
-		adminParams.put("command", "getPermissions");
-		adminParams.put("user", USER1);
-		adminParams.put("params", ws);
-		@SuppressWarnings("unchecked")
-		Map<String, String> res = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
-		assertThat("admin gets correct params", res, is(CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0)));
-		
-		adminParams.put("user", USER2);
-		@SuppressWarnings("unchecked")
-		Map<String, String> res2 = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
-		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissionsMass(gPM(ws)).getPerms().get(0)));
-		
-		adminParams.put("user", "thisisacrazykbaseuserthatdoesntexistforsure");
-		failAdmin(CLIENT2, adminParams, "User thisisacrazykbaseuserthatdoesntexistforsure is not a valid user");
-		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
 		
 		String wsstr = USER1 + ":admintest";
 		
@@ -3437,6 +3424,56 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 	private GetPermissionsMassParams gPM(WorkspaceIdentity ws) {
 		return new GetPermissionsMassParams().withWorkspaces(Arrays.asList(ws));
+	}
+	
+	@Test
+	public void adminGetPermissionsWithUser() throws Exception {
+		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		
+		Map<String, Object> adminParams = new HashMap<String, Object>();
+		adminParams.put("command", "getPermissions");
+		adminParams.put("user", USER1);
+		adminParams.put("params", ws);
+		@SuppressWarnings("unchecked")
+		Map<String, String> res = CLIENT2.administer(new UObject(adminParams))
+				.asClassInstance(Map.class);
+		assertThat("admin gets correct params", res,
+				is((Map<String, String>) ImmutableMap.of(USER1, "a")));
+		
+		adminParams.put("user", USER2);
+		@SuppressWarnings("unchecked")
+		Map<String, String> res2 = CLIENT2.administer(new UObject(adminParams))
+				.asClassInstance(Map.class);
+		assertThat("admin gets correct params", res2,
+				is((Map<String, String>) ImmutableMap.of(USER2, "n")));
+		
+		adminParams.put("user", "thisisacrazykbaseuserthatdoesntexistforsure");
+		failAdmin(CLIENT2, adminParams,
+				"User thisisacrazykbaseuserthatdoesntexistforsure is not a valid user");
+	}
+	
+	@Test
+	public void adminGetPermissionsNoUser() throws Exception {
+		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		
+		Map<String, Object> adminParams = new HashMap<String, Object>();
+		adminParams.put("command", "getPermissions");
+		adminParams.put("params", ws);
+		@SuppressWarnings("unchecked")
+		Map<String, String> res = CLIENT2.administer(new UObject(adminParams))
+				.asClassInstance(Map.class);
+		assertThat("admin gets correct params", res,
+				is((Map<String, String>) ImmutableMap.of(USER1, "a")));
+	}
+	
+	@Test
+	public void adminFailUserNotAdmin() throws Exception {
+		failAdmin(CLIENT1, Collections.<String, Object>emptyMap(),
+				"User " + USER1 + " is not an admin");
 	}
 	
 	@Test
