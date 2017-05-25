@@ -44,6 +44,8 @@ public class HandleServiceController {
 	private final static String TABLE = "Handle";
 	private final static String USER = "hsitest";
 	private final static String PWD = "hsi-pass-test";
+	
+	private final static String HANDLE_SERVICE_NAME = "handle_service";
 
 	public HandleServiceController(
 			final String plackupExe,
@@ -55,8 +57,11 @@ public class HandleServiceController {
 			final AuthToken shockAdminToken,
 			final String shockAdminPwd,
 			final String perl5lib,
-			final Path rootTempDir)
-					throws Exception {
+			final Path rootTempDir,
+			URL authServiceURL)
+			throws Exception {
+		
+		authServiceURL = new URL(authServiceURL.toString() + "/Sessions/Login");
 		
 		checkExe(plackupExe, "plackup");
 		checkFile(abstractHandlePSGIpath, "Abstract Handle Service PSGI");
@@ -68,7 +73,7 @@ public class HandleServiceController {
 		
 		handleServicePort = findFreePort();
 		
-		File hsIniFile = createHandleServiceDeployCfg(mysql, shockHost);
+		File hsIniFile = createHandleServiceDeployCfg(mysql, shockHost, authServiceURL);
 		
 		/*
 		crusherofheads@icrushdeheads:~$ export PERL5LIB=/kb/deployment/lib
@@ -90,6 +95,7 @@ public class HandleServiceController {
 		Map<String, String> env = handlepb.environment();
 		env.put("PERL5LIB", perl5lib);
 		env.put("KB_DEPLOYMENT_CONFIG", hsIniFile.toString());
+		env.put("KB_SERVICE_NAME", HANDLE_SERVICE_NAME);
 		handleService = handlepb.start();
 		
 		Thread.sleep(1000); //let the service start up
@@ -97,7 +103,7 @@ public class HandleServiceController {
 		handleManagerPort = findFreePort();
 		
 		File hmIniFile = createHandleManagerDeployCfg(
-				shockAdminToken, shockAdminPwd, handleManagerAllowedUser);
+				shockAdminToken, shockAdminPwd, handleManagerAllowedUser, authServiceURL);
 		
 		ProcessBuilder handlemgrpb = new ProcessBuilder(plackupExe, "--port",
 				"" + handleManagerPort, handleManagerPSGIpath)
@@ -108,25 +114,28 @@ public class HandleServiceController {
 		env.put("KB_DEPLOYMENT_CONFIG", hmIniFile.toString());
 		handleManager = handlemgrpb.start();
 		
-		Thread.sleep(2000); //let the manager start up
+		Thread.sleep(15000); // friggin Keith made the HM pause for up to 15s on start.
+		// Thanks Keith
 		
 	}
 
 	private File createHandleManagerDeployCfg(
 			final AuthToken shockAdminToken,
 			final String shockAdminPwd,
-			final String allowedUser)
+			final String allowedUser,
+			final URL authServiceURL)
 			throws IOException {
-		File iniFile = tempDir.resolve("handleManager.cfg").toFile();
+		final File iniFile = tempDir.resolve("handleManager.cfg").toFile();
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
 		
-		Ini ini = new Ini();
-		Section hm = ini.add("HandleMngr");
+		final Ini ini = new Ini();
+		final Section hm = ini.add("HandleMngr");
 		hm.add("handle-service-url", "http://localhost:" + handleServicePort);
 		hm.add("service-host", "localhost");
 		hm.add("service-port", "" + handleManagerPort);
+		hm.add("auth-service-url", authServiceURL.toString());
 		if (shockAdminPwd == null || shockAdminPwd.isEmpty()) {
 			hm.add("admin-token", shockAdminToken.getToken());
 		} else {
@@ -139,18 +148,21 @@ public class HandleServiceController {
 		return iniFile;
 	}
 	
-	private File createHandleServiceDeployCfg(final MySQLController mysql,
-			final String shockHost) throws IOException {
-		File iniFile = tempDir.resolve("handleService.cfg").toFile();
+	private File createHandleServiceDeployCfg(
+			final MySQLController mysql,
+			final String shockHost,
+			final URL authServiceURL) throws IOException {
+		final File iniFile = tempDir.resolve("handleService.cfg").toFile();
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
 		
-		Ini ini = new Ini();
-		Section hs = ini.add("handle_service");
+		final Ini ini = new Ini();
+		final Section hs = ini.add(HANDLE_SERVICE_NAME);
 		hs.add("self-url", "http://localhost:" + handleServicePort);
 		hs.add("service-port", "" + handleServicePort);
 		hs.add("service-host", "localhost");
+		hs.add("auth-service-url", authServiceURL.toString());
 		hs.add("default-shock-server", shockHost);
 		
 		hs.add("mysql-host", "127.0.0.1");
@@ -242,7 +254,8 @@ public class HandleServiceController {
 				null, //this will break the hm, need a token
 				System.getProperty("test.pwd1"),
 				"/kb/deployment/lib",
-				Paths.get("workspacetesttemp"));
+				Paths.get("workspacetesttemp"),
+				new URL("http://foo.com"));
 		System.out.println("handlesrv: " + hsc.getHandleServerPort());
 		System.out.println("handlemng: " + hsc.getHandleManagerPort());
 		System.out.println(hsc.getTempDir());

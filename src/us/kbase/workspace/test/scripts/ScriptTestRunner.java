@@ -222,7 +222,8 @@ public class ScriptTestRunner {
 				t3,
 				p3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
-				Paths.get(tempDir));
+				Paths.get(tempDir),
+				TestCommon.getAuthUrl());
 		System.out.println("Using Handle Service temp dir " +
 				HANDLE.getTempDir());
 		

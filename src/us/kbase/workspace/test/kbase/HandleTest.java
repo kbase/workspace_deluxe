@@ -138,6 +138,7 @@ public class HandleTest {
 				"foo",
 				"foo",
 				TestCommon.getGlobusUrl());
+		System.out.println("Using globus url " + TestCommon.getGlobusUrl());
 		System.out.println("Shock controller version: " + SHOCK.getVersion());
 		if (SHOCK.getVersion() == null) {
 			System.out.println(
@@ -161,9 +162,10 @@ public class HandleTest {
 				t3,
 				p3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
-				Paths.get(TestCommon.getTempDir()));
-		System.out.println("Using Handle Service temp dir " +
-				HANDLE.getTempDir());
+				Paths.get(TestCommon.getTempDir()),
+				TestCommon.getAuthUrl());
+		System.out.println("Using auth url " + TestCommon.getAuthUrl());
+		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
 		
 		
 		SERVER = startupWorkspaceServer(mongohost,
