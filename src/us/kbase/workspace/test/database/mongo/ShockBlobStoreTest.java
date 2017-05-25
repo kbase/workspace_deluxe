@@ -84,7 +84,8 @@ public class ShockBlobStoreTest {
 				mongohost,
 				"ShockBackendTest_ShockDB",
 				"foo",
-				"foo");
+				"foo",
+				TestCommon.getGlobusUrl());
 		System.out.println("Shock controller version: " + shock.getVersion());
 		if (shock.getVersion() == null) {
 			System.out.println(

@@ -136,7 +136,8 @@ public class HandleTest {
 				mongohost,
 				"JSONRPCLayerHandleTest_ShockDB",
 				"foo",
-				"foo");
+				"foo",
+				TestCommon.getGlobusUrl());
 		System.out.println("Shock controller version: " + SHOCK.getVersion());
 		if (SHOCK.getVersion() == null) {
 			System.out.println(
