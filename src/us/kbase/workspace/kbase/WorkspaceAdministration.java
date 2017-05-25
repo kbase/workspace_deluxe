@@ -194,8 +194,7 @@ public class WorkspaceAdministration {
 			return null;
 		}
 		if (GET_PERMISSIONS.equals(fn)) {
-			final WorkspaceIdentity params = getParams(cmd,
-					WorkspaceIdentity.class);
+			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceUser user = getUser(cmd);
 			//TODO FEATURE would be better if could provide ID vs. name
 			getLogger().info(GET_PERMISSIONS + " " + params.getId() + " " +
