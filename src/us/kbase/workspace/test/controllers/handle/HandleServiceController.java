@@ -7,6 +7,7 @@ import static us.kbase.common.test.controllers.ControllerCommon.makeTempDirs;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -107,7 +108,7 @@ public class HandleServiceController {
 		env.put("KB_DEPLOYMENT_CONFIG", hmIniFile.toString());
 		handleManager = handlemgrpb.start();
 		
-		Thread.sleep(1000); //let the manager start up
+		Thread.sleep(2000); //let the manager start up
 		
 	}
 
@@ -229,7 +230,7 @@ public class HandleServiceController {
 				Paths.get("workspacetesttemp"),
 				System.getProperty("test.user1"),
 				"localhost:" + monc.getServerPort(),
-				"shockdb", "foo", "foo"); 
+				"shockdb", "foo", "foo", new URL("http://foo.com")); 
 		
 		HandleServiceController hsc = new HandleServiceController(
 				"/kb/runtime/bin/plackup",
