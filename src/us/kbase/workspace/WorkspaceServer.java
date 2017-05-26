@@ -528,8 +528,7 @@ public class WorkspaceServer extends JsonServerServlet {
         WorkspacePermissions returnVal = null;
         //BEGIN get_permissions_mass
 		checkAddlArgs(mass.getAdditionalProperties(), mass.getClass());
-		returnVal = wsmeth.getPermissions(
-				mass.getWorkspaces(), wsmeth.getUser(authPart), false);
+		returnVal = wsmeth.getPermissions(mass.getWorkspaces(), wsmeth.getUser(authPart), false);
         //END get_permissions_mass
         return returnVal;
     }

@@ -119,20 +119,21 @@ all have the same basic structure:
         
 The methods currently available are:
 
-=====================  =================
-Method                 ``user`` required
-=====================  =================
-createWorkspace        yes
-setPermissions         no
-getPermissions         optional (1)
-setGlobalPermission    yes
-saveObjects            yes
-listWorkspaces         yes
-deleteWorkspace        no
-undeleteWorkspace      no
-grantModuleOwnership   no
-removeModuleOwnership  no
-=====================  =================
+==============================  =================
+Method                          ``user`` required
+==============================  =================
+createWorkspace                 yes
+setPermissions                  no
+getPermissions (DEPRECATED)     optional (1)
+getPermissionsMass              no
+setGlobalPermission             yes
+saveObjects                     yes
+listWorkspaces                  yes
+deleteWorkspace                 no
+undeleteWorkspace               no
+grantModuleOwnership            no
+removeModuleOwnership           no
+==============================  =================
 
 (1) If omitted, returns the permissions as if the user is an administrator of the workspace.
 

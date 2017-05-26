@@ -30,6 +30,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
@@ -63,6 +64,7 @@ public class WorkspaceAdministration {
 	private static final String SAVE_OBJECTS = "saveObjects";
 	private static final String SET_GLOBAL_PERMISSION = "setGlobalPermission";
 	private static final String GET_PERMISSIONS = "getPermissions";
+	private static final String GET_PERMISSIONS_MASS = "getPermissionsMass";
 	private static final String SET_PERMISSIONS = "setPermissions";
 	private static final String CREATE_WORKSPACE = "createWorkspace";
 	private static final String SET_WORKSPACE_OWNER = "setWorkspaceOwner";
@@ -205,6 +207,13 @@ public class WorkspaceAdministration {
 			} else {
 				return wsmeth.getPermissions(params, user);
 			}
+		}
+		if (GET_PERMISSIONS_MASS.equals(fn)) {
+			final GetPermissionsMassParams params = getParams(cmd, GetPermissionsMassParams.class);
+			// not sure what to log here, could be 1K entries.
+			getLogger().info(GET_PERMISSIONS_MASS + " " + params.getWorkspaces().size() +
+					" workspaces in input");
+			return wsmeth.getPermissions(params.getWorkspaces(), null, true);
 		}
 		if (SET_GLOBAL_PERMISSION.equals(fn)) {
 			final SetGlobalPermissionsParams params = getParams(cmd,

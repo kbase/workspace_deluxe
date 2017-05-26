@@ -3471,6 +3471,29 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void adminGetPermissionsMass() throws Exception {
+		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		WorkspaceIdentity ws2 = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest2");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws2.getWorkspace()));
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(ws2.getWorkspace())
+				.withNewPermission("r").withUsers(Arrays.asList(USER2)));
+		
+		Map<String, Object> adminParams = ImmutableMap.of(
+				"command", "getPermissionsMass",
+				"params", new GetPermissionsMassParams()
+					.withWorkspaces(Arrays.asList(ws, ws2)));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> res = CLIENT2.administer(new UObject(adminParams))
+				.asClassInstance(Map.class);
+		assertThat("admin gets correct params", res,
+				is((Map<String, Object>) ImmutableMap.of("perms", (Object) Arrays.asList(
+						ImmutableMap.of(USER1, "a"),
+						ImmutableMap.of(USER1, "a", USER2, "r")))));
+	}
+	
+	@Test
 	public void adminFailUserNotAdmin() throws Exception {
 		failAdmin(CLIENT1, Collections.<String, Object>emptyMap(),
 				"User " + USER1 + " is not an admin");
