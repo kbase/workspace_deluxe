@@ -1722,8 +1722,10 @@ public class JSONRPCLayerTester {
 		failAdmin(cli, createData(cmd), exp);
 	}
 		
-	protected void failAdmin(WorkspaceClient cli, Map<String, Object> cmd,
-			String exp)
+	protected void failAdmin(
+			final WorkspaceClient cli,
+			final Map<String, Object> cmd,
+			final String exp)
 			throws Exception {
 		try {
 			cli.administer(new UObject(cmd));

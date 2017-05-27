@@ -116,7 +116,6 @@ public class HandleServiceController {
 		
 		Thread.sleep(15000); // friggin Keith made the HM pause for up to 15s on start.
 		// Thanks Keith
-		
 	}
 
 	private File createHandleManagerDeployCfg(

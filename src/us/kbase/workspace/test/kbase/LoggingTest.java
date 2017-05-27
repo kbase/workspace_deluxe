@@ -42,6 +42,7 @@ import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjects2Params;
+import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -768,10 +769,23 @@ public class LoggingTest {
 		logout.reset();
 		
 		ac.put("params", new WorkspaceIdentity().withId(1L));
+		ac.remove("user"); // test w/o user param
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("getPermissions 1 null " + USER1, ADMIN),
+				new AdminExp("getPermissions 1 null", ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		// get perms mass
+		ac.put("command", "getPermissionsMass");
+		ac.put("user", USER1);
+		ac.put("params", new GetPermissionsMassParams().withWorkspaces(Arrays.asList(
+				new WorkspaceIdentity().withWorkspace(ws))));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getPermissionsMass 1 workspaces in input", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		

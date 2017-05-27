@@ -30,6 +30,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
@@ -63,6 +64,7 @@ public class WorkspaceAdministration {
 	private static final String SAVE_OBJECTS = "saveObjects";
 	private static final String SET_GLOBAL_PERMISSION = "setGlobalPermission";
 	private static final String GET_PERMISSIONS = "getPermissions";
+	private static final String GET_PERMISSIONS_MASS = "getPermissionsMass";
 	private static final String SET_PERMISSIONS = "setPermissions";
 	private static final String CREATE_WORKSPACE = "createWorkspace";
 	private static final String SET_WORKSPACE_OWNER = "setWorkspaceOwner";
@@ -124,6 +126,7 @@ public class WorkspaceAdministration {
 			}
 			throw ioe;
 		}
+		// should look into some sort of interface w/ registration instead of a massive if else
 		final String fn = (String) cmd.getCommand();
 		if (LIST_MOD_REQUESTS.equals(fn)) {
 			getLogger().info(LIST_MOD_REQUESTS);
@@ -194,13 +197,23 @@ public class WorkspaceAdministration {
 			return null;
 		}
 		if (GET_PERMISSIONS.equals(fn)) {
-			final WorkspaceIdentity params = getParams(cmd,
-					WorkspaceIdentity.class);
-			final WorkspaceUser user = getUser(cmd);
-			//TODO FEATURE would be better if could provide ID vs. name
+			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
+			final WorkspaceUser user = getNullableUser(cmd);
+			//TODO FEATURE would be better if could always provide ID vs. name
 			getLogger().info(GET_PERMISSIONS + " " + params.getId() + " " +
-					params.getWorkspace() + " " + user.getUser());
-			return wsmeth.getPermissions(params, user);
+					params.getWorkspace() + (user == null ? "" : " " + user.getUser()));
+			if (user == null) {
+				return wsmeth.getPermissions(Arrays.asList(params), null, true).getPerms().get(0);
+			} else {
+				return wsmeth.getPermissions(params, user);
+			}
+		}
+		if (GET_PERMISSIONS_MASS.equals(fn)) {
+			final GetPermissionsMassParams params = getParams(cmd, GetPermissionsMassParams.class);
+			// not sure what to log here, could be 1K entries.
+			getLogger().info(GET_PERMISSIONS_MASS + " " + params.getWorkspaces().size() +
+					" workspaces in input");
+			return wsmeth.getPermissions(params.getWorkspaces(), null, true);
 		}
 		if (SET_GLOBAL_PERMISSION.equals(fn)) {
 			final SetGlobalPermissionsParams params = getParams(cmd,
@@ -289,6 +302,14 @@ public class WorkspaceAdministration {
 		return wsmeth.validateUsers(Arrays.asList(user)).get(0);
 	}
 	
+	private WorkspaceUser getNullableUser(final AdminCommand cmd)
+			throws IOException, AuthException {
+		if (cmd.getUser() == null) {
+			return null;
+		}
+		return wsmeth.validateUsers(Arrays.asList(cmd.getUser())).get(0);
+	}
+	
 	private static class SetWorkspaceOwnerParams {
 		public WorkspaceIdentity wsi;
 		public String new_user;
@@ -319,54 +340,4 @@ public class WorkspaceAdministration {
 		return UObject.transformObjectToObject(input.get("params"),
 				new TypeReference<T>() {});
 	}
-	
-	//All the email methods are dead code for now, don't use them
-//	@SuppressWarnings("unused")
-//	private void notifyOnModuleRegRequest(final AuthToken authPart,
-//			final WorkspaceUser user, final String module) throws IOException {
-//		final Map<String, UserDetail> admininfo;
-//		try {
-//			admininfo = AuthService.fetchUserDetail(
-//					new LinkedList<String>(admins), authPart);
-//		} catch (AuthException ae) { //the token was just authorized
-//			throw new RuntimeException("Something's broken");
-//		}
-//		final List<String> emails = new LinkedList<String>();
-//		for (final UserDetail ud: admininfo.values()) {
-//			emails.add(ud.getEmail());
-//		}
-//		emailModuleRegistrationRequested(emails, user, module);
-//	}
-//
-//	private static final String EMAIL_MOD_REG = 
-//			"This is a notification to the administrators of the KBase Workspace Service. " +
-//			"Please do not reply to this message.\n\n" +
-//			"Notification: the user %s has requested ownership of the module %s.";
-//	private static final String EMAIL_FROM = "do-not-reply@workspaceservice.kbase.us";
-//	private static final String EMAIL_MOD_REG_SUBJ = 
-//			"[Workspace Service] Module ownership request notification";
-//	
-//	private void emailModuleRegistrationRequested(final List<String> emails,
-//			final WorkspaceUser user, final String module) {
-//		//TO_DO test mode shuts email off or changes headers
-//		final Properties props = new Properties();
-//		props.put("mail.smtp.host", "localhost");
-//		final Session session = Session.getInstance(props, null);
-//		for (final String email: emails) {
-//			try {
-//				MimeMessage msg = new MimeMessage(session);
-//				msg.setFrom(new InternetAddress(EMAIL_FROM));
-//				msg.setRecipient(Message.RecipientType.TO,
-//						new InternetAddress(email));
-//				msg.setSubject(EMAIL_MOD_REG_SUBJ);
-//				msg.setSentDate(new Date());
-//				msg.setText(String.format(
-//						EMAIL_MOD_REG, user.getUser(), module));
-//				Transport.send(msg);
-//			} catch (MessagingException me) {
-//				me.printStackTrace();
-//				//TO_DO log exception when mailing fails
-//			}
-//		}
-//	}
 }

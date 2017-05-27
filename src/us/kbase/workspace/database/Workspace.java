@@ -509,46 +509,78 @@ public class Workspace {
 		db.setGlobalPermission(wsid, permission);
 	}
 
+	//TODO USERS make an anonymous user class instead of using null.
+	//TODO WORKSPACES consider a single method that returns all workspace info in a class. Probably performance difference is trivial compared to multiple methods.
+	
+	/** Get user permissions for a set of workspaces. If the user has at least write permission
+	 * to a particular workspace, all permissions for the workspace will be returned.
+	 * @param user the user for which permissions will be returned, or null for an anonymous user.
+	 * @param wslist the list of workspaces.
+	 * @return a list of workspace permissions ordered as the incoming list.
+	 * @throws NoSuchWorkspaceException if one or more of the workspaces does not exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurred when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the workspace.
+	 */
 	public List<Map<User, Permission>> getPermissions(
 			final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wslist)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		if (wslist == null) {
+				CorruptWorkspaceDBException {
+		return getPermissions(user, wslist, false);
+	}
+	
+	/** Get user permissions for a set of workspaces as an administrator. Returns all permissions
+	 * for all workspaces.
+	 * @param wslist the list of workspaces.
+	 * @return a list of workspace permissions ordered as the incoming list.
+	 * @throws NoSuchWorkspaceException if one or more of the workspaces does not exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurred when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the workspace.
+	 */
+	public List<Map<User, Permission>> getPermissionsAsAdmin(
+			final List<WorkspaceIdentifier> wslist)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
+		return getPermissions(null, wslist, true);
+	}
+	
+	private List<Map<User, Permission>> getPermissions(
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wslist,
+			final boolean asAdmin)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
+		if (wslist == null) { //TODO CODE copy non null from auth2
 			throw new NullPointerException("wslist cannot be null");
 		}
 		if (wslist.size() > MAX_WS_COUNT) {
 			throw new IllegalArgumentException(
-					"Maximum number of workspaces allowed for input is " +
-							MAX_WS_COUNT);
+					"Maximum number of workspaces allowed for input is " + MAX_WS_COUNT);
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwslist =
 				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wslist));
 		final Map<ResolvedWorkspaceID, Map<User, Permission>> perms =
 				db.getAllPermissions(new HashSet<ResolvedWorkspaceID>(
 						rwslist.values()));
-		final List<Map<User, Permission>> ret =
-				new LinkedList<Map<User,Permission>>();
+		final List<Map<User, Permission>> ret = new LinkedList<Map<User,Permission>>();
 		for (final WorkspaceIdentifier wsi: wslist) {
 			final ResolvedWorkspaceID rwsi = rwslist.get(wsi);
 			final Map<User, Permission> wsperm = perms.get(rwsi);
-			final Permission p = wsperm.get(user); // will be null for null user
-			if (p == null || Permission.WRITE.compareTo(p) > 0) { //read or no perms
-				final Map<User, Permission> wsp =
-						new HashMap<User, Permission>();
+			// if user is null, got perm will be null
+			final Permission p = wsperm.get(user) == null ? Permission.NONE : wsperm.get(user);
+			if (asAdmin || Permission.WRITE.compareTo(p) <= 0) { //at least write perms
+				ret.add(wsperm);
+			} else {
+				final Map<User, Permission> wsp = new HashMap<User, Permission>();
 				if (wsperm.containsKey(ALL_USERS)) {
 					wsp.put(ALL_USERS, wsperm.get(ALL_USERS));
 				}
 				if (user != null) {
-					if (p == null) {
-						wsp.put(user, Permission.NONE);
-					} else {
-						wsp.put(user, p);
-					}
+					wsp.put(user, p);
 				}
 				ret.add(wsp);
-			} else {
-				ret.add(wsperm);
 			}
 		}
 		return ret;

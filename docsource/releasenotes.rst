@@ -1,6 +1,21 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.7.1 (Released TBD)
+--------------------------------
+
+BACKWARDS INCOMPATIBILITIES:
+
+* The ``getPermissions`` administration command, like the ``get_permissions`` method, is now
+  deprecated.
+
+NEW FEATURES:
+
+* Added the ``getPermissionsMass`` administration command.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* A user name is now optional for the ``getPermissions`` administration command.
 
 VERSION: 0.7.0 (Released 5/5/17)
 --------------------------------

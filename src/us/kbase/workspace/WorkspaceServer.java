@@ -115,7 +115,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.7.0";
+	private static final String VER = "0.7.1-dev1";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -528,8 +528,7 @@ public class WorkspaceServer extends JsonServerServlet {
         WorkspacePermissions returnVal = null;
         //BEGIN get_permissions_mass
 		checkAddlArgs(mass.getAdditionalProperties(), mass.getClass());
-		returnVal = wsmeth.getPermissions(
-				mass.getWorkspaces(), wsmeth.getUser(authPart));
+		returnVal = wsmeth.getPermissions(mass.getWorkspaces(), wsmeth.getUser(authPart), false);
         //END get_permissions_mass
         return returnVal;
     }

@@ -209,29 +209,59 @@ public class WorkspaceServerMethods {
 		ws.setGlobalPermission(user, wsi, p);
 	}
 	
-	public Map<String, String> getPermissions(WorkspaceIdentity wsi,
-			WorkspaceUser user)
+	//TODO EXCEPTIONS look into making CorruptWorksapceDBException a runtime exception. No reason for a caught exception. Check for places where it's caught to ensure change is ok.
+	
+	/** Gets the permissions for a workspace for a user. If the user has at least write permissions
+	 * to the workspace, also returns permissions for other users.
+	 * @param wsi the workspace in question.
+	 * @param user the user for which permissions will be retrieved.
+	 * @return the workspace permissions as a map from username to permission.
+	 * @throws NoSuchWorkspaceException if there is no such workspace.
+	 * @throws WorkspaceCommunicationException if the workspace service could not 
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the workspace.
+	 */
+	public Map<String, String> getPermissions(
+			final WorkspaceIdentity wsi,
+			final WorkspaceUser user)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		return getPermissions(Arrays.asList(wsi), user).getPerms().get(0);
+				CorruptWorkspaceDBException {
+		return getPermissions(Arrays.asList(wsi), user, false).getPerms().get(0);
 	}
 	
+	/** Gets the permissions for a set of workspaces for a user. If the user has at least write
+	 * permissions for a particular workspace, the other user's permissions are also returned for
+	 * that workspace.
+	 * @param workspaces the workspaces in question.
+	 * @param user the user for which permissions will be retrieved.
+	 * @param asAdmin get all permissions for the workspaces, regardless of the user's permissions.
+	 * @return the workspace permissions.
+	 * @throws NoSuchWorkspaceException if there is no such workspace.
+	 * @throws WorkspaceCommunicationException if the workspace service could not 
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the workspace.
+	 */
 	public WorkspacePermissions getPermissions(
-			List<WorkspaceIdentity> workspaces, WorkspaceUser user)
+			final List<WorkspaceIdentity> workspaces,
+			final WorkspaceUser user,
+			final boolean asAdmin)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+				CorruptWorkspaceDBException {
 		
 		final List<WorkspaceIdentifier> wsil =
 				new LinkedList<WorkspaceIdentifier>();
 		for (final WorkspaceIdentity wsi: workspaces) {
 			wsil.add(processWorkspaceIdentifier(wsi));
 		}
-		final List<Map<User, Permission>> perms = ws.getPermissions(user, wsil);
+		final List<Map<User, Permission>> perms;
+		if (asAdmin) {
+			perms = ws.getPermissionsAsAdmin(wsil);
+		} else {
+			perms = ws.getPermissions(user, wsil);
+		}
 		final List<Map<String, String>> ret =
 				new LinkedList<Map<String,String>>();
 		for (final Map<User, Permission> acls: perms){
 			final Map<String, String> inner = new HashMap<String, String>();
-			for (User acl: acls.keySet()) {
+			for (final User acl: acls.keySet()) {
 				inner.put(acl.getUser(), translatePermission(acls.get(acl)));
 			}
 			ret.add(inner);

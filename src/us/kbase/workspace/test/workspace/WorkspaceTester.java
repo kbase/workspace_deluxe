@@ -658,6 +658,17 @@ public class WorkspaceTester {
 		}
 	}
 	
+	protected void failGetPermissionsAsAdmin(
+			final List<WorkspaceIdentifier> wsis,
+			final Exception e) {
+		try {
+			ws.getPermissionsAsAdmin(wsis);
+			fail("get perms as admin should fail");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, e);
+		}
+	}
+	
 	protected void checkObjInfo(
 			final ObjectInformation info,
 			final long id,
