@@ -3755,6 +3755,17 @@ public class WorkspaceTest extends WorkspaceTester {
 		failGetWorkspaceDesc(u1, delws, new NoSuchWorkspaceException(
 				"Workspace foobar is deleted", delws));
 	}
+	
+	@Test
+	public void adminDeleteWorkspaceFailLocked() throws Exception {
+		final WorkspaceUser u1 = new WorkspaceUser("foo");
+		final WorkspaceIdentifier delws = new WorkspaceIdentifier("foobar");
+		ws.createWorkspace(u1, delws.getName(), false, "whee", null);
+		
+		ws.lockWorkspace(u1, delws);
+		failDeleteWorkspaceAsAdmin(u1, delws, true, true, new WorkspaceAuthorizationException(
+				"The workspace with id 1, name foobar, is locked and may not be modified"));
+	}
 
 	@Test
 	public void testTypeMd5s() throws Exception {
@@ -4855,7 +4866,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			assertThat("correct exception", e.getLocalizedMessage(),
 					is("User lockuser2 may not read workspace lock"));
 		}
-		failWSMeta(user2, wsi, "some meta", "val", new WorkspaceAuthorizationException(
+		failWSMeta(user, wsi, "some meta", "val", new WorkspaceAuthorizationException(
 				"The workspace with id " + wsid +
 				", name lock, is locked and may not be modified"));
 		

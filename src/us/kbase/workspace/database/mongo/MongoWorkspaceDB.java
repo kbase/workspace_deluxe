@@ -955,8 +955,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							wsi);
 				}
 			} else {
-				if (!allowDeleted &&
-						(Boolean) res.get(wsi).get(Fields.WS_DEL)) {
+				if (!allowDeleted && (Boolean) res.get(wsi).get(Fields.WS_DEL)) {
 					throw new NoSuchWorkspaceException("Workspace " +
 							wsi.getIdentifierString() + " is deleted", wsi);
 				}

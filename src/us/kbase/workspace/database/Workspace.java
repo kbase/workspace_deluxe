@@ -156,8 +156,7 @@ public class Workspace {
 			final WorkspaceIdentifier wsi, final String operation) throws
 			WorkspaceAuthorizationException {
 		final WorkspaceAuthorizationException wae =
-				comparePermission(user, required, available,
-						wsi.getIdentifierString(), operation);
+				comparePermission(user, required, available, wsi.getIdentifierString(), operation);
 		if (wae != null) {
 			wae.addDeniedCause(wsi);
 			throw wae;
@@ -168,7 +167,7 @@ public class Workspace {
 			final WorkspaceUser user, final Permission required,
 			final Permission available, final String identifier,
 			final String operation) {
-		if(required.compareTo(available) > 0) {
+		if (required.compareTo(available) > 0) {
 			final String err = user == null ?
 					"Anonymous users may not %s workspace %s" :
 					"User " + user.getUser() + " may not %s workspace %s";
@@ -190,70 +189,85 @@ public class Workspace {
 		}
 	}
 	
-	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final Permission perm,
+	/** Check whether a user has appropriate permissions for a workspace.
+	 * @param user the user.
+	 * @param wsi the workspace.
+	 * @param perm the required permission.
+	 * @param operation the operation the user is undertaking on the workspace.
+	 * @return the resolved ID of the workspace.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
+	 * workspace.
+	 */
+	private ResolvedWorkspaceID checkPerms(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Permission perm,
 			final String operation)
-			throws CorruptWorkspaceDBException, WorkspaceAuthorizationException,
-			NoSuchWorkspaceException, WorkspaceCommunicationException {
-		return checkPerms(user, wsi, perm, operation, false, false);
-	}
-	
-	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final Permission perm,
-			final String operation, final boolean allowDeletedWorkspace,
-			final boolean ignoreLock)
 			throws CorruptWorkspaceDBException, WorkspaceAuthorizationException,
 			NoSuchWorkspaceException, WorkspaceCommunicationException {
 		if (wsi == null) {
 			throw new IllegalArgumentException(
 					"Workspace identifier cannot be null");
 		}
-		return checkPermsMass(user, Arrays.asList(wsi), perm, operation,
-				allowDeletedWorkspace, ignoreLock).get(wsi);
+		return checkPermsMass(user, Arrays.asList(wsi), perm, operation).get(wsi);
 	}
 	
+	/** Check whether a user has appropriate permissions for a set of workspaces.
+	 * @param user the user.
+	 * @param wsis the workspaces.
+	 * @param perm the required permission.
+	 * @param operation the operation the user is undertaking on the workspaces.
+	 * @return the resolved IDs of the workspaces mapped from the original identifiers.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
+	 * workspace.
+	 */
 	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> checkPermsMass(
 			final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wsis,
 			final Permission perm,
-			final String operation,
-			final boolean allowDeletedWorkspace,
-			final boolean ignoreLock)
+			final String operation)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 			WorkspaceAuthorizationException, CorruptWorkspaceDBException {
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wsis),
-						allowDeletedWorkspace, false);
+				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wsis));
 		final PermissionSet perms = db.getPermissions(user,
 				new HashSet<ResolvedWorkspaceID>(rwsis.values()));
-		for (final Entry<WorkspaceIdentifier, ResolvedWorkspaceID> e:
-				rwsis.entrySet()) {
-			if (!ignoreLock) {
-				checkLocked(perm, e.getValue());
-			}
-			comparePermission(
-					user, perm, perms.getPermission(e.getValue(), true),
+		for (final Entry<WorkspaceIdentifier, ResolvedWorkspaceID> e: rwsis.entrySet()) {
+			comparePermission(user, perm, perms.getPermission(e.getValue(), true),
 					e.getKey(), operation);
+			checkLocked(perm, e.getValue());
 		}
 		return rwsis;
 	}
 	
+	/** Check whether a user has appropriate permissions for a set of objects.
+	 * @param user the user.
+	 * @param wsis the objects.
+	 * @param perm the required permission.
+	 * @param operation the operation the user is undertaking on the objects.
+	 * @return the resolved workspace object IDs of the objects mapped from the original
+	 * identifiers.
+	 * @throws InaccessibleObjectException if the object is inaccessible.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
-			final WorkspaceUser user, final List<ObjectIdentifier> loi,
-			final Permission perm, final String operation)
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final Permission perm,
+			final String operation)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
-		return checkPerms(user, loi, perm, operation, false);
-	}
-	
-	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
-			final WorkspaceUser user, final List<ObjectIdentifier> loi,
-			final Permission perm, final String operation,
-			final boolean allowDeleted)
-			throws WorkspaceCommunicationException, InaccessibleObjectException,
-			CorruptWorkspaceDBException {
-		return checkPerms(user, loi, perm, operation, allowDeleted, false,
-				false);
+		return checkPerms(user, loi, perm, operation, false, false, false);
 	}
 	
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
@@ -377,8 +391,7 @@ public class Workspace {
 			final WorkspaceIdentifier wsi)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"lock");
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN, "lock");
 		return db.lockWorkspace(user, wsid);
 	}
 
@@ -497,18 +510,41 @@ public class Workspace {
 		db.setPermissions(wsid, users, permission);
 	}
 	
-	public void setGlobalPermission(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final Permission permission)
+	/** Set the global permission (e.g. readable or not) for a workspace.
+	 * @param user the user setting the permission.
+	 * @param wsi the workspace.
+	 * @param permission the new permission.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
+	 * workspace.
+	 */
+	public void setGlobalPermission(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Permission permission)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceAuthorizationException, WorkspaceCommunicationException {
+				WorkspaceAuthorizationException, WorkspaceCommunicationException {
+		//manual check perms to avoid lock check
+		if (wsi == null) {
+			throw new IllegalArgumentException(
+					"Workspace identifier cannot be null");
+		}
 		if (Permission.READ.compareTo(permission) < 0) {
 			throw new IllegalArgumentException(
 					"Global permissions cannot be greater than read");
 		}
-		final boolean ignoreLock = permission.equals(Permission.READ);
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"set global permission on", false, ignoreLock);
-		db.setGlobalPermission(wsid, permission);
+		final ResolvedWorkspaceID rwsi = db.resolveWorkspace(wsi);
+		final Permission userperm = db.getPermission(user, rwsi);
+		comparePermission(user, Permission.ADMIN, userperm, wsi, "set global permission on");
+		if (Permission.NONE.equals(permission) && rwsi.isLocked()) {
+			throw new WorkspaceAuthorizationException("The workspace with id "
+					+ rwsi.getID() + ", name " + rwsi.getName() +
+					", is locked and may not be modified");
+		}
+		db.setGlobalPermission(rwsi, permission);
 	}
 
 	//TODO USERS make an anonymous user class instead of using null.
@@ -588,14 +624,41 @@ public class Workspace {
 		return ret;
 	}
 
+	/** Get information about a workspace.
+	 * @param user the user that is attempting to access the information.
+	 * @param wsi the workspace.
+	 * @return the workspace information.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
+	 * workspace.
+	 */
 	public WorkspaceInformation getWorkspaceInformation(
-			final WorkspaceUser user, final WorkspaceIdentifier wsi)
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.READ,
-				"read");
+				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.READ, "read");
 		return db.getWorkspaceInformation(user, wsid);
 	}
+	
+	/** Get information about a workspace as an admin. The user permission returned will be either
+	 * none for private workspaces or read for public workspaces.
+	 * @param wsi the workspace.
+	 * @return the workspace information.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+//	public WorkspaceInformation getWorkspaceInformationAsAdmin(final WorkspaceIdentifier wsi)
+//			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+//				CorruptWorkspaceDBException {
+//		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
+//		return db.getWorkspaceInformation(null, wsid);
+//	}
 	
 	public String getBackendType() {
 		return db.getBackendType();
@@ -1273,6 +1336,7 @@ public class Workspace {
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 		try {
+			//TODO CODE should have an ignore deleted & missing rather than include deleted for this portion of the code
 			rwsis = db.resolveWorkspaces(wsis, true, true);
 		} catch (NoSuchWorkspaceException nswe) {
 			throw new RuntimeException(
@@ -1776,8 +1840,7 @@ public class Workspace {
 		}
 		
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				checkPermsMass(user, wsis, Permission.READ, "read", false,
-						false);
+				checkPermsMass(user, wsis, Permission.READ, "read");
 		final Map<ResolvedWorkspaceID, List<String>> names =
 				db.getNamesByPrefix(
 						new HashSet<ResolvedWorkspaceID>(rwsis.values()),
@@ -1856,6 +1919,18 @@ public class Workspace {
 				delete);
 	}
 	
+	/** Set the deletion state of a workspace.
+	 * @param user the user requesting deletion or undeletion.
+	 * @param wsi the workspace.
+	 * @param delete true to delete, false to undelete.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is already
+	 * deleted when trying to delete.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
+	 * workspace.
+	 */
 	public void setWorkspaceDeleted(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
@@ -1865,20 +1940,37 @@ public class Workspace {
 		setWorkspaceDeleted(user, wsi, delete, false);
 	}
 
+	/** Set the deletion state of a workspace.
+	 * @param user the user requesting deletion or undeletion.
+	 * @param wsi the workspace.
+	 * @param delete true to delete, false to undelete.
+	 * @param asAdmin run the command as an admin, ignoring workspace permissions.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is already
+	 * deleted when trying to delete.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
+	 * workspace.
+	 */
 	public void setWorkspaceDeleted(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final boolean delete,
 			final boolean asAdmin)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid;
-		if (asAdmin) {
-			wsid = db.resolveWorkspace(wsi, !delete);
-		} else {
-			wsid = checkPerms(user, wsi, Permission.OWNER,
-				(delete ? "" : "un") + "delete", !delete, false);
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		if (wsi == null) {
+			throw new IllegalArgumentException("Workspace identifier cannot be null");
 		}
+		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi, !delete);
+		if (!asAdmin) {
+			// skip deletion checking for std checkPerms methods.
+			final Permission perm = db.getPermission(user, wsid);
+			comparePermission(user, Permission.OWNER, perm, wsi, (delete ? "" : "un") + "delete");
+		}
+		// once a workpace is locked, it's locked. Period.
+		checkLocked(Permission.ADMIN, wsid);
 		db.setWorkspaceDeleted(wsid, delete);
 	}
 

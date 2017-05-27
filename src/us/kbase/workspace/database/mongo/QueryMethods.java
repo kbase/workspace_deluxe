@@ -116,6 +116,7 @@ public class QueryMethods {
 				new HashMap<ResolvedMongoWSID, Map<String,Object>>();
 		for (final Long id: ids.keySet()) {
 			if (!idres.containsKey(id)) {
+				//TODO GC this will cause havoc when GC is active. Could resolve a deleted workspace, which is allowed, and then GC before getting here
 				throw new CorruptWorkspaceDBException(
 						"Resolved workspace unexpectedly deleted from database: "
 						+ id);
