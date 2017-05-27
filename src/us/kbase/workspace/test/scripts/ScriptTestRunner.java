@@ -197,7 +197,8 @@ public class ScriptTestRunner {
 				mongohost,
 				"JSONRPCLayerHandleTest_ShockDB",
 				"foo",
-				"foo");
+				"foo",
+				TestCommon.getGlobusUrl());
 		System.out.println("Shock controller version: " + SHOCK.getVersion());
 		if (SHOCK.getVersion() == null) {
 			System.out.println(
@@ -221,7 +222,8 @@ public class ScriptTestRunner {
 				t3,
 				p3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
-				Paths.get(tempDir));
+				Paths.get(tempDir),
+				TestCommon.getAuthUrl());
 		System.out.println("Using Handle Service temp dir " +
 				HANDLE.getTempDir());
 		
