@@ -67,8 +67,6 @@ public class Workspace {
 	
 	//TODO TEST general unit tests
 	//TODO GC garbage collection - see WOR-45
-	//TODO SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
-	//TODO SEARCH separate service - get object changes since date (based on type collection and pointers collection
 	//TODO SEARCH index typespecs
 	//TODO CODE look into eliminating all the DB implementation specific classes, too much of a pain just to ensure not moving objects between implementations
 	
