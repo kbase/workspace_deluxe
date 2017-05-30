@@ -265,17 +265,31 @@ public class Workspace {
 			final String operation)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
-		return checkPerms(user, loi, perm, operation, false, false, false);
+		return checkPerms(user, loi, perm, operation, false);
 	}
 	
+	/** Check that a user has permissions to a set of objects and resolve the workspace identifiers
+	 * associated with those objects.
+	 * @param user the user in question.
+	 * @param loi the set of objects.
+	 * @param perm the required permission.
+	 * @param operation the operation the user is attempting on the objects.
+	 * @param suppressErrors true to return objects in deleted workspaces and ignore objects that
+	 * don't exist or to which the user has no access.
+	 * @return a map from the incoming object identifiers to object identifiers with resolved
+	 * workspace IDs.
+	 * @throws WorkspaceCommunicationException if an error occurs when communicating with the 
+	 * storage system.
+	 * @throws InaccessibleObjectException if suppressErrors is false and an object is
+	 * inaccessible.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the workspace database.
+	 */
 	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> loi,
 			final Permission perm,
 			final String operation,
-			final boolean allowDeleted,
-			final boolean allowMissing,
-			final boolean allowInaccessible)
+			final boolean suppressErrors)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
 		if (loi.isEmpty()) {
@@ -290,8 +304,7 @@ public class Workspace {
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 		try {
-			rwsis = db.resolveWorkspaces(wsis.keySet(), allowDeleted,
-					allowMissing);
+			rwsis = db.resolveWorkspaces(wsis.keySet(), suppressErrors);
 		} catch (NoSuchWorkspaceException nswe) {
 			final ObjectIdentifier obj = wsis.get(nswe.getMissingWorkspace());
 			throw new InaccessibleObjectException(String.format(
@@ -312,7 +325,7 @@ public class Workspace {
 				checkLocked(perm, r);
 				comparePermission(user, perm, perms.getPermission(r, true), o, operation);
 			} catch (WorkspaceAuthorizationException wae) {
-				if (allowInaccessible) {
+				if (suppressErrors) {
 					continue;
 				} else {
 					throw new InaccessibleObjectException(String.format(
@@ -1218,8 +1231,7 @@ public class Workspace {
 		 * explore what objects exist in arbitrary workspaces.
 		 */
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedRefPathObjs =
-				checkPerms(user, allRefPathEntries, Permission.NONE,
-						"somthinsbroke", true, true, true);
+				checkPerms(user, allRefPathEntries, Permission.NONE, "somthinsbroke", true);
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> outrefs =
 				getObjectOutgoingReferences(resolvedRefPathObjs, true, true);
 		
@@ -1334,8 +1346,7 @@ public class Workspace {
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 		try {
-			//TODO CODE should have an ignore deleted & missing rather than include deleted for this portion of the code
-			rwsis = db.resolveWorkspaces(wsis, true, true);
+			rwsis = db.resolveWorkspaces(wsis, true);
 		} catch (NoSuchWorkspaceException nswe) {
 			throw new RuntimeException(
 					"Threw exception when explicitly told not to", nswe);
@@ -1530,8 +1541,7 @@ public class Workspace {
 		//handle the faster cases first, fail before the searches
 		Map<ObjectIdentifier, ObjectIDResolvedWS> ws = new HashMap<>();
 		if (!nolookup.isEmpty()) {
-			ws = checkPerms(user, nolookup, Permission.READ, "read",
-						nullIfInaccessible, nullIfInaccessible, nullIfInaccessible);
+			ws = checkPerms(user, nolookup, Permission.READ, "read", nullIfInaccessible);
 		}
 		nolookup = null; //gc
 		
@@ -1789,7 +1799,7 @@ public class Workspace {
 			wsis.add(o.getWorkspaceIdentifier());
 		}
 		try {
-			return db.resolveWorkspaces(wsis, true, true);
+			return db.resolveWorkspaces(wsis, true);
 		} catch (NoSuchWorkspaceException e) {
 			throw new RuntimeException("Threw exception when explicitly told not to", e);
 		}

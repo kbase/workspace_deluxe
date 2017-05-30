@@ -3653,6 +3653,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("can get perms", ws.getPermissions(user, Arrays.asList(read)).get(0), is(p));
 		failDeleteWorkspace(bar, read, true, new WorkspaceAuthorizationException(
 				"User bar may not delete workspace deleteundelete"));
+		failDeleteWorkspace(bar, read, false, new WorkspaceAuthorizationException(
+				"User bar may not undelete workspace deleteundelete"));
+		failDeleteWorkspace(bar, new WorkspaceIdentifier(100), true,
+				new NoSuchWorkspaceException("No workspace with id 100 exists",
+						new WorkspaceIdentifier(100)));
+		failDeleteWorkspace(bar, new WorkspaceIdentifier("nows"), true,
+				new NoSuchWorkspaceException("No workspace with name nows exists",
+						new WorkspaceIdentifier("nows")));
+		
 		WorkspaceInformation read1 = ws.getWorkspaceInformation(user, read);
 		ws.setWorkspaceDeleted(user, read, true);
 		WorkspaceInformation read2 = ws.listWorkspaces(user, null, null, null,
@@ -3733,6 +3742,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		final WorkspaceIdentifier delwsid = new WorkspaceIdentifier(1L);
 		ws.createWorkspace(u1, delws.getName(), false, "whee", null);
 		
+		final WorkspaceIdentifier nows = new WorkspaceIdentifier("nows");
+		
 		//test undelete
 		ws.setWorkspaceDeleted(u1, delws, true);
 		failGetWorkspaceDesc(u1, delws, new NoSuchWorkspaceException(
@@ -3743,6 +3754,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceAuthorizationException("User bar may not undelete workspace foobar"));
 		failDeleteWorkspaceAsAdmin(u2, delws, true, true,
 				new NoSuchWorkspaceException("Workspace foobar is deleted", delws));
+		failDeleteWorkspaceAsAdmin(u2, nows, false, true,
+				new NoSuchWorkspaceException("No workspace with name nows exists", delws));
 		ws.setWorkspaceDeleted(u2, delwsid, false, true);
 		assertThat("incorrect ws desc", ws.getWorkspaceDescription(u1, delws), is("whee"));
 		
@@ -3751,6 +3764,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				"User bar may not delete workspace 1"));
 		failDeleteWorkspaceAsAdmin(u2, delws, true, false,
 				new WorkspaceAuthorizationException("User bar may not delete workspace foobar"));
+		failDeleteWorkspaceAsAdmin(u2, nows, true, true,
+				new NoSuchWorkspaceException("No workspace with name nows exists", delws));
 		ws.setWorkspaceDeleted(u2, delwsid, true, true);
 		failGetWorkspaceDesc(u1, delws, new NoSuchWorkspaceException(
 				"Workspace foobar is deleted", delws));
