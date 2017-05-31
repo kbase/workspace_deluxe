@@ -614,14 +614,21 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//illegal name change to invalid user
 		final Optional<String> newName = Optional.of("bar:wsfoo");
-		failSetWorkspaceOwner(u2, wsi, u1, newName, false,
-				new IllegalArgumentException("Workspace name bar:wsfoo must only contain the user name foo prior to the : delimiter"));
-		failSetWorkspaceOwner(null, wsi, u1, newName, true,
-				new IllegalArgumentException("Workspace name bar:wsfoo must only contain the user name foo prior to the : delimiter"));
+		failSetWorkspaceOwner(u2, wsi, u1, newName, false, new IllegalArgumentException(
+				"Workspace name bar:wsfoo must only contain the user name foo " +
+				"prior to the : delimiter"));
+		failSetWorkspaceOwner(null, wsi, u1, newName, true, new IllegalArgumentException(
+				"Workspace name bar:wsfoo must only contain the user name foo " +
+				"prior to the : delimiter"));
 		
-		//test auto rename of workspace
+		//test failing name when ws is prefixed by previous user name
 		ws.renameWorkspace(u2, wsi, "bar:wsfoo");
 		wsi = new WorkspaceIdentifier("bar:wsfoo");
+		failSetWorkspaceOwner(u2, wsi, u1, Optional.of("bar:wsfoo"), false,
+				new IllegalArgumentException("Workspace name bar:wsfoo must only contain " +
+						"the user name foo prior to the : delimiter"));
+		
+		//test auto rename of workspace
 		wsinfo = ws.setWorkspaceOwner(u2, wsi, u1, Optional.<String>absent(), false);
 		wsi = new WorkspaceIdentifier("foo:wsfoo");
 		checkWSInfo(wsinfo, u1, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);

@@ -532,10 +532,9 @@ public class Workspace {
 						oldWsName[1]);
 			} // else don't change the name
 		} else {
+			new WorkspaceIdentifier(newName.get(), newUser); //checks for illegal names
 			if (newName.get().equals(rwsi.getName())) {
 				newName = Optional.absent(); // no need to change name
-			} else {
-				new WorkspaceIdentifier(newName.get(), newUser); //checks for illegal names
 			}
 		}
 		db.setWorkspaceOwner(rwsi, owner, newUser, newName);
