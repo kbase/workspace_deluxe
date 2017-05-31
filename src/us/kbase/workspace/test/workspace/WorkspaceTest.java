@@ -280,6 +280,22 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setGlobalPermission(SOMEUSER, new WorkspaceIdentifier("foo2"), Permission.NONE);
 	}
 	
+//	@Test
+//	public void adminGetWorkspaceInfo() throws Exception {
+//		WorkspaceUser user = new WorkspaceUser("blahblah");
+//		WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
+//		Map<String, String> meta = new HashMap<String, String>();
+//		meta.put("foo", "bar");
+//		meta.put("foo2", "bar2");
+//		
+//		WorkspaceInformation info = ws.createWorkspace(user, wsi.getName(),
+//				false, null, new WorkspaceUserMetadata(meta));
+//		
+//		final WorkspaceInformation wsinfo = ws.getWorkspaceInformationAsAdmin(wsi);
+//		checkWSInfo(wsinfo, user, wsi.getName(), 0, Permission.NONE, false, 1, info.getModDate(),
+//				"unlocked", meta);
+//	}
+	
 	@Test
 	public void workspaceMetadata() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("blahblah");

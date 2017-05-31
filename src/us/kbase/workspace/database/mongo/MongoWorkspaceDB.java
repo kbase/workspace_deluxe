@@ -637,8 +637,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (maxid > 0) {
 			incrementWorkspaceCounter(toWS, maxid);
 		}
-		updateClonedWorkspaceInformation(
-				user, globalRead, toWS.getID(), newname);
+		updateClonedWorkspaceInformation(user, globalRead, toWS.getID(), newname);
 		return getWorkspaceInformation(user, toWS);
 	}
 
@@ -649,8 +648,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean globalRead,
 			final long id,
 			final String newname)
-			throws PreExistingWorkspaceException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+			throws PreExistingWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
 		
 		final DBObject q = new BasicDBObject(Fields.WS_ID, id);
 
@@ -989,14 +988,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public Permission getPermission(final WorkspaceUser user,
-			final ResolvedWorkspaceID wsi) throws 
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+	public Permission getPermission(final WorkspaceUser user, final ResolvedWorkspaceID wsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		return getPermissions(user, wsi).getPermission(wsi, true);
 	}
-	public PermissionSet getPermissions(final WorkspaceUser user,
-			final ResolvedWorkspaceID rwsi) throws 
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+	public PermissionSet getPermissions(final WorkspaceUser user, final ResolvedWorkspaceID rwsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final Set<ResolvedWorkspaceID> wsis =
 				new HashSet<ResolvedWorkspaceID>();
 		wsis.add(rwsi);
@@ -1013,12 +1010,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	@Override
 	public PermissionSet getPermissions(
-			final WorkspaceUser user, final Permission perm,
+			final WorkspaceUser user,
+			final Permission perm,
 			final boolean excludeGlobalRead)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		return getPermissions(user,
-				new HashSet<ResolvedWorkspaceID>(), perm, excludeGlobalRead,
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return getPermissions(user, new HashSet<ResolvedWorkspaceID>(), perm, excludeGlobalRead,
 				false);
 	}
 	
@@ -1029,8 +1025,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Permission perm,
 			final boolean excludeGlobalRead,
 			final boolean excludeDeletedWorkspaces)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (perm == null || Permission.NONE.equals(perm)) {
 			throw new IllegalArgumentException(
 					"Permission cannot be null or NONE");
@@ -1038,8 +1033,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Set<ResolvedMongoWSID> rmwsis = query.convertResolvedWSID(rwsis);
 		final Map<ResolvedMongoWSID, Map<User, Permission>> userperms;
 		if (user != null) {
-			userperms = query.queryPermissions(rmwsis, 
-					new HashSet<User>(Arrays.asList(user)),
+			userperms = query.queryPermissions(rmwsis, new HashSet<User>(Arrays.asList(user)),
 					perm, excludeDeletedWorkspaces);
 		} else {
 			userperms = new HashMap<ResolvedMongoWSID, Map<User,Permission>>();
@@ -1048,11 +1042,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ResolvedMongoWSID, Map<User, Permission>> globalperms;
 		if (excludeGlobalRead || perm.compareTo(Permission.WRITE) >= 0) {
 			if (userperms.isEmpty()) {
-				globalperms =
-						new HashMap<ResolvedMongoWSID, Map<User,Permission>>();
+				globalperms = new HashMap<ResolvedMongoWSID, Map<User,Permission>>();
 			} else {
-				globalperms = query.queryPermissions(userperms.keySet(),
-						allusers);
+				globalperms = query.queryPermissions(userperms.keySet(), allusers);
 			}
 		} else {
 			globalperms = query.queryPermissions(rmwsis, allusers,
@@ -1296,14 +1288,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return new WorkspaceUser((String) ws.get(Fields.WS_OWNER));
 	}
 	
+//	@Override
+//	public WorkspaceInformation getWorkspaceInformation(final ResolvedWorkspaceID rwsi)
+//			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+//		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
+//		final Map<String, Object> ws = query.queryWorkspace(m, FLDS_WS_NO_DESC);
+//		final PermissionSet perms = getPermissions(null, m);
+//		return generateWSInfo(rwsi, perms, ws);
+//	}
+	
 	@Override
 	public WorkspaceInformation getWorkspaceInformation(
 			final WorkspaceUser user, final ResolvedWorkspaceID rwsi)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
-		final Map<String, Object> ws = query.queryWorkspace(m,
-				FLDS_WS_NO_DESC);
+		final Map<String, Object> ws = query.queryWorkspace(m, FLDS_WS_NO_DESC);
 		final PermissionSet perms = getPermissions(user, m);
 		return generateWSInfo(rwsi, perms, ws);
 	}

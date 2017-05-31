@@ -230,9 +230,34 @@ public interface WorkspaceDatabase {
 			Set<ResolvedWorkspaceID> rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	public WorkspaceInformation getWorkspaceInformation(WorkspaceUser user,
-			ResolvedWorkspaceID rwsi) throws CorruptWorkspaceDBException,
-			WorkspaceCommunicationException;
+	/** Get information about any workspace, regardless of user permissions. The user permission
+	 * returned is always 'none'.
+	 * 
+	 * This method should only be run by an administrator. Standard user should run
+	 * {@link #getWorkspaceInformation(WorkspaceUser, ResolvedWorkspaceID)}
+	 * @param rwsi the workspace.
+	 * @return workspace information.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage
+	 * system.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 */
+//	public WorkspaceInformation getWorkspaceInformation(ResolvedWorkspaceID rwsi)
+//			throws CorruptWorkspaceDBException, WorkspaceCommunicationException;
+	
+	/** Get information about a workspace.
+	 * @param user the user that is requesting the information.l
+	 * @param rwsi the workspace.
+	 * @return the workspace information.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage
+	 * system.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 */
+	public WorkspaceInformation getWorkspaceInformation(
+			WorkspaceUser user,
+			ResolvedWorkspaceID rwsi)
+			throws CorruptWorkspaceDBException, WorkspaceCommunicationException;
 	
 	public void setWorkspaceDescription(ResolvedWorkspaceID wsid,
 			String description) throws WorkspaceCommunicationException;

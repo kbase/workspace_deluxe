@@ -312,8 +312,8 @@ public class Workspace {
 					obj.getIdentifierString(), nswe.getLocalizedMessage()),
 					obj, nswe);
 		}
-		final PermissionSet perms = db.getPermissions(user,
-						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
+		final PermissionSet perms = db.getPermissions(
+				user, new HashSet<ResolvedWorkspaceID>(rwsis.values()));
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ret =
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		for (final ObjectIdentifier o: loi) {
@@ -322,21 +322,32 @@ public class Workspace {
 			}
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
 			try {
-				checkLocked(perm, r);
+				checkLocked(perm, r); // no suppressing errors here.
+			} catch (WorkspaceAuthorizationException wae) {
+				throwInaccessibleObjectException(o, wae);
+			}
+			try {
 				comparePermission(user, perm, perms.getPermission(r, true), o, operation);
 			} catch (WorkspaceAuthorizationException wae) {
 				if (suppressErrors) {
 					continue;
 				} else {
-					throw new InaccessibleObjectException(String.format(
-							"Object %s cannot be accessed: %s",
-							o.getIdentifierString(), wae.getLocalizedMessage()),
-							o, wae);
+					// contrary to ECLEmma's output, this path is in fact tested
+					throwInaccessibleObjectException(o, wae);
 				}
 			}
 			ret.put(o, o.resolveWorkspace(r));
 		}
 		return ret;
+	}
+
+	private void throwInaccessibleObjectException(
+			final ObjectIdentifier o,
+			final WorkspaceAuthorizationException wae)
+			throws InaccessibleObjectException {
+		throw new InaccessibleObjectException(String.format(
+				"Object %s cannot be accessed: %s",
+				o.getIdentifierString(), wae.getLocalizedMessage()), o, wae);
 	}
 	
 	public List<DependencyStatus> status() {
@@ -1016,8 +1027,7 @@ public class Workspace {
 		if (meta != null && meta.size() > 1) {
 			throw new IllegalArgumentException("Only one metadata spec allowed");
 		}
-		final PermissionSet perms =
-				db.getPermissions(user, minPerm, excludeGlobal);
+		final PermissionSet perms = db.getPermissions(user, minPerm, excludeGlobal);
 		return db.getWorkspaceInformation(perms, users, meta, after, before,
 				showDeleted, showOnlyDeleted);
 	}
@@ -1029,8 +1039,7 @@ public class Workspace {
 
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				db.resolveWorkspaces(params.getWorkspaces());
-		final HashSet<ResolvedWorkspaceID> rw =
-				new HashSet<ResolvedWorkspaceID>(rwsis.values());
+		final HashSet<ResolvedWorkspaceID> rw = new HashSet<ResolvedWorkspaceID>(rwsis.values());
 		final PermissionSet pset = db.getPermissions(params.getUser(), rw,
 				params.getMinimumPermission(), params.isExcludeGlobal(), true);
 		if (!params.getWorkspaces().isEmpty()) {
@@ -1374,8 +1383,7 @@ public class Workspace {
 		for (final WorkspaceObjectData d: data) {
 			if (d != null && d.getCopyReference() != null) {
 				final Reference cref = d.getCopyReference();
-				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
-						cref.getWorkspaceID());
+				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(cref.getWorkspaceID());
 				if (!rwsis.containsKey(wsi)) {
 					d.setCopySourceInaccessible();
 				} else {
@@ -1404,8 +1412,7 @@ public class Workspace {
 		//could combine these next two lines, but probably doesn't matter
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
-		final PermissionSet perms =
-				db.getPermissions(user, Permission.READ, false);
+		final PermissionSet perms = db.getPermissions(user, Permission.READ, false);
 		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> refs = 
 				db.getReferencingObjects(perms,
 						new HashSet<ObjectIDResolvedWS>(ws.values()));
@@ -1896,8 +1903,7 @@ public class Workspace {
 		return db.copyObject(user, f, t);
 	}
 	
-	public ObjectInformation revertObject(WorkspaceUser user,
-			ObjectIdentifier oi)
+	public ObjectInformation revertObject(final WorkspaceUser user, final ObjectIdentifier oi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException, NoSuchObjectException {
 		final ObjectIDResolvedWS target = checkPerms(user,
