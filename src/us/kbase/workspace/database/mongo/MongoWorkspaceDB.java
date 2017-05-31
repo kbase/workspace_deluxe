@@ -1204,27 +1204,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
-			final PermissionSet pset, final List<WorkspaceUser> owners,
-			final WorkspaceUserMetadata meta, final Date after,
-			final Date before, final boolean showDeleted, 
+			final PermissionSet pset,
+			final List<WorkspaceUser> owners,
+			final WorkspaceUserMetadata meta,
+			final Date after,
+			final Date before,
+			final boolean showDeleted, 
 			final boolean showOnlyDeleted)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (!(pset instanceof MongoPermissionSet)) {
-			throw new IllegalArgumentException(
-					"Illegal implementation of PermissionSet: " +
+			throw new IllegalArgumentException("Illegal implementation of PermissionSet: " +
 					pset.getClass().getName());
 		}
-		final Map<Long, ResolvedMongoWSID> rwsis =
-				new HashMap<Long, ResolvedMongoWSID>();
+		final Map<Long, ResolvedMongoWSID> rwsis = new HashMap<Long, ResolvedMongoWSID>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
 			rwsis.put(rwsi.getID(), query.convertResolvedWSID(rwsi));
 		}
 		final DBObject q = new BasicDBObject(Fields.WS_ID,
 				new BasicDBObject("$in", rwsis.keySet()));
 		if (owners != null && !owners.isEmpty()) {
-			q.put(Fields.WS_OWNER, new BasicDBObject("$in",
-					convertWorkspaceUsers(owners)));
+			q.put(Fields.WS_OWNER, new BasicDBObject("$in", convertWorkspaceUsers(owners)));
 		}
 		if (meta != null && !meta.isEmpty()) {
 			final List<DBObject> andmetaq = new LinkedList<DBObject>();
@@ -1250,19 +1249,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<Map<String, Object>> ws = query.queryCollection(
 				COL_WORKSPACES, q, FLDS_WS_NO_DESC);
 		
-		final List<WorkspaceInformation> ret =
-				new LinkedList<WorkspaceInformation>();
+		final List<WorkspaceInformation> ret = new LinkedList<WorkspaceInformation>();
 		for (final Map<String, Object> w: ws) {
-			final ResolvedWorkspaceID rwsi =
-					rwsis.get((Long) w.get(Fields.WS_ID));
+			final ResolvedWorkspaceID rwsi = rwsis.get((Long) w.get(Fields.WS_ID));
 			final boolean isDeleted = (Boolean) w.get(Fields.WS_DEL);
 			if (showOnlyDeleted) {
-				if (isDeleted &&
-						pset.hasUserPermission(rwsi, Permission.OWNER)) {
+				if (isDeleted && pset.hasUserPermission(rwsi, Permission.OWNER)) {
 					ret.add(generateWSInfo(rwsi, pset, w));
 				}
-			} else if (!isDeleted || (showDeleted &&
-					pset.hasUserPermission(rwsi, Permission.OWNER))) {
+			} else if (!isDeleted ||
+					(showDeleted && pset.hasUserPermission(rwsi, Permission.OWNER))) {
 				ret.add(generateWSInfo(rwsi, pset, w));
 			}
 		}
@@ -1306,8 +1302,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return generateWSInfo(rwsi, perms, ws);
 	}
 
-	private WorkspaceInformation generateWSInfo(final ResolvedWorkspaceID rwsi,
-			final PermissionSet perms, final Map<String, Object> wsdata) {
+	/* Note if rwsi is not in perm set will return ws info with NONE for both permissions. */
+	private WorkspaceInformation generateWSInfo(
+			final ResolvedWorkspaceID rwsi,
+			final PermissionSet perms,
+			final Map<String, Object> wsdata) {
 		
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
@@ -1317,8 +1316,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),
 				(Date) wsdata.get(Fields.WS_MODDATE),
 				(Long) wsdata.get(Fields.WS_NUMOBJ),
-				perms.getUserPermission(rwsi),
-				perms.isWorldReadable(rwsi),
+				perms.getUserPermission(rwsi, true),
+				perms.isWorldReadable(rwsi, true),
 				(Boolean) wsdata.get(Fields.WS_LOCKED),
 				new UncheckedUserMetadata(metaMongoArrayToHash(meta)));
 	}

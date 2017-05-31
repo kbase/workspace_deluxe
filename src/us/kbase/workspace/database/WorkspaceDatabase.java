@@ -178,8 +178,7 @@ public interface WorkspaceDatabase {
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 */
-	public Permission getPermission(WorkspaceUser user,
-			ResolvedWorkspaceID rwsi)
+	public Permission getPermission(WorkspaceUser user, ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Get permissions for a workspace for one user. This method will also
@@ -189,14 +188,14 @@ public interface WorkspaceDatabase {
 	 *  
 	 * @param user the user for whom to get permissions. If the user is null,
 	 * only the global readability of the workspace will be returned. 
-	 * @param rwsi the workspace to check.
+	 * @param rwsi the workspace to check. Note that the workspace may not be in
+	 * the output - this indicates the user has no permissions to the workspace.
 	 * @return the user's and global users' permission for the workspace.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 */
-	public PermissionSet getPermissions(WorkspaceUser user,
-			ResolvedWorkspaceID rwsi) throws 
-			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	public PermissionSet getPermissions(WorkspaceUser user, ResolvedWorkspaceID rwsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Get permissions for a set of workspaces for one user. If the user is
 	 * null, only the global readability of the workspaces will be returned.
@@ -205,13 +204,14 @@ public interface WorkspaceDatabase {
 	 * 
 	 * @param user the user for whom to get permissions. If the user is null,
 	 * only the global readability of the workspaces will be returned. 
-	 * @param rwsis the workspaces to check.
+	 * @param rwsis the workspaces to check. If empty, all workspaces
+	 * to which the user has permission will be returned. Note that not all the workspaces in the
+	 * set may be in the output - this indicates the user has no permissions to that workspace.
 	 * @return the user's and global users' permission for the workspaces.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 */
-	public PermissionSet getPermissions(WorkspaceUser user,
-			Set<ResolvedWorkspaceID> rwsis)
+	public PermissionSet getPermissions(WorkspaceUser user, Set<ResolvedWorkspaceID> rwsis)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Returns all the workspaces for which the user has the specified
@@ -229,8 +229,10 @@ public interface WorkspaceDatabase {
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 */
-	public PermissionSet getPermissions(WorkspaceUser user,
-			Permission perm, boolean excludeGlobalRead)
+	public PermissionSet getPermissions(
+			WorkspaceUser user,
+			Permission perm,
+			boolean excludeGlobalRead)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	/** Get permissions for a set of workspaces for one user.
@@ -238,9 +240,10 @@ public interface WorkspaceDatabase {
 	 * @param user the user for whom to get permissions. If the user is null,
 	 * only the global readability of the workspaces will be returned. 
 	 * @param rwsis the list of workspaces to check. If empty, all workspaces
-	 * to which the user has permission will be returned.
+	 * to which the user has permission will be returned. Note that not all the workspaces in the
+	 * set may be in the output - this indicates the user has no permissions to that workspace.
 	 * @param perm the minimum permission required for a workspace to be
-	 * included in the permission set.
+	 * included in the permission set. Minimum READ.
 	 * @param excludeGlobalRead exclude globally readable workspaces.
 	 * @param excludeDeletedWorkspaces exclude deleted workspaces. Deleted
 	 * workspaces in the supplied list are not affected.
@@ -248,9 +251,12 @@ public interface WorkspaceDatabase {
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 */
-	public PermissionSet getPermissions(WorkspaceUser user,
-			Set<ResolvedWorkspaceID> rwsis, Permission perm,
-			boolean excludeGlobalRead, boolean excludeDeletedWorkspaces)
+	public PermissionSet getPermissions(
+			WorkspaceUser user,
+			Set<ResolvedWorkspaceID> rwsis,
+			Permission perm,
+			boolean excludeGlobalRead,
+			boolean excludeDeletedWorkspaces)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Returns all users' permissions for a set of workspaces */
@@ -274,7 +280,7 @@ public interface WorkspaceDatabase {
 //			throws CorruptWorkspaceDBException, WorkspaceCommunicationException;
 	
 	/** Get information about a workspace.
-	 * @param user the user that is requesting the information.l
+	 * @param user the user that is requesting the information.
 	 * @param rwsi the workspace.
 	 * @return the workspace information.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage
