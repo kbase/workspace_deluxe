@@ -78,6 +78,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationExcept
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Optional;
 import com.mongodb.BasicDBObject;
 import com.mongodb.CommandResult;
 import com.mongodb.DB;
@@ -708,10 +709,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_LOCKED);
 	
 	@Override
-	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,
-			final ResolvedWorkspaceID rwsi)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+	public void lockWorkspace(final ResolvedWorkspaceID rwsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 				.update(M_WS_ID_QRY, rwsi.getID())
@@ -720,7 +719,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return getWorkspaceInformation(user, rwsi);
 	}
 	
 	private static final Set<String> FLDS_VER_COPYOBJ = newHashSet(
@@ -810,10 +808,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			"{$set: {%s: #, %s: #}}", Fields.WS_NAME, Fields.WS_MODDATE);
 	
 	@Override
-	public WorkspaceInformation renameWorkspace(final WorkspaceUser user,
-			final ResolvedWorkspaceID rwsi, final String newname)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+	public void renameWorkspace(final ResolvedWorkspaceID rwsi, final String newname)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (newname.equals(rwsi.getName())) {
 			throw new IllegalArgumentException("Workspace is already named " +
 					newname);
@@ -829,7 +825,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return getWorkspaceInformation(user, rwsi);
 	}
 	
 	final private static String M_RENAME_OBJ_QRY = String.format(
@@ -1097,41 +1092,34 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_OWNER, Fields.WS_MODDATE);
 
 	@Override
-	public WorkspaceInformation setWorkspaceOwner(
+	public void setWorkspaceOwner(
 			final ResolvedWorkspaceID rwsi,
 			final WorkspaceUser owner,
 			final WorkspaceUser newUser,
-			final String newname)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		
+			final Optional<String> newname)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
-			if (newname == null) {
+			if (!newname.isPresent()) {
 				wsjongo.getCollection(COL_WORKSPACES)
 						.update(M_WS_ID_QRY, rwsi.getID())
-						.with(M_CHOWN_WS_WTH,
-								newUser.getUser(), new Date());
+						.with(M_CHOWN_WS_WTH, newUser.getUser(), new Date());
 			} else {
 				wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_ID_QRY, rwsi.getID())
-					.with(M_CHOWN_WS_NEWNAME_WTH,
-							newUser.getUser(), newname, new Date());
+					.with(M_CHOWN_WS_NEWNAME_WTH, newUser.getUser(), newname.get(), new Date());
 			}
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
-					"There is already a workspace named " + newname);
+					"There is already a workspace named " + newname.get());
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
 		final ResolvedMongoWSID newRwsi = new ResolvedMongoWSID(
-				newname == null ? rwsi.getName() : newname,
+				newname.isPresent() ? newname.get() : rwsi.getName(),
 				rwsi.getID(), false, false);
-		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(newUser),
-				Permission.OWNER, false);
-		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(owner),
-				Permission.ADMIN, false);
-		return getWorkspaceInformation(newUser, rwsi);
+		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(owner), Permission.ADMIN, false);
+		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(newUser), Permission.OWNER, false);
 	}
 	
 	@Override

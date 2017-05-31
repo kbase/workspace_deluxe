@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.google.common.base.Optional;
+
 import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
@@ -58,8 +61,6 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-
-import com.fasterxml.jackson.core.JsonParseException;
 
 public class Workspace {
 	
@@ -434,12 +435,25 @@ public class Workspace {
 				exclude);
 	}
 	
-	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,
+	/** Lock a workspace, preventing further changes other than making the workspace globally
+	 * readable.
+	 * @param user the user locking the workspace.
+	 * @param wsi the workspace.
+	 * @return information about the workspace.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to lock the workspace.
+	 */
+	public WorkspaceInformation lockWorkspace(
+			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN, "lock");
-		return db.lockWorkspace(user, wsid);
+		db.lockWorkspace(wsid);
+		return db.getWorkspaceInformation(user, wsid);
 	}
 
 	private String pruneWorkspaceDescription(final String description) {
@@ -467,49 +481,65 @@ public class Workspace {
 		return db.getWorkspaceDescription(wsid);
 	}
 	
+	/** Change the owner of a workspace.
+	 * @param owner the current owner.
+	 * @param wsi the workspace.
+	 * @param newUser the new owner.
+	 * @param newName the new name for the workspace, if any.
+	 * @param asAdmin run this command with admin privileges - e.g. the owner argument is ignored
+	 * and the command proceeds whether the owner provided actually owns the workspace ornot.
+	 * @return information about the workspace.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to set the workspace
+	 * owner.
+	 */
 	public WorkspaceInformation setWorkspaceOwner(
 			WorkspaceUser owner,
 			final WorkspaceIdentifier wsi,
 			final WorkspaceUser newUser,
-			String newName,
+			Optional<String> newName,
 			final boolean asAdmin)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
 		if (newUser == null) {
 			throw new NullPointerException("newUser cannot be null");
 		}
 		if (wsi == null) {
 			throw new NullPointerException("wsi cannot be null");
 		}
+		if (newName == null) {
+			throw new NullPointerException("newName");
+		}
 		final ResolvedWorkspaceID rwsi;
 		if (asAdmin) {
 			rwsi = db.resolveWorkspace(wsi);
 			owner = db.getWorkspaceOwner(rwsi);
 		} else {
-			rwsi = checkPerms(owner, wsi, Permission.OWNER,
-				"change the owner of");
+			rwsi = checkPerms(owner, wsi, Permission.OWNER, "change the owner of");
 		}
 		final Permission p = db.getPermission(newUser, rwsi);
 		if (p.equals(Permission.OWNER)) {
 			throw new IllegalArgumentException(newUser.getUser() +
 					" already owns workspace " + rwsi.getName());
 		}
-		if (newName == null) {
-			final String[] oldWsName = WorkspaceIdentifier.splitUser(
-					rwsi.getName());
+		if (!newName.isPresent()) {
+			final String[] oldWsName = WorkspaceIdentifier.splitUser(rwsi.getName());
 			if (oldWsName[0] != null) { //includes user name
-				newName = newUser.getUser() +
-						WorkspaceIdentifier.WS_NAME_DELIMITER +
-						oldWsName[1];
+				newName = Optional.of(newUser.getUser() + WorkspaceIdentifier.WS_NAME_DELIMITER +
+						oldWsName[1]);
 			} // else don't change the name
 		} else {
-			if (newName.equals(rwsi.getName())) {
-				newName = null; // no need to change name
+			if (newName.get().equals(rwsi.getName())) {
+				newName = Optional.absent(); // no need to change name
 			} else {
-				new WorkspaceIdentifier(newName, newUser); //checks for illegal names
+				new WorkspaceIdentifier(newName.get(), newUser); //checks for illegal names
 			}
 		}
-		return db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+		db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+		return db.getWorkspaceInformation(newUser, rwsi);
 	}
 			
 
@@ -1901,14 +1931,28 @@ public class Workspace {
 		return ret;
 	}
 	
-	public WorkspaceInformation renameWorkspace(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final String newname)
+	/** Rename a workspace.
+	 * @param user the user performing the rename.
+	 * @param wsi the workspace.
+	 * @param newname the new name for the workspace.
+	 * @return information about the workspace.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to rename the
+	 * workspace.
+	 */
+	public WorkspaceInformation renameWorkspace(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String newname)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.OWNER,
-				"rename");
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.OWNER, "rename");
 		new WorkspaceIdentifier(newname, user); //check for errors
-		return db.renameWorkspace(user, wsid, newname);
+		db.renameWorkspace(wsid, newname);
+		return db.getWorkspaceInformation(user, wsid);
 	}
 	
 	public ObjectInformation renameObject(final WorkspaceUser user,

@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Optional;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
@@ -171,7 +172,7 @@ public class WorkspaceAdministration {
 							params.wsi);
 			final WorkspaceInformation info = ws.setWorkspaceOwner(null, wsi,
 					params.new_user == null ? null :
-					getUser(params.new_user), params.new_name, true);
+					getUser(params.new_user), Optional.fromNullable(params.new_name), true);
 			getLogger().info(SET_WORKSPACE_OWNER + " " + info.getId() + " " +
 					info.getOwner().getUser());
 			return wsInfoToTuple(info);

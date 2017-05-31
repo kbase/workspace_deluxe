@@ -83,6 +83,7 @@ import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
+import com.google.common.base.Optional;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
@@ -346,7 +347,7 @@ public class MongoInternalsTest {
 		
 		//test set ws owner
 		WorkspaceTester.failSetWorkspaceOwner(ws, user1, cloning,
-				new WorkspaceUser("barbaz"), "barbaz", false, noWSExcp);
+				new WorkspaceUser("barbaz"), Optional.of("barbaz"), false, noWSExcp);
 		
 		//test list workspaces
 		List<WorkspaceInformation> wsl = ws.listWorkspaces(

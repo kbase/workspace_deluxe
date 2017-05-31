@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Optional;
+
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
@@ -130,16 +132,34 @@ public interface WorkspaceDatabase {
 			WorkspaceCommunicationException, CorruptWorkspaceDBException,
 			NoSuchObjectException;
 	
-	public WorkspaceInformation lockWorkspace(WorkspaceUser user,
-			ResolvedWorkspaceID wsid)
+	/** Lock a workspace, preventing further modifications other than making the workspace
+	 * publicly readable.
+	 * @param wsid the workspace.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 */
+	public void lockWorkspace(ResolvedWorkspaceID wsid)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	public void setPermissions(ResolvedWorkspaceID rwsi,
 			List<WorkspaceUser> users, Permission perm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	public WorkspaceInformation setWorkspaceOwner(ResolvedWorkspaceID rwsi,
-			WorkspaceUser user, WorkspaceUser newUser, String newName)
+	/** Change a workspace's owner.
+	 * @param rwsi the workspace.
+	 * @param user the current owner.
+	 * @param newUser the new owner.
+	 * @param newName the new workspace name, or null if the name should not change.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 */
+	public void setWorkspaceOwner(
+			ResolvedWorkspaceID rwsi,
+			WorkspaceUser user,
+			WorkspaceUser newUser,
+			Optional<String> newName)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	public void setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
@@ -431,8 +451,14 @@ public interface WorkspaceDatabase {
 			boolean includeHidden, int limit)
 			throws WorkspaceCommunicationException;
 	
-	public WorkspaceInformation renameWorkspace(WorkspaceUser user,
-			ResolvedWorkspaceID wsid, String newname)
+	/** Rename a workspace.
+	 * @param wsid the workspace.
+	 * @param newname the new name for the workspace.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the storage system occurs
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public void renameWorkspace(ResolvedWorkspaceID wsid, String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	public ObjectInformation renameObject(
