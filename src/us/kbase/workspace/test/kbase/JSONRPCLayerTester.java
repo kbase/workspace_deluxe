@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.After;
@@ -1731,9 +1732,16 @@ public class JSONRPCLayerTester {
 			cli.administer(new UObject(cmd));
 			fail("ran admin command with bad params");
 		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exp));
+			assertServerExceptionCorrect(se, exp);
 		}
+	}
+
+	private void assertServerExceptionCorrect(final ServerException se, final String exp) {
+		assertThat("incorrect exception message. Client side:\n"
+				+ ExceptionUtils.getStackTrace(se) +
+				"\nServer side:\n" + se.getData(),
+				se.getLocalizedMessage(), is(exp));
+		
 	}
 
 	protected void checkModRequests(Map<String, String> mod2owner)

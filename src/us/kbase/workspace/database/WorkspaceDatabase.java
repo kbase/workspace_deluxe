@@ -19,21 +19,56 @@ public interface WorkspaceDatabase {
 	
 	public String getBackendType();
 	
-	//TODO CODE return workspace info insted of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
+	//TODO CODE return workspace info instead of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
+	/** Resolve a workspace identifier.
+	 * @param wsi the workspace identifier.
+	 * @return the resolved identifier.
+	 * @throws NoSuchWorkspaceException if the workspace is deleted or doesn't exist.
+	 * @throws WorkspaceCommunicationException if an error occurred while communicating with the
+	 * storage system.
+	 */
 	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
+	/** Resolve a set of workspace identifiers.
+	 * @param wsis the workspace identifiers.
+	 * @return the resolved workspace identifiers.
+	 * @throws NoSuchWorkspaceException if any of the workspaces are deleted or don't exist.
+	 * @throws WorkspaceCommunicationException if an error occurred while communicating with the
+	 * storage system.
+	 */
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
-			Set<WorkspaceIdentifier> rwsis) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException;
+			Set<WorkspaceIdentifier> wsis)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 
-	public ResolvedWorkspaceID resolveWorkspace(WorkspaceIdentifier wsi,
-			boolean allowDeleted) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException;
+	/** Resolve a workspace identifier.
+	 * @param wsi the workspace identifier.
+	 * @param allowDeleted allow the target workspace to be in the deleted state.
+	 * @return the resolved identifier.
+	 * @throws NoSuchWorkspaceException if the workspace doesn't exist or if allowDeleted is false
+	 * and the workspace is deleted.
+	 * @throws WorkspaceCommunicationException if an error occurred while communicating with the
+	 * storage system.
+	 */
+	public ResolvedWorkspaceID resolveWorkspace(
+			WorkspaceIdentifier wsi,
+			boolean allowDeleted)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
+	/** Resolve a set of workspace identifiers.
+	 * @param wsis the workspace identifiers.
+	 * @param suppressErrors if true, deleted workspaces will be returned in the results, and
+	 * workspace identifiers that specify non-existent workspaces will be ignored. If false,
+	 * errors will be thrown for either case.
+	 * @return resolved workspace identifiers.
+	 * @throws NoSuchWorkspaceException if suppressErrors is false and any of the specified
+	 * workspaces don't exist or are deleted.
+	 * @throws WorkspaceCommunicationException if an error occurred while communicating with the
+	 * storage system.
+	 */
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
-			Set<WorkspaceIdentifier> wsis, boolean allowDeleted,
-			boolean allowMissing)
+			Set<WorkspaceIdentifier> wsis,
+			boolean suppressErrors)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 
 	public WorkspaceInformation createWorkspace(WorkspaceUser owner,

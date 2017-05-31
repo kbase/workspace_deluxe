@@ -3527,8 +3527,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void getAllWorkspaceOwners() throws Exception {
-		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("getAllWorkspaceOwners1"));
-		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("getAllWorkspaceOwners2"));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("getAllWorkspaceOwners1"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("getAllWorkspaceOwners2"));
 		String cmd = "{\"command\":\"listWorkspaceOwners\"}";
 		List<String> owners = CLIENT2.administer(new UObject(
 				new JsonTokenStream(cmd))).asInstance();

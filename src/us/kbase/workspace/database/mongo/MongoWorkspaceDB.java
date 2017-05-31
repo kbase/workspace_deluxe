@@ -908,12 +908,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi,
+	public ResolvedWorkspaceID resolveWorkspace(
+			final WorkspaceIdentifier wsi,
 			final boolean allowDeleted)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
 		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
 		wsiset.add(wsi);
-		return resolveWorkspaces(wsiset, allowDeleted).get(wsi);
+		return resolveWorkspaces(wsiset, allowDeleted, false).get(wsi);
 				
 	}
 	
@@ -928,18 +929,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_DEL,
 					Fields.WS_LOCKED);
 	
-	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
-			final Set<WorkspaceIdentifier> wsis, final boolean allowDeleted)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
-		return resolveWorkspaces(wsis, allowDeleted, false);
-	}
-	
 	@Override
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
 			final Set<WorkspaceIdentifier> wsis,
+			final boolean suppressErrors)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
+		return resolveWorkspaces(wsis, suppressErrors, suppressErrors);
+	}
+		
+	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
+			final Set<WorkspaceIdentifier> wsis,
 			final boolean allowDeleted,
 			final boolean allowMissing)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
+			throws WorkspaceCommunicationException, NoSuchWorkspaceException {
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> ret =
 				new HashMap<WorkspaceIdentifier, ResolvedWorkspaceID>();
 		if (wsis.isEmpty()) {
@@ -955,8 +957,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							wsi);
 				}
 			} else {
-				if (!allowDeleted &&
-						(Boolean) res.get(wsi).get(Fields.WS_DEL)) {
+				if (!allowDeleted && (Boolean) res.get(wsi).get(Fields.WS_DEL)) {
 					throw new NoSuchWorkspaceException("Workspace " +
 							wsi.getIdentifierString() + " is deleted", wsi);
 				}
