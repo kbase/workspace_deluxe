@@ -265,17 +265,28 @@ public class Workspace {
 			final String operation)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
-		return checkPerms(user, loi, perm, operation, false);
+		return checkPerms(user, loi, perm, operation, false, false);
 	}
 	
 	/** Check that a user has permissions to a set of objects and resolve the workspace identifiers
 	 * associated with those objects.
+	 * 
+	 * WARNING - if suppressErrors is true, objects in deleted workspaces may be returned in the
+	 * output. There is no guarantee that deleted workspaces or objects will exist in the system
+	 * for any particular length of time, and attempting to retrieve a deleted object or workspace
+	 * may cause an exception. Objects with at least one incoming reference or workspaces that
+	 * contain at least one such object are not subject to deletion while that incoming reference
+	 * exists.
+	 * 
 	 * @param user the user in question.
 	 * @param loi the set of objects.
 	 * @param perm the required permission.
 	 * @param operation the operation the user is attempting on the objects.
-	 * @param suppressErrors true to return objects in deleted workspaces and ignore objects that
+	 * @param ignoreMissingAndInaccessibleWorkspaces true to ignore objects that
 	 * don't exist or to which the user has no access.
+	 * @param includeDeletedWorkspaces if ignoreMissingAndInaccessibleWorkspaces is true, set to
+	 * true to include objects from deleted workspaces in the results. Otherwise objects in
+	 * deleted workspaces are not included.
 	 * @return a map from the incoming object identifiers to object identifiers with resolved
 	 * workspace IDs.
 	 * @throws WorkspaceCommunicationException if an error occurs when communicating with the 
@@ -289,7 +300,8 @@ public class Workspace {
 			final List<ObjectIdentifier> loi,
 			final Permission perm,
 			final String operation,
-			final boolean suppressErrors)
+			final boolean ignoreMissingAndInaccessibleWorkspaces,
+			final boolean includeDeletedWorkspaces)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
 		if (loi.isEmpty()) {
@@ -304,13 +316,16 @@ public class Workspace {
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 		try {
-			rwsis = db.resolveWorkspaces(wsis.keySet(), suppressErrors);
+			rwsis = db.resolveWorkspaces(wsis.keySet(), ignoreMissingAndInaccessibleWorkspaces);
 		} catch (NoSuchWorkspaceException nswe) {
 			final ObjectIdentifier obj = wsis.get(nswe.getMissingWorkspace());
 			throw new InaccessibleObjectException(String.format(
 					"Object %s cannot be accessed: %s",
 					obj.getIdentifierString(), nswe.getLocalizedMessage()),
 					obj, nswe);
+		}
+		if (ignoreMissingAndInaccessibleWorkspaces && !includeDeletedWorkspaces) {
+			removeDeletedWorkspaces(rwsis);
 		}
 		final PermissionSet perms = db.getPermissions(
 				user, new HashSet<ResolvedWorkspaceID>(rwsis.values()));
@@ -329,7 +344,7 @@ public class Workspace {
 			try {
 				comparePermission(user, perm, perms.getPermission(r, true), o, operation);
 			} catch (WorkspaceAuthorizationException wae) {
-				if (suppressErrors) {
+				if (ignoreMissingAndInaccessibleWorkspaces) {
 					continue;
 				} else {
 					// contrary to ECLEmma's output, this path is in fact tested
@@ -339,6 +354,16 @@ public class Workspace {
 			ret.put(o, o.resolveWorkspace(r));
 		}
 		return ret;
+	}
+
+	private void removeDeletedWorkspaces(
+			final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis) {
+		final Iterator<WorkspaceIdentifier> i = rwsis.keySet().iterator();
+		while (i.hasNext()) {
+			if (rwsis.get(i.next()).isDeleted()) {
+				i.remove();
+			}
+		}
 	}
 
 	private void throwInaccessibleObjectException(
@@ -1126,9 +1151,7 @@ public class Workspace {
 				}
 				ret.add(wod);
 			}
-			res.nopath.clear();
-			res.withpath.clear();
-			res.withpathRefPath.clear();
+			res.clear();
 			refdata.clear();
 			stddata.clear();
 			removeInaccessibleDataCopyReferences(user, ret);
@@ -1240,7 +1263,7 @@ public class Workspace {
 		 * explore what objects exist in arbitrary workspaces.
 		 */
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedRefPathObjs =
-				checkPerms(user, allRefPathEntries, Permission.NONE, "somthinsbroke", true);
+				checkPerms(user, allRefPathEntries, Permission.NONE, "somthinsbroke", true, true);
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> outrefs =
 				getObjectOutgoingReferences(resolvedRefPathObjs, true, true);
 		
@@ -1487,6 +1510,12 @@ public class Workspace {
 			return this;
 		}
 		
+		public void clear() {
+			nopath.clear();
+			withpath.clear();
+			withpathRefPath.clear();
+		}
+		
 	}
 	
 	public List<ObjectInformation> getObjectInformation(
@@ -1548,7 +1577,7 @@ public class Workspace {
 		//handle the faster cases first, fail before the searches
 		Map<ObjectIdentifier, ObjectIDResolvedWS> ws = new HashMap<>();
 		if (!nolookup.isEmpty()) {
-			ws = checkPerms(user, nolookup, Permission.READ, "read", nullIfInaccessible);
+			ws = checkPerms(user, nolookup, Permission.READ, "read", nullIfInaccessible, false);
 		}
 		nolookup = null; //gc
 		
@@ -1558,7 +1587,7 @@ public class Workspace {
 		for (final ObjectIdentifier o: loi) {
 			if (lookup.contains(o)) { // need to do a lookup on this one, skip
 				refpaths.add(null); //maintain count for error reporting
-			} else if (ws.get(o) == null) { // skip, workspace wasn't resolved
+			} else if (!ws.containsKey(o)) { // skip, workspace wasn't resolved
 				// error reporting is off, so no need to keep track of location in list
 			} else if (o instanceof ObjectIDWithRefPath &&
 					((ObjectIDWithRefPath) o).hasRefPath()) {

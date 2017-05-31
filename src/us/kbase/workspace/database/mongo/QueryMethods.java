@@ -119,7 +119,7 @@ public class QueryMethods {
 				/* This will cause havoc when GC is active. Could resolve a deleted workspace,
 				 * which is allowed, and then GC before getting here
 				 * 
-				 * UPDATE - In general deleted workspaces should get resolved workspace ids.
+				 * UPDATE - In general deleted workspaces shouldn't get resolved workspace ids.
 				 * there are currently (5/30/17) two places where they can:
 				 * 1) to undelete a workspace, and that should go directly to an undelete method.
 				 * 2) When traversing the object graph into deleted workspaces. The user would

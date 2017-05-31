@@ -42,6 +42,10 @@ public interface WorkspaceDatabase {
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 
 	/** Resolve a workspace identifier.
+	 * 
+	 * WARNING - may return deleted workspaces. There is no guarantee how long deleted workspaces
+	 * may remain in the system, and attempting to access them again may result in an exception.
+	 * 
 	 * @param wsi the workspace identifier.
 	 * @param allowDeleted allow the target workspace to be in the deleted state.
 	 * @return the resolved identifier.
@@ -56,6 +60,10 @@ public interface WorkspaceDatabase {
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
 	/** Resolve a set of workspace identifiers.
+	 * 
+	 * WARNING - may return deleted workspaces. There is no guarantee how long deleted workspaces
+	 * may remain in the system, and attempting to access them again may result in an exception.
+	 * 
 	 * @param wsis the workspace identifiers.
 	 * @param suppressErrors if true, deleted workspaces will be returned in the results, and
 	 * workspace identifiers that specify non-existent workspaces will be ignored. If false,
