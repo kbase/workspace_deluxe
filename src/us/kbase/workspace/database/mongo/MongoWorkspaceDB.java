@@ -637,13 +637,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (maxid > 0) {
 			incrementWorkspaceCounter(toWS, maxid);
 		}
-		updateClonedWorkspaceInformation(user, globalRead, toWS.getID(), newname);
-		return getWorkspaceInformation(user, toWS);
+		final Date moddate = updateClonedWorkspaceInformation(
+				user, globalRead, toWS.getID(), newname);
+		return new MongoWSInfo(wsinfo.getId(),
+				newname,
+				user,
+				moddate,
+				maxid,
+				Permission.OWNER,
+				globalRead,
+				wsinfo.isLocked(),
+				new UncheckedUserMetadata(meta));
 	}
 
 	// this method expects that the id exists. If it does not it'll throw an
 	// IllegalState exception.
-	private void updateClonedWorkspaceInformation(
+	private Date updateClonedWorkspaceInformation(
 			final WorkspaceUser user,
 			final boolean globalRead,
 			final long id,
@@ -653,8 +662,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		
 		final DBObject q = new BasicDBObject(Fields.WS_ID, id);
 
+		final Date moddate = new Date();
 		final DBObject ws = new BasicDBObject();
-		ws.put(Fields.WS_MODDATE, new Date());
+		ws.put(Fields.WS_MODDATE, moddate);
 		ws.put(Fields.WS_NAME, newname);
 		
 		final DBObject update = new BasicDBObject(
@@ -676,6 +686,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		setCreatedWorkspacePermissions(user, globalRead,
 				new ResolvedMongoWSID(newname, id, false, false));
+		return moddate;
 	}
 
 	private void addExcludedToCloneQuery(
