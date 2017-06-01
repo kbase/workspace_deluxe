@@ -116,7 +116,24 @@ public class QueryMethods {
 				new HashMap<ResolvedMongoWSID, Map<String,Object>>();
 		for (final Long id: ids.keySet()) {
 			if (!idres.containsKey(id)) {
-				//TODO GC this will cause havoc when GC is active. Could resolve a deleted workspace, which is allowed, and then GC before getting here
+				/* This will cause havoc when GC is active. Could resolve a deleted workspace,
+				 * which is allowed, and then GC before getting here
+				 * 
+				 * UPDATE - In general deleted workspaces shouldn't get resolved workspace ids.
+				 * there are currently (5/30/17) two places where they can:
+				 * 1) to undelete a workspace, and that should go directly to an undelete method.
+				 * 2) When traversing the object graph into deleted workspaces. The user would
+				 * have to extract the workspace ID and send it here, but that should be safe since
+				 * if its in the object graph, it contains objects with non-zero reference counts
+				 * and therefore can't be deleted permanently.
+				 * 
+				 * TODO CODE consider making the undelete method take a workspaceIdentifier
+				 * rather than a resolved ID to remove any ability to get a resolved ID for a
+				 * deleted workspace.
+				 * 
+				 * Also consider just returning all the WS info in one shot rather than futzing
+				 * with resolved IDs and WorkspaceInfos.
+				 */
 				throw new CorruptWorkspaceDBException(
 						"Resolved workspace unexpectedly deleted from database: "
 						+ id);
@@ -517,11 +534,9 @@ public class QueryMethods {
 			final Set<User> users,
 			final Permission minPerm,
 			final boolean excludeDeletedWorkspaces)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final DBObject query = new BasicDBObject();
-		final Map<Long, ResolvedMongoWSID> idToWS =
-				new HashMap<Long, ResolvedMongoWSID>();
+		final Map<Long, ResolvedMongoWSID> idToWS = new HashMap<Long, ResolvedMongoWSID>();
 		if (rwsis != null && rwsis.size() > 0) {
 			final Set<Long> wsids = new HashSet<Long>();
 			for (final ResolvedMongoWSID r: rwsis) {
@@ -538,8 +553,7 @@ public class QueryMethods {
 			query.put(Fields.ACL_USER, new BasicDBObject("$in", u));
 		}
 		if (minPerm != null & !Permission.NONE.equals(minPerm)) {
-			query.put(Fields.ACL_PERM, new BasicDBObject("$gte",
-					minPerm.getPermission()));
+			query.put(Fields.ACL_PERM, new BasicDBObject("$gte", minPerm.getPermission()));
 		}
 		final DBObject proj = new BasicDBObject();
 		proj.put(Fields.MONGO_ID, 0);
@@ -549,11 +563,9 @@ public class QueryMethods {
 		
 		final Map<ResolvedMongoWSID, Map<User, Permission>> wsidToPerms =
 				new HashMap<ResolvedMongoWSID, Map<User, Permission>>();
-		final Map<Long, List<DBObject>> noWS =
-				new HashMap<Long, List<DBObject>>();
+		final Map<Long, List<DBObject>> noWS = new HashMap<Long, List<DBObject>>();
 		try {
-			final DBCursor res = wsmongo.getCollection(workspaceACLCollection)
-					.find(query, proj);
+			final DBCursor res = wsmongo.getCollection(workspaceACLCollection).find(query, proj);
 			for (final DBObject m: res) {
 				final Long id = (Long) m.get(Fields.ACL_WSID);
 				if (!idToWS.containsKey(id)) {
@@ -578,9 +590,8 @@ public class QueryMethods {
 			}
 		}
 		if (!noWS.isEmpty()) {
-			final Map<Long, Map<String, Object>> ws =
-					queryWorkspacesByID(noWS.keySet(), PROJ_WS_ID_NAME_LOCK_DEL,
-							excludeDeletedWorkspaces);
+			final Map<Long, Map<String, Object>> ws = queryWorkspacesByID(
+					noWS.keySet(), PROJ_WS_ID_NAME_LOCK_DEL, excludeDeletedWorkspaces);
 			for (final Long id: ws.keySet()) {
 				final ResolvedMongoWSID wsid = new ResolvedMongoWSID(
 						(String) ws.get(id).get(Fields.WS_NAME),

@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.google.common.base.Optional;
+
 import org.apache.commons.lang3.StringUtils;
 
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
@@ -58,8 +61,6 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-
-import com.fasterxml.jackson.core.JsonParseException;
 
 public class Workspace {
 	
@@ -265,17 +266,28 @@ public class Workspace {
 			final String operation)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
-		return checkPerms(user, loi, perm, operation, false);
+		return checkPerms(user, loi, perm, operation, false, false);
 	}
 	
 	/** Check that a user has permissions to a set of objects and resolve the workspace identifiers
 	 * associated with those objects.
+	 * 
+	 * WARNING - if suppressErrors is true, objects in deleted workspaces may be returned in the
+	 * output. There is no guarantee that deleted workspaces or objects will exist in the system
+	 * for any particular length of time, and attempting to retrieve a deleted object or workspace
+	 * may cause an exception. Objects with at least one incoming reference or workspaces that
+	 * contain at least one such object are not subject to deletion while that incoming reference
+	 * exists.
+	 * 
 	 * @param user the user in question.
 	 * @param loi the set of objects.
 	 * @param perm the required permission.
 	 * @param operation the operation the user is attempting on the objects.
-	 * @param suppressErrors true to return objects in deleted workspaces and ignore objects that
+	 * @param ignoreMissingAndInaccessibleWorkspaces true to ignore objects that
 	 * don't exist or to which the user has no access.
+	 * @param includeDeletedWorkspaces if ignoreMissingAndInaccessibleWorkspaces is true, set to
+	 * true to include objects from deleted workspaces in the results. Otherwise objects in
+	 * deleted workspaces are not included.
 	 * @return a map from the incoming object identifiers to object identifiers with resolved
 	 * workspace IDs.
 	 * @throws WorkspaceCommunicationException if an error occurs when communicating with the 
@@ -289,7 +301,8 @@ public class Workspace {
 			final List<ObjectIdentifier> loi,
 			final Permission perm,
 			final String operation,
-			final boolean suppressErrors)
+			final boolean ignoreMissingAndInaccessibleWorkspaces,
+			final boolean includeDeletedWorkspaces)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException {
 		if (loi.isEmpty()) {
@@ -304,7 +317,7 @@ public class Workspace {
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 		try {
-			rwsis = db.resolveWorkspaces(wsis.keySet(), suppressErrors);
+			rwsis = db.resolveWorkspaces(wsis.keySet(), ignoreMissingAndInaccessibleWorkspaces);
 		} catch (NoSuchWorkspaceException nswe) {
 			final ObjectIdentifier obj = wsis.get(nswe.getMissingWorkspace());
 			throw new InaccessibleObjectException(String.format(
@@ -312,8 +325,11 @@ public class Workspace {
 					obj.getIdentifierString(), nswe.getLocalizedMessage()),
 					obj, nswe);
 		}
-		final PermissionSet perms = db.getPermissions(user,
-						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
+		if (ignoreMissingAndInaccessibleWorkspaces && !includeDeletedWorkspaces) {
+			removeDeletedWorkspaces(rwsis);
+		}
+		final PermissionSet perms = db.getPermissions(
+				user, new HashSet<ResolvedWorkspaceID>(rwsis.values()));
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ret =
 				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
 		for (final ObjectIdentifier o: loi) {
@@ -322,21 +338,42 @@ public class Workspace {
 			}
 			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
 			try {
-				checkLocked(perm, r);
+				checkLocked(perm, r); // no suppressing errors here.
+			} catch (WorkspaceAuthorizationException wae) {
+				throwInaccessibleObjectException(o, wae);
+			}
+			try {
 				comparePermission(user, perm, perms.getPermission(r, true), o, operation);
 			} catch (WorkspaceAuthorizationException wae) {
-				if (suppressErrors) {
+				if (ignoreMissingAndInaccessibleWorkspaces) {
 					continue;
 				} else {
-					throw new InaccessibleObjectException(String.format(
-							"Object %s cannot be accessed: %s",
-							o.getIdentifierString(), wae.getLocalizedMessage()),
-							o, wae);
+					// contrary to ECLEmma's output, this path is in fact tested
+					throwInaccessibleObjectException(o, wae);
 				}
 			}
 			ret.put(o, o.resolveWorkspace(r));
 		}
 		return ret;
+	}
+
+	private void removeDeletedWorkspaces(
+			final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis) {
+		final Iterator<WorkspaceIdentifier> i = rwsis.keySet().iterator();
+		while (i.hasNext()) {
+			if (rwsis.get(i.next()).isDeleted()) {
+				i.remove();
+			}
+		}
+	}
+
+	private void throwInaccessibleObjectException(
+			final ObjectIdentifier o,
+			final WorkspaceAuthorizationException wae)
+			throws InaccessibleObjectException {
+		throw new InaccessibleObjectException(String.format(
+				"Object %s cannot be accessed: %s",
+				o.getIdentifierString(), wae.getLocalizedMessage()), o, wae);
 	}
 	
 	public List<DependencyStatus> status() {
@@ -398,12 +435,25 @@ public class Workspace {
 				exclude);
 	}
 	
-	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,
+	/** Lock a workspace, preventing further changes other than making the workspace globally
+	 * readable.
+	 * @param user the user locking the workspace.
+	 * @param wsi the workspace.
+	 * @return information about the workspace.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to lock the workspace.
+	 */
+	public WorkspaceInformation lockWorkspace(
+			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN, "lock");
-		return db.lockWorkspace(user, wsid);
+		db.lockWorkspace(wsid);
+		return db.getWorkspaceInformation(user, wsid);
 	}
 
 	private String pruneWorkspaceDescription(final String description) {
@@ -431,49 +481,64 @@ public class Workspace {
 		return db.getWorkspaceDescription(wsid);
 	}
 	
+	/** Change the owner of a workspace.
+	 * @param owner the current owner.
+	 * @param wsi the workspace.
+	 * @param newUser the new owner.
+	 * @param newName the new name for the workspace, if any.
+	 * @param asAdmin run this command with admin privileges - e.g. the owner argument is ignored
+	 * and the command proceeds whether the owner provided actually owns the workspace ornot.
+	 * @return information about the workspace.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to set the workspace
+	 * owner.
+	 */
 	public WorkspaceInformation setWorkspaceOwner(
 			WorkspaceUser owner,
 			final WorkspaceIdentifier wsi,
 			final WorkspaceUser newUser,
-			String newName,
+			Optional<String> newName,
 			final boolean asAdmin)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
 		if (newUser == null) {
 			throw new NullPointerException("newUser cannot be null");
 		}
 		if (wsi == null) {
 			throw new NullPointerException("wsi cannot be null");
 		}
+		if (newName == null) {
+			throw new NullPointerException("newName");
+		}
 		final ResolvedWorkspaceID rwsi;
 		if (asAdmin) {
 			rwsi = db.resolveWorkspace(wsi);
 			owner = db.getWorkspaceOwner(rwsi);
 		} else {
-			rwsi = checkPerms(owner, wsi, Permission.OWNER,
-				"change the owner of");
+			rwsi = checkPerms(owner, wsi, Permission.OWNER, "change the owner of");
 		}
 		final Permission p = db.getPermission(newUser, rwsi);
 		if (p.equals(Permission.OWNER)) {
 			throw new IllegalArgumentException(newUser.getUser() +
 					" already owns workspace " + rwsi.getName());
 		}
-		if (newName == null) {
-			final String[] oldWsName = WorkspaceIdentifier.splitUser(
-					rwsi.getName());
+		if (!newName.isPresent()) {
+			final String[] oldWsName = WorkspaceIdentifier.splitUser(rwsi.getName());
 			if (oldWsName[0] != null) { //includes user name
-				newName = newUser.getUser() +
-						WorkspaceIdentifier.WS_NAME_DELIMITER +
-						oldWsName[1];
+				newName = Optional.of(newUser.getUser() + WorkspaceIdentifier.WS_NAME_DELIMITER +
+						oldWsName[1]);
 			} // else don't change the name
 		} else {
-			if (newName.equals(rwsi.getName())) {
-				newName = null; // no need to change name
-			} else {
-				new WorkspaceIdentifier(newName, newUser); //checks for illegal names
+			new WorkspaceIdentifier(newName.get(), newUser); //checks for illegal names
+			if (newName.get().equals(rwsi.getName())) {
+				newName = Optional.absent(); // no need to change name
 			}
 		}
-		return db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+		db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+		return db.getWorkspaceInformation(newUser, rwsi);
 	}
 			
 
@@ -1016,8 +1081,7 @@ public class Workspace {
 		if (meta != null && meta.size() > 1) {
 			throw new IllegalArgumentException("Only one metadata spec allowed");
 		}
-		final PermissionSet perms =
-				db.getPermissions(user, minPerm, excludeGlobal);
+		final PermissionSet perms = db.getPermissions(user, minPerm, excludeGlobal);
 		return db.getWorkspaceInformation(perms, users, meta, after, before,
 				showDeleted, showOnlyDeleted);
 	}
@@ -1029,8 +1093,7 @@ public class Workspace {
 
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				db.resolveWorkspaces(params.getWorkspaces());
-		final HashSet<ResolvedWorkspaceID> rw =
-				new HashSet<ResolvedWorkspaceID>(rwsis.values());
+		final HashSet<ResolvedWorkspaceID> rw = new HashSet<ResolvedWorkspaceID>(rwsis.values());
 		final PermissionSet pset = db.getPermissions(params.getUser(), rw,
 				params.getMinimumPermission(), params.isExcludeGlobal(), true);
 		if (!params.getWorkspaces().isEmpty()) {
@@ -1117,9 +1180,7 @@ public class Workspace {
 				}
 				ret.add(wod);
 			}
-			res.nopath.clear();
-			res.withpath.clear();
-			res.withpathRefPath.clear();
+			res.clear();
 			refdata.clear();
 			stddata.clear();
 			removeInaccessibleDataCopyReferences(user, ret);
@@ -1231,7 +1292,7 @@ public class Workspace {
 		 * explore what objects exist in arbitrary workspaces.
 		 */
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedRefPathObjs =
-				checkPerms(user, allRefPathEntries, Permission.NONE, "somthinsbroke", true);
+				checkPerms(user, allRefPathEntries, Permission.NONE, "somthinsbroke", true, true);
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> outrefs =
 				getObjectOutgoingReferences(resolvedRefPathObjs, true, true);
 		
@@ -1374,8 +1435,7 @@ public class Workspace {
 		for (final WorkspaceObjectData d: data) {
 			if (d != null && d.getCopyReference() != null) {
 				final Reference cref = d.getCopyReference();
-				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
-						cref.getWorkspaceID());
+				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(cref.getWorkspaceID());
 				if (!rwsis.containsKey(wsi)) {
 					d.setCopySourceInaccessible();
 				} else {
@@ -1404,8 +1464,7 @@ public class Workspace {
 		//could combine these next two lines, but probably doesn't matter
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
 				checkPerms(user, loi, Permission.READ, "read");
-		final PermissionSet perms =
-				db.getPermissions(user, Permission.READ, false);
+		final PermissionSet perms = db.getPermissions(user, Permission.READ, false);
 		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> refs = 
 				db.getReferencingObjects(perms,
 						new HashSet<ObjectIDResolvedWS>(ws.values()));
@@ -1480,6 +1539,12 @@ public class Workspace {
 			return this;
 		}
 		
+		public void clear() {
+			nopath.clear();
+			withpath.clear();
+			withpathRefPath.clear();
+		}
+		
 	}
 	
 	public List<ObjectInformation> getObjectInformation(
@@ -1541,7 +1606,7 @@ public class Workspace {
 		//handle the faster cases first, fail before the searches
 		Map<ObjectIdentifier, ObjectIDResolvedWS> ws = new HashMap<>();
 		if (!nolookup.isEmpty()) {
-			ws = checkPerms(user, nolookup, Permission.READ, "read", nullIfInaccessible);
+			ws = checkPerms(user, nolookup, Permission.READ, "read", nullIfInaccessible, false);
 		}
 		nolookup = null; //gc
 		
@@ -1551,7 +1616,7 @@ public class Workspace {
 		for (final ObjectIdentifier o: loi) {
 			if (lookup.contains(o)) { // need to do a lookup on this one, skip
 				refpaths.add(null); //maintain count for error reporting
-			} else if (ws.get(o) == null) { // skip, workspace wasn't resolved
+			} else if (!ws.containsKey(o)) { // skip, workspace wasn't resolved
 				// error reporting is off, so no need to keep track of location in list
 			} else if (o instanceof ObjectIDWithRefPath &&
 					((ObjectIDWithRefPath) o).hasRefPath()) {
@@ -1865,14 +1930,28 @@ public class Workspace {
 		return ret;
 	}
 	
-	public WorkspaceInformation renameWorkspace(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final String newname)
+	/** Rename a workspace.
+	 * @param user the user performing the rename.
+	 * @param wsi the workspace.
+	 * @param newname the new name for the workspace.
+	 * @return information about the workspace.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to rename the
+	 * workspace.
+	 */
+	public WorkspaceInformation renameWorkspace(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String newname)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.OWNER,
-				"rename");
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.OWNER, "rename");
 		new WorkspaceIdentifier(newname, user); //check for errors
-		return db.renameWorkspace(user, wsid, newname);
+		db.renameWorkspace(wsid, newname);
+		return db.getWorkspaceInformation(user, wsid);
 	}
 	
 	public ObjectInformation renameObject(final WorkspaceUser user,
@@ -1896,8 +1975,7 @@ public class Workspace {
 		return db.copyObject(user, f, t);
 	}
 	
-	public ObjectInformation revertObject(WorkspaceUser user,
-			ObjectIdentifier oi)
+	public ObjectInformation revertObject(final WorkspaceUser user, final ObjectIdentifier oi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException, NoSuchObjectException {
 		final ObjectIDResolvedWS target = checkPerms(user,

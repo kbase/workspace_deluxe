@@ -87,6 +87,7 @@ import ch.qos.logback.classic.Logger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Optional;
 import com.mongodb.DB;
 
 @RunWith(Parameterized.class)
@@ -1681,7 +1682,7 @@ public class WorkspaceTester {
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final WorkspaceUser newuser,
-			final String name,
+			final Optional<String> name,
 			final boolean asAdmin,
 			final Exception expected)
 			throws Exception {
@@ -1693,7 +1694,7 @@ public class WorkspaceTester {
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final WorkspaceUser newuser,
-			final String name,
+			final Optional<String> name,
 			final boolean asAdmin,
 			final Exception expected)
 			throws Exception {

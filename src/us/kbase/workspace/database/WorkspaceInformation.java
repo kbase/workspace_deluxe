@@ -10,6 +10,7 @@ public interface WorkspaceInformation {
 	public Date getModDate();
 	public long getApproximateObjects();
 	public Permission getUserPermission();
+	//TODO CODE decouple the permissions and the ws info.
 	public boolean isGloballyReadable();
 	public boolean isLocked();
 	public String getLockState();
