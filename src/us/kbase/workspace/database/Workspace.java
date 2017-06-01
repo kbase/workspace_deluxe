@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.workspace.database.Util.nonNull;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -272,12 +274,12 @@ public class Workspace {
 	/** Check that a user has permissions to a set of objects and resolve the workspace identifiers
 	 * associated with those objects.
 	 * 
-	 * WARNING - if suppressErrors is true, objects in deleted workspaces may be returned in the
-	 * output. There is no guarantee that deleted workspaces or objects will exist in the system
-	 * for any particular length of time, and attempting to retrieve a deleted object or workspace
-	 * may cause an exception. Objects with at least one incoming reference or workspaces that
-	 * contain at least one such object are not subject to deletion while that incoming reference
-	 * exists.
+	 * WARNING - if includeDeletedWorkspaces is true, objects in deleted workspaces
+	 * may be returned in the output. There is no guarantee that deleted workspaces or
+	 * objects will exist in the system for any particular length of time, and attempting
+	 * to retrieve a deleted object or workspace may cause an exception. Objects with
+	 * at least one incoming reference or workspaces that contain at least one such
+	 * object are not subject to deletion while that incoming reference exists.
 	 * 
 	 * @param user the user in question.
 	 * @param loi the set of objects.
@@ -720,8 +722,8 @@ public class Workspace {
 		return db.getWorkspaceInformation(user, wsid);
 	}
 	
-	/** Get information about a workspace as an admin. The user permission returned will be either
-	 * none for private workspaces or read for public workspaces.
+	/** Get information about a workspace as an admin. The user permission returned will always
+	 * be NONE.
 	 * @param wsi the workspace.
 	 * @return the workspace information.
 	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
@@ -729,12 +731,13 @@ public class Workspace {
 	 * storage system.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
 	 */
-//	public WorkspaceInformation getWorkspaceInformationAsAdmin(final WorkspaceIdentifier wsi)
-//			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-//				CorruptWorkspaceDBException {
-//		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
-//		return db.getWorkspaceInformation(null, wsid);
-//	}
+	public WorkspaceInformation getWorkspaceInformationAsAdmin(final WorkspaceIdentifier wsi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
+		nonNull(wsi, "Workspace identifier cannot be null");
+		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
+		return db.getWorkspaceInformation(null, wsid);
+	}
 	
 	public String getBackendType() {
 		return db.getBackendType();
