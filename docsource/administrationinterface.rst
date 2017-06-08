@@ -126,6 +126,7 @@ createWorkspace                 yes
 setPermissions                  no
 getPermissions (DEPRECATED)     optional (1)
 getPermissionsMass              no
+getWorkspaceInfo                no
 setGlobalPermission             yes
 saveObjects                     yes
 listWorkspaces                  yes

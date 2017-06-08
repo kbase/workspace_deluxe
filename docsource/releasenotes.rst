@@ -12,10 +12,14 @@ BACKWARDS INCOMPATIBILITIES:
 NEW FEATURES:
 
 * Added the ``getPermissionsMass`` administration command.
+* Added the ``getWorkspaceInfo`` administration command.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
 * A user name is now optional for the ``getPermissions`` administration command.
+* Fixed a bug where the administrator ``setWorkspaceOwner`` command in very specific
+  cases could allow setting an illegal workspace name.
+* Fixed a bug where an admin could delete a locked workspace.
 
 VERSION: 0.7.0 (Released 5/5/17)
 --------------------------------
