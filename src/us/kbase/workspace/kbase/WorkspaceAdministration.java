@@ -56,25 +56,27 @@ public class WorkspaceAdministration {
 	
 	//TODO JAVADOC
 	
-	private static final String REMOVE_MODULE_OWNERSHIP =
-			"removeModuleOwnership";
-	private static final String GRANT_MODULE_OWNERSHIP =
-			"grantModuleOwnership";
+	private static final String DENY_MOD_REQUEST = "denyModRequest";
+	private static final String APPROVE_MOD_REQUEST = "approveModRequest";
+	private static final String LIST_MOD_REQUESTS = "listModRequests";
+
+	private static final String REMOVE_ADMIN = "removeAdmin";
+	private static final String ADD_ADMIN = "addAdmin";
+	private static final String LIST_ADMINS = "listAdmins";
+
+	private static final String SET_WORKSPACE_OWNER = "setWorkspaceOwner";
 	private static final String LIST_WORKSPACE_OWNERS = "listWorkspaceOwners";
+
+	private static final String REMOVE_MODULE_OWNERSHIP = "removeModuleOwnership";
+	private static final String GRANT_MODULE_OWNERSHIP = "grantModuleOwnership";
 	private static final String LIST_WORKSPACES = "listWorkspaces";
 	private static final String SAVE_OBJECTS = "saveObjects";
 	private static final String SET_GLOBAL_PERMISSION = "setGlobalPermission";
+	private static final String GET_WORKSPACE_INFO = "getWorkspaceInfo";
 	private static final String GET_PERMISSIONS = "getPermissions";
 	private static final String GET_PERMISSIONS_MASS = "getPermissionsMass";
 	private static final String SET_PERMISSIONS = "setPermissions";
 	private static final String CREATE_WORKSPACE = "createWorkspace";
-	private static final String SET_WORKSPACE_OWNER = "setWorkspaceOwner";
-	private static final String REMOVE_ADMIN = "removeAdmin";
-	private static final String ADD_ADMIN = "addAdmin";
-	private static final String LIST_ADMINS = "listAdmins";
-	private static final String DENY_MOD_REQUEST = "denyModRequest";
-	private static final String APPROVE_MOD_REQUEST = "approveModRequest";
-	private static final String LIST_MOD_REQUESTS = "listModRequests";
 	private static final String DELETE_WS = "deleteWorkspace";
 	private static final String UNDELETE_WS = "undeleteWorkspace";
 
@@ -215,6 +217,14 @@ public class WorkspaceAdministration {
 			getLogger().info(GET_PERMISSIONS_MASS + " " + params.getWorkspaces().size() +
 					" workspaces in input");
 			return wsmeth.getPermissions(params.getWorkspaces(), null, true);
+		}
+		if (GET_WORKSPACE_INFO.equals(fn)) {
+			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
+			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+							params.getWorkspace(), params.getId());
+			final WorkspaceInformation info = ws.getWorkspaceInformationAsAdmin(wsi);
+			getLogger().info(GET_WORKSPACE_INFO + " " + info.getId());
+			return wsInfoToTuple(info);
 		}
 		if (SET_GLOBAL_PERMISSION.equals(fn)) {
 			final SetGlobalPermissionsParams params = getParams(cmd,

@@ -1283,15 +1283,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return new WorkspaceUser((String) ws.get(Fields.WS_OWNER));
 	}
 	
-//	@Override
-//	public WorkspaceInformation getWorkspaceInformation(final ResolvedWorkspaceID rwsi)
-//			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-//		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
-//		final Map<String, Object> ws = query.queryWorkspace(m, FLDS_WS_NO_DESC);
-//		final PermissionSet perms = getPermissions(null, m);
-//		return generateWSInfo(rwsi, perms, ws);
-//	}
-	
 	@Override
 	public WorkspaceInformation getWorkspaceInformation(
 			final WorkspaceUser user, final ResolvedWorkspaceID rwsi)

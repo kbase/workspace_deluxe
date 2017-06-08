@@ -1,8 +1,6 @@
 package us.kbase.workspace.database;
 
 public class Util {
-	
-
 
 	public static void xorNameId(final String name, final Long id, 
 			final String type) {
@@ -13,5 +11,10 @@ public class Util {
 		}
 	}
 	
+	public static void nonNull(final Object o, final String message) {
+		if (o == null) {
+			throw new NullPointerException(message);
+		}
+	}
 
 }

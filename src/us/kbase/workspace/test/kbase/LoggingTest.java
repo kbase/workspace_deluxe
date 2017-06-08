@@ -838,6 +838,16 @@ public class LoggingTest {
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
+		// get ws
+		ac.put("command", "getWorkspaceInfo");
+		ac.remove("user");
+		ac.put("params", new WorkspaceIdentity().withWorkspace(ws));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getWorkspaceInfo 1", ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
 		
 		// del ws
 		ac.put("command", "deleteWorkspace");

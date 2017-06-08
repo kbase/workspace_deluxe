@@ -3494,6 +3494,35 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void adminGetWorkspaceInfo() throws Exception {
+		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace(ws.getWorkspace())
+				.withDescription("whee")
+				.withMeta(ImmutableMap.of("foo", "bar")));
+		
+		Tuple9<Long, String, String, String, Long, String, String, String,
+				Map<String, String>> wsinfo = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "getWorkspaceInfo",
+						"params", new WorkspaceIdentity().withWorkspace(ws.getWorkspace()))))
+				.asClassInstance(new TypeReference<Tuple9<Long, String, String, String,
+						Long, String, String, String, Map<String, String>>>() {});
+		
+		checkWS(wsinfo, 1, wsinfo.getE4(), ws.getWorkspace(), USER1, 0, "n", "n", "unlocked",
+				"whee", ImmutableMap.of("foo", "bar"));
+		
+		wsinfo = CLIENT2.administer(new UObject(ImmutableMap.of(
+				"command", "getWorkspaceInfo",
+				"params", new WorkspaceIdentity().withId(1L))))
+				.asClassInstance(new TypeReference<Tuple9<Long, String, String, String,
+						Long, String, String, String, Map<String, String>>>() {});
+
+		checkWS(wsinfo, 1, wsinfo.getE4(), ws.getWorkspace(), USER1, 0, "n", "n", "unlocked",
+				"whee", ImmutableMap.of("foo", "bar"));
+		}
+	
+	@Test
 	public void adminFailUserNotAdmin() throws Exception {
 		failAdmin(CLIENT1, Collections.<String, Object>emptyMap(),
 				"User " + USER1 + " is not an admin");

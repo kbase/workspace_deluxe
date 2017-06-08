@@ -1728,6 +1728,17 @@ public class WorkspaceTester {
 		}
 	}
 	
+	protected void failGetWorkspaceInfoAsAdmin(
+			final WorkspaceIdentifier wsi,
+			final Exception e) {
+		try {
+			ws.getWorkspaceInformationAsAdmin(wsi);
+			fail("expected exception");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, e);
+		}
+	}
+	
 	protected void failSetGlobalPerm(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
