@@ -3520,7 +3520,36 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 		checkWS(wsinfo, 1, wsinfo.getE4(), ws.getWorkspace(), USER1, 0, "n", "n", "unlocked",
 				"whee", ImmutableMap.of("foo", "bar"));
-		}
+	}
+	
+	@Test
+	public void adminListObjects() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace(ws.getWorkspace())
+				.withDescription("whee")
+				.withMeta(ImmutableMap.of("foo", "bar")));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> ob = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "listObjects",
+						"user", USER1,
+						"params", new ListObjectsParams().withWorkspaces(Arrays.asList(ws.getWorkspace()))
+				))).asClassInstance(new TypeReference<List<Tuple11<Long, String, String, String,
+						Long, String, Long, String, String, Long, Map<String, String>>>>() {});
+		
+		assertThat("incorrect object count", ob.size(), is(1));
+		
+		checkInfo(ob.get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
+	}
 	
 	@Test
 	public void adminFailUserNotAdmin() throws Exception {

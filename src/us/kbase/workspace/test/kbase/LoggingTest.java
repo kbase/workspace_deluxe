@@ -43,6 +43,7 @@ import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetPermissionsMassParams;
+import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -835,6 +836,17 @@ public class LoggingTest {
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
 				new AdminExp("listWorkspaces " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		// list ws
+		ac.put("command", "listObjects");
+		ac.put("user", USER1);
+		ac.put("params", new ListObjectsParams().withWorkspaces(Arrays.asList(ws)));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("listObjects user: " + USER1, ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		

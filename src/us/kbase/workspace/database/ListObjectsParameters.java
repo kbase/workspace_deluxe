@@ -18,6 +18,7 @@ import us.kbase.typedobj.core.TypeDefId;
 public class ListObjectsParameters {
 	
 	//TODO TEST unit tests
+	//TODO CODE make this a real builder with an immutable result
 	
 	private final static int MAX_INFO_COUNT = 10000;
 
