@@ -86,7 +86,7 @@ public class InitWorkspaceServer {
 		private WorkspaceAdministration wsadmin;
 		private Types types;
 		private URL handleManagerUrl;
-		private TokenProvider handleMgrToken;
+		private AuthToken handleMgrToken;
 		
 		public WorkspaceInitResults(
 				final Workspace ws,
@@ -94,7 +94,7 @@ public class InitWorkspaceServer {
 				final WorkspaceAdministration wsadmin,
 				final Types types,
 				final URL handleManagerUrl,
-				final TokenProvider handleMgrToken) {
+				final AuthToken handleMgrToken) {
 			super();
 			this.ws = ws;
 			this.wsmeth = wsmeth;
@@ -124,7 +124,7 @@ public class InitWorkspaceServer {
 			return handleManagerUrl;
 		}
 
-		public TokenProvider getHandleMgrToken() {
+		public AuthToken getHandleMgrToken() {
 			return handleMgrToken;
 		}
 	}
@@ -141,16 +141,14 @@ public class InitWorkspaceServer {
 		
 		final ConfigurableAuthService auth = setUpAuthClient(cfg, rep);
 
-		TokenProvider handleMgrToken = null;
+		AuthToken handleMgrToken = null;
 		if (!cfg.ignoreHandleService()) {
 			handleMgrToken = getHandleToken(cfg, rep, auth);
 			if (!rep.isFailed()) {
-				checkHandleServiceConnection(cfg.getHandleServiceURL(),
-						handleMgrToken, rep);
+				checkHandleServiceConnection(cfg.getHandleServiceURL(), handleMgrToken, rep);
 			}
 			if (!rep.isFailed()) {
-				checkHandleManagerConnection(cfg.getHandleManagerURL(),
-						handleMgrToken, rep);
+				checkHandleManagerConnection(cfg.getHandleManagerURL(), handleMgrToken, rep);
 			}
 		}
 		
@@ -409,38 +407,17 @@ public class InitWorkspaceServer {
 		}
 	}
 	
-	private static TokenProvider getHandleToken(
+	private static AuthToken getHandleToken(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep,
 			final ConfigurableAuthService auth) {
-		//TODO AUTH LATER remove refreshing token
-		final boolean token = cfg.getHandleManagerToken() != null;
 		try {
-			final TokenProvider tp;
-			if (token) {
-				tp = new TokenProvider(auth.validateToken(
-						cfg.getHandleManagerToken()));
-			} else {
-				@SuppressWarnings("deprecation")
-				final TokenProvider tptemp = new TokenProvider(
-						auth.getRefreshingToken(cfg.getHandleManagerUser(),
-								cfg.getHandleManagerPassword(),
-								TOKEN_REFRESH_INTERVAL_SEC),
-						auth.getConfig().getAuthLoginURL());
-				tp = tptemp;
-			}
-			return tp;
+			return auth.validateToken(cfg.getHandleManagerToken());
 		} catch (AuthException e) {
-			String err = "Couldn't log in with handle manager credentials: ";
-			if (token) {
-				err += "token was supplied";
-			} else {
-				err += "user " + cfg.getHandleManagerUser();
-			}
-			rep.reportFail(err + ": " + e.getMessage());
+			rep.reportFail("Invalid handle manager token: " + e.getMessage());
 		} catch (IOException e) {
-			rep.reportFail("Couldn't contact the auth service to obtain a token for the handle manager: "
-					+ e.getLocalizedMessage());
+			rep.reportFail("Couldn't contact the auth service to obtain a token " +
+					"for the handle manager: " + e.getLocalizedMessage());
 		}
 		return null;
 	}
@@ -448,13 +425,14 @@ public class InitWorkspaceServer {
 
 	private static void checkHandleServiceConnection(
 			final URL handleServiceUrl,
-			final TokenProvider handleMgrToken,
+			final AuthToken handleMgrToken,
 			final InitReporter rep) {
 		try {
 			final AbstractHandleClient cli = new AbstractHandleClient(
-					handleServiceUrl, handleMgrToken.getToken());
+					handleServiceUrl, handleMgrToken);
 			if (handleServiceUrl.getProtocol().equals("http")) {
-				rep.reportInfo("Warning - the Handle Service url uses insecure http. https is recommended.");
+				rep.reportInfo("Warning - the Handle Service url uses insecure http. " +
+						"https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
 			cli.isOwner(new LinkedList<String>());
@@ -469,13 +447,14 @@ public class InitWorkspaceServer {
 	
 	private static void checkHandleManagerConnection(
 			final URL handleManagerUrl,
-			final TokenProvider handleMgrToken,
+			final AuthToken handleMgrToken,
 			final InitReporter rep) {
 		try {
 			final HandleMngrClient cli = new HandleMngrClient(
-					handleManagerUrl, handleMgrToken.getToken());
+					handleManagerUrl, handleMgrToken);
 			if (handleManagerUrl.getProtocol().equals("http")) {
-				rep.reportInfo("Warning - the Handle Manager url uses insecure http. https is recommended.");
+				rep.reportInfo("Warning - the Handle Manager url uses insecure http. " +
+						"https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
 			cli.setPublicRead(Arrays.asList("FAKEHANDLE_-100"));

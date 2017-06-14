@@ -193,12 +193,11 @@ handle-manager-url
 
 **Description**: The URL of the Handle Manager
 
-handle-manager-user, handle-manager-pwd, handle-manager-token
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-**Required**: If using handles. Then token or (user and pwd).
+handle-manager-token
+""""""""""""""""""""
+**Required**: If using handles
 
-**Description**: Credentials for the account approved for Handle Manager use.
-Either a user id / password combination or a token may be supplied.
+**Description**: Credentials for the account approved for Handle Manager use
 
 ws-admin
 """"""""

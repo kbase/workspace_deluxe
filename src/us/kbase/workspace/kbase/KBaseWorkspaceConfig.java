@@ -33,12 +33,9 @@ public class KBaseWorkspaceConfig {
 	private static final String GLOBUS_AUTH_URL = "globus-url";
 	
 	//handle service / manager info
-	private static final String IGNORE_HANDLE_SERVICE =
-			"ignore-handle-service";
+	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
 	private static final String HANDLE_SERVICE_URL = "handle-service-url";
 	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
-	private static final String HANDLE_MANAGER_USER = "handle-manager-user";
-	private static final String HANDLE_MANAGER_PWD = "handle-manager-pwd";
 	private static final String HANDLE_MANAGER_TOKEN = "handle-manager-token";
 	
 	//directory for temp files
@@ -61,35 +58,11 @@ public class KBaseWorkspaceConfig {
 	private final boolean ignoreHandleService;
 	private final URL handleServiceURL;
 	private final URL handleManagerURL;
-	private final String handleManagerUser;
-	private final String handleManagerPassword;
 	private final String handleManagerToken;
 	private final List<String> errors;
 	private final List<String> infoMessages;
 	private final String paramReport;
 
-	private class Creds {
-		final String token;
-		final String user;
-		final String pwd;
-		final boolean allNull;
-		
-		private Creds(
-				final String token,
-				final String user,
-				final String pwd) {
-			super();
-			this.token = token;
-			this.user = user;
-			this.pwd = pwd;
-			if (token == null && user == null && pwd == null) {
-				allNull = true;
-			} else {
-				allNull = false;
-			}
-		}
-	}
-	
 	public KBaseWorkspaceConfig(final Map<String, String> config) {
 		if (config == null) {
 			throw new NullPointerException("config cannot be null");
@@ -156,27 +129,22 @@ public class KBaseWorkspaceConfig {
 					"handle IDs will fail typechecking.");
 			handleServiceURL = null;
 			handleManagerURL = null;
-			handleManagerUser = null;
-			handleManagerPassword = null;
 			handleManagerToken = null;
 		} else {
-			final URL hsURL = getUrl(config, HANDLE_SERVICE_URL,
-					paramErrors);
-			final URL hmURL = getUrl(config, HANDLE_MANAGER_URL,
-					paramErrors);
-			final Creds hc = getCreds(HANDLE_MANAGER_TOKEN,
-					HANDLE_MANAGER_USER, HANDLE_MANAGER_PWD, config,
-					paramErrors);
-			if (hc.allNull) {
+			final String token = config.get(HANDLE_MANAGER_TOKEN);
+			final URL hsURL = getUrl(config, HANDLE_SERVICE_URL, paramErrors);
+			final URL hmURL = getUrl(config, HANDLE_MANAGER_URL, paramErrors);
+			if (token == null || token.trim().isEmpty()) {
+				handleManagerToken = null;
 				handleServiceURL = null;
 				handleManagerURL = null;
+				paramErrors.add(String.format(
+						"Must provide %s in config file", HANDLE_MANAGER_TOKEN));
 			} else {
 				handleServiceURL = hsURL;
 				handleManagerURL = hmURL;
+				handleManagerToken = token;
 			}
-			handleManagerToken = hc.token;
-			handleManagerUser = hc.user;
-			handleManagerPassword = hc.pwd;
 		}
 		
 		mongoReconnectAttempts = getReconnectCount(config, infoMsgs);
@@ -185,39 +153,13 @@ public class KBaseWorkspaceConfig {
 		paramReport = generateParamReport(config);
 	}
 	
-	private Creds getCreds(
-			final String paramToken,
-			final String paramUser,
-			final String paramPwd,
-			final Map<String, String> config,
-			final List<String> paramErrors) {
-
-		final String token = config.get(paramToken);
-		if (token == null || token.isEmpty()) {
-			final String user = config.get(paramUser);
-			final String pwd = config.get(paramPwd);
-			final boolean hasUser = user != null && !user.isEmpty();
-			final boolean hasPwd = pwd != null && !pwd.isEmpty();
-			if (!hasUser || !hasPwd) {
-				paramErrors.add(String.format(
-						"Must provide either %s or %s and %s in config file",
-						paramToken, paramUser, paramPwd));
-				return new Creds(null, null, null);
-			}
-			return new Creds(null, user, pwd);
-		} else {
-			return new Creds(token, null, null);
-		}
-	}
-
 	private String generateParamReport(final Map<String, String> cfg) {
 		String params = "";
 		final List<String> paramSet = new LinkedList<String>(
 				Arrays.asList(HOST, DB, MONGO_USER, GLOBUS_AUTH_URL,
 						KBASE_AUTH_URL));
 		if (!ignoreHandleService) {
-			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL,
-					HANDLE_MANAGER_URL, HANDLE_MANAGER_USER));
+			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL, HANDLE_MANAGER_URL));
 		}
 		for (final String s: paramSet) {
 			if (cfg.containsKey(s)) {
@@ -236,15 +178,13 @@ public class KBaseWorkspaceConfig {
 			final List<String> errors) {
 		final String urlStr = wsConfig.get(configKey);
 		if (urlStr == null || urlStr.isEmpty()) {
-			errors.add("Must provide param " + configKey +
-					" in config file");
+			errors.add("Must provide param " + configKey + " in config file");
 			return null;
 		}
 		try {
 			return new URL(urlStr);
 		} catch (MalformedURLException e) {
-			errors.add("Invalid url for parameter " + configKey + ": " +
-					urlStr);
+			errors.add("Invalid url for parameter " + configKey + ": " + urlStr);
 		}
 		return null;
 	}
@@ -329,14 +269,6 @@ public class KBaseWorkspaceConfig {
 		return handleManagerURL;
 	}
 
-	public String getHandleManagerUser() {
-		return handleManagerUser;
-	}
-
-	public String getHandleManagerPassword() {
-		return handleManagerPassword;
-	}
-	
 	public String getHandleManagerToken() {
 		return handleManagerToken;
 	}

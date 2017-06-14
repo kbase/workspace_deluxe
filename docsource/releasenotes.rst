@@ -23,6 +23,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * Fixed a bug where an admin could delete a locked workspace.
 * Removed ``kbase-admin`` credentials from the deploy.cfg file as they're obsolete after the
   conversion to auth2.
+* The credentials for the Handle Manager service in the deploy.cfg file now require a token.
 
 VERSION: 0.7.0 (Released 5/5/17)
 --------------------------------
