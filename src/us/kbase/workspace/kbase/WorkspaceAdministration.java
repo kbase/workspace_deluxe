@@ -33,6 +33,7 @@ import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
+import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
@@ -70,6 +71,7 @@ public class WorkspaceAdministration {
 	private static final String REMOVE_MODULE_OWNERSHIP = "removeModuleOwnership";
 	private static final String GRANT_MODULE_OWNERSHIP = "grantModuleOwnership";
 	private static final String LIST_WORKSPACES = "listWorkspaces";
+	private static final String LIST_OBJECTS = "listObjects";
 	private static final String SAVE_OBJECTS = "saveObjects";
 	private static final String SET_GLOBAL_PERMISSION = "setGlobalPermission";
 	private static final String GET_WORKSPACE_INFO = "getWorkspaceInfo";
@@ -246,11 +248,17 @@ public class WorkspaceAdministration {
 			return wsmeth.saveObjects(params, user, token);
 		}
 		if (LIST_WORKSPACES.equals(fn)) {
-			final ListWorkspaceInfoParams params = getParams(cmd,
-					ListWorkspaceInfoParams.class);
+			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
 			final WorkspaceUser user = getUser(cmd);
 			getLogger().info(LIST_WORKSPACES + " " + user.getUser());
 			return wsmeth.listWorkspaceInfo(params, user);
+		}
+		if (LIST_OBJECTS.equals(fn)) {
+			final ListObjectsParams params = getParams(cmd, ListObjectsParams.class);
+			final WorkspaceUser user = getNullableUser(cmd);
+			final String ustr = user == null ? "adminuser" : "user: " + user.getUser();
+			getLogger().info(LIST_OBJECTS + " " + ustr);
+			return wsmeth.listObjects(params, user, user == null);
 		}
 		if (DELETE_WS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);

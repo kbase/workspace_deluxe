@@ -3520,7 +3520,91 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 		checkWS(wsinfo, 1, wsinfo.getE4(), ws.getWorkspace(), USER1, 0, "n", "n", "unlocked",
 				"whee", ImmutableMap.of("foo", "bar"));
+	}
+	
+	@Test
+	public void adminListObjectsWithUser() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace(ws.getWorkspace()));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> ob = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "listObjects",
+						"user", USER1,
+						"params", new ListObjectsParams().withWorkspaces(
+								Arrays.asList(ws.getWorkspace()))
+				))).asClassInstance(new TypeReference<List<Tuple11<Long, String, String, String,
+						Long, String, Long, String, String, Long, Map<String, String>>>>() {});
+		
+		assertThat("incorrect object count", ob.size(), is(1));
+		checkInfo(ob.get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
+	}
+	
+	@Test
+	public void adminlistObjectsWithoutUser() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		final WorkspaceIdentity ws2 = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest2");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws2.getWorkspace()));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws2.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee2")
+						.withType(SAFE_TYPE1))));
+		
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> ob = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "listObjects",
+						"params", new ListObjectsParams().withWorkspaces(
+								Arrays.asList(ws.getWorkspace()))
+				))).asClassInstance(new TypeReference<List<Tuple11<Long, String, String, String,
+						Long, String, Long, String, String, Long, Map<String, String>>>>() {});
+		
+		assertThat("incorrect object count", ob.size(), is(1));
+		checkInfo(ob.get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
+		
+		ob = CLIENT2.administer(new UObject(ImmutableMap.of(
+				"command", "listObjects",
+				"params", new ListObjectsParams().withWorkspaces(
+						Arrays.asList(ws.getWorkspace(), ws2.getWorkspace()))
+						.withType(SAFE_TYPE1)
+		))).asClassInstance(new TypeReference<List<Tuple11<Long, String, String, String,
+				Long, String, Long, String, String, Long, Map<String, String>>>>() {});
+
+		assertThat("incorrect object count", ob.size(), is(1));
+		checkInfo(ob.get(0), 1, "whee2", SAFE_TYPE1, 1, USER1, 2L, ws2.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
+	}
+	
+	@Test
+	public void adminListObjectsWithoutUserFail() throws Exception {
+		try {
+			CLIENT2.administer(new UObject(ImmutableMap.of(
+					"command", "listObjects",
+					"params", new ListObjectsParams().withType(SAFE_TYPE))));
+			fail("expected exception");
+		} catch (ServerException e) {
+			assertThat("incorrect exception", e.getMessage(), is("When listing objects as an " +
+					"admin at least one target workspace must be provided"));
 		}
+	}
 	
 	@Test
 	public void adminFailUserNotAdmin() throws Exception {

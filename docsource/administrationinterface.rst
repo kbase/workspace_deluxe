@@ -130,13 +130,16 @@ getWorkspaceInfo                no
 setGlobalPermission             yes
 saveObjects                     yes
 listWorkspaces                  yes
+listObjects                     optional (2)
 deleteWorkspace                 no
 undeleteWorkspace               no
 grantModuleOwnership            no
 removeModuleOwnership           no
 ==============================  =================
 
-(1) If omitted, returns the permissions as if the user is an administrator of the workspace.
+#. If omitted, returns the permissions as if the user is an administrator of the workspace.
+#. If omitted, returns all objects requested, but at least one and no more than 1000 workspaces
+   must be specified.
 
 Example usage:
 

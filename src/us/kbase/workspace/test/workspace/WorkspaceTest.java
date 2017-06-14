@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.zafarkhaja.semver.Version;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import junit.framework.Assert;
@@ -306,6 +307,86 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setWorkspaceDeleted(user, wsi, true);
 		failGetWorkspaceInfoAsAdmin(wsi,
 				new NoSuchWorkspaceException("Workspace somews is deleted", wsi));
+	}
+	
+	@Test
+	public void adminListObjects() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("listObjUser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("listObj1");
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("listObj2");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		ws.createWorkspace(user, wsi2.getName(), false, null, null);
+		
+		final Provenance p = new Provenance(user);
+		final ObjectInformation std1 = saveObject(user, wsi, null,
+				ImmutableMap.of("foo", "bar"), SAFE_TYPE2, "std", p);
+		final ObjectInformation del = saveObject(user, wsi, null,
+				ImmutableMap.of("foo", "bar"), SAFE_TYPE1, "std2", p);
+		final ObjectInformation std2 = saveObject(user, wsi2, null,
+				ImmutableMap.of("foo", "bar"), SAFE_TYPE1, "std3", p);
+		
+		ws.setObjectsDeleted(user, Arrays.asList(new ObjectIdentifier(wsi, 2)), true);
+		
+		ListObjectsParameters lop = new ListObjectsParameters(Arrays.asList(wsi, wsi2))
+				.withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(std1, std2));
+		
+		lop = new ListObjectsParameters(Arrays.asList(wsi)).withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(std1));
+		
+		lop = new ListObjectsParameters(Arrays.asList(wsi, wsi2)).withShowOnlyDeleted(true)
+				.withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(del));
+		
+		lop = new ListObjectsParameters(Arrays.asList(wsi, wsi2)).withShowDeleted(true)
+				.withIncludeMetaData(true);
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(std1, del, std2));
+
+		lop = new ListObjectsParameters(Arrays.asList(wsi, wsi2), SAFE_TYPE1)
+				.withIncludeMetaData(true).withShowDeleted(true);
+		compareObjectInfo(ws.listObjects(lop), Arrays.asList(del, std2));
+	}
+	
+	@Test
+	public void adminListObjectsFailConstructParams() {
+		final Exception e = new IllegalArgumentException(
+				"Must provide between 1 and 1000 workspaces");
+		final List<WorkspaceIdentifier> wsis = new LinkedList<>();
+		for (int i = 1; i < 1002; i++) {
+			wsis.add(new WorkspaceIdentifier(i));
+		}
+		failConstructListObjectsParams(null, e);
+		failConstructListObjectsParams(Collections.<WorkspaceIdentifier>emptyList(), e);
+		failConstructListObjectsParams(wsis, e);
+		failConstructListObjectsParams(null, SAFE_TYPE1, e);
+		failConstructListObjectsParams(
+				Collections.<WorkspaceIdentifier>emptyList(), SAFE_TYPE1, e);
+		failConstructListObjectsParams(wsis, SAFE_TYPE1, e);
+		failConstructListObjectsParams(Arrays.asList(new WorkspaceIdentifier("foo")),
+				null, new NullPointerException("Type cannot be null"));
+	}
+	
+	private void failConstructListObjectsParams(
+			final List<WorkspaceIdentifier> wsis,
+			final Exception e) {
+		try {
+			new ListObjectsParameters(wsis);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, e);
+		}
+	}
+	
+	private void failConstructListObjectsParams(
+			final List<WorkspaceIdentifier> wsis,
+			final TypeDefId type,
+			final Exception e) {
+		try {
+			new ListObjectsParameters(wsis, type);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, e);
+		}
 	}
 	
 	@Test
@@ -5583,7 +5664,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		TypeDefId allType2 = new TypeDefId(SAFE_TYPE2.getType().getTypeString());
 		
 		//test with anon user
-		ListObjectsParameters lop = new ListObjectsParameters(null, SAFE_TYPE1)
+		ListObjectsParameters lop = new ListObjectsParameters((WorkspaceUser) null, SAFE_TYPE1)
 				.withShowDeleted(true).withIncludeMetaData(true);
 		compareObjectInfo(ws.listObjects(lop), Arrays.asList(thirdobj));
 		compareObjectInfo(ws.listObjects(lop.withExcludeGlobal(true)),

@@ -1092,14 +1092,15 @@ public class Workspace {
 	public List<ObjectInformation> listObjects(
 			final ListObjectsParameters params)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				db.resolveWorkspaces(params.getWorkspaces());
 		final HashSet<ResolvedWorkspaceID> rw = new HashSet<ResolvedWorkspaceID>(rwsis.values());
 		final PermissionSet pset = db.getPermissions(params.getUser(), rw,
-				params.getMinimumPermission(), params.isExcludeGlobal(), true);
-		if (!params.getWorkspaces().isEmpty()) {
+				params.getMinimumPermission(), params.isExcludeGlobal(), true, params.asAdmin());
+		rw.clear();
+		if (!params.asAdmin()) {
 			for (final WorkspaceIdentifier wsi: params.getWorkspaces()) {
 				comparePermission(params.getUser(), Permission.READ,
 						pset.getPermission(rwsis.get(wsi), true), wsi, "read");

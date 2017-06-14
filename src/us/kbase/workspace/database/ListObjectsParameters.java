@@ -18,8 +18,10 @@ import us.kbase.typedobj.core.TypeDefId;
 public class ListObjectsParameters {
 	
 	//TODO TEST unit tests
+	//TODO CODE make this a real builder with an immutable result, and test for immutability
 	
 	private final static int MAX_INFO_COUNT = 10000;
+	private final static int MAX_WS_AS_ADMIN = 1000;
 
 	private final WorkspaceUser user;
 	private final Set<WorkspaceIdentifier> wsis;
@@ -38,6 +40,7 @@ public class ListObjectsParameters {
 	private boolean showAllVers = false;
 	private boolean includeMetaData = false;
 	private boolean excludeGlobal = false;
+	private boolean asAdmin = false;
 	private int limit = MAX_INFO_COUNT;
 	
 	/** Create a set of parameters for calling the list objects method.
@@ -55,6 +58,21 @@ public class ListObjectsParameters {
 		}
 		this.wsis = Collections.unmodifiableSet(
 				new HashSet<WorkspaceIdentifier>(wsis));
+		type = null;
+	}
+	
+	/** Create a set of parameters for calling the list objects method as an admin.
+	 * @param wsis the workspaces for which to list objects.
+	 */
+	public ListObjectsParameters(
+			final Collection<WorkspaceIdentifier> wsis) {
+		this.user = null;
+		this.asAdmin = true;
+		if (wsis == null || wsis.isEmpty() || wsis.size() > MAX_WS_AS_ADMIN) {
+			throw new IllegalArgumentException(String.format(
+					"Must provide between 1 and %s workspaces", MAX_WS_AS_ADMIN));
+		}
+		this.wsis = Collections.unmodifiableSet(new HashSet<WorkspaceIdentifier>(wsis));
 		type = null;
 	}
 	
@@ -92,6 +110,26 @@ public class ListObjectsParameters {
 		}
 		this.wsis = Collections.unmodifiableSet(
 				new HashSet<WorkspaceIdentifier>(wsis));
+		if (type == null) {
+			throw new NullPointerException("Type cannot be null");
+		}
+		this.type = type;
+	}
+	
+	/** Create a set of parameters for calling the list objects method as an admin.
+	 * @param wsis the workspaces for which to list objects.
+	 * @param type the type of objects to list.
+	 */
+	public ListObjectsParameters(
+			final Collection<WorkspaceIdentifier> wsis,
+			final TypeDefId type) {
+		this.user = null;
+		this.asAdmin = true;
+		if (wsis == null || wsis.isEmpty() || wsis.size() > MAX_WS_AS_ADMIN) {
+			throw new IllegalArgumentException(String.format(
+					"Must provide between 1 and %s workspaces", MAX_WS_AS_ADMIN));
+		}
+		this.wsis = Collections.unmodifiableSet(new HashSet<WorkspaceIdentifier>(wsis));
 		if (type == null) {
 			throw new NullPointerException("Type cannot be null");
 		}
@@ -387,6 +425,14 @@ public class ListObjectsParameters {
 		return this;
 	}
 	
+	/** Get whether the command should be run as an admin. If this is the case the user will always
+	 * be null.
+	 * @return whether the effective user is an admin.
+	 */
+	public boolean asAdmin() {
+		return asAdmin;
+	}
+	
 	GetObjectInformationParameters generateParameters(
 			final PermissionSet perms) {
 		if (perms == null) {
@@ -395,7 +441,7 @@ public class ListObjectsParameters {
 		return new GetObjectInformationParameters(
 				perms, type, savers, meta, after, before, minObjectID,
 				maxObjectID, showHidden, showDeleted, showOnlyDeleted,
-				showAllVers, includeMetaData, limit);
+				showAllVers, includeMetaData, limit, asAdmin);
 		
 	}
 }

@@ -103,7 +103,7 @@ public class ObjectInfoUtils {
 			final Map<Map<String, Object>, ObjectInformation> objs =
 					generateObjectInfo(pset, verobjs, params.isShowHidden(),
 							params.isShowDeleted(), params.isShowOnlyDeleted(),
-							params.isShowAllVersions()
+							params.isShowAllVersions(), params.asAdmin()
 							);
 			//maintain the natural DB ordering 
 			final Iterator<Map<String, Object>> veriter = verobjs.iterator();
@@ -123,8 +123,7 @@ public class ObjectInfoUtils {
 			throws WorkspaceCommunicationException {
 		final DBCursor cur;
 		try {
-			cur = query.getDatabase().getCollection(
-					query.getVersionCollection())
+			cur = query.getDatabase().getCollection(query.getVersionCollection())
 					.find(verq, projection);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -197,9 +196,13 @@ public class ObjectInfoUtils {
 	}
 	
 	Map<Map<String, Object>, ObjectInformation> generateObjectInfo(
-			final PermissionSet pset, final List<Map<String, Object>> verobjs,
-			final boolean includeHidden, final boolean includeDeleted,
-			final boolean onlyIncludeDeleted, final boolean includeAllVers)
+			final PermissionSet pset,
+			final List<Map<String, Object>> verobjs,
+			final boolean includeHidden,
+			final boolean includeDeleted,
+			final boolean onlyIncludeDeleted,
+			final boolean includeAllVers,
+			final boolean asAdmin)
 			throws WorkspaceCommunicationException {
 		final Map<Map<String, Object>, ObjectInformation> ret =
 				new HashMap<Map<String, Object>, ObjectInformation>();
@@ -253,18 +256,17 @@ public class ObjectInfoUtils {
 				continue;
 			}
 			if (onlyIncludeDeleted) {
-				if (isDeleted && pset.hasPermission(rwsi, Permission.WRITE)) {
+				if (isDeleted && (asAdmin || pset.hasPermission(rwsi, Permission.WRITE))) {
 					ret.put(vo, generateObjectInfo(rwsi, id,
 							(String) obj.get(Fields.OBJ_NAME), vo));
 				}
 				continue;
 			}
 			if (isDeleted && (!includeDeleted ||
-					!pset.hasPermission(rwsi, Permission.WRITE))) {
+					(!asAdmin && !pset.hasPermission(rwsi, Permission.WRITE)))) {
 				continue;
 			}
-			ret.put(vo, generateObjectInfo(rwsi, id,
-					(String) obj.get(Fields.OBJ_NAME), vo));
+			ret.put(vo, generateObjectInfo(rwsi, id, (String) obj.get(Fields.OBJ_NAME), vo));
 		}
 		return ret;
 	}

@@ -19,7 +19,6 @@ import us.kbase.common.service.UObject;
 import us.kbase.common.service.ServiceChecker;
 import us.kbase.common.service.ServiceChecker.ServiceException;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
-import static us.kbase.workspace.kbase.ArgUtils.checkLong;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToMetaTuple;
@@ -30,19 +29,15 @@ import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.toObjectPaths;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectInfoList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
-import static us.kbase.workspace.kbase.ArgUtils.longToInt;
-import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifier;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
 import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifiers;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
-import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -965,57 +960,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> listObjects(ListObjectsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN list_objects
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final List<WorkspaceIdentifier> wsis = new LinkedList<WorkspaceIdentifier>();
-		if (params.getWorkspaces() != null) {
-			for (final String ws: params.getWorkspaces()) {
-				wsis.add(processWorkspaceIdentifier(ws, null));
-			}
-		}
-		if (params.getIds() != null) {
-			for (final Long id: params.getIds()) {
-				wsis.add(processWorkspaceIdentifier(null, id));
-			}
-		}
-		final TypeDefId type = params.getType() == null ? null :
-				TypeDefId.fromTypeString(params.getType());
-		if (type == null && wsis.isEmpty()) {
-			throw new IllegalArgumentException(
-					"At least one filter must be specified.");
-		}
-		final WorkspaceUser user = wsmeth.getUser(authPart);
-		final ListObjectsParameters lop;
-		if (type == null) {
-			lop = new ListObjectsParameters(user, wsis);
-		} else if (wsis.isEmpty()) {
-			lop = new ListObjectsParameters(user, type);
-		} else {
-			lop = new ListObjectsParameters(user, wsis, type);
-		}
-		final Date after = chooseDate(params.getAfter(),
-				params.getAfterEpoch(),
-				"Cannot specify both timestamp and epoch for after parameter");
-		final Date before = chooseDate(params.getBefore(),
-				params.getBeforeEpoch(),
-				"Cannot specify both timestamp and epoch for before " +
-				"parameter");
-		lop.withMinimumPermission(params.getPerm() == null ? null :
-				translatePermission(params.getPerm()))
-			.withSavers(wsmeth.convertUsers(params.getSavedby()))
-			.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
-			.withAfter(after)
-			.withBefore(before)
-			.withMinObjectID(checkLong(params.getMinObjectID(), -1))
-			.withMaxObjectID(checkLong(params.getMaxObjectID(), -1))
-			.withShowHidden(longToBoolean(params.getShowHidden()))
-			.withShowDeleted(longToBoolean(params.getShowDeleted()))
-			.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))
-			.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
-			.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
-			.withExcludeGlobal(longToBoolean(params.getExcludeGlobal()))
-			.withLimit(longToInt(params.getLimit(), "Limit", -1));
-		
-		returnVal = objInfoToTuple(ws.listObjects(lop), false);
+		returnVal = wsmeth.listObjects(params, wsmeth.getUser(authPart), false);
         //END list_objects
         return returnVal;
     }

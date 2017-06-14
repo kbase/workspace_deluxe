@@ -1,11 +1,13 @@
 package us.kbase.workspace.kbase;
 
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
+import static us.kbase.workspace.kbase.ArgUtils.checkLong;
 import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.processProvenance;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
+import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
@@ -37,6 +39,7 @@ import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
+import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
@@ -46,6 +49,7 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
 import us.kbase.workspace.database.DependencyStatus;
+import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -366,5 +370,103 @@ public class WorkspaceServerMethods {
 				longToBoolean(params.getExcludeGlobal()),
 				longToBoolean(params.getShowDeleted()),
 				longToBoolean(params.getShowOnlyDeleted())));
+	}
+	
+	/** List objects in one or more workspaces.
+	 * @param params the parameters determining which workspace objects will be listed.
+	 * @param user the user listing the objects, or null for an anonymous user.
+	 * @param asAdmin true to run the method as an admin. The user is ignored and all requested
+	 * data is returned without considering permissions. If true, at least one and no more than
+	 * 1000 workspaces must be specified for querying.
+	 * @return the objects information.
+	 * @throws ParseException if a date could not be parsed.
+	 * @throws MetadataException if the user supplied metadata was illegal.
+	 * @throws CorruptWorkspaceDBException if corrupt data was found in the storage system.
+	 * @throws NoSuchWorkspaceException if a requested workspace does not exist or is illegal.
+	 * @throws WorkspaceCommunicationException if a communication error occurred with the storage
+	 * system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access one or
+	 * more of the workspaces.
+	 */
+	public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+			Map<String,String>>> listObjects(
+					final ListObjectsParams params,
+					final WorkspaceUser user,
+					final boolean asAdmin)
+					throws ParseException, MetadataException, CorruptWorkspaceDBException,
+						NoSuchWorkspaceException, WorkspaceCommunicationException,
+						WorkspaceAuthorizationException {
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final List<WorkspaceIdentifier> wsis = new LinkedList<WorkspaceIdentifier>();
+		if (params.getWorkspaces() != null) {
+			for (final String ws: params.getWorkspaces()) {
+				wsis.add(processWorkspaceIdentifier(ws, null));
+			}
+		}
+		if (params.getIds() != null) {
+			for (final Long id: params.getIds()) {
+				wsis.add(processWorkspaceIdentifier(null, id));
+			}
+		}
+		final TypeDefId type = params.getType() == null ? null :
+				TypeDefId.fromTypeString(params.getType());
+		final ListObjectsParameters lop = getListObjectParameters(user, asAdmin, wsis, type);
+		final Date after = chooseDate(params.getAfter(),
+				params.getAfterEpoch(),
+				"Cannot specify both timestamp and epoch for after parameter");
+		final Date before = chooseDate(params.getBefore(),
+				params.getBeforeEpoch(),
+				"Cannot specify both timestamp and epoch for before " +
+				"parameter");
+		lop.withMinimumPermission(params.getPerm() == null ? null :
+				translatePermission(params.getPerm()))
+			.withSavers(convertUsers(params.getSavedby()))
+			.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
+			.withAfter(after)
+			.withBefore(before)
+			.withMinObjectID(checkLong(params.getMinObjectID(), -1))
+			.withMaxObjectID(checkLong(params.getMaxObjectID(), -1))
+			.withShowHidden(longToBoolean(params.getShowHidden()))
+			.withShowDeleted(longToBoolean(params.getShowDeleted()))
+			.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))
+			.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
+			.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
+			.withExcludeGlobal(longToBoolean(params.getExcludeGlobal()))
+			.withLimit(longToInt(params.getLimit(), "Limit", -1));
+		
+		return objInfoToTuple(ws.listObjects(lop), false);
+	}
+
+	private ListObjectsParameters getListObjectParameters(
+			final WorkspaceUser user,
+			final boolean asAdmin,
+			final List<WorkspaceIdentifier> wsis,
+			final TypeDefId type) {
+		if (type == null && wsis.isEmpty()) {
+			throw new IllegalArgumentException(
+					"At least one filter must be specified.");
+		}
+		final ListObjectsParameters lop;
+		if (type == null) {
+			if (asAdmin) {
+				lop = new ListObjectsParameters(wsis);
+			} else {
+				lop = new ListObjectsParameters(user, wsis);
+			}
+		} else if (wsis.isEmpty()) {
+			if (asAdmin) {
+				throw new IllegalArgumentException("When listing objects as an admin at least " +
+						"one target workspace must be provided");
+			} else {
+				lop = new ListObjectsParameters(user, type);
+			}
+		} else {
+			if (asAdmin) {
+				lop = new ListObjectsParameters(wsis, type);
+			} else {
+				lop = new ListObjectsParameters(user, wsis, type);
+			}
+		}
+		return lop;
 	}
 }
