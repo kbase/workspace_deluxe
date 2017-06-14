@@ -173,13 +173,6 @@ globus-url
 
 **Description**: URL of the Globus Nexus v1 authentication API
 
-kbase-admin-user, kbase-admin-pwd, kbase-admin-token
-""""""""""""""""""""""""""""""""""""""""""""""""""""
-**Required**: token or (user and pwd)
-
-**Description**: Credentials for an administrator of the Globus kbase_users
-group. Either a user id / password combination or a token may be supplied.
-
 ignore-handle-service
 """""""""""""""""""""
 **Required**: If not using handles
@@ -296,8 +289,6 @@ user through the process::
     Current configuration file:
     mongodb-host=localhost
     mongodb-database=workspace
-    kbase-admin-user=add user here
-    kbase-admin-pwd=add password here
     handle-service-url=
     handle-manager-url=
     handle-manager-user=

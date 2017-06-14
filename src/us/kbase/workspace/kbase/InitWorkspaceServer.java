@@ -488,7 +488,6 @@ public class InitWorkspaceServer {
 		}
 	}
 	
-	@SuppressWarnings("deprecation")
 	private static ConfigurableAuthService setUpAuthClient(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
@@ -499,7 +498,8 @@ public class InitWorkspaceServer {
 		}
 		if (cfg.getAuthURL().getProtocol().equals("http")) {
 			c.withAllowInsecureURLs(true);
-			rep.reportInfo("Warning - the Auth Service url uses insecure http. https is recommended.");
+			rep.reportInfo(
+					"Warning - the Auth Service url uses insecure http. https is recommended.");
 		}
 		try {
 			c.withGlobusAuthURL(cfg.getGlobusURL())
@@ -507,23 +507,8 @@ public class InitWorkspaceServer {
 		} catch (URISyntaxException e) {
 			throw new RuntimeException("this should be impossible", e);
 		}
-		final boolean token = cfg.getKBaseAdminToken() != null;
-		//TODO AUTH LATER remove refreshing token
-		final ConfigurableAuthService auth;
 		try {
-			auth = new ConfigurableAuthService(c);
-			if (token) {
-				c.withToken(auth.validateToken(cfg.getKBaseAdminToken()));
-			} else {
-				c.withRefreshingToken(auth.getRefreshingToken(
-						cfg.getKbaseAdminUser(), cfg.getKbaseAdminPassword(),
-						TOKEN_REFRESH_INTERVAL_SEC));
-			}
-			return auth;
-		} catch (AuthException e) {
-			rep.reportFail("Couldn't log in the KBase administrative user " +
-					(token ? "with a token" : cfg.getKbaseAdminUser()) + ": " +
-					e.getMessage());
+			return new ConfigurableAuthService(c);
 		} catch (IOException e) {
 			rep.reportFail("Couldn't connect to authorization service at " +
 					c.getAuthServerURL() + " : " + e.getLocalizedMessage());

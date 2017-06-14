@@ -21,6 +21,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * Fixed a bug where the administrator ``setWorkspaceOwner`` command in very specific
   cases could allow setting an illegal workspace name.
 * Fixed a bug where an admin could delete a locked workspace.
+* Removed ``kbase-admin`` credentials from the deploy.cfg file as they're obsolete after the
+  conversion to auth2.
 
 VERSION: 0.7.0 (Released 5/5/17)
 --------------------------------

@@ -474,7 +474,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions", async=true)
     public void setPermissions(SetPermissionsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN set_permissions
-		wsmeth.setPermissions(params, wsmeth.getUser(authPart));
+		wsmeth.setPermissions(params, authPart);
         //END set_permissions
     }
 

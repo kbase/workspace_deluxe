@@ -157,19 +157,57 @@ public class WorkspaceServerMethods {
 		return wsInfoToTuple(meta);
 	}
 	
-	public void setPermissions(final SetPermissionsParams params,
-			final WorkspaceUser user)
+	/** Set permissions on a workspace.
+	 * @param params the parameters for the set permissions call.
+	 * @param token the user that is setting permissions.
+	 * @throws IOException if an error occurs when contacting the authentication service.
+	 * @throws AuthException if the authentication service could not be contacted.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the data stores.
+	 * @throws NoSuchWorkspaceException if the specified workspace does not exist.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to administer the
+	 * workspace.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the data stores.
+	 */
+	public void setPermissions(
+			final SetPermissionsParams params,
+			final AuthToken token)
 			throws IOException, AuthException, CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
-		setPermissions(params, user, false);
+		setPermissions(params, getUser(token), false, token);
 	}
 	
-	public void setPermissions(final SetPermissionsParams params,
-			final WorkspaceUser user, boolean asAdmin)
+	/** Set permissions on a workspace as an admin.
+	 * @param params the parameters for the set permissions call.
+	 * @param token a token to use for user lookup in the authentication service.
+	 * @throws IOException if an error occurs when contacting the authentication service.
+	 * @throws AuthException if the authentication service could not be contacted.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the data stores.
+	 * @throws NoSuchWorkspaceException if the specified workspace does not exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the data stores.
+	 */
+	public void setPermissionsAsAdmin(
+			final SetPermissionsParams params,
+			final AuthToken token)
 			throws IOException, AuthException, CorruptWorkspaceDBException,
-			NoSuchWorkspaceException, WorkspaceAuthorizationException,
-			WorkspaceCommunicationException {
+				NoSuchWorkspaceException, WorkspaceCommunicationException {
+		try {
+			setPermissions(params, null, true, token);
+		} catch (WorkspaceAuthorizationException e) {
+			throw new RuntimeException("This shouldn't happen", e);
+		}
+	}
+		
+	private void setPermissions(
+			final SetPermissionsParams params,
+			final WorkspaceUser user,
+			final boolean asAdmin,
+			final AuthToken token)
+			throws IOException, AuthException, CorruptWorkspaceDBException,
+				NoSuchWorkspaceException, WorkspaceAuthorizationException,
+				WorkspaceCommunicationException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
@@ -177,16 +215,16 @@ public class WorkspaceServerMethods {
 		if (params.getUsers().size() == 0) {
 			throw new IllegalArgumentException("Must provide at least one user");
 		}
-		final List<WorkspaceUser> users = validateUsers(params.getUsers());
+		final List<WorkspaceUser> users = validateUsers(params.getUsers(), token);
 		ws.setPermissions(user, wsi, users, p, asAdmin);
 	}
 	
-	public List<WorkspaceUser> validateUsers(final List<String> users)
+	public List<WorkspaceUser> validateUsers(final List<String> users, final AuthToken token)
 			throws IOException, AuthException {
 		final List<WorkspaceUser> wsusers = convertUsers(users);
 		final Map<String, Boolean> userok;
 		try {
-			userok = auth.isValidUserName(users);
+			userok = auth.isValidUserName(users, token);
 		} catch (UnknownHostException uhe) {
 			//message from UHE is only the host name
 			throw new AuthException(
@@ -202,10 +240,11 @@ public class WorkspaceServerMethods {
 		return wsusers;
 	}
 
-	public void setGlobalPermission(final SetGlobalPermissionsParams params,
-			WorkspaceUser user)
+	public void setGlobalPermission(
+			final SetGlobalPermissionsParams params,
+			final WorkspaceUser user)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceAuthorizationException, WorkspaceCommunicationException {
+				WorkspaceAuthorizationException, WorkspaceCommunicationException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());

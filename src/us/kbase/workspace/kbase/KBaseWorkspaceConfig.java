@@ -32,12 +32,6 @@ public class KBaseWorkspaceConfig {
 	private static final String KBASE_AUTH_URL = "auth-service-url";
 	private static final String GLOBUS_AUTH_URL = "globus-url";
 	
-
-	//credentials to use for user queries
-	private static final String KBASE_ADMIN_USER = "kbase-admin-user";
-	private static final String KBASE_ADMIN_PWD = "kbase-admin-pwd";
-	private static final String KBASE_ADMIN_TOKEN = "kbase-admin-token";
-
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE =
 			"ignore-handle-service";
@@ -57,9 +51,6 @@ public class KBaseWorkspaceConfig {
 	private final String db;
 	private final String backendSecret;
 	private final String backendToken;
-	private final String kbaseAdminUser;
-	private final String kbaseAdminPassword;
-	private final String kbaseAdminToken;
 	private final String tempDir;
 	private final String workspaceAdmin;
 	private final String mongoUser;
@@ -136,12 +127,6 @@ public class KBaseWorkspaceConfig {
 			backendToken = beToken;
 			backendSecret = null;
 		}
-		
-		final Creds c = getCreds(KBASE_ADMIN_TOKEN, KBASE_ADMIN_USER,
-				KBASE_ADMIN_PWD, config, paramErrors);
-		kbaseAdminUser = c.user;
-		kbaseAdminPassword = c.pwd;
-		kbaseAdminToken = c.token;
 		
 		workspaceAdmin = config.get(WSADMIN); //doesn't matter what's here
 		
@@ -312,18 +297,6 @@ public class KBaseWorkspaceConfig {
 		return backendToken;
 	}
 
-	public String getKbaseAdminUser() {
-		return kbaseAdminUser;
-	}
-
-	public String getKbaseAdminPassword() {
-		return kbaseAdminPassword;
-	}
-	
-	public String getKBaseAdminToken() {
-		return kbaseAdminToken;
-	}
-	
 	public String getTempDir() {
 		return tempDir;
 	}
