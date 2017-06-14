@@ -255,10 +255,10 @@ public class WorkspaceAdministration {
 		}
 		if (LIST_OBJECTS.equals(fn)) {
 			final ListObjectsParams params = getParams(cmd, ListObjectsParams.class);
-			final WorkspaceUser user = getUser(cmd); // TODO NOW change to nullable and list all objects requested if null, but require 1-1000 workspace ids
+			final WorkspaceUser user = getNullableUser(cmd);
 			final String ustr = user == null ? "adminuser" : "user: " + user.getUser();
 			getLogger().info(LIST_OBJECTS + " " + ustr);
-			return wsmeth.listObjects(params, user);
+			return wsmeth.listObjects(params, user, user == null);
 		}
 		if (DELETE_WS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);

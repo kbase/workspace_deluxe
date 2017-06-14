@@ -151,6 +151,7 @@ public class JSONRPCLayerTester {
 	}
 	
 	public static final String SAFE_TYPE = "SomeModule.AType-0.1";
+	public static final String SAFE_TYPE1 = "SomeModule.AType-1.0";
 	public static final String REF_TYPE ="RefSpec.Ref-0.1";
 	
 	public static final Map<String, String> MT_META =

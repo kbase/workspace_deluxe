@@ -960,7 +960,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> listObjects(ListObjectsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN list_objects
-		returnVal = wsmeth.listObjects(params, wsmeth.getUser(authPart));
+		returnVal = wsmeth.listObjects(params, wsmeth.getUser(authPart), false);
         //END list_objects
         return returnVal;
     }

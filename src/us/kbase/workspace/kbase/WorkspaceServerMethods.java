@@ -375,6 +375,9 @@ public class WorkspaceServerMethods {
 	/** List objects in one or more workspaces.
 	 * @param params the parameters determining which workspace objects will be listed.
 	 * @param user the user listing the objects, or null for an anonymous user.
+	 * @param asAdmin true to run the method as an admin. The user is ignored and all requested
+	 * data is returned without considering permissions. If true, at least one and no more than
+	 * 1000 workspaces must be specified for querying.
 	 * @return the objects information.
 	 * @throws ParseException if a date could not be parsed.
 	 * @throws MetadataException if the user supplied metadata was illegal.
@@ -388,7 +391,8 @@ public class WorkspaceServerMethods {
 	public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
 			Map<String,String>>> listObjects(
 					final ListObjectsParams params,
-					final WorkspaceUser user)
+					final WorkspaceUser user,
+					final boolean asAdmin)
 					throws ParseException, MetadataException, CorruptWorkspaceDBException,
 						NoSuchWorkspaceException, WorkspaceCommunicationException,
 						WorkspaceAuthorizationException {
@@ -406,18 +410,7 @@ public class WorkspaceServerMethods {
 		}
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
-		if (type == null && wsis.isEmpty()) {
-			throw new IllegalArgumentException(
-					"At least one filter must be specified.");
-		}
-		final ListObjectsParameters lop;
-		if (type == null) {
-			lop = new ListObjectsParameters(user, wsis);
-		} else if (wsis.isEmpty()) {
-			lop = new ListObjectsParameters(user, type);
-		} else {
-			lop = new ListObjectsParameters(user, wsis, type);
-		}
+		final ListObjectsParameters lop = getListObjectParameters(user, asAdmin, wsis, type);
 		final Date after = chooseDate(params.getAfter(),
 				params.getAfterEpoch(),
 				"Cannot specify both timestamp and epoch for after parameter");
@@ -442,5 +435,38 @@ public class WorkspaceServerMethods {
 			.withLimit(longToInt(params.getLimit(), "Limit", -1));
 		
 		return objInfoToTuple(ws.listObjects(lop), false);
+	}
+
+	private ListObjectsParameters getListObjectParameters(
+			final WorkspaceUser user,
+			final boolean asAdmin,
+			final List<WorkspaceIdentifier> wsis,
+			final TypeDefId type) {
+		if (type == null && wsis.isEmpty()) {
+			throw new IllegalArgumentException(
+					"At least one filter must be specified.");
+		}
+		final ListObjectsParameters lop;
+		if (type == null) {
+			if (asAdmin) {
+				lop = new ListObjectsParameters(wsis);
+			} else {
+				lop = new ListObjectsParameters(user, wsis);
+			}
+		} else if (wsis.isEmpty()) {
+			if (asAdmin) {
+				throw new IllegalArgumentException("When listing objects as an admin at least " +
+						"one target workspace must be provided");
+			} else {
+				lop = new ListObjectsParameters(user, type);
+			}
+		} else {
+			if (asAdmin) {
+				lop = new ListObjectsParameters(wsis, type);
+			} else {
+				lop = new ListObjectsParameters(user, wsis, type);
+			}
+		}
+		return lop;
 	}
 }

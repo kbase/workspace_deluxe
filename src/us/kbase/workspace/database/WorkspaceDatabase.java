@@ -247,6 +247,9 @@ public interface WorkspaceDatabase {
 	 * @param excludeGlobalRead exclude globally readable workspaces.
 	 * @param excludeDeletedWorkspaces exclude deleted workspaces. Deleted
 	 * workspaces in the supplied list are not affected.
+	 * @param includeProvidedWorkspace if true, include all the workspaces in the rwsis parameter
+	 * regardless of whether the user has access or not. Will include workspaces with the NONE
+	 * permission, unlike the default behavior.
 	 * @return a set of permissions to workspaces for a user.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
@@ -256,7 +259,8 @@ public interface WorkspaceDatabase {
 			Set<ResolvedWorkspaceID> rwsis,
 			Permission perm,
 			boolean excludeGlobalRead,
-			boolean excludeDeletedWorkspaces)
+			boolean excludeDeletedWorkspaces,
+			boolean includeProvidedWorkspaces)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Returns all users' permissions for a set of workspaces */

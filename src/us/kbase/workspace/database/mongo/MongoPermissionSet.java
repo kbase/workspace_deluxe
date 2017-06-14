@@ -47,6 +47,7 @@ public class MongoPermissionSet implements PermissionSet {
 	private final User globalUser;
 	private final Map<ResolvedWorkspaceID, Perms> perms = 
 			new HashMap<ResolvedWorkspaceID, Perms>();
+	private static final Perms NO_PERMS = new Perms(Permission.NONE, false);
 	
 	MongoPermissionSet(final WorkspaceUser user, final User globalUser) {
 		if (globalUser == null) {
@@ -69,14 +70,7 @@ public class MongoPermissionSet implements PermissionSet {
 	
 	void setPermission(final ResolvedMongoWSID rwsi, Permission userPerm,
 			final Permission globalPerm) {
-		if (rwsi == null) {
-			throw new IllegalArgumentException(
-					"Mongo workspace ID cannot be null");
-		}
-		if (perms.containsKey(rwsi)) {
-			throw new IllegalArgumentException("Permissions for workspace " + 
-					rwsi.getID() + " have already been set");
-		}
+		checkWS(rwsi);
 		if (userPerm == null) {
 			userPerm = Permission.NONE;
 		}
@@ -89,6 +83,21 @@ public class MongoPermissionSet implements PermissionSet {
 			throw new IllegalArgumentException("Cannot add unreadable workspace");
 		}
 		perms.put(rwsi, new Perms(userPerm, globalread));
+	}
+
+	private void checkWS(final ResolvedMongoWSID rwsi) {
+		if (rwsi == null) {
+			throw new IllegalArgumentException("Mongo workspace ID cannot be null");
+		}
+		if (perms.containsKey(rwsi)) {
+			throw new IllegalArgumentException("Permissions for workspace " + 
+					rwsi.getID() + " have already been set");
+		}
+	}
+	
+	void setUnreadable(final ResolvedMongoWSID rwsi) {
+		checkWS(rwsi);
+		perms.put(rwsi, NO_PERMS);
 	}
 	
 	@Override

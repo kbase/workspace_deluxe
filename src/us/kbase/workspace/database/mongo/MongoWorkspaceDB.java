@@ -1010,8 +1010,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public PermissionSet getPermissions(
 			final WorkspaceUser user, final Set<ResolvedWorkspaceID> rwsis)
 			throws WorkspaceCommunicationException, 
-			CorruptWorkspaceDBException {
-		return getPermissions(user, rwsis, Permission.READ, false, false);
+				CorruptWorkspaceDBException {
+		return getPermissions(user, rwsis, Permission.READ, false, false, false);
 	}
 
 	@Override
@@ -1021,7 +1021,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean excludeGlobalRead)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		return getPermissions(user, new HashSet<ResolvedWorkspaceID>(), perm, excludeGlobalRead,
-				false);
+				false, false);
 	}
 	
 	@Override
@@ -1030,7 +1030,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<ResolvedWorkspaceID> rwsis,
 			final Permission perm,
 			final boolean excludeGlobalRead,
-			final boolean excludeDeletedWorkspaces)
+			final boolean excludeDeletedWorkspaces,
+			final boolean includeProvidedWorkspaces)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (perm == null || Permission.NONE.equals(perm)) {
 			throw new IllegalArgumentException(
@@ -1056,6 +1057,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			globalperms = query.queryPermissions(rmwsis, allusers,
 					Permission.READ, excludeDeletedWorkspaces);
 		}
+		return buildPermissionSet(user, rmwsis, userperms, globalperms, includeProvidedWorkspaces);
+	}
+
+	private MongoPermissionSet buildPermissionSet(
+			final WorkspaceUser user,
+			final Set<ResolvedMongoWSID> rmwsis,
+			final Map<ResolvedMongoWSID, Map<User, Permission>> userperms,
+			final Map<ResolvedMongoWSID, Map<User, Permission>> globalperms,
+			final boolean includeProvidedWorkspaces) {
 		final MongoPermissionSet pset = new MongoPermissionSet(user, ALL_USERS);
 		for (final ResolvedMongoWSID rwsi: userperms.keySet()) {
 			Permission gl = globalperms.get(rwsi) == null ? Permission.NONE :
@@ -1072,6 +1082,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Permission gl = globalperms.get(rwsi).get(ALL_USERS);
 			if (gl != null && !gl.equals(Permission.NONE)) {
 				pset.setPermission(rwsi, Permission.NONE, gl);
+			}
+		}
+		if (includeProvidedWorkspaces) {
+			for (final ResolvedMongoWSID rwsid: rmwsis) {
+				if (!pset.hasWorkspace(rwsid)) {
+					pset.setUnreadable(rwsid);
+				}
 			}
 		}
 		return pset;
@@ -2363,7 +2380,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<Map<String, Object>> vers = query.queryCollection(
 				COL_WORKSPACE_VERS, q, FLDS_GETREFOBJ);
 		final Map<Map<String, Object>, ObjectInformation> voi = objutils.generateObjectInfo(
-				perms, vers, true, false, false, true);
+				perms, vers, true, false, false, true, false);
 		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> ret = new HashMap<>();
 		for (final ObjectIDResolvedWS o: objs) {
 			ret.put(o, new HashSet<ObjectInformation>());
