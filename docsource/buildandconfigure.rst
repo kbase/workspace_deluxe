@@ -283,23 +283,24 @@ To configure the database, run the initialization script, which will step the
 user through the process::
 
     ~/kb/workspace_deluxe$ cd administration/
-    ~/kb/workspace_deluxe/administration$ ./initialize.py 
+    ~/kb/workspace_deluxe/administration$ ./initialize.py
     Current configuration file:
     mongodb-host=localhost
     mongodb-database=workspace
     handle-service-url=
     handle-manager-url=
-    handle-manager-user=
-    handle-manager-pwd=
+    handle-manager-token=
+    auth-service-url=https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
+    globus-url=https://kbase.us/services/auth/api/legacy/KBase
     ws-admin=workspaceadmin
-    backend-secret=add_password_here
+    backend-token=
     port=7058
     server-threads=20
     min-memory=10000
     max-memory=15000
     temp-dir=ws_temp_dir
     mongodb-retry=0
-
+    
     Keep this configuration? [y - keep]/n - discard: n
     Discarding current local configuration.
     Please enter value for mongodb-host: localhost
@@ -307,28 +308,27 @@ user through the process::
     Does mongodb require authentication? [y - yes]/n - no: n
     Ok, commenting out authorization information.
     Attempting to connect to mongodb database "ws_db" at localhost... Connected.
-    Please enter the name of the mongodb type database: ws_types
+    Please enter the name of the mongodb type database: ws_db_types
     Choose a backend:  [s - shock]/g - gridFS: s
-    Please enter the url of the shock server: http://localhost:7078
-    Please enter the workspace shock username: kbasetest
-    Please enter the workspace shock password: [redacted]
+    Please enter the url of the shock server: http://localhost:7044
+    Please enter an authentication token for the workspace shock user account: [redacted]
+    Validating token with auth server at https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
     Successfully set DB configuration:
-    type_db=ws_types
+    type_db=ws_db_types
     backend=shock
-    shock_location=http://localhost:7078/
-    shock_user=kbasetest
-
+    shock_location=http://localhost:7044/
+    shock_user=gaprice
+    
     Saving local configuration file:
     mongodb-host=localhost
     mongodb-database=ws_db
-    kbase-admin-user=add user here
-    kbase-admin-pwd=add password here
     handle-service-url=
     handle-manager-url=
-    handle-manager-user=
-    handle-manager-pwd=
+    handle-manager-token=
+    auth-service-url=https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
+    globus-url=https://kbase.us/services/auth/api/legacy/KBase
     ws-admin=workspaceadmin
-    backend-secret=[redacted]
+    backend-token=[redacted]
     port=7058
     server-threads=20
     min-memory=10000
@@ -337,7 +337,7 @@ user through the process::
     mongodb-retry=0
     
     Configuration saved.
-
+    
 Note that the configuration script will only alter the ``mongodb-*`` and
 ``backend-secret`` parameters. Other parameters must be altered through
 manually editing ``deploy.cfg``.
