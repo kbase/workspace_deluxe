@@ -189,7 +189,7 @@
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
     <javac destdir="${classes}" includeantruntime="false"
-      target="1.7" source="1.7"
+      target="1.8" source="1.8"
       debug="true" classpathref="compile.classpath">
       <src path="${src}"/>
     </javac>
@@ -242,9 +242,9 @@
       destdir="${doc}" nodeprecated="false" nodeprecatedlist="false"
       noindex="false" nonavbar="false" notree="false"
       source="1.7" splitindex="true" use="true" version="true">
-      <link href="http://download.oracle.com/javase/7/docs/api/"/>
-      <link href="http://fasterxml.github.io/jackson-core/javadoc/2.2.0/"/>
-      <link href="http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/"/>
+      <link href="http://download.oracle.com/javase/8/docs/api/"/>
+      <link href="http://fasterxml.github.io/jackson-core/javadoc/2.2.3/"/>
+      <link href="http://fasterxml.github.io/jackson-databind/javadoc/2.2.3/"/>
       <fileset refid="client-jdoc-files"/>
       <fileset refid="sources-jdoc-files"/>
     </javadoc>
