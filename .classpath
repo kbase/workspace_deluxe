@@ -58,8 +58,8 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/shock/shock-client-0.0.14.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/HandleManagerClient-160803-08c8da3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/HandleServiceClient-160803-b9de699.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth/kbase-auth-0.4.2.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.0.24.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth/kbase-auth-0.4.4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
