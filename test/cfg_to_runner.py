@@ -53,9 +53,7 @@ def write_runner(out, ant_target):
 
 if __name__ == '__main__':
     d, _ = os.path.split(os.path.abspath(__file__))
-    fn = 'test.cfg'
-    if len(sys.argv) > 1:
-        fn = sys.argv[1]
+    fn = '../test.cfg'
     fn = os.path.join(d, fn)
     if not os.path.isfile(fn):
         print 'No such config file ' + fn + '. Halting.'

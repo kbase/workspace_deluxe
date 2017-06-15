@@ -108,7 +108,7 @@ test-client: test-service
 	$(ANT) test_client_import
 
 test-service:
-	test/cfg_to_runner.py $(TESTCFG)
+	test/cfg_to_runner.py
 	test/run_tests.sh
 
 ifndef WRAP_PERL_SCRIPT
@@ -116,7 +116,7 @@ test-scripts:
 	$(warning Warning! Scripts not tested because WRAP_PERL_SCRIPT makefile variable is not defined.)
 else
 test-scripts:
-	test/cfg_to_runner.py $(TESTCFG)
+	test/cfg_to_runner.py
 	test/run_script_tests.sh
 endif
 
