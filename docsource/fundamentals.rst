@@ -5,7 +5,7 @@ The workspace service (WSS) provides language independent storage and retrieval
 of typed objects (TOs) much like those from various object oriented programming
 languages (except, of course, no behavior is associated with WSS TOs). Before
 an object is stored in the WSS, it is checked against a type specification that
-describes the objects structure and contents. Failing this check will abort the
+describes the object's structure and contents. Failing this check will abort the
 storage operation.
 
 Typed object relationships

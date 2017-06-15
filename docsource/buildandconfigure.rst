@@ -173,13 +173,6 @@ globus-url
 
 **Description**: URL of the Globus Nexus v1 authentication API
 
-kbase-admin-user, kbase-admin-pwd, kbase-admin-token
-""""""""""""""""""""""""""""""""""""""""""""""""""""
-**Required**: token or (user and pwd)
-
-**Description**: Credentials for an administrator of the Globus kbase_users
-group. Either a user id / password combination or a token may be supplied.
-
 ignore-handle-service
 """""""""""""""""""""
 **Required**: If not using handles
@@ -200,12 +193,11 @@ handle-manager-url
 
 **Description**: The URL of the Handle Manager
 
-handle-manager-user, handle-manager-pwd, handle-manager-token
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-**Required**: If using handles. Then token or (user and pwd).
+handle-manager-token
+""""""""""""""""""""
+**Required**: If using handles
 
-**Description**: Credentials for the account approved for Handle Manager use.
-Either a user id / password combination or a token may be supplied.
+**Description**: Credentials for the account approved for Handle Manager use
 
 ws-admin
 """"""""
@@ -217,14 +209,13 @@ database and thus the administrator will change if this name is changed and the
 server restarted. This administrator cannot be removed by the ``administer``
 API call.
 
-backend-secret, backend-token
-"""""""""""""""""""""""""""""
+backend-token
+"""""""""""""
 **Required**: If using Shock as the file backend
 
-**Description**: Password or token for the file backend user account used by
+**Description**: Token for the file backend user account used by
 the WSS to communicate with the backend. The user name is stored in the
-database after being determined by the configuration script. Either a token
-or a password is required.
+database after being determined by the configuration script.
 
 port
 """"
@@ -292,25 +283,24 @@ To configure the database, run the initialization script, which will step the
 user through the process::
 
     ~/kb/workspace_deluxe$ cd administration/
-    ~/kb/workspace_deluxe/administration$ ./initialize.py 
+    ~/kb/workspace_deluxe/administration$ ./initialize.py
     Current configuration file:
     mongodb-host=localhost
     mongodb-database=workspace
-    kbase-admin-user=add user here
-    kbase-admin-pwd=add password here
     handle-service-url=
     handle-manager-url=
-    handle-manager-user=
-    handle-manager-pwd=
+    handle-manager-token=
+    auth-service-url=https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
+    globus-url=https://kbase.us/services/auth/api/legacy/KBase
     ws-admin=workspaceadmin
-    backend-secret=add_password_here
+    backend-token=
     port=7058
     server-threads=20
     min-memory=10000
     max-memory=15000
     temp-dir=ws_temp_dir
     mongodb-retry=0
-
+    
     Keep this configuration? [y - keep]/n - discard: n
     Discarding current local configuration.
     Please enter value for mongodb-host: localhost
@@ -318,28 +308,27 @@ user through the process::
     Does mongodb require authentication? [y - yes]/n - no: n
     Ok, commenting out authorization information.
     Attempting to connect to mongodb database "ws_db" at localhost... Connected.
-    Please enter the name of the mongodb type database: ws_types
+    Please enter the name of the mongodb type database: ws_db_types
     Choose a backend:  [s - shock]/g - gridFS: s
-    Please enter the url of the shock server: http://localhost:7078
-    Please enter the workspace shock username: kbasetest
-    Please enter the workspace shock password: [redacted]
+    Please enter the url of the shock server: http://localhost:7044
+    Please enter an authentication token for the workspace shock user account: [redacted]
+    Validating token with auth server at https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
     Successfully set DB configuration:
-    type_db=ws_types
+    type_db=ws_db_types
     backend=shock
-    shock_location=http://localhost:7078/
-    shock_user=kbasetest
-
+    shock_location=http://localhost:7044/
+    shock_user=gaprice
+    
     Saving local configuration file:
     mongodb-host=localhost
     mongodb-database=ws_db
-    kbase-admin-user=add user here
-    kbase-admin-pwd=add password here
     handle-service-url=
     handle-manager-url=
-    handle-manager-user=
-    handle-manager-pwd=
+    handle-manager-token=
+    auth-service-url=https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
+    globus-url=https://kbase.us/services/auth/api/legacy/KBase
     ws-admin=workspaceadmin
-    backend-secret=[redacted]
+    backend-token=[redacted]
     port=7058
     server-threads=20
     min-memory=10000
@@ -348,7 +337,7 @@ user through the process::
     mongodb-retry=0
     
     Configuration saved.
-
+    
 Note that the configuration script will only alter the ``mongodb-*`` and
 ``backend-secret`` parameters. Other parameters must be altered through
 manually editing ``deploy.cfg``.

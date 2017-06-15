@@ -34,7 +34,6 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.handlemngr.HandleMngrClient;
-import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
@@ -371,7 +370,7 @@ public class ArgUtils {
 			final List<WorkspaceObjectData> objects, 
 			final WorkspaceUser user,
 			final URL handleManagerURl,
-			final TokenProvider handleManagertoken,
+			final AuthToken handleManagertoken,
 			final boolean logObjects)
 			throws JsonParseException, IOException {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
@@ -431,7 +430,7 @@ public class ArgUtils {
 			final List<WorkspaceObjectData> objects,
 			final WorkspaceUser user,
 			final URL handleManagerURl,
-			final TokenProvider handleManagertoken,
+			final AuthToken handleManagertoken,
 			final boolean logObjects) {
 		final List<us.kbase.workspace.ObjectProvenanceInfo> ret =
 				new ArrayList<us.kbase.workspace.ObjectProvenanceInfo>();
@@ -487,33 +486,15 @@ public class ArgUtils {
 			final WorkspaceObjectData o,
 			final WorkspaceUser user,
 			final URL handleManagerURL,
-			final TokenProvider handleManagertoken) {
+			final AuthToken handleManagertoken) {
 		final List<String> handles = o.getExtractedIds().get(
 				HandleIdHandlerFactory.type.getType());
 		if (handles == null || handles.isEmpty()) {
 			return new HandleError(null, null);
 		}
-		final AuthToken token;
-		try {
-			token = handleManagertoken.getToken();
-		} catch (AuthException e) {
-			return new HandleError(
-					"Unable to contact the Handle Manager - " +
-							"couldn't refresh the workspace credentials: " +
-							e.getMessage(),
-					ExceptionUtils.getStackTrace(e));
-		} catch (IOException e) {
-			return new HandleError(
-					"Unable to contact the Handle Manager - " +
-							"an IO error occured while attempting to " + 
-							"refresh the workspace credentials: " +
-							e.getMessage(),
-					ExceptionUtils.getStackTrace(e));
-		}
-		
 		final HandleMngrClient hmc;
 		try {
-			hmc = new HandleMngrClient(handleManagerURL, token);
+			hmc = new HandleMngrClient(handleManagerURL, handleManagertoken);
 			if (handleManagerURL.getProtocol().equals("http")) {
 				hmc.setIsInsecureHttpConnectionAllowed(true);
 			}

@@ -107,14 +107,14 @@ public class WorkspaceAdministration {
 		return LoggerFactory.getLogger(WorkspaceAdministration.class);
 	}
 
-	public Object runCommand(AuthToken token, UObject command)
+	public Object runCommand(final AuthToken token, final UObject command)
 			throws TypeStorageException, IOException, AuthException,
-			WorkspaceCommunicationException, PreExistingWorkspaceException,
-			CorruptWorkspaceDBException, NoSuchObjectException,
-			NoSuchWorkspaceException, WorkspaceAuthorizationException,
-			ParseException, NoSuchPrivilegeException,
-			TypedObjectValidationException, TypedObjectSchemaException,
-			MetadataException {
+				WorkspaceCommunicationException, PreExistingWorkspaceException,
+				CorruptWorkspaceDBException, NoSuchObjectException,
+				NoSuchWorkspaceException, WorkspaceAuthorizationException,
+				ParseException, NoSuchPrivilegeException,
+				TypedObjectValidationException, TypedObjectSchemaException,
+				MetadataException {
 		final String putativeAdmin = token.getUserName();
 		if (!(internaladmins.contains(putativeAdmin) ||
 				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
@@ -157,53 +157,47 @@ public class WorkspaceAdministration {
 			return strAdm;
 		}
 		if (ADD_ADMIN.equals(fn)) {
-			final WorkspaceUser user = getUser(cmd);
+			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(ADD_ADMIN + " " + user.getUser());
 			ws.addAdmin(user);
 			return null;
 		}
 		if (REMOVE_ADMIN.equals(fn)) {
-			final WorkspaceUser user = getUser(cmd);
+			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(REMOVE_ADMIN + " " + user.getUser());
 			ws.removeAdmin(user);
 			return null;
 		}
 		if (SET_WORKSPACE_OWNER.equals(fn)) {
-			final SetWorkspaceOwnerParams params =
-					getParams(cmd, SetWorkspaceOwnerParams.class);
+			final SetWorkspaceOwnerParams params = getParams(cmd, SetWorkspaceOwnerParams.class);
 			
-			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
-							params.wsi);
+			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.wsi);
 			final WorkspaceInformation info = ws.setWorkspaceOwner(null, wsi,
-					params.new_user == null ? null :
-					getUser(params.new_user), Optional.fromNullable(params.new_name), true);
+					params.new_user == null ? null : getUser(params.new_user, token),
+					Optional.fromNullable(params.new_name), true);
 			getLogger().info(SET_WORKSPACE_OWNER + " " + info.getId() + " " +
 					info.getOwner().getUser());
 			return wsInfoToTuple(info);
 		}
 		if (CREATE_WORKSPACE.equals(fn)) {
-			final CreateWorkspaceParams params = getParams(cmd,
-					CreateWorkspaceParams.class);
+			final CreateWorkspaceParams params = getParams(cmd, CreateWorkspaceParams.class);
 			Tuple9<Long, String, String, String, Long, String, String, String,
-			Map<String, String>> ws =  wsmeth.createWorkspace(
-					params, getUser(cmd));
-			getLogger().info(CREATE_WORKSPACE + " " + ws.getE1() + " " +
-					ws.getE3());
+					Map<String, String>> ws =  wsmeth.createWorkspace(params, getUser(cmd, token));
+			getLogger().info(CREATE_WORKSPACE + " " + ws.getE1() + " " + ws.getE3());
 			return ws;
 		}
 		if (SET_PERMISSIONS.equals(fn)) {
-			final SetPermissionsParams params = getParams(cmd,
-					SetPermissionsParams.class);
+			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
 			//TODO FEATURE maybe set perms should return wsinfo so can provide ID vs. name
 			getLogger().info(SET_PERMISSIONS + " " + params.getId() + " " +
 					params.getWorkspace() + " " + params.getNewPermission() +
 					" " + StringUtils.join(params.getUsers(), " "));
-			wsmeth.setPermissions(params, null, true);
+			wsmeth.setPermissionsAsAdmin(params, token);
 			return null;
 		}
 		if (GET_PERMISSIONS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
-			final WorkspaceUser user = getNullableUser(cmd);
+			final WorkspaceUser user = getNullableUser(cmd, token);
 			//TODO FEATURE would be better if could always provide ID vs. name
 			getLogger().info(GET_PERMISSIONS + " " + params.getId() + " " +
 					params.getWorkspace() + (user == null ? "" : " " + user.getUser()));
@@ -231,31 +225,30 @@ public class WorkspaceAdministration {
 		if (SET_GLOBAL_PERMISSION.equals(fn)) {
 			final SetGlobalPermissionsParams params = getParams(cmd,
 					SetGlobalPermissionsParams.class);
-			final WorkspaceUser user = getUser(cmd);
+			final WorkspaceUser user = getUser(cmd, token);
 			//TODO FEATURE would be better if could provide ID vs. name
 			getLogger().info(SET_GLOBAL_PERMISSION + " " + params.getId() +
 					" " + params.getWorkspace() + " " +
 					params.getNewPermission() + " " + user.getUser());
-			wsmeth.setGlobalPermission(params, getUser(cmd));
+			wsmeth.setGlobalPermission(params, user);
 			return null;
 		}
 		if (SAVE_OBJECTS.equals(fn)) {
-			final SaveObjectsParams params = getParams(cmd,
-					SaveObjectsParams.class);
-			final WorkspaceUser user = getUser(cmd);
+			final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
+			final WorkspaceUser user = getUser(cmd, token);
 			//method has its own logging
 			getLogger().info(SAVE_OBJECTS + " " + user.getUser());
 			return wsmeth.saveObjects(params, user, token);
 		}
 		if (LIST_WORKSPACES.equals(fn)) {
 			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
-			final WorkspaceUser user = getUser(cmd);
+			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(LIST_WORKSPACES + " " + user.getUser());
 			return wsmeth.listWorkspaceInfo(params, user);
 		}
 		if (LIST_OBJECTS.equals(fn)) {
 			final ListObjectsParams params = getParams(cmd, ListObjectsParams.class);
-			final WorkspaceUser user = getNullableUser(cmd);
+			final WorkspaceUser user = getNullableUser(cmd, token);
 			final String ustr = user == null ? "adminuser" : "user: " + user.getUser();
 			getLogger().info(LIST_OBJECTS + " " + ustr);
 			return wsmeth.listObjects(params, user, user == null);
@@ -308,25 +301,25 @@ public class WorkspaceAdministration {
 		return ret;
 	}
 
-	private WorkspaceUser getUser(final AdminCommand cmd)
+	private WorkspaceUser getUser(final AdminCommand cmd, final AuthToken token)
 			throws IOException, AuthException {
-		return getUser((String) cmd.getUser());
+		return getUser((String) cmd.getUser(), token);
 	}
 
-	private WorkspaceUser getUser(final String user)
+	private WorkspaceUser getUser(final String user, final AuthToken token)
 			throws IOException, AuthException {
 		if (user == null) {
 			throw new NullPointerException("User may not be null");
 		}
-		return wsmeth.validateUsers(Arrays.asList(user)).get(0);
+		return wsmeth.validateUsers(Arrays.asList(user), token).get(0);
 	}
 	
-	private WorkspaceUser getNullableUser(final AdminCommand cmd)
+	private WorkspaceUser getNullableUser(final AdminCommand cmd, final AuthToken token)
 			throws IOException, AuthException {
 		if (cmd.getUser() == null) {
 			return null;
 		}
-		return wsmeth.validateUsers(Arrays.asList(cmd.getUser())).get(0);
+		return wsmeth.validateUsers(Arrays.asList(cmd.getUser()), token).get(0);
 	}
 	
 	private static class SetWorkspaceOwnerParams {

@@ -61,7 +61,6 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.TokenProvider;
 
 /* DO NOT run these tests on production workspaces.
  * WARNING: extensive changes have been made to the code. Read through the code
@@ -390,12 +389,8 @@ public class ConfigurationsAndThreads {
 			TypedObjectValidator val = new TypedObjectValidator(
 					new LocalTypeProvider(typeDefDB));
 			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-					new ShockBlobStore(
-							db.getCollection("shock_map"), shockURL,
-							new TokenProvider(
-									AuthService.login("baduser", "badpwd")
-									.getToken())),
-					tfm);
+					new ShockBlobStore(db.getCollection("shock_map"), shockURL,
+							AuthService.validateToken("foo")), tfm);
 			ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
 					.replace("-", ""); //in case it's E-X
@@ -455,7 +450,7 @@ public class ConfigurationsAndThreads {
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
 			this.sb = new ShockBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0).getCollection(
-					"temp_shock_node_map"), shockURL, new TokenProvider(token));
+					"temp_shock_node_map"), shockURL, token);
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);

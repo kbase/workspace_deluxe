@@ -78,7 +78,6 @@ import us.kbase.workspace.kbase.InitWorkspaceServer.InitReporter;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig;
-import us.kbase.workspace.kbase.TokenProvider;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 //END_HEADER
@@ -125,7 +124,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private final URL handleManagerUrl;
-	private final TokenProvider handleMgrToken;
+	private final AuthToken handleMgrToken;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
 			new ThreadLocal<List<WorkspaceObjectData>>();
@@ -232,7 +231,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		Types types = null;
 		WorkspaceAdministration wsadmin = null;
 		URL handleManagerUrl = null;
-		TokenProvider handleMgrToken = null;
+		AuthToken handleMgrToken = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
 			logErr("Workspace server configuration has errors - all calls will fail");
@@ -474,7 +473,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions", async=true)
     public void setPermissions(SetPermissionsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN set_permissions
-		wsmeth.setPermissions(params, wsmeth.getUser(authPart));
+		wsmeth.setPermissions(params, authPart);
         //END set_permissions
     }
 
