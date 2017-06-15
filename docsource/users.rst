@@ -16,7 +16,6 @@ User documentation
    lockpublish
    shockintegration
    limits
-   scripts
    userfaq
    knownuserbugs
    api
