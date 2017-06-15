@@ -194,7 +194,6 @@ public class JSONRPCLayerTester {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2, USER3), " "));
 		}
-		String p1 = TestCommon.getPwdNullIfToken(1);
 		
 		TestCommon.stfuLoggers();
 		mongo = new MongoController(TestCommon.getMongoExe(),
@@ -205,27 +204,24 @@ public class JSONRPCLayerTester {
 		final String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 		
-		SERVER1 = startupWorkspaceServer(mongohost,
-				mongoClient.getDB(DB_WS_NAME_1), DB_TYPE_NAME_1, t1, p1);
+		SERVER1 = startupWorkspaceServer(
+				mongohost, mongoClient.getDB(DB_WS_NAME_1), DB_TYPE_NAME_1);
 		int port = SERVER1.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port),
-					t1);
+			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), t1);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user1: " + USER1 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port),
-					t2);
+			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), t2);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user2: " + USER2 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
 		try {
-			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port),
-					t3);
+			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port), t3);
 		} catch (UnauthorizedException ue) {
 			throw new TestException("Unable to login with test.user3: " + USER3 +
 					"\nPlease check the credentials in the test configuration.", ue);
@@ -233,8 +229,8 @@ public class JSONRPCLayerTester {
 		AUTH_USER1 = auth.getUserFromToken(t1);
 		AUTH_USER2 = auth.getUserFromToken(t2);
 
-		SERVER2 = startupWorkspaceServer(mongohost,
-				mongoClient.getDB(DB_WS_NAME_2), DB_TYPE_NAME_2, t1, p1);
+		SERVER2 = startupWorkspaceServer(
+				mongohost, mongoClient.getDB(DB_WS_NAME_2), DB_TYPE_NAME_2);
 		CLIENT_FOR_SRV2 = new WorkspaceClient(new URL("http://localhost:" + 
 					SERVER2.getServerPort()), t2);
 		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
@@ -345,9 +341,7 @@ public class JSONRPCLayerTester {
 	private static WorkspaceServer startupWorkspaceServer(
 			final String mongohost,
 			final DB db,
-			final String typedb,
-			final AuthToken t,
-			final String pwd)
+			final String typedb)
 			throws InvalidHostException, UnknownHostException, IOException,
 			NoSuchFieldException, IllegalAccessException, Exception,
 			InterruptedException {
@@ -369,12 +363,6 @@ public class JSONRPCLayerTester {
 		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
-		if (pwd == null || pwd.isEmpty()) {
-			ws.add("kbase-admin-token", t.getToken());
-		} else {
-			ws.add("kbase-admin-user", USER1);
-			ws.add("kbase-admin-pwd", pwd);
-		}
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForJSONRPCLayerTester"));
 		ws.add("ignore-handle-service", "true");

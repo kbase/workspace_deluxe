@@ -55,7 +55,6 @@ public class HandleServiceController {
 			final MySQLController mysql,
 			final String shockHost,
 			final AuthToken shockAdminToken,
-			final String shockAdminPwd,
 			final String perl5lib,
 			final Path rootTempDir,
 			URL authServiceURL)
@@ -103,7 +102,7 @@ public class HandleServiceController {
 		handleManagerPort = findFreePort();
 		
 		File hmIniFile = createHandleManagerDeployCfg(
-				shockAdminToken, shockAdminPwd, handleManagerAllowedUser, authServiceURL);
+				shockAdminToken, handleManagerAllowedUser, authServiceURL);
 		
 		ProcessBuilder handlemgrpb = new ProcessBuilder(plackupExe, "--port",
 				"" + handleManagerPort, handleManagerPSGIpath)
@@ -120,7 +119,6 @@ public class HandleServiceController {
 
 	private File createHandleManagerDeployCfg(
 			final AuthToken shockAdminToken,
-			final String shockAdminPwd,
 			final String allowedUser,
 			final URL authServiceURL)
 			throws IOException {
@@ -135,12 +133,7 @@ public class HandleServiceController {
 		hm.add("service-host", "localhost");
 		hm.add("service-port", "" + handleManagerPort);
 		hm.add("auth-service-url", authServiceURL.toString());
-		if (shockAdminPwd == null || shockAdminPwd.isEmpty()) {
-			hm.add("admin-token", shockAdminToken.getToken());
-		} else {
-			hm.add("admin-login", shockAdminToken.getUserName());
-			hm.add("admin-password", shockAdminPwd);
-		}
+		hm.add("admin-token", shockAdminToken.getToken());
 		hm.add("allowed-users", allowedUser);
 		
 		ini.store(iniFile);
@@ -251,7 +244,6 @@ public class HandleServiceController {
 				mc,
 				"http://localhost:" + sc.getServerPort(),
 				null, //this will break the hm, need a token
-				System.getProperty("test.pwd1"),
 				"/kb/deployment/lib",
 				Paths.get("workspacetesttemp"),
 				new URL("http://foo.com"));

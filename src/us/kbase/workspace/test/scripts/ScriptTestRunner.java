@@ -176,8 +176,6 @@ public class ScriptTestRunner {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
 		}
-		String p3 = TestCommon.getPwdNullIfToken(3);
-		
 		TestCommon.stfuLoggers();
 		
 		String tempDir = Paths.get(TestCommon.getTempDir())
@@ -220,7 +218,6 @@ public class ScriptTestRunner {
 				MYSQL,
 				"http://localhost:" + SHOCK.getServerPort(),
 				t3,
-				p3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(tempDir),
 				TestCommon.getAuthUrl());
@@ -230,8 +227,7 @@ public class ScriptTestRunner {
 		
 		SERVER = startupWorkspaceServer(mongohost,
 				mongoClient.getDB("JSONRPCLayerHandleTester"), 
-				"JSONRPCLayerHandleTester_types",
-				u3, p3);
+				"JSONRPCLayerHandleTester_types", t3);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
 		try {
@@ -256,8 +252,7 @@ public class ScriptTestRunner {
 			String mongohost,
 			DB db,
 			String typedb,
-			String handleUser,
-			String handlePwd)
+			AuthToken token)
 			throws InvalidHostException, UnknownHostException, IOException,
 			NoSuchFieldException, IllegalAccessException, Exception,
 			InterruptedException {
@@ -283,8 +278,7 @@ public class ScriptTestRunner {
 				HANDLE.getHandleServerPort());
 		ws.add("handle-manager-url", "http://localhost:" +
 				HANDLE.getHandleManagerPort());
-		ws.add("handle-manager-user", handleUser);
-		ws.add("handle-manager-pwd", handlePwd);
+		ws.add("handle-manager-token", token.getToken());
 		ws.add("ws-admin", USER2);
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve(TMP_FILE_SUBDIR));
