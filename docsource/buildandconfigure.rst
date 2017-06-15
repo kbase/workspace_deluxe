@@ -209,14 +209,13 @@ database and thus the administrator will change if this name is changed and the
 server restarted. This administrator cannot be removed by the ``administer``
 API call.
 
-backend-secret, backend-token
-"""""""""""""""""""""""""""""
+backend-token
+"""""""""""""
 **Required**: If using Shock as the file backend
 
-**Description**: Password or token for the file backend user account used by
+**Description**: Token for the file backend user account used by
 the WSS to communicate with the backend. The user name is stored in the
-database after being determined by the configuration script. Either a token
-or a password is required.
+database after being determined by the configuration script.
 
 port
 """"

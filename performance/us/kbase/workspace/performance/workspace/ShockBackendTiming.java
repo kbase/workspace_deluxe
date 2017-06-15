@@ -14,7 +14,6 @@ import us.kbase.auth.AuthService;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
-import us.kbase.workspace.kbase.TokenProvider;
 
 public class ShockBackendTiming {
 
@@ -36,7 +35,7 @@ public class ShockBackendTiming {
 		
 		final BlobStore blob = new ShockBlobStore(
 				db.getCollection(InitWorkspaceServer.COL_SHOCK_NODES),
-				new URL(SHOCK_URL), new TokenProvider(AuthService.validateToken(token)));
+				new URL(SHOCK_URL), AuthService.validateToken(token));
 		final List<Long> shocktimes = getObjects(blob, md5s, BATCH_SIZE);
 		printStats(shocktimes);
 	}

@@ -78,7 +78,6 @@ import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.TokenProvider;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import ch.qos.logback.classic.Level;
@@ -294,9 +293,7 @@ public class WorkspaceTester {
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		final TokenProvider tp = new TokenProvider(t);
-		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"),
-				shockUrl, tp);
+		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"), shockUrl, t);
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
 	

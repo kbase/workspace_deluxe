@@ -46,13 +46,10 @@ import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 
-
 public class InitWorkspaceServer {
 	
-	//TODO AUTH LATER Remove Refreshing tokens.
 	//TODO TEST unittests
 	
-	private static final int TOKEN_REFRESH_INTERVAL_SEC = InitConstants.TOKEN_REFRESH_INTERVAL_SEC;
 	private static final String COL_SETTINGS = InitConstants.COL_SETTINGS;
 	public static final String COL_SHOCK_NODES = InitConstants.COL_SHOCK_NODES;
 	
@@ -140,7 +137,11 @@ public class InitWorkspaceServer {
 				rep);
 		
 		final ConfigurableAuthService auth = setUpAuthClient(cfg, rep);
-
+		if (rep.isFailed()) {
+			rep.reportFail("Server startup failed - all calls will error out.");
+			return null;
+		} 
+		
 		AuthToken handleMgrToken = null;
 		if (!cfg.ignoreHandleService()) {
 			handleMgrToken = getHandleToken(cfg, rep, auth);
@@ -236,33 +237,25 @@ public class InitWorkspaceServer {
 		return deps;
 	}
 	
-	private static TokenProvider getBackendToken(
+	private static AuthToken getBackendToken(
 			final String shockUserFromSettings,
 			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
-		//TODO AUTH LATER remove refreshing token
-		
+		if (cfg.getBackendToken() == null) {
+			throw new WorkspaceInitException(
+					"No token provided for Shock backend in configuration");
+		}
 		try {
-			if (cfg.getBackendToken() == null) {
-				@SuppressWarnings("deprecation")
-				final TokenProvider tp = new TokenProvider(
-						auth.getRefreshingToken(shockUserFromSettings,
-								cfg.getBackendSecret(),
-								TOKEN_REFRESH_INTERVAL_SEC),
-						auth.getConfig().getAuthLoginURL());
-				return tp;
-			} else {
-				final AuthToken t = auth.validateToken(cfg.getBackendToken());
-				if (!t.getUserName().equals(shockUserFromSettings)) {
-					throw new WorkspaceInitException(String.format(
-							"The username from the backend token, %s, does " +
-							"not match the backend username stored in the " +
-							"database, %s",
-							t.getUserName(), shockUserFromSettings));
-				}
-				return new TokenProvider(t);
+			final AuthToken t = auth.validateToken(cfg.getBackendToken());
+			if (!t.getUserName().equals(shockUserFromSettings)) {
+				throw new WorkspaceInitException(String.format(
+						"The username from the backend token, %s, does " +
+						"not match the backend username stored in the " +
+						"database, %s",
+						t.getUserName(), shockUserFromSettings));
 			}
+			return t;
 		} catch (AuthException e) {
 			throw new WorkspaceInitException(
 					"Couldn't log in with backend credentials for user " +
@@ -295,11 +288,9 @@ public class InitWorkspaceServer {
 						"Workspace database settings document has bad shock url: "
 						+ blobStoreURL, mue);
 			}
-			final TokenProvider token = getBackendToken(
-					shockUserFromSettings, cfg, auth);
+			final AuthToken token = getBackendToken(shockUserFromSettings, cfg, auth);
 			try {
-				return new ShockBlobStore(db.getCollection(COL_SHOCK_NODES),
-						shockurl, token);
+				return new ShockBlobStore(db.getCollection(COL_SHOCK_NODES), shockurl, token);
 			} catch (BlobStoreAuthorizationException e) {
 				throw new WorkspaceInitException(
 						"Not authorized to access the blob store backend database: "

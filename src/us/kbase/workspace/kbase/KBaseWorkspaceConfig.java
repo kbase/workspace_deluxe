@@ -11,7 +11,6 @@ import java.util.Map;
 
 public class KBaseWorkspaceConfig {
 	
-	//TODO AUTH LATER remove user names and pwds when auth2 server is up
 	//TODO TEST unit tests
 	
 	//required deploy parameters:
@@ -20,7 +19,6 @@ public class KBaseWorkspaceConfig {
 	//startup workspace admin user
 	private static final String WSADMIN = "ws-admin";
 	//required backend param:
-	private static final String BACKEND_SECRET = "backend-secret";
 	private static final String BACKEND_TOKEN = "backend-token";
 	//mongo db auth params:
 	private static final String MONGO_USER = "mongodb-user";
@@ -46,7 +44,6 @@ public class KBaseWorkspaceConfig {
 	
 	private final String host;
 	private final String db;
-	private final String backendSecret;
 	private final String backendToken;
 	private final String tempDir;
 	private final String workspaceAdmin;
@@ -73,8 +70,7 @@ public class KBaseWorkspaceConfig {
 		for (final String param: REQUIRED_PARAMS) {
 			final String paramval = config.get(param);
 			if (paramval == null || paramval.isEmpty()) {
-				paramErrors.add("Must provide param " + param +
-						" in config file");
+				paramErrors.add("Must provide param " + param + " in config file");
 			}
 		}
 		host = config.get(HOST);
@@ -85,20 +81,10 @@ public class KBaseWorkspaceConfig {
 		globusURL = getUrl(config, GLOBUS_AUTH_URL, paramErrors);
 		
 		final String beToken = config.get(BACKEND_TOKEN);
-		if (beToken == null || beToken.isEmpty()) {
+		if (beToken == null || beToken.trim().isEmpty()) {
 			backendToken = null;
-			final String beSecret = config.get(BACKEND_SECRET);
-			if (beSecret == null || beSecret.isEmpty()) {
-				paramErrors.add(String.format(
-						"Must provide either %s or %s in the config file",
-						BACKEND_TOKEN, BACKEND_SECRET));
-				backendSecret = null;
-			} else {
-				backendSecret = beSecret;
-			}
 		} else {
 			backendToken = beToken;
-			backendSecret = null;
 		}
 		
 		workspaceAdmin = config.get(WSADMIN); //doesn't matter what's here
@@ -227,10 +213,6 @@ public class KBaseWorkspaceConfig {
 	
 	public URL getGlobusURL() {
 		return globusURL;
-	}
-	
-	public String getBackendSecret() {
-		return backendSecret;
 	}
 	
 	public String getBackendToken() {
