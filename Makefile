@@ -7,26 +7,17 @@ WAR = WorkspaceService.war
 URL = https://kbase.us/services/ws/
 
 #End of user defined variables
+TARGET ?= /kb/deployment
 
 GITCOMMIT := $(shell git rev-parse --short HEAD)
 #TODO use --points-at when git 1.7.10 available 
 TAGS := $(shell git tag --contains $(GITCOMMIT))
 
-TOP_DIR = $(shell python -c "import os.path as p; print p.abspath('../..')")
-
-TOP_DIR_NAME = $(shell basename $(TOP_DIR))
-
-ifeq ($(TOP_DIR_NAME), dev_container)
-include $(TOP_DIR)/tools/Makefile.common
-endif
-
 DEPLOY_RUNTIME ?= /kb/runtime
 JAVA_HOME ?= $(DEPLOY_RUNTIME)/java
-TARGET ?= /kb/deployment
 SERVICE_DIR ?= $(TARGET)/services/$(SERVICE)
 GLASSFISH_HOME ?= $(DEPLOY_RUNTIME)/glassfish3
 SERVICE_USER ?= kbase
-TPAGE ?= $(DEPLOY_RUNTIME)/bin/tpage
 
 ASADMIN = $(GLASSFISH_HOME)/glassfish/bin/asadmin
 
@@ -36,13 +27,6 @@ ANT = ant
 .PHONY : test
 
 default: build-libs build-docs
-
-# fake deploy-cfg target for when this is run outside the dev_container
-deploy-cfg:
-
-ifeq ($(TOP_DIR_NAME), dev_container)
-	include $(TOP_DIR)/tools/Makefile.common.rules
-endif
 
 build-libs:
 	@#TODO at some point make dependent on compile - checked in for now.
@@ -102,7 +86,7 @@ deploy-docs:
 	mkdir -p $(SERVICE_DIR)/webroot
 	cp  -r docs/* $(SERVICE_DIR)/webroot/.
 
-deploy-service: deploy-service-libs deploy-service-scripts deploy-cfg
+deploy-service: deploy-service-libs deploy-service-scripts
 
 deploy-service-libs:
 	$(ANT) buildwar
