@@ -6,6 +6,7 @@ VERSION: 0.7.1 (Released TBD)
 
 BACKWARDS INCOMPATIBILITIES:
 
+* Building and running the service now requires Java 8.
 * The ``getPermissions`` administration command, like the ``get_permissions`` method, is now
   deprecated.
 

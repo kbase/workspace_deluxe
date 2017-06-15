@@ -46,7 +46,7 @@ assume that the KBase runtime or `dev_container` are installed.
 
 The build requires:
 
-Java JDK 7+ ([install instructions](https://www.digitalocean.com/community/tutorials/how-to-install-java-on-ubuntu-with-apt-get))
+Java JDK 8+
 
 [Java ant](http://ant.apache.org):
 

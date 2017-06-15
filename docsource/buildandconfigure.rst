@@ -111,7 +111,8 @@ Configuration
 
 There are two sources of configuration data for the WSS. The first is contained
 in the ``deploy.cfg`` file in the repository root (see
-:ref:`configurationparameters`). These parameters may change from invocation to
+:ref:`configurationparameters`). Copy the provided ``deploy.cfg.example`` file to ``deploy.cfg``
+to create the file. These parameters may change from invocation to
 invocation of the workspace service. The second is contained in the workspace
 MongoDB database itself and is set once by the configuration script (see
 :ref:`configurationscript`).
