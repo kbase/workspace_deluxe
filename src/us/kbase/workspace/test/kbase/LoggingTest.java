@@ -110,8 +110,6 @@ public class LoggingTest {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2), " "));
 		}
-		String p1 = TestCommon.getPwdNullIfToken(1);
-		
 //		WorkspaceTestCommon.stfuLoggers();
 		mongo = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
@@ -121,9 +119,7 @@ public class LoggingTest {
 		final String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 		
-		SERVER = startupWorkspaceServer(mongohost,
-				mongoClient.getDB(DB_WS_NAME), 
-				DB_TYPE_NAME, p1, t1);
+		SERVER = startupWorkspaceServer(mongohost, mongoClient.getDB(DB_WS_NAME), DB_TYPE_NAME);
 		SERVER.changeSyslogOutput(logout);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
@@ -184,9 +180,7 @@ public class LoggingTest {
 	private static WorkspaceServer startupWorkspaceServer(
 			final String mongohost,
 			final DB db,
-			final String typedb,
-			final String pwd,
-			final AuthToken t)
+			final String typedb)
 			throws Exception {
 		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
 		
@@ -206,12 +200,6 @@ public class LoggingTest {
 		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
-		if (pwd == null || pwd.isEmpty()) {
-			ws.add("kbase-admin-token", t.getToken());
-		} else {
-			ws.add("kbase-admin-user", USER1);
-			ws.add("kbase-admin-pwd", pwd);
-		}
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForLoggingTest"));
 		ws.add("ignore-handle-service", "true");

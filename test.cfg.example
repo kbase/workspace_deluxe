@@ -1,24 +1,17 @@
-# DO NOT CHECK CHANGES TO THIS FILE INTO GIT!
+# copy this file to test.cfg and fill in prior to running tests.
 
 [Workspacetest]
 
-# Three *different* KBase user accounts. Either a uid/pwd combination or a
-# token can be supplied. If both are supplied, the token is used.
-test.user1 =
-test.pwd1 =
+# Three tokens for *different* KBase user accounts.
 test.token1 =
-test.user2 =
-test.pwd2 =
 test.token2 =
-test.user3 =
-test.pwd3 =
 test.token3 =
 
 # The KBase authorization server url.
-test.auth.url = https://kbase.us/services/authorization
+test.auth.url = https://ci.kbase.us/services/auth/api/legacy/KBase
 
 # The Globus v1 authorization API url.
-test.globus.url = https://nexus.api.globusonline.org/
+test.globus.url = https://ci.kbase.us/services/auth/api/legacy/globus
 
 # Shock exe file location 
 test.shock.exe = /kb/deployment/bin/shock-server

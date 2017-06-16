@@ -14,7 +14,7 @@ mongodb-database = workspace
 #mongodb-pwd = add password here
 
 # The KBase authorization server url.
-auth-service-url = https://kbase.us/services/auth/api/legacy/KBase/
+auth-service-url = https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login
 
 # The Globus v1 authorization API url.
 globus-url = https://kbase.us/services/auth/api/legacy/globus/
