@@ -115,7 +115,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.6.0";
+	private static final String VER = "0.7.0";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -611,8 +611,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> saveObjects(SaveObjectsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN save_objects
-		returnVal = wsmeth.saveObjects(
-				params, wsmeth.getUser(authPart), authPart);
+		returnVal = wsmeth.saveObjects(params, wsmeth.getUser(authPart), authPart);
         //END save_objects
         return returnVal;
     }
@@ -1331,7 +1330,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.undelete_workspace", async=true)
     public void undeleteWorkspace(WorkspaceIdentity wsi, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN undelete_workspace
-    	final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
+		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		ws.setWorkspaceDeleted(wsmeth.getUser(authPart), wksp, false);
         //END undelete_workspace
     }

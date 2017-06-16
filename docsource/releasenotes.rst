@@ -1,6 +1,26 @@
 Workspace service release notes
 ===============================
 
+
+VERSION: 0.7.0 (Released 5/5/17)
+--------------------------------
+
+BACKWARDS INCOMPATIBILITIES:
+
+* It is now required to provide either an object name or an object id when saving an object.
+
+NEW FEATURES:
+
+* ``deleteWorkspace`` and ``undeleteWorkspace`` commands have been added to the administration
+  interface.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* When attempting to save an object with metadata containing a null key or value a more
+  illuminating error is thrown.
+* The administration script now uses the authentication service url set in the deploy.cfg file as
+  opposed to a hard coded url.
+
 VERSION: 0.6.0 (Released 12/9/16)
 ---------------------------------
 

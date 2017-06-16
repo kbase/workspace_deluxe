@@ -19,38 +19,25 @@ public class WorkspaceSaveObject {
 	private final Provenance provenance;
 	private final boolean hidden;
 	
-	public WorkspaceSaveObject(final ObjectIDNoWSNoVer id, final Object data,
-			final TypeDefId type, final WorkspaceUserMetadata userMeta,
-			final Provenance provenance, final boolean hidden) {
+	public WorkspaceSaveObject(
+			final ObjectIDNoWSNoVer id,
+			final Object data,
+			final TypeDefId type,
+			final WorkspaceUserMetadata userMeta,
+			final Provenance provenance,
+			final boolean hidden) {
 		if (id == null || data == null || type == null || provenance == null) {
 			throw new IllegalArgumentException(
-					"Neither id, provenance data, nor type may be null");
+					"Neither id, provenance, data, nor type may be null");
 		}
 		this.id = id;
 		this.data = transformData(data);
 		this.type = type;
-		this.userMeta = userMeta == null ?
-				new WorkspaceUserMetadata() : userMeta;
+		this.userMeta = userMeta == null ? new WorkspaceUserMetadata() : userMeta;
 		this.provenance = provenance;
 		this.hidden = hidden;
 	}
 	
-	public WorkspaceSaveObject(final Object data, final TypeDefId type,
-			final WorkspaceUserMetadata userMeta, final Provenance provenance,
-			final boolean hidden) {
-		if (data == null || type == null || provenance == null) {
-			throw new IllegalArgumentException(
-					"Neither data, provenance, nor type may be null");
-		}
-		this.id = null;
-		this.data = transformData(data);
-		this.type = type;
-		this.userMeta = userMeta == null ?
-				new WorkspaceUserMetadata() : userMeta;
-		this.provenance = provenance;
-		this.hidden = hidden;
-	}
-
 	private UObject transformData(final Object data) {
 		return data instanceof UObject ? (UObject)data : new UObject(data);
 	}
@@ -80,19 +67,14 @@ public class WorkspaceSaveObject {
 		return hidden;
 	}
 
-	public ResolvedSaveObject resolve(final ValidatedTypedObject rep,
+	public ResolvedSaveObject resolve(
+			final ValidatedTypedObject rep,
 			final Set<Reference> references,
 			final List<Reference> provenancerefs,
 			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
-		if (id == null) {
-			return new ResolvedSaveObject(this.userMeta, this.provenance,
-					this.hidden, rep, references, provenancerefs,
-					extractedIDs);
-		} else {
-			return new ResolvedSaveObject(this.id, this.userMeta,
-					this.provenance, this.hidden, rep, references,
-					provenancerefs, extractedIDs);
-		}
+		return new ResolvedSaveObject(this.id, this.userMeta,
+				this.provenance, this.hidden, rep, references,
+				provenancerefs, extractedIDs);
 	}
 	
 	@Override

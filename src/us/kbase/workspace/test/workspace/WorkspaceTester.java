@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -432,6 +433,27 @@ public class WorkspaceTester {
 		System.out.println(" ttl mem: " + Runtime.getRuntime().maxMemory());
 	}
 	
+	private static String lastRandomName = null;
+	
+	protected static String getLastRandomName() {
+		return lastRandomName;
+	}
+	
+	protected static ObjectIDNoWSNoVer getRandomName() {
+		lastRandomName = UUID.randomUUID().toString().replace("-", "");
+		return new ObjectIDNoWSNoVer(lastRandomName);
+	}
+	
+
+	protected List<WorkspaceSaveObject> setRandomNames(final List<WorkspaceSaveObject> data) {
+		final List<WorkspaceSaveObject> ret = new LinkedList<>();
+		for (final WorkspaceSaveObject d: data) {
+			ret.add(new WorkspaceSaveObject(getRandomName(), d.getData(), d.getType(),
+					d.getUserMeta(), d.getProvenance(), d.isHidden()));
+		}
+		return ret;
+	}
+	
 	protected IdReferenceHandlerSetFactory getIdFactory() {
 		return new IdReferenceHandlerSetFactory(100000);
 	}
@@ -681,13 +703,15 @@ public class WorkspaceTester {
 	
 	protected void failSave(
 			final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, 
+			final WorkspaceIdentifier wsi,
+			final ObjectIDNoWSNoVer id,
 			final Map<String, Object> data,
 			final TypeDefId type,
 			final Provenance prov,
 			final Exception exception)
 			throws Exception {
-		failSave(user, wsi, null, data, type, prov, exception);
+		final WorkspaceSaveObject wso = new WorkspaceSaveObject(id, data, type, null, prov, false);
+		failSave(user, wsi, Arrays.asList(wso), exception);
 	}
 	
 	protected void failSave(
@@ -699,15 +723,7 @@ public class WorkspaceTester {
 			final Provenance prov,
 			final Exception exception)
 			throws Exception {
-		
-		final WorkspaceSaveObject wso;
-		if (objectName == null) {
-			wso = new WorkspaceSaveObject(data, type, null, prov, false);
-		} else {
-			wso = new WorkspaceSaveObject(new ObjectIDNoWSNoVer(objectName),
-					data, type, null, prov, false);
-		}
-		failSave(user, wsi, Arrays.asList(wso), exception);
+		failSave(user, wsi, new ObjectIDNoWSNoVer(objectName), data, type, prov, exception);
 	}
 	
 	protected void failSave(
@@ -1535,13 +1551,7 @@ public class WorkspaceTester {
 			Map<String, String> meta, Map<String, ? extends Object> data,
 			TypeDefId type, String name, Provenance prov, boolean hide)
 			throws Exception {
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
-		if (name == null) {
-			return ws.saveObjects(user, wsi, Arrays.asList(
-					new WorkspaceSaveObject(data, type,
-							new WorkspaceUserMetadata(meta), prov, hide)), fac)
-					.get(0);
-		}
+		final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		return ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), data,
 						type, new WorkspaceUserMetadata(meta), prov, hide)), fac)
@@ -1623,6 +1633,33 @@ public class WorkspaceTester {
 		try {
 			ws.renameWorkspace(user, wsi, newname);
 			fail("expected rename to fail");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+	
+	protected void failDeleteWorkspace(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final boolean delete,
+			final Exception e) {
+		try {
+			ws.setWorkspaceDeleted(user, wsi, delete);
+			fail("Non owner deleted workspace");
+		} catch (Exception exp) {
+			assertExceptionCorrect(exp, e);
+		}
+	}
+	
+	protected void failDeleteWorkspaceAsAdmin(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final boolean delete,
+			final boolean asAdmin,
+			final Exception e) {
+		try {
+			ws.setWorkspaceDeleted(user, wsi, delete, asAdmin);
+			fail("Non owner deleted workspace");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
 		}

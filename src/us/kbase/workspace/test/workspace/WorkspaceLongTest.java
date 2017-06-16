@@ -29,6 +29,7 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
@@ -73,8 +74,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			//printMem("*** created object ***");
 			UObject data = new UObject(tempFile);
 			ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
-					new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
-					getIdFactory());
+					new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
+							new Provenance(userfoo), false)), getIdFactory());
 		} finally {
 			tempFile.delete();
 		}
@@ -168,17 +169,19 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		
 		Set<String> expectedRefs = new HashSet<String>();
 		for (int i = 1; i < 10001; i++) {
-			wsos.add(new WorkspaceSaveObject(torefdata, toRef, null, emptyprov, false));
+			wsos.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto" + i), torefdata,
+					toRef, null, emptyprov, false));
 			refs.put("tenKrefs/auto" + i, "expected " + i);
 			expectedRefs.add(wsid + "/" + i + "/" + 1);
 		}
 		ws.saveObjects(userfoo, wspace, wsos, getIdFactory());
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
-				new WorkspaceSaveObject(refdata, fromRef, null, emptyprov, false)),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("last"), refdata, fromRef, null,
+						emptyprov, false)),
 				getIdFactory());
 		
 		WorkspaceObjectData wod = ws.getObjects(userfoo,
-				Arrays.asList(new ObjectIdentifier(wspace, "auto10001")))
+				Arrays.asList(new ObjectIdentifier(wspace, "last")))
 				.get(0);
 		try {
 			@SuppressWarnings("unchecked")
@@ -225,8 +228,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			subdata.add(test);
 		}
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
-				getIdFactory());
+				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
+						new Provenance(userfoo), false)), getIdFactory());
 		final List<WorkspaceObjectData> objects = ws.getObjects(
 				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1)));
 		final Map<String, Object> newdata;
@@ -249,8 +252,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		data.clear();
 		data.put(test, "foo");
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
-				new WorkspaceSaveObject(data, SAFE_TYPE1, null, new Provenance(userfoo), false)),
-				getIdFactory());
+				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
+						new Provenance(userfoo), false)), getIdFactory());
 		final List<WorkspaceObjectData> objects2 = ws.getObjects(
 				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2)));
 		try {
@@ -272,8 +275,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 20000; i++) {
-			objs.add(new WorkspaceSaveObject(new HashMap<String, String>(), SAFE_TYPE1,
-				null, new Provenance(user), false));
+			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
+					SAFE_TYPE1, null, new Provenance(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		
@@ -326,7 +329,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		InputStream is = new GZIPInputStream(this.getClass().getResourceAsStream("long_test_get_object_subset.json.gz.properties"));
 		Map<String, Object> data = UObject.getMapper().readValue(is, Map.class);
 		List<WorkspaceSaveObject> wsos = new LinkedList<WorkspaceSaveObject>();		
-		wsos.add(new WorkspaceSaveObject(data, daType, null, emptyprov, false));
+		wsos.add(new WorkspaceSaveObject(getRandomName(), data, daType, null, emptyprov, false));
 		ObjectInformation oi = ws.saveObjects(userfoo, wspace, wsos, getIdFactory()).get(0);
 		/////////////////////////////////////////// get_objects /////////////////////////////////////////////
 		String contigId = null;
@@ -367,7 +370,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 					String val = "val" + (iter * 100 + i);
 					Map<String, String> emptyData = new TreeMap<String, String>();
 					emptyData.put("val", val);
-					wsos2.add(new WorkspaceSaveObject(emptyData, emptyType, null, emptyprov, false));
+					wsos2.add(new WorkspaceSaveObject(getRandomName(), emptyData, emptyType, null,
+							emptyprov, false));
 					savedObejcts++;
 				}
 				ws.saveObjects(userfoo, wspace, wsos2, getIdFactory());

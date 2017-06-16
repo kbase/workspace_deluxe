@@ -45,29 +45,6 @@ public class ResolvedSaveObject {
 		this.extractedIDs = extractedIDs;
 	}
 	
-	ResolvedSaveObject(
-			final WorkspaceUserMetadata userMeta,
-			final Provenance provenance,
-			final boolean hidden,
-			final ValidatedTypedObject rep,
-			final Set<Reference> refs,
-			final List<Reference> provenancerefs,
-			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
-		if (rep == null || refs == null || provenancerefs == null ||
-				extractedIDs == null || userMeta == null) {
-			throw new IllegalArgumentException(
-					"Neither rep, refs, extractedIDs, metadata nor provenancerefs may be null");
-		}
-		this.id = null;
-		this.userMeta = userMeta;
-		this.provenance = provenance;
-		this.hidden = hidden;
-		this.rep = rep;
-		this.refs = refs;
-		this.provrefs = provenancerefs;
-		this.extractedIDs = extractedIDs;
-	}
-	
 	public ObjectIDNoWSNoVer getObjectIdentifier() {
 		return id;
 	}
@@ -84,8 +61,7 @@ public class ResolvedSaveObject {
 	 * @throws MetadataException if the metadata exeeds the allowed size or a
 	 * key or value exceeds the allowed key/value size.
 	 */
-	public void addUserMeta(Map<String,String> newUserMeta)
-			throws MetadataException {
+	public void addUserMeta(Map<String,String> newUserMeta) throws MetadataException {
 		userMeta.addMetadata(newUserMeta);
 	}
 

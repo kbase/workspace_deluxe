@@ -373,8 +373,7 @@ public class HandleTest {
 			CLIENT1.saveObjects(new SaveObjectsParams()
 					.withWorkspace(workspace)
 					.withObjects(Arrays.asList(
-							new ObjectSaveData().withData(
-									new UObject(handleobj))
+							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo")
 							.withType(HANDLE_TYPE))));
 		} catch (ServerException se) {
 			System.out.println(se.getData());
@@ -395,7 +394,7 @@ public class HandleTest {
 		try {
 			CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace(workspace2)
 					.withObjects(Arrays.asList(
-							new ObjectSaveData().withData(new UObject(handleobj))
+							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo2")
 							.withType(HANDLE_TYPE))));
 			fail("saved object with bad handle");
 		} catch (ServerException e) {
@@ -468,7 +467,7 @@ public class HandleTest {
 		refdata.put("id", workspace + "/1");
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
 				.withObjects(Arrays.asList(
-						new ObjectSaveData().withData(new UObject(refdata))
+						new ObjectSaveData().withData(new UObject(refdata)).withName("foo3")
 						.withType(HANDLE_REF_TYPE))));
 		ret = CLIENT2.getReferencedObjects(Arrays.asList(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
 				.withObjid(2L), new ObjectIdentity().withWorkspace(workspace)
@@ -509,7 +508,7 @@ public class HandleTest {
 		handleobj.put("handles", handleList);
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
 				.withObjects(Arrays.asList(
-						new ObjectSaveData().withData(new UObject(handleobj))
+						new ObjectSaveData().withData(new UObject(handleobj)).withName("foo")
 						.withType(HANDLE_TYPE))));
 		
 		// check that there's only one user in the ACL
@@ -594,23 +593,25 @@ public class HandleTest {
 		try {
 			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
 					.withObjects(Arrays.asList(
-							new ObjectSaveData().withData(new UObject(handleobj))
+							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo")
 							.withType(HANDLE_TYPE))));
 			fail("saved null handle");
 		} catch (ServerException se) {
 			assertThat("correct exception msg", se.getMessage(),
-					is("Object #1 failed type checking:\ninstance type (null) not allowed for ID reference (allowed: [\"string\"]), at /handles/0"));
+					is("Object #1, foo failed type checking:\ninstance type (null) not allowed " +
+							"for ID reference (allowed: [\"string\"]), at /handles/0"));
 		}
 		handleList.set(0, "");
 		try {
 			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
 					.withObjects(Arrays.asList(
-							new ObjectSaveData().withData(new UObject(handleobj))
+							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo1")
 							.withType(HANDLE_TYPE))));
 			fail("saved bad handle");
 		} catch (ServerException se) {
 			assertThat("correct exception msg", se.getMessage(),
-					is("Object #1 failed type checking:\nUnparseable id  of type handle: IDs may not be null or the empty string at /handles/0"));
+					is("Object #1, foo1 failed type checking:\nUnparseable id  of type handle: " +
+							"IDs may not be null or the empty string at /handles/0"));
 		}
 	}
 	

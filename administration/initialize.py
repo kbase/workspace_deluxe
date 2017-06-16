@@ -32,6 +32,8 @@ MOHOST = MONGO + 'host'
 MOUSER = MONGO + 'user'
 MOPWD = MONGO + 'pwd'
 
+AUTH_URL = 'auth-service-url'
+
 SETTINGS = 'settings'
 SHOCKURL = 'shock_location'
 SHOCKUSER = 'shock_user'
@@ -100,10 +102,13 @@ def printDBsettings(settings):
         print(s + '=' + str(settings.get(s, None)))
 
 
-def _get_user(token):
+def _get_user(token, authurl):
+    if not authurl:
+        print('No auth url found in deploy file, using default')
+        authurl = 'https://kbase.us/services/authorization/Sessions/Login'
     d = {'token': token, 'fields': 'user_id'}
-    ret = requests.post(
-        'https://kbase.us/services/authorization/Sessions/Login', data=d)
+    print('Validating token with auth server at ' + authurl)
+    ret = requests.post(authurl, data=d)
     if not ret.ok:
         try:
             err = ret.json()
@@ -133,7 +138,7 @@ def configDB(wscfg, db):
         shocktoken = input('Please enter an authentication token for the ' +
                            'workspace shock user account: ')
         try:
-            shockuser = _get_user(shocktoken)
+            shockuser = _get_user(shocktoken, wscfg.get(AUTH_URL))
         except Exception as e:
             printerr('Token validation failed: ' + e.args[0])
         wscfg[BACKENDTOKEN] = shocktoken

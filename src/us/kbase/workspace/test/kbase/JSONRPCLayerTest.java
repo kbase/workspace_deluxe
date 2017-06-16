@@ -88,7 +88,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.6.0"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.0"));
 	}
 	
 	public void status() throws Exception {
@@ -321,7 +321,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Map<String, String> data = new HashMap<String, String>();
 		data.put("foo", "bar");
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
-		objects.add(new ObjectSaveData().withData(new UObject(data))
+		objects.add(new ObjectSaveData().withData(new UObject(data)).withName("fail")
 				.withType(SAFE_TYPE));
 		try {
 			CLIENT2.saveObjects(new SaveObjectsParams()
@@ -543,41 +543,65 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		saveBadObject(objects, "Unexpected arguments in ObjectSaveData: wugga");
 		
 		objects.set(0, new ObjectSaveData().withName("myname").withObjid(1L));
-		saveBadObject(objects, "Must provide one and only one of object name (was: myname) or id (was: 1)");
-		
-		objects.set(0, new ObjectSaveData().withName("myname+"));
-		saveBadObject(objects, "Illegal character in object name myname+: +");
-		
-		objects.set(0, new ObjectSaveData().withName(TEXT256));
-		saveBadObject(objects, "Object name exceeds the maximum length of 255");
-		
-		objects.set(0, new ObjectSaveData().withObjid(0L));
-		saveBadObject(objects, "Object id must be > 0");
+		saveBadObject(objects, "Object 1: Must provide one and only one of object name " +
+				"(was: myname) or id (was: 1)");
 		
 		objects.set(0, new ObjectSaveData());
-		saveBadObject(objects, "Object 1 has no data");
+		saveBadObject(objects, "Object 1: Must provide one and only one of object name " +
+				"(was: null) or id (was: null)");
 		
-		objects.add(0, new ObjectSaveData().withData(new UObject("foo")).withType("Foo.Bar"));
-		saveBadObject(objects, "Object 2 has no data");
+		objects.set(0, new ObjectSaveData().withName("myname+"));
+		saveBadObject(objects, "Object 1: Illegal character in object name myname+: +");
+		
+		objects.set(0, new ObjectSaveData().withName(TEXT256));
+		saveBadObject(objects, "Object 1: Object name exceeds the maximum length of 255");
+		
+		objects.set(0, new ObjectSaveData().withObjid(0L));
+		saveBadObject(objects, "Object 1: Object id must be > 0");
+		
+		objects.set(0, new ObjectSaveData().withName("foo"));
+		saveBadObject(objects, "Object 1, foo, has no data");
+		
+		objects.add(0, new ObjectSaveData().withData(new UObject("foo")).withType("Foo.Bar")
+				.withName("foo"));
+		saveBadObject(objects, "Object 2, foo, has no data");
 		
 		objects.clear();
-		objects.add(new ObjectSaveData().withData(new UObject("foo")));
-		saveBadObject(objects, "Object 1 type error: Typestring cannot be null or the empty string");
+		objects.add(new ObjectSaveData().withData(new UObject("foo")).withName("foo"));
+		saveBadObject(objects, "Object 1, foo, type error: Typestring cannot be null or the " +
+				"empty string");
 		
-		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType(null));
-		saveBadObject(objects, "Object 1 type error: Typestring cannot be null or the empty string");
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType(null)
+				.withName("foo"));
+		saveBadObject(objects, "Object 1, foo, type error: Typestring cannot be null or the " + 
+				"empty string");
 		
-		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType(""));
-		saveBadObject(objects, "Object 1 type error: Typestring cannot be null or the empty string");
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("")
+				.withName("foo"));
+		saveBadObject(objects, "Object 1, foo, type error: Typestring cannot be null or the " +
+				"empty string");
 		
-		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo"));
-		saveBadObject(objects, "Object 1 type error: Type foo could not be split into a module and name");
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo")
+				.withName("foo"));
+		saveBadObject(objects, "Object 1, foo, type error: Type foo could not be split into a " +
+				"module and name");
 		
-		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar-1.2.3"));
-		saveBadObject(objects, "Object 1 type error: Type version string 1.2.3 could not be parsed to a version");
-		
-		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
-				.withWorkspace("savebadpkg").withNewPermission("n"));
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar-1.2.3")
+				.withName("foo"));
+		saveBadObject(objects, "Object 1, foo, type error: Type version string 1.2.3 could not " +
+				"be parsed to a version");
+	}
+
+	protected void saveBadObject(List<ObjectSaveData> objects, String exception) 
+			throws Exception {
+		try {
+			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("savebadpkg")
+					.withObjects(objects));
+			fail("saved invalid data package");
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getLocalizedMessage(),
+					is(exception));
+		}
 	}
 	
 	@Test
@@ -588,7 +612,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		UObject data = new UObject(new HashMap<String, Object>());
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("provenance")
-				.withObjects(Arrays.asList(new ObjectSaveData().withData(data)
+				.withObjects(Arrays.asList(new ObjectSaveData().withData(data).withName("auto1")
 						.withType(SAFE_TYPE))));
 		
 		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("provenance")
@@ -640,7 +664,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					.withSubactions(sa)
 					.withTime("2013-04-26T12:52:06-0800"),
 				new ProvenanceAction());
-		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE)
+		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE).withName("auto2")
 				.withProvenance(prov));
 		CLIENT1.saveObjects(sop);
 		Map<String, String> refmap = new HashMap<String, String>();
@@ -654,8 +678,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		ProvenanceAction pa = new ProvenanceAction();
 		pa.setAdditionalProperties("foo", "bar");
-		objects.set(0, new ObjectSaveData().withData(data).withType(SAFE_TYPE)
+		objects.set(0, new ObjectSaveData().withData(data).withType(SAFE_TYPE).withName("auto3")
 				.withProvenance(Arrays.asList(pa)));
+		
 		try {
 			CLIENT1.saveObjects(sop);
 			fail("save w/ prov w/ extra fields");
@@ -668,7 +693,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		edusingle.setAdditionalProperties("baz", "bar");
 		pa = new ProvenanceAction().withExternalData(Arrays.asList(edusingle));
 		objects.set(0, new ObjectSaveData().withData(data).withType(SAFE_TYPE)
-				.withProvenance(Arrays.asList(pa)));
+				.withProvenance(Arrays.asList(pa)).withName("auto4"));
 		
 		try {
 			CLIENT1.saveObjects(sop);
@@ -768,7 +793,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE)
-				.withProvenance(prov));
+				.withProvenance(prov).withName(getRandomName()));
 		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace(workspace)
 				.withObjects(objects);
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> oi =
@@ -845,9 +870,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 		
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withMeta(meta).withType(SAFE_TYPE)); // will be "1"
+				.withMeta(meta).withType(SAFE_TYPE).withName("auto1")); // will be "1"
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withMeta(meta).withType(SAFE_TYPE)); // will be "2"
+				.withMeta(meta).withType(SAFE_TYPE).withName("auto2")); // will be "2"
 		objects.add(new ObjectSaveData().withData(new UObject(data2))
 				.withMeta(meta2).withType(SAFE_TYPE).withName("foo"));
 		
@@ -1134,7 +1159,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					  "\"id\":\"" + ("" + Math.random()).substring(2) + "\"," +
 					  "\"params\":[{\"id\":" + wsid + "," +
 								   "\"objects\": [{\"data\":%s," +
-												  "\"type\":\"" + SAFE_TYPE + "\"" +
+												  "\"type\":\"" + SAFE_TYPE + "\"," +
+												  "\"name\":\"%s\"" +
 												  "}" +
 												 "]" +
 								   "}" +
@@ -1147,7 +1173,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		for (String d: Arrays.asList(data, smallData)) {
 			for (Charset cs: csets) {
-				byte[] breq = String.format(req, d).getBytes(cs);
+				byte[] breq = String.format(req, d, getRandomName()).getBytes(cs);
 
 				HttpURLConnection conn = (HttpURLConnection) CLIENT1.getURL()
 						.openConnection();
@@ -1609,8 +1635,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("bigmeta")
 				.withObjects(objects);
-		objects.add(new ObjectSaveData().withData(new UObject(data)).withType(SAFE_TYPE));
-		objects.add(new ObjectSaveData().withData(new UObject(data))
+		objects.add(new ObjectSaveData().withData(new UObject(data)).withType(SAFE_TYPE)
+				.withName("foo"));
+		objects.add(new ObjectSaveData().withData(new UObject(data)).withName("bar")
 				.withType(SAFE_TYPE).withMeta(meta));
 		
 		try {
@@ -1618,7 +1645,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("called save with too large meta");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Object 2 save error: Metadata exceeds maximum of 16000B"));
+					is("Object 2, bar, save error: Metadata exceeds maximum of 16000B"));
 		}
 		try {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta2")
@@ -1667,7 +1694,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		objects.add(new ObjectSaveData().withData(new UObject(data))
 				.withType(SAFE_TYPE).withName("myname"));
 		objects.add(new ObjectSaveData().withData(new UObject(data))
-				.withType(SAFE_TYPE));
+				.withType(SAFE_TYPE).withName("auto2"));
 		CLIENT1.saveObjects(soc);
 		data.clear();
 		Set<String> expectedRefs = new HashSet<String>();
@@ -1680,7 +1707,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		data.put("ref4", wsid + "/2/1");
 		expectedRefs.add(wsid + "/2/1");
 		objects.clear();
-		objects.add(new ObjectSaveData().withData(new UObject(data))
+		objects.add(new ObjectSaveData().withData(new UObject(data)).withName("auto3")
 				.withType(type));
 		CLIENT1.saveObjects(soc);
 		ObjectData od = CLIENT1.getObjects2(new GetObjects2Params()
@@ -1736,13 +1763,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		
 		failGetObjects(loi, "Object myname cannot be accessed: Workspace delundel is deleted");
 
-		try {
-			CLIENT1.getWorkspaceDescription(wsi);
-			fail("got desc from deleted WS");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Workspace delundel is deleted"));
-		}
+		failGetWSDesc(wsi, "Workspace delundel is deleted");
+
 		CLIENT1.undeleteWorkspace(wsi);
 		checkData(loi, data);
 		assertThat("can get description", CLIENT1.getWorkspaceDescription(wsi),
@@ -2489,7 +2511,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		List<ObjectSaveData> objs = new LinkedList<ObjectSaveData>();
 		for (int i = 0; i < 200; i++) {
 			objs.add(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
-					.withType(SAFE_TYPE));
+					.withType(SAFE_TYPE).withName(getRandomName()));
 		}
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws)
 				.withObjects(objs));
@@ -2602,7 +2624,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws));
 		List<ObjectSaveData> objs = new LinkedList<ObjectSaveData>();
 		for (int i = 1; i < 11; i++) {
-			objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE));
+			objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE)
+					.withName(getRandomName()));
 		}
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws)
 				.withObjects(objs));
@@ -3304,8 +3327,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				list2ObjTuple11(((List<List<Object>>) CLIENT2.administer(new UObject(createData(
 				"{\"command\": \"saveObjects\"," +
 				" \"user\": \"" + USER1 + "\"," +
-				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
-						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}")))
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": " +
+						"[{\"type\": \"" + SAFE_TYPE + "\", \"data\": {\"foo\": 1}, " +
+						"\"name\": \"auto1\", \"meta\": {\"b\": 2}}]}}")))
 						.asInstance()).get(0));
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("foo", 1);
@@ -3322,14 +3346,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAdmin(CLIENT2, 
 				"{\"command\": \"saveObjects\"," +
 				" \"user\": null," +
-				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
-						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}",
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": " +
+						"[{\"type\": \"" + SAFE_TYPE + "\", \"data\": {\"foo\": 1}, " +
+						"\"name\": \"bar\", \"meta\": {\"b\": 2}}]}}",
 				 "User may not be null");
 		failAdmin(CLIENT2, 
 				"{\"command\": \"saveObjects\"," +
 				" \"user\": \"thisisalsonotavalidkbaseuserihope\"," +
-				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": [{\"type\": \""  +
-						SAFE_TYPE + "\", \"data\": {\"foo\": 1}, \"meta\": {\"b\": 2}}]}}",
+				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"objects\": " +
+						"[{\"type\": \"" + SAFE_TYPE + "\", \"data\": {\"foo\": 1}, " +
+						"\"name\": \"bar\", \"meta\": {\"b\": 2}}]}}",
 				"User thisisalsonotavalidkbaseuserihope is not a valid user");
 		failAdmin(CLIENT2, 
 				"{\"command\": \"saveObjects\"," +
@@ -3411,6 +3437,32 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 	private GetPermissionsMassParams gPM(WorkspaceIdentity ws) {
 		return new GetPermissionsMassParams().withWorkspaces(Arrays.asList(ws));
+	}
+	
+	@Test
+	public void adminDeleteWorkspace() throws Exception {
+		final WorkspaceIdentity delws = new WorkspaceIdentity().withWorkspace("delws");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(delws.getWorkspace())
+				.withDescription("foo"));
+		final WorkspaceIdentity delwsid = new WorkspaceIdentity().withId(1L);
+		final Map<String, Object> params = new HashMap<>();
+		params.put("command", "deleteWorkspace");
+		params.put("params", delws);
+		
+		//test delete
+		CLIENT2.administer(new UObject(params));
+		failGetWSDesc(delws, "Workspace delws is deleted");
+		params.put("params", new WorkspaceIdentity().withWorkspace("foo"));
+		failAdmin(CLIENT2, params, "No workspace with name foo exists");
+		
+		
+		//test undelete
+		params.put("command", "undeleteWorkspace");
+		params.put("params", delwsid);
+		CLIENT2.administer(new UObject(params));
+		assertThat("incorrect ws description", CLIENT1.getWorkspaceDescription(delws), is("foo"));
+		params.put("params", new WorkspaceIdentity().withId(2L));
+		failAdmin(CLIENT2, params, "No workspace with id 2 exists");
 	}
 	
 	@Test
