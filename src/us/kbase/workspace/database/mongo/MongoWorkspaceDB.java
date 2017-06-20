@@ -994,7 +994,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public Permission getPermission(final WorkspaceUser user, final ResolvedWorkspaceID wsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return getPermissions(user, wsi).getPermission(wsi, true);
+		return getPermissions(user, wsi).getPermission(wsi);
 	}
 	public PermissionSet getPermissions(final WorkspaceUser user, final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
@@ -1064,6 +1064,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<ResolvedWorkspaceID, Map<User, Permission>> globalperms,
 			final boolean includeProvidedWorkspaces) {
 		final Builder pset = PermissionSet.getBuilder(user, ALL_USERS);
+		final Set<ResolvedWorkspaceID> local = new HashSet<>(rmwsis);
 		for (final ResolvedWorkspaceID rwsi: userperms.keySet()) {
 			Permission gl = globalperms.get(rwsi) == null ? Permission.NONE :
 				globalperms.get(rwsi).get(ALL_USERS);
@@ -1072,6 +1073,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			p = p == null ? Permission.NONE : p;
 			if (!p.equals(Permission.NONE) || !gl.equals(Permission.NONE)) {
 				pset.setPermission(rwsi, p, gl);
+				local.remove(rwsi);
 			}
 			globalperms.remove(rwsi);
 		}
@@ -1079,10 +1081,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Permission gl = globalperms.get(rwsi).get(ALL_USERS);
 			if (gl != null && !gl.equals(Permission.NONE)) {
 				pset.setPermission(rwsi, Permission.NONE, gl);
+				local.remove(rwsi);
 			}
 		}
 		if (includeProvidedWorkspaces) {
-			for (final ResolvedWorkspaceID rwsid: rmwsis) {
+			for (final ResolvedWorkspaceID rwsid: local) {
 				if (!pset.hasWorkspace(rwsid)) {
 					pset.setUnreadable(rwsid);
 				}
@@ -1313,8 +1316,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),
 				(Date) wsdata.get(Fields.WS_MODDATE),
 				(Long) wsdata.get(Fields.WS_NUMOBJ),
-				perms.getUserPermission(rwsi, true),
-				perms.isWorldReadable(rwsi, true),
+				perms.getUserPermission(rwsi),
+				perms.isWorldReadable(rwsi),
 				(Boolean) wsdata.get(Fields.WS_LOCKED),
 				new UncheckedUserMetadata(metaMongoArrayToHash(meta)));
 	}

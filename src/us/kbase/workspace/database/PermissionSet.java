@@ -72,32 +72,18 @@ public class PermissionSet {
 		return globalUser;
 	}
 	
-	/** Returns the user's explicit permission for the workspace
+	/** Returns the user's explicit permission for the workspace.
+	 * Returns NONE if the workspace does not exist in this permission set.
 	 * @param rwsi the workspace of interest
-	 * @return the user's explicit permission
+	 * @return the user's explicit permission.
 	 */
 	public Permission getUserPermission(final ResolvedWorkspaceID rwsi) {
-		if (!perms.containsKey(rwsi)) {
-			throw new IllegalArgumentException(
-					"Workspace not registered: " + rwsi);
+		if (!hasWorkspace(rwsi)) {
+			return Permission.NONE;
 		}
 		return perms.get(rwsi).getPerm();
 	}
 
-	/** Returns the user's explicit permission for the workspace
-	 * @param rwsi the workspace of interest
-	 * @param returnNone return Permission.NONE as the permission if the
-	 * workspace does not exist in the permission set rather than throwing an
-	 * error
-	 * @return the user's explicit permission
-	 */
-	public Permission getUserPermission(final ResolvedWorkspaceID rwsi, final boolean returnNone) {
-		if (returnNone && !hasWorkspace(rwsi)) {
-			return Permission.NONE;
-		}
-		return getUserPermission(rwsi);
-	}
-	
 	/** Returns whether the user has a particular permission for the workspace
 	 * @param rwsi the workspace of interest
 	 * @param perm the permission to check
@@ -107,8 +93,9 @@ public class PermissionSet {
 		return getUserPermission(rwsi).compareTo(perm) > -1;
 	}
 	
-	/** Returns the user's overall permission for the workspace, taking
-	 * world-readability into account
+	/** Returns the user's overall permission for the workspace, taking world-readability into
+	 * account.
+	 * Returns NONE if the workspace does not exist in this permission set.
 	 * @param rwsi the workspace of interest
 	 * @return the user's overall permission
 	 */
@@ -121,21 +108,6 @@ public class PermissionSet {
 		}
 	}
 	
-	/** Returns the user's overall permission for the workspace, taking
-	 * world-readability into account
-	 * @param rwsi the workspace of interest
-	 * @param returnNone return Permission.NONE as the permission if the
-	 * workspace does not exist in the permission set rather than throwing an
-	 * error
-	 * @return the user's overall permission
-	 */
-	public Permission getPermission(final ResolvedWorkspaceID rwsi, final boolean returnNone) {
-		if (returnNone && !hasWorkspace(rwsi)) {
-			return Permission.NONE;
-		}
-		return getPermission(rwsi);
-	}
-
 	/** Returns whether the user has a particular permission for the workspace,
 	 * taking world-readability into account
 	 * @param rwsi the workspace of interest
@@ -146,32 +118,18 @@ public class PermissionSet {
 		return getPermission(rwsi).compareTo(perm) > -1;
 	}
 
-	/** Check whether a workspace is world readable or not. Throws an
-	 * exception if the workspace does not exist in the permission set.
+	/** Check whether a workspace is world readable or not.
+	 * Returns false if the workspace does not exist in this permission set.
 	 * @param rwsi the workspace to check.
 	 * @return true if the workspace is world-readable, false otherwise.
 	 */
 	public boolean isWorldReadable(final ResolvedWorkspaceID rwsi) {
-		if (!perms.containsKey(rwsi)) {
-			throw new IllegalArgumentException(
-					"Workspace not registered: " + rwsi);
+		if (!hasWorkspace(rwsi)) {
+			return false;
 		}
 		return perms.get(rwsi).isWorldReadable();
 	}
 	
-	/** Check whether a workspace is world readable or not.
-	 * @param rwsi the workspace to check.
-	 * @param returnFalse set true to return false rather than throw an
-	 * exception if the workspace does not exist in this permission set.
-	 * @return true if the workspace is world-readable, false otherwise.
-	 */
-	public boolean isWorldReadable(final ResolvedWorkspaceID rwsi, final boolean returnFalse) {
-		if (returnFalse && !hasWorkspace(rwsi)) {
-			return false;
-		}
-		return isWorldReadable(rwsi);
-	}
-
 	/** Returns the set of workspaces in this permission set. Workspaces may
 	 * be deleted.
 	 * @return the set of workspaces in this permission set.

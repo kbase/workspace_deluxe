@@ -139,7 +139,7 @@ public class PermissionsCheckerFactory {
 			final PermissionSet perms = db.getPermissions(user,
 					new HashSet<ResolvedWorkspaceID>(rwsis.values()));
 			for (final Entry<WorkspaceIdentifier, ResolvedWorkspaceID> e: rwsis.entrySet()) {
-				comparePermission(user, perm, perms.getPermission(e.getValue(), true),
+				comparePermission(user, perm, perms.getPermission(e.getValue()),
 						e.getKey(), operation);
 				checkLocked(perm, e.getValue());
 			}
@@ -325,7 +325,7 @@ public class PermissionsCheckerFactory {
 					throwInaccessibleObjectException(o, wae);
 				}
 				try {
-					comparePermission(user, perm, perms.getPermission(r, true), o, operation);
+					comparePermission(user, perm, perms.getPermission(r), o, operation);
 				} catch (WorkspaceAuthorizationException wae) {
 					if (ignoreMissingAndInaccessibleWorkspaces) {
 						continue;

@@ -440,7 +440,8 @@ public class WorkspaceTester {
 	}
 	
 	protected static ObjectIDNoWSNoVer getRandomName() {
-		lastRandomName = UUID.randomUUID().toString().replace("-", "");
+		//since UUIDs can be all #s
+		lastRandomName = "a" + UUID.randomUUID().toString().replace("-", "");
 		return new ObjectIDNoWSNoVer(lastRandomName);
 	}
 	

@@ -336,7 +336,7 @@ public class Workspace {
 		}
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
 		final Permission currentPerm = asAdmin ? Permission.ADMIN :
-				db.getPermissions(user, wsid).getUserPermission(wsid, true);
+				db.getPermissions(user, wsid).getUserPermission(wsid);
 		if (currentPerm.equals(Permission.NONE)) {
 			//always throw exception here
 			new PermissionsCheckerFactory(db, user).getWorkspaceChecker(wsi, Permission.ADMIN)
@@ -874,7 +874,7 @@ public class Workspace {
 		if (!params.asAdmin()) {
 			for (final WorkspaceIdentifier wsi: params.getWorkspaces()) {
 				PermissionsCheckerFactory.comparePermission(params.getUser(), Permission.READ,
-						pset.getPermission(rwsis.get(wsi), true), wsi, "read");
+						pset.getPermission(rwsis.get(wsi)), wsi, "read");
 			}
 		}
 		return db.getObjectInformation(params.generateParameters(pset));
