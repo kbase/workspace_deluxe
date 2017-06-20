@@ -9,8 +9,6 @@ public class CorruptWorkspaceDBException extends WorkspaceDBException {
 
 	private static final long serialVersionUID = 1L;
 	
-	public CorruptWorkspaceDBException() { super(); }
 	public CorruptWorkspaceDBException(String message) { super(message); }
 	public CorruptWorkspaceDBException(String message, Throwable cause) { super(message, cause); }
-	public CorruptWorkspaceDBException(Throwable cause) { super(cause); }
 }
