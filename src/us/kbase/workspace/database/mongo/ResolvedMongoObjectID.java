@@ -3,6 +3,7 @@ package us.kbase.workspace.database.mongo;
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 
 import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.ResolvedWorkspaceID;
 
 /**
  * name is resolved *at the time the database was accessed and is not further
@@ -27,13 +28,13 @@ public class ResolvedMongoObjectID {
 	//TODO TEST unit tests
 	//TODO JAVADOC
 	
-	private final ResolvedMongoWSID rwsi;
+	private final ResolvedWorkspaceID rwsi;
 	private final String name;
 	private final Long id;
 	private final Integer version;
 	private final boolean deleted;
 	
-	ResolvedMongoObjectID(final ResolvedMongoWSID rwsi, final String name,
+	ResolvedMongoObjectID(final ResolvedWorkspaceID rwsi, final String name,
 			final long id, final int version, final boolean deleted) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
@@ -52,7 +53,7 @@ public class ResolvedMongoObjectID {
 		this.deleted = deleted;
 	}
 
-	public ResolvedMongoWSID getWorkspaceIdentifier() {
+	public ResolvedWorkspaceID getWorkspaceIdentifier() {
 		return rwsi;
 	}
 

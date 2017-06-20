@@ -72,6 +72,7 @@ import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.UncheckedUserMetadata;
@@ -1250,7 +1251,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				Arrays.asList(new Reference(readid, 3, 1)));
 		
 		List<ObjectInformation> retinfo = new ArrayList<ObjectInformation>();
-		FakeResolvedWSID fakews = new FakeResolvedWSID(read.getName(), readid);
+		final ResolvedWorkspaceID fakews = new ResolvedWorkspaceID(
+				read.getName(), readid, false, false);
 		UncheckedUserMetadata umeta = new UncheckedUserMetadata(meta);
 		UncheckedUserMetadata umeta2 = new UncheckedUserMetadata(meta2);
 		retinfo.add(new ObjectInformation(1L, "auto3", SAFE_TYPE1.getTypeString(), new Date(), 2,
@@ -1325,7 +1327,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		checkObjectAndInfo(bar, Arrays.asList(new ObjectIdentifier(priv, 2)),
 				Arrays.asList(new ObjectInformation(2L, "auto3-1", SAFE_TYPE1.getTypeString(),
-						new Date(), 2, foo, new FakeResolvedWSID(priv.getName(), privid),
+						new Date(), 2, foo,
+						new ResolvedWorkspaceID(priv.getName(), privid, false, false),
 						chksum1, 23L, umeta2)), Arrays.asList(data));
 		
 		failSave(bar, priv, objects, new WorkspaceAuthorizationException("User bar may not write to workspace saveobj"));

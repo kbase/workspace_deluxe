@@ -60,6 +60,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedSaveObject;
+import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
@@ -79,7 +80,6 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
-import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
@@ -674,8 +674,7 @@ public class MongoInternalsTest {
 				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
-		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
-				wsi);
+		final ResolvedWorkspaceID rwsi = mwdb.resolveWorkspace(wsi);
 		mwdb.saveObjects(user, rwsi, Arrays.asList(rso));
 		
 		IDnPackage inp = startSaveObject(rwsi, rso, 3, at);
@@ -695,7 +694,7 @@ public class MongoInternalsTest {
 		
 		Method saveObjectVersion = mwdb.getClass()
 				.getDeclaredMethod("saveObjectVersion", WorkspaceUser.class,
-						ResolvedMongoWSID.class, long.class, ObjectSavePackage.class);
+						ResolvedWorkspaceID.class, long.class, ObjectSavePackage.class);
 		saveObjectVersion.setAccessible(true);
 		Field idid = r.getClass().getDeclaredField("id");
 		idid.setAccessible(true);
@@ -734,8 +733,7 @@ public class MongoInternalsTest {
 		
 		ResolvedSaveObject rso = createResolvedWSObj(objname, data, p, t, at);
 		ResolvedSaveObject rso2 = createResolvedWSObj(objname2, data, p, t, at);
-		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
-				wsi);
+		final ResolvedWorkspaceID rwsi = mwdb.resolveWorkspace(wsi);
 		
 		startSaveObject(rwsi, rso, 1, at);
 		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2)); //objid 2
@@ -761,8 +759,7 @@ public class MongoInternalsTest {
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi2.getName(), false, null,
 				new WorkspaceUserMetadata(), null);
-		ResolvedMongoWSID rwsi2 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
-				wsi2);
+		final ResolvedWorkspaceID rwsi2 = mwdb.resolveWorkspace(wsi2);
 		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
 				rso.getObjectIdentifier().getName());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
@@ -808,8 +805,7 @@ public class MongoInternalsTest {
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null,
 				new WorkspaceUserMetadata(), null);
-		ResolvedMongoWSID rwsi3 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
-				wsi3);
+		final ResolvedWorkspaceID rwsi3 = mwdb.resolveWorkspace(wsi3);
 		ObjectIDResolvedWS oidrw3_1 = new ObjectIDResolvedWS(rwsi3,
 				rso.getObjectIdentifier().getName());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
@@ -906,7 +902,7 @@ public class MongoInternalsTest {
 	}
 	
 	private IDnPackage startSaveObject(
-			final ResolvedMongoWSID rwsi,
+			final ResolvedWorkspaceID rwsi,
 			final ResolvedSaveObject rso,
 			final int objid,
 			final AbsoluteTypeDefId abstype) throws Exception {
@@ -921,12 +917,12 @@ public class MongoInternalsTest {
 		
 		Method incrementWorkspaceCounter = mwdb.getClass()
 				.getDeclaredMethod("incrementWorkspaceCounter",
-						ResolvedMongoWSID.class, long.class);
+						ResolvedWorkspaceID.class, long.class);
 		incrementWorkspaceCounter.setAccessible(true);
 		incrementWorkspaceCounter.invoke(mwdb, rwsi, 1);
 		
 		Method saveWorkspaceObject = mwdb.getClass()
-				.getDeclaredMethod("saveWorkspaceObject", ResolvedMongoWSID.class,
+				.getDeclaredMethod("saveWorkspaceObject", ResolvedWorkspaceID.class,
 						long.class, String.class);
 		saveWorkspaceObject.setAccessible(true);
 		String name = rso.getObjectIdentifier().getName();
