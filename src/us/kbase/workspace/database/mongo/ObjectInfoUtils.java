@@ -71,11 +71,6 @@ public class ObjectInfoUtils {
 		final int querysize = params.getLimit() < 100 ? 100 :
 				params.getLimit();
 		final PermissionSet pset = params.getPermissionSet();
-		if (!(pset instanceof MongoPermissionSet)) {
-			throw new IllegalArgumentException(
-					"Illegal implementation of PermissionSet: " +
-					pset.getClass().getName());
-		}
 		if (pset.isEmpty()) {
 			return new LinkedList<ObjectInformation>();
 		}

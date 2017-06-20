@@ -1060,13 +1060,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return buildPermissionSet(user, rmwsis, userperms, globalperms, includeProvidedWorkspaces);
 	}
 
-	private MongoPermissionSet buildPermissionSet(
+	private PermissionSet buildPermissionSet(
 			final WorkspaceUser user,
 			final Set<ResolvedMongoWSID> rmwsis,
 			final Map<ResolvedMongoWSID, Map<User, Permission>> userperms,
 			final Map<ResolvedMongoWSID, Map<User, Permission>> globalperms,
 			final boolean includeProvidedWorkspaces) {
-		final MongoPermissionSet pset = new MongoPermissionSet(user, ALL_USERS);
+		final PermissionSet pset = new PermissionSet(user, ALL_USERS);
 		for (final ResolvedMongoWSID rwsi: userperms.keySet()) {
 			Permission gl = globalperms.get(rwsi) == null ? Permission.NONE :
 				globalperms.get(rwsi).get(ALL_USERS);
@@ -1229,10 +1229,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean showDeleted, 
 			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		if (!(pset instanceof MongoPermissionSet)) {
-			throw new IllegalArgumentException("Illegal implementation of PermissionSet: " +
-					pset.getClass().getName());
-		}
 		final Map<Long, ResolvedMongoWSID> rwsis = new HashMap<Long, ResolvedMongoWSID>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
 			rwsis.put(rwsi.getID(), query.convertResolvedWSID(rwsi));
