@@ -49,6 +49,7 @@ import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.PermissionSet.Builder;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
@@ -1062,7 +1063,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<ResolvedWorkspaceID, Map<User, Permission>> userperms,
 			final Map<ResolvedWorkspaceID, Map<User, Permission>> globalperms,
 			final boolean includeProvidedWorkspaces) {
-		final PermissionSet pset = new PermissionSet(user, ALL_USERS);
+		final Builder pset = PermissionSet.getBuilder(user, ALL_USERS);
 		for (final ResolvedWorkspaceID rwsi: userperms.keySet()) {
 			Permission gl = globalperms.get(rwsi) == null ? Permission.NONE :
 				globalperms.get(rwsi).get(ALL_USERS);
@@ -1087,7 +1088,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 			}
 		}
-		return pset;
+		return pset.build();
 	}
 	
 	private static String getWSErrorId(final WorkspaceIdentifier wsi) {

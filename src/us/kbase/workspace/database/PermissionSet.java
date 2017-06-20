@@ -16,7 +16,6 @@ import java.util.Set;
 public class PermissionSet {
 	
 	//TODO NOW TEST unit tests 
-	//TODO NOW builder
 	
 	private static class Perms {
 		private final Permission perm;
@@ -48,21 +47,15 @@ public class PermissionSet {
 	}
 	private final WorkspaceUser user;
 	private final User globalUser;
-	private final Map<ResolvedWorkspaceID, Perms> perms = 
-			new HashMap<ResolvedWorkspaceID, Perms>();
-	private static final Perms NO_PERMS = new Perms(Permission.NONE, false);
+	private final Map<ResolvedWorkspaceID, Perms> perms;
 	
-	/** Create a new permission set.
-	 * @param user the user to whom the permissions apply.
-	 * @param globalUser the name of the global user, usually '*'.
-	 */
-	public PermissionSet(final WorkspaceUser user, final User globalUser) {
-		if (globalUser == null) {
-			throw new IllegalArgumentException(
-					"Global user cannot be null");
-		}
+	private PermissionSet(
+			final WorkspaceUser user,
+			final User globalUser,
+			final Map<ResolvedWorkspaceID, Perms> perms) {
 		this.user = user;
 		this.globalUser = globalUser;
+		this.perms = perms;
 	}
 
 	/** Get the user for whom the permissions apply.
@@ -202,51 +195,101 @@ public class PermissionSet {
 		return perms.isEmpty();
 	}
 	
-	/** Add a workspace to this permission set.
-	 * @param rwsi the workspace.
-	 * @param userPerm the user's permission for the workspace.
-	 * @param globalPerm the global permission for the workspace, either READ or NONE.
-	 */
-	public void setPermission(
-			final ResolvedWorkspaceID rwsi,
-			Permission userPerm,
-			final Permission globalPerm) {
-		checkWS(rwsi);
-		if (userPerm == null) {
-			userPerm = Permission.NONE;
-		}
-		if (globalPerm != null && Permission.READ.compareTo(globalPerm) < 0) {
-			throw new IllegalArgumentException(
-					"Illegal global permission in database: " + globalPerm);
-		}
-		final boolean globalread = Permission.READ.equals(globalPerm);
-		if (userPerm.equals(Permission.NONE) && !globalread) {
-			throw new IllegalArgumentException("Cannot add unreadable workspace");
-		}
-		perms.put(rwsi, new Perms(userPerm, globalread));
-	}
-
-	private void checkWS(final ResolvedWorkspaceID rwsi) {
-		if (rwsi == null) {
-			throw new IllegalArgumentException("Mongo workspace ID cannot be null");
-		}
-		if (perms.containsKey(rwsi)) {
-			throw new IllegalArgumentException("Permissions for workspace " + 
-					rwsi.getID() + " have already been set");
-		}
-	}
-	
-	/** Add an unreadable workspace to this Permission set.
-	 * @param rwsi
-	 */
-	public void setUnreadable(final ResolvedWorkspaceID rwsi) {
-		checkWS(rwsi);
-		perms.put(rwsi, NO_PERMS);
-	}
-
 	@Override
 	public String toString() {
 		return "MongoPermissionSet [user=" + user + ", globalUser="
 				+ globalUser + ", perms=" + perms + "]";
+	}
+	
+	/** Create a new permission set builder.
+	 * @param user the user to whom the permissions apply.
+	 * @param globalUser the name of the global user, usually '*'.
+	 * @return a new builder.
+	 */
+	public static Builder getBuilder(final WorkspaceUser user, final User globalUser) {
+		return new Builder(user, globalUser);
+	}
+	
+	/** A permission set builder.
+	 * @author gaprice@lbl.gov
+	 *
+	 */
+	public static class Builder {
+		
+		private final WorkspaceUser user;
+		private final User globalUser;
+		private final Map<ResolvedWorkspaceID, Perms> perms = new HashMap<>();
+		private static final Perms NO_PERMS = new Perms(Permission.NONE, false);
+		
+		private Builder(final WorkspaceUser user, final User globalUser) {
+			if (globalUser == null) {
+				throw new IllegalArgumentException(
+						"Global user cannot be null");
+			}
+			this.user = user;
+			this.globalUser = globalUser;
+		}
+	
+	
+		/** Add a workspace to this permission set.
+		 * @param rwsi the workspace.
+		 * @param userPerm the user's permission for the workspace.
+		 * @param globalPerm the global permission for the workspace, either READ or NONE.
+		 * @return this builder.
+		 */
+		public Builder setPermission(
+				final ResolvedWorkspaceID rwsi,
+				Permission userPerm,
+				final Permission globalPerm) {
+			checkWS(rwsi);
+			if (userPerm == null) {
+				userPerm = Permission.NONE;
+			}
+			if (globalPerm != null && Permission.READ.compareTo(globalPerm) < 0) {
+				throw new IllegalArgumentException(
+						"Illegal global permission in database: " + globalPerm);
+			}
+			final boolean globalread = Permission.READ.equals(globalPerm);
+			if (userPerm.equals(Permission.NONE) && !globalread) {
+				throw new IllegalArgumentException("Cannot add unreadable workspace");
+			}
+			perms.put(rwsi, new Perms(userPerm, globalread));
+			return this;
+		}
+	
+		private void checkWS(final ResolvedWorkspaceID rwsi) {
+			if (rwsi == null) {
+				throw new IllegalArgumentException("Mongo workspace ID cannot be null");
+			}
+			if (perms.containsKey(rwsi)) {
+				throw new IllegalArgumentException("Permissions for workspace " + 
+						rwsi.getID() + " have already been set");
+			}
+		}
+		
+		/** Add an unreadable workspace to this permission set.
+		 * @param rwsi
+		 * @return this builder.
+		 */
+		public Builder setUnreadable(final ResolvedWorkspaceID rwsi) {
+			checkWS(rwsi);
+			perms.put(rwsi, NO_PERMS);
+			return this;
+		}
+		
+		/** Returns true if a particular workspace is in this permission set builder.
+		 * @param ws the workspace to check.
+		 * @return true if the workspace exists in this permission set builder.
+		 */
+		public boolean hasWorkspace(final ResolvedWorkspaceID ws) {
+			return perms.containsKey(ws);
+		}
+		
+		/** Build the permissions set.
+		 * @return the new permissions set.
+		 */
+		public PermissionSet build() {
+			return new PermissionSet(user, globalUser, perms);
+		}
 	}
 }
