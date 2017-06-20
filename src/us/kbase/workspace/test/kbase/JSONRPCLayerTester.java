@@ -1459,7 +1459,7 @@ public class JSONRPCLayerTester {
 		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> t: tpl) {
 			s.add(new ObjectInformation(t.getE1(), t.getE2(), t.getE3(), DATE_FORMAT.parse(t.getE4()),
 					t.getE5().intValue(), new WorkspaceUser(t.getE6()), 
-					new ResolvedWorkspaceID(t.getE8(), t.getE7(), false, false), t.getE9(),
+					new ResolvedWorkspaceID(t.getE7(), t.getE8(), false, false), t.getE9(),
 					t.getE10(), new UncheckedUserMetadata(t.getE11())));
 		}
 		return s;

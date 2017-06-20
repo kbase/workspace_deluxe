@@ -16,7 +16,6 @@ import static us.kbase.common.utils.StringUtils.checkString;
  */
 public class ResolvedWorkspaceID {
 	
-	//TODO NOW TEST
 	//TODO CODE merge with workspace info, no need for two classes for essentially the same thing
 	
 	private final long id;
@@ -25,14 +24,14 @@ public class ResolvedWorkspaceID {
 	private final boolean deleted;
 	
 	/** Create a resolved workspace ID.
-	 * @param name the name of the workspace.
 	 * @param id the workspace ID.
+	 * @param name the name of the workspace.
 	 * @param locked true if the workspace is locked.
 	 * @param deleted true if the workspace is deleted.
 	 */
 	public ResolvedWorkspaceID(
-			final String name, //TODO NOW move down one
 			final long id,
+			final String name,
 			final boolean locked,
 			final boolean deleted) {
 		if (id < 1) {

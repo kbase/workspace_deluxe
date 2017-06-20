@@ -61,5 +61,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.0.24.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth/kbase-auth-0.4.4.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/equalsverifier/equalsverifier-2.2.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

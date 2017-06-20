@@ -28,7 +28,7 @@ public class ObjectInformationTest {
 		final Date d = new Date();
 		final Map<String, String> meta = new HashMap<>();
 		final ObjectInformation oi = new ObjectInformation(1L, "foo", "type", d, 3,
-				new WorkspaceUser("bar"), new ResolvedWorkspaceID("whee", 4, false, false),
+				new WorkspaceUser("bar"), new ResolvedWorkspaceID(4, "whee", false, false),
 				"sum", 5L,
 				new UncheckedUserMetadata(meta));
 		assertThat("incorrect obj id", oi.getObjectId(), is(1L));
@@ -50,7 +50,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructID() {
 		failConstruct(0, "foo", "foo", new Date(), 1, new WorkspaceUser("foo"),
-				new ResolvedWorkspaceID("foo", 1, false, false), "foo", 1,
+				new ResolvedWorkspaceID(1, "foo", false, false), "foo", 1,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new IllegalArgumentException("id must be > 0"));
 	}
@@ -58,7 +58,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructNameNull() {
 		failConstruct(1, null, "foo", new Date(), 1, new WorkspaceUser("foo"),
-				new ResolvedWorkspaceID("foo", 1, false, false), "foo", 1,
+				new ResolvedWorkspaceID(1, "foo", false, false), "foo", 1,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new IllegalArgumentException("name is null or empty"));
 	}
@@ -66,7 +66,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructNameEmpty() {
 		failConstruct(1, "", "foo", new Date(), 1, new WorkspaceUser("foo"),
-				new ResolvedWorkspaceID("foo", 1, false, false), "foo", 1,
+				new ResolvedWorkspaceID(1, "foo", false, false), "foo", 1,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new IllegalArgumentException("name is null or empty"));
 	}
@@ -74,7 +74,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructTypeNull() {
 		failConstruct(1, "foo", null, new Date(), 1, new WorkspaceUser("foo"),
-				new ResolvedWorkspaceID("foo", 1, false, false), "foo", 1,
+				new ResolvedWorkspaceID(1, "foo", false, false), "foo", 1,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new IllegalArgumentException("typeString is null or empty"));
 	}
@@ -82,7 +82,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructTypeEmpty() {
 		failConstruct(1, "foo", "", new Date(), 1, new WorkspaceUser("foo"),
-				new ResolvedWorkspaceID("foo", 1, false, false), "foo", 1,
+				new ResolvedWorkspaceID(1, "foo", false, false), "foo", 1,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new IllegalArgumentException("typeString is null or empty"));
 	}
@@ -90,7 +90,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructDate() {
 		failConstruct(1, "foo", "foo", null, 1, new WorkspaceUser("foo"),
-				new ResolvedWorkspaceID("foo", 1, false, false), "foo", 1,
+				new ResolvedWorkspaceID(1, "foo", false, false), "foo", 1,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new NullPointerException("savedDate"));
 	}
@@ -98,7 +98,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructVersion() {
 		failConstruct(1, "foo", "foo", new Date(), 0, new WorkspaceUser("foo"),
-				new ResolvedWorkspaceID("foo", 1, false, false), "foo", 1,
+				new ResolvedWorkspaceID(1, "foo", false, false), "foo", 1,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new IllegalArgumentException("version must be > 0"));
 	}
@@ -106,7 +106,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructSavedBy() {
 		failConstruct(1, "foo", "foo", new Date(), 1, null,
-				new ResolvedWorkspaceID("foo", 1, false, false), "foo", 1,
+				new ResolvedWorkspaceID(1, "foo", false, false), "foo", 1,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new NullPointerException("savedBy"));
 	}
@@ -122,7 +122,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructChksumNull() {
 		failConstruct(1, "foo", "foo", new Date(), 1, new WorkspaceUser("foo"),
-				new ResolvedWorkspaceID("foo", 1, false, false), null, 1,
+				new ResolvedWorkspaceID(1, "foo", false, false), null, 1,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new IllegalArgumentException("chksum is null or empty"));
 	}
@@ -130,7 +130,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructChksumEmpty() {
 		failConstruct(1, "foo", "foo", new Date(), 1, new WorkspaceUser("foo"),
-				new ResolvedWorkspaceID("foo", 1, false, false), "", 1,
+				new ResolvedWorkspaceID(1, "foo", false, false), "", 1,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new IllegalArgumentException("chksum is null or empty"));
 	}
@@ -138,7 +138,7 @@ public class ObjectInformationTest {
 	@Test
 	public void failConstructSize() {
 		failConstruct(1, "foo", "foo", new Date(), 1, new WorkspaceUser("foo"),
-				new ResolvedWorkspaceID("foo", 1, false, false), "foo", 0,
+				new ResolvedWorkspaceID(1, "foo", false, false), "foo", 0,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null),
 				new IllegalArgumentException("size must be > 0"));
 	}
@@ -166,7 +166,7 @@ public class ObjectInformationTest {
 	@Test
 	public void refPath() {
 		final ObjectInformation oi = new ObjectInformation(1L, "foo", "type", new Date(), 3,
-				new WorkspaceUser("bar"), new ResolvedWorkspaceID("whee", 4, false, false),
+				new WorkspaceUser("bar"), new ResolvedWorkspaceID(4, "whee", false, false),
 				"sum", 5L,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null));
 		final ObjectInformation oi2 = oi.updateReferencePath(
@@ -196,7 +196,7 @@ public class ObjectInformationTest {
 	
 	private void failUpdateRefPath(final List<Reference> refpath, final String exp) {
 		final ObjectInformation oi = new ObjectInformation(1L, "foo", "type", new Date(), 3,
-				new WorkspaceUser("bar"), new ResolvedWorkspaceID("whee", 4, false, false),
+				new WorkspaceUser("bar"), new ResolvedWorkspaceID(4, "whee", false, false),
 				"sum", 5L,
 				new UncheckedUserMetadata((WorkspaceUserMetadata) null));
 		try {

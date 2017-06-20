@@ -427,7 +427,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		if (!cloning) {
 			setCreatedWorkspacePermissions(user, globalRead,
-					new ResolvedWorkspaceID(wsname, count, false, false));
+					new ResolvedWorkspaceID(count, wsname, false, false));
 		}
 		return new MongoWSInfo(count, wsname, user, moddate, 0L,
 				Permission.OWNER, globalRead, false,
@@ -580,8 +580,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				resolveObjectIDs(fromWS, exclude).values();
 		final WorkspaceInformation wsinfo = createWorkspace(
 				user, newname, globalRead, description, meta, true);
-		final ResolvedWorkspaceID toWS = new ResolvedWorkspaceID(wsinfo.getName(),
-				wsinfo.getId(), wsinfo.isLocked(), false); //assume it's not deleted already
+		final ResolvedWorkspaceID toWS = new ResolvedWorkspaceID(wsinfo.getId(),
+				wsinfo.getName(), wsinfo.isLocked(), false); //assume it's not deleted already
 		final DBObject q = new BasicDBObject(Fields.OBJ_WS_ID, fromWS.getID());
 		//skip any objects with no versions, likely a race condition
 		//or worse the db went down post version increment pre version save
@@ -685,7 +685,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"there is no workspace with ID " + id);
 		}
 		setCreatedWorkspacePermissions(user, globalRead,
-				new ResolvedWorkspaceID(newname, id, false, false));
+				new ResolvedWorkspaceID(id, newname, false, false));
 		return moddate;
 	}
 
@@ -964,8 +964,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							wsi.getIdentifierString() + " is deleted", wsi);
 				}
 				final ResolvedWorkspaceID r = new ResolvedWorkspaceID(
-						(String) res.get(wsi).get(Fields.WS_NAME),
 						(Long) res.get(wsi).get(Fields.WS_ID),
+						(String) res.get(wsi).get(Fields.WS_NAME),
 						(Boolean) res.get(wsi).get(Fields.WS_LOCKED), 
 						(Boolean) res.get(wsi).get(Fields.WS_DEL));
 				ret.put(wsi, r);
@@ -1129,8 +1129,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"There was a problem communicating with the database", me);
 		}
 		final ResolvedWorkspaceID newRwsi = new ResolvedWorkspaceID(
-				newname.isPresent() ? newname.get() : rwsi.getName(),
-				rwsi.getID(), false, false);
+				rwsi.getID(),
+				newname.isPresent() ? newname.get() : rwsi.getName(), false, false);
 		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(owner), Permission.ADMIN, false);
 		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(newUser), Permission.OWNER, false);
 	}
@@ -2795,14 +2795,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final Reference r: refs) {
 			// this is a bit of a hack
 			objs.add(new ObjectIDResolvedWSNoVer(new ResolvedWorkspaceID(
-					"a", r.getWorkspaceID(), false, false), r.getObjectID()));
+					r.getWorkspaceID(), "a", false, false), r.getObjectID()));
 		}
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> res =
 				query.queryObjects(objs, newHashSet(Fields.OBJ_DEL));
 		for (final Reference r: refs) {
 			ret.put(r, false);
 			final ObjectIDResolvedWSNoVer o = new ObjectIDResolvedWSNoVer(new ResolvedWorkspaceID(
-					"a", r.getWorkspaceID(), false, false), r.getObjectID());
+					r.getWorkspaceID(), "a", false, false), r.getObjectID());
 			if (res.containsKey(o)) { // only false if the ref ws or obj id is bad
 				final boolean deleted = (boolean) res.get(o).get(Fields.OBJ_DEL);
 				if (!deleted) {

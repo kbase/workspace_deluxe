@@ -1186,7 +1186,7 @@ public class WorkspaceTester {
 	}
 	
 	private static final ResolvedWorkspaceID RWSID =
-			new ResolvedWorkspaceID("foo", 1, false, false);
+			new ResolvedWorkspaceID(1, "foo", false, false);
 	
 	protected void testObjectIdentifier(String goodId) {
 		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);

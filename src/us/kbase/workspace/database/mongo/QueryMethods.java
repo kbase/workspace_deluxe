@@ -591,8 +591,8 @@ public class QueryMethods {
 					noWS.keySet(), PROJ_WS_ID_NAME_LOCK_DEL, excludeDeletedWorkspaces);
 			for (final Long id: ws.keySet()) {
 				final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(
-						(String) ws.get(id).get(Fields.WS_NAME),
 						(Long) ws.get(id).get(Fields.WS_ID),
+						(String) ws.get(id).get(Fields.WS_NAME),
 						(Boolean) ws.get(id).get(Fields.WS_LOCKED),
 						(Boolean) ws.get(id).get(Fields.WS_DEL));
 				for (final DBObject m: noWS.get(id)) {
