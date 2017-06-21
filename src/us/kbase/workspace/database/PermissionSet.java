@@ -15,7 +15,7 @@ import java.util.Set;
  */
 public class PermissionSet {
 	
-	//TODO NOW TEST unit tests 
+	private static final Perms NO_PERMS = new Perms(Permission.NONE, false);
 	
 	private static class Perms {
 		private final Permission perm;
@@ -155,7 +155,7 @@ public class PermissionSet {
 	
 	@Override
 	public String toString() {
-		return "MongoPermissionSet [user=" + user + ", globalUser="
+		return "PermissionSet [user=" + user + ", globalUser="
 				+ globalUser + ", perms=" + perms + "]";
 	}
 	
@@ -177,7 +177,6 @@ public class PermissionSet {
 		private final WorkspaceUser user;
 		private final AllUsers globalUser;
 		private final Map<ResolvedWorkspaceID, Perms> perms = new HashMap<>();
-		private static final Perms NO_PERMS = new Perms(Permission.NONE, false);
 		
 		private Builder(final WorkspaceUser user, final AllUsers globalUser) {
 			if (globalUser == null) {
@@ -195,7 +194,7 @@ public class PermissionSet {
 		 * @param globalPerm the global permission for the workspace, either READ or NONE.
 		 * @return this builder.
 		 */
-		public Builder setPermission(
+		public Builder withWorkspace(
 				final ResolvedWorkspaceID rwsi,
 				Permission userPerm,
 				final Permission globalPerm) {
@@ -203,9 +202,13 @@ public class PermissionSet {
 			if (userPerm == null) {
 				userPerm = Permission.NONE;
 			}
+			if (user == null && !Permission.NONE.equals(userPerm)) {
+				throw new IllegalArgumentException(
+						"anonymous users can't have user specific permissions");
+			}
 			if (globalPerm != null && Permission.READ.compareTo(globalPerm) < 0) {
 				throw new IllegalArgumentException(
-						"Illegal global permission in database: " + globalPerm);
+						"Illegal global permission: " + globalPerm);
 			}
 			final boolean globalread = Permission.READ.equals(globalPerm);
 			if (userPerm.equals(Permission.NONE) && !globalread) {
@@ -217,7 +220,7 @@ public class PermissionSet {
 	
 		private void checkWS(final ResolvedWorkspaceID rwsi) {
 			if (rwsi == null) {
-				throw new IllegalArgumentException("Mongo workspace ID cannot be null");
+				throw new IllegalArgumentException("Workspace ID cannot be null");
 			}
 			if (perms.containsKey(rwsi)) {
 				throw new IllegalArgumentException("Permissions for workspace " + 
@@ -229,7 +232,7 @@ public class PermissionSet {
 		 * @param rwsi
 		 * @return this builder.
 		 */
-		public Builder setUnreadable(final ResolvedWorkspaceID rwsi) {
+		public Builder withUnreadableWorkspace(final ResolvedWorkspaceID rwsi) {
 			checkWS(rwsi);
 			perms.put(rwsi, NO_PERMS);
 			return this;

@@ -64,7 +64,7 @@ public class PermissionsCheckerFactory {
 		/** Set the operation name for use when throwing an error when when a required
 		 * permission is not met. By default the operation names by permission are:
 		 * <ul>
-		 * <li>NONE: no permission required, this should never actually show up anywhereK</li>
+		 * <li>NONE: no permission required, this should never actually show up anywhere</li>
 		 * <li>READ: read</li>
 		 * <li>WRITE: write to</li>
 		 * <li>ADMIN: administrate</li>

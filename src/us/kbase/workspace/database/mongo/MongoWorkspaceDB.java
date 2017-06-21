@@ -1072,7 +1072,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Permission p = userperms.get(rwsi).get(user);
 			p = p == null ? Permission.NONE : p;
 			if (!p.equals(Permission.NONE) || !gl.equals(Permission.NONE)) {
-				pset.setPermission(rwsi, p, gl);
+				pset.withWorkspace(rwsi, p, gl);
 				local.remove(rwsi);
 			}
 			globalperms.remove(rwsi);
@@ -1080,14 +1080,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final ResolvedWorkspaceID rwsi: globalperms.keySet()) {
 			final Permission gl = globalperms.get(rwsi).get(ALL_USERS);
 			if (gl != null && !gl.equals(Permission.NONE)) {
-				pset.setPermission(rwsi, Permission.NONE, gl);
+				pset.withWorkspace(rwsi, Permission.NONE, gl);
 				local.remove(rwsi);
 			}
 		}
 		if (includeProvidedWorkspaces) {
 			for (final ResolvedWorkspaceID rwsid: local) {
 				if (!pset.hasWorkspace(rwsid)) {
-					pset.setUnreadable(rwsid);
+					pset.withUnreadableWorkspace(rwsid);
 				}
 			}
 		}
