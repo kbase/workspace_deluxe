@@ -73,7 +73,7 @@ public class Workspace {
 	//TODO SEARCH index typespecs
 	//TODO CODE look into eliminating all the DB implementation specific classes, too much of a pain just to ensure not moving objects between implementations
 	
-	public static final User ALL_USERS = new AllUsers('*');
+	public static final AllUsers ALL_USERS = new AllUsers('*');
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	private final static int MAX_WS_COUNT = 1000;

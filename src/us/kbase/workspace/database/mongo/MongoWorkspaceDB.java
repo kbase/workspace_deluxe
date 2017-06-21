@@ -99,7 +99,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public static final String COL_WORKSPACE_VERS = CollectionNames.COL_WORKSPACE_VERS;
 	public static final String COL_PROVENANCE = CollectionNames.COL_PROVENANCE;
 	public static final String COL_CONFIG = CollectionNames.COL_CONFIG;
-	public static final User ALL_USERS = Workspace.ALL_USERS;
+	public static final AllUsers ALL_USERS = Workspace.ALL_USERS;
 	
 
 	//TODO CONFIG this should really be configurable
@@ -444,7 +444,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		setPermissionsForWorkspaceUsers(newWSid, Arrays.asList(user),
 				Permission.OWNER, false);
 		if (globalRead) {
-			setPermissions(newWSid, Arrays.asList(ALL_USERS), Permission.READ,
+			setPermissions(newWSid, Arrays.asList((User) ALL_USERS), Permission.READ,
 					false);
 		}
 	}
@@ -1151,7 +1151,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Permission perm)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		setPermissions(rwsi, Arrays.asList(ALL_USERS), perm, false);
+		setPermissions(rwsi, Arrays.asList((User) ALL_USERS), perm, false);
 	}
 	
 	//wsid must exist as a workspace
@@ -2038,8 +2038,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Reference copied = copyref == null ? null : new Reference(copyref);
 			@SuppressWarnings("unchecked")
 			final Map<String, List<String>> extIDs =
-					(Map<String, List<String>>) vers.get(roi).get(
-							Fields.VER_EXT_IDS);
+					(Map<String, List<String>>) vers.get(roi).get(Fields.VER_EXT_IDS);
 			@SuppressWarnings("unchecked")
 			final List<String> refs =
 					(List<String>) vers.get(roi).get(Fields.VER_REF);

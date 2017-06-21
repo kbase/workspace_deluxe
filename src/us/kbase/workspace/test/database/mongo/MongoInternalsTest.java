@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -634,12 +635,6 @@ public class MongoInternalsTest {
 		} catch (Exception e) {
 			assertExceptionCorrect(e, exp);
 		}
-	}
-	
-	private void assertExceptionCorrect(Exception got, Exception expected) {
-		assertThat("correct exception", got.getLocalizedMessage(),
-				is(expected.getLocalizedMessage()));
-		assertThat("correct exception type", got, is(expected.getClass()));
 	}
 	
 	@Test

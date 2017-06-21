@@ -46,12 +46,12 @@ public class PermissionSet {
 		}
 	}
 	private final WorkspaceUser user;
-	private final User globalUser;
+	private final AllUsers globalUser;
 	private final Map<ResolvedWorkspaceID, Perms> perms;
 	
 	private PermissionSet(
 			final WorkspaceUser user,
-			final User globalUser,
+			final AllUsers globalUser,
 			final Map<ResolvedWorkspaceID, Perms> perms) {
 		this.user = user;
 		this.globalUser = globalUser;
@@ -68,7 +68,7 @@ public class PermissionSet {
 	/** Get the global (e.g. for global permissions) username, usually '*'.
 	 * @return the global username
 	 */
-	public User getGlobalUser() {
+	public AllUsers getGlobalUser() {
 		return globalUser;
 	}
 	
@@ -164,7 +164,7 @@ public class PermissionSet {
 	 * @param globalUser the name of the global user, usually '*'.
 	 * @return a new builder.
 	 */
-	public static Builder getBuilder(final WorkspaceUser user, final User globalUser) {
+	public static Builder getBuilder(final WorkspaceUser user, final AllUsers globalUser) {
 		return new Builder(user, globalUser);
 	}
 	
@@ -175,11 +175,11 @@ public class PermissionSet {
 	public static class Builder {
 		
 		private final WorkspaceUser user;
-		private final User globalUser;
+		private final AllUsers globalUser;
 		private final Map<ResolvedWorkspaceID, Perms> perms = new HashMap<>();
 		private static final Perms NO_PERMS = new Perms(Permission.NONE, false);
 		
-		private Builder(final WorkspaceUser user, final User globalUser) {
+		private Builder(final WorkspaceUser user, final AllUsers globalUser) {
 			if (globalUser == null) {
 				throw new IllegalArgumentException(
 						"Global user cannot be null");

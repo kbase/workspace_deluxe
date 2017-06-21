@@ -1,6 +1,8 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -21,11 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import junit.framework.Assert;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
-import org.junit.matchers.JUnitMatchers;
 
 import us.kbase.auth.AuthUser;
 import us.kbase.common.service.JsonTokenStream;
@@ -830,7 +829,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		for (ObjectData obj : ret) {
 			String largeString2 = (String)obj.getData().asClassInstance(Map.class).get("thing");
 			if (!largeString2.equals(largeString))
-				Assert.fail("Observed large string is: " + largeString2);
+				fail("Observed large string is: " + largeString2);
 		}
 	}
 	
@@ -2867,11 +2866,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new us.kbase.workspace.SubObjectIdentity().withRef("subdata/2").withStrictArrays(0L)
 				.withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
 		Map<String, Object> od2map = od2.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
-		Assert.assertEquals(1, od2map.size());
+		assertThat(od2map.size(), is(1));
 		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> features = (List<Map<String, Object>>)od2map.get("features");
-		Assert.assertEquals(1, features.size());
-		Assert.assertEquals("foo3", features.get(0).get("thing"));
+		assertThat(features.size(), is(1));
+		assertThat(features.get(0).get("thing"), is("foo3"));
 		
 		ObjectData od2n = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(
@@ -2881,11 +2880,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 								"/features/2", "/features/3", "/bar")))))
 				.getData().get(0);
 		Map<String, Object> od2nmap = od2n.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
-		Assert.assertEquals(1, od2nmap.size());
+		assertThat(od2nmap.size(), is(1));
 		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> featuresN = (List<Map<String, Object>>)od2nmap.get("features");
-		Assert.assertEquals(1, featuresN.size());
-		Assert.assertEquals("foo3", featuresN.get(0).get("thing"));
+		assertThat(featuresN.size(), is(1));
+		assertThat(featuresN.get(0).get("thing"), is("foo3"));
 	}
 	
 	@Test
@@ -3241,7 +3240,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("compiled spec without valid module");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					JUnitMatchers.containsString("Module SomeMod2 was not initialized"));
+					containsString("Module SomeMod2 was not initialized"));
 		}
 	}
 
@@ -3748,10 +3747,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		String typeDefName = "SomeModule.AType";
 		Map<String,String> type2md5 = CLIENT1.translateToMD5Types(Arrays.asList(typeDefName));
 		String md5TypeDef = type2md5.get(typeDefName);
-		Assert.assertNotNull(md5TypeDef);
+		assertThat(md5TypeDef, is(notNullValue()));
 		Map<String, List<String>> md52semantic = CLIENT1.translateFromMD5Types(Arrays.asList(md5TypeDef));
-		Assert.assertEquals(1, md52semantic.size());
-		Assert.assertTrue(md52semantic.get(md5TypeDef).contains("SomeModule.AType-1.0"));
+		assertThat(md52semantic.size(), is(1));
+		assertThat(md52semantic.get(md5TypeDef).contains("SomeModule.AType-1.0"), is(true));
 	}
 	
 	@Test
@@ -3761,31 +3760,38 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		String module = "UnreleasedModule";
 		try {
 			cl.getModuleInfo(new GetModuleInfoParams().withMod(module));
-			Assert.fail();
+			fail();
 		} catch (Exception ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Module wasn't uploaded: UnreleasedModule"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Module wasn't uploaded: UnreleasedModule"), is(true));
 		}
-		Assert.assertEquals(1, cl.listModuleVersions(new ListModuleVersionsParams().withType("UnreleasedModule.AType-0.1")).getVers().size());
-		Assert.assertTrue(cl.getJsonschema("UnreleasedModule.AType-0.1").length() > 0);
+		assertThat(cl.listModuleVersions(new ListModuleVersionsParams()
+				.withType("UnreleasedModule.AType-0.1")).getVers().size(), is(1));
+		assertThat(cl.getJsonschema("UnreleasedModule.AType-0.1").length() > 0, is(true));
 		cl = CLIENT_FOR_SRV2;
-		Assert.assertTrue(new HashSet<String>(cl.listModules(new ListModulesParams().withOwner(USER2))).contains("UnreleasedModule"));
-		Assert.assertEquals(0L, (long)cl.getModuleInfo(new GetModuleInfoParams().withMod(module)).getIsReleased());
-		Assert.assertEquals(1, cl.listModuleVersions(new ListModuleVersionsParams().withMod(module)).getVers().size());
-		Assert.assertEquals(1, cl.getTypeInfo("UnreleasedModule.AType").getTypeVers().size());
-		Assert.assertEquals(1, cl.getTypeInfo("UnreleasedModule.AType-0.1").getTypeVers().size());
-		Assert.assertTrue(cl.getJsonschema("UnreleasedModule.AType").length() > 0);
-		Assert.assertEquals(1, cl.getFuncInfo("UnreleasedModule.aFunc").getFuncVers().size());
+		assertThat(new HashSet<String>(cl.listModules(
+				new ListModulesParams().withOwner(USER2))).contains("UnreleasedModule"), is(true));
+		assertThat(cl.getModuleInfo(new GetModuleInfoParams().withMod(module))
+				.getIsReleased(), is(0L));
+		assertThat(cl.listModuleVersions(new ListModuleVersionsParams().withMod(module))
+				.getVers().size(), is(1));
+		assertThat(cl.getTypeInfo("UnreleasedModule.AType").getTypeVers().size(), is(1));
+		assertThat(cl.getTypeInfo("UnreleasedModule.AType-0.1").getTypeVers().size(), is(1));
+		assertThat(cl.getJsonschema("UnreleasedModule.AType").length() > 0, is(true));
+		assertThat(cl.getFuncInfo("UnreleasedModule.aFunc").getFuncVers().size(), is(1));
 		try {
 			cl.getTypeInfo("UnreleasedModule.AType-0.2");
-			Assert.fail();
+			fail();
 		} catch (Exception ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Unable to locate type: UnreleasedModule.AType-0.2"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Unable to locate type: UnreleasedModule.AType-0.2"), is(true));
 		}
 		try {
 			cl.getJsonschema("UnreleasedModule.AType-0.2");
-			Assert.fail();
+			fail();
 		} catch (Exception ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Unable to locate type: UnreleasedModule.AType-0.2"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Unable to locate type: UnreleasedModule.AType-0.2"), is(true));
 		}
 	}
 	
@@ -3861,28 +3867,28 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		for(String mod: CLIENT1.listModules(new ListModulesParams())) {
 			moduleNamesInList.put(mod, "");
 		}
-		Assert.assertTrue(moduleNamesInList.containsKey("TestModule"));
+		assertThat(moduleNamesInList.containsKey("TestModule"), is(true));
 		
 		// make sure that we can list the versions of this module, there should be just 2 visible to client1...
-		Assert.assertEquals(
-				2,
-				CLIENT1.listModuleVersions(new ListModuleVersionsParams().withMod("TestModule")).getVers().size());
+		assertThat(CLIENT1.listModuleVersions(new ListModuleVersionsParams().withMod("TestModule"))
+				.getVers().size(), is(2));
 		
 		// make sure we can retrieve module info
-		Assert.assertEquals(
-				2,
-				CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod("TestModule")).getTypes().size());
+		assertThat(CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod("TestModule"))
+				.getTypes().size(), is(2));
 		
 		// make sure we can get a json schema and parse it as a json document
 		ObjectMapper map = new ObjectMapper();
 		JsonNode schema = map.readTree(CLIENT1.getJsonschema("TestModule.Feature"));
-		Assert.assertEquals("Feature", schema.get("id").asText());
+		assertThat(schema.get("id").asText(), is("Feature"));
 		
 		// make sure we can get type info
-		Assert.assertEquals("TestModule.Feature-1.0",CLIENT1.getTypeInfo("TestModule.Feature-1").getTypeDef());
+		assertThat(CLIENT1.getTypeInfo("TestModule.Feature-1").getTypeDef(),
+				is("TestModule.Feature-1.0"));
 		
 		// make sure we can get func info
-		Assert.assertEquals("TestModule.getFeature-1.0",CLIENT1.getFuncInfo("TestModule.getFeature").getFuncDef());
+		assertThat(CLIENT1.getFuncInfo("TestModule.getFeature").getFuncDef(),
+				is("TestModule.getFeature-1.0"));
 	}
 	
 	@Test
@@ -3930,17 +3936,18 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void testListAllTypes() throws Exception {
-		Assert.assertTrue(CLIENT1.listAllTypes(new ListAllTypesParams().withWithEmptyModules(1L)).containsKey("RefSpec"));
+		assertThat(CLIENT1.listAllTypes(new ListAllTypesParams().withWithEmptyModules(1L))
+				.containsKey("RefSpec"), is(true));
 		Map<String, Map<String, String>> types = CLIENT1.listAllTypes(new ListAllTypesParams());
-		Assert.assertFalse(types.containsKey("RefSpec"));
-		Assert.assertTrue(types.containsKey("SomeModule"));
-		Assert.assertEquals("1.0", types.get("SomeModule").get("AType"));
+		assertThat(types.containsKey("RefSpec"), is(false));
+		assertThat(types.containsKey("SomeModule"), is(true));
+		assertThat(types.get("SomeModule").get("AType"), is("1.0"));
 	}
 	
 	@Test
 	public void testGetAllTypeAndFuncInfo() throws Exception {
-		Assert.assertEquals(1, CLIENT1.getAllTypeInfo("RefSpec").size());
-		Assert.assertEquals(1, CLIENT_FOR_SRV2.getAllFuncInfo("UnreleasedModule").size());
+		assertThat(CLIENT1.getAllTypeInfo("RefSpec").size(), is(1));
+		assertThat(CLIENT_FOR_SRV2.getAllFuncInfo("UnreleasedModule").size(), is(1));
 	}
 	
 	@Test
@@ -4004,11 +4011,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					" " + modC + ".cType valC; " +
 					"} aType; " +
 					"};"));
-			Assert.fail("Diamond dependency could not be allowed");
+			fail("Diamond dependency could not be allowed");
 		} catch (ServerException ex) {
 			String expectedError = "Incompatible module dependecies: TestModuleD(" + dVer1 + ")<-TestModuleB(" + 
 					bVer + ")<-RootModule and TestModuleD(" + dVer2 + ")<-TestModuleC(" + cVer + ")<-RootModule";
-			Assert.assertEquals(expectedError, ex.getMessage());
+			assertThat(ex.getMessage(), is(expectedError));
 		}
 	}
 }

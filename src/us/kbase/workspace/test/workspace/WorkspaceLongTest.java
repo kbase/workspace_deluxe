@@ -18,8 +18,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 
-import junit.framework.Assert;
-
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -103,12 +101,12 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		try {
 			UObject array = new UObject(newdata.getUObject(), "subset");
 			JsonParser jp = array.getPlacedStream();
-			Assert.assertEquals(JsonToken.START_ARRAY, jp.nextToken());
+			assertThat(jp.nextToken(), is(JsonToken.START_ARRAY));
 			for (int i = 0; i < 997008; i++) {
-				Assert.assertEquals(JsonToken.VALUE_STRING, jp.nextToken());
+				assertThat(jp.nextToken(), is(JsonToken.VALUE_STRING));
 				assertThat("correct string in subdata", jp.getText(), is(TEXT1000));
 			}
-			Assert.assertEquals(JsonToken.END_ARRAY, jp.nextToken());
+			assertThat(jp.nextToken(), is(JsonToken.END_ARRAY));
 			jp.close();
 		} finally {
 			newdata.destroy();

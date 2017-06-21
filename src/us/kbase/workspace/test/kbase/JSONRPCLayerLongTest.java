@@ -18,8 +18,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.zip.GZIPInputStream;
 
-import junit.framework.Assert;
-
 import org.junit.Test;
 
 import us.kbase.common.service.UObject;
@@ -130,12 +128,12 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		try {
 			UObject array = new UObject(data, "subset");
 			JsonParser jp = array.getPlacedStream();
-			Assert.assertEquals(JsonToken.START_ARRAY, jp.nextToken());
+			assertThat(jp.nextToken(), is(JsonToken.START_ARRAY));
 			for (int i = 0; i < 997008; i++) {
-				Assert.assertEquals(JsonToken.VALUE_STRING, jp.nextToken());
+				assertThat(jp.nextToken(), is(JsonToken.VALUE_STRING));
 				assertThat("correct string in subdata", jp.getText(), is(TEXT1000));
 			}
-			Assert.assertEquals(JsonToken.END_ARRAY, jp.nextToken());
+			assertThat(jp.nextToken(), is(JsonToken.END_ARRAY));
 			jp.close();
 		} finally {
 			tempFile2.delete();
@@ -273,7 +271,7 @@ public class JSONRPCLayerLongTest extends JSONRPCLayerTester {
 		for (int i = 0; i < retList.size(); i++) {
 			ObjectData ret = retList.get(i);
 			byte[] retJson = UObject.getMapper().writeValueAsBytes(ret.getData());
-			Assert.assertTrue(Arrays.equals(jsonList.get(i), retJson));
+			assertThat(Arrays.equals(jsonList.get(i), retJson), is(true));
 		}
 		return maxSize;
 	}

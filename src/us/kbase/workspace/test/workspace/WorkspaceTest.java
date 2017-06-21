@@ -1,6 +1,8 @@
 package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -37,7 +39,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
-import junit.framework.Assert;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
@@ -1511,21 +1512,23 @@ public class WorkspaceTest extends WorkspaceTester {
 						new WorkspaceUserMetadata(metadata), emptyprov, false)),
 				getIdFactory());
 		List <ObjectInformation> oi = ws.getObjectInformation(userfoo, Arrays.asList(new ObjectIdentifier(wspace, "d1")), true, true);
-		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi);
-		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi.get(0));
+		assertThat("Getting back an object that was saved with automatic metadata extraction", oi,
+				is(notNullValue()));
+		assertThat("Getting back an object that was saved with automatic metadata extraction",
+				oi.get(0), is(notNullValue()));
 		
 		// check that automatic metadata fields were populated correctly, and nothing else was added
 		Map<String,String> savedUserMetaData = new HashMap<String, String>(
 				oi.get(0).getUserMetaData().getMetadata());
 		for(Entry<String,String> m : savedUserMetaData.entrySet()) {
 			if(m.getKey().equals("val")) 
-				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals(val));
+				assertThat("Extracted metadata must be correct", m.getValue(), is(val));
 			if(m.getKey().equals("Length of list"))
-				Assert.assertTrue("Extracted metadata must be correct",m.getValue().equals("8"));
+				assertThat("Extracted metadata must be correct", m.getValue(), is("8"));
 		}
 		savedUserMetaData.remove("val");
 		savedUserMetaData.remove("Length of list");
-		Assert.assertEquals("Only metadata we wanted was extracted", 0, savedUserMetaData.size());
+		assertThat("Only metadata we wanted was extracted", savedUserMetaData.size(), is(0));
 		
 		// now we do the same thing, but make sure 1) metadata set was added, and 2) metadata is overridden
 		// by the extracted metadata
@@ -1536,8 +1539,10 @@ public class WorkspaceTest extends WorkspaceTester {
 						new WorkspaceUserMetadata(metadata), emptyprov, false)),
 				getIdFactory());
 		List <ObjectInformation> oi2 = ws.getObjectInformation(userfoo, Arrays.asList(new ObjectIdentifier(wspace, "d2")), true, true);
-		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi2);
-		Assert.assertNotNull("Getting back an object that was saved with automatic metadata extraction", oi2.get(0));
+		assertThat("Getting back an object that was saved with automatic metadata extraction",
+				oi2, is(notNullValue()));
+		assertThat("Getting back an object that was saved with automatic metadata extraction",
+				oi2.get(0), is(notNullValue()));
 		
 		savedUserMetaData = new HashMap<String, String>(
 				oi2.get(0).getUserMetaData().getMetadata());
@@ -1555,7 +1560,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		savedUserMetaData.remove("val");
 		savedUserMetaData.remove("Length of list");
 		savedUserMetaData.remove("my_special_metadata");
-		Assert.assertEquals("Only metadata we wanted was extracted", 0, savedUserMetaData.size());
+		assertThat("Only metadata we wanted was extracted", savedUserMetaData.size(), is(0));
 	}
 	
 	@Test
@@ -1813,33 +1818,33 @@ public class WorkspaceTest extends WorkspaceTester {
 			ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
 					getRandomName(), "data1", abstype1, null, emptyprov, false)),
 					getIdFactory());
-			Assert.fail("Method works but shouldn't");
+			fail("Method works but shouldn't");
 		} catch (TypedObjectValidationException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
+			assertThat(ex.getMessage(), ex.getMessage().contains("structure"), is(true));
 		}
 		try {
 			ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
 					getRandomName(), Arrays.asList("data2"), abstype2, null, emptyprov, false)),
 					getIdFactory());
-			Assert.fail("Method works but shouldn't");
+			fail("Method works but shouldn't");
 		} catch (TypedObjectValidationException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
+			assertThat(ex.getMessage(), ex.getMessage().contains("structure"), is(true));
 		}
 		try {
 			ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
 					getRandomName(), data3, abstype3, null, emptyprov, false)),
 					getIdFactory());
-			Assert.fail("Method works but shouldn't");
+			fail("Method works but shouldn't");
 		} catch (TypedObjectValidationException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
+			assertThat(ex.getMessage(), ex.getMessage().contains("structure"), is(true));
 		}
 		try {
 			ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
 					getRandomName(), Arrays.asList("data4", "data4"), 
 					abstype4, null, emptyprov, false)), getIdFactory());
-			Assert.fail("Method works but shouldn't");
+			fail("Method works but shouldn't");
 		} catch (TypedObjectValidationException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("structure"));
+			assertThat(ex.getMessage(), ex.getMessage().contains("structure"), is(true));
 		}
 		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
 				getRandomName(), data3, abstype5, null, emptyprov, false)),
@@ -1895,9 +1900,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		data1.put("val3", null);
 		data1.put("val2", null);
 		data1.put("val1", null);
-		Assert.assertEquals(keys, new TreeSet<String>(data1.keySet()));
-		Assert.assertTrue(data1.containsKey("val1"));
-		Assert.assertNull(data1.get("val1"));
+		assertThat(keys, is(new TreeSet<String>(data1.keySet())));
+		assertThat(data1.containsKey("val1"), is(true));
+		assertThat(data1.get("val1"), is(nullValue()));
 		long data1id = ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
 				getRandomName(), data1, abstype1, null, emptyprov, false)),
 				getIdFactory()).get(0).getObjectId();
@@ -1909,7 +1914,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		} finally {
 			destroyGetObjectsResources(objects);
 		}
-		Assert.assertEquals(keys, new TreeSet<String>(data1copy.keySet()));
+		assertThat(keys, is(new TreeSet<String>(data1copy.keySet())));
 		
 		Map<String, Object> data2 = new LinkedHashMap<String, Object>();
 		data2.put("val", null);
@@ -3911,19 +3916,19 @@ public class WorkspaceTest extends WorkspaceTester {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		String typeDefName = "SomeModule.AType";
 		Map<String,String> type2md5 = types.translateToMd5Types(Arrays.asList(typeDefName + "-1.0"),null);
-		Assert.assertEquals(1, type2md5.size());
+		assertThat(type2md5.size(), is(1));
 		String md5TypeDef = type2md5.get(typeDefName + "-1.0");
-		Assert.assertNotNull(md5TypeDef);
+		assertThat(md5TypeDef, is(notNullValue()));
 		Map<String, List<String>> md52semantic = types.translateFromMd5Types(Arrays.asList(md5TypeDef));
-		Assert.assertEquals(1, md52semantic.size());
+		assertThat(md52semantic.size(), is(1));
 		List<String> semList = md52semantic.get(md5TypeDef);
-		Assert.assertNotNull(semList);
-		Assert.assertEquals(2, semList.size());
+		assertThat(semList, is(notNullValue()));
+		assertThat(semList.size(), is(2));
 		for (String semText : semList) {
 			TypeDefId semTypeDef = TypeDefId.fromTypeString(semText);
-			Assert.assertEquals(typeDefName, semTypeDef.getType().getTypeString());
+			assertThat(semTypeDef.getType().getTypeString(), is(typeDefName));
 			String verText = semTypeDef.getVerString();
-			Assert.assertTrue("0.1".equals(verText) || "1.0".equals(verText));
+			assertThat("0.1".equals(verText) || "1.0".equals(verText), is(true));
 		}
 	}
 	
@@ -3934,48 +3939,48 @@ public class WorkspaceTest extends WorkspaceTester {
 		for(String mod:types.listModules(null)) {
 			moduleNamesInList.put(mod, "");
 		}
-		Assert.assertTrue(moduleNamesInList.containsKey("SomeModule"));
-		Assert.assertTrue(moduleNamesInList.containsKey("TestModule"));
+		assertThat(moduleNamesInList.containsKey("SomeModule"), is(true));
+		assertThat(moduleNamesInList.containsKey("TestModule"), is(true));
 	}
 	
 	@Test
 	public void testListModuleVersions() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
-		Assert.assertEquals(3, types.getModuleVersions("SomeModule", null).size());
-		Assert.assertEquals(4, types.getModuleVersions("SomeModule", new WorkspaceUser("foo")).size());
-		Assert.assertEquals(2, types.getModuleVersions("TestModule", null).size());
-		Assert.assertEquals(5, types.getModuleVersions("TestModule", new WorkspaceUser("foo")).size());
+		assertThat(types.getModuleVersions("SomeModule", null).size(), is(3));
+		assertThat(types.getModuleVersions("SomeModule", new WorkspaceUser("foo")).size(), is(4));
+		assertThat(types.getModuleVersions("TestModule", null).size(), is(2));
+		assertThat(types.getModuleVersions("TestModule", new WorkspaceUser("foo")).size(), is(5));
 	}
 	
 	@Test
 	public void testGetModuleInfo() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		ModuleInfo m = types.getModuleInfo(null, new ModuleDefId("TestModule"));
-		Assert.assertTrue(m.isReleased());
+		assertThat(m.isReleased(), is(true));
 		Map<String,String> funcNamesInList = new HashMap<String,String>();
 		for(String func : m.getFunctions() ){
 			funcNamesInList.put(func, "");
 		}
-		Assert.assertTrue(funcNamesInList.containsKey("TestModule.getFeature-2.0"));
-		Assert.assertTrue(funcNamesInList.containsKey("TestModule.getGenome-1.0"));
+		assertThat(funcNamesInList.containsKey("TestModule.getFeature-2.0"), is(true));
+		assertThat(funcNamesInList.containsKey("TestModule.getGenome-1.0"), is(true));
 
 		Map<String,String> typeNamesInList = new HashMap<String,String>();
 		for(Entry<AbsoluteTypeDefId, String> type : m.getTypes().entrySet() ){
 			typeNamesInList.put(type.getKey().getTypeString(),"");
 		}
-		Assert.assertTrue(typeNamesInList.containsKey("TestModule.Genome-2.0"));
-		Assert.assertTrue(typeNamesInList.containsKey("TestModule.Feature-1.0"));
+		assertThat(typeNamesInList.containsKey("TestModule.Genome-2.0"), is(true));
+		assertThat(typeNamesInList.containsKey("TestModule.Feature-1.0"), is(true));
 		
 		try {
 			types.getModuleInfo(null, new ModuleDefId("MadeUpModuleThatIsNotThere"));
 			fail("getModuleInfo of non existant module should throw a NoSuchModuleException");
 		} catch (NoSuchModuleException e) {}
 		ModuleInfo m2 = types.getModuleInfo(new WorkspaceUser("foo"), new ModuleDefId("UnreleasedModule"));
-		Assert.assertEquals("foo", m2.getOwners().get(0));
-		Assert.assertFalse(m2.isReleased());
+		assertThat(m2.getOwners().get(0), is("foo"));
+		assertThat(m2.isReleased(), is(false));
 		List<Long> verList = types.getModuleVersions("UnreleasedModule", new WorkspaceUser("foo"));
-		Assert.assertEquals(1, verList.size());
-		Assert.assertEquals(m2.getVersion(), verList.get(0));
+		assertThat(verList.size(), is(1));
+		assertThat(verList.get(0), is(m2.getVersion()));
 	}
 	
 	@Test
@@ -3990,36 +3995,37 @@ public class WorkspaceTest extends WorkspaceTester {
 		String schema = types.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2,0), null);
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode schemaNode = mapper.readTree(schema);
-		Assert.assertEquals("Genome", schemaNode.get("id").asText());
+		assertThat(schemaNode.get("id").asText(), is("Genome"));
 		
 		schema = types.getJsonSchema(new TypeDefId(new TypeDefName("TestModule.Genome"),2), null);
 		schemaNode = mapper.readTree(schema);
-		Assert.assertEquals("Genome", schemaNode.get("id").asText());
+		assertThat(schemaNode.get("id").asText(), is("Genome"));
 		
 		schema = types.getJsonSchema(new TypeDefId("TestModule.Genome"), null);
 		schemaNode = mapper.readTree(schema);
-		Assert.assertEquals("Genome", schemaNode.get("id").asText());
+		assertThat(schemaNode.get("id").asText(), is("Genome"));
 	}
 	
 	@Test
 	public void testGetTypeInfo() throws Exception {
 		//see setUpWorkspaces() to find where needed specs are loaded
 		TypeDetailedInfo info = types.getTypeInfo("TestModule.Genome", false, null);
-		Assert.assertEquals("TestModule.Genome-2.0",info.getTypeDefId());
-		Assert.assertEquals(1, info.getReleasedModuleVersions().size());
-		Assert.assertEquals(2, info.getReleasedTypeVersions().size());
+		assertThat(info.getTypeDefId(), is("TestModule.Genome-2.0"));
+		assertThat(info.getReleasedModuleVersions().size(), is(1));
+		assertThat(info.getReleasedTypeVersions().size(), is(2));
 		info = types.getTypeInfo("TestModule.Feature", false, null);
-		Assert.assertEquals("TestModule.Feature-1.0",info.getTypeDefId());
-		Assert.assertEquals(2, info.getReleasedModuleVersions().size());
-		Assert.assertEquals(1, info.getReleasedTypeVersions().size());
+		assertThat(info.getTypeDefId(), is("TestModule.Feature-1.0"));
+		assertThat(info.getReleasedModuleVersions().size(), is(2));
+		assertThat(info.getReleasedTypeVersions().size(), is(1));
 		TypeDetailedInfo info2 = types.getTypeInfo("UnreleasedModule.AType-0.1", false, new WorkspaceUser("foo"));
-		Assert.assertEquals(1, info2.getUsingFuncDefIds().size());
-		Assert.assertEquals(1, info2.getModuleVersions().size());
-		Assert.assertEquals(1, info2.getTypeVersions().size());
-		Assert.assertEquals(0, info2.getReleasedModuleVersions().size());
-		Assert.assertEquals(0, info2.getReleasedTypeVersions().size());
-		Assert.assertTrue(info2.getJsonSchema().contains("kidl-structure"));
-		Assert.assertTrue(info2.getParsingStructure().contains("Bio::KBase::KIDL::KBT::Typedef"));
+		assertThat(info2.getUsingFuncDefIds().size(), is(1));
+		assertThat(info2.getModuleVersions().size(), is(1));
+		assertThat(info2.getTypeVersions().size(), is(1));
+		assertThat(info2.getReleasedModuleVersions().size(), is(0));
+		assertThat(info2.getReleasedTypeVersions().size(), is(0));
+		assertThat(info2.getJsonSchema().contains("kidl-structure"), is(true));
+		assertThat(info2.getParsingStructure().contains("Bio::KBase::KIDL::KBT::Typedef"),
+				is(true));
 	}
 	
 	@Test
@@ -4034,20 +4040,21 @@ public class WorkspaceTest extends WorkspaceTester {
 			fail("getFuncInfo of non existant module should throw a NoSuchFuncException");
 		} catch (NoSuchFuncException e) {}
 		FuncDetailedInfo info = types.getFuncInfo("TestModule.getFeature", false, null);
-		Assert.assertEquals("TestModule.getFeature-2.0",info.getFuncDefId());
-		Assert.assertEquals(1, info.getReleasedModuleVersions().size());
-		Assert.assertEquals(2, info.getReleasedFuncVersions().size());
+		assertThat(info.getFuncDefId(), is("TestModule.getFeature-2.0"));
+		assertThat(info.getReleasedModuleVersions().size(), is(1));
+		assertThat(info.getReleasedFuncVersions().size(), is(2));
 		info = types.getFuncInfo("TestModule.getGenome-1.0", false, null);
-		Assert.assertEquals("TestModule.getGenome-1.0",info.getFuncDefId());
-		Assert.assertEquals(1, info.getReleasedModuleVersions().size());
-		Assert.assertEquals(1, info.getReleasedFuncVersions().size());
+		assertThat(info.getFuncDefId(), is("TestModule.getGenome-1.0"));
+		assertThat(info.getReleasedModuleVersions().size(), is(1));
+		assertThat(info.getReleasedFuncVersions().size(), is(1));
 		FuncDetailedInfo info2 = types.getFuncInfo("UnreleasedModule.aFunc-0.1", false, new WorkspaceUser("foo"));
-		Assert.assertEquals(1, info2.getUsedTypeDefIds().size());
-		Assert.assertEquals(1, info2.getModuleVersions().size());
-		Assert.assertEquals(1, info2.getFuncVersions().size());
-		Assert.assertEquals(0, info2.getReleasedModuleVersions().size());
-		Assert.assertEquals(0, info2.getReleasedFuncVersions().size());
-		Assert.assertTrue(info2.getParsingStructure().contains("Bio::KBase::KIDL::KBT::Funcdef"));
+		assertThat(info2.getUsedTypeDefIds().size(), is(1));
+		assertThat(info2.getModuleVersions().size(), is(1));
+		assertThat(info2.getFuncVersions().size(), is(1));
+		assertThat(info2.getReleasedModuleVersions().size(), is(0));
+		assertThat(info2.getReleasedFuncVersions().size(), is(0));
+		assertThat(info2.getParsingStructure().contains("Bio::KBase::KIDL::KBT::Funcdef"),
+				is(true));
 	}
 	
 	private void setUpCopyWorkspaces(WorkspaceUser user1, WorkspaceUser user2,
@@ -7879,9 +7886,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		try {
 			types.compileNewTypeSpec(user2, "module " + moduleName + " {typedef string MainType;};", 
 					Collections.<String>emptyList(), null, null, false, null);
-			Assert.fail();
+			fail("expected exception");
 		} catch (NoSuchPrivilegeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("not in list of owners"));
+			assertThat(ex.getMessage(), ex.getMessage().contains("not in list of owners"),
+					is(true));
 		}
 		types.grantModuleOwnership(moduleName, user2.getUser(), false, user, false);
 		types.compileNewTypeSpec(user2, "module " + moduleName + " {typedef string MainType;};", 
@@ -7889,9 +7897,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceUser user3 = new WorkspaceUser("baz");
 		try {
 			types.grantModuleOwnership(moduleName, user3.getUser(), false, user2, false);
-			Assert.fail();
+			fail("expected exception");
 		} catch (NoSuchPrivilegeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("can not change privileges"));
+			assertThat(ex.getMessage(), ex.getMessage().contains("can not change privileges"),
+					is(true));
 		}
 		types.grantModuleOwnership(moduleName, user2.getUser(), true, user, false);
 		types.grantModuleOwnership(moduleName, user3.getUser(), false, user2, false);
@@ -7900,9 +7909,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		try {
 			types.compileNewTypeSpec(user2, "module " + moduleName + " {typedef float MainType;};", 
 					Collections.<String>emptyList(), null, null, false, null);
-			Assert.fail();
+			fail("expected exception");
 		} catch (NoSuchPrivilegeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("not in list of owners"));
+			assertThat(ex.getMessage(), ex.getMessage().contains("not in list of owners"),
+					is(true));
 		}
 	}
 	
@@ -7920,13 +7930,18 @@ public class WorkspaceTest extends WorkspaceTester {
 				Arrays.asList("BType"), Collections.<String, Long>emptyMap(), false);
 		List<Long> vers = types.getModuleVersions(moduleName, user);
 		Collections.sort(vers);
-		Assert.assertEquals(2, vers.size());
-		Assert.assertEquals(2, types.getModuleInfo(user, new ModuleDefId(moduleName, vers.get(0))).getTypes().size());
-		Assert.assertEquals(1, types.getModuleInfo(user, new ModuleDefId(moduleName, vers.get(1))).getTypes().size());
-		Assert.assertEquals(Arrays.asList(vers.get(0)), types.getModuleVersions(new TypeDefId(moduleName + ".BType", "0.1"), user));
+		assertThat(vers.size(), is(2));
+		assertThat(types.getModuleInfo(
+				user, new ModuleDefId(moduleName, vers.get(0))).getTypes().size(), is(2));
+		assertThat(types.getModuleInfo(
+				user, new ModuleDefId(moduleName, vers.get(1))).getTypes().size(), is(1));
+		assertThat(types.getModuleVersions(new TypeDefId(moduleName + ".BType", "0.1"), user),
+				is(Arrays.asList(vers.get(0))));
 		types.releaseTypes(user, moduleName);
-		Assert.assertEquals(1, types.getModuleVersions(new TypeDefId(moduleName + ".AType"), null).size());
-		Assert.assertEquals(moduleName + ".AType-1.0", types.getTypeInfo(moduleName + ".AType", false, null).getTypeDefId());
+		assertThat(types.getModuleVersions(new TypeDefId(moduleName + ".AType"), null).size(),
+				is(1));
+		assertThat(types.getTypeInfo(moduleName + ".AType", false, null).getTypeDefId(),
+				is(moduleName + ".AType-1.0"));
 	}
 	
 	@Test

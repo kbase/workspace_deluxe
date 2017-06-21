@@ -3,6 +3,7 @@ package us.kbase.workspace.test.workspace;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -180,12 +181,6 @@ public class WorkspaceUserMetadataTest {
 		new WorkspaceUserMetadata(m).addMetadata(newm); //should work
 		newm.put("bar", TEXT900.substring(311));
 		failAddMeta(new WorkspaceUserMetadata(m), newm, e);
-	}
-	
-	private void assertExceptionCorrect(Exception got, Exception expected) {
-		assertThat("correct exception", got.getLocalizedMessage(),
-				is(expected.getLocalizedMessage()));
-		assertThat("correct exception type", got, is(expected.getClass()));
 	}
 	
 	private void failCreateMeta(Map<String, String> meta, Exception e) {

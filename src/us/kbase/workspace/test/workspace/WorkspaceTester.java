@@ -1997,7 +1997,7 @@ public class WorkspaceTester {
 		wod.destroy(); // don't need the actual data
 		WorkspaceObjectData woi = ws.getObjects(user, o, true).get(0);
 		
-		assertThat("get objs correct ext ids", wod.getExtractedIds(), is(expected));
-		assertThat("get prov correct ext ids", woi.getExtractedIds(), is(expected));
+		assertThat("get objs correct ext ids", new HashMap<>(wod.getExtractedIds()), is(expected));
+		assertThat("get prov correct ext ids", new HashMap<>(woi.getExtractedIds()), is(expected));
 	}
 }

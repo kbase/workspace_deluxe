@@ -1,6 +1,7 @@
 package us.kbase.common.test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -10,8 +11,10 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.ini4j.Ini;
@@ -181,7 +184,7 @@ public class TestCommon {
 				ExceptionUtils.getStackTrace(got),
 				got.getLocalizedMessage(),
 				is(expected.getLocalizedMessage()));
-		assertThat("incorrect exception type", got, is(expected.getClass()));
+		assertThat("incorrect exception type", got, instanceOf(expected.getClass()));
 	}
 	
 	public static void assertNoTempFilesExist(TempFilesManager tfm)
@@ -222,5 +225,10 @@ public class TestCommon {
 		Field m = cu.getDeclaredField("m");
 		m.setAccessible(true);
 		return (Map<String, String>) m.get(unmodifiable);
+	}
+	
+	@SafeVarargs
+	public static <T> Set<T> set(T... objects) {
+		return new HashSet<T>(Arrays.asList(objects));
 	}
 }
