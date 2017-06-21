@@ -29,8 +29,6 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
  */
 public class PermissionsCheckerFactory {
 	
-	//TODO NOW TEST
-	
 	private static final Map<Permission, String> ops = ImmutableMap.of(
 			Permission.NONE, "no permission required, this should never actually show up anywhere",
 			Permission.READ, "read",
@@ -135,9 +133,8 @@ public class PermissionsCheckerFactory {
 				throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 					CorruptWorkspaceDBException, WorkspaceAuthorizationException {
 			final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-					db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(workspaces));
-			final PermissionSet perms = db.getPermissions(user,
-					new HashSet<ResolvedWorkspaceID>(rwsis.values()));
+					db.resolveWorkspaces(new HashSet<>(workspaces));
+			final PermissionSet perms = db.getPermissions(user, new HashSet<>(rwsis.values()));
 			for (final Entry<WorkspaceIdentifier, ResolvedWorkspaceID> e: rwsis.entrySet()) {
 				comparePermission(user, perm, perms.getPermission(e.getValue()),
 						e.getKey(), operation);
@@ -291,8 +288,7 @@ public class PermissionsCheckerFactory {
 			
 			//map is for error purposes only - only stores the most recent object
 			//associated with a workspace
-			final Map<WorkspaceIdentifier, ObjectIdentifier> wsis =
-					new HashMap<WorkspaceIdentifier, ObjectIdentifier>();
+			final Map<WorkspaceIdentifier, ObjectIdentifier> wsis = new HashMap<>();
 			for (final ObjectIdentifier o: objects) {
 				wsis.put(o.getWorkspaceIdentifier(), o);
 			}
@@ -304,16 +300,13 @@ public class PermissionsCheckerFactory {
 				final ObjectIdentifier obj = wsis.get(nswe.getMissingWorkspace());
 				throw new InaccessibleObjectException(String.format(
 						"Object %s cannot be accessed: %s",
-						obj.getIdentifierString(), nswe.getLocalizedMessage()),
-						obj, nswe);
+						obj.getIdentifierString(), nswe.getLocalizedMessage()), obj, nswe);
 			}
 			if (ignoreMissingAndInaccessibleWorkspaces && !includeDeletedWorkspaces) {
 				removeDeletedWorkspaces(rwsis);
 			}
-			final PermissionSet perms = db.getPermissions(
-					user, new HashSet<ResolvedWorkspaceID>(rwsis.values()));
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> ret =
-					new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
+			final PermissionSet perms = db.getPermissions(user, new HashSet<>(rwsis.values()));
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> ret = new HashMap<>();
 			for (final ObjectIdentifier o: objects) {
 				if (!rwsis.containsKey(o.getWorkspaceIdentifier())) {
 					continue; //missing workspace
@@ -432,9 +425,8 @@ public class PermissionsCheckerFactory {
 			final ObjectIdentifier oi,
 			final String operation)
 			throws WorkspaceAuthorizationException {
-		final WorkspaceAuthorizationException wae =
-				comparePermission(user, required, available,
-						oi.getWorkspaceIdentifierString(), operation);
+		final WorkspaceAuthorizationException wae = comparePermission(user, required, available,
+				oi.getWorkspaceIdentifierString(), operation);
 		if (wae != null) {
 			wae.addDeniedCause(oi);
 			throw wae;
@@ -477,8 +469,7 @@ public class PermissionsCheckerFactory {
 					"Anonymous users may not %s workspace %s" :
 					"User " + user.getUser() + " may not %s workspace %s";
 			final WorkspaceAuthorizationException wae = 
-					new WorkspaceAuthorizationException(String.format(
-					err, operation, identifier));
+					new WorkspaceAuthorizationException(String.format(err, operation, identifier));
 			return wae;
 		}
 		return null;
@@ -498,8 +489,7 @@ public class PermissionsCheckerFactory {
 			final ObjectIdentifier o,
 			final WorkspaceAuthorizationException wae)
 			throws InaccessibleObjectException {
-		throw new InaccessibleObjectException(String.format(
-				"Object %s cannot be accessed: %s",
+		throw new InaccessibleObjectException(String.format("Object %s cannot be accessed: %s",
 				o.getIdentifierString(), wae.getLocalizedMessage()), o, wae);
 	}
 }
