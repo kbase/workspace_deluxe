@@ -182,7 +182,7 @@ public class PermissionsCheckerFactory {
 		@Override
 		public SingleWorkspacePermissionsChecker withOperation(final String operation) {
 			checker.withOperation(operation);
-			return this;
+			return getThis();
 		}
 		
 		/** Check the permissions on the selected workspace for the user and get the resolved

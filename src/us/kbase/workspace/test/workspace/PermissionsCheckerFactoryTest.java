@@ -149,8 +149,10 @@ public class PermissionsCheckerFactoryTest {
 		}
 	}
 	
+	/* Multiple workspace checking tests */
+	
 	@Test
-	public void checkReadWorkspacesSuccessUnlocked() throws Exception {
+	public void checkWorkspacesSuccessUnlocked() throws Exception {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
@@ -179,7 +181,7 @@ public class PermissionsCheckerFactoryTest {
 	}
 	
 	@Test
-	public void checkReadWorkspacesSuccessLocked() throws Exception {
+	public void checkWorkspacesSuccessLocked() throws Exception {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
@@ -271,9 +273,12 @@ public class PermissionsCheckerFactoryTest {
 						.withWorkspace(res, Permission.WRITE, Permission.NONE)
 						.build());
 
-		failCheckWorkspaces(permfac.getWorkspaceChecker(Arrays.asList(wsi), Permission.ADMIN),
-				new WorkspaceAuthorizationException(
-						"User foo may not administrate workspace 3"));
+		final WorkspaceAuthorizationException e =
+				(WorkspaceAuthorizationException) failCheckWorkspaces(
+				permfac.getWorkspaceChecker(Arrays.asList(wsi), Permission.ADMIN),
+				new WorkspaceAuthorizationException("User foo may not administrate workspace 3"));
+		
+		assertThat("incorrect denied workspace", e.getDeniedWorkspace(), is(wsi));
 	}
 	
 	@Test
@@ -292,23 +297,117 @@ public class PermissionsCheckerFactoryTest {
 						.withWorkspace(res, Permission.NONE, Permission.READ)
 						.build());
 
-		failCheckWorkspaces(permfac.getWorkspaceChecker(Arrays.asList(wsi), Permission.ADMIN)
-				.withOperation("tweak"),
-				new WorkspaceAuthorizationException(
-						"Anonymous users may not tweak workspace 3"));
+		final WorkspaceAuthorizationException e =
+				(WorkspaceAuthorizationException) failCheckWorkspaces(
+						permfac.getWorkspaceChecker(Arrays.asList(wsi), Permission.ADMIN)
+								.withOperation("tweak"),
+				new WorkspaceAuthorizationException("Anonymous users may not tweak workspace 3"));
+		
+		assertThat("incorrect denied workspace", e.getDeniedWorkspace(), is(wsi));
 	}
 	
-	
-	private void failCheckWorkspaces(
+	private Exception failCheckWorkspaces(
 			final PermissionsCheckerFactory.WorkspacePermissionsChecker checker,
 			final Exception e) {
 		try {
 			checker.check();
+			fail("expected exception");
+			return null; // fail always throws an exception
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, e);
+			return got;
+		}
+	}
+	
+	/* Single workspace checking tests
+	 * 
+	 * Since the single workspace checker just wraps the multi workspace checker, only the
+	 * wrapping code is tested.
+	 * 
+	 * If you change this arrangement you need to update the test code to take that into account.
+	 */
+	
+	@Test
+	public void checkWorkspaceSuccess() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(3);
+		final ResolvedWorkspaceID res = new ResolvedWorkspaceID(3, "yay", false, false);
+		
+		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		
+		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, res));
+		
+		when(db.getPermissions(u, set(res))).thenReturn(
+				PermissionSet.getBuilder(u, new AllUsers('*'))
+						.withWorkspace(res, Permission.WRITE, Permission.NONE)
+						.build());
+		
+		final ResolvedWorkspaceID resws = permfac.getWorkspaceChecker(wsi, Permission.WRITE)
+				.withOperation("whee")
+				.check();
+		
+		assertThat("incorrect resolved workspaces", resws, is(res));
+	}
+	
+	@Test
+	public void checkWorkspaceFailGetBuilder() throws Exception {
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+		
+		failGetWorkspaceChecker(null, Permission.READ, new NullPointerException(
+				"Workspace identifier cannot be null"));
+		failGetWorkspaceChecker(wsi, null, new NullPointerException("perm"));
+	}
+	
+	private void failGetWorkspaceChecker(
+			final WorkspaceIdentifier wsi,
+			final Permission perm,
+			final Exception e) {
+		try {
+			new PermissionsCheckerFactory(mock(WorkspaceDatabase.class), new WorkspaceUser("f"))
+				.getWorkspaceChecker(wsi, perm);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, e);
 		}
 	}
 	
+	@Test
+	public void checkWorkspaceFailPermission() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(3);
+		final ResolvedWorkspaceID res = new ResolvedWorkspaceID(3, "yay", false, false);
+		
+		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		
+		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, res));
+		
+		when(db.getPermissions(u, set(res))).thenReturn(
+				PermissionSet.getBuilder(u, new AllUsers('*'))
+						.withWorkspace(res, Permission.WRITE, Permission.NONE)
+						.build());
+
+		final WorkspaceAuthorizationException e =
+				(WorkspaceAuthorizationException) failCheckWorkspace(
+						permfac.getWorkspaceChecker(wsi, Permission.ADMIN)
+								.withOperation("tickle"),
+				new WorkspaceAuthorizationException("User foo may not tickle workspace 3"));
+		
+		assertThat("incorrect denied workspace", e.getDeniedWorkspace(), is(wsi));
+	}
+	
+	private Exception failCheckWorkspace(
+			final PermissionsCheckerFactory.SingleWorkspacePermissionsChecker checker,
+			final Exception e) {
+		try {
+			checker.check();
+			fail("expected exception");
+			return null;
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, e);
+			return got;
+		}
+	}
 	
 }
