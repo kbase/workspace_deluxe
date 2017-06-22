@@ -74,13 +74,13 @@ import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
-import us.kbase.workspace.test.workspace.FakeResolvedWSID;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -1459,7 +1459,7 @@ public class JSONRPCLayerTester {
 		for (Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> t: tpl) {
 			s.add(new ObjectInformation(t.getE1(), t.getE2(), t.getE3(), DATE_FORMAT.parse(t.getE4()),
 					t.getE5().intValue(), new WorkspaceUser(t.getE6()), 
-					new FakeResolvedWSID(t.getE8(), t.getE7()), t.getE9(),
+					new ResolvedWorkspaceID(t.getE7(), t.getE8(), false, false), t.getE9(),
 					t.getE10(), new UncheckedUserMetadata(t.getE11())));
 		}
 		return s;

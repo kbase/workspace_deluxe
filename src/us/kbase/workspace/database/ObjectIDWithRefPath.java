@@ -81,7 +81,7 @@ public class ObjectIDWithRefPath extends ObjectIdentifier {
 	}
 	
 	/** Returns true if this object identifier represents a target object for which the permissions
-	 * must be ascertained by a object reference DAG serach.
+	 * must be ascertained by a object reference DAG search.
 	 * @return
 	 */
 	public boolean isLookupRequired() {

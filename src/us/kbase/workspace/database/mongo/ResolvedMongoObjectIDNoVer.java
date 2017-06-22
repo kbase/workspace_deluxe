@@ -2,6 +2,8 @@ package us.kbase.workspace.database.mongo;
 
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 
+import us.kbase.workspace.database.ResolvedWorkspaceID;
+
 /**
  * name is resolved *at the time the database was accessed and is not further
  * updated*
@@ -19,11 +21,11 @@ import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
  */
 public class ResolvedMongoObjectIDNoVer {
 	
-	private final ResolvedMongoWSID rwsi;
+	private final ResolvedWorkspaceID rwsi;
 	private final String name;
 	private final Long id;
 	
-	ResolvedMongoObjectIDNoVer(final ResolvedMongoWSID rwsi, final String name,
+	ResolvedMongoObjectIDNoVer(final ResolvedWorkspaceID rwsi, final String name,
 			final long id) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
@@ -46,7 +48,7 @@ public class ResolvedMongoObjectIDNoVer {
 		this.id = rmoid.getId();
 	}
 	
-	public ResolvedMongoWSID getWorkspaceIdentifier() {
+	public ResolvedWorkspaceID getWorkspaceIdentifier() {
 		return rwsi;
 	}
 
