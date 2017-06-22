@@ -373,7 +373,7 @@ public class PermissionsCheckerFactory {
 		@Override
 		public SingleObjectPermissionsChecker withOperation(final String operation) {
 			checker.withOperation(operation);
-			return this;
+			return getThis();
 		}
 		
 		@Override

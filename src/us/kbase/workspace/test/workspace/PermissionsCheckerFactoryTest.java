@@ -24,6 +24,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.PermissionsCheckerFactory;
+import us.kbase.workspace.database.PermissionsCheckerFactory.SingleObjectPermissionsChecker;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -140,7 +141,7 @@ public class PermissionsCheckerFactoryTest {
 		//TODO CODE add whitespace when java common string checker deals with whitespace
 	}
 	
-	public void failSetOperation(final String op, final Exception e) {
+	private void failSetOperation(final String op, final Exception e) {
 		try {
 			// just test on the workspace checker since they all inherit from the same abstract
 			// class
@@ -449,6 +450,8 @@ public class PermissionsCheckerFactoryTest {
 			return got;
 		}
 	}
+	
+	/* Object checking tests */
 	
 	@Test
 	public void checkObjectsSuccessUnlocked() throws Exception {
@@ -860,6 +863,130 @@ public class PermissionsCheckerFactoryTest {
 	
 	private Exception failCheckObjects(
 			final PermissionsCheckerFactory.ObjectPermissionsChecker checker,
+			final Exception e) {
+		try {
+			checker.check();
+			fail("expected exception");
+			return null; // fail always throws an exception
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, e);
+			return got;
+		}
+	}
+	
+	/* Single object checking tests
+	 * 
+	 * Since the single objects checker just wraps the multi objects checker, only the
+	 * wrapping code is tested.
+	 * 
+	 * If you change this arrangement you need to update the test code to take that into account.
+	 */
+	
+	@Test
+	public void checkObjectSuccess() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
+		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
+		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
+		
+		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		
+		when(db.resolveWorkspaces(set(wsi3), false)).thenReturn(ImmutableMap.of(wsi3, res3));
+		
+		when(db.getPermissions(u, set(res3))).thenReturn(
+				PermissionSet.getBuilder(u, new AllUsers('*'))
+						.withWorkspace(res3, Permission.WRITE, Permission.NONE)
+						.build());
+		
+		final ObjectIDResolvedWS res = permfac.getObjectChecker(obj3, Permission.WRITE).check();
+		
+		assertThat("incorrect resolved object", res, is(new ObjectIDResolvedWS(res3, 2)));
+	}
+	
+	
+	@Test
+	public void checkObjectFailUnsupportedMethods() {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
+		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
+		
+		final SingleObjectPermissionsChecker checker = new PermissionsCheckerFactory(db, u)
+				.getObjectChecker(obj3, Permission.READ);
+		final UnsupportedOperationException expected = new UnsupportedOperationException(
+				"Unsupported for single objects");
+		
+		try {
+			checker.withIncludeDeletedWorkspaces();
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+		
+		try {
+			checker.withSuppressErrors(false);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	@Test
+	public void checkObjectFailGetBuilder() throws Exception {
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+		final ObjectIdentifier oi = new ObjectIdentifier(wsi, 2);
+		
+		failGetObjectChecker(null, Permission.READ, new NullPointerException(
+				"Object identifier cannot be null"));
+		failGetObjectChecker(oi, null, new NullPointerException("perm"));
+	}
+	
+	private void failGetObjectChecker(
+			final ObjectIdentifier oi,
+			final Permission perm,
+			final Exception e) {
+		try {
+			new PermissionsCheckerFactory(mock(WorkspaceDatabase.class), new WorkspaceUser("f"))
+				.getObjectChecker(oi, perm);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, e);
+		}
+	}
+	
+	@Test
+	public void checkObjectFailPermissions() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final WorkspaceUser u = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
+		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
+		// locked to test that permissions errors take precedence over locking
+		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
+		
+		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
+		
+		when(db.resolveWorkspaces(set(wsi3), false)).thenReturn(
+				MapBuilder.<WorkspaceIdentifier, ResolvedWorkspaceID>newHashMap()
+				.with(wsi3, res3).build());
+		
+		when(db.getPermissions(u, set(res3))).thenReturn(
+				PermissionSet.getBuilder(u, new AllUsers('*'))
+						.withWorkspace(res3, Permission.READ, Permission.NONE)
+						.build());
+		
+		final InaccessibleObjectException e = (InaccessibleObjectException) failCheckObject(
+				permfac.getObjectChecker(obj3, Permission.WRITE)
+				.withOperation("bamboozle"),
+				new InaccessibleObjectException("Object 2 cannot be accessed: " +
+						"User foo may not bamboozle workspace 3",
+						obj3));
+		
+		assertThat("incorrect denied object", e.getInaccessibleObject(), is(obj3));
+	}
+	
+	private Exception failCheckObject(
+			final PermissionsCheckerFactory.SingleObjectPermissionsChecker checker,
 			final Exception e) {
 		try {
 			checker.check();
