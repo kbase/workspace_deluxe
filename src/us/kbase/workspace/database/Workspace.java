@@ -48,6 +48,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
+import us.kbase.workspace.database.ObjectResolver.ObjectResolution;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
@@ -1177,23 +1178,30 @@ public class Workspace {
 		final ObjectResolver res = orb.resolve();
 		
 		final Map<ObjectIDResolvedWS, ObjectInformation> stdmeta = db.getObjectInformation(
-				new HashSet<ObjectIDResolvedWS>(res.getNoPaths().values()),
+				res.getResolvedObjects(false),
 				includeMetadata, !nullIfInaccessible, false, !nullIfInaccessible);
 		
 		final Map<ObjectIDResolvedWS, ObjectInformation> resmeta = db.getObjectInformation(
-				new HashSet<ObjectIDResolvedWS>(res.getWithPaths().values()),
-				includeMetadata, false, true, true);
+				res.getResolvedObjects(true), includeMetadata, false, true, true);
 				// at this point the object at the chain end must exist
 		
 		final List<ObjectInformation> ret = new ArrayList<>();
 		for (final ObjectIdentifier o: loi) {
-			if (res.getNoPaths().containsKey(o) && stdmeta.containsKey(res.getNoPaths().get(o))) {
-				ret.add(stdmeta.get(res.getNoPaths().get(o)));
-			} else if (res.getWithPaths().containsKey(o) && resmeta.containsKey(res.getWithPaths().get(o))) {
-				ret.add(resmeta.get(res.getWithPaths().get(o))
-						.updateReferencePath(res.getRefPaths().get(o)));
-			} else {
+			final ObjectResolution objres = res.getObjectResolution(o);
+			if (objres.equals(ObjectResolution.INACCESSIBLE)) {
 				ret.add(null);
+			} else {
+				final ObjectIDResolvedWS idres = res.getResolvedObject(o);
+				if (objres.equals(ObjectResolution.NO_PATH)) {
+					if (stdmeta.containsKey(idres)) {
+						ret.add(stdmeta.get(idres));
+					} else {
+						ret.add(null); // object was deleted  or didn't exist
+					}
+				} else {
+					// resolution was with a path, which guarantees that the object exists
+					ret.add(resmeta.get(idres).updateReferencePath(res.getReferencePath(o)));
+				}
 			}
 		}
 		return ret;

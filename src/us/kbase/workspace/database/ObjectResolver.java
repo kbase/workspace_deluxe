@@ -2,6 +2,7 @@ package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.Util.nonNull;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,7 +37,9 @@ public class ObjectResolver {
 	private final List<ObjectIdentifier> objects;
 	private final boolean nullIfInaccessible;
 	private final int maximumObjectSearchCount;
-	private final ResolvedRefPaths paths;
+	private final Map<ObjectIdentifier, ObjectIDResolvedWS> nopath;
+	private final Map<ObjectIdentifier, ObjectIDResolvedWS> withpath;
+	private final Map<ObjectIdentifier, List<Reference>> withpathRefPath;
 	
 	public ObjectResolver(
 			final WorkspaceDatabase db,
@@ -49,22 +52,76 @@ public class ObjectResolver {
 				ReferenceSearchMaximumSizeExceededException {
 		this.db = db;
 		this.user = user;
-		this.objects = objects;
+		this.objects = Collections.unmodifiableList(objects);
 		this.nullIfInaccessible = nullIfInaccessible;
 		this.maximumObjectSearchCount = maxSearch;
-		this.paths = resolve();
+		final ResolvedRefPaths paths = resolve();
+		this.nopath = Collections.unmodifiableMap(paths.nopath);
+		this.withpath = Collections.unmodifiableMap(paths.withpath);
+		this.withpathRefPath = Collections.unmodifiableMap(paths.withpathRefPath);
+	}
+	
+	public enum ObjectResolution {
+		
+		NO_PATH,
+		
+		PATH,
+		
+		INACCESSIBLE;
+	}
+	
+	public List<ObjectIdentifier> getObjects() {
+		return objects;
+	}
+	
+	public ObjectResolution getObjectResolution(final ObjectIdentifier objID) {
+		nonNull(objID, "objID");
+		if (nopath.containsKey(objID)) {
+			return ObjectResolution.NO_PATH;
+		} else if (withpath.containsKey(objID)) {
+			return ObjectResolution.PATH;
+		} else {
+			return ObjectResolution.INACCESSIBLE;
+		}
+	}
+	
+	public ObjectIDResolvedWS getResolvedObject(final ObjectIdentifier objID) {
+		if (nopath.containsKey(objID)) {
+			return nopath.get(objID);
+		} else if (withpath.containsKey(objID)) {
+			return withpath.get(objID);
+		} else {
+			throw new IllegalArgumentException("Object is inaccessible");
+		}
+	}
+	
+	public Set<ObjectIDResolvedWS> getResolvedObjects(final boolean withPath) {
+		if (withPath) {
+			return new HashSet<>(withpath.values());
+		} else {
+			return new HashSet<>(nopath.values());
+		}
+	}
+	
+	public List<Reference> getReferencePath(final ObjectIdentifier objID) {
+		if (withpath.containsKey(objID)) {
+			return new ArrayList<>(withpathRefPath.get(objID));
+		} else {
+			throw new IllegalArgumentException(
+					"Direct access to objID is available, no path was needed");
+		}
 	}
 	
 	public Map<ObjectIdentifier, ObjectIDResolvedWS> getNoPaths() { //TODO NOW temporary. Remove this later in the refactoring cycle.
-		return paths.nopath;
+		return nopath;
 	}
 
 	public Map<ObjectIdentifier, ObjectIDResolvedWS> getWithPaths() { //TODO NOW temporary. Remove this later in the refactoring cycle.
-		return paths.withpath;
+		return withpath;
 	}
 	
 	public Map<ObjectIdentifier, List<Reference>> getRefPaths() { //TODO NOW temporary. Remove this later in the refactoring cycle.
-		return paths.withpathRefPath;
+		return withpathRefPath;
 	}
 	
 	private static class ResolvedRefPaths {
