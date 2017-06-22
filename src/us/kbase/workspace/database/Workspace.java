@@ -1069,8 +1069,7 @@ public class Workspace {
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedRefPathObjs =
 				new PermissionsCheckerFactory(db, user)
 						.getObjectChecker(allRefPathEntries, Permission.NONE)
-						.withIgnoreMissingAndInaccessibleWorkspaces(true)
-						.withIncludeDeletedWorkspaces(true)
+						.withIncludeDeletedWorkspaces()
 						.check();
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> outrefs =
 				getObjectOutgoingReferences(resolvedRefPathObjs, true, true);
@@ -1391,7 +1390,7 @@ public class Workspace {
 		if (!nolookup.isEmpty()) {
 			ws = new PermissionsCheckerFactory(db, user)
 					.getObjectChecker(nolookup, Permission.READ)
-					.withIgnoreMissingAndInaccessibleWorkspaces(nullIfInaccessible).check();
+					.withSuppressErrors(nullIfInaccessible).check();
 		}
 		nolookup = null; //gc
 		

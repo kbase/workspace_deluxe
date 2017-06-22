@@ -218,31 +218,34 @@ public class PermissionsCheckerFactory {
 			AbstractPermissionsChecker<T> {
 		
 		boolean includeDeletedWorkspaces = false;
-		boolean ignoreMissingAndInaccessibleWorkspaces = false;
+		boolean suppressErrors = false;
 		
 		public AbstractObjectPermissionsChecker(final Permission perm) {
 			super(perm);
 		}
 		
 		/** Include deleted workspaces in the output of the check() method if found. Use this
-		 * option with caution.
-		 * @param includeDeleted true to include deleted workspaces, false (the default) otherwise.
+		 * option with caution. All errors are suppressed and missing or inaccessible workspaces
+		 * will not cause an exception to be thrown - they will be missing in the output.
+		 * 
 		 * @return this checker.
 		 */
-		public T withIncludeDeletedWorkspaces(final boolean includeDeleted) {
-			this.includeDeletedWorkspaces = includeDeleted;
+		public T withIncludeDeletedWorkspaces() {
+			this.suppressErrors = true;
+			this.includeDeletedWorkspaces = true;
 			return getThis();
 		}
 		
 		/** Rather than throwing an exception, do not include missing and inaccessible workspaces
-		 * in the output from the check() method.
-		 * @param ignoreMissingAndInaccessible true to ignore missing and inaccessible workspaces
+		 * in the output from the check() method. Deleted workspaces are not included in the
+		 * output.
+		 * @param suppressErrors true to ignore missing and inaccessible workspaces
 		 * in the output, false (the default) to throw an exception if found.
 		 * @return this checker.
 		 */
-		public T withIgnoreMissingAndInaccessibleWorkspaces(
-				final boolean ignoreMissingAndInaccessible) {
-			this.ignoreMissingAndInaccessibleWorkspaces = ignoreMissingAndInaccessible;
+		public T withSuppressErrors(final boolean suppressErrors) {
+			this.suppressErrors = suppressErrors;
+			this.includeDeletedWorkspaces = false;
 			return getThis();
 		}
 	}
@@ -252,7 +255,7 @@ public class PermissionsCheckerFactory {
 	 *
 	 */
 	public class ObjectPermissionsChecker extends
-			AbstractObjectPermissionsChecker<ObjectPermissionsChecker>{
+			AbstractObjectPermissionsChecker<ObjectPermissionsChecker> {
 		
 		private final List<ObjectIdentifier> objects;
 		
@@ -294,15 +297,14 @@ public class PermissionsCheckerFactory {
 			}
 			final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 			try {
-				rwsis = db.resolveWorkspaces(
-						wsis.keySet(), ignoreMissingAndInaccessibleWorkspaces);
+				rwsis = db.resolveWorkspaces(wsis.keySet(), suppressErrors);
 			} catch (NoSuchWorkspaceException nswe) {
 				final ObjectIdentifier obj = wsis.get(nswe.getMissingWorkspace());
 				throw new InaccessibleObjectException(String.format(
 						"Object %s cannot be accessed: %s",
 						obj.getIdentifierString(), nswe.getLocalizedMessage()), obj, nswe);
 			}
-			if (ignoreMissingAndInaccessibleWorkspaces && !includeDeletedWorkspaces) {
+			if (suppressErrors && !includeDeletedWorkspaces) {
 				removeDeletedWorkspaces(rwsis);
 			}
 			final PermissionSet perms = db.getPermissions(user, new HashSet<>(rwsis.values()));
@@ -313,19 +315,19 @@ public class PermissionsCheckerFactory {
 				}
 				final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
 				try {
-					checkLocked(perm, r); // no suppressing errors here.
-				} catch (WorkspaceAuthorizationException wae) {
-					throwInaccessibleObjectException(o, wae);
-				}
-				try {
 					comparePermission(user, perm, perms.getPermission(r), o, operation);
 				} catch (WorkspaceAuthorizationException wae) {
-					if (ignoreMissingAndInaccessibleWorkspaces) {
+					if (suppressErrors) {
 						continue;
 					} else {
 						// contrary to ECLEmma's output, this path is in fact tested
 						throwInaccessibleObjectException(o, wae);
 					}
+				}
+				try {
+					checkLocked(perm, r); // no suppressing errors here.
+				} catch (WorkspaceAuthorizationException wae) {
+					throwInaccessibleObjectException(o, wae);
 				}
 				ret.put(o, o.resolveWorkspace(r));
 			}
@@ -375,14 +377,12 @@ public class PermissionsCheckerFactory {
 		}
 		
 		@Override
-		public SingleObjectPermissionsChecker withIncludeDeletedWorkspaces(
-				final boolean includeDeleted) {
+		public SingleObjectPermissionsChecker withIncludeDeletedWorkspaces() {
 			throw new UnsupportedOperationException("Unsupported for single objects");
 		}
 		
 		@Override
-		public SingleObjectPermissionsChecker withIgnoreMissingAndInaccessibleWorkspaces(
-				final boolean ignoreMissingAndInaccessible) {
+		public SingleObjectPermissionsChecker withSuppressErrors(final boolean suppressErrors) {
 			throw new UnsupportedOperationException("Unsupported for single objects");
 		}
 		
