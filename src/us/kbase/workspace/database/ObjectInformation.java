@@ -25,7 +25,7 @@ public class ObjectInformation {
 	final private UncheckedUserMetadata meta;
 	final private List<Reference> refpath;
 	
-	/** Create a new MongoObjectInfo.
+	/** Create a new ObjectInformation.
 	 * @param id the object id.
 	 * @param name the object name.
 	 * @param typeString the absolute type of the object as a string.
