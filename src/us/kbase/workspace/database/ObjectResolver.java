@@ -37,9 +37,9 @@ public class ObjectResolver {
 	private final List<ObjectIdentifier> objects;
 	private final boolean nullIfInaccessible;
 	private final int maximumObjectSearchCount;
-	private final Map<ObjectIdentifier, ObjectIDResolvedWS> nopath;
-	private final Map<ObjectIdentifier, ObjectIDResolvedWS> withpath;
-	private final Map<ObjectIdentifier, List<Reference>> withpathRefPath;
+	private final Map<ObjectIdentifier, ObjectIDResolvedWS> nopath = new HashMap<>();
+	private final Map<ObjectIdentifier, ObjectIDResolvedWS> withpath = new HashMap<>();
+	private final Map<ObjectIdentifier, List<Reference>> withpathRefPath = new HashMap<>();
 	
 	private ObjectResolver(
 			final WorkspaceDatabase db,
@@ -55,10 +55,7 @@ public class ObjectResolver {
 		this.objects = Collections.unmodifiableList(objects);
 		this.nullIfInaccessible = nullIfInaccessible;
 		this.maximumObjectSearchCount = maxSearch;
-		final ResolvedRefPaths paths = resolve();
-		this.nopath = Collections.unmodifiableMap(paths.nopath);
-		this.withpath = Collections.unmodifiableMap(paths.withpath);
-		this.withpathRefPath = Collections.unmodifiableMap(paths.withpathRefPath);
+		resolve();
 	}
 	
 	public enum ObjectResolution {
@@ -76,9 +73,9 @@ public class ObjectResolver {
 	
 	public Set<ObjectIdentifier> getObjects(final boolean withPath) {
 		if (withPath) {
-			return withpath.keySet();
+			return new HashSet<>(withpath.keySet());
 		} else {
-			return nopath.keySet();
+			return new HashSet<>(nopath.keySet());
 		}
 	}
 	
@@ -120,45 +117,8 @@ public class ObjectResolver {
 		}
 	}
 	
-	private static class ResolvedRefPaths {
-		public Map<ObjectIdentifier, ObjectIDResolvedWS> nopath;
-		public Map<ObjectIdentifier, ObjectIDResolvedWS> withpath;
-		public Map<ObjectIdentifier, List<Reference>> withpathRefPath;
-
-		private ResolvedRefPaths(
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> withpath,
-				final Map<ObjectIdentifier, List<Reference>> withpathRefPath) {
-			super();
-			this.withpath = withpath;
-			if (withpath == null) {
-				this.withpath = new HashMap<>();
-			}
-			this.withpathRefPath = withpathRefPath;
-			if (withpathRefPath == null) {
-				this.withpathRefPath = new HashMap<>();
-			}
-		}
-		
-		public ResolvedRefPaths withStandardObjects(
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> std) {
-			if (std == null) {
-				nopath = new HashMap<>();
-			} else {
-				nopath = std;
-			}
-			return this;
-		}
-
-		public ResolvedRefPaths merge(final ResolvedRefPaths merge) {
-			nopath.putAll(merge.nopath);
-			withpath.putAll(merge.withpath);
-			withpathRefPath.putAll(merge.withpathRefPath);
-			return this;
-		}
-	}
-	
 	/* used to resolve object IDs that might contain reference chains */
-	private ResolvedRefPaths resolve()
+	private void resolve()
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 				CorruptWorkspaceDBException, NoSuchReferenceException,
 				ReferenceSearchMaximumSizeExceededException {
@@ -183,7 +143,6 @@ public class ObjectResolver {
 		
 		final List<ObjectIDWithRefPath> refpaths = new LinkedList<>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads = new HashMap<>();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> std = new HashMap<>();
 		for (final ObjectIdentifier o: objects) {
 			if (lookup.contains(o)) { // need to do a lookup on this one, skip
 				refpaths.add(null); //maintain count for error reporting
@@ -195,17 +154,16 @@ public class ObjectResolver {
 				heads.put(o, ws.get(o));
 			} else {
 				refpaths.add(null); // maintain count for error reporting
-				std.put(o, ws.get(o));
+				nopath.put(o, ws.get(o));
 			}
 		}
 		ws = null; //GC
 
 		// this should exclude any heads that are deleted, even if nullIfInaccessible is true
 		// do this before starting the search, fail early before the expensive part
-		final ResolvedRefPaths resolvedPaths = resolveReferencePaths(
-				permfac, refpaths, heads, nullIfInaccessible).withStandardObjects(std);
+		resolveReferencePaths(permfac, refpaths, heads);
 		
-		return resolvedPaths.merge(searchObjectDAG(permfac.getUser(), lookup, nullIfInaccessible));
+		searchObjectDAG(permfac.getUser(), lookup);
 	}
 	
 	//TODO REF LOOKUP positive and negative caches (?)
@@ -213,21 +171,17 @@ public class ObjectResolver {
 	/* Modifies lookup in place to remove objects that don't need lookup.
 	 * Note the reference path returned for looked up objects is currently incorrect. 
 	 */
-	private ResolvedRefPaths searchObjectDAG(
-			final WorkspaceUser user,
-			final Set<ObjectIdentifier> lookup,
-			final boolean nullIfInaccessible)
+	private void searchObjectDAG(final WorkspaceUser user, final Set<ObjectIdentifier> lookup)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 				CorruptWorkspaceDBException, ReferenceSearchMaximumSizeExceededException {
 		if (lookup.isEmpty()) {
-			return new ResolvedRefPaths(null, null).withStandardObjects(null);
+			return;
 		}
 		//could make a method to just get IDs of workspace with specific permission to save mem
 		PermissionSet pset = db.getPermissions(user, Permission.READ, false);
 		Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				searchObjectDAGResolveWorkspaces(lookup);
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = new HashMap<>();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> nolookup = new HashMap<>();
 		final Iterator<ObjectIdentifier> oiter = lookup.iterator();
 		while (oiter.hasNext()) {
 			final ObjectIdentifier o = oiter.next();
@@ -235,7 +189,7 @@ public class ObjectResolver {
 			if (rwsi != null) {
 				final ObjectIDResolvedWS oid = o.resolveWorkspace(rwsi);
 				if (pset.hasWorkspace(rwsi) && !rwsi.isDeleted()) { // workspace has read perm
-					nolookup.put(o, oid);
+					nopath.put(o, oid);
 					oiter.remove();
 				} else {
 					resobjs.put(o, oid);
@@ -243,28 +197,26 @@ public class ObjectResolver {
 			}
 		}
 		if (lookup.isEmpty()) {
-			return new ResolvedRefPaths(null, null).withStandardObjects(nolookup);
+			return;
 		}
 		final Set<Long> wsIDs = searchObjectDAGGetWorkspaceIDs(pset);
 		pset = null;
 		rwsis = null;
 		if (wsIDs.isEmpty()) {
 			if (nullIfInaccessible) {
-				return new ResolvedRefPaths(null, null).withStandardObjects(nolookup);
+				return;
 			} else {
 				throw generateInaccessibleObjectException(user, lookup.iterator().next());
 			}
 		}
-		return searchObjectDAG(user, wsIDs, lookup, resobjs, nullIfInaccessible)
-				.withStandardObjects(nolookup);
+		searchObjectDAG(user, wsIDs, lookup, resobjs);
 	}
 
-	private ResolvedRefPaths searchObjectDAG(
+	private void searchObjectDAG(
 			final WorkspaceUser user,
 			final Set<Long> wsIDs,
 			final Set<ObjectIdentifier> lookup,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
-			final boolean nullIfInaccessible)
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs)
 			throws WorkspaceCommunicationException, ReferenceSearchMaximumSizeExceededException,
 				InaccessibleObjectException {
 		
@@ -273,10 +225,10 @@ public class ObjectResolver {
 		try {
 			// will throw an exception if can't find a ref for any object in lookup
 			final Set<Reference> startingRefs = searchObjectDAGGetStartingRefs(
-					lookup, resobjs, objrefs, nullIfInaccessible);
+					lookup, resobjs, objrefs);
 			//so starting refs can't be empty unless nullIfInaccessible is true
 			if (nullIfInaccessible && startingRefs.isEmpty()) {
-				return new ResolvedRefPaths(null, null);
+				return;
 			}
 			final ReferenceGraphTopologyProvider refProvider = new ReferenceGraphTopologyProvider() {
 				
@@ -313,7 +265,7 @@ public class ObjectResolver {
 			};
 			final ReferenceGraphSearch search = new ReferenceGraphSearch(startingRefs,
 					refProvider, maximumObjectSearchCount, !nullIfInaccessible);
-			return searchObjectDAGBuildResolvedObjectPaths(resobjs, objrefs, search);
+			searchObjectDAGBuildResolvedObjectPaths(resobjs, objrefs, search);
 		} catch (final ReferenceSearchFailedException |
 				ObjectDAGSearchFromObjectIDFailedException e) {
 			final ObjectIdentifier failedOn = searchObjectDAGGetSearchFailedTarget(
@@ -329,8 +281,7 @@ public class ObjectResolver {
 	private Set<Reference> searchObjectDAGGetStartingRefs(
 			final Set<ObjectIdentifier> lookup,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
-			final Map<ObjectIDResolvedWS, Reference> objrefs,
-			final boolean nullIfInaccessible)
+			final Map<ObjectIDResolvedWS, Reference> objrefs)
 			throws ObjectDAGSearchFromObjectIDFailedException {
 
 		final Set<Reference> startingRefs = new HashSet<>();
@@ -348,24 +299,20 @@ public class ObjectResolver {
 		return startingRefs;
 	}
 
-	private ResolvedRefPaths searchObjectDAGBuildResolvedObjectPaths(
+	private void searchObjectDAGBuildResolvedObjectPaths(
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
 			final Map<ObjectIDResolvedWS, Reference> objrefs,
 			final ReferenceGraphSearch paths) {
-		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> absObjectIDs = new HashMap<>();
-		final Map<ObjectIdentifier, List<Reference>> oiPaths = new HashMap<>();
 		
 		for (final Entry<ObjectIdentifier, ObjectIDResolvedWS> e: resobjs.entrySet()) {
 			final Reference r = objrefs.get(e.getValue());
 			if (paths.isPathFound(r)) { // objid was valid and path was found
 				//absolutize the ObjectIDResolvedWS
-				absObjectIDs.put(e.getKey(), new ObjectIDResolvedWS(
+				withpath.put(e.getKey(), new ObjectIDResolvedWS(
 						e.getValue().getWorkspaceIdentifier(), r.getObjectID(), r.getVersion()));
-				oiPaths.put(e.getKey(), paths.getPath(r));
+				withpathRefPath.put(e.getKey(), paths.getPath(r));
 			}
 		}
-		return new ResolvedRefPaths(absObjectIDs, oiPaths);
 	}
 	
 	// this is a little filthy
@@ -441,17 +388,16 @@ public class ObjectResolver {
 		}
 	}
 	
-	private ResolvedRefPaths resolveReferencePaths(
+	private void resolveReferencePaths(
 			final PermissionsCheckerFactory permfac,
 			final List<ObjectIDWithRefPath> objsWithRefpaths,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads,
-			final boolean ignoreErrors)
+			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads)
 			throws WorkspaceCommunicationException,
 				InaccessibleObjectException, CorruptWorkspaceDBException,
 				NoSuchReferenceException {
 		
 		if (!hasItems(objsWithRefpaths)) {
-			return new ResolvedRefPaths(null, null);
+			return;
 		}
 		
 		final List<ObjectIdentifier> allRefPathEntries = new LinkedList<>();
@@ -465,7 +411,7 @@ public class ObjectResolver {
 			}
 		}
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> headrefs =
-				getObjectOutgoingReferences(heads, ignoreErrors, false);
+				getObjectOutgoingReferences(heads, nullIfInaccessible, false);
 		/* ignore all errors when getting chain objects until actually getting
 		 * to the point where we need the data. Otherwise an attacker can
 		 * explore what objects exist in arbitrary workspaces.
@@ -477,28 +423,25 @@ public class ObjectResolver {
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> outrefs =
 				getObjectOutgoingReferences(resolvedRefPathObjs, true, true);
 		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedObjects = new HashMap<>();
-		final Map<ObjectIdentifier, List<Reference>> refpaths = new HashMap<>();
 		int chnum = 1;
 		for (final ObjectIDWithRefPath owrp: objsWithRefpaths) {
 			if (owrp != null) {
 				final ObjectReferenceSet refs = headrefs.get(heads.get(owrp));
 				if (refs != null) {
 					final List<Reference> resRefPath = getResolvedRefPath(owrp, refs,
-							resolvedRefPathObjs, outrefs, ignoreErrors, chnum);
+							resolvedRefPathObjs, outrefs, chnum);
 					if (resRefPath != null) {
 						final Reference ref = resRefPath.get(resRefPath.size() - 1);
 						final ObjectIDResolvedWS end = resolvedRefPathObjs.get(owrp.getLast());
 						final ObjectIDResolvedWS res = new ObjectIDResolvedWS(
 								end.getWorkspaceIdentifier(), ref.getObjectID(), ref.getVersion());
-						resolvedObjects.put(owrp, res);
-						refpaths.put(owrp, resRefPath);
+						withpath.put(owrp, res);
+						withpathRefPath.put(owrp, resRefPath);
 					}
 				}
 			}
 			chnum++;
 		}
-		return new ResolvedRefPaths(resolvedObjects, refpaths);
 	}
 	
 	private Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectOutgoingReferences(
@@ -525,7 +468,6 @@ public class ObjectResolver {
 			final ObjectReferenceSet headrefs,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> resRefPathObjs,
 			final Map<ObjectIDResolvedWS, ObjectReferenceSet> outgoingRefs,
-			final boolean ignoreErrors,
 			final int chainNumber)
 			throws NoSuchReferenceException {
 		final List<Reference> resolvedRefPath = new LinkedList<>();
@@ -544,7 +486,7 @@ public class ObjectResolver {
 			final ObjectIDResolvedWS oir = resRefPathObjs.get(oi);
 			final ObjectReferenceSet current = oir == null ? null : outgoingRefs.get(oir);
 			if (current == null || !refs.contains(current.getObjectReference())) {
-				if (ignoreErrors) {
+				if (nullIfInaccessible) {
 					return null;
 				}
 				throw new NoSuchReferenceException(null, chainNumber, posnum, refpath, pos, oi);
