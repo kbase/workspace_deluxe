@@ -41,7 +41,7 @@ public class ObjectResolver {
 	private final Map<ObjectIdentifier, ObjectIDResolvedWS> withpath;
 	private final Map<ObjectIdentifier, List<Reference>> withpathRefPath;
 	
-	public ObjectResolver(
+	private ObjectResolver(
 			final WorkspaceDatabase db,
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objects,
@@ -72,6 +72,14 @@ public class ObjectResolver {
 	
 	public List<ObjectIdentifier> getObjects() {
 		return objects;
+	}
+	
+	public Set<ObjectIdentifier> getObjects(final boolean withPath) {
+		if (withPath) {
+			return withpath.keySet();
+		} else {
+			return nopath.keySet();
+		}
 	}
 	
 	public ObjectResolution getObjectResolution(final ObjectIdentifier objID) {
@@ -110,18 +118,6 @@ public class ObjectResolver {
 			throw new IllegalArgumentException(
 					"Direct access to objID is available, no path was needed");
 		}
-	}
-	
-	public Map<ObjectIdentifier, ObjectIDResolvedWS> getNoPaths() { //TODO NOW temporary. Remove this later in the refactoring cycle.
-		return nopath;
-	}
-
-	public Map<ObjectIdentifier, ObjectIDResolvedWS> getWithPaths() { //TODO NOW temporary. Remove this later in the refactoring cycle.
-		return withpath;
-	}
-	
-	public Map<ObjectIdentifier, List<Reference>> getRefPaths() { //TODO NOW temporary. Remove this later in the refactoring cycle.
-		return withpathRefPath;
 	}
 	
 	private static class ResolvedRefPaths {

@@ -918,9 +918,9 @@ public class Workspace {
 		ObjectResolver res = orb.resolve();
 		
 		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> refpaths =
-				setupObjectPaths(res.getWithPaths());
+				setupObjectPaths(res.getObjects(true), res);
 		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> stdpaths =
-				setupObjectPaths(res.getNoPaths());
+				setupObjectPaths(res.getObjects(false), res);
 		
 		//TODO CODE make an overall resource manager that takes the config as an arg and handles returned data as well as mem & file limits 
 		final ByteArrayFileCacheManager dataMan = getDataManager(noData);
@@ -947,14 +947,22 @@ public class Workspace {
 					ss = SubsetSelection.EMPTY;
 				}
 				final WorkspaceObjectData wod;
-				// works if res.nochain.get(o) is null or stddata doesn't have key
-				if (stddata.containsKey(res.getNoPaths().get(o))) {
-					wod = stddata.get(res.getNoPaths().get(o)).get(ss);
-				} else if (refdata.containsKey(res.getWithPaths().get(o))) {
-					final WorkspaceObjectData prewod = refdata.get(res.getWithPaths().get(o)).get(ss);
-					wod = prewod.updateObjectReferencePath(res.getRefPaths().get(o));
-				} else {
+				final ObjectResolution objres = res.getObjectResolution(o);
+				if (objres.equals(ObjectResolution.INACCESSIBLE)) {
 					wod = null;
+				} else {
+					final ObjectIDResolvedWS resobj = res.getResolvedObject(o);
+					if (objres.equals(ObjectResolution.NO_PATH)) {
+						if (stddata.containsKey(resobj)) {
+							wod = stddata.get(resobj).get(ss);
+						} else {
+							wod = null; //object was deleted or missing
+						}
+					} else {
+						// since was resolved by path, object must exist
+						final WorkspaceObjectData prewod = refdata.get(resobj).get(ss);
+						wod = prewod.updateObjectReferencePath(res.getReferencePath(o));
+					}
 				}
 				ret.add(wod);
 			}
@@ -1023,11 +1031,12 @@ public class Workspace {
 	}
 
 	private Map<ObjectIDResolvedWS, Set<SubsetSelection>> setupObjectPaths(
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> objs) {
+			final Set<ObjectIdentifier> objects,
+			final ObjectResolver res) {
 		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
 				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
-		for (final ObjectIdentifier o: objs.keySet()) {
-			final ObjectIDResolvedWS roi = objs.get(o);
+		for (final ObjectIdentifier o: objects) {
+			final ObjectIDResolvedWS roi = res.getResolvedObject(o);
 			if (!paths.containsKey(roi)) {
 				paths.put(roi, new HashSet<SubsetSelection>());
 			}
@@ -1537,12 +1546,7 @@ public class Workspace {
 			for (final T assObj: ids.keySet()) {
 				for (final String id: ids.get(assObj).keySet()) {
 					final ObjectIdentifier oi = parseIDString(id, assObj);
-					final ObjectIDResolvedWS roi;
-					if (wsresolvedids.getNoPaths().containsKey(oi)) {
-						roi = wsresolvedids.getNoPaths().get(oi);
-					} else {
-						roi = wsresolvedids.getWithPaths().get(oi);
-					}
+					final ObjectIDResolvedWS roi = wsresolvedids.getResolvedObject(oi);
 					final TypeAndReference tnr = objtypes.get(roi);
 					typeCheckReference(id, tnr.getType(), assObj);
 					remapped.put(id, tnr.getReference());
@@ -1625,15 +1629,15 @@ public class Workspace {
 				final ObjectResolver wsresolvedids)
 				throws IdReferenceHandlerException {
 			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes = new HashMap<>();
-			if (!wsresolvedids.getNoPaths().isEmpty()) {
+			if (!wsresolvedids.getObjects(false).isEmpty()) {
 				try {
 					objtypes.putAll(db.getObjectType(
-							new HashSet<>(wsresolvedids.getNoPaths().values()), false));
+							wsresolvedids.getResolvedObjects(false), false));
 				} catch (NoSuchObjectException nsoe) {
 					final ObjectIDResolvedWS cause = nsoe.getResolvedInaccessibleObject();
 					ObjectIdentifier oi = null;
-					for (final ObjectIdentifier o: wsresolvedids.getNoPaths().keySet()) {
-						if (wsresolvedids.getNoPaths().get(o).equals(cause)) {
+					for (final ObjectIdentifier o: wsresolvedids.getObjects(false)) {
+						if (wsresolvedids.getResolvedObject(o).equals(cause)) {
 							oi = o;
 							break;
 						}
@@ -1644,11 +1648,11 @@ public class Workspace {
 							"Workspace communication exception", getIdType(), e);
 				}
 			}
-			if (!wsresolvedids.getWithPaths().isEmpty()) {
+			if (!wsresolvedids.getObjects(true).isEmpty()) {
 				// these object must be available since they're at the end of a ref path
 				try {
 					objtypes.putAll(db.getObjectType(
-							new HashSet<>(wsresolvedids.getWithPaths().values()), true));
+							wsresolvedids.getResolvedObjects(true), true));
 				} catch (NoSuchObjectException nsoe) {
 					throw new RuntimeException("Threw exception when explicitly told not to");
 				} catch (WorkspaceCommunicationException e) {
