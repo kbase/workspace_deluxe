@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -120,6 +121,17 @@ public class PermissionsCheckerFactoryTest {
 			TestCommon.assertExceptionCorrect(got, e);
 			assertThat("incorrect denied workspace", got.getDeniedWorkspace(), is(wsi));
 		}
+	}
+	
+	@Test
+	public void buildFactory() {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		
+		PermissionsCheckerFactory fac = new PermissionsCheckerFactory(db, null);
+		assertThat("incorrect user", fac.getUser(), is(nullValue()));
+		
+		fac = new PermissionsCheckerFactory(db, new WorkspaceUser("foo"));
+		assertThat("incorrect user", fac.getUser(), is(new WorkspaceUser("foo")));
 	}
 	
 	@Test

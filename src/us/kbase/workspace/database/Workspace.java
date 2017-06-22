@@ -912,7 +912,8 @@ public class Workspace {
 				NoSuchReferenceException, TypedObjectExtractionException,
 				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
 		
-		final ResolvedRefPaths res = resolveObjects(user, loi, nullIfInaccessible);
+		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, user);
+		final ResolvedRefPaths res = resolveObjects(permfac, loi, nullIfInaccessible);
 		
 		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> refpaths =
 				setupObjectPaths(res.withpath);
@@ -1038,7 +1039,7 @@ public class Workspace {
 	}
 	
 	private ResolvedRefPaths resolveReferencePaths(
-			final WorkspaceUser user,
+			final PermissionsCheckerFactory permfac,
 			final List<ObjectIDWithRefPath> objsWithRefpaths,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads,
 			final boolean ignoreErrors)
@@ -1067,8 +1068,7 @@ public class Workspace {
 		 * explore what objects exist in arbitrary workspaces.
 		 */
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedRefPathObjs =
-				new PermissionsCheckerFactory(db, user)
-						.getObjectChecker(allRefPathEntries, Permission.NONE)
+				permfac.getObjectChecker(allRefPathEntries, Permission.NONE)
 						.withIncludeDeletedWorkspaces()
 						.check();
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> outrefs =
@@ -1339,7 +1339,8 @@ public class Workspace {
 				NoSuchReferenceException, ReferenceSearchMaximumSizeExceededException,
 				NoSuchObjectException {
 	
-		final ResolvedRefPaths res = resolveObjects(user, loi, nullIfInaccessible);
+		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, user);
+		final ResolvedRefPaths res = resolveObjects(permfac, loi, nullIfInaccessible);
 		
 		final Map<ObjectIDResolvedWS, ObjectInformation> stdmeta = db.getObjectInformation(
 				new HashSet<ObjectIDResolvedWS>(res.nopath.values()),
@@ -1366,7 +1367,7 @@ public class Workspace {
 
 	/* used to resolve object IDs that might contain reference chains */
 	private ResolvedRefPaths resolveObjects(
-			final WorkspaceUser user,
+			final PermissionsCheckerFactory permfac,
 			final List<ObjectIdentifier> loi,
 			final boolean nullIfInaccessible)
 			throws WorkspaceCommunicationException,
@@ -1388,8 +1389,7 @@ public class Workspace {
 		//handle the faster cases first, fail before the searches
 		Map<ObjectIdentifier, ObjectIDResolvedWS> ws = new HashMap<>();
 		if (!nolookup.isEmpty()) {
-			ws = new PermissionsCheckerFactory(db, user)
-					.getObjectChecker(nolookup, Permission.READ)
+			ws = permfac.getObjectChecker(nolookup, Permission.READ)
 					.withSuppressErrors(nullIfInaccessible).check();
 		}
 		nolookup = null; //gc
@@ -1416,9 +1416,9 @@ public class Workspace {
 		// this should exclude any heads that are deleted, even if nullIfInaccessible is true
 		// do this before starting the search, fail early before the expensive part
 		final ResolvedRefPaths resolvedPaths = resolveReferencePaths(
-				user, refpaths, heads, nullIfInaccessible).withStandardObjects(std);
+				permfac, refpaths, heads, nullIfInaccessible).withStandardObjects(std);
 		
-		return resolvedPaths.merge(searchObjectDAG(user, lookup, nullIfInaccessible));
+		return resolvedPaths.merge(searchObjectDAG(permfac.getUser(), lookup, nullIfInaccessible));
 	}
 	
 	//TODO REF LOOKUP positive and negative caches (?)
@@ -2111,7 +2111,9 @@ public class Workspace {
 				throws IdReferenceHandlerException {
 			if (!idset.isEmpty()) {
 				try {
-					return resolveObjects(user, new LinkedList<>(idset), false);
+					final PermissionsCheckerFactory permfac =
+							new PermissionsCheckerFactory(db, user);
+					return resolveObjects(permfac, new LinkedList<>(idset), false);
 				} catch (InaccessibleObjectException ioe) {
 					throw generateIDReferenceException(ioe);
 				} catch (NoSuchReferenceException e) {

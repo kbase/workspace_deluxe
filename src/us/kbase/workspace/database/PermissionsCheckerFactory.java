@@ -49,6 +49,14 @@ public class PermissionsCheckerFactory {
 		this.user = user; //TODO CODE make an AnonymousUser class or something, or use Optional
 	}
 	
+	/** Returns the user associated with this permissions checker factory, or null for an anonymous
+	 * user.
+	 * @return the user.
+	 */
+	public WorkspaceUser getUser() {
+		return user;
+	}
+	
 	private abstract class AbstractPermissionsChecker<T> {
 		final Permission perm;
 		String operation;
