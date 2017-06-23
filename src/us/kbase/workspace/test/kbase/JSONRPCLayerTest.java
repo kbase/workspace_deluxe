@@ -88,7 +88,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.0"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.1"));
 	}
 	
 	public void status() throws Exception {
@@ -1311,13 +1311,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		String invalidToken = AUTH_USER2.getTokenString() + "a";
 		String badFormatToken = "borkborkbork";
 		// old auth service
-		String invalidTokenExp =
-				"Login failed! Server responded with code 401 UNAUTHORIZED";
-		String badFormatTokenExp = "Login failed! Invalid token";
-		// new auth service
 //		String invalidTokenExp =
-//				"Login failed! Server responded with code 401 Unauthorized";
-//		String badFormatTokenExp = invalidTokenExp;
+//				"Login failed! Server responded with code 401 UNAUTHORIZED";
+//		String badFormatTokenExp = "Login failed! Invalid token";
+		// new auth service
+		String invalidTokenExp =
+				"Login failed! Server responded with code 401 Unauthorized";
+		String badFormatTokenExp = invalidTokenExp;
 		
 		
 		failDepGetWSmeta(new us.kbase.workspace.GetWorkspacemetaParams()

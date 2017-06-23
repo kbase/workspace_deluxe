@@ -282,7 +282,8 @@ public class WorkspaceTester {
 					"localhost:" + mongo.getServerPort(),
 					"WorkspaceTester_ShockDB",
 					"foo",
-					"foo");
+					"foo",
+					TestCommon.getGlobusUrl());
 			System.out.println("Shock controller version: " +
 					shock.getVersion());
 			if (shock.getVersion() == null) {

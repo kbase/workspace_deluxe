@@ -1,6 +1,12 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.7.1 (Released 6/22/17)
+---------------------------------
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* Updated the auth client to version 0.4.4 to fix the NoSuchMethod error.
 
 VERSION: 0.7.0 (Released 5/5/17)
 --------------------------------
