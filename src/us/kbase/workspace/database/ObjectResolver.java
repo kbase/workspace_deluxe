@@ -199,6 +199,7 @@ public class ObjectResolver {
 				final ObjectIDResolvedWS oid = o.resolveWorkspace(rwsi);
 				if (readableWorkspaceIDs.contains(rwsi.getID())) {
 					//TODO NOW BUG what if the object is deleted?
+					//TODO NOW also possibility of race condition between resolutions. Can fix this by always doing the search even if it's accessible
 					nopath.put(o, oid);
 					oiter.remove();
 				} else {
@@ -247,7 +248,8 @@ public class ObjectResolver {
 			if (nullIfInaccessible && startingRefs.isEmpty()) {
 				return;
 			}
-			final ReferenceGraphTopologyProvider refProvider = new ReferenceGraphTopologyProvider() {
+			final ReferenceGraphTopologyProvider refProvider =
+					new ReferenceGraphTopologyProvider() {
 				
 				@Override
 				public Map<Reference, Map<Reference, Boolean>> getAssociatedReferences(
