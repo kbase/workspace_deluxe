@@ -39,7 +39,7 @@ public class ObjectIDWithRefPath extends ObjectIdentifier {
 			final ObjectIdentifier id,
 			List<ObjectIdentifier> refpath) {
 		super(id);
-		if (refpath == null || refpath.isEmpty()) {
+		if (refpath == null) {
 			refpath = new LinkedList<ObjectIdentifier>();
 		} 
 		this.refpath = Collections.unmodifiableList(

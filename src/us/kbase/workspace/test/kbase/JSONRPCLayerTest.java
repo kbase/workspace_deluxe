@@ -89,7 +89,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.1-dev1"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.2-dev1"));
 	}
 	
 	public void status() throws Exception {
