@@ -318,11 +318,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						Fields.CNT_NUM, Fields.MONGO_ID));
 	}
 
-	@Override
-	public String getBackendType() {
-		return blob.getStoreType();
-	}
-
 	private final static String M_WS_DATE_WTH = String.format(
 			"{$set: {%s: #}}", Fields.WS_MODDATE);
 	

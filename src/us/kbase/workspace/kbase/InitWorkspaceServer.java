@@ -171,7 +171,7 @@ public class InitWorkspaceServer {
 			return null;
 		}
 		rep.reportInfo(String.format("Initialized %s backend",
-				wsdeps.mongoWS.getBackendType()));
+				wsdeps.backendType));
 		Workspace ws = new Workspace(wsdeps.mongoWS,
 				new ResourceUsageConfigurationBuilder().build(), wsdeps.validator);
 		Types types = new Types(wsdeps.typeDB);
@@ -195,6 +195,7 @@ public class InitWorkspaceServer {
 		public TypeDefinitionDB typeDB;
 		public TypedObjectValidator validator;
 		public WorkspaceDatabase mongoWS;
+		public String backendType;
 	}
 	
 	private static WorkspaceDependencies getDependencies(
@@ -210,9 +211,9 @@ public class InitWorkspaceServer {
 				cfg.getMongoReconnectAttempts());
 		
 		final Settings settings = getSettings(db);
-		final String bsType = settings.isGridFSBackend() ? "GridFS" : "Shock";
+		deps.backendType = settings.isGridFSBackend() ? "GridFS" : "Shock";
 		
-		final BlobStore bs = setupBlobStore(db, bsType, settings.getShockUrl(),
+		final BlobStore bs = setupBlobStore(db, deps.backendType, settings.getShockUrl(),
 				settings.getShockUser(), cfg, auth);
 		
 		final DB typeDB = getMongoDBInstance(cfg.getHost(),

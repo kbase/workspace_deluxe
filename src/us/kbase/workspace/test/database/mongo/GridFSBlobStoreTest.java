@@ -64,11 +64,6 @@ public class GridFSBlobStoreTest {
 	}
 	
 	@Test
-	public void storetype() throws Exception {
-		assertThat("correct store type", gfsb.getStoreType(), is("GridFS"));
-	}
-	
-	@Test
 	public void badInput() throws Exception {
 		try {
 			gfsb.saveBlob(new MD5(a32), null, true);

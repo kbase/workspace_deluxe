@@ -108,11 +108,6 @@ public class ShockBlobStoreTest {
 	}
 	
 	@Test
-	public void storetype() throws Exception {
-		assertThat("correct store type", sb.getStoreType(), is("Shock"));
-	}
-	
-	@Test
 	public void badInput() throws Exception {
 		try {
 			sb.saveBlob(new MD5(A32), null, true);

@@ -129,8 +129,6 @@ public class MongoInternalsTest {
 				new LocalTypeProvider(typeDefDB));
 		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 		ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
-		assertTrue("GridFS backend setup failed",
-				ws.getBackendType().equals("GridFS"));
 
 		//make a general spec that tests that don't worry about typechecking can use
 		WorkspaceUser foo = new WorkspaceUser("foo");

@@ -248,9 +248,4 @@ public class ShockBlobStore implements BlobStore {
 			BlobStoreCommunicationException, NoSuchBlobException {
 		return getNode(md5);
 	}
-
-	@Override
-	public String getStoreType() {
-		return "Shock";
-	}
 }
