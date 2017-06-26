@@ -36,7 +36,7 @@ import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededE
  */
 public class ObjectResolver {
 	
-	//TODO TEST
+	//TODO TEST 100% coverage, make sure object is immutable post resolution
 	
 	public final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 10000;
 	
@@ -44,6 +44,7 @@ public class ObjectResolver {
 	private final WorkspaceUser user;
 	private final PermissionsCheckerFactory permissionsFactory;
 	private final boolean nullIfInaccessible;
+	private final boolean asAdmin;
 	private final int maximumObjectSearchCount;
 	
 	/* only the below are accessible via the api. The variables above are only needed during the
@@ -63,6 +64,7 @@ public class ObjectResolver {
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objects,
 			final boolean nullIfInaccessible,
+			final boolean asAdmin,
 			final int maxSearch)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 				CorruptWorkspaceDBException, NoSuchReferenceException,
@@ -72,6 +74,7 @@ public class ObjectResolver {
 		this.permissionsFactory = new PermissionsCheckerFactory(db, user);
 		this.objects = Collections.unmodifiableList(objects);
 		this.nullIfInaccessible = nullIfInaccessible;
+		this.asAdmin = asAdmin;
 		this.maximumObjectSearchCount = maxSearch;
 		resolve();
 	}
@@ -172,8 +175,7 @@ public class ObjectResolver {
 		if (withpath.containsKey(objID)) {
 			return new ArrayList<>(withpathRefPath.get(objID));
 		} else {
-			throw new IllegalArgumentException(
-					"Direct access to objID is available, no path was needed");
+			throw new IllegalArgumentException("No reference path is available");
 		}
 	}
 	
@@ -195,7 +197,8 @@ public class ObjectResolver {
 		//handle the faster cases first, fail before the searches
 		Map<ObjectIdentifier, ObjectIDResolvedWS> ws = new HashMap<>();
 		if (!nolookup.isEmpty()) {
-			ws = permissionsFactory.getObjectChecker(nolookup, Permission.READ)
+			ws = permissionsFactory.getObjectChecker(
+					nolookup, asAdmin ? Permission.NONE : Permission.READ)
 					.withSuppressErrors(nullIfInaccessible).check();
 		}
 		nolookup = null; //gc
@@ -556,6 +559,7 @@ public class ObjectResolver {
 		private final WorkspaceUser user;
 		private final List<ObjectIdentifier> objects = new LinkedList<>();
 		private boolean nullIfInaccessible = false;
+		private boolean asAdmin = false;
 		private int maxSearch = MAX_OBJECT_SEARCH_COUNT_DEFAULT;
 		
 		private Builder(final WorkspaceDatabase db, final WorkspaceUser user) {
@@ -581,7 +585,7 @@ public class ObjectResolver {
 			if (objects.isEmpty()) {
 				throw new IllegalArgumentException("No object identifiers provided");
 			}
-			return new ObjectResolver(db, user, objects, nullIfInaccessible, maxSearch);
+			return new ObjectResolver(db, user, objects, nullIfInaccessible, asAdmin, maxSearch);
 		}
 		
 		/** Build an empty ObjectResolver containing no objects. Ignores any objects added to the
@@ -592,7 +596,7 @@ public class ObjectResolver {
 
 			try {
 				return new ObjectResolver(db, user, Collections.emptyList(), nullIfInaccessible,
-						maxSearch);
+						asAdmin, maxSearch);
 			} catch (WorkspaceCommunicationException | InaccessibleObjectException |
 					CorruptWorkspaceDBException | NoSuchReferenceException |
 					ReferenceSearchMaximumSizeExceededException e) {
@@ -621,6 +625,15 @@ public class ObjectResolver {
 				throw new IllegalArgumentException("count must be > 0");
 			}
 			maxSearch = count;
+			return this;
+		}
+		
+		/** Run the resolution as an admin - e.g. all workspaces are accessible.
+		 * @param asAdmin
+		 * @return
+		 */
+		public Builder withAsAdmin(final boolean asAdmin) {
+			this.asAdmin = asAdmin;
 			return this;
 		}
 		
