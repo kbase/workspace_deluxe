@@ -3,11 +3,11 @@ package us.kbase.workspace.database;
 import static us.kbase.workspace.database.Util.nonNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +19,6 @@ import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
-import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.refsearch.ReferenceGraphSearch;
 import us.kbase.workspace.database.refsearch.ReferenceGraphTopologyProvider;
@@ -27,10 +26,17 @@ import us.kbase.workspace.database.refsearch.ReferenceProviderException;
 import us.kbase.workspace.database.refsearch.ReferenceSearchFailedException;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 
+/** Resolves incoming ObjectIdentities (OIs) to either a) ObjectIDWithResolvedWS with unresolved
+ * object information in the case of OIs without a reference path and not specified as requiring
+ * a permissions lookup, or b) completely resolved, including the version, ObjectIDWithResolvedWS
+ * as well as a reference path from an accessible object to the target object. These latter objects
+ * are guaranteed to exist, while the former are not. 
+ * @author gaprice@lbl.gov
+ *
+ */
 public class ObjectResolver {
 	
-	//TODO NOW JAVADOC
-	//TODO NOW TEST
+	//TODO TEST
 	
 	public final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 10000;
 	
@@ -70,19 +76,41 @@ public class ObjectResolver {
 		resolve();
 	}
 	
+	/** The resolution for the object.
+	 * @author gaprice@lbl.gov
+	 *
+	 */
 	public enum ObjectResolution {
-		
+		/** The object was provided with no reference path and permissions lookup was not
+		 * specified. The workspace was resolved, but no further resolution was performed. The
+		 * object may not exist.
+		 */
 		NO_PATH,
-		
+		/** The object was fully resolved, and a reference path from an accessible object to the
+		 * target object is available. The workspace, object, and version are all resolved. The
+		 * object must exist.
+		 */
 		PATH,
-		
+		/** The object was not accessible. It either does not exist or is deleted,
+		 * or the reference path, if provided, was invalid, or if a permissions search was
+		 * specified there was no reference path from an accessible object that could be found
+		 * within the limits of the search.
+		 */
 		INACCESSIBLE;
 	}
 	
+	/** Get the input objects in the order they were added to the builder.
+	 * @return the input objects.
+	 */
 	public List<ObjectIdentifier> getObjects() {
 		return objects;
 	}
 	
+	/** Get the input objects based on their resolution.
+	 * @param withPath true to return objects with the {@link ObjectResolution#PATH} resolution
+	 * or false to return objects with the {@link ObjectResolution#NO_PATH} resolution.
+	 * @return the input objects.
+	 */
 	public Set<ObjectIdentifier> getObjects(final boolean withPath) {
 		if (withPath) {
 			return new HashSet<>(withpath.keySet());
@@ -91,6 +119,10 @@ public class ObjectResolver {
 		}
 	}
 	
+	/** Get the resolution for an object.
+	 * @param objID the object.
+	 * @return the object's resolution.
+	 */
 	public ObjectResolution getObjectResolution(final ObjectIdentifier objID) {
 		nonNull(objID, "objID");
 		if (nopath.containsKey(objID)) {
@@ -102,6 +134,13 @@ public class ObjectResolver {
 		}
 	}
 	
+	/** Get the resolved object given an incoming object. The resolved object state will depend
+	 * on the resolution. If a reference path was provided, the resolved object will be the object
+	 * at the end of the path, and the input object the object at the head of the path. The input
+	 * object in the latter case contains the input path within it.
+	 * @param objID the input object.
+	 * @return the corresponding resolved object.
+	 */
 	public ObjectIDResolvedWS getResolvedObject(final ObjectIdentifier objID) {
 		if (nopath.containsKey(objID)) {
 			return nopath.get(objID);
@@ -112,6 +151,11 @@ public class ObjectResolver {
 		}
 	}
 	
+	/** Get the resolved objects based on their resolution.
+	 * @param withPath true to return objects with the {@link ObjectResolution#PATH} resolution
+	 * or false to return objects with the {@link ObjectResolution#NO_PATH} resolution.
+	 * @return the resolved objects.
+	 */
 	public Set<ObjectIDResolvedWS> getResolvedObjects(final boolean withPath) {
 		if (withPath) {
 			return new HashSet<>(withpath.values());
@@ -120,6 +164,10 @@ public class ObjectResolver {
 		}
 	}
 	
+	/** Get a path from an accessible object to the target object for an input object.
+	 * @param objID the input object.
+	 * @return A reference path to the object.
+	 */
 	public List<Reference> getReferencePath(final ObjectIdentifier objID) {
 		if (withpath.containsKey(objID)) {
 			return new ArrayList<>(withpathRefPath.get(objID));
@@ -177,50 +225,7 @@ public class ObjectResolver {
 		searchObjectDAG(lookup);
 	}
 	
-	//TODO REF LOOKUP positive and negative caches (?)
 
-	/* Modifies lookup in place to remove objects that don't need lookup.
-	 * Note the reference path returned for looked up objects is currently incorrect. 
-	 */
-	private void searchObjectDAG(final Set<ObjectIdentifier> lookup)
-			throws WorkspaceCommunicationException, InaccessibleObjectException,
-				CorruptWorkspaceDBException, ReferenceSearchMaximumSizeExceededException {
-		if (lookup.isEmpty()) {
-			return;
-		}
-		Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis = resolveWorkspaces(lookup);
-		final Set<Long> readableWorkspaceIDs = getReadableWorkspaces();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> searchRequired = new HashMap<>();
-		final Iterator<ObjectIdentifier> oiter = lookup.iterator();
-		while (oiter.hasNext()) {
-			final ObjectIdentifier o = oiter.next();
-			final ResolvedWorkspaceID rwsi = rwsis.get(o.getWorkspaceIdentifier());
-			if (rwsi != null) {
-				final ObjectIDResolvedWS oid = o.resolveWorkspace(rwsi);
-				if (readableWorkspaceIDs.contains(rwsi.getID())) {
-					//TODO NOW BUG what if the object is deleted?
-					//TODO NOW also possibility of race condition between resolutions. Can fix this by always doing the search even if it's accessible
-					nopath.put(o, oid);
-					oiter.remove();
-				} else {
-					searchRequired.put(o, oid);
-				}
-			}
-		}
-		if (lookup.isEmpty()) { // all objects were directly accessible
-			return;
-		}
-		rwsis = null;
-		if (readableWorkspaceIDs.isEmpty()) { // some objects were in missing workspaces
-			if (nullIfInaccessible) {
-				return;
-			} else {
-				throw generateInaccessibleObjectException(lookup.iterator().next());
-			}
-		}
-		searchObjectDAG(readableWorkspaceIDs, lookup, searchRequired);
-	}
-	
 	private Set<Long> getReadableWorkspaces()
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		//could make a method to just get IDs of workspace with specific permission to save mem
@@ -230,60 +235,78 @@ public class ObjectResolver {
 				.map(ws -> ws.getID())
 				.collect(Collectors.toSet());
 	}
-
-	private void searchObjectDAG(
-			final Set<Long> wsIDs,
-			final Set<ObjectIdentifier> lookup,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs)
-			throws WorkspaceCommunicationException, ReferenceSearchMaximumSizeExceededException,
-				InaccessibleObjectException {
+	
+	private class TopoProvider implements ReferenceGraphTopologyProvider {
+			
+		private final Set<Long> readableWorkspaceIDs;
 		
+		private TopoProvider(final Set<Long> readableWorkspaceIDs) {
+			this.readableWorkspaceIDs = readableWorkspaceIDs;
+		}
+
+		@Override
+		public Map<Reference, Map<Reference, Boolean>> getAssociatedReferences(
+				final Set<Reference> sourceRefs)
+				throws ReferenceProviderException {
+			try {
+				final Map<Reference, ObjectReferenceSet> refs =
+						db.getObjectIncomingReferences(sourceRefs);
+				final Set<Reference> readable = new HashSet<>();
+				for (final ObjectReferenceSet refset: refs.values()) {
+					for (final Reference r: refset.getReferenceSet()) {
+						if (readableWorkspaceIDs.contains(r.getWorkspaceID())) {
+							readable.add(r);
+						}
+					}
+				}
+				final Map<Reference, Boolean> exists = db.getObjectExistsRef(readable);
+				final Map<Reference, Map<Reference, Boolean>> refToRefs = new HashMap<>();
+				for (final Reference r: refs.keySet()) {
+					final Map<Reference, Boolean> termCritera = new HashMap<>();
+					refToRefs.put(r, termCritera);
+					for (final Reference inc: refs.get(r).getReferenceSet()) {
+						termCritera.put(inc, exists.containsKey(inc) && exists.get(inc));
+					}
+					
+				}
+				return refToRefs;
+			} catch (WorkspaceCommunicationException e) {
+				throw new ReferenceProviderException("foo", e);
+			}
+		}
+	}
+
+	//TODO REF LOOKUP positive and negative caches (?)
+	private void searchObjectDAG(final Set<ObjectIdentifier> lookup)
+			throws WorkspaceCommunicationException, ReferenceSearchMaximumSizeExceededException,
+				InaccessibleObjectException, CorruptWorkspaceDBException {
+		if (lookup.isEmpty()) {
+			return;
+		}
+		final Set<Long> readableWorkspaceIDs = getReadableWorkspaces();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = permissionsFactory
+				.getObjectChecker(lookup, Permission.NONE)
+				.withIncludeDeletedWorkspaces().check();
 		final Map<ObjectIDResolvedWS, Reference> objrefs = db.getObjectReference(
 				new HashSet<>(resobjs.values()));
 		try {
+			if (readableWorkspaceIDs.isEmpty()) {
+				if (nullIfInaccessible) {
+					return;
+				} else {
+					throw new ObjectDAGSearchFromObjectIDFailedException(lookup.iterator().next());
+				}
+			}
+		
 			// will throw an exception if can't find a ref for any object in lookup
 			final Set<Reference> startingRefs = searchObjectDAGGetStartingRefs(
-					lookup, resobjs, objrefs);
-			//so starting refs can't be empty unless nullIfInaccessible is true
-			if (nullIfInaccessible && startingRefs.isEmpty()) {
+					readableWorkspaceIDs, lookup, resobjs, objrefs);
+			if (startingRefs.isEmpty()) {
 				return;
 			}
-			final ReferenceGraphTopologyProvider refProvider =
-					new ReferenceGraphTopologyProvider() {
-				
-				@Override
-				public Map<Reference, Map<Reference, Boolean>> getAssociatedReferences(
-						final Set<Reference> sourceRefs)
-						throws ReferenceProviderException {
-					try {
-						final Map<Reference, ObjectReferenceSet> refs =
-								db.getObjectIncomingReferences(sourceRefs);
-						final Set<Reference> readable = new HashSet<>();
-						for (final ObjectReferenceSet refset: refs.values()) {
-							for (final Reference r: refset.getReferenceSet()) {
-								if (wsIDs.contains(r.getWorkspaceID())) {
-									readable.add(r);
-								}
-							}
-						}
-						final Map<Reference, Boolean> exists = db.getObjectExistsRef(readable);
-						final Map<Reference, Map<Reference, Boolean>> refToRefs = new HashMap<>();
-						for (final Reference r: refs.keySet()) {
-							final Map<Reference, Boolean> termCritera = new HashMap<>();
-							refToRefs.put(r, termCritera);
-							for (final Reference inc: refs.get(r).getReferenceSet()) {
-								termCritera.put(inc, exists.containsKey(inc) && exists.get(inc));
-							}
-							
-						}
-						return refToRefs;
-					} catch (WorkspaceCommunicationException e) {
-						throw new ReferenceProviderException("foo", e);
-					}
-				}
-			};
-			final ReferenceGraphSearch search = new ReferenceGraphSearch(startingRefs,
-					refProvider, maximumObjectSearchCount, !nullIfInaccessible);
+			final ReferenceGraphSearch search = new ReferenceGraphSearch(
+					startingRefs, new TopoProvider(readableWorkspaceIDs),
+					maximumObjectSearchCount, !nullIfInaccessible);
 			searchObjectDAGBuildResolvedObjectPaths(resobjs, objrefs, search);
 		} catch (final ReferenceSearchFailedException |
 				ObjectDAGSearchFromObjectIDFailedException e) {
@@ -298,11 +321,15 @@ public class ObjectResolver {
 	}
 
 	private Set<Reference> searchObjectDAGGetStartingRefs(
+			final Set<Long> readableWorkspaceIDs,
 			final Set<ObjectIdentifier> lookup,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
 			final Map<ObjectIDResolvedWS, Reference> objrefs)
-			throws ObjectDAGSearchFromObjectIDFailedException {
+			throws ObjectDAGSearchFromObjectIDFailedException, WorkspaceCommunicationException {
 
+		final Map<Reference, Boolean> exists = db.getObjectExistsRef(
+				new HashSet<>(objrefs.values()));
+		
 		final Set<Reference> startingRefs = new HashSet<>();
 		for (final ObjectIdentifier o: lookup) {
 			final ObjectIDResolvedWS res = resobjs.get(o);
@@ -312,7 +339,12 @@ public class ObjectResolver {
 					throw new ObjectDAGSearchFromObjectIDFailedException(o);
 				}
 			} else {
-				startingRefs.add(ref);
+				if (exists.get(ref) && readableWorkspaceIDs.contains(ref.getWorkspaceID())) {
+					withpath.put(o, res);
+					withpathRefPath.put(o, Arrays.asList(ref));
+				} else {
+					startingRefs.add(ref);
+				}
 			}
 		}
 		return startingRefs;
@@ -379,20 +411,6 @@ public class ObjectResolver {
 		
 		public ObjectIdentifier getSearchTarget() {
 			return objtarget;
-		}
-	}
-	
-	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
-			final Set<ObjectIdentifier> lookup)
-			throws WorkspaceCommunicationException {
-		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
-		for (final ObjectIdentifier o: lookup) {
-			wsis.add(o.getWorkspaceIdentifier());
-		}
-		try {
-			return db.resolveWorkspaces(wsis, true);
-		} catch (NoSuchWorkspaceException e) {
-			throw new RuntimeException("Threw exception when explicitly told not to", e);
 		}
 	}
 	
@@ -519,10 +537,19 @@ public class ObjectResolver {
 		return false;
 	}
 
+	/** Get a builder for an ObjectResolver.
+	 * @param db the database containing workspace information.
+	 * @param user the user for whom objects will be resolved.
+	 * @return a new builder.
+	 */
 	public static Builder getBuilder(final WorkspaceDatabase db, final WorkspaceUser user) {
 		return new Builder(db, user);
 	}
 	
+	/** A builder for an ObjectResolver.
+	 * @author gaprice@lbl.gov
+	 *
+	 */
 	public static class Builder {
 		
 		private final WorkspaceDatabase db;
@@ -537,6 +564,16 @@ public class ObjectResolver {
 			this.user = user;
 		}
 		
+		/** Resolve the objects.
+		 * @return the object resolver containing the resolved objects.
+		 * @throws WorkspaceCommunicationException if a communication error with the storage
+		 * system occurs.
+		 * @throws InaccessibleObjectException if an object was inaccessible.
+		 * @throws CorruptWorkspaceDBException if corrupt data was found in the storage system.
+		 * @throws NoSuchReferenceException if a reference path is invalid.
+		 * @throws ReferenceSearchMaximumSizeExceededException if the reference search traversed
+		 * too many objects before finding a result.
+		 */
 		public ObjectResolver resolve()
 				throws WorkspaceCommunicationException, InaccessibleObjectException,
 					CorruptWorkspaceDBException, NoSuchReferenceException,
@@ -547,6 +584,10 @@ public class ObjectResolver {
 			return new ObjectResolver(db, user, objects, nullIfInaccessible, maxSearch);
 		}
 		
+		/** Build an empty ObjectResolver containing no objects. Ignores any objects added to the
+		 * builder thus far.
+		 * @return the object resolver containing no objects.
+		 */
 		public ObjectResolver buildEmpty() {
 
 			try {
@@ -560,11 +601,21 @@ public class ObjectResolver {
 			}
 		}
 		
-		public Builder withNullIfInaccessible(final boolean nullIfInaccessible) {
-			this.nullIfInaccessible = nullIfInaccessible;
+		/** Rather than throwing an exception, leave inaccessible results out of the result set.
+		 * These input objects with have a resolution of {@link ObjectResolution#INACCESSIBLE}. 
+		 * @param ignoreInaccessible true to leave inaccessible results out of the result set.
+		 * @return this builder.
+		 */
+		public Builder withIgnoreInaccessible(final boolean ignoreInaccessible) {
+			this.nullIfInaccessible = ignoreInaccessible;
 			return this;
 		}
 		
+		/** Set the maximum number of objects that can be traversed before a search halts,
+		 * throwing an exception if inaccessible objects are not set to be ignored.
+		 * @param count the maximum number of objects to traverse.
+		 * @return this builder.
+		 */
 		public Builder withMaximumObjectsSearched(final int count) {
 			if (count < 1) {
 				throw new IllegalArgumentException("count must be > 0");
@@ -573,6 +624,10 @@ public class ObjectResolver {
 			return this;
 		}
 		
+		/** Add an object to be resolved.
+		 * @param object the object.
+		 * @return this builder.
+		 */
 		public Builder withObject(final ObjectIdentifier object) {
 			nonNull(object, "object");
 			objects.add(object);

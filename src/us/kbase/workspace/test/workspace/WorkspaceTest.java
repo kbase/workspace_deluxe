@@ -7153,9 +7153,6 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 	@Test
 	public void getReferencedObjectsBySearch() throws Exception {
-		/* Note that currently returned paths to an object from an object search are wrong and
-		 * only include the first object in the path
-		 */
 		final WorkspaceUser user1 = new WorkspaceUser("u1");
 		final WorkspaceUser user2 = new WorkspaceUser("u2");
 		final WorkspaceIdentifier wsUser1 = new WorkspaceIdentifier("wsu1");
@@ -7446,6 +7443,56 @@ public class WorkspaceTest extends WorkspaceTester {
 		} finally {
 			ws.setMaximumObjectSearchCount(10000);
 		}
+	}
+	
+	@Test
+	public void searchOnReadableDeletedObject() throws Exception {
+		// test for a bug where a search on a readable deleted object would fail with a deleted
+		// object exception
+		WorkspaceUser user = new WorkspaceUser("user");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsi");
+		
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		final Map<String, String> meta = ImmutableMap.of("foo", "bar");
+		saveObject(user, wsi, meta, meta, SAFE_TYPE1, "leaf", new Provenance(user));
+		final ObjectIdentifier leaf_id = new ObjectIdentifier(wsi, "leaf");
+		
+		final Map<String, Object> data = ImmutableMap.of("refs", Arrays.asList("wsi/leaf"));
+		saveObject(user, wsi, meta, data, REF_TYPE, "ref", new Provenance(user));
+		
+		ws.setObjectsDeleted(user, Arrays.asList(leaf_id), true);
+		
+		final ObjectIDWithRefPath oidrefs = new ObjectIDWithRefPath(leaf_id);
+		
+		final ObjectInformation ret = ws.getObjectInformation(
+				user, Arrays.asList(oidrefs), false, false).get(0);
+		
+		checkObjInfo(ret, 1L, "leaf", SAFE_TYPE1.getTypeString(), 1, user, 1, "wsi",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null,
+				Arrays.asList(new Reference("1/2/1"), new Reference("1/1/1")));
+	}
+	
+	@Test
+	public void searchOnReadableObject() throws Exception {
+		// test for a bug (never checked in) where a search on a readable object failed
+		WorkspaceUser user = new WorkspaceUser("user");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsi");
+		
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		final Map<String, String> meta = ImmutableMap.of("foo", "bar");
+		saveObject(user, wsi, meta, meta, SAFE_TYPE1, "leaf", new Provenance(user));
+		final ObjectIdentifier leaf_id = new ObjectIdentifier(wsi, "leaf");
+		
+		final ObjectIDWithRefPath oidrefs = new ObjectIDWithRefPath(leaf_id);
+		
+		final ObjectInformation ret = ws.getObjectInformation(
+				user, Arrays.asList(oidrefs), false, false).get(0);
+		
+		checkObjInfo(ret, 1L, "leaf", SAFE_TYPE1.getTypeString(), 1, user, 1, "wsi",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null,
+				Arrays.asList(new Reference("1/1/1")));
 	}
 	
 	@Test
