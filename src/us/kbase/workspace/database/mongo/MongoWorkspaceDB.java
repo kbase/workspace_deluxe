@@ -2953,15 +2953,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//there's a possibility of a race condition here if a workspace is
 		//deleted and undeleted or vice versa in a very short amount of time,
 		//but that seems so unlikely it's not worth the code
+		
+		if (delete) {
+			// delete objects first so that we can't have undeleted object in a deleted workspace 
+			setObjectsDeleted(rwsi, new ArrayList<Long>(), delete);
+		}
 		try {
-			wsjongo.getCollection(COL_WORKSPACES).update(
-							M_DELWS_UPD, rwsi.getID())
+			wsjongo.getCollection(COL_WORKSPACES).update(M_DELWS_UPD, rwsi.getID())
 					.with(M_DELWS_WTH, delete, new Date());
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		setObjectsDeleted(rwsi, new ArrayList<Long>(), delete);
+		if (!delete) {
+			//undelete object last so we yadda yadda
+			setObjectsDeleted(rwsi, new ArrayList<Long>(), delete);
+		}
 	}
 	
 	@Override

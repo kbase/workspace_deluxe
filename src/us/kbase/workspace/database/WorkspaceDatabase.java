@@ -388,6 +388,8 @@ public interface WorkspaceDatabase {
 			throws WorkspaceCommunicationException, NoSuchObjectException;
 	
 	/** Get information about a set of objects.
+	 * 
+	 * Note that the reference path provided is always simply the reference of the object.
 	 * @param objectIDs the object IDs for which to retrieve information.
 	 * @param includeMetadata true to return user supplied metadata with the
 	 * information.

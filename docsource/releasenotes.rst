@@ -26,6 +26,9 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   conversion to auth2.
 * The credentials for the Handle Manager service in the deploy.cfg file now require a token.
 * The credentials for the file backend in the deploy.cfg file now require a token.
+* Fixed a bug where performing a permissions search for a readable, deleted object with an
+  incoming reference from a readable, non-deleted object would fail with a deleted object
+  exception.
 
 VERSION: 0.7.1 (Released 6/22/17)
 ---------------------------------

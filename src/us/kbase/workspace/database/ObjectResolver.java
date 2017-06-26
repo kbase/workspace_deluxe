@@ -3,11 +3,11 @@ package us.kbase.workspace.database;
 import static us.kbase.workspace.database.Util.nonNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +19,6 @@ import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
-import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.refsearch.ReferenceGraphSearch;
 import us.kbase.workspace.database.refsearch.ReferenceGraphTopologyProvider;
@@ -30,7 +29,7 @@ import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededE
 public class ObjectResolver {
 	
 	//TODO NOW JAVADOC
-	//TODO NOW TEST
+	//TODO TEST
 	
 	public final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 10000;
 	
@@ -177,50 +176,7 @@ public class ObjectResolver {
 		searchObjectDAG(lookup);
 	}
 	
-	//TODO REF LOOKUP positive and negative caches (?)
 
-	/* Modifies lookup in place to remove objects that don't need lookup.
-	 * Note the reference path returned for looked up objects is currently incorrect. 
-	 */
-	private void searchObjectDAG(final Set<ObjectIdentifier> lookup)
-			throws WorkspaceCommunicationException, InaccessibleObjectException,
-				CorruptWorkspaceDBException, ReferenceSearchMaximumSizeExceededException {
-		if (lookup.isEmpty()) {
-			return;
-		}
-		Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis = resolveWorkspaces(lookup);
-		final Set<Long> readableWorkspaceIDs = getReadableWorkspaces();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> searchRequired = new HashMap<>();
-		final Iterator<ObjectIdentifier> oiter = lookup.iterator();
-		while (oiter.hasNext()) {
-			final ObjectIdentifier o = oiter.next();
-			final ResolvedWorkspaceID rwsi = rwsis.get(o.getWorkspaceIdentifier());
-			if (rwsi != null) {
-				final ObjectIDResolvedWS oid = o.resolveWorkspace(rwsi);
-				if (readableWorkspaceIDs.contains(rwsi.getID())) {
-					//TODO NOW BUG what if the object is deleted?
-					//TODO NOW also possibility of race condition between resolutions. Can fix this by always doing the search even if it's accessible
-					nopath.put(o, oid);
-					oiter.remove();
-				} else {
-					searchRequired.put(o, oid);
-				}
-			}
-		}
-		if (lookup.isEmpty()) { // all objects were directly accessible
-			return;
-		}
-		rwsis = null;
-		if (readableWorkspaceIDs.isEmpty()) { // some objects were in missing workspaces
-			if (nullIfInaccessible) {
-				return;
-			} else {
-				throw generateInaccessibleObjectException(lookup.iterator().next());
-			}
-		}
-		searchObjectDAG(readableWorkspaceIDs, lookup, searchRequired);
-	}
-	
 	private Set<Long> getReadableWorkspaces()
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		//could make a method to just get IDs of workspace with specific permission to save mem
@@ -230,60 +186,78 @@ public class ObjectResolver {
 				.map(ws -> ws.getID())
 				.collect(Collectors.toSet());
 	}
-
-	private void searchObjectDAG(
-			final Set<Long> wsIDs,
-			final Set<ObjectIdentifier> lookup,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs)
-			throws WorkspaceCommunicationException, ReferenceSearchMaximumSizeExceededException,
-				InaccessibleObjectException {
+	
+	private class TopoProvider implements ReferenceGraphTopologyProvider {
+			
+		private final Set<Long> readableWorkspaceIDs;
 		
+		private TopoProvider(final Set<Long> readableWorkspaceIDs) {
+			this.readableWorkspaceIDs = readableWorkspaceIDs;
+		}
+
+		@Override
+		public Map<Reference, Map<Reference, Boolean>> getAssociatedReferences(
+				final Set<Reference> sourceRefs)
+				throws ReferenceProviderException {
+			try {
+				final Map<Reference, ObjectReferenceSet> refs =
+						db.getObjectIncomingReferences(sourceRefs);
+				final Set<Reference> readable = new HashSet<>();
+				for (final ObjectReferenceSet refset: refs.values()) {
+					for (final Reference r: refset.getReferenceSet()) {
+						if (readableWorkspaceIDs.contains(r.getWorkspaceID())) {
+							readable.add(r);
+						}
+					}
+				}
+				final Map<Reference, Boolean> exists = db.getObjectExistsRef(readable);
+				final Map<Reference, Map<Reference, Boolean>> refToRefs = new HashMap<>();
+				for (final Reference r: refs.keySet()) {
+					final Map<Reference, Boolean> termCritera = new HashMap<>();
+					refToRefs.put(r, termCritera);
+					for (final Reference inc: refs.get(r).getReferenceSet()) {
+						termCritera.put(inc, exists.containsKey(inc) && exists.get(inc));
+					}
+					
+				}
+				return refToRefs;
+			} catch (WorkspaceCommunicationException e) {
+				throw new ReferenceProviderException("foo", e);
+			}
+		}
+	}
+
+	//TODO REF LOOKUP positive and negative caches (?)
+	private void searchObjectDAG(final Set<ObjectIdentifier> lookup)
+			throws WorkspaceCommunicationException, ReferenceSearchMaximumSizeExceededException,
+				InaccessibleObjectException, CorruptWorkspaceDBException {
+		if (lookup.isEmpty()) {
+			return;
+		}
+		final Set<Long> readableWorkspaceIDs = getReadableWorkspaces();
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = permissionsFactory
+				.getObjectChecker(lookup, Permission.NONE)
+				.withIncludeDeletedWorkspaces().check();
 		final Map<ObjectIDResolvedWS, Reference> objrefs = db.getObjectReference(
 				new HashSet<>(resobjs.values()));
 		try {
+			if (readableWorkspaceIDs.isEmpty()) {
+				if (nullIfInaccessible) {
+					return;
+				} else {
+					throw new ObjectDAGSearchFromObjectIDFailedException(lookup.iterator().next());
+				}
+			}
+		
 			// will throw an exception if can't find a ref for any object in lookup
 			final Set<Reference> startingRefs = searchObjectDAGGetStartingRefs(
-					lookup, resobjs, objrefs);
-			//so starting refs can't be empty unless nullIfInaccessible is true
-			if (nullIfInaccessible && startingRefs.isEmpty()) {
+					readableWorkspaceIDs, lookup, resobjs, objrefs);
+			if (startingRefs.isEmpty()) {
 				return;
 			}
-			final ReferenceGraphTopologyProvider refProvider =
-					new ReferenceGraphTopologyProvider() {
-				
-				@Override
-				public Map<Reference, Map<Reference, Boolean>> getAssociatedReferences(
-						final Set<Reference> sourceRefs)
-						throws ReferenceProviderException {
-					try {
-						final Map<Reference, ObjectReferenceSet> refs =
-								db.getObjectIncomingReferences(sourceRefs);
-						final Set<Reference> readable = new HashSet<>();
-						for (final ObjectReferenceSet refset: refs.values()) {
-							for (final Reference r: refset.getReferenceSet()) {
-								if (wsIDs.contains(r.getWorkspaceID())) {
-									readable.add(r);
-								}
-							}
-						}
-						final Map<Reference, Boolean> exists = db.getObjectExistsRef(readable);
-						final Map<Reference, Map<Reference, Boolean>> refToRefs = new HashMap<>();
-						for (final Reference r: refs.keySet()) {
-							final Map<Reference, Boolean> termCritera = new HashMap<>();
-							refToRefs.put(r, termCritera);
-							for (final Reference inc: refs.get(r).getReferenceSet()) {
-								termCritera.put(inc, exists.containsKey(inc) && exists.get(inc));
-							}
-							
-						}
-						return refToRefs;
-					} catch (WorkspaceCommunicationException e) {
-						throw new ReferenceProviderException("foo", e);
-					}
-				}
-			};
-			final ReferenceGraphSearch search = new ReferenceGraphSearch(startingRefs,
-					refProvider, maximumObjectSearchCount, !nullIfInaccessible);
+			final ReferenceGraphSearch search = new ReferenceGraphSearch(
+					startingRefs, new TopoProvider(readableWorkspaceIDs),
+					maximumObjectSearchCount, !nullIfInaccessible);
 			searchObjectDAGBuildResolvedObjectPaths(resobjs, objrefs, search);
 		} catch (final ReferenceSearchFailedException |
 				ObjectDAGSearchFromObjectIDFailedException e) {
@@ -298,11 +272,15 @@ public class ObjectResolver {
 	}
 
 	private Set<Reference> searchObjectDAGGetStartingRefs(
+			final Set<Long> readableWorkspaceIDs,
 			final Set<ObjectIdentifier> lookup,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
 			final Map<ObjectIDResolvedWS, Reference> objrefs)
-			throws ObjectDAGSearchFromObjectIDFailedException {
+			throws ObjectDAGSearchFromObjectIDFailedException, WorkspaceCommunicationException {
 
+		final Map<Reference, Boolean> exists = db.getObjectExistsRef(
+				new HashSet<>(objrefs.values()));
+		
 		final Set<Reference> startingRefs = new HashSet<>();
 		for (final ObjectIdentifier o: lookup) {
 			final ObjectIDResolvedWS res = resobjs.get(o);
@@ -312,7 +290,12 @@ public class ObjectResolver {
 					throw new ObjectDAGSearchFromObjectIDFailedException(o);
 				}
 			} else {
-				startingRefs.add(ref);
+				if (exists.get(ref) && readableWorkspaceIDs.contains(ref.getWorkspaceID())) {
+					withpath.put(o, res);
+					withpathRefPath.put(o, Arrays.asList(ref));
+				} else {
+					startingRefs.add(ref);
+				}
 			}
 		}
 		return startingRefs;
@@ -379,20 +362,6 @@ public class ObjectResolver {
 		
 		public ObjectIdentifier getSearchTarget() {
 			return objtarget;
-		}
-	}
-	
-	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
-			final Set<ObjectIdentifier> lookup)
-			throws WorkspaceCommunicationException {
-		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
-		for (final ObjectIdentifier o: lookup) {
-			wsis.add(o.getWorkspaceIdentifier());
-		}
-		try {
-			return db.resolveWorkspaces(wsis, true);
-		} catch (NoSuchWorkspaceException e) {
-			throw new RuntimeException("Threw exception when explicitly told not to", e);
 		}
 	}
 	

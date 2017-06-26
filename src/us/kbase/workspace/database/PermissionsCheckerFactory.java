@@ -5,6 +5,7 @@ import static us.kbase.workspace.database.Util.noNulls;
 import static us.kbase.common.utils.StringUtils.checkString;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -217,7 +218,7 @@ public class PermissionsCheckerFactory {
 	 * @return a new permissions checker.
 	 */
 	public ObjectPermissionsChecker getObjectChecker(
-			final List<ObjectIdentifier> objects,
+			final Collection<ObjectIdentifier> objects,
 			final Permission perm) {
 		return new ObjectPermissionsChecker(objects, perm);
 	}
@@ -265,10 +266,10 @@ public class PermissionsCheckerFactory {
 	public class ObjectPermissionsChecker extends
 			AbstractObjectPermissionsChecker<ObjectPermissionsChecker> {
 		
-		private final List<ObjectIdentifier> objects;
+		private final Collection<ObjectIdentifier> objects;
 		
 		private ObjectPermissionsChecker(
-				final List<ObjectIdentifier> objects,
+				final Collection<ObjectIdentifier> objects,
 				final Permission perm) {
 			super(perm);
 			nonNull(objects, "objects");
