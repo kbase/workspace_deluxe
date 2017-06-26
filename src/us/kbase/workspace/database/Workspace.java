@@ -507,10 +507,6 @@ public class Workspace {
 		return db.getWorkspaceInformation(null, wsid);
 	}
 	
-	public String getBackendType() {
-		return db.getBackendType();
-	}
-	
 	private static String getObjectErrorId(final WorkspaceSaveObject wo, final int objcount) {
 		return getObjectErrorId(wo.getObjectIdentifier(), objcount);
 	}

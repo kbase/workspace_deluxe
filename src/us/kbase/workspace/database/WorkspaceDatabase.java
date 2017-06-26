@@ -19,8 +19,6 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
 public interface WorkspaceDatabase {
 	
-	public String getBackendType();
-	
 	//TODO CODE return workspace info instead of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
 	/** Resolve a workspace identifier.
 	 * @param wsi the workspace identifier.
