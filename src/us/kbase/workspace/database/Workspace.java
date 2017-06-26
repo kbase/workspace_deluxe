@@ -910,7 +910,7 @@ public class Workspace {
 				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
 		
 		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
-				.withNullIfInaccessible(nullIfInaccessible)
+				.withIgnoreInaccessible(nullIfInaccessible)
 				.withMaximumObjectsSearched(maximumObjectSearchCount);
 		for (final ObjectIdentifier oi: loi) {
 			orb.withObject(oi);
@@ -1179,7 +1179,7 @@ public class Workspace {
 				NoSuchObjectException {
 	
 		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
-				.withNullIfInaccessible(nullIfInaccessible)
+				.withIgnoreInaccessible(nullIfInaccessible)
 				.withMaximumObjectsSearched(maximumObjectSearchCount);
 		for (final ObjectIdentifier oi: loi) {
 			orb.withObject(oi);

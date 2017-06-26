@@ -26,9 +26,16 @@ import us.kbase.workspace.database.refsearch.ReferenceProviderException;
 import us.kbase.workspace.database.refsearch.ReferenceSearchFailedException;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 
+/** Resolves incoming ObjectIdentities (OIs) to either a) ObjectIDWithResolvedWS with unresolved
+ * object information in the case of OIs without a reference path and not specified as requiring
+ * a permissions lookup, or b) completely resolved, including the version, ObjectIDWithResolvedWS
+ * as well as a reference path from an accessible object to the target object. These latter objects
+ * are guaranteed to exist, while the former are not. 
+ * @author gaprice@lbl.gov
+ *
+ */
 public class ObjectResolver {
 	
-	//TODO NOW JAVADOC
 	//TODO TEST
 	
 	public final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 10000;
@@ -69,19 +76,41 @@ public class ObjectResolver {
 		resolve();
 	}
 	
+	/** The resolution for the object.
+	 * @author gaprice@lbl.gov
+	 *
+	 */
 	public enum ObjectResolution {
-		
+		/** The object was provided with no reference path and permissions lookup was not
+		 * specified. The workspace was resolved, but no further resolution was performed. The
+		 * object may not exist.
+		 */
 		NO_PATH,
-		
+		/** The object was fully resolved, and a reference path from an accessible object to the
+		 * target object is available. The workspace, object, and version are all resolved. The
+		 * object must exist.
+		 */
 		PATH,
-		
+		/** The object was not accessible. It either does not exist or is deleted,
+		 * or the reference path, if provided, was invalid, or if a permissions search was
+		 * specified there was no reference path from an accessible object that could be found
+		 * within the limits of the search.
+		 */
 		INACCESSIBLE;
 	}
 	
+	/** Get the input objects in the order they were added to the builder.
+	 * @return the input objects.
+	 */
 	public List<ObjectIdentifier> getObjects() {
 		return objects;
 	}
 	
+	/** Get the input objects based on their resolution.
+	 * @param withPath true to return objects with the {@link ObjectResolution#PATH} resolution
+	 * or false to return objects with the {@link ObjectResolution#NO_PATH} resolution.
+	 * @return the input objects.
+	 */
 	public Set<ObjectIdentifier> getObjects(final boolean withPath) {
 		if (withPath) {
 			return new HashSet<>(withpath.keySet());
@@ -90,6 +119,10 @@ public class ObjectResolver {
 		}
 	}
 	
+	/** Get the resolution for an object.
+	 * @param objID the object.
+	 * @return the object's resolution.
+	 */
 	public ObjectResolution getObjectResolution(final ObjectIdentifier objID) {
 		nonNull(objID, "objID");
 		if (nopath.containsKey(objID)) {
@@ -101,6 +134,13 @@ public class ObjectResolver {
 		}
 	}
 	
+	/** Get the resolved object given an incoming object. The resolved object state will depend
+	 * on the resolution. If a reference path was provided, the resolved object will be the object
+	 * at the end of the path, and the input object the object at the head of the path. The input
+	 * object in the latter case contains the input path within it.
+	 * @param objID the input object.
+	 * @return the corresponding resolved object.
+	 */
 	public ObjectIDResolvedWS getResolvedObject(final ObjectIdentifier objID) {
 		if (nopath.containsKey(objID)) {
 			return nopath.get(objID);
@@ -111,6 +151,11 @@ public class ObjectResolver {
 		}
 	}
 	
+	/** Get the resolved objects based on their resolution.
+	 * @param withPath true to return objects with the {@link ObjectResolution#PATH} resolution
+	 * or false to return objects with the {@link ObjectResolution#NO_PATH} resolution.
+	 * @return the resolved objects.
+	 */
 	public Set<ObjectIDResolvedWS> getResolvedObjects(final boolean withPath) {
 		if (withPath) {
 			return new HashSet<>(withpath.values());
@@ -119,6 +164,10 @@ public class ObjectResolver {
 		}
 	}
 	
+	/** Get a path from an accessible object to the target object for an input object.
+	 * @param objID the input object.
+	 * @return A reference path to the object.
+	 */
 	public List<Reference> getReferencePath(final ObjectIdentifier objID) {
 		if (withpath.containsKey(objID)) {
 			return new ArrayList<>(withpathRefPath.get(objID));
@@ -488,10 +537,19 @@ public class ObjectResolver {
 		return false;
 	}
 
+	/** Get a builder for an ObjectResolver.
+	 * @param db the database containing workspace information.
+	 * @param user the user for whom objects will be resolved.
+	 * @return a new builder.
+	 */
 	public static Builder getBuilder(final WorkspaceDatabase db, final WorkspaceUser user) {
 		return new Builder(db, user);
 	}
 	
+	/** A builder for an ObjectResolver.
+	 * @author gaprice@lbl.gov
+	 *
+	 */
 	public static class Builder {
 		
 		private final WorkspaceDatabase db;
@@ -506,6 +564,16 @@ public class ObjectResolver {
 			this.user = user;
 		}
 		
+		/** Resolve the objects.
+		 * @return the object resolver containing the resolved objects.
+		 * @throws WorkspaceCommunicationException if a communication error with the storage
+		 * system occurs.
+		 * @throws InaccessibleObjectException if an object was inaccessible.
+		 * @throws CorruptWorkspaceDBException if corrupt data was found in the storage system.
+		 * @throws NoSuchReferenceException if a reference path is invalid.
+		 * @throws ReferenceSearchMaximumSizeExceededException if the reference search traversed
+		 * too many objects before finding a result.
+		 */
 		public ObjectResolver resolve()
 				throws WorkspaceCommunicationException, InaccessibleObjectException,
 					CorruptWorkspaceDBException, NoSuchReferenceException,
@@ -516,6 +584,10 @@ public class ObjectResolver {
 			return new ObjectResolver(db, user, objects, nullIfInaccessible, maxSearch);
 		}
 		
+		/** Build an empty ObjectResolver containing no objects. Ignores any objects added to the
+		 * builder thus far.
+		 * @return the object resolver containing no objects.
+		 */
 		public ObjectResolver buildEmpty() {
 
 			try {
@@ -529,11 +601,21 @@ public class ObjectResolver {
 			}
 		}
 		
-		public Builder withNullIfInaccessible(final boolean nullIfInaccessible) {
-			this.nullIfInaccessible = nullIfInaccessible;
+		/** Rather than throwing an exception, leave inaccessible results out of the result set.
+		 * These input objects with have a resolution of {@link ObjectResolution#INACCESSIBLE}. 
+		 * @param ignoreInaccessible true to leave inaccessible results out of the result set.
+		 * @return this builder.
+		 */
+		public Builder withIgnoreInaccessible(final boolean ignoreInaccessible) {
+			this.nullIfInaccessible = ignoreInaccessible;
 			return this;
 		}
 		
+		/** Set the maximum number of objects that can be traversed before a search halts,
+		 * throwing an exception if inaccessible objects are not set to be ignored.
+		 * @param count the maximum number of objects to traverse.
+		 * @return this builder.
+		 */
 		public Builder withMaximumObjectsSearched(final int count) {
 			if (count < 1) {
 				throw new IllegalArgumentException("count must be > 0");
@@ -542,6 +624,10 @@ public class ObjectResolver {
 			return this;
 		}
 		
+		/** Add an object to be resolved.
+		 * @param object the object.
+		 * @return this builder.
+		 */
 		public Builder withObject(final ObjectIdentifier object) {
 			nonNull(object, "object");
 			objects.add(object);
