@@ -345,8 +345,8 @@ public class ObjectResolver {
 					throw new ObjectDAGSearchFromObjectIDFailedException(o);
 				}
 			} else {
-				//TODO NOW admin here and test
-				if (exists.get(ref) && readableWorkspaceIDs.contains(ref.getWorkspaceID())) {
+				if (exists.get(ref) &&
+						(asAdmin || readableWorkspaceIDs.contains(ref.getWorkspaceID()))) {
 					withpath.put(o, new ObjectIDResolvedWS(
 							res.getWorkspaceIdentifier(), ref.getObjectID(), ref.getVersion()));
 					withpathRefPath.put(o, Arrays.asList(ref));

@@ -584,7 +584,54 @@ public class ObjectResolverTest {
 		
 		assertThat("incorrect inaccessible object", e.getInaccessibleObject(), is(objpath));
 
-		assertMethodInvoked(wsdb, "getObjectExistsRef", Arrays.asList(set(pathendref)));
+		assertMethodInvoked(wsdb, "getObjectIncomingReferences", Arrays.asList(set(pathendref)));
+	}
+	
+	@Test
+	public void searchSingleObjectNullUnreadable() throws Exception {
+		final WorkspaceDatabase wsdb = mock(WorkspaceDatabase.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("userfoo");
+		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
+		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
+		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
+		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
+		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		
+		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
+		final Reference pathendref = new Reference("4/1/1");
+		
+		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+				.withWorkspace(rwsi1, Permission.READ, Permission.NONE)
+				.build());
+		when(wsdb.resolveWorkspaces(set(wsi2), true)).thenReturn(ImmutableMap.of(wsi2, rwsi2));
+		when(wsdb.getPermissions(user, set(rwsi2))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+				.build());
+		when(wsdb.getObjectReference(set(pathendresws))).thenReturn(ImmutableMap.of(
+				pathendresws, pathendref));
+		when(wsdb.getObjectExistsRef(set(pathendref))).thenReturn(
+				ImmutableMap.of(pathendref, true));
+		
+		// loop 1
+		when(wsdb.getObjectIncomingReferences(set(pathendref))).thenReturn(ImmutableMap.of(
+				pathendref, new ObjectReferenceSet(pathendref, set(), true)));
+		
+		final ObjectResolver or = ObjectResolver.getBuilder(wsdb, user).withObject(objpath)
+				.withIgnoreInaccessible(true).resolve();
+		
+		assertThat("incorrect objects", or.getObjects(), is(Arrays.asList(objpath)));
+		assertThat("incorrect object resolution", or.getObjectResolution(objpath),
+				is(ObjectResolution.INACCESSIBLE));
+		assertThat("incorrect path objects", or.getObjects(true), is(set()));
+		assertThat("incorrect pathless objects", or.getObjects(false), is(set()));
+		assertNoResolvedObject(or, objpath);
+		assertThat("incorrect path resolved objects", or.getResolvedObjects(true), is(set()));
+		assertThat("incorrect pathless resolved objects", or.getResolvedObjects(false), is(set()));
+		assertNoReferencePath(or, objpath);
+		
+		assertMethodInvoked(wsdb, "getObjectIncomingReferences", Arrays.asList(set(pathendref)));
 	}
 	
 	@Test
@@ -626,7 +673,186 @@ public class ObjectResolverTest {
 		
 		assertThat("incorrect inaccessible object", e.getInaccessibleObject(), is(objpath));
 
-		assertMethodInvoked(wsdb, "getObjectExistsRef", Arrays.asList(set(pathendref)));
+		assertMethodInvoked(wsdb, "getObjectIncomingReferences", Arrays.asList(set(pathendref)));
+	}
+	
+	@Test
+	public void searchSingleObjectNullDeleted() throws Exception {
+		final WorkspaceDatabase wsdb = mock(WorkspaceDatabase.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("userfoo");
+		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
+		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
+		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
+		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		
+		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
+		final Reference pathendref = new Reference("4/1/1");
+		
+		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+				.withWorkspace(rwsi2, Permission.READ, Permission.NONE)
+				.build());
+		when(wsdb.resolveWorkspaces(set(wsi2), true)).thenReturn(ImmutableMap.of(wsi2, rwsi2));
+		when(wsdb.getPermissions(user, set(rwsi2))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+				.withWorkspace(rwsi2, Permission.READ, Permission.NONE)
+				.build());
+		when(wsdb.getObjectReference(set(pathendresws))).thenReturn(ImmutableMap.of(
+				pathendresws, pathendref));
+		when(wsdb.getObjectExistsRef(set(pathendref))).thenReturn(
+				ImmutableMap.of(pathendref, false));
+		
+		// loop 1
+		when(wsdb.getObjectIncomingReferences(set(pathendref))).thenReturn(ImmutableMap.of(
+				pathendref, new ObjectReferenceSet(pathendref, set(), true)));
+		
+		final ObjectResolver or = ObjectResolver.getBuilder(wsdb, user).withObject(objpath)
+				.withIgnoreInaccessible(true).resolve();
+		
+		assertThat("incorrect objects", or.getObjects(), is(Arrays.asList(objpath)));
+		assertThat("incorrect object resolution", or.getObjectResolution(objpath),
+				is(ObjectResolution.INACCESSIBLE));
+		assertThat("incorrect path objects", or.getObjects(true), is(set()));
+		assertThat("incorrect pathless objects", or.getObjects(false), is(set()));
+		assertNoResolvedObject(or, objpath);
+		assertThat("incorrect path resolved objects", or.getResolvedObjects(true), is(set()));
+		assertThat("incorrect pathless resolved objects", or.getResolvedObjects(false), is(set()));
+		assertNoReferencePath(or, objpath);
+		
+		assertMethodInvoked(wsdb, "getObjectIncomingReferences", Arrays.asList(set(pathendref)));
+	}
+	
+	@Test
+	public void searchSingleObjectAsAdminUnreadable() throws Exception {
+		final WorkspaceDatabase wsdb = mock(WorkspaceDatabase.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("userfoo");
+		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
+		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
+		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
+		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		
+		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
+		final Reference pathendref = new Reference("4/1/1");
+		final ObjectIDResolvedWS pathendresfinal = new ObjectIDResolvedWS(rwsi2, 1, 1);
+		
+		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+				.build());
+		when(wsdb.resolveWorkspaces(set(wsi2), true)).thenReturn(ImmutableMap.of(wsi2, rwsi2));
+		when(wsdb.getPermissions(user, set(rwsi2))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+				.build());
+		when(wsdb.getObjectReference(set(pathendresws))).thenReturn(ImmutableMap.of(
+				pathendresws, pathendref));
+		when(wsdb.getObjectExistsRef(set(pathendref))).thenReturn(
+				ImmutableMap.of(pathendref, true));
+		
+		final ObjectResolver or = ObjectResolver.getBuilder(wsdb, user)
+				.withObject(objpath).withAsAdmin(true).resolve();
+		
+		assertThat("incorrect objects", or.getObjects(), is(Arrays.asList(objpath)));
+		assertThat("incorrect object resolution", or.getObjectResolution(objpath),
+				is(ObjectResolution.PATH));
+		assertThat("incorrect path objects", or.getObjects(true), is(set(objpath)));
+		assertThat("incorrect pathless objects", or.getObjects(false), is(set()));
+		assertThat("incorrect resolved object", or.getResolvedObject(objpath), is(pathendresfinal));
+		assertThat("incorrect path resolved objects", or.getResolvedObjects(true),
+				is(set(pathendresfinal)));
+		assertThat("incorrect pathless resolved objects", or.getResolvedObjects(false), is(set()));
+		assertThat("incorrec ref path", or.getReferencePath(objpath), is(Arrays.asList(
+				pathendref)));
+	}
+	
+	@Test
+	public void searchSingleObjectAsAdminFailDeleted() throws Exception {
+		final WorkspaceDatabase wsdb = mock(WorkspaceDatabase.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("userfoo");
+		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
+		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
+		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
+		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		
+		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
+		final Reference pathendref = new Reference("4/1/1");
+		
+		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+				.withWorkspace(rwsi2, Permission.READ, Permission.NONE)
+				.build());
+		when(wsdb.resolveWorkspaces(set(wsi2), true)).thenReturn(ImmutableMap.of(wsi2, rwsi2));
+		when(wsdb.getPermissions(user, set(rwsi2))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+				.withWorkspace(rwsi2, Permission.READ, Permission.NONE)
+				.build());
+		when(wsdb.getObjectReference(set(pathendresws))).thenReturn(ImmutableMap.of(
+				pathendresws, pathendref));
+		when(wsdb.getObjectExistsRef(set(pathendref))).thenReturn(
+				ImmutableMap.of(pathendref, false));
+		
+		// loop 1
+		when(wsdb.getObjectIncomingReferences(set(pathendref))).thenReturn(ImmutableMap.of(
+				pathendref, new ObjectReferenceSet(pathendref, set(), true)));
+		
+		final Builder or = ObjectResolver.getBuilder(wsdb, user).withObject(objpath)
+				.withAsAdmin(true);
+		
+		final InaccessibleObjectException e = (InaccessibleObjectException) failResolve(
+				or, new InaccessibleObjectException("The latest version of object objfoo2 " +
+						"in workspace wsfoo2 is not accessible to user userfoo", objpath));
+		
+		assertThat("incorrect inaccessible object", e.getInaccessibleObject(), is(objpath));
+
+		assertMethodInvoked(wsdb, "getObjectIncomingReferences", Arrays.asList(set(pathendref)));
+	}
+	
+	@Test
+	public void searchSingleObjectAsAdminNullDeleted() throws Exception {
+		final WorkspaceDatabase wsdb = mock(WorkspaceDatabase.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("userfoo");
+		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
+		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
+		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
+		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		
+		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
+		final Reference pathendref = new Reference("4/1/1");
+		
+		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+				.withWorkspace(rwsi2, Permission.READ, Permission.NONE)
+				.build());
+		when(wsdb.resolveWorkspaces(set(wsi2), true)).thenReturn(ImmutableMap.of(wsi2, rwsi2));
+		when(wsdb.getPermissions(user, set(rwsi2))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+				.withWorkspace(rwsi2, Permission.READ, Permission.NONE)
+				.build());
+		when(wsdb.getObjectReference(set(pathendresws))).thenReturn(ImmutableMap.of(
+				pathendresws, pathendref));
+		when(wsdb.getObjectExistsRef(set(pathendref))).thenReturn(
+				ImmutableMap.of(pathendref, false));
+		
+		// loop 1
+		when(wsdb.getObjectIncomingReferences(set(pathendref))).thenReturn(ImmutableMap.of(
+				pathendref, new ObjectReferenceSet(pathendref, set(), true)));
+		
+		final ObjectResolver or = ObjectResolver.getBuilder(wsdb, user).withObject(objpath)
+				.withIgnoreInaccessible(true).withAsAdmin(true).resolve();
+		
+		assertThat("incorrect objects", or.getObjects(), is(Arrays.asList(objpath)));
+		assertThat("incorrect object resolution", or.getObjectResolution(objpath),
+				is(ObjectResolution.INACCESSIBLE));
+		assertThat("incorrect path objects", or.getObjects(true), is(set()));
+		assertThat("incorrect pathless objects", or.getObjects(false), is(set()));
+		assertNoResolvedObject(or, objpath);
+		assertThat("incorrect path resolved objects", or.getResolvedObjects(true), is(set()));
+		assertThat("incorrect pathless resolved objects", or.getResolvedObjects(false), is(set()));
+		assertNoReferencePath(or, objpath);
+		
+		assertMethodInvoked(wsdb, "getObjectIncomingReferences", Arrays.asList(set(pathendref)));
 	}
 	
 	@Test
@@ -1170,7 +1396,7 @@ public class ObjectResolverTest {
 		when(wsdb.getObjectReference(set(pathendresws))).thenReturn(ImmutableMap.of(
 				pathendresws, pathendref));
 		when(wsdb.getObjectExistsRef(set(pathendref))).thenReturn(
-				ImmutableMap.of(pathendref, true));
+				ImmutableMap.of(pathendref, false));
 		
 		// loop 1
 		when(wsdb.getObjectIncomingReferences(set(pathendref))).thenReturn(ImmutableMap.of(
