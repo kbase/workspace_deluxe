@@ -257,12 +257,13 @@ public class ObjectResolver {
 				final Set<Reference> readable = new HashSet<>();
 				for (final ObjectReferenceSet refset: refs.values()) {
 					for (final Reference r: refset.getReferenceSet()) {
-						if (readableWorkspaceIDs.contains(r.getWorkspaceID())) {
+						if (asAdmin || readableWorkspaceIDs.contains(r.getWorkspaceID())) {
 							readable.add(r);
 						}
 					}
 				}
-				final Map<Reference, Boolean> exists = db.getObjectExistsRef(readable);
+				final Map<Reference, Boolean> exists = readable.isEmpty() ?
+						Collections.emptyMap() : db.getObjectExistsRef(readable);
 				final Map<Reference, Map<Reference, Boolean>> refToRefs = new HashMap<>();
 				for (final Reference r: refs.keySet()) {
 					final Map<Reference, Boolean> termCritera = new HashMap<>();
@@ -286,14 +287,14 @@ public class ObjectResolver {
 		if (lookup.isEmpty()) {
 			return;
 		}
-		final Set<Long> readableWorkspaceIDs = getReadableWorkspaces();
+		final Set<Long> readableWorkspaceIDs = asAdmin? new HashSet<>() : getReadableWorkspaces();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = permissionsFactory
 				.getObjectChecker(lookup, Permission.NONE)
 				.withIncludeDeletedWorkspaces().check();
 		final Map<ObjectIDResolvedWS, Reference> objrefs = db.getObjectReference(
 				new HashSet<>(resobjs.values()));
 		try {
-			if (readableWorkspaceIDs.isEmpty()) {
+			if (!asAdmin && readableWorkspaceIDs.isEmpty()) {
 				if (nullIfInaccessible) {
 					return;
 				} else {
@@ -313,6 +314,8 @@ public class ObjectResolver {
 			searchObjectDAGBuildResolvedObjectPaths(resobjs, objrefs, search);
 		} catch (final ReferenceSearchFailedException |
 				ObjectDAGSearchFromObjectIDFailedException e) {
+//			e.printStackTrace();
+//			System.out.println(e.getMessage());
 			final ObjectIdentifier failedOn = searchObjectDAGGetSearchFailedTarget(
 					e, objrefs, resobjs);
 			// ensure exceptions are thrown from the same place so users can't probe arbitrary
@@ -342,6 +345,7 @@ public class ObjectResolver {
 					throw new ObjectDAGSearchFromObjectIDFailedException(o);
 				}
 			} else {
+				//TODO NOW admin here and test
 				if (exists.get(ref) && readableWorkspaceIDs.contains(ref.getWorkspaceID())) {
 					withpath.put(o, res);
 					withpathRefPath.put(o, Arrays.asList(ref));
