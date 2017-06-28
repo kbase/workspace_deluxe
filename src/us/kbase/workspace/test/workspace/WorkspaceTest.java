@@ -285,7 +285,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
-	public void adminGetObjectStandard() throws Exception {
+	public void adminGetObjectAndInfoStandard() throws Exception {
 		final WorkspaceUser user = new WorkspaceUser("blahblah");
 		final WorkspaceUser admin = new WorkspaceUser("admin");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
@@ -304,10 +304,17 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		checkObjectAndInfo(obj.get(0), oi, new HashMap<>());
 		destroyGetObjectsResources(obj);
+		
+		final ObjectInformation objin = ws.getObjectInformation(admin, Arrays.asList(
+				new ObjectIdentifier(wsi, 1)), false, false, true).get(0);
+		
+		checkObjInfo(objin, 1L, "foo", SAFE_TYPE1.getTypeString(), 1, user, 1L, "somews",
+				"99914b932bd37a50b983c5e7c90ae93b", 2, null,
+				Arrays.asList(new Reference("1/1/1")));
 	}
 	
 	@Test
-	public void adminGetObjectFailDeleted() throws Exception {
+	public void adminGetObjectAndInfoStandardFailDeleted() throws Exception {
 		final WorkspaceUser user = new WorkspaceUser("blahblah");
 		final WorkspaceUser admin = new WorkspaceUser("admin");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
@@ -325,13 +332,21 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setObjectsDeleted(user, Arrays.asList(oid), true);
 		final ObjectIDResolvedWS resobj = new ObjectIDResolvedWS(
 				new ResolvedWorkspaceID(1, "somews", false, false), 1);
+		
 		final DeletedObjectException e = failGetObjectsAsAdmin(
 				admin, Arrays.asList(new ObjectIdentifier(wsi, 1)),
 				new DeletedObjectException(
 						"Object 1 (name foo) in workspace 1 (name somews) has been deleted",
 						resobj));
-		
 		assertThat("incorrect source object", e.getResolvedInaccessibleObject(),
+				is(resobj));
+		
+		final DeletedObjectException e2 = failGetObjectInfoAsAdmin(
+				admin, Arrays.asList(new ObjectIdentifier(wsi, 1)),
+				new DeletedObjectException(
+						"Object 1 (name foo) in workspace 1 (name somews) has been deleted",
+						resobj));
+		assertThat("incorrect source object", e2.getResolvedInaccessibleObject(),
 				is(resobj));
 	}
 	
@@ -351,8 +366,24 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 	}
 	
+	private <T extends Exception> T failGetObjectInfoAsAdmin(
+			final WorkspaceUser admin,
+			final List<ObjectIdentifier> objs,
+			final T e) {
+		try {
+			ws.getObjectInformation(admin, objs, false, false, true);
+			fail("expected exception");
+			return null;
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, e);
+			@SuppressWarnings("unchecked")
+			final T got2 = (T) got;
+			return got2;
+		}
+	}
+	
 	@Test
-	public void adminGetObjectPath() throws Exception {
+	public void adminGetObjectAndInfoPath() throws Exception {
 		final WorkspaceUser user = new WorkspaceUser("blahblah");
 		final WorkspaceUser admin = new WorkspaceUser("admin");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
@@ -379,10 +410,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkObjectAndInfo(obj.get(0), oi.updateReferencePath(Arrays.asList(
 				new Reference("1/2/1"), new Reference("1/1/1"))), new HashMap<>());
 		destroyGetObjectsResources(obj);
+		
+		final ObjectInformation objin = ws.getObjectInformation(admin, Arrays.asList(
+				new ObjectIDWithRefPath(new ObjectIdentifier(wsi, 2), objid)), false, false, true)
+				.get(0);
+		
+		checkObjInfo(objin, 1L, "foo", SAFE_TYPE1.getTypeString(), 1, user, 1L, "somews",
+				"99914b932bd37a50b983c5e7c90ae93b", 2, null,
+				Arrays.asList(new Reference("1/2/1"), new Reference("1/1/1")));
 	}
 	
 	@Test
-	public void adminGetObjectPathFailDeleted() throws Exception {
+	public void adminGetObjectAndInfoPathFailDeleted() throws Exception {
 		final WorkspaceUser user = new WorkspaceUser("blahblah");
 		final WorkspaceUser admin = new WorkspaceUser("admin");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
@@ -405,16 +444,23 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setObjectsDeleted(user, Arrays.asList(objid2), true);
 		
 		final ObjectIDWithRefPath objref2 = new ObjectIDWithRefPath(objid2, objid);
+		
 		final InaccessibleObjectException e = failGetObjectsAsAdmin(admin, Arrays.asList(
 				objref2), new InaccessibleObjectException(
 						"Object 2 (name foo2) in workspace 1 (name somews) has been deleted",
 						objid2));
-		
 		assertThat("incorrect source object", e.getInaccessibleObject(), is(objref2));
+		
+		final InaccessibleObjectException e2 = failGetObjectInfoAsAdmin(admin, Arrays.asList(
+				objref2), new InaccessibleObjectException(
+						"Object 2 (name foo2) in workspace 1 (name somews) has been deleted",
+						objid2));
+		
+		assertThat("incorrect source object", e2.getInaccessibleObject(), is(objref2));
 	}
 	
 	@Test
-	public void adminGetObjectSearch() throws Exception {
+	public void adminGetObjectAndInfoSearch() throws Exception {
 		final WorkspaceUser user = new WorkspaceUser("blahblah");
 		final WorkspaceUser admin = new WorkspaceUser("admin");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
@@ -441,10 +487,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkObjectAndInfo(obj.get(0), oi.updateReferencePath(Arrays.asList(
 				new Reference("1/2/1"), new Reference("1/1/1"))), new HashMap<>());
 		destroyGetObjectsResources(obj);
+		
+		final ObjectInformation objin = ws.getObjectInformation(admin, Arrays.asList(
+				new ObjectIDWithRefPath(objid.get(0))), false, false, true)
+				.get(0);
+		
+		checkObjInfo(objin, 1L, "foo", SAFE_TYPE1.getTypeString(), 1, user, 1L, "somews",
+				"99914b932bd37a50b983c5e7c90ae93b", 2, null,
+				Arrays.asList(new Reference("1/2/1"), new Reference("1/1/1")));
 	}
 	
 	@Test
-	public void adminGetObjectSearchFailDeleted() throws Exception {
+	public void adminGetObjectAndInfoSearchFailDeleted() throws Exception {
 		final WorkspaceUser user = new WorkspaceUser("blahblah");
 		final WorkspaceUser admin = new WorkspaceUser("admin");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
@@ -467,12 +521,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setObjectsDeleted(user, Arrays.asList(objid2), true);
 		
 		final ObjectIDWithRefPath objref2 = new ObjectIDWithRefPath(objid.get(0));
+	
 		final InaccessibleObjectException e = failGetObjectsAsAdmin(admin, Arrays.asList(
 				objref2), new InaccessibleObjectException(
 						"The latest version of object 1 in workspace somews is not accessible " +
 						"to user admin", objid2));
-		
 		assertThat("incorrect source object", e.getInaccessibleObject(), is(objref2));
+		
+		final InaccessibleObjectException e2 = failGetObjectInfoAsAdmin(admin, Arrays.asList(
+				objref2), new InaccessibleObjectException(
+						"The latest version of object 1 in workspace somews is not accessible " +
+						"to user admin", objid2));
+		assertThat("incorrect source object", e2.getInaccessibleObject(), is(objref2));
 	}
 	
 	@Test

@@ -1175,9 +1175,23 @@ public class Workspace {
 				CorruptWorkspaceDBException, InaccessibleObjectException,
 				NoSuchReferenceException, ReferenceSearchMaximumSizeExceededException,
 				NoSuchObjectException {
+		return getObjectInformation(user, loi, includeMetadata, nullIfInaccessible, false);
+	}
+	
+	public List<ObjectInformation> getObjectInformation(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final boolean includeMetadata,
+			final boolean nullIfInaccessible,
+			final boolean asAdmin)
+			throws WorkspaceCommunicationException,
+				CorruptWorkspaceDBException, InaccessibleObjectException,
+				NoSuchReferenceException, ReferenceSearchMaximumSizeExceededException,
+				NoSuchObjectException {
 	
 		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
 				.withIgnoreInaccessible(nullIfInaccessible)
+				.withAsAdmin(asAdmin)
 				.withMaximumObjectsSearched(maximumObjectSearchCount);
 		for (final ObjectIdentifier oi: loi) {
 			orb.withObject(oi);
