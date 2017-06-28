@@ -285,6 +285,197 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
+	public void adminGetObjectStandard() throws Exception {
+		final WorkspaceUser user = new WorkspaceUser("blahblah");
+		final WorkspaceUser admin = new WorkspaceUser("admin");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
+		
+		final IdReferenceHandlerSetFactory idfac = getIdFactory();
+		
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		final ObjectInformation oi = ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("foo"), new HashMap<>(), SAFE_TYPE1, null,
+						new Provenance(user), false)), idfac).get(0);
+		
+		final List<WorkspaceObjectData> obj = ws.getObjects(admin, Arrays.asList(
+				new ObjectIdentifier(wsi, 1)), false, false, true);
+		
+		checkObjectAndInfo(obj.get(0), oi, new HashMap<>());
+		destroyGetObjectsResources(obj);
+	}
+	
+	@Test
+	public void adminGetObjectFailDeleted() throws Exception {
+		final WorkspaceUser user = new WorkspaceUser("blahblah");
+		final WorkspaceUser admin = new WorkspaceUser("admin");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
+		
+		final IdReferenceHandlerSetFactory idfac = getIdFactory();
+		
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("foo"), new HashMap<>(), SAFE_TYPE1, null,
+						new Provenance(user), false)), idfac).get(0);
+		
+		final ObjectIdentifier oid = new ObjectIdentifier(wsi, 1);
+		ws.setObjectsDeleted(user, Arrays.asList(oid), true);
+		final ObjectIDResolvedWS resobj = new ObjectIDResolvedWS(
+				new ResolvedWorkspaceID(1, "somews", false, false), 1);
+		final DeletedObjectException e = failGetObjectsAsAdmin(
+				admin, Arrays.asList(new ObjectIdentifier(wsi, 1)),
+				new DeletedObjectException(
+						"Object 1 (name foo) in workspace 1 (name somews) has been deleted",
+						resobj));
+		
+		assertThat("incorrect source object", e.getResolvedInaccessibleObject(),
+				is(resobj));
+	}
+	
+	private <T extends Exception> T failGetObjectsAsAdmin(
+			final WorkspaceUser admin,
+			final List<ObjectIdentifier> objs,
+			final T e) {
+		try {
+			ws.getObjects(admin, objs, false, false, true);
+			fail("expected exception");
+			return null;
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, e);
+			@SuppressWarnings("unchecked")
+			final T got2 = (T) got;
+			return got2;
+		}
+	}
+	
+	@Test
+	public void adminGetObjectPath() throws Exception {
+		final WorkspaceUser user = new WorkspaceUser("blahblah");
+		final WorkspaceUser admin = new WorkspaceUser("admin");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
+		
+		final IdReferenceHandlerSetFactory idfac = getIdFactory();
+		
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		final ObjectInformation oi = ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("foo"), new HashMap<>(), SAFE_TYPE1, null,
+						new Provenance(user), false)), idfac).get(0);
+		
+		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("foo2"), ImmutableMap.of("refs", Arrays.asList("1/1")),
+				REF_TYPE, null, new Provenance(user), false)), idfac).get(0);
+		
+		final List<ObjectIdentifier> objid = Arrays.asList(new ObjectIdentifier(wsi, 1));
+		ws.setObjectsDeleted(user, objid, true);
+		
+		final List<WorkspaceObjectData> obj = ws.getObjects(admin, Arrays.asList(
+				new ObjectIDWithRefPath(new ObjectIdentifier(wsi, 2), objid)), false, false, true);
+		
+		checkObjectAndInfo(obj.get(0), oi.updateReferencePath(Arrays.asList(
+				new Reference("1/2/1"), new Reference("1/1/1"))), new HashMap<>());
+		destroyGetObjectsResources(obj);
+	}
+	
+	@Test
+	public void adminGetObjectPathFailDeleted() throws Exception {
+		final WorkspaceUser user = new WorkspaceUser("blahblah");
+		final WorkspaceUser admin = new WorkspaceUser("admin");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
+		
+		final IdReferenceHandlerSetFactory idfac = getIdFactory();
+		
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("foo"), new HashMap<>(), SAFE_TYPE1, null,
+				new Provenance(user), false)), idfac).get(0);
+		
+		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("foo2"), ImmutableMap.of("refs", Arrays.asList("1/1")),
+				REF_TYPE, null, new Provenance(user), false)), idfac).get(0);
+		
+		final List<ObjectIdentifier> objid = Arrays.asList(new ObjectIdentifier(wsi, 1));
+		ws.setObjectsDeleted(user, objid, true);
+		final ObjectIdentifier objid2 = new ObjectIdentifier(wsi, 2);
+		ws.setObjectsDeleted(user, Arrays.asList(objid2), true);
+		
+		final ObjectIDWithRefPath objref2 = new ObjectIDWithRefPath(objid2, objid);
+		final InaccessibleObjectException e = failGetObjectsAsAdmin(admin, Arrays.asList(
+				objref2), new InaccessibleObjectException(
+						"Object 2 (name foo2) in workspace 1 (name somews) has been deleted",
+						objid2));
+		
+		assertThat("incorrect source object", e.getInaccessibleObject(), is(objref2));
+	}
+	
+	@Test
+	public void adminGetObjectSearch() throws Exception {
+		final WorkspaceUser user = new WorkspaceUser("blahblah");
+		final WorkspaceUser admin = new WorkspaceUser("admin");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
+		
+		final IdReferenceHandlerSetFactory idfac = getIdFactory();
+		
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		final ObjectInformation oi = ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("foo"), new HashMap<>(), SAFE_TYPE1, null,
+						new Provenance(user), false)), idfac).get(0);
+		
+		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("foo2"), ImmutableMap.of("refs", Arrays.asList("1/1")),
+				REF_TYPE, null, new Provenance(user), false)), idfac).get(0);
+		
+		final List<ObjectIdentifier> objid = Arrays.asList(new ObjectIdentifier(wsi, 1));
+		ws.setObjectsDeleted(user, objid, true);
+		
+		final List<WorkspaceObjectData> obj = ws.getObjects(admin, Arrays.asList(
+				new ObjectIDWithRefPath(objid.get(0))), false, false, true);
+		
+		checkObjectAndInfo(obj.get(0), oi.updateReferencePath(Arrays.asList(
+				new Reference("1/2/1"), new Reference("1/1/1"))), new HashMap<>());
+		destroyGetObjectsResources(obj);
+	}
+	
+	@Test
+	public void adminGetObjectSearchFailDeleted() throws Exception {
+		final WorkspaceUser user = new WorkspaceUser("blahblah");
+		final WorkspaceUser admin = new WorkspaceUser("admin");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
+		
+		final IdReferenceHandlerSetFactory idfac = getIdFactory();
+		
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("foo"), new HashMap<>(), SAFE_TYPE1, null,
+				new Provenance(user), false)), idfac).get(0);
+		
+		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("foo2"), ImmutableMap.of("refs", Arrays.asList("1/1")),
+				REF_TYPE, null, new Provenance(user), false)), idfac).get(0);
+		
+		final List<ObjectIdentifier> objid = Arrays.asList(new ObjectIdentifier(wsi, 1));
+		ws.setObjectsDeleted(user, objid, true);
+		final ObjectIdentifier objid2 = new ObjectIdentifier(wsi, 2);
+		ws.setObjectsDeleted(user, Arrays.asList(objid2), true);
+		
+		final ObjectIDWithRefPath objref2 = new ObjectIDWithRefPath(objid.get(0));
+		final InaccessibleObjectException e = failGetObjectsAsAdmin(admin, Arrays.asList(
+				objref2), new InaccessibleObjectException(
+						"The latest version of object 1 in workspace somews is not accessible " +
+						"to user admin", objid2));
+		
+		assertThat("incorrect source object", e.getInaccessibleObject(), is(objref2));
+	}
+	
+	@Test
 	public void adminGetWorkspaceInfo() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("blahblah");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");

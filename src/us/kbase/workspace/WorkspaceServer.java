@@ -703,7 +703,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final boolean noData = longToBoolean(params.getNoData(), false);
 		final boolean ignoreErrors = longToBoolean(params.getIgnoreErrors(), false);
 		final List<WorkspaceObjectData> objects = ws.getObjects(
-				wsmeth.getUser(authPart), loi, noData, ignoreErrors);
+				wsmeth.getUser(authPart), loi, noData, ignoreErrors, false);
 		resourcesToDelete.set(objects);
 		returnVal = new GetObjects2Results().withData(translateObjectData(
 				objects, wsmeth.getUser(authPart), handleManagerUrl, handleMgrToken, true));

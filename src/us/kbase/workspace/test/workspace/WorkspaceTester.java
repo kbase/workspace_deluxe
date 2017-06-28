@@ -776,10 +776,9 @@ public class WorkspaceTester {
 	protected void checkObjectAndInfoWithNulls(WorkspaceUser user,
 			List<ObjectIdentifier> ids, List<ObjectInformation> expected,
 			List<Map<String, Object>> expdata) throws Exception {
-		List<WorkspaceObjectData> gotdata = ws.getObjects(user, ids, false, true);
+		List<WorkspaceObjectData> gotdata = ws.getObjects(user, ids, false, true, false);
 		try {
-			List<WorkspaceObjectData> gotprov =
-					ws.getObjects(user, ids, true, true);
+			List<WorkspaceObjectData> gotprov = ws.getObjects(user, ids, true, true, false);
 			List<ObjectInformation> gotinfo =
 					ws.getObjectInformation(user, ids, true, true);
 			Iterator<WorkspaceObjectData> gotdatai = gotdata.iterator();
@@ -1035,7 +1034,7 @@ public class WorkspaceTester {
 		List<ObjectInformation> infonulls = ws.getObjectInformation(user,
 				(List<ObjectIdentifier>)(List<?>) objs, true, true);
 		List<WorkspaceObjectData> datanulls = ws.getObjects(user,
-				(List<ObjectIdentifier>)(List<?>) objs, true, true);
+				(List<ObjectIdentifier>)(List<?>) objs, true, true, false);
 		for (int i = 0; i < infonulls.size(); i++) {
 			if (nulls.contains(i)) {
 				assertNull("objinfo is not null", infonulls.get(i));
