@@ -892,14 +892,15 @@ public class Workspace {
 				WorkspaceCommunicationException, InaccessibleObjectException,
 				NoSuchReferenceException, TypedObjectExtractionException,
 				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
-		return getObjects(user, loi, noData, false);
+		return getObjects(user, loi, noData, false, false);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> loi,
 			final boolean noData,
-			boolean nullIfInaccessible)
+			final boolean nullIfInaccessible,
+			final boolean asAdmin)
 			throws CorruptWorkspaceDBException,
 				WorkspaceCommunicationException, InaccessibleObjectException,
 				NoSuchReferenceException, TypedObjectExtractionException,
@@ -907,6 +908,7 @@ public class Workspace {
 		
 		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
 				.withIgnoreInaccessible(nullIfInaccessible)
+				.withAsAdmin(asAdmin)
 				.withMaximumObjectsSearched(maximumObjectSearchCount);
 		for (final ObjectIdentifier oi: loi) {
 			orb.withObject(oi);
@@ -1173,9 +1175,23 @@ public class Workspace {
 				CorruptWorkspaceDBException, InaccessibleObjectException,
 				NoSuchReferenceException, ReferenceSearchMaximumSizeExceededException,
 				NoSuchObjectException {
+		return getObjectInformation(user, loi, includeMetadata, nullIfInaccessible, false);
+	}
+	
+	public List<ObjectInformation> getObjectInformation(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final boolean includeMetadata,
+			final boolean nullIfInaccessible,
+			final boolean asAdmin)
+			throws WorkspaceCommunicationException,
+				CorruptWorkspaceDBException, InaccessibleObjectException,
+				NoSuchReferenceException, ReferenceSearchMaximumSizeExceededException,
+				NoSuchObjectException {
 	
 		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
 				.withIgnoreInaccessible(nullIfInaccessible)
+				.withAsAdmin(asAdmin)
 				.withMaximumObjectsSearched(maximumObjectSearchCount);
 		for (final ObjectIdentifier oi: loi) {
 			orb.withObject(oi);
