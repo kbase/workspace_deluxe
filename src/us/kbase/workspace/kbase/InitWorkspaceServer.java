@@ -176,8 +176,8 @@ public class InitWorkspaceServer {
 				new ResourceUsageConfigurationBuilder().build(), wsdeps.validator);
 		Types types = new Types(wsdeps.typeDB);
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
-				ws, types, cfg.getHandleServiceURL(),
-				maxUniqueIdCountPerCall, auth);
+				ws, types, cfg.getHandleServiceURL(), cfg.getHandleManagerURL(),
+				handleMgrToken, maxUniqueIdCountPerCall, auth);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
 				ws, wsmeth, types, cfg.getWorkspaceAdmin());
 		final String mem = String.format(
