@@ -70,6 +70,9 @@ test-client: test-service
 
 test-service:
 	$(ANT) test
+	
+test-quick:
+	$(ANT) test_quick
 
 deploy: deploy-client deploy-service
 
