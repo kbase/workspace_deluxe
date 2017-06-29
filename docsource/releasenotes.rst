@@ -15,6 +15,7 @@ NEW FEATURES:
 * Added the ``getPermissionsMass`` administration command.
 * Added the ``getWorkspaceInfo`` administration command.
 * Added the ``listObjects`` administration command.
+* Added the ``getObjectInfo`` administration command.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 

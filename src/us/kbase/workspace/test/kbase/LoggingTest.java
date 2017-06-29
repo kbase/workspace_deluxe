@@ -816,6 +816,19 @@ public class LoggingTest {
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
+		// get obj info
+		ac.put("command", "getObjectInfo");
+		ac.remove("user");
+		ac.put("params", new GetObjectInfo3Params()
+				.withObjects(Arrays.asList(new ObjectSpecification().withRef("1/1/1"))));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getObjectInfo", ADMIN),
+				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
 		// list ws
 		ac.put("command", "listWorkspaces");
 		ac.put("user", USER1);

@@ -3522,6 +3522,53 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void adminGetObjectInfo() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		final GetObjectInfo3Results ob = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "getObjectInfo",
+						"params", new GetObjectInfo3Params().withObjects(Arrays.asList(
+								new ObjectSpecification().withRef("1/1")))
+				))).asClassInstance(GetObjectInfo3Results.class);
+
+		assertThat("incorrect object count", ob.getInfos().size(), is(1));
+		checkInfo(ob.getInfos().get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
+		assertThat("incorrect ref path", ob.getPaths().get(0), is(Arrays.asList("1/1/1")));
+	}
+	
+	@Test
+	public void adminGetObjectInfoFail() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withWsid(1L).withObjid(1L)));
+		
+		// mostly tests that the actual admin username is used in the error
+		failAdmin(CLIENT2, ImmutableMap.of(
+				"command", "getObjectInfo",
+				"params", new GetObjectInfo3Params().withObjects(Arrays.asList(
+						new ObjectSpecification().withRef("1/1").withFindReferencePath(1L)))
+				), "The latest version of object 1 in workspace 1 is not accessible to user " +
+						USER2);
+	}
+	
+	@Test
 	public void adminListObjectsWithUser() throws Exception {
 		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
 		

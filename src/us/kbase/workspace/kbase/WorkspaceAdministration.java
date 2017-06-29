@@ -4,7 +4,6 @@ import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -26,11 +25,8 @@ import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JacksonTupleModule;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
-import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
-import us.kbase.typedobj.exceptions.TypeStorageException;
-import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
-import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListObjectsParams;
@@ -45,13 +41,6 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
-import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
-import us.kbase.workspace.database.exceptions.NoSuchObjectException;
-import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
-import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
-import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
-import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class WorkspaceAdministration {
 	
@@ -73,6 +62,7 @@ public class WorkspaceAdministration {
 	private static final String LIST_WORKSPACES = "listWorkspaces";
 	private static final String LIST_OBJECTS = "listObjects";
 	private static final String SAVE_OBJECTS = "saveObjects";
+	private static final String GET_OBJECT_INFO = "getObjectInfo";
 	private static final String SET_GLOBAL_PERMISSION = "setGlobalPermission";
 	private static final String GET_WORKSPACE_INFO = "getWorkspaceInfo";
 	private static final String GET_PERMISSIONS = "getPermissions";
@@ -107,14 +97,7 @@ public class WorkspaceAdministration {
 		return LoggerFactory.getLogger(WorkspaceAdministration.class);
 	}
 
-	public Object runCommand(final AuthToken token, final UObject command)
-			throws TypeStorageException, IOException, AuthException,
-				WorkspaceCommunicationException, PreExistingWorkspaceException,
-				CorruptWorkspaceDBException, NoSuchObjectException,
-				NoSuchWorkspaceException, WorkspaceAuthorizationException,
-				ParseException, NoSuchPrivilegeException,
-				TypedObjectValidationException, TypedObjectSchemaException,
-				MetadataException {
+	public Object runCommand(final AuthToken token, final UObject command) throws Exception {
 		final String putativeAdmin = token.getUserName();
 		if (!(internaladmins.contains(putativeAdmin) ||
 				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
@@ -239,6 +222,12 @@ public class WorkspaceAdministration {
 			//method has its own logging
 			getLogger().info(SAVE_OBJECTS + " " + user.getUser());
 			return wsmeth.saveObjects(params, user, token);
+		}
+		if (GET_OBJECT_INFO.equals(fn)) {
+			final GetObjectInfo3Params params = getParams(cmd, GetObjectInfo3Params.class);
+			// method has its own logging
+			getLogger().info(GET_OBJECT_INFO);
+			return wsmeth.getObjectInformation(params, new WorkspaceUser(putativeAdmin), true);
 		}
 		if (LIST_WORKSPACES.equals(fn)) {
 			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);

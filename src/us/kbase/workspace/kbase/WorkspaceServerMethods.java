@@ -6,9 +6,11 @@ import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.processProvenance;
+import static us.kbase.workspace.kbase.ArgUtils.toObjectPaths;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
@@ -38,6 +40,8 @@ import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetObjectInfo3Params;
+import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
@@ -51,6 +55,7 @@ import us.kbase.workspace.WorkspacePermissions;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
@@ -64,10 +69,13 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
+import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
+import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class WorkspaceServerMethods {
@@ -367,6 +375,24 @@ public class WorkspaceServerMethods {
 		
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
 		return objInfoToTuple(meta, true);
+	}
+	
+	public GetObjectInfo3Results getObjectInformation(
+			final GetObjectInfo3Params params,
+			final WorkspaceUser user,
+			final boolean asAdmin)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
+				InaccessibleObjectException, NoSuchReferenceException, NoSuchObjectException,
+				ReferenceSearchMaximumSizeExceededException {
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		final List<ObjectIdentifier> loi = processObjectSpecifications(params.getObjects());
+		final List<ObjectInformation> infos = ws.getObjectInformation(user, loi,
+				longToBoolean(params.getIncludeMetadata()),
+				longToBoolean(params.getIgnoreErrors()),
+				asAdmin);
+		return new GetObjectInfo3Results().withInfos(objInfoToTuple(infos, true))
+				.withPaths(toObjectPaths(infos));
+		
 	}
 	
 	public void grantModuleOwnership(final GrantModuleOwnershipParams params,
