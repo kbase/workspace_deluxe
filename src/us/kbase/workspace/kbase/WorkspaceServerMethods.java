@@ -7,6 +7,7 @@ import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.processProvenance;
 import static us.kbase.workspace.kbase.ArgUtils.toObjectPaths;
+import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
@@ -26,6 +27,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonParseException;
+
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
@@ -36,12 +39,15 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
+import us.kbase.workspace.GetObjects2Params;
+import us.kbase.workspace.GetObjects2Results;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
@@ -64,6 +70,7 @@ import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
@@ -83,6 +90,8 @@ public class WorkspaceServerMethods {
 	final private Workspace ws;
 	final private Types types;
 	final private URL handleServiceUrl;
+	final private URL handleManagerUrl;
+	final private AuthToken handleManagerToken;
 	final private int maximumIDCount;
 	final private ConfigurableAuthService auth;
 	
@@ -90,6 +99,8 @@ public class WorkspaceServerMethods {
 			final Workspace ws,
 			final Types types,
 			final URL handleServiceUrl,
+			final URL handleManagerUrl,
+			final AuthToken handleMgrToken,
 			final int maximumIDCount,
 			final ConfigurableAuthService auth) {
 		this.ws = ws;
@@ -97,6 +108,8 @@ public class WorkspaceServerMethods {
 		this.handleServiceUrl = handleServiceUrl;
 		this.maximumIDCount = maximumIDCount;
 		this.auth = auth;
+		this.handleManagerUrl = handleManagerUrl;
+		this.handleManagerToken = handleMgrToken;
 	}
 	
 	public ConfigurableAuthService getAuth() {
@@ -377,6 +390,20 @@ public class WorkspaceServerMethods {
 		return objInfoToTuple(meta, true);
 	}
 	
+	/** Get object information.
+	 * @param params the information request parameters.
+	 * @param user the user making the request.
+	 * @param asAdmin whether the request should be run with administrator privileges.
+	 * @return the object information.
+	 * @throws WorkspaceCommunicationException if a communication error with the storage system
+	 * occurs.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws InaccessibleObjectException if a requested object is inaccessible.
+	 * @throws NoSuchReferenceException if a reference in a reference path does not exist.
+	 * @throws NoSuchObjectException if a request object does not exist.
+	 * @throws ReferenceSearchMaximumSizeExceededException if a search for an object traverses to
+	 * many other objects.
+	 */
 	public GetObjectInfo3Results getObjectInformation(
 			final GetObjectInfo3Params params,
 			final WorkspaceUser user,
@@ -392,7 +419,49 @@ public class WorkspaceServerMethods {
 				asAdmin);
 		return new GetObjectInfo3Results().withInfos(objInfoToTuple(infos, true))
 				.withPaths(toObjectPaths(infos));
-		
+	}
+	
+	/** Get objects.
+	 * @param params the object request parameters.
+	 * @param user the user making the request.
+	 * @param asAdmin whether the request should be run with administrator privileges.
+	 * @param resourcesToDelete a container into which resources that must be destroyed after
+	 * they're no longer needed can be placed.
+	 * @return the objects.
+	 * @throws WorkspaceCommunicationException if a communication error with the storage system
+	 * occurs.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws InaccessibleObjectException if a requested object is inaccessible.
+	 * @throws NoSuchReferenceException if a reference in a reference path does not exist.
+	 * @throws NoSuchObjectException if a request object does not exist.
+	 * @throws ReferenceSearchMaximumSizeExceededException if a search for an object traverses to
+	 * many other objects.
+	 * @throws TypedObjectExtractionException if an error occurred extracting data from a typed
+	 * object.
+	 * @throws JsonParseException if an error occurs when attempting to get the object data. 
+	 * @throws IOException if an error occurs when attempting to get the object data.
+	 */
+	public GetObjects2Results getObjects(
+			final GetObjects2Params params,
+			final WorkspaceUser user,
+			final boolean asAdmin,
+			final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
+			throws CorruptWorkspaceDBException, WorkspaceCommunicationException,
+					InaccessibleObjectException, NoSuchReferenceException, NoSuchObjectException,
+					TypedObjectExtractionException, ReferenceSearchMaximumSizeExceededException,
+					JsonParseException, IOException {
+		// ugh, tried to see if we could code out the jpe and ioe but it's too much of a mess
+		// once you get into the byte array cache and JTS
+		checkAddlArgs(params.getAdditionalProperties(), GetObjects2Params.class);
+		final List<ObjectIdentifier> loi =
+				processObjectSpecifications(params.getObjects());
+		final boolean noData = longToBoolean(params.getNoData(), false);
+		final boolean ignoreErrors = longToBoolean(params.getIgnoreErrors(), false);
+		final List<WorkspaceObjectData> objects = ws.getObjects(
+				user, loi, noData, ignoreErrors, asAdmin);
+		resourcesToDelete.set(objects);
+		return new GetObjects2Results().withData(translateObjectData(
+				objects, user, handleManagerUrl, handleManagerToken, true));
 	}
 	
 	public void grantModuleOwnership(final GrantModuleOwnershipParams params,

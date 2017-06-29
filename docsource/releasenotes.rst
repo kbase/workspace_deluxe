@@ -16,6 +16,7 @@ NEW FEATURES:
 * Added the ``getWorkspaceInfo`` administration command.
 * Added the ``listObjects`` administration command.
 * Added the ``getObjectInfo`` administration command.
+* Added the ``getObjects`` administration command.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 

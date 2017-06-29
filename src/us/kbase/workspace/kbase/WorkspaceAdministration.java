@@ -27,6 +27,7 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
+import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListObjectsParams;
@@ -40,6 +41,7 @@ import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 
 public class WorkspaceAdministration {
@@ -63,6 +65,7 @@ public class WorkspaceAdministration {
 	private static final String LIST_OBJECTS = "listObjects";
 	private static final String SAVE_OBJECTS = "saveObjects";
 	private static final String GET_OBJECT_INFO = "getObjectInfo";
+	private static final String GET_OBJECTS = "getObjects";
 	private static final String SET_GLOBAL_PERMISSION = "setGlobalPermission";
 	private static final String GET_WORKSPACE_INFO = "getWorkspaceInfo";
 	private static final String GET_PERMISSIONS = "getPermissions";
@@ -97,7 +100,11 @@ public class WorkspaceAdministration {
 		return LoggerFactory.getLogger(WorkspaceAdministration.class);
 	}
 
-	public Object runCommand(final AuthToken token, final UObject command) throws Exception {
+	public Object runCommand(
+			final AuthToken token,
+			final UObject command,
+			final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
+			throws Exception {
 		final String putativeAdmin = token.getUserName();
 		if (!(internaladmins.contains(putativeAdmin) ||
 				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
@@ -228,6 +235,13 @@ public class WorkspaceAdministration {
 			// method has its own logging
 			getLogger().info(GET_OBJECT_INFO);
 			return wsmeth.getObjectInformation(params, new WorkspaceUser(putativeAdmin), true);
+		}
+		if (GET_OBJECTS.equals(fn)) {
+			final GetObjects2Params params = getParams(cmd, GetObjects2Params.class);
+			// method has its own logging
+			getLogger().info(GET_OBJECTS);
+			return wsmeth.getObjects(params, new WorkspaceUser(putativeAdmin), true,
+					resourcesToDelete);
 		}
 		if (LIST_WORKSPACES.equals(fn)) {
 			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);

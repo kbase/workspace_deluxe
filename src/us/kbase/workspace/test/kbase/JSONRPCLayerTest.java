@@ -46,6 +46,7 @@ import us.kbase.workspace.GetNamesByPrefixResults;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GetObjects2Params;
+import us.kbase.workspace.GetObjects2Results;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListAllTypesParams;
 import us.kbase.workspace.ListModuleVersionsParams;
@@ -3522,7 +3523,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
-	public void adminGetObjectInfo() throws Exception {
+	public void adminGetObjectAndInfo() throws Exception {
 		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
 		
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
@@ -3543,10 +3544,22 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		checkInfo(ob.getInfos().get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
 				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
 		assertThat("incorrect ref path", ob.getPaths().get(0), is(Arrays.asList("1/1/1")));
+		
+		final GetObjects2Results ob2 = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "getObjects",
+						"params", new GetObjects2Params().withObjects(Arrays.asList(
+								new ObjectSpecification().withRef("1/1")))
+				))).asClassInstance(GetObjects2Results.class);
+		
+		assertThat("incorrect object count", ob2.getData().size(), is(1));
+		checkData(ob2.getData().get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, new HashMap<>(),
+				ImmutableMap.of("foo", "bar"));
+		assertThat("correct path", ob2.getData().get(0).getPath(), is(Arrays.asList("1/1/1")));
 	}
 	
 	@Test
-	public void adminGetObjectInfoFail() throws Exception {
+	public void adminGetObjectAndInfoFail() throws Exception {
 		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
 		
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
@@ -3563,6 +3576,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAdmin(CLIENT2, ImmutableMap.of(
 				"command", "getObjectInfo",
 				"params", new GetObjectInfo3Params().withObjects(Arrays.asList(
+						new ObjectSpecification().withRef("1/1").withFindReferencePath(1L)))
+				), "The latest version of object 1 in workspace 1 is not accessible to user " +
+						USER2);
+		
+		failAdmin(CLIENT2, ImmutableMap.of(
+				"command", "getObjects",
+				"params", new GetObjects2Params().withObjects(Arrays.asList(
 						new ObjectSpecification().withRef("1/1").withFindReferencePath(1L)))
 				), "The latest version of object 1 in workspace 1 is not accessible to user " +
 						USER2);
