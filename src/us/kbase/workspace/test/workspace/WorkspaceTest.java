@@ -12,6 +12,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.StringReader;
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -183,9 +184,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceInformation ltpinfo2 = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("ltp"));
 		WorkspaceInformation ltninfo2 = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("ltn"));
 		
-		assertTrue("date updated on set ws desc", ltinfo2.getModDate().after(ltinfo.getModDate()));
-		assertTrue("date updated on set ws desc", ltpinfo2.getModDate().after(ltpinfo.getModDate()));
-		assertTrue("date updated on set ws desc", ltninfo2.getModDate().after(ltninfo.getModDate()));
+		assertTrue("date updated on set ws desc", ltinfo2.getModDate().isAfter(ltinfo.getModDate()));
+		assertTrue("date updated on set ws desc", ltpinfo2.getModDate().isAfter(ltpinfo.getModDate()));
+		assertTrue("date updated on set ws desc", ltninfo2.getModDate().isAfter(ltninfo.getModDate()));
 		
 		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"));
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT_PART));
@@ -240,7 +241,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, "unlocked", MT_MAP);
 		long id = info.getId();
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier(id);
-		Date moddate = info.getModDate();
+		Instant moddate = info.getModDate();
 		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(id));
 		checkWSInfo(info, SOMEUSER, wsname, 0, Permission.OWNER, false, id, moddate, "unlocked", MT_MAP);
 		info = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier(wsname));
@@ -676,12 +677,14 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, String> putmeta = new HashMap<String, String>();
 		putmeta.put("foo2", "bar3");
 		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(putmeta), null);
-		Date d1 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
+		final Instant d1 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
+				info.getId(), "unlocked", meta);
 		meta.put("foo3", "bar4"); //new
 		putmeta.clear();
 		putmeta.put("foo3", "bar4");
 		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(putmeta), null);
-		Date d2 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
+		final Instant d2 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
+				info.getId(), "unlocked", meta);
 		
 		putmeta.clear();
 		putmeta.put("foo3", "bar5"); //replace
@@ -693,22 +696,26 @@ public class WorkspaceTest extends WorkspaceTester {
 		meta.put("foo", "whoa this is new");
 		meta.put("no, this part is new", "prunker");
 		ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(putmeta), null);
-		Date d3 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
+		final Instant d3 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
+				info.getId(), "unlocked", meta);
 		
 		Map<String, String> newmeta = new HashMap<String, String>();
 		newmeta.put("new", "meta");
 		ws.setWorkspaceMetadata(user, wsiNo, new WorkspaceUserMetadata(newmeta),
 				Collections.emptyList());
-		Date nod1 = checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false, infoNo.getId(), "unlocked", newmeta);
+		final Instant nod1 = checkWSInfo(wsiNo, user, wsiNo.getName(), 0, Permission.OWNER, false,
+				infoNo.getId(), "unlocked", newmeta);
 		
 		assertDatesAscending(infoNo.getModDate(), nod1);
 		
 		meta.remove("foo2");
 		ws.setWorkspaceMetadata(user, wsi, null, Arrays.asList("foo2"));
-		Date d4 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
+		final Instant d4 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
+				info.getId(), "unlocked", meta);
 		meta.remove("some");
 		ws.setWorkspaceMetadata(user2, wsi, null, Arrays.asList("some"));
-		Date d5 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), "unlocked", meta);
+		final Instant d5 = checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false,
+				info.getId(), "unlocked", meta);
 		ws.setWorkspaceMetadata(user, wsi, null, Arrays.asList("fake")); //no effect
 		checkWSInfo(wsi, user, wsi.getName(), 0, Permission.OWNER, false, info.getId(), d5, "unlocked", meta);
 		
@@ -1377,8 +1384,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				foo, read.getIdentifierString(), true, null, null);
 		WorkspaceInformation privinfo = ws.createWorkspace(
 				foo, priv.getIdentifierString(), false, null, null);
-		Date readLastDate = readinfo.getModDate();
-		Date privLastDate = privinfo.getModDate();
+		Instant readLastDate = readinfo.getModDate();
+		Instant privLastDate = privinfo.getModDate();
 		long readid = readinfo.getId();
 		long privid = privinfo.getId();
 		Map<String, Object> data = new HashMap<String, Object>();
@@ -3968,7 +3975,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceInformation readinfo = ws.createWorkspace(user,
 				read.getIdentifierString(), false, "descrip", null);
 		long wsid = readinfo.getId();
-		Date lastReadDate = readinfo.getModDate();
+		Instant lastReadDate = readinfo.getModDate();
 		Map<String, String> data1 = new HashMap<String, String>();
 		Map<String, String> data2 = new HashMap<String, String>();
 		data1.put("data", "1");
@@ -4139,8 +4146,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("can get perms", ws.getPermissions(
 				user, Arrays.asList(read)).get(0), is(p));
 		
-		assertTrue("date changed on delete", read1.getModDate().before(read2.getModDate()));
-		assertTrue("date changed on undelete", read2.getModDate().before(read3.getModDate()));
+		assertTrue("date changed on delete", read1.getModDate().isBefore(read2.getModDate()));
+		assertTrue("date changed on undelete", read2.getModDate().isBefore(read3.getModDate()));
 	}
 	
 	@Test
@@ -4416,8 +4423,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceInformation cp2info = ws.getWorkspaceInformation(user2, cp2);
 		long wsid1 = cp1info.getId();
 		long wsid2 = cp2info.getId();
-		Date cp1LastDate = cp1info.getModDate();
-		Date cp2LastDate = cp2info.getModDate();
+		Instant cp1LastDate = cp1info.getModDate();
+		Instant cp2LastDate = cp2info.getModDate();
 		
 		ObjectIdentifier oihide = new ObjectIdentifier(cp1, "hide");
 		List<ObjectInformation> objs = ws.getObjectHistory(user1, oihide);
@@ -5325,7 +5332,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("renameObj2");
 		WorkspaceInformation info1 = ws.createWorkspace(user, wsi.getName(), false, null, null);
 		long wsid1 = info1.getId();
-		Date lastWSDate = info1.getModDate();
+		Instant lastWSDate = info1.getModDate();
 		ws.createWorkspace(user2, wsi2.getName(), false, null, null);
 		ws.saveObjects(user, wsi, Arrays.asList(new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("auto1"), new HashMap<String, String>(), SAFE_TYPE1, null,
@@ -5405,7 +5412,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		Thread.sleep(2); //make sure timestamp is different on rename
 		WorkspaceInformation info2 = ws.renameWorkspace(user, wsi, newwsi.getName());
 		checkWSInfo(info2, user, newwsi.getName(), 0, Permission.OWNER, false, "unlocked", meta);
-		assertTrue("date updated on ws rename", info2.getModDate().after(info1.getModDate()));
+		assertTrue("date updated on ws rename", info2.getModDate().isAfter(info1.getModDate()));
 		checkWSInfo(ws.getWorkspaceInformation(user, newwsi),
 				user, newwsi.getName(), 0, Permission.OWNER, false, "unlocked", meta);
 		
@@ -5728,24 +5735,28 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceInformation i4 = ws.createWorkspace(u, "listwsbydate4", false, null, null);
 		Thread.sleep(100);
 		WorkspaceInformation i5 = ws.createWorkspace(u, "listwsbydate5", false, null, null);
-		Date beforeall = new Date(i1.getModDate().getTime() - 1);
-		Date afterall = new Date(i5.getModDate().getTime() + 1);
+		final Date beforeall = Date.from(i1.getModDate().minusMillis(1));
+		final Date afterall = Date.from(i5.getModDate().plusMillis(1));
+		final Date d2 = Date.from(i2.getModDate());
+		final Date d3 = Date.from(i3.getModDate());
+		final Date d4 = Date.from(i4.getModDate());
+		final Date d5 = Date.from(i5.getModDate());
 		checkWSInfoList(ws.listWorkspaces(u, null, null, null, null, null, true, false, false),
 				Arrays.asList(i1, i2, i3, i4, i5));
 		checkWSInfoList(ws.listWorkspaces(u, null, null, null, beforeall, afterall, true, false, false),
 				Arrays.asList(i1, i2, i3, i4, i5));
 		checkWSInfoList(ws.listWorkspaces(u, null, null, null, afterall, beforeall, true, false, false),
 				new ArrayList<WorkspaceInformation>());
-		checkWSInfoList(ws.listWorkspaces(u, null, null, null, i3.getModDate(), i4.getModDate(), true, false, false),
+		checkWSInfoList(ws.listWorkspaces(u, null, null, null, d3, d4, true, false, false),
 				new ArrayList<WorkspaceInformation>());
-		checkWSInfoList(ws.listWorkspaces(u, null, null, null, i2.getModDate(), i4.getModDate(), true, false, false),
+		checkWSInfoList(ws.listWorkspaces(u, null, null, null, d2, d4, true, false, false),
 				Arrays.asList(i3));
-		checkWSInfoList(ws.listWorkspaces(u, null, null, null, i2.getModDate(), null, true, false, false),
+		checkWSInfoList(ws.listWorkspaces(u, null, null, null, d2, null, true, false, false),
 				Arrays.asList(i3, i4, i5));
-		checkWSInfoList(ws.listWorkspaces(u, null, null, null, null, i4.getModDate(), true, false, false),
+		checkWSInfoList(ws.listWorkspaces(u, null, null, null, null, d4, true, false, false),
 				Arrays.asList(i1, i2, i3));
-		checkWSInfoList(ws.listWorkspaces(u, null, null, null, new Date(i2.getModDate().getTime() - 1),
-				i5.getModDate(), true, false, false),
+		checkWSInfoList(ws.listWorkspaces(u, null, null, null,
+				Date.from(i2.getModDate().minusMillis(1)), d5, true, false, false),
 				Arrays.asList(i2, i3, i4));
 		
 	}

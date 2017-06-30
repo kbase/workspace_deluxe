@@ -1,10 +1,12 @@
 package us.kbase.workspace.database;
 
-import java.util.Date;
+import static us.kbase.workspace.database.Util.nonNull;
+import static us.kbase.common.utils.StringUtils.checkString;
+
+import java.time.Instant;
 
 public class WorkspaceInformation {
 	
-	//TODO NOW builder.
 	//TODO CODE add is deleted.
 	//TODO NOW JAVADOC
 	//TODO NOW TEST
@@ -16,18 +18,18 @@ public class WorkspaceInformation {
 	final private long id;
 	final private String name;
 	final private WorkspaceUser owner;
-	final private Date modDate;
+	final private Instant modDate;
 	final private long maxObjectID;
 	final private Permission userPermission;
 	final private boolean globalRead;
 	final private boolean locked;
 	final private UncheckedUserMetadata usermeta;
 	
-	public WorkspaceInformation(
+	private WorkspaceInformation(
 			final long id,
 			final String name,
 			final WorkspaceUser owner,
-			final Date modDate,
+			final Instant modDate,
 			final long maxObjectID,
 			final Permission userPermission,
 			final boolean globalRead,
@@ -56,7 +58,7 @@ public class WorkspaceInformation {
 		return owner;
 	}
 
-	public Date getModDate() {
+	public Instant getModDate() {
 		return modDate;
 	}
 
@@ -75,7 +77,6 @@ public class WorkspaceInformation {
 	public boolean isLocked() {
 		return locked;
 	}
-	
 
 	public UncheckedUserMetadata getUserMeta() {
 		return usermeta;
@@ -120,10 +121,10 @@ public class WorkspaceInformation {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + (int) (maxObjectID ^ (maxObjectID >>> 32));
 		result = prime * result + (globalRead ? 1231 : 1237);
 		result = prime * result + (int) (id ^ (id >>> 32));
 		result = prime * result + (locked ? 1231 : 1237);
+		result = prime * result + (int) (maxObjectID ^ (maxObjectID >>> 32));
 		result = prime * result + ((modDate == null) ? 0 : modDate.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((owner == null) ? 0 : owner.hashCode());
@@ -144,9 +145,6 @@ public class WorkspaceInformation {
 			return false;
 		}
 		WorkspaceInformation other = (WorkspaceInformation) obj;
-		if (maxObjectID != other.maxObjectID) {
-			return false;
-		}
 		if (globalRead != other.globalRead) {
 			return false;
 		}
@@ -154,6 +152,9 @@ public class WorkspaceInformation {
 			return false;
 		}
 		if (locked != other.locked) {
+			return false;
+		}
+		if (maxObjectID != other.maxObjectID) {
 			return false;
 		}
 		if (modDate == null) {
@@ -188,5 +189,104 @@ public class WorkspaceInformation {
 			return false;
 		}
 		return true;
+	}
+	
+	// note required info
+	public static Builder getBuilder() {
+		return new Builder();
+	}
+	
+	// note required info
+	public static class Builder {
+		
+		// required
+		private Long id = null;
+		private String name = null;
+		private WorkspaceUser owner = null;
+		private Instant modDate = null;
+		private Long maxObjectID = null;
+		private Permission userPermission = null;
+		// optional 
+		private boolean globalRead = false;
+		private boolean locked = false;
+		private UncheckedUserMetadata usermeta =
+				new UncheckedUserMetadata(new WorkspaceUserMetadata());
+		
+		private Builder() {}
+		
+		public WorkspaceInformation build() {
+			nonNull(id, "id");
+			// seems like overkill to run WorkspaceIdentifier.checkWorkspaceName() seeing as this
+			// class is created from DB info, not user supplied info
+			nonNull(name, "name");
+			nonNull(owner, "owner");
+			nonNull(modDate, "modDate");
+			nonNull(maxObjectID, "maxObjectID");
+			nonNull(userPermission, "userPermission");
+			return new WorkspaceInformation(id, name, owner, modDate, maxObjectID, userPermission,
+					globalRead, locked, usermeta);
+		}
+		
+		// required
+		public Builder withID(final long id) {
+			if (id < 1) {
+				throw new IllegalArgumentException("id must be > 0");
+			}
+			this.id = id;
+			return this;
+		}
+		
+		//required
+		public Builder withName(final String name) {
+			checkString(name, "name");
+			this.name = name;
+			return this;
+		}
+		
+		//required
+		public Builder withOwner(final WorkspaceUser owner) {
+			nonNull(owner, "owner");
+			this.owner = owner;
+			return this;
+		}
+		
+		//required
+		public Builder withModificationDate(final Instant modDate) {
+			nonNull(modDate, "modDate");
+			this.modDate = modDate;
+			return this;
+		}
+		
+		//required
+		public Builder withMaximumObjectID(final long maxObjectID) {
+			if (maxObjectID < 0) {
+				throw new IllegalArgumentException("max id must be at least 0");
+			}
+			this.maxObjectID = maxObjectID;
+			return this;
+		}
+		
+		// required
+		public Builder withUserPermission(final Permission perm) {
+			nonNull(perm, "perm");
+			this.userPermission = perm;
+			return this;
+		}
+		
+		public Builder withGlobalRead(final boolean globalRead) {
+			this.globalRead = globalRead;
+			return this;
+		}
+		
+		public Builder withLocked(final boolean locked) {
+			this.locked = locked;
+			return this;
+		}
+		
+		public Builder withUserMetadata(final UncheckedUserMetadata meta) {
+			nonNull(meta, "meta");
+			this.usermeta = meta;
+			return this;
+		}
 	}
 }

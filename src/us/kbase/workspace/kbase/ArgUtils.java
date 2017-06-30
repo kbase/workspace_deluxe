@@ -8,6 +8,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import java.io.IOException;
 import java.net.URL;
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
@@ -177,11 +178,19 @@ public class ArgUtils {
 		}
 	}
 	
-	public static String formatDate(final Date date) {
+	private static String formatDate(final Date date) {
 		if (date == null) {
 			return null;
 		}
 		return DATE_FORMATTER.print(new DateTime(date));
+	}
+	
+	private static String formatDate(final Instant date) {
+		if (date == null) {
+			return null;
+		}
+		return formatDate(Date.from(date));
+		
 	}
 	
 	private static List<Object> translateMethodParametersToObject(
