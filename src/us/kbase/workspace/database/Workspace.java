@@ -1,10 +1,12 @@
 package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.Util.nonNull;
+import static us.kbase.workspace.database.Util.noNulls;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,6 +62,7 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
+import us.kbase.workspace.listener.WorkspaceEventListener;
 
 public class Workspace {
 	
@@ -85,12 +88,21 @@ public class Workspace {
 	private final WorkspaceDatabase db;
 	private ResourceUsageConfiguration rescfg;
 	private final TypedObjectValidator validator;
+	private final List<WorkspaceEventListener> listeners;
 	private int maximumObjectSearchCount;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
 			final TypedObjectValidator validator) {
+		this(db, cfg, validator, Collections.emptyList());
+	}
+	
+	public Workspace(
+			final WorkspaceDatabase db,
+			final ResourceUsageConfiguration cfg,
+			final TypedObjectValidator validator,
+			final List<WorkspaceEventListener> listeners) {
 		if (db == null) {
 			throw new NullPointerException("db cannot be null");
 		}
@@ -100,10 +112,13 @@ public class Workspace {
 		if (validator == null) {
 			throw new NullPointerException("validator cannot be null");
 		}
+		nonNull(listeners, "listeners");
+		noNulls(listeners, "null item in listeners");
 		this.db = db;
 		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
 		this.validator = validator;
 		rescfg = cfg;
+		this.listeners = Collections.unmodifiableList(listeners);
 		db.setResourceUsageConfiguration(rescfg);
 		this.maximumObjectSearchCount = MAX_OBJECT_SEARCH_COUNT_DEFAULT;
 	}
@@ -146,9 +161,13 @@ public class Workspace {
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		new WorkspaceIdentifier(wsname, user); //check for errors
-		return db.createWorkspace(user, wsname, globalread,
+		final WorkspaceInformation ret = db.createWorkspace(user, wsname, globalread,
 				pruneWorkspaceDescription(description),
 				meta == null ? new WorkspaceUserMetadata() : meta);
+		for (final WorkspaceEventListener l: listeners) {
+			l.createWorkspace(ret.getId());
+		}
+		return ret;
 	}
 	
 	//might be worthwhile to make this work on multiple values,
@@ -191,10 +210,14 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.READ).check();
 		new WorkspaceIdentifier(newname, user); //check for errors
-		return db.cloneWorkspace(user, wsid, newname, globalread,
+		final WorkspaceInformation info = db.cloneWorkspace(user, wsid, newname, globalread,
 				pruneWorkspaceDescription(description),
 				meta == null ? new WorkspaceUserMetadata() : meta,
 				exclude);
+		for (final WorkspaceEventListener l: listeners) {
+			l.cloneWorkspace(info.getId());
+		}
+		return info;
 	}
 	
 	/** Lock a workspace, preventing further changes other than making the workspace globally

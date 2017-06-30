@@ -13,13 +13,13 @@ mongodb-database = workspace
 # password for the account
 #mongodb-pwd = add password here
 
-# The KBase authorization server url.
+# the KBase authorization server url.
 auth-service-url = https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login
 
-# The Globus v1 authorization API url.
+# the Globus v1 authorization API url.
 globus-url = https://kbase.us/services/auth/api/legacy/globus/
 
-# The urls for the Handle Service and Handle Manager.
+# the urls for the Handle Service and Handle Manager.
 handle-service-url =
 handle-manager-url =
 # The token used to access the handle manager.
@@ -30,7 +30,7 @@ handle-manager-token =
 # is changed and the server restarted.
 ws-admin = workspaceadmin
 
-# Token for the backend account (e.g. shock if used).
+# token for the backend account (e.g. shock if used).
 backend-token =
 
 # port for the service.
@@ -40,23 +40,36 @@ port = 7058
 # processed simultaneously.
 server-threads = 20
 
-#Minimum memory size in MB. This must be 500Mb * server-threads.
+# minimum memory size in MB. This must be 500Mb * server-threads.
 min-memory = 10000
 
-#Maximum memory size in MB.
+# maximum memory size in MB.
 max-memory = 15000
 
 # directory for temporary files. Maximum usage is 10GB * server-threads.
 # Ideally, this will be on an SSD drive for speed.
 temp-dir = ws_temp_dir
 
-# Document server name. Used for logging.
+# active listeners - a comma separated list, by name, of event listeners that will be registered.
+# Add or remove a name from the list in order to activate or deactivate a listener.
+# listeners=X
+
+# any listener factory implementations and their configurations, grouped by the names in the
+# listeners configuration parameter. The listener configuration will be provided to the listener as a
+# key-value map. Example:
+# listener-X-class=us.kbase.workspace.database.listener.NullListenerFactory
+# listener-X-config-key1=value1
+# listener-X-config-key2=value2
+# listener-X-config-printEvents=true
+# listener-X-config-throwException=false
+
+# document server name. Used for logging.
 doc-server-name = WorkspaceDocServ
 # Document server document location relative to the classpath. If this
 # variable is changed it must also be changed in build.xml
 doc-server-docs-location = /server_docs
 
-# MongoDB reconnect retry count. The workspace will try to reconnect 1/s until
+# mongoDB reconnect retry count. The workspace will try to reconnect 1/s until
 # this limit has been reached. This is useful for starting the Workspace
 # automatically after a server restart, as MongoDB can take quite a while to
 # get from start to accepting connections.

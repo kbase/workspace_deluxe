@@ -5,13 +5,16 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class KBaseWorkspaceConfig {
 	
 	//TODO TEST unit tests
+	//TODO JAVADOCS
 	
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
@@ -36,6 +39,12 @@ public class KBaseWorkspaceConfig {
 	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
 	private static final String HANDLE_MANAGER_TOKEN = "handle-manager-token";
 	
+	// listeners
+	private static final String LISTENERS = "listeners";
+	private static final String LISTENER_PREFIX = "listener-";
+	private static final String LISTENER_CLASS = "-class";
+	private static final String LISTENER_CONFIG = "-config-";
+	
 	//directory for temp files
 	private static final String TEMP_DIR = "temp-dir";
 	
@@ -59,6 +68,28 @@ public class KBaseWorkspaceConfig {
 	private final List<String> errors;
 	private final List<String> infoMessages;
 	private final String paramReport;
+	private final List<ListenerConfig> listenerConfigs;
+	
+	public static class ListenerConfig {
+		
+		private final String listenerClass;
+		private final Map<String, String> config;
+		
+		private ListenerConfig(
+				final String listenerClass,
+				final Map<String, String> config) {
+			this.listenerClass = listenerClass;
+			this.config = Collections.unmodifiableMap(config);
+		}
+
+		public String getListenerClass() {
+			return listenerClass;
+		}
+
+		public Map<String, String> getConfig() {
+			return config;
+		}
+	}
 
 	public KBaseWorkspaceConfig(final Map<String, String> config) {
 		if (config == null) {
@@ -134,11 +165,58 @@ public class KBaseWorkspaceConfig {
 		}
 		
 		mongoReconnectAttempts = getReconnectCount(config, infoMsgs);
+		listenerConfigs = getListenerConfigs(config, paramErrors);
 		errors = Collections.unmodifiableList(paramErrors);
 		infoMessages = Collections.unmodifiableList(infoMsgs);
 		paramReport = generateParamReport(config);
 	}
 	
+	private List<ListenerConfig> getListenerConfigs(
+			final Map<String, String> config,
+			final List<String> paramErrors) {
+		final String listenersStr = config.get(LISTENERS);
+		if (listenersStr == null || listenersStr.trim().isEmpty()) {
+			return Collections.emptyList();
+		}
+		final List<ListenerConfig> ret = new LinkedList<>();
+		final List<String> listeners = Arrays.asList(listenersStr.split(","));
+		for (final String name: listeners) {
+			final String listenerStart = LISTENER_PREFIX + name;
+			final String classStr = config.get(listenerStart + LISTENER_CLASS);
+			if (nullOrEmpty(classStr)) {
+				paramErrors.add("Missing listener class: " + listenerStart + LISTENER_CLASS);
+			}
+			final Map<String, String> cfg = getListenerConfig(
+					config, listenerStart + LISTENER_CONFIG, paramErrors);
+			ret.add(new ListenerConfig(classStr, cfg));
+		}
+		return Collections.unmodifiableList(ret);
+	}
+	
+	private Map<String, String> getListenerConfig(
+			final Map<String, String> config,
+			final String prefix,
+			final List<String> paramErrors) {
+		final Map<String, String> ret = new HashMap<>();
+		for (final String key: config.keySet()) {
+			if (key.startsWith(prefix)) {
+				final String ckey = key.replaceFirst(prefix, "");
+				if (ckey.trim().isEmpty()) {
+					paramErrors.add("Invalid listener configuration item: " + key);
+				}
+				ret.put(ckey, config.get(key));
+			}
+		}
+		return ret;
+	}
+
+	private boolean nullOrEmpty(final String s) {
+		if (s == null || s.trim().isEmpty()) {
+			return true;
+		}
+		return false;
+	}
+
 	private String generateParamReport(final Map<String, String> cfg) {
 		String params = "";
 		final List<String> paramSet = new LinkedList<String>(
@@ -154,6 +232,11 @@ public class KBaseWorkspaceConfig {
 		}
 		if (mongoPassword != null && !mongoPassword.isEmpty()) {
 			params += MONGO_PWD + "=[redacted for your safety and comfort]\n";
+		}
+		if (!listenerConfigs.isEmpty()) {
+			final List<String> listeners = listenerConfigs.stream().map(l -> l.getListenerClass())
+					.collect(Collectors.toList());
+			params += LISTENERS + "=" + String.join(",", listeners);
 		}
 		return params;
 	}
@@ -253,6 +336,10 @@ public class KBaseWorkspaceConfig {
 
 	public String getHandleManagerToken() {
 		return handleManagerToken;
+	}
+
+	public List<ListenerConfig> getListenerConfigs() {
+		return listenerConfigs;
 	}
 
 	public List<String> getErrors() {

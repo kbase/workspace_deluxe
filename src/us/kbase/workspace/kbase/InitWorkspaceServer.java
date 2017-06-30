@@ -7,7 +7,10 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -45,10 +48,15 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
+import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
+import us.kbase.workspace.listener.ListenerInitializationException;
+import us.kbase.workspace.listener.WorkspaceEventListener;
+import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 public class InitWorkspaceServer {
 	
 	//TODO TEST unittests
+	//TODO JAVADOC
 	
 	private static final String COL_SETTINGS = InitConstants.COL_SETTINGS;
 	public static final String COL_SHOCK_NODES = InitConstants.COL_SHOCK_NODES;
@@ -172,8 +180,9 @@ public class InitWorkspaceServer {
 		}
 		rep.reportInfo(String.format("Initialized %s backend",
 				wsdeps.backendType));
-		Workspace ws = new Workspace(wsdeps.mongoWS,
-				new ResourceUsageConfigurationBuilder().build(), wsdeps.validator);
+		Workspace ws = new Workspace(
+				wsdeps.mongoWS, new ResourceUsageConfigurationBuilder().build(), wsdeps.validator,
+				wsdeps.listeners);
 		Types types = new Types(wsdeps.typeDB);
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
 				ws, types, cfg.getHandleServiceURL(), cfg.getHandleManagerURL(),
@@ -196,6 +205,7 @@ public class InitWorkspaceServer {
 		public TypedObjectValidator validator;
 		public WorkspaceDatabase mongoWS;
 		public String backendType;
+		public List<WorkspaceEventListener> listeners;
 	}
 	
 	private static WorkspaceDependencies getDependencies(
@@ -235,9 +245,52 @@ public class InitWorkspaceServer {
 					"Error initializing the workspace database: " +
 					wde.getLocalizedMessage(), wde);
 		}
+		deps.listeners = loadListeners(cfg);
 		return deps;
 	}
 	
+	private static List<WorkspaceEventListener> loadListeners(final KBaseWorkspaceConfig cfg)
+			throws WorkspaceInitException {
+		final List<WorkspaceEventListener> wels = new LinkedList<>();
+		for (final ListenerConfig lc: cfg.getListenerConfigs()) {
+			final WorkspaceEventListenerFactory fac = loadFac(lc.getListenerClass());
+			try {
+				wels.add(fac.configure(lc.getConfig()));
+			} catch (ListenerInitializationException e) {
+				throw new WorkspaceInitException(String.format(
+						"Error initializing listener %s: %s",
+						lc.getListenerClass(), e.getMessage()), e);
+			}
+		}
+		return wels;
+	}
+
+	private static WorkspaceEventListenerFactory loadFac(final String className)
+			throws WorkspaceInitException {
+		final Class<?> cls;
+		try {
+			cls = Class.forName(className);
+		} catch (ClassNotFoundException e) {
+			throw new WorkspaceInitException(String.format(
+					"Cannot find class %s: %s", className, e.getMessage()), e);
+		}
+		final Set<Class<?>> interfaces = new HashSet<>(Arrays.asList(cls.getInterfaces()));
+		if (!interfaces.contains(WorkspaceEventListenerFactory.class)) {
+			throw new WorkspaceInitException(String.format(
+					"Module %s must implement %s interface",
+					className, WorkspaceEventListenerFactory.class.getName()));
+		}
+		@SuppressWarnings("unchecked")
+		final Class<WorkspaceEventListenerFactory> inter =
+				(Class<WorkspaceEventListenerFactory>) cls;
+		try {
+			return inter.newInstance();
+		} catch (IllegalAccessException | InstantiationException e) {
+			throw new WorkspaceInitException(String.format(
+					"Module %s could not be instantiated: %s", className, e.getMessage()), e);
+		}
+	}
+
 	private static AuthToken getBackendToken(
 			final String shockUserFromSettings,
 			final KBaseWorkspaceConfig cfg,
