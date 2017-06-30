@@ -227,7 +227,7 @@ public class ArgUtils {
 				.withE2(info.getName())
 				.withE3(info.getOwner().getUser())
 				.withE4(formatDate(info.getModDate()))
-				.withE5(info.getApproximateObjects())
+				.withE5(info.getMaximumObjectID())
 				.withE6(translatePermission(info.getUserPermission())) 
 				.withE7(translatePermission(info.isGloballyReadable()))
 				.withE8(info.getLockState())
@@ -252,7 +252,7 @@ public class ArgUtils {
 				.withE1(info.getName())
 				.withE2(info.getOwner().getUser())
 				.withE3(formatDate(info.getModDate()))
-				.withE4(info.getApproximateObjects())
+				.withE4(info.getMaximumObjectID())
 				.withE5(translatePermission(info.getUserPermission())) 
 				.withE6(translatePermission(info.isGloballyReadable()));
 	}

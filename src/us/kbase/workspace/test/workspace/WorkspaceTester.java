@@ -518,7 +518,7 @@ public class WorkspaceTester {
 		assertDateisRecent(info.getModDate());
 		assertThat("ws owner correct", info.getOwner(), is(owner));
 		assertThat("ws name correct", info.getName(), is(name));
-		assertThat("ws max obj correct", info.getApproximateObjects(), is(objs));
+		assertThat("ws max obj correct", info.getMaximumObjectID(), is(objs));
 		assertThat("ws permissions correct", info.getUserPermission(), is(perm));
 		assertThat("ws global read correct", info.isGloballyReadable(), is(globalread));
 		assertThat("ws lockstate correct", info.getLockState(), is(lockstate));
@@ -1830,7 +1830,7 @@ public class WorkspaceTester {
 		assertDateisRecent(got.getModDate());
 		assertThat("ws owner correct", got.getOwner(), is(expected.getOwner()));
 		assertThat("ws name correct", got.getName(), is(expected.getName()));
-		assertThat("ws max obj correct", got.getApproximateObjects(), is(expected.getApproximateObjects()));
+		assertThat("ws max obj correct", got.getMaximumObjectID(), is(expected.getMaximumObjectID()));
 		assertThat("ws permissions correct", got.getUserPermission(), is(expected.getUserPermission()));
 		assertThat("ws global read correct", got.isGloballyReadable(), is(expected.isGloballyReadable()));
 		assertThat("ws lockstate correct", got.getLockState(), is(expected.getLockState()));

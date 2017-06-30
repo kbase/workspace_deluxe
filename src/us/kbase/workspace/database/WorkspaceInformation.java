@@ -17,7 +17,7 @@ public class WorkspaceInformation {
 	final private String name;
 	final private WorkspaceUser owner;
 	final private Date modDate;
-	final private long approxObjs;
+	final private long maxObjectID;
 	final private Permission userPermission;
 	final private boolean globalRead;
 	final private boolean locked;
@@ -28,7 +28,7 @@ public class WorkspaceInformation {
 			final String name,
 			final WorkspaceUser owner,
 			final Date modDate,
-			final long approxObjs,
+			final long maxObjectID,
 			final Permission userPermission,
 			final boolean globalRead,
 			final boolean locked,
@@ -37,7 +37,7 @@ public class WorkspaceInformation {
 		this.name = name;
 		this.owner = owner;
 		this.modDate = modDate;
-		this.approxObjs = approxObjs;
+		this.maxObjectID = maxObjectID;
 		this.userPermission = userPermission;
 		this.globalRead = globalRead;
 		this.locked = locked;
@@ -60,8 +60,8 @@ public class WorkspaceInformation {
 		return modDate;
 	}
 
-	public long getApproximateObjects() { //TODO NOW change to max objects
-		return approxObjs;
+	public long getMaximumObjectID() {
+		return maxObjectID;
 	}
 
 	public Permission getUserPermission() {
@@ -103,7 +103,7 @@ public class WorkspaceInformation {
 		builder.append(", modDate=");
 		builder.append(modDate);
 		builder.append(", approxObjs=");
-		builder.append(approxObjs);
+		builder.append(maxObjectID);
 		builder.append(", userPermission=");
 		builder.append(userPermission);
 		builder.append(", globalRead=");
@@ -120,7 +120,7 @@ public class WorkspaceInformation {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + (int) (approxObjs ^ (approxObjs >>> 32));
+		result = prime * result + (int) (maxObjectID ^ (maxObjectID >>> 32));
 		result = prime * result + (globalRead ? 1231 : 1237);
 		result = prime * result + (int) (id ^ (id >>> 32));
 		result = prime * result + (locked ? 1231 : 1237);
@@ -144,7 +144,7 @@ public class WorkspaceInformation {
 			return false;
 		}
 		WorkspaceInformation other = (WorkspaceInformation) obj;
-		if (approxObjs != other.approxObjs) {
+		if (maxObjectID != other.maxObjectID) {
 			return false;
 		}
 		if (globalRead != other.globalRead) {
