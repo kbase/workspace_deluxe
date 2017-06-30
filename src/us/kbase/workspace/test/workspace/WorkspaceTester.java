@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -551,7 +552,7 @@ public class WorkspaceTester {
 		failWSRemoveMeta(ws, user, wsi, key, e);
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put(key, value);
-		failWSSetMeta(ws, user, wsi, meta, e);
+		failWSSetMeta(ws, user, wsi, meta, Collections.emptyList(), e);
 	}
 
 	protected void failWSRemoveMeta(
@@ -569,7 +570,7 @@ public class WorkspaceTester {
 			final String key,
 			final Exception e) {
 		try {
-			ws.removeWorkspaceMetadata(user, wsi, key);
+			ws.setWorkspaceMetadata(user, wsi, null, Arrays.asList(key));
 			fail("expected remove ws meta to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -581,7 +582,7 @@ public class WorkspaceTester {
 			final WorkspaceIdentifier wsi,
 			final Map<String, String> meta,
 			final Exception e) {
-		failWSSetMeta(ws, user, wsi, meta, e);
+		failWSSetMeta(ws, user, wsi, meta, Collections.emptyList(), e);
 	}
 	
 	public static void failWSSetMeta(
@@ -589,9 +590,10 @@ public class WorkspaceTester {
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final Map<String, String> meta,
+			final List<String> remove,
 			final Exception e) {
 		try {
-			ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(meta));
+			ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(meta), remove);
 			fail("expected set ws meta to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);

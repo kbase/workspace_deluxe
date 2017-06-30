@@ -305,26 +305,18 @@ public class WorkspaceServer extends JsonServerServlet {
     public void alterWorkspaceMetadata(AlterWorkspaceMetadataParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN alter_workspace_metadata
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final boolean noNew = params.getNew() == null ||
-				params.getNew().isEmpty();
-		final boolean noRemove = params.getRemove() == null ||
-				params.getRemove().isEmpty();
-		if (noNew && noRemove) {
+		final WorkspaceUserMetadata meta = params.getNew() == null || params.getNew().isEmpty() ?
+				null : new WorkspaceUserMetadata(params.getNew());
+		final List<String> remove = params.getRemove() == null || params.getRemove().isEmpty() ?
+				null : params.getRemove();
+		
+		if (meta == null && remove == null) {
 			throw new IllegalArgumentException(
 					"Must provide metadata keys to add or remove");
 		}
-		final WorkspaceIdentifier wsi =
-				processWorkspaceIdentifier(params.getWsi());
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWsi());
 		final WorkspaceUser user = wsmeth.getUser(authPart);
-		if (!noRemove) {
-			for (final String key: params.getRemove()) {
-				ws.removeWorkspaceMetadata(user, wsi, key);
-			}
-		}
-		if (!noNew) {
-			ws.setWorkspaceMetadata(user, wsi,
-					new WorkspaceUserMetadata(params.getNew()));
-		}
+		ws.setWorkspaceMetadata(user, wsi, meta, remove);
         //END alter_workspace_metadata
     }
 
