@@ -425,8 +425,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			setCreatedWorkspacePermissions(user, globalRead,
 					new ResolvedWorkspaceID(count, wsname, false, false));
 		}
-		return new MongoWSInfo(count, wsname, user, moddate, 0L,
-				Permission.OWNER, globalRead, false,
+		return new WorkspaceInformation(
+				count,
+				wsname,
+				user,
+				moddate,
+				0L,
+				Permission.OWNER,
+				globalRead,
+				false,
 				new UncheckedUserMetadata(meta));
 	}
 
@@ -635,7 +642,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Date moddate = updateClonedWorkspaceInformation(
 				user, globalRead, toWS.getID(), newname);
-		return new MongoWSInfo(wsinfo.getId(),
+		return new WorkspaceInformation(
+				wsinfo.getId(),
 				newname,
 				user,
 				moddate,
@@ -1306,7 +1314,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) wsdata.get(Fields.WS_META);
-		return new MongoWSInfo((Long) wsdata.get(Fields.WS_ID),
+		return new WorkspaceInformation(
+				(Long) wsdata.get(Fields.WS_ID),
 				(String) wsdata.get(Fields.WS_NAME),
 				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),
 				(Date) wsdata.get(Fields.WS_MODDATE),
