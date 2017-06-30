@@ -170,30 +170,49 @@ public class Workspace {
 		return ret;
 	}
 	
-	//might be worthwhile to make this work on multiple values,
-	// but keep things simple for now. 
-	public void removeWorkspaceMetadata(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final String key)
+	/** Set and remove metadata for a workspace.
+	 * @param user the user altering the metadata.
+	 * @param wsi the workspace to alter.
+	 * @param meta updated metadata. Keys will overwrite any keys already set on the workspace.
+	 * Send null to make no changes.
+	 * @param keysToRemove metadata keys to remove from the workspace. Send null to make no
+	 * changes.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to alter the workspace.
+	 */
+	public void setWorkspaceMetadata(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final WorkspaceUserMetadata meta,
+			final List<String> keysToRemove)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("alter metadata for").check();
-		db.removeWorkspaceMetaKey(wsid, key);
-	}
-	
-	public void setWorkspaceMetadata(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final WorkspaceUserMetadata meta)
-			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		if (meta == null || meta.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Metadata cannot be null or empty");
+		boolean set = false;
+		try {
+			if (meta != null && !meta.isEmpty()) {
+				db.setWorkspaceMeta(wsid, meta);
+				set = true;
+			}
+			if (keysToRemove != null) {
+				noNulls(keysToRemove, "null metadata keys are not allowed");
+				for (final String key: keysToRemove) {
+					db.removeWorkspaceMetaKey(wsid, key);
+					set = true;
+				}
+			}
+		} finally {
+			if (set) {
+				for (final WorkspaceEventListener l: listeners) {
+					l.setWorkspaceMetadata(wsid.getID());
+				}
+			}
 		}
-		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
-				.getWorkspaceChecker(wsi, Permission.ADMIN)
-				.withOperation("alter metadata for").check();
-		db.setWorkspaceMeta(wsid, meta);
 	}
 	
 	public WorkspaceInformation cloneWorkspace(

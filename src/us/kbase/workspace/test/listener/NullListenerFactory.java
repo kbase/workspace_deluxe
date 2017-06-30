@@ -1,6 +1,10 @@
-package us.kbase.workspace.listener;
+package us.kbase.workspace.test.listener;
 
 import java.util.Map;
+
+import us.kbase.workspace.listener.ListenerInitializationException;
+import us.kbase.workspace.listener.WorkspaceEventListener;
+import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 /** A trivial example of a listener implementation.
  * @author gaprice@lbl.gov
@@ -40,6 +44,11 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		@Override
 		public void cloneWorkspace(long id) {
 			print("cloneWorkspace " + id);
+		}
+
+		@Override
+		public void setWorkspaceMetadata(long id) {
+			print("setWorkspaceMetadata " + id);
 		}
 
 	}

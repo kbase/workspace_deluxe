@@ -17,6 +17,11 @@ public interface WorkspaceEventListener {
 	 * @param id the workspace ID.
 	 */
 	void cloneWorkspace(final long id);
+
+	/** Notification that a workspace's meta data was altered.
+	 * @param id the id of the workspace.
+	 */
+	void setWorkspaceMetadata(long id);
 	
 	//TODO NOW add more events & test
 
