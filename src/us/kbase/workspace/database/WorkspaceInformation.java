@@ -14,7 +14,6 @@ import java.time.Instant;
 public class WorkspaceInformation {
 	
 	//TODO CODE add is deleted.
-	//TODO NOW TEST
 	
 	//enum for this?
 	private static final String UNLOCKED = "unlocked";
@@ -139,27 +138,27 @@ public class WorkspaceInformation {
 
 	@Override
 	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("WorkspaceInformation [id=");
-		builder.append(id);
-		builder.append(", name=");
-		builder.append(name);
-		builder.append(", owner=");
-		builder.append(owner);
-		builder.append(", modDate=");
-		builder.append(modDate);
-		builder.append(", approxObjs=");
-		builder.append(maxObjectID);
-		builder.append(", userPermission=");
-		builder.append(userPermission);
-		builder.append(", globalRead=");
-		builder.append(globalRead);
-		builder.append(", locked=");
-		builder.append(locked);
-		builder.append(", usermeta=");
-		builder.append(usermeta);
-		builder.append("]");
-		return builder.toString();
+		StringBuilder builder2 = new StringBuilder();
+		builder2.append("WorkspaceInformation [id=");
+		builder2.append(id);
+		builder2.append(", name=");
+		builder2.append(name);
+		builder2.append(", owner=");
+		builder2.append(owner);
+		builder2.append(", modDate=");
+		builder2.append(modDate);
+		builder2.append(", maxObjectID=");
+		builder2.append(maxObjectID);
+		builder2.append(", userPermission=");
+		builder2.append(userPermission);
+		builder2.append(", globalRead=");
+		builder2.append(globalRead);
+		builder2.append(", locked=");
+		builder2.append(locked);
+		builder2.append(", usermeta=");
+		builder2.append(usermeta);
+		builder2.append("]");
+		return builder2.toString();
 	}
 
 	@Override
@@ -266,6 +265,10 @@ public class WorkspaceInformation {
 		
 		private Builder() {}
 		
+		/** Build the workspace information instance. This method will fail with a null pointer
+		 * exception if any of the required parameters are not set.
+		 * @return a new workspace information.
+		 */
 		public WorkspaceInformation build() {
 			nonNull(id, "id");
 			// seems like overkill to run WorkspaceIdentifier.checkWorkspaceName() seeing as this
