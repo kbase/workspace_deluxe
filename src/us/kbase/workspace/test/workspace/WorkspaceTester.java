@@ -13,6 +13,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -488,14 +490,23 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
-			long objs, Permission perm, boolean globalread, long id, Date moddate,
-			String lockstate, Map<String, String> meta) throws Exception {
+	protected void checkWSInfo(
+			final WorkspaceIdentifier wsi,
+			final WorkspaceUser owner,
+			final String name,
+			final long objs,
+			final Permission perm,
+			final boolean globalread,
+			final long id,
+			final Instant moddate,
+			final String lockstate,
+			final Map<String, String> meta)
+			throws Exception {
 		checkWSInfo(ws.getWorkspaceInformation(owner, wsi), owner, name, objs,
 				perm, globalread, id, moddate, lockstate, meta);
 	}
 	
-	protected Date checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
+	protected Instant checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, long id,
 			String lockstate, Map<String, String> meta) throws Exception {
 		WorkspaceInformation info = ws.getWorkspaceInformation(owner, wsi);
@@ -504,9 +515,17 @@ public class WorkspaceTester {
 		return info.getModDate();
 	}
 	
-	protected void checkWSInfo(WorkspaceInformation info, WorkspaceUser owner, String name,
-			long objs, Permission perm, boolean globalread, long id, Date moddate,
-			String lockstate, Map<String, String> meta) {
+	protected void checkWSInfo(
+			final WorkspaceInformation info,
+			final WorkspaceUser owner,
+			final String name,
+			final long objs,
+			final Permission perm,
+			final boolean globalread,
+			final long id,
+			final Instant moddate,
+			final String lockstate,
+			final Map<String, String> meta) {
 		checkWSInfo(info, owner, name, objs, perm, globalread, lockstate, meta);
 		assertThat("ws id correct", info.getId(), is(id));
 		assertThat("ws mod date correct", info.getModDate(), is(moddate));
@@ -518,16 +537,16 @@ public class WorkspaceTester {
 		assertDateisRecent(info.getModDate());
 		assertThat("ws owner correct", info.getOwner(), is(owner));
 		assertThat("ws name correct", info.getName(), is(name));
-		assertThat("ws max obj correct", info.getApproximateObjects(), is(objs));
+		assertThat("ws max obj correct", info.getMaximumObjectID(), is(objs));
 		assertThat("ws permissions correct", info.getUserPermission(), is(perm));
 		assertThat("ws global read correct", info.isGloballyReadable(), is(globalread));
 		assertThat("ws lockstate correct", info.getLockState(), is(lockstate));
 		assertThat("ws meta correct", info.getUserMeta().getMetadata(), is(meta));
 	}
 	
-	protected void assertDatesAscending(Date... dates) {
+	protected void assertDatesAscending(final Instant... dates) {
 		for (int i = 1; i < dates.length; i++) {
-			assertTrue("dates are ascending", dates[i-1].before(dates[i]));
+			assertTrue("dates are ascending", dates[i-1].isBefore(dates[i]));
 		}
 	}
 	
@@ -701,17 +720,24 @@ public class WorkspaceTester {
 		assertThat("Object refpath incorrect", info.getReferencePath(), is(refpath));
 	}
 	
-	protected void assertDateisRecent(Date orig) {
-		Date now = new Date();
-		int onemin = 1000 * 60;
-		assertTrue("date is recent", now.getTime() - orig.getTime() < onemin);
+	protected void assertDateisRecent(final Date orig) {
+		assertDateisRecent(orig.toInstant());
+	}
+	
+	protected void assertDateisRecent(final Instant orig) {
+		final Instant now = Instant.now();
+		assertThat("date is older than 1m", orig.until(now, ChronoUnit.SECONDS) < 60, is(true));
+		assertThat("date is in future", now.compareTo(orig) >= 0, is(true));
 	}
 
-	protected Date assertWorkspaceDateUpdated(WorkspaceUser user,
-			WorkspaceIdentifier wsi, Date lastDate, String assertion)
+	protected Instant assertWorkspaceDateUpdated(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Instant lastDate,
+			final String assertion)
 			throws Exception {
-		Date readCurrentDate = ws.getWorkspaceInformation(user, wsi).getModDate();
-		assertTrue(assertion, readCurrentDate.after(lastDate));
+		final Instant readCurrentDate = ws.getWorkspaceInformation(user, wsi).getModDate();
+		assertTrue(assertion, readCurrentDate.isAfter(lastDate));
 		return readCurrentDate;
 	}
 	
@@ -1830,7 +1856,7 @@ public class WorkspaceTester {
 		assertDateisRecent(got.getModDate());
 		assertThat("ws owner correct", got.getOwner(), is(expected.getOwner()));
 		assertThat("ws name correct", got.getName(), is(expected.getName()));
-		assertThat("ws max obj correct", got.getApproximateObjects(), is(expected.getApproximateObjects()));
+		assertThat("ws max obj correct", got.getMaximumObjectID(), is(expected.getMaximumObjectID()));
 		assertThat("ws permissions correct", got.getUserPermission(), is(expected.getUserPermission()));
 		assertThat("ws global read correct", got.isGloballyReadable(), is(expected.isGloballyReadable()));
 		assertThat("ws lockstate correct", got.getLockState(), is(expected.getLockState()));

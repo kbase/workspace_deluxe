@@ -5,6 +5,7 @@ import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoA
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -425,9 +426,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			setCreatedWorkspacePermissions(user, globalRead,
 					new ResolvedWorkspaceID(count, wsname, false, false));
 		}
-		return new MongoWSInfo(count, wsname, user, moddate, 0L,
-				Permission.OWNER, globalRead, false,
-				new UncheckedUserMetadata(meta));
+		return WorkspaceInformation.getBuilder()
+				.withID(count)
+				.withName(wsname)
+				.withOwner(user)
+				.withModificationDate(moddate.toInstant())
+				.withMaximumObjectID(0L)
+				.withUserPermission(Permission.OWNER)
+				.withGlobalRead(globalRead)
+				.withLocked(false)
+				.withUserMetadata(new UncheckedUserMetadata(meta))
+				.build();
 	}
 
 	private void setCreatedWorkspacePermissions(
@@ -633,22 +642,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (maxid > 0) {
 			incrementWorkspaceCounter(toWS, maxid);
 		}
-		final Date moddate = updateClonedWorkspaceInformation(
+		final Instant moddate = updateClonedWorkspaceInformation(
 				user, globalRead, toWS.getID(), newname);
-		return new MongoWSInfo(wsinfo.getId(),
-				newname,
-				user,
-				moddate,
-				maxid,
-				Permission.OWNER,
-				globalRead,
-				wsinfo.isLocked(),
-				new UncheckedUserMetadata(meta));
+		return WorkspaceInformation.getBuilder()
+				.withID(wsinfo.getId())
+				.withName(newname)
+				.withOwner(user)
+				.withModificationDate(moddate)
+				.withMaximumObjectID(maxid)
+				.withUserPermission(Permission.OWNER)
+				.withGlobalRead(globalRead)
+				.withLocked(wsinfo.isLocked())
+				.withUserMetadata(new UncheckedUserMetadata(meta))
+				.build();
 	}
 
 	// this method expects that the id exists. If it does not it'll throw an
 	// IllegalState exception.
-	private Date updateClonedWorkspaceInformation(
+	private Instant updateClonedWorkspaceInformation(
 			final WorkspaceUser user,
 			final boolean globalRead,
 			final long id,
@@ -682,7 +693,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		setCreatedWorkspacePermissions(user, globalRead,
 				new ResolvedWorkspaceID(id, newname, false, false));
-		return moddate;
+		return moddate.toInstant();
 	}
 
 	private void addExcludedToCloneQuery(
@@ -1306,15 +1317,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) wsdata.get(Fields.WS_META);
-		return new MongoWSInfo((Long) wsdata.get(Fields.WS_ID),
-				(String) wsdata.get(Fields.WS_NAME),
-				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),
-				(Date) wsdata.get(Fields.WS_MODDATE),
-				(Long) wsdata.get(Fields.WS_NUMOBJ),
-				perms.getUserPermission(rwsi),
-				perms.isWorldReadable(rwsi),
-				(Boolean) wsdata.get(Fields.WS_LOCKED),
-				new UncheckedUserMetadata(metaMongoArrayToHash(meta)));
+		return WorkspaceInformation.getBuilder()
+				.withID((Long) wsdata.get(Fields.WS_ID))
+				.withName((String) wsdata.get(Fields.WS_NAME))
+				.withOwner(new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)))
+				.withModificationDate(((Date) wsdata.get(Fields.WS_MODDATE)).toInstant())
+				.withMaximumObjectID((Long) wsdata.get(Fields.WS_NUMOBJ))
+				.withUserPermission(perms.getUserPermission(rwsi))
+				.withGlobalRead(perms.isWorldReadable(rwsi))
+				.withLocked((Boolean) wsdata.get(Fields.WS_LOCKED))
+				.withUserMetadata(new UncheckedUserMetadata(metaMongoArrayToHash(meta)))
+				.build();
 	}
 	
 	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> resolveObjectIDs(

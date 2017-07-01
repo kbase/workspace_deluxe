@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static us.kbase.common.test.TestCommon.set;
 
+import java.time.Instant;
 import java.util.Arrays;
 
 import org.junit.Test;
@@ -30,6 +31,15 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsa
 import us.kbase.workspace.listener.WorkspaceEventListener;
 
 public class WorkspaceListenerTest {
+	
+	public static final WorkspaceInformation WS_INFO = WorkspaceInformation.getBuilder()
+			.withID(42)
+			.withName("wsfoo")
+			.withMaximumObjectID(300)
+			.withModificationDate(Instant.now())
+			.withOwner(new WorkspaceUser("userfoo"))
+			.withUserPermission(Permission.OWNER)
+			.build();
 
 	@Test
 	public void createWorkspace1Listener() throws Exception {
@@ -39,19 +49,14 @@ public class WorkspaceListenerTest {
 		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
 		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
 		
-		//TODO NOW change to value class
-		final WorkspaceInformation info = mock(WorkspaceInformation.class);
-		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
 		
 		when(db.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, meta))
-				.thenReturn(info);
-		
-		when(info.getId()).thenReturn(6L);
+				.thenReturn(WS_INFO);
 		
 		ws.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, null);
 		
-		verify(l).createWorkspace(6L);
+		verify(l).createWorkspace(42L);
 	}
 	
 	@Test
@@ -63,20 +68,15 @@ public class WorkspaceListenerTest {
 		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
 		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
 		
-		//TODO NOW change to value class
-		final WorkspaceInformation info = mock(WorkspaceInformation.class);
-		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
 		
 		when(db.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, meta))
-				.thenReturn(info);
-		
-		when(info.getId()).thenReturn(6L);
+				.thenReturn(WS_INFO);
 		
 		ws.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, null);
 		
-		verify(l1).createWorkspace(6L);
-		verify(l2).createWorkspace(6L);
+		verify(l1).createWorkspace(42L);
+		verify(l2).createWorkspace(42L);
 	}
 	
 	@Test
@@ -91,22 +91,17 @@ public class WorkspaceListenerTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		//TODO NOW change to value class
-		final WorkspaceInformation info = mock(WorkspaceInformation.class);
-		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
 		
 		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.READ, Permission.NONE).build());
-		when(db.cloneWorkspace(user, rwsi, "whee", false, null, meta, null)).thenReturn(info);
-		
-		when(info.getId()).thenReturn(7L);
+		when(db.cloneWorkspace(user, rwsi, "whee", false, null, meta, null)).thenReturn(WS_INFO);
 		
 		ws.cloneWorkspace(user, wsi, "whee", false, null, null, null);
 		
-		verify(l).cloneWorkspace(7L);
+		verify(l).cloneWorkspace(42L);
 	}
 	
 	@Test
@@ -122,23 +117,18 @@ public class WorkspaceListenerTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		//TODO NOW change to value class
-		final WorkspaceInformation info = mock(WorkspaceInformation.class);
-		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
 		
 		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.READ, Permission.NONE).build());
-		when(db.cloneWorkspace(user, rwsi, "whee", false, null, meta, null)).thenReturn(info);
-		
-		when(info.getId()).thenReturn(7L);
+		when(db.cloneWorkspace(user, rwsi, "whee", false, null, meta, null)).thenReturn(WS_INFO);
 		
 		ws.cloneWorkspace(user, wsi, "whee", false, null, null, null);
 		
-		verify(l1).cloneWorkspace(7L);
-		verify(l2).cloneWorkspace(7L);
+		verify(l1).cloneWorkspace(42L);
+		verify(l2).cloneWorkspace(42L);
 	}
 	
 	@Test

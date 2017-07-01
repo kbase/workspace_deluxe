@@ -875,12 +875,16 @@ public class Workspace {
 				objcount, idhandler.getMaximumIdCount()), e);
 	}
 
-	//should probably make an options builder
+	//should definitely make an options builder
 	public List<WorkspaceInformation> listWorkspaces(
-			final WorkspaceUser user, Permission minPerm,
-			final List<WorkspaceUser> users, final WorkspaceUserMetadata meta,
-			final Date after, final Date before,
-			final boolean excludeGlobal, final boolean showDeleted,
+			final WorkspaceUser user,
+			Permission minPerm,
+			final List<WorkspaceUser> users,
+			final WorkspaceUserMetadata meta,
+			final Date after,
+			final Date before,
+			final boolean excludeGlobal,
+			final boolean showDeleted,
 			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {

@@ -8,6 +8,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import java.io.IOException;
 import java.net.URL;
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
@@ -177,11 +178,19 @@ public class ArgUtils {
 		}
 	}
 	
-	public static String formatDate(final Date date) {
+	private static String formatDate(final Date date) {
 		if (date == null) {
 			return null;
 		}
 		return DATE_FORMATTER.print(new DateTime(date));
+	}
+	
+	private static String formatDate(final Instant date) {
+		if (date == null) {
+			return null;
+		}
+		return formatDate(Date.from(date));
+		
 	}
 	
 	private static List<Object> translateMethodParametersToObject(
@@ -227,7 +236,7 @@ public class ArgUtils {
 				.withE2(info.getName())
 				.withE3(info.getOwner().getUser())
 				.withE4(formatDate(info.getModDate()))
-				.withE5(info.getApproximateObjects())
+				.withE5(info.getMaximumObjectID())
 				.withE6(translatePermission(info.getUserPermission())) 
 				.withE7(translatePermission(info.isGloballyReadable()))
 				.withE8(info.getLockState())
@@ -252,7 +261,7 @@ public class ArgUtils {
 				.withE1(info.getName())
 				.withE2(info.getOwner().getUser())
 				.withE3(formatDate(info.getModDate()))
-				.withE4(info.getApproximateObjects())
+				.withE4(info.getMaximumObjectID())
 				.withE5(translatePermission(info.getUserPermission())) 
 				.withE6(translatePermission(info.isGloballyReadable()));
 	}
