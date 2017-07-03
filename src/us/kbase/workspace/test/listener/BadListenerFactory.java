@@ -30,6 +30,9 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 
 		@Override
 		public void setWorkspaceMetadata(long id) {}
+
+		@Override
+		public void lockWorkspace(long id) {}
 		
 	}
 

@@ -259,6 +259,9 @@ public class Workspace {
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("lock").check();
 		db.lockWorkspace(wsid);
+		for (final WorkspaceEventListener l: listeners) {
+			l.lockWorkspace(wsid.getID());
+		}
 		return db.getWorkspaceInformation(user, wsid);
 	}
 

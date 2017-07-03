@@ -23,6 +23,11 @@ public interface WorkspaceEventListener {
 	 */
 	void setWorkspaceMetadata(long id);
 	
+	/** Notification that a workspace has been locked.
+	 * @param id the id of the workspace.
+	 */
+	void lockWorkspace(long id);
+	
 	//TODO NOW add more events & test
 
 }

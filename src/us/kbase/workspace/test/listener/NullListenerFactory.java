@@ -51,6 +51,11 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 			print("setWorkspaceMetadata " + id);
 		}
 
+		@Override
+		public void lockWorkspace(long id) {
+			print("lockWorkspace " + id);
+		}
+
 	}
 
 }
