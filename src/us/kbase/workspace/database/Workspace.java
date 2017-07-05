@@ -354,18 +354,23 @@ public class Workspace {
 	}
 			
 
-	public void setPermissions(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final List<WorkspaceUser> users,
+	public long setPermissions(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceUser> users,
 			final Permission permission)
 			throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
-		setPermissions(user, wsi, users, permission, false);
+		return setPermissions(user, wsi, users, permission, false);
 	}
 	
-	public void setPermissions(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final List<WorkspaceUser> users,
-			final Permission permission, final boolean asAdmin)
+	public long setPermissions(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceUser> users,
+			final Permission permission,
+			final boolean asAdmin)
 			throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
@@ -397,6 +402,10 @@ public class Workspace {
 			}
 		}
 		db.setPermissions(wsid, users, permission);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setPermissions(wsid.getID(), permission, users);
+		}
+		return wsid.getID();
 	}
 	
 	/** Set the global permission (e.g. readable or not) for a workspace.

@@ -1234,7 +1234,9 @@ public class WorkspaceTest extends WorkspaceTester {
 				is("globaldesc"));
 		WorkspaceInformation info = ws.getWorkspaceInformation(null, wsiGL);
 		checkWSInfo(info, AUSER, "perms_global", 0, Permission.NONE, true, "unlocked", MT_MAP);
-		ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER), Permission.READ);
+		final long id = ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER),
+				Permission.READ);
+		assertThat("incorrect ws id", id, is(1L));
 		expect.clear();
 		expect.put(AUSER, Permission.OWNER);
 		expect.put(BUSER, Permission.READ);
@@ -1254,18 +1256,23 @@ public class WorkspaceTest extends WorkspaceTester {
 						"User b may only reduce their permission level on workspace perms_noglobal"));
 		
 		//asAdmin testing
-		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.ADMIN, true);
+		final long id2 = ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.ADMIN,
+				true);
+		assertThat("incorrect ws id", id2, is(1L));
 		expect.put(AUSER, Permission.OWNER);
 		expect.put(BUSER, Permission.ADMIN);
 		expect.put(CUSER, Permission.READ);
 		assertThat("asAdmin boolean works", ws.getPermissions(
 				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
-		ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.READ);
+		final long id3 = ws.setPermissions(BUSER, wsiNG, Arrays.asList(BUSER), Permission.READ);
+		assertThat("incorrect ws id", id3, is(1L));
 		expect.clear();
 		expect.put(BUSER, Permission.READ);
 		assertThat("reduce own permissions", ws.getPermissions(
 				BUSER, Arrays.asList(wsiNG)).get(0), is(expect));
-		ws.setPermissions(null, wsiNG, Arrays.asList(BUSER), Permission.ADMIN, true);
+		final long id4 = ws.setPermissions(null, wsiNG, Arrays.asList(BUSER), Permission.ADMIN,
+				true);
+		assertThat("incorrect ws id", id4, is(1L));
 		expect.put(AUSER, Permission.OWNER);
 		expect.put(BUSER, Permission.ADMIN);
 		expect.put(CUSER, Permission.READ);
@@ -5460,7 +5467,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		failGetWorkspaceDesc(user2, wsi, new WorkspaceAuthorizationException(
 				"User setGlobalUser2 may not read workspace global"));
-		ws.setGlobalPermission(user, wsi, Permission.READ);
+		final long id = ws.setGlobalPermission(user, wsi, Permission.READ);
+		assertThat("incorrect returned id", id, is(1L));
 		assertThat("read set correctly", ws.getPermissions(user,
 				Arrays.asList(wsi)).get(0).get(new AllUsers('*')),
 				is(Permission.READ));
@@ -5478,7 +5486,9 @@ public class WorkspaceTest extends WorkspaceTester {
 				"Workspace global is deleted", wsi));
 		ws.setWorkspaceDeleted(user, wsi, false);
 		
-		ws.setGlobalPermission(user, wsi, Permission.NONE);
+		final long id2 = ws.setGlobalPermission(user, wsi, Permission.NONE);
+		assertThat("incorrect returned id", id2, is(1L));
+		
 		ws.lockWorkspace(user, wsi);
 		failSetGlobalPerm(user, wsi, Permission.NONE, new WorkspaceAuthorizationException(
 				"The workspace with id " + wsid + ", name global, is locked and may not be modified"));

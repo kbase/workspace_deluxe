@@ -202,6 +202,7 @@ public class WorkspaceServerMethods {
 	/** Set permissions on a workspace as an admin.
 	 * @param params the parameters for the set permissions call.
 	 * @param token a token to use for user lookup in the authentication service.
+	 * @return the ID of the workspace.
 	 * @throws IOException if an error occurs when contacting the authentication service.
 	 * @throws AuthException if the authentication service could not be contacted.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the data stores.
@@ -209,19 +210,19 @@ public class WorkspaceServerMethods {
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
 	 * the data stores.
 	 */
-	public void setPermissionsAsAdmin(
+	public long setPermissionsAsAdmin(
 			final SetPermissionsParams params,
 			final AuthToken token)
 			throws IOException, AuthException, CorruptWorkspaceDBException,
 				NoSuchWorkspaceException, WorkspaceCommunicationException {
 		try {
-			setPermissions(params, null, true, token);
+			return setPermissions(params, null, true, token);
 		} catch (WorkspaceAuthorizationException e) {
 			throw new RuntimeException("This shouldn't happen", e);
 		}
 	}
 		
-	private void setPermissions(
+	private long setPermissions(
 			final SetPermissionsParams params,
 			final WorkspaceUser user,
 			final boolean asAdmin,
@@ -237,7 +238,7 @@ public class WorkspaceServerMethods {
 			throw new IllegalArgumentException("Must provide at least one user");
 		}
 		final List<WorkspaceUser> users = validateUsers(params.getUsers(), token);
-		ws.setPermissions(user, wsi, users, p, asAdmin);
+		return ws.setPermissions(user, wsi, users, p, asAdmin);
 	}
 	
 	public List<WorkspaceUser> validateUsers(final List<String> users, final AuthToken token)

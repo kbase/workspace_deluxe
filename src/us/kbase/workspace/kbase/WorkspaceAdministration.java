@@ -47,6 +47,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 public class WorkspaceAdministration {
 	
 	//TODO JAVADOC
+	//TODO TEST
 	
 	private static final String DENY_MOD_REQUEST = "denyModRequest";
 	private static final String APPROVE_MOD_REQUEST = "approveModRequest";
@@ -178,11 +179,9 @@ public class WorkspaceAdministration {
 		}
 		if (SET_PERMISSIONS.equals(fn)) {
 			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
-			//TODO FEATURE maybe set perms should return wsinfo so can provide ID vs. name
-			getLogger().info(SET_PERMISSIONS + " " + params.getId() + " " +
-					params.getWorkspace() + " " + params.getNewPermission() +
-					" " + StringUtils.join(params.getUsers(), " "));
-			wsmeth.setPermissionsAsAdmin(params, token);
+			final long id = wsmeth.setPermissionsAsAdmin(params, token);
+			getLogger().info(SET_PERMISSIONS + " " + id + " " + params.getNewPermission() + " " +
+					StringUtils.join(params.getUsers(), " "));
 			return null;
 		}
 		if (GET_PERMISSIONS.equals(fn)) {

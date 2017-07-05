@@ -1,8 +1,10 @@
 package us.kbase.workspace.test.listener;
 
+import java.util.List;
 import java.util.Map;
 
 import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
@@ -65,6 +67,11 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		@Override
 		public void setGlobalPermission(long id, Permission permission) {
 			print("setGlobalPermission " + id + " " + permission);
+		}
+
+		@Override
+		public void setPermissions(long id, Permission permission, List<WorkspaceUser> users) {
+			print("setPermissions " + id + " " + permission + " " + users);
 		}
 
 	}

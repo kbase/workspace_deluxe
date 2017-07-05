@@ -1,6 +1,9 @@
 package us.kbase.workspace.listener;
 
+import java.util.List;
+
 import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.WorkspaceUser;
 
 /** A listener for workspace events.
  * @author gaprice@lbl.gov
@@ -41,6 +44,13 @@ public interface WorkspaceEventListener {
 	 * @param permission the new global permission.
 	 */
 	void setGlobalPermission(long id, Permission permission);
+
+	/** Notification that the permissions for a workspace have been altered.
+	 * @param id the id of the workspace.
+	 * @param permission the new permission.
+	 * @param users the users that have been assigned the new permission.
+	 */
+	void setPermissions(long id, Permission permission, List<WorkspaceUser> users);
 	
 	//TODO NOW add more events & test
 

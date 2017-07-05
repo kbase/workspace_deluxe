@@ -731,7 +731,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("setPermissions null myws w " + USER1 + " " +
+				new AdminExp("setPermissions 1 w " + USER1 + " " +
 						USER2, ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
@@ -742,7 +742,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("setPermissions 1 null a " + USER2, ADMIN),
+				new AdminExp("setPermissions 1 a " + USER2, ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		

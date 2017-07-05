@@ -439,4 +439,54 @@ public class WorkspaceListenerTest {
 		verify(l2).setGlobalPermission(24L, Permission.READ);
 	}
 	
+	@Test
+	public void setPermissions1Listener() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(db.getPermissions(user, rwsi)).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
+		
+		ws.setPermissions(user, wsi, Arrays.asList(new WorkspaceUser("foobar")), Permission.WRITE);
+		
+		verify(l).setPermissions(24, Permission.WRITE, Arrays.asList(new WorkspaceUser("foobar")));
+	}
+	
+	@Test
+	public void setPermissions2Listeners() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
+		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		
+		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(db.getPermissions(user, rwsi)).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
+		
+		ws.setPermissions(user, wsi, Arrays.asList(new WorkspaceUser("foobar")), Permission.WRITE);
+		
+		verify(l1).setPermissions(24, Permission.WRITE,
+				Arrays.asList(new WorkspaceUser("foobar")));
+		verify(l2).setPermissions(24, Permission.WRITE,
+				Arrays.asList(new WorkspaceUser("foobar")));
+	}
+	
 }
