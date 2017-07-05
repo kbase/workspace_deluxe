@@ -51,6 +51,11 @@ public interface WorkspaceEventListener {
 	 * @param users the users that have been assigned the new permission.
 	 */
 	void setPermissions(long id, Permission permission, List<WorkspaceUser> users);
+
+	/** Notification that the workspace description has been set or altered.
+	 * @param id the id of the workspace.
+	 */
+	void setWorkspaceDescription(long id);
 	
 	//TODO NOW add more events & test
 

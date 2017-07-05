@@ -74,6 +74,9 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 			print("setPermissions " + id + " " + permission + " " + users);
 		}
 
+		@Override
+		public void setWorkspaceDescription(long id) {}
+
 	}
 
 }

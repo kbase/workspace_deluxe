@@ -272,20 +272,26 @@ public class Workspace {
 		return description;
 	}
 
-	public void setWorkspaceDescription(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final String description)
+	public void setWorkspaceDescription(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String description)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("set description on").check();
 		db.setWorkspaceDescription(wsid, pruneWorkspaceDescription(description));
+		for (final WorkspaceEventListener l: listeners) {
+			l.setWorkspaceDescription(wsid.getID());
+		}
 	}
 	
-	public String getWorkspaceDescription(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException,
-			WorkspaceAuthorizationException {
+	public String getWorkspaceDescription(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.READ).check();
 		return db.getWorkspaceDescription(wsid);
