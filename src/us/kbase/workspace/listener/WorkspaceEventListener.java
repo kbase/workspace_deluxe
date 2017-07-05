@@ -27,6 +27,12 @@ public interface WorkspaceEventListener {
 	 * @param id the id of the workspace.
 	 */
 	void lockWorkspace(long id);
+
+	/** Notification that a workspace has been renamed.
+	 * @param id the id of the workspace.
+	 * @param newname the new name of the workspace.
+	 */
+	void renameWorkspace(long id, final String newname);
 	
 	//TODO NOW add more events & test
 

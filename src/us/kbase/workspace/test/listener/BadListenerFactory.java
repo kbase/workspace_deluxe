@@ -33,6 +33,9 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 
 		@Override
 		public void lockWorkspace(long id) {}
+
+		@Override
+		public void renameWorkspace(long id, String newName) {}
 		
 	}
 

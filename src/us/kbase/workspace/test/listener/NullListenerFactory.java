@@ -56,6 +56,9 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 			print("lockWorkspace " + id);
 		}
 
+		@Override
+		public void renameWorkspace(long id, String newName) {}
+
 	}
 
 }

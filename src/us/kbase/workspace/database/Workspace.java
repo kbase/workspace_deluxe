@@ -1363,6 +1363,9 @@ public class Workspace {
 				.getWorkspaceChecker(wsi, Permission.OWNER).withOperation("rename").check();
 		new WorkspaceIdentifier(newname, user); //check for errors
 		db.renameWorkspace(wsid, newname);
+		for (final WorkspaceEventListener l: listeners) {
+			l.renameWorkspace(wsid.getID(), newname);
+		}
 		return db.getWorkspaceInformation(user, wsid);
 	}
 	
