@@ -403,6 +403,7 @@ public class Workspace {
 	 * @param user the user setting the permission.
 	 * @param wsi the workspace.
 	 * @param permission the new permission.
+	 * @return the ID of the modified workspace.
 	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
 	 * storage system.
@@ -410,7 +411,7 @@ public class Workspace {
 	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
 	 * workspace.
 	 */
-	public void setGlobalPermission(
+	public long setGlobalPermission(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final Permission permission)
@@ -435,6 +436,10 @@ public class Workspace {
 					", is locked and may not be modified");
 		}
 		db.setGlobalPermission(rwsi, permission);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setGlobalPermission(rwsi.getID(), permission);
+		}
+		return rwsi.getID();
 	}
 
 	//TODO USERS make an anonymous user class instead of using null.

@@ -2,6 +2,7 @@ package us.kbase.workspace.test.listener;
 
 import java.util.Map;
 
+import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
@@ -57,7 +58,14 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void renameWorkspace(long id, String newName) {}
+		public void renameWorkspace(long id, String newName) {
+			print("renameWorkspace " + id + " " + newName);
+		}
+
+		@Override
+		public void setGlobalPermission(long id, Permission permission) {
+			print("setGlobalPermission " + id + " " + permission);
+		}
 
 	}
 

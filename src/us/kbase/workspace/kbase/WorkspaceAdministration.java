@@ -216,11 +216,9 @@ public class WorkspaceAdministration {
 			final SetGlobalPermissionsParams params = getParams(cmd,
 					SetGlobalPermissionsParams.class);
 			final WorkspaceUser user = getUser(cmd, token);
-			//TODO FEATURE would be better if could provide ID vs. name
-			getLogger().info(SET_GLOBAL_PERMISSION + " " + params.getId() +
-					" " + params.getWorkspace() + " " +
+			final long id = wsmeth.setGlobalPermission(params, user);
+			getLogger().info(SET_GLOBAL_PERMISSION + " " + id + " " +
 					params.getNewPermission() + " " + user.getUser());
-			wsmeth.setGlobalPermission(params, user);
 			return null;
 		}
 		if (SAVE_OBJECTS.equals(fn)) {

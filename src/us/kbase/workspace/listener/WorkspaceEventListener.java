@@ -1,5 +1,7 @@
 package us.kbase.workspace.listener;
 
+import us.kbase.workspace.database.Permission;
+
 /** A listener for workspace events.
  * @author gaprice@lbl.gov
  * 
@@ -33,6 +35,12 @@ public interface WorkspaceEventListener {
 	 * @param newname the new name of the workspace.
 	 */
 	void renameWorkspace(long id, final String newname);
+
+	/** Notification that the global permission for a workspace has been altered.
+	 * @param id the id of the workspace.
+	 * @param permission the new global permission.
+	 */
+	void setGlobalPermission(long id, Permission permission);
 	
 	//TODO NOW add more events & test
 

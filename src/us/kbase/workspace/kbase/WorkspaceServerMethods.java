@@ -261,7 +261,7 @@ public class WorkspaceServerMethods {
 		return wsusers;
 	}
 
-	public void setGlobalPermission(
+	public long setGlobalPermission(
 			final SetGlobalPermissionsParams params,
 			final WorkspaceUser user)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
@@ -270,7 +270,7 @@ public class WorkspaceServerMethods {
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
 		final Permission p = translatePermission(params.getNewPermission());
-		ws.setGlobalPermission(user, wsi, p);
+		return ws.setGlobalPermission(user, wsi, p);
 	}
 	
 	//TODO EXCEPTIONS look into making CorruptWorksapceDBException a runtime exception. No reason for a caught exception. Check for places where it's caught to ensure change is ok.

@@ -2,6 +2,7 @@ package us.kbase.workspace.test.listener;
 
 import java.util.Map;
 
+import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
@@ -36,6 +37,9 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 
 		@Override
 		public void renameWorkspace(long id, String newName) {}
+
+		@Override
+		public void setGlobalPermission(long id, Permission permission) {}
 		
 	}
 

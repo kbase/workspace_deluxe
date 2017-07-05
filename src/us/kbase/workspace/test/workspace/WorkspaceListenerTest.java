@@ -395,4 +395,48 @@ public class WorkspaceListenerTest {
 		verify(l2).renameWorkspace(24L, "foobar");
 	}
 	
+	@Test
+	public void setGlobalPermission1Listener() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(db.getPermission(user, rwsi)).thenReturn(Permission.ADMIN);
+		
+		ws.setGlobalPermission(user, wsi, Permission.READ);
+		
+		verify(l).setGlobalPermission(24L, Permission.READ);
+	}
+	
+	@Test
+	public void setGlobalPermission2Listeners() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
+		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		
+		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(db.getPermission(user, rwsi)).thenReturn(Permission.ADMIN);
+		
+		ws.setGlobalPermission(user, wsi, Permission.READ);
+		
+		verify(l1).setGlobalPermission(24L, Permission.READ);
+		verify(l2).setGlobalPermission(24L, Permission.READ);
+	}
+	
 }
