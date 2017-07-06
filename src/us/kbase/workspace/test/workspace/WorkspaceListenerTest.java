@@ -9,6 +9,8 @@ import static us.kbase.common.test.TestCommon.set;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 
 import org.junit.Test;
 
@@ -17,6 +19,9 @@ import com.google.common.collect.ImmutableMap;
 
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
@@ -29,6 +34,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
+import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 
 public class WorkspaceListenerTest {
@@ -631,6 +637,64 @@ public class WorkspaceListenerTest {
 
 		verify(l1).setWorkspaceDeleted(24, false);
 		verify(l2).setWorkspaceDeleted(24, false);
+	}
+	
+	@Test
+	public void renameObject1Listener() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ObjectIdentifier oi = new ObjectIdentifier(wsi, "whee");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
+		when(db.renameObject(roi, "bollocks")).thenReturn(new ObjectInformation(
+				42L, "whee", "a type", new Date(), 45, new WorkspaceUser("bar"), rwsi, "chksum",
+				20, new UncheckedUserMetadata(Collections.emptyMap())));
+		
+		ws.renameObject(user, oi, "bollocks");
+
+		verify(l).renameObject(24, 42, "bollocks");
+	}
+	
+	@Test
+	public void renameObject2Listeners() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
+		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ObjectIdentifier oi = new ObjectIdentifier(wsi, "whee");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		
+		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
+		when(db.renameObject(roi, "bollocks")).thenReturn(new ObjectInformation(
+				42L, "whee", "a type", new Date(), 45, new WorkspaceUser("bar"), rwsi, "chksum",
+				20, new UncheckedUserMetadata(Collections.emptyMap())));
+		
+		ws.renameObject(user, oi, "bollocks");
+
+		verify(l1).renameObject(24, 42, "bollocks");
+		verify(l2).renameObject(24, 42, "bollocks");
 	}
 }
 
