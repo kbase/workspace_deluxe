@@ -12,6 +12,8 @@ import java.util.Set;
 
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.ResolvedObjectID;
+import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;

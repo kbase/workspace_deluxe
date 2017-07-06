@@ -1,8 +1,6 @@
-package us.kbase.workspace.database.mongo;
+package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
-
-import us.kbase.workspace.database.ResolvedWorkspaceID;
 
 /**
  * name is resolved *at the time the database was accessed and is not further

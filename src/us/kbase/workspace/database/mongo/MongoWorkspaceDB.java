@@ -52,6 +52,8 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.PermissionSet.Builder;
 import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.ResolvedObjectID;
+import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;

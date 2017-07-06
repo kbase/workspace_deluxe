@@ -16,6 +16,7 @@ import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
