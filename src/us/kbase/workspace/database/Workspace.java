@@ -1402,7 +1402,11 @@ public class Workspace {
 		final ObjectIDResolvedWS obj = new PermissionsCheckerFactory(db, user)
 				.getObjectChecker(oi, Permission.WRITE)
 				.withOperation("rename objects in").check();
-		return db.renameObject(obj, newname);
+		final ObjectInformation objinfo = db.renameObject(obj, newname);
+		for (final WorkspaceEventListener l: listeners) {
+			l.renameObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), newname);
+		}
+		return objinfo;
 	}
 	
 	public ObjectInformation copyObject(
@@ -1423,7 +1427,11 @@ public class Workspace {
 				CorruptWorkspaceDBException, NoSuchObjectException {
 		final ObjectIDResolvedWS target = new PermissionsCheckerFactory(db, user)
 				.getObjectChecker(oi, Permission.WRITE).check();
-		return db.revertObject(user, target);
+		final ObjectInformation objinfo = db.revertObject(user, target);
+		for (final WorkspaceEventListener l: listeners) {
+			l.revertObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), objinfo.getVersion());
+		}
+		return objinfo;
 	}
 	
 	public void setObjectsHidden(

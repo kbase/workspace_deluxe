@@ -71,6 +71,20 @@ public interface WorkspaceEventListener {
 	 * @param delete true for a delete event, false for an undelete event.
 	 */
 	void setWorkspaceDeleted(long id, boolean delete);
+
+	/** Notification that an object has been renamed.
+	 * @param workspaceId the id of the workspace containing the object.
+	 * @param objectId the id of the object.
+	 * @param newName the object's new name.
+	 */
+	void renameObject(long workspaceId, long objectId, String newName);
+
+	/** Notification that an object has been reverted.
+	 * @param workspaceId the id of the workspace containing the object.
+	 * @param objectId the id of the object.
+	 * @param version the version of the reverted object.
+	 */
+	void revertObject(long workspaceId, long objectId, int version);
 	
 	//TODO NOW add more events & test
 
