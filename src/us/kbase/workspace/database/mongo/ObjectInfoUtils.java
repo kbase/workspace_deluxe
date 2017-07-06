@@ -266,7 +266,7 @@ public class ObjectInfoUtils {
 	}
 	
 	static ObjectInformation generateObjectInfo(
-			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
+			final ResolvedObjectID roi, final Map<String, Object> ver) {
 		return generateObjectInfo(roi.getWorkspaceIdentifier(), roi.getId(),
 				roi.getName(), ver);
 	}
