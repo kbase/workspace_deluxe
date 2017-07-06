@@ -891,7 +891,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("deleteWorkspace null myws", ADMIN),
+				new AdminExp("deleteWorkspace 1", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
@@ -900,7 +900,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("undeleteWorkspace 1 null", ADMIN),
+				new AdminExp("undeleteWorkspace 1", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 	}

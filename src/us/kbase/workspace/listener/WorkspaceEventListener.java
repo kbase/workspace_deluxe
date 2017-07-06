@@ -65,6 +65,12 @@ public interface WorkspaceEventListener {
 	 * @param newName the new name for the workspace, if any.
 	 */
 	void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName);
+
+	/** Notification that a workspace has been deleted or undeleted.
+	 * @param id the id of the workspace.
+	 * @param delete true for a delete event, false for an undelete event.
+	 */
+	void setWorkspaceDeleted(long id, boolean delete);
 	
 	//TODO NOW add more events & test
 

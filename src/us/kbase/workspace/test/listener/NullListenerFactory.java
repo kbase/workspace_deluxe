@@ -86,6 +86,11 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 			print("setWorkspaceOwner " + id + " " + newUser.getUser() + " " + newName);
 		}
 
+		@Override
+		public void setWorkspaceDeleted(long id, boolean delete) {
+			print("setWorkspaceDeleted " + id + " " + delete);
+		}
+
 	}
 
 }

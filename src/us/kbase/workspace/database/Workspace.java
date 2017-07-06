@@ -1458,6 +1458,7 @@ public class Workspace {
 	 * @param user the user requesting deletion or undeletion.
 	 * @param wsi the workspace.
 	 * @param delete true to delete, false to undelete.
+	 * @return the ID of the workspace.
 	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is already
 	 * deleted when trying to delete.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
@@ -1466,13 +1467,13 @@ public class Workspace {
 	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
 	 * workspace.
 	 */
-	public void setWorkspaceDeleted(
+	public long setWorkspaceDeleted(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final boolean delete)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		setWorkspaceDeleted(user, wsi, delete, false);
+		return setWorkspaceDeleted(user, wsi, delete, false);
 	}
 
 	/** Set the deletion state of a workspace.
@@ -1480,6 +1481,7 @@ public class Workspace {
 	 * @param wsi the workspace.
 	 * @param delete true to delete, false to undelete.
 	 * @param asAdmin run the command as an admin, ignoring workspace permissions.
+	 * @return the ID of the the workspace.
 	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is already
 	 * deleted when trying to delete.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
@@ -1488,7 +1490,7 @@ public class Workspace {
 	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
 	 * workspace.
 	 */
-	public void setWorkspaceDeleted(
+	public long setWorkspaceDeleted(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final boolean delete,
@@ -1508,6 +1510,10 @@ public class Workspace {
 		// once a workpace is locked, it's locked. Period.
 		PermissionsCheckerFactory.checkLocked(Permission.ADMIN, wsid);
 		db.setWorkspaceDeleted(wsid, delete);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setWorkspaceDeleted(wsid.getID(), delete);
+		}
+		return wsid.getID();
 	}
 
 	/* admin method only, should not be exposed in public API

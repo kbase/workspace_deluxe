@@ -256,17 +256,15 @@ public class WorkspaceAdministration {
 		if (DELETE_WS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
-			//TODO FEATURE would be better if could provide ID vs. name
-			getLogger().info(DELETE_WS + " " + params.getId() + " " + params.getWorkspace());
-			ws.setWorkspaceDeleted(null, wksp, true, true);
+			final long id = ws.setWorkspaceDeleted(null, wksp, true, true);
+			getLogger().info(DELETE_WS + " " + id);
 			return null;
 		}
 		if (UNDELETE_WS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
-			//TODO FEATURE would be better if could provide ID vs. name
-			getLogger().info(UNDELETE_WS + " " + params.getId() + " " + params.getWorkspace());
-			ws.setWorkspaceDeleted(null, wksp, false, true);
+			final long id = ws.setWorkspaceDeleted(null, wksp, false, true);
+			getLogger().info(UNDELETE_WS + " " + id);
 			return null;
 		}
 		if (LIST_WORKSPACE_OWNERS.equals(fn)) {

@@ -53,6 +53,9 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 
 		@Override
 		public void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName) {}
+
+		@Override
+		public void setWorkspaceDeleted(long id, boolean delete) {}
 		
 	}
 

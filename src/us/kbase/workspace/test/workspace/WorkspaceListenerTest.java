@@ -590,5 +590,47 @@ public class WorkspaceListenerTest {
 		verify(l1).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"));
 		verify(l2).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"));
 	}
+	
+	@Test
+	public void setWorkspaceDeleted1Listener() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspace(wsi, false)).thenReturn(rwsi);
+
+		ws.setWorkspaceDeleted(user, wsi, true, true);
+
+		verify(l).setWorkspaceDeleted(24, true);
+	}
+	
+	@Test
+	public void setWorkspaceDeleted2Listeners() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
+		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		
+		when(db.resolveWorkspace(wsi, true)).thenReturn(rwsi);
+
+		ws.setWorkspaceDeleted(user, wsi, false, true);
+
+		verify(l1).setWorkspaceDeleted(24, false);
+		verify(l2).setWorkspaceDeleted(24, false);
+	}
 }
 

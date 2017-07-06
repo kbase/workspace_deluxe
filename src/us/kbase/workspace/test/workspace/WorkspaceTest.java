@@ -4087,7 +4087,8 @@ public class WorkspaceTest extends WorkspaceTester {
 						new WorkspaceIdentifier("nows")));
 		
 		WorkspaceInformation read1 = ws.getWorkspaceInformation(user, read);
-		ws.setWorkspaceDeleted(user, read, true);
+		final long id = ws.setWorkspaceDeleted(user, read, true);
+		assertThat("incorrect ws id", id, is(1L));
 		WorkspaceInformation read2 = ws.listWorkspaces(user, null, null, null,
 				null, null, true, true, false).get(0);
 		try {
@@ -4142,7 +4143,8 @@ public class WorkspaceTest extends WorkspaceTester {
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
 					is(o1));
 		}
-		ws.setWorkspaceDeleted(user, read, false);
+		final long id2 = ws.setWorkspaceDeleted(user, read, false);
+		assertThat("incorrect ws id", id2, is(1L));
 		WorkspaceInformation read3 = ws.getWorkspaceInformation(user, read);
 		checkNonDeletedObjs(user, idToData);
 		assertThat("can get ws description", ws.getWorkspaceDescription(user, read),
