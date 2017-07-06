@@ -2,6 +2,8 @@ package us.kbase.workspace.listener;
 
 import java.util.List;
 
+import com.google.common.base.Optional;
+
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceUser;
 
@@ -56,6 +58,13 @@ public interface WorkspaceEventListener {
 	 * @param id the id of the workspace.
 	 */
 	void setWorkspaceDescription(long id);
+
+	/** Notification that the owner of a workspace has been changed.
+	 * @param id the id of the workspace.
+	 * @param newUser the new owner of the workspace.
+	 * @param newName the new name for the workspace, if any.
+	 */
+	void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName);
 	
 	//TODO NOW add more events & test
 

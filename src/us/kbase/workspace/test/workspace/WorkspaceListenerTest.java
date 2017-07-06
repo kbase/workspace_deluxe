@@ -12,6 +12,7 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.typedobj.core.TypedObjectValidator;
@@ -537,6 +538,57 @@ public class WorkspaceListenerTest {
 		verify(l2).setWorkspaceDescription(24L);
 	}
 	
+	@Test
+	public void setWorkspaceOwner1Listener() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceUser newUser = new WorkspaceUser("bar");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "foobar", false, false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
+		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
+		
+		ws.setWorkspaceOwner(user, wsi, newUser, Optional.absent(), false);
+
+		verify(l).setWorkspaceOwner(24L, newUser, Optional.absent());
+	}
 	
+	@Test
+	public void setWorkspaceOwner2Listeners() throws Exception {
+		// also tests that a changed name is propagated
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
+		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceUser newUser = new WorkspaceUser("bar");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "foo:foobar", false, false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		
+		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
+		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
+		
+		ws.setWorkspaceOwner(user, wsi, newUser, Optional.absent(), false);
+
+		verify(l1).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"));
+		verify(l2).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"));
+	}
 }
 

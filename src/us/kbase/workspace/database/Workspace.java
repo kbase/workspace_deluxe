@@ -356,6 +356,9 @@ public class Workspace {
 			}
 		}
 		db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setWorkspaceOwner(rwsi.getID(), newUser, newName);
+		}
 		return db.getWorkspaceInformation(newUser, rwsi);
 	}
 			

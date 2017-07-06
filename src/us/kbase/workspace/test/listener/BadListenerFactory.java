@@ -3,6 +3,8 @@ package us.kbase.workspace.test.listener;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Optional;
+
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.listener.ListenerInitializationException;
@@ -48,6 +50,9 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 
 		@Override
 		public void setWorkspaceDescription(long id) {}
+
+		@Override
+		public void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName) {}
 		
 	}
 
