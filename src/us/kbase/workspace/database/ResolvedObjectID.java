@@ -1,6 +1,7 @@
 package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
+import static us.kbase.workspace.database.Util.nonNull;
 
 /** An object identifier that has been fully resolved against the data store, e.g. the name
  * and id are available for the workspace and object, and the version is available.
@@ -21,8 +22,6 @@ import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
  */
 public class ResolvedObjectID {
 	
-	//TODO NOW TEST unit tests
-	
 	private final ResolvedWorkspaceID rwsi;
 	private final String name;
 	private final long id;
@@ -31,26 +30,24 @@ public class ResolvedObjectID {
 	
 	/** Create a new resolved object identifier.
 	 * @param rwsi the identifier of the resolved workspace in which the object resides.
-	 * @param name the name of the object.
 	 * @param id the id of the object.
 	 * @param version the version of the object.
+	 * @param name the name of the object.
 	 * @param deleted true if the object is deleted, false otherwise.
 	 */
 	public ResolvedObjectID(
 			final ResolvedWorkspaceID rwsi,
-			final String name,
 			final long id,
 			final int version,
+			final String name,
 			final boolean deleted) {
-		if (rwsi == null) {
-			throw new IllegalArgumentException("rwsi cannot be null");
-		}
+		nonNull(rwsi, "rwsi");
 		if (id < 1) {
 			throw new IllegalArgumentException("id must be > 0");
 		}
 		checkObjectName(name);
 		if (version < 1) {
-			throw new IllegalArgumentException("Object version must be > 0");
+			throw new IllegalArgumentException("version must be > 0");
 		}
 		this.rwsi = rwsi;
 		this.name = name;

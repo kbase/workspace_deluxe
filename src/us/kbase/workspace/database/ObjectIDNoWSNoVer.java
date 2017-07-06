@@ -8,7 +8,8 @@ import java.util.regex.Pattern;
 
 public class ObjectIDNoWSNoVer {
 	
-	//TODO TEST unit tests
+	//TODO NOW TEST unit tests
+	//TODO NOW JAVADOC
 	
 	private final static Pattern OBJ_NAME_INVALID = Pattern.compile("[^\\w\\|._-]");
 	private final static Pattern OBJ_NAME_INTEGER = Pattern.compile("^-?\\d+$");

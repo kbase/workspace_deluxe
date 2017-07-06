@@ -2661,7 +2661,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 			} else {
 				ret.put(o, new ResolvedObjectID(o.getWorkspaceIdentifier(),
-						name, id, version, deleted));
+						id, version, name, deleted));
 			}
 		}
 		return ret;
