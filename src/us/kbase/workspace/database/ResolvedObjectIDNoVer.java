@@ -1,6 +1,7 @@
 package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
+import static us.kbase.workspace.database.Util.nonNull;
 
 /** An object identifier that has been partially resolved against the data store, e.g. the name
  * and id are available for the workspace and object, but the version is not available.
@@ -21,8 +22,6 @@ import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
  */
 public class ResolvedObjectIDNoVer {
 	
-	//TODO NOW TEST unit tests
-	
 	private final ResolvedWorkspaceID rwsi;
 	private final String name;
 	private final long id;
@@ -30,18 +29,16 @@ public class ResolvedObjectIDNoVer {
 	
 	/** Create a resolved object identifier without a version.
 	 * @param rwsi the identifier of the resolved workspace in which the object resides.
-	 * @param name the name of the object.
 	 * @param id the id of the object.
+	 * @param name the name of the object.
 	 * @param deleted true if the object is deleted, false otherwise.
 	 */
 	public ResolvedObjectIDNoVer(
 			final ResolvedWorkspaceID rwsi,
-			final String name,
 			final long id,
+			final String name,
 			final boolean deleted) {
-		if (rwsi == null) {
-			throw new IllegalArgumentException("rwsi cannot be null");
-		}
+		nonNull(rwsi, "rwsi");
 		if (id < 1) {
 			throw new IllegalArgumentException("id must be > 0");
 		}
@@ -54,16 +51,14 @@ public class ResolvedObjectIDNoVer {
 	
 	/** Create a resolved object identifier without a version from a fully resolved object
 	 * identifier.
-	 * @param rmoid a fully resolved object identifier.
+	 * @param roid a fully resolved object identifier.
 	 */
-	public ResolvedObjectIDNoVer(final ResolvedObjectID rmoid) {
-		if (rmoid == null) {
-			throw new IllegalArgumentException("rmoid cannot be null");
-		}
-		this.rwsi = rmoid.getWorkspaceIdentifier();
-		this.name = rmoid.getName();
-		this.id = rmoid.getId();
-		this.deleted = rmoid.isDeleted();
+	public ResolvedObjectIDNoVer(final ResolvedObjectID roid) {
+		nonNull(roid, "roid");
+		this.rwsi = roid.getWorkspaceIdentifier();
+		this.name = roid.getName();
+		this.id = roid.getId();
+		this.deleted = roid.isDeleted();
 	}
 	
 	/** Get the workspace identifier.
@@ -96,8 +91,17 @@ public class ResolvedObjectIDNoVer {
 
 	@Override
 	public String toString() {
-		return "ResolvedMongoObjectIDNoVer [rwsi=" + rwsi + ", name=" + name
-				+ ", id=" + id + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("ResolvedObjectIDNoVer [rwsi=");
+		builder.append(rwsi);
+		builder.append(", name=");
+		builder.append(name);
+		builder.append(", id=");
+		builder.append(id);
+		builder.append(", deleted=");
+		builder.append(deleted);
+		builder.append("]");
+		return builder.toString();
 	}
 
 	@Override

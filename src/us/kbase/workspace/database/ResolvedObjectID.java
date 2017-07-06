@@ -100,7 +100,7 @@ public class ResolvedObjectID {
 
 	@Override
 	public String toString() {
-		return "ResolvedMongoObjectID [rwsi=" + rwsi + ", name=" + name
+		return "ResolvedObjectID [rwsi=" + rwsi + ", name=" + name
 				+ ", id=" + id + ", version=" + version + ", deleted="
 				+ deleted + "]";
 	}

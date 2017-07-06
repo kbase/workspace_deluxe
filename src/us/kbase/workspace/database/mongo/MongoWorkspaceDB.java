@@ -608,7 +608,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				final boolean deleted = (Boolean) o.get(Fields.OBJ_DEL);
 				maxid = Math.max(maxid, objid);
 				final ResolvedObjectIDNoVer roi =
-						new ResolvedObjectIDNoVer(fromWS, name, objid, deleted);
+						new ResolvedObjectIDNoVer(fromWS, objid, name, deleted);
 				final List<Map<String, Object>> versions;
 				try {
 					versions = queryAllVersions(
