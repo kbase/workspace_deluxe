@@ -96,6 +96,11 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 			print(String.format("renameObject %s %s %s", workspaceId, objectId, newName));
 		}
 
+		@Override
+		public void revertObject(long workspaceId, long objectId, int version) {
+			print(String.format("revertObject %s %s %s", workspaceId, objectId, version));
+		}
+
 	}
 
 }

@@ -47,6 +47,11 @@ public class WorkspaceListenerTest {
 			.withOwner(new WorkspaceUser("userfoo"))
 			.withUserPermission(Permission.OWNER)
 			.build();
+	
+	public static final ObjectInformation OBJ_INFO = new ObjectInformation(
+			42L, "whee", "a type", new Date(), 45, new WorkspaceUser("bar"),
+			new ResolvedWorkspaceID(24, "whee", false, false), "chksum",
+			20, new UncheckedUserMetadata(Collections.emptyMap()));
 
 	@Test
 	public void createWorkspace1Listener() throws Exception {
@@ -658,9 +663,7 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.renameObject(roi, "bollocks")).thenReturn(new ObjectInformation(
-				42L, "whee", "a type", new Date(), 45, new WorkspaceUser("bar"), rwsi, "chksum",
-				20, new UncheckedUserMetadata(Collections.emptyMap())));
+		when(db.renameObject(roi, "bollocks")).thenReturn(OBJ_INFO);
 		
 		ws.renameObject(user, oi, "bollocks");
 
@@ -687,14 +690,66 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.renameObject(roi, "bollocks")).thenReturn(new ObjectInformation(
-				42L, "whee", "a type", new Date(), 45, new WorkspaceUser("bar"), rwsi, "chksum",
-				20, new UncheckedUserMetadata(Collections.emptyMap())));
+		when(db.renameObject(roi, "bollocks")).thenReturn(OBJ_INFO);
 		
 		ws.renameObject(user, oi, "bollocks");
 
 		verify(l1).renameObject(24, 42, "bollocks");
 		verify(l2).renameObject(24, 42, "bollocks");
+	}
+	
+	@Test
+	public void revertObject1Listener() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ObjectIdentifier oi = new ObjectIdentifier(wsi, "whee");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
+		when(db.revertObject(user, roi)).thenReturn(OBJ_INFO);
+		
+		ws.revertObject(user, oi);
+		
+		verify(l).revertObject(24, 42, 45);
+	}
+	
+	@Test
+	public void revertObject2Listeners() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
+		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ObjectIdentifier oi = new ObjectIdentifier(wsi, "whee");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		
+		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
+		when(db.revertObject(user, roi)).thenReturn(OBJ_INFO);
+		
+		ws.revertObject(user, oi);
+		
+		verify(l1).revertObject(24, 42, 45);
+		verify(l2).revertObject(24, 42, 45);
 	}
 }
 
