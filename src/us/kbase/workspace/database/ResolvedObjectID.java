@@ -2,9 +2,11 @@ package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 
-/**
- * name is resolved *at the time the database was accessed and is not further
- * updated*
+/** An object identifier that has been fully resolved against the data store, e.g. the name
+ * and id are available for the workspace and object, and the version is available.
+ * 
+ * The names are resolved *at the time the database was accessed and are not further
+ * updated*.
  * 
  * The underlying assumption of this class is all object IDs are unique and all
  * names are unique at the time of resolution. Therefore a set of
@@ -14,23 +16,26 @@ import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
  * 
  * This is *not* the case for objects generated from different queries.
  * 
- * The version is guaranteed to be equal to or less than the version count in the object document,
- * e.g. under normal circumstances the version must exist.
- * 
  * @author gaprice@lbl.gov
  *
  */
 public class ResolvedObjectID {
 	
 	//TODO NOW TEST unit tests
-	//TODO NOW JAVADOC
 	
 	private final ResolvedWorkspaceID rwsi;
 	private final String name;
-	private final Long id;
-	private final Integer version;
+	private final long id;
+	private final int version;
 	private final boolean deleted;
 	
+	/** Create a new resolved object identifier.
+	 * @param rwsi the identifier of the resolved workspace in which the object resides.
+	 * @param name the name of the object.
+	 * @param id the id of the object.
+	 * @param version the version of the object.
+	 * @param deleted true if the object is deleted, false otherwise.
+	 */
 	public ResolvedObjectID(
 			final ResolvedWorkspaceID rwsi,
 			final String name,
@@ -54,30 +59,44 @@ public class ResolvedObjectID {
 		this.deleted = deleted;
 	}
 
+	/** Get the workspace identifier.
+	 * @return the workspace identifier.
+	 */
 	public ResolvedWorkspaceID getWorkspaceIdentifier() {
 		return rwsi;
 	}
 
+	/** Get the object name.
+	 * @return the name.
+	 */
 	public String getName() {
 		return name;
 	}
 
-	public Long getId() {
+	/** Get the object id.
+	 * @return the id.
+	 */
+	public long getId() {
 		return id;
 	}
 
-	public Integer getVersion() {
+	/** Get the object version.
+	 * @return the version.
+	 */
+	public int getVersion() {
 		return version;
 	}
 	
-	public boolean isFullyResolved() {
-		return false;
-	}
-	
+	/** Get the reference for this object.
+	 * @return the reference.
+	 */
 	public Reference getReference() {
 		return new Reference(rwsi.getID(), id, version);
 	}
 
+	/** Get whether the object is deleted.
+	 * @return true if the object is deleted.
+	 */
 	public boolean isDeleted() {
 		return deleted;
 	}
@@ -94,44 +113,48 @@ public class ResolvedObjectID {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (deleted ? 1231 : 1237);
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + (int) (id ^ (id >>> 32));
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((rwsi == null) ? 0 : rwsi.hashCode());
-		result = prime * result + ((version == null) ? 0 : version.hashCode());
+		result = prime * result + version;
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		ResolvedObjectID other = (ResolvedObjectID) obj;
-		if (deleted != other.deleted)
+		if (deleted != other.deleted) {
 			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
+		}
+		if (id != other.id) {
 			return false;
+		}
 		if (name == null) {
-			if (other.name != null)
+			if (other.name != null) {
 				return false;
-		} else if (!name.equals(other.name))
+			}
+		} else if (!name.equals(other.name)) {
 			return false;
+		}
 		if (rwsi == null) {
-			if (other.rwsi != null)
+			if (other.rwsi != null) {
 				return false;
-		} else if (!rwsi.equals(other.rwsi))
+			}
+		} else if (!rwsi.equals(other.rwsi)) {
 			return false;
-		if (version == null) {
-			if (other.version != null)
-				return false;
-		} else if (!version.equals(other.version))
+		}
+		if (version != other.version) {
 			return false;
+		}
 		return true;
 	}
 	

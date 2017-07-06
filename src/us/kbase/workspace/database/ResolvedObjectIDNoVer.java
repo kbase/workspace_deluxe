@@ -2,9 +2,11 @@ package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 
-/**
- * name is resolved *at the time the database was accessed and is not further
- * updated*
+/** An object identifier that has been partially resolved against the data store, e.g. the name
+ * and id are available for the workspace and object, but the version is not available.
+ * 
+ * The names are resolved *at the time the database was accessed and are not further
+ * updated*.
  * 
  * The underlying assumption of this class is all object IDs are unique and all
  * names are unique at the time of resolution. Therefore a set of
@@ -20,13 +22,18 @@ import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 public class ResolvedObjectIDNoVer {
 	
 	//TODO NOW TEST unit tests
-	//TODO NOW JAVADOC
 	
 	private final ResolvedWorkspaceID rwsi;
 	private final String name;
-	private final Long id;
+	private final long id;
 	private final boolean deleted;
 	
+	/** Create a resolved object identifier without a version.
+	 * @param rwsi the identifier of the resolved workspace in which the object resides.
+	 * @param name the name of the object.
+	 * @param id the id of the object.
+	 * @param deleted true if the object is deleted, false otherwise.
+	 */
 	public ResolvedObjectIDNoVer(
 			final ResolvedWorkspaceID rwsi,
 			final String name,
@@ -45,6 +52,10 @@ public class ResolvedObjectIDNoVer {
 		this.deleted = deleted;
 	}
 	
+	/** Create a resolved object identifier without a version from a fully resolved object
+	 * identifier.
+	 * @param rmoid a fully resolved object identifier.
+	 */
 	public ResolvedObjectIDNoVer(final ResolvedObjectID rmoid) {
 		if (rmoid == null) {
 			throw new IllegalArgumentException("rmoid cannot be null");
@@ -55,18 +66,30 @@ public class ResolvedObjectIDNoVer {
 		this.deleted = rmoid.isDeleted();
 	}
 	
+	/** Get the workspace identifier.
+	 * @return the workspace identifier.
+	 */
 	public ResolvedWorkspaceID getWorkspaceIdentifier() {
 		return rwsi;
 	}
 
+	/** Get the object name.
+	 * @return the name.
+	 */
 	public String getName() {
 		return name;
 	}
 
-	public Long getId() {
+	/** Get the object id.
+	 * @return the id.
+	 */
+	public long getId() {
 		return id;
 	}
 	
+	/** Get whether the object is deleted.
+	 * @return true if the object is deleted.
+	 */
 	public boolean isDeleted() {
 		return deleted;
 	}
@@ -81,7 +104,8 @@ public class ResolvedObjectIDNoVer {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + (deleted ? 1231 : 1237);
+		result = prime * result + (int) (id ^ (id >>> 32));
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((rwsi == null) ? 0 : rwsi.hashCode());
 		return result;
@@ -95,15 +119,14 @@ public class ResolvedObjectIDNoVer {
 		if (obj == null) {
 			return false;
 		}
-		if (!(obj instanceof ResolvedObjectIDNoVer)) {
+		if (getClass() != obj.getClass()) {
 			return false;
 		}
 		ResolvedObjectIDNoVer other = (ResolvedObjectIDNoVer) obj;
-		if (id == null) {
-			if (other.id != null) {
-				return false;
-			}
-		} else if (!id.equals(other.id)) {
+		if (deleted != other.deleted) {
+			return false;
+		}
+		if (id != other.id) {
 			return false;
 		}
 		if (name == null) {
