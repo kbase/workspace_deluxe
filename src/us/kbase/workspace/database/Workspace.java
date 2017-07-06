@@ -259,6 +259,9 @@ public class Workspace {
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("lock").check();
 		db.lockWorkspace(wsid);
+		for (final WorkspaceEventListener l: listeners) {
+			l.lockWorkspace(wsid.getID());
+		}
 		return db.getWorkspaceInformation(user, wsid);
 	}
 
@@ -269,20 +272,26 @@ public class Workspace {
 		return description;
 	}
 
-	public void setWorkspaceDescription(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final String description)
+	public void setWorkspaceDescription(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String description)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("set description on").check();
 		db.setWorkspaceDescription(wsid, pruneWorkspaceDescription(description));
+		for (final WorkspaceEventListener l: listeners) {
+			l.setWorkspaceDescription(wsid.getID());
+		}
 	}
 	
-	public String getWorkspaceDescription(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException,
-			WorkspaceAuthorizationException {
+	public String getWorkspaceDescription(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.READ).check();
 		return db.getWorkspaceDescription(wsid);
@@ -347,22 +356,30 @@ public class Workspace {
 			}
 		}
 		db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setWorkspaceOwner(rwsi.getID(), newUser, newName);
+		}
 		return db.getWorkspaceInformation(newUser, rwsi);
 	}
 			
 
-	public void setPermissions(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final List<WorkspaceUser> users,
+	public long setPermissions(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceUser> users,
 			final Permission permission)
 			throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
-		setPermissions(user, wsi, users, permission, false);
+		return setPermissions(user, wsi, users, permission, false);
 	}
 	
-	public void setPermissions(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final List<WorkspaceUser> users,
-			final Permission permission, final boolean asAdmin)
+	public long setPermissions(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceUser> users,
+			final Permission permission,
+			final boolean asAdmin)
 			throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
@@ -394,12 +411,17 @@ public class Workspace {
 			}
 		}
 		db.setPermissions(wsid, users, permission);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setPermissions(wsid.getID(), permission, users);
+		}
+		return wsid.getID();
 	}
 	
 	/** Set the global permission (e.g. readable or not) for a workspace.
 	 * @param user the user setting the permission.
 	 * @param wsi the workspace.
 	 * @param permission the new permission.
+	 * @return the ID of the modified workspace.
 	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
 	 * storage system.
@@ -407,7 +429,7 @@ public class Workspace {
 	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
 	 * workspace.
 	 */
-	public void setGlobalPermission(
+	public long setGlobalPermission(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final Permission permission)
@@ -432,6 +454,10 @@ public class Workspace {
 					", is locked and may not be modified");
 		}
 		db.setGlobalPermission(rwsi, permission);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setGlobalPermission(rwsi.getID(), permission);
+		}
+		return rwsi.getID();
 	}
 
 	//TODO USERS make an anonymous user class instead of using null.
@@ -1360,6 +1386,9 @@ public class Workspace {
 				.getWorkspaceChecker(wsi, Permission.OWNER).withOperation("rename").check();
 		new WorkspaceIdentifier(newname, user); //check for errors
 		db.renameWorkspace(wsid, newname);
+		for (final WorkspaceEventListener l: listeners) {
+			l.renameWorkspace(wsid.getID(), newname);
+		}
 		return db.getWorkspaceInformation(user, wsid);
 	}
 	
@@ -1429,6 +1458,7 @@ public class Workspace {
 	 * @param user the user requesting deletion or undeletion.
 	 * @param wsi the workspace.
 	 * @param delete true to delete, false to undelete.
+	 * @return the ID of the workspace.
 	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is already
 	 * deleted when trying to delete.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
@@ -1437,13 +1467,13 @@ public class Workspace {
 	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
 	 * workspace.
 	 */
-	public void setWorkspaceDeleted(
+	public long setWorkspaceDeleted(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final boolean delete)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		setWorkspaceDeleted(user, wsi, delete, false);
+		return setWorkspaceDeleted(user, wsi, delete, false);
 	}
 
 	/** Set the deletion state of a workspace.
@@ -1451,6 +1481,7 @@ public class Workspace {
 	 * @param wsi the workspace.
 	 * @param delete true to delete, false to undelete.
 	 * @param asAdmin run the command as an admin, ignoring workspace permissions.
+	 * @return the ID of the the workspace.
 	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is already
 	 * deleted when trying to delete.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
@@ -1459,7 +1490,7 @@ public class Workspace {
 	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
 	 * workspace.
 	 */
-	public void setWorkspaceDeleted(
+	public long setWorkspaceDeleted(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final boolean delete,
@@ -1479,6 +1510,10 @@ public class Workspace {
 		// once a workpace is locked, it's locked. Period.
 		PermissionsCheckerFactory.checkLocked(Permission.ADMIN, wsid);
 		db.setWorkspaceDeleted(wsid, delete);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setWorkspaceDeleted(wsid.getID(), delete);
+		}
+		return wsid.getID();
 	}
 
 	/* admin method only, should not be exposed in public API

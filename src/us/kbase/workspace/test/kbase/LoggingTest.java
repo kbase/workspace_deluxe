@@ -731,7 +731,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("setPermissions null myws w " + USER1 + " " +
+				new AdminExp("setPermissions 1 w " + USER1 + " " +
 						USER2, ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
@@ -742,7 +742,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("setPermissions 1 null a " + USER2, ADMIN),
+				new AdminExp("setPermissions 1 a " + USER2, ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
@@ -786,7 +786,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("setGlobalPermission null myws r " + USER1,
+				new AdminExp("setGlobalPermission 1 r " + USER1,
 						ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
@@ -796,7 +796,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("setGlobalPermission 1 null n " + USER1, ADMIN),
+				new AdminExp("setGlobalPermission 1 n " + USER1, ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
@@ -891,7 +891,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("deleteWorkspace null myws", ADMIN),
+				new AdminExp("deleteWorkspace 1", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
@@ -900,7 +900,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("undeleteWorkspace 1 null", ADMIN),
+				new AdminExp("undeleteWorkspace 1", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 	}

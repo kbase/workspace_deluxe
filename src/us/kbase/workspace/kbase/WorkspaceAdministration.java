@@ -47,6 +47,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 public class WorkspaceAdministration {
 	
 	//TODO JAVADOC
+	//TODO TEST
 	
 	private static final String DENY_MOD_REQUEST = "denyModRequest";
 	private static final String APPROVE_MOD_REQUEST = "approveModRequest";
@@ -178,11 +179,9 @@ public class WorkspaceAdministration {
 		}
 		if (SET_PERMISSIONS.equals(fn)) {
 			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
-			//TODO FEATURE maybe set perms should return wsinfo so can provide ID vs. name
-			getLogger().info(SET_PERMISSIONS + " " + params.getId() + " " +
-					params.getWorkspace() + " " + params.getNewPermission() +
-					" " + StringUtils.join(params.getUsers(), " "));
-			wsmeth.setPermissionsAsAdmin(params, token);
+			final long id = wsmeth.setPermissionsAsAdmin(params, token);
+			getLogger().info(SET_PERMISSIONS + " " + id + " " + params.getNewPermission() + " " +
+					StringUtils.join(params.getUsers(), " "));
 			return null;
 		}
 		if (GET_PERMISSIONS.equals(fn)) {
@@ -216,11 +215,9 @@ public class WorkspaceAdministration {
 			final SetGlobalPermissionsParams params = getParams(cmd,
 					SetGlobalPermissionsParams.class);
 			final WorkspaceUser user = getUser(cmd, token);
-			//TODO FEATURE would be better if could provide ID vs. name
-			getLogger().info(SET_GLOBAL_PERMISSION + " " + params.getId() +
-					" " + params.getWorkspace() + " " +
+			final long id = wsmeth.setGlobalPermission(params, user);
+			getLogger().info(SET_GLOBAL_PERMISSION + " " + id + " " +
 					params.getNewPermission() + " " + user.getUser());
-			wsmeth.setGlobalPermission(params, user);
 			return null;
 		}
 		if (SAVE_OBJECTS.equals(fn)) {
@@ -259,17 +256,15 @@ public class WorkspaceAdministration {
 		if (DELETE_WS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
-			//TODO FEATURE would be better if could provide ID vs. name
-			getLogger().info(DELETE_WS + " " + params.getId() + " " + params.getWorkspace());
-			ws.setWorkspaceDeleted(null, wksp, true, true);
+			final long id = ws.setWorkspaceDeleted(null, wksp, true, true);
+			getLogger().info(DELETE_WS + " " + id);
 			return null;
 		}
 		if (UNDELETE_WS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
-			//TODO FEATURE would be better if could provide ID vs. name
-			getLogger().info(UNDELETE_WS + " " + params.getId() + " " + params.getWorkspace());
-			ws.setWorkspaceDeleted(null, wksp, false, true);
+			final long id = ws.setWorkspaceDeleted(null, wksp, false, true);
+			getLogger().info(UNDELETE_WS + " " + id);
 			return null;
 		}
 		if (LIST_WORKSPACE_OWNERS.equals(fn)) {
