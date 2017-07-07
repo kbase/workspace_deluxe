@@ -116,6 +116,9 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 					allVersionsCopied));
 		}
 
+		@Override
+		public void saveObject(long workspaceId, long objectId, int version, String type) {
+			print(String.format("saveObject %s %s %s %s", workspaceId, objectId, version, type));
+		}
 	}
-
 }

@@ -1,6 +1,9 @@
 package us.kbase.workspace.test.workspace;
 
+import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
@@ -11,27 +14,39 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
+import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.core.ValidatedTypedObject;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.CopyResult;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
+import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
+import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
@@ -875,6 +890,156 @@ public class WorkspaceListenerTest {
 		
 		verify(l1).copyObject(24, 42, 45, false);
 		verify(l2).copyObject(24, 42, 45, false);
+	}
+	
+	public static class SaveObjectsAnswerMatcher implements
+			ArgumentMatcher<List<ResolvedSaveObject>> {
+
+		private final List<ResolvedSaveObject> objects;
+		
+		public SaveObjectsAnswerMatcher(final List<ResolvedSaveObject> objects) {
+			this.objects = objects;
+		}
+		
+		@Override
+		public boolean matches(final List<ResolvedSaveObject> incobjs) {
+			if (objects.size() != incobjs.size()) {
+				return false;
+			}
+			for (int i = 0; i < objects.size(); i++) {
+				final ResolvedSaveObject rso1 = objects.get(i);
+				final ResolvedSaveObject rso2 = incobjs.get(i);
+				if (!rso1.getObjectIdentifier().equals(rso2.getObjectIdentifier())) {
+					return false;
+				}
+			}
+			return true;
+		}
+	}
+	
+	@Test
+	public void saveObject1Listener() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ValidatedTypedObject vto1 = mock(ValidatedTypedObject.class);
+		final ValidatedTypedObject vto2 = mock(ValidatedTypedObject.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
+		final WorkspaceSaveObject wso1 = new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("foo1"),
+				new HashMap<>(),
+				new TypeDefId("foo.bar"), null, new Provenance(user), false);
+		final WorkspaceSaveObject wso2 = new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("foo2"),
+				new HashMap<>(),
+				new TypeDefId("foo.baz"), null, new Provenance(user), false);
+		
+		final ResolvedSaveObject rso1 = wso1.resolve(vto1, set(), Collections.emptyList(),
+				Collections.emptyMap());
+		final ResolvedSaveObject rso2 = wso2.resolve(vto1, set(), Collections.emptyList(),
+				Collections.emptyMap());
+		
+		final ObjectInformation oi1 = new ObjectInformation(
+				35, "foo1", "foo.bar-2.1", new Date(), 6, new WorkspaceUser("foo"),
+				rwsi, "chcksum1", 18, null);
+		
+		final ObjectInformation oi2 = new ObjectInformation(
+				76, "foo2", "foo.baz-1.0", new Date(), 1, new WorkspaceUser("foo"),
+				rwsi, "chcksum2", 22, null);
+		
+		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
+		
+		when(tv.validate(isA(UObject.class), eq(new TypeDefId("foo.bar")),
+				isA(IdReferenceHandlerSet.class))).thenReturn(vto1);
+		when(tv.validate(isA(UObject.class), eq(new TypeDefId("foo.baz")),
+				isA(IdReferenceHandlerSet.class))).thenReturn(vto2);
+		when(vto1.isInstanceValid()).thenReturn(true);
+		when(vto2.isInstanceValid()).thenReturn(true);
+		when(vto1.getRelabeledSize()).thenReturn(6L);
+		when(vto2.getRelabeledSize()).thenReturn(7L);
+		
+		when(db.saveObjects(eq(user), eq(rwsi),
+				argThat(new SaveObjectsAnswerMatcher(Arrays.asList(rso1, rso2)))))
+				.thenReturn(Arrays.asList(oi1, oi2));
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		ws.saveObjects(user, wsi, Arrays.asList(wso1, wso2), fac);
+		
+		verify(l).saveObject(24, 35, 6, "foo.bar-2.1");
+		verify(l).saveObject(24, 76, 1, "foo.baz-1.0");
+	}
+	
+	@Test
+	public void saveObject2Listeners() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ValidatedTypedObject vto1 = mock(ValidatedTypedObject.class);
+		final ValidatedTypedObject vto2 = mock(ValidatedTypedObject.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
+		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
+		final WorkspaceSaveObject wso1 = new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("foo1"),
+				new HashMap<>(),
+				new TypeDefId("foo.bar"), null, new Provenance(user), false);
+		final WorkspaceSaveObject wso2 = new WorkspaceSaveObject(
+				new ObjectIDNoWSNoVer("foo2"),
+				new HashMap<>(),
+				new TypeDefId("foo.baz"), null, new Provenance(user), false);
+		
+		final ResolvedSaveObject rso1 = wso1.resolve(vto1, set(), Collections.emptyList(),
+				Collections.emptyMap());
+		final ResolvedSaveObject rso2 = wso2.resolve(vto1, set(), Collections.emptyList(),
+				Collections.emptyMap());
+		
+		final ObjectInformation oi1 = new ObjectInformation(
+				35, "foo1", "foo.bar-2.1", new Date(), 6, new WorkspaceUser("foo"),
+				rwsi, "chcksum1", 18, null);
+		
+		final ObjectInformation oi2 = new ObjectInformation(
+				76, "foo2", "foo.baz-1.0", new Date(), 1, new WorkspaceUser("foo"),
+				rwsi, "chcksum2", 22, null);
+		
+		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
+		
+		when(tv.validate(isA(UObject.class), eq(new TypeDefId("foo.bar")),
+				isA(IdReferenceHandlerSet.class))).thenReturn(vto1);
+		when(tv.validate(isA(UObject.class), eq(new TypeDefId("foo.baz")),
+				isA(IdReferenceHandlerSet.class))).thenReturn(vto2);
+		when(vto1.isInstanceValid()).thenReturn(true);
+		when(vto2.isInstanceValid()).thenReturn(true);
+		when(vto1.getRelabeledSize()).thenReturn(6L);
+		when(vto2.getRelabeledSize()).thenReturn(7L);
+		
+		when(db.saveObjects(eq(user), eq(rwsi),
+				argThat(new SaveObjectsAnswerMatcher(Arrays.asList(rso1, rso2)))))
+				.thenReturn(Arrays.asList(oi1, oi2));
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		
+		ws.saveObjects(user, wsi, Arrays.asList(wso1, wso2), fac);
+		
+		verify(l1).saveObject(24, 35, 6, "foo.bar-2.1");
+		verify(l1).saveObject(24, 76, 1, "foo.baz-1.0");
+		verify(l2).saveObject(24, 35, 6, "foo.bar-2.1");
+		verify(l2).saveObject(24, 76, 1, "foo.baz-1.0");
 	}
 }
 

@@ -649,19 +649,16 @@ public class Workspace {
 		processIds(objects, idhandler, reports);
 		
 		//handle references and calculate size with new references
-		final List<ResolvedSaveObject> saveobjs =
-				new ArrayList<ResolvedSaveObject>();
+		final List<ResolvedSaveObject> saveobjs = new ArrayList<ResolvedSaveObject>();
 		long ttlObjSize = 0;
 		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
 			//maintain ordering
 			wo.getProvenance().setWorkspaceID(new Long(rwsi.getID()));
 			final List<Reference> provrefs = new LinkedList<Reference>();
-			for (final Provenance.ProvenanceAction action:
-					wo.getProvenance().getActions()) {
+			for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
 				for (final String ref: action.getWorkspaceObjects()) {
-					provrefs.add((Reference)
-							idhandler.getRemappedId(WS_ID_TYPE, ref));
+					provrefs.add((Reference) idhandler.getRemappedId(WS_ID_TYPE, ref));
 				}
 			}
 			final Map<IdReferenceType, Set<RemappedId>> extractedIDs =
@@ -699,7 +696,14 @@ public class Workspace {
 		
 		try {
 			sortObjects(saveobjs, ttlObjSize);
-			return db.saveObjects(user, rwsi, saveobjs);
+			final List<ObjectInformation> ret = db.saveObjects(user, rwsi, saveobjs);
+			for (final WorkspaceEventListener l: listeners) {
+				for (final ObjectInformation oi: ret) {
+					l.saveObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+							oi.getTypeString());
+				}
+			}
+			return ret;
 		} finally {
 			for (final ResolvedSaveObject wo: saveobjs) {
 				try {
@@ -724,7 +728,7 @@ public class Workspace {
 		}
 		final UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(
 				rescfg.getMaxRelabelAndSortMemoryUsage());
-		for (ResolvedSaveObject ro: saveobjs) {
+		for (final ResolvedSaveObject ro: saveobjs) {
 			try {
 				//modifies object in place
 				ro.getRep().sort(fac, tempTFM);
@@ -757,29 +761,24 @@ public class Workspace {
 		int objcount = 1;
 		for (final WorkspaceSaveObject wo: objects) {
 			idhandler.associateObject(new IDAssociation(objcount, false));
-			final ValidatedTypedObject rep = validate(wo, idhandler,
-					objcount);
+			final ValidatedTypedObject rep = validate(wo, idhandler, objcount);
 			reports.put(wo, rep);
 			idhandler.associateObject(new IDAssociation(objcount, true));
 			try {
-				for (final Provenance.ProvenanceAction action:
-						wo.getProvenance().getActions()) {
+				for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
 					for (final String pref: action.getWorkspaceObjects()) {
 						if (pref == null) {
-							throw new TypedObjectValidationException(
-									String.format(
+							throw new TypedObjectValidationException(String.format(
 									"Object %s has a null provenance reference",
 									getObjectErrorId(wo, objcount)));
 						}
-						idhandler.addStringId(new IdReference<String>(
-								WS_ID_TYPE, pref, null));
+						idhandler.addStringId(new IdReference<String>(WS_ID_TYPE, pref, null));
 					}
 				}
 			} catch (IdReferenceHandlerException ihre) {
 				throw new TypedObjectValidationException(String.format(
 						"Object %s has invalid provenance reference: ",
-						getObjectErrorId(wo, objcount)) + 
-						ihre.getMessage(), ihre);
+						getObjectErrorId(wo, objcount)) + ihre.getMessage(), ihre);
 			} catch (TooManyIdsException tmie) {
 				throw wrapTooManyIDsException(objcount, idhandler, tmie);
 			}

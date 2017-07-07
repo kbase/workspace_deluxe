@@ -101,7 +101,12 @@ public interface WorkspaceEventListener {
 	 * new object.
 	 */
 	void copyObject(long workspaceId, long objectId, int version, boolean allVersionsCopied);
-	
-	//TODO NOW add more events & test
 
+	/** Notification that an object has been saved.
+	 * @param workspaceId the id of the workspace containing the object.
+	 * @param objectId the id of the object.
+	 * @param version the version of the object.
+	 * @param type the type of the object.
+	 */
+	void saveObject(long workspaceId, long objectId, int version, final String type);
 }
