@@ -1458,8 +1458,13 @@ public class Workspace {
 						.getObjectChecker(loi, Permission.WRITE)
 						.withOperation((delete ? "" : "un") + "delete objects from")
 						.check();
-		db.setObjectsDeleted(new HashSet<ObjectIDResolvedWS>(ws.values()),
-				delete);
+		final Set<ResolvedObjectIDNoVer> objs = db.setObjectsDeleted(
+				new HashSet<ObjectIDResolvedWS>(ws.values()), delete);
+		for (final WorkspaceEventListener l: listeners) {
+			for (final ResolvedObjectIDNoVer o: objs) {
+				l.setObjectDeleted(o.getWorkspaceIdentifier().getID(), o.getId(), delete);
+			}
+		}
 	}
 	
 	/** Set the deletion state of a workspace.

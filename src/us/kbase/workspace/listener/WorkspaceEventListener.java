@@ -85,6 +85,13 @@ public interface WorkspaceEventListener {
 	 * @param version the version of the reverted object.
 	 */
 	void revertObject(long workspaceId, long objectId, int version);
+
+	/** Notification that an object was deleted or undeleted.
+	 * @param workspaceId the workspace id.
+	 * @param objectId the object id.
+	 * @param delete true if the object was deleted, false if it was undeleted.
+	 */
+	void setObjectDeleted(long workspaceId, long objectId, boolean delete);
 	
 	//TODO NOW add more events & test
 

@@ -464,8 +464,18 @@ public interface WorkspaceDatabase {
 			boolean hide) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 	
-	public void setObjectsDeleted(Set<ObjectIDResolvedWS> objectIDs,
-			boolean delete) throws NoSuchObjectException,
+	/** Delete or undelete objects.
+	 * @param objectIDs the objects to delete.
+	 * @param delete true to delete the object, false to undelete.
+	 * @return the resolved objects.
+	 * @throws NoSuchObjectException if an object doesn't exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs with the storage
+	 * system.
+	 */
+	public Set<ResolvedObjectIDNoVer> setObjectsDeleted(
+			Set<ObjectIDResolvedWS> objectIDs,
+			boolean delete)
+			throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 
 	public void setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)

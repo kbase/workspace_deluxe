@@ -24,6 +24,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
@@ -750,6 +751,71 @@ public class WorkspaceListenerTest {
 		
 		verify(l1).revertObject(24, 42, 45);
 		verify(l2).revertObject(24, 42, 45);
+	}
+	
+	@Test
+	public void deleteObjects1Listener() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ObjectIdentifier oi1 = new ObjectIdentifier(wsi, "whee");
+		final ObjectIdentifier oi2 = new ObjectIdentifier(wsi, "whoo");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi, "whee");
+		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi, "whoo");
+		final ResolvedObjectIDNoVer roiv1 = new ResolvedObjectIDNoVer(rwsi, 16, "whee", true);
+		final ResolvedObjectIDNoVer roiv2 = new ResolvedObjectIDNoVer(rwsi, 75, "whoo", true);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
+		when(db.setObjectsDeleted(set(roi1, roi2), true)).thenReturn(set(roiv1, roiv2));
+
+		ws.setObjectsDeleted(user, Arrays.asList(oi1, oi2), true);
+
+		verify(l).setObjectDeleted(24, 16, true);
+		verify(l).setObjectDeleted(24, 75, true);
+	}
+	
+	@Test
+	public void deleteObjects2Listeners() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
+		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ObjectIdentifier oi1 = new ObjectIdentifier(wsi, "whee");
+		final ObjectIdentifier oi2 = new ObjectIdentifier(wsi, "whoo");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi, "whee");
+		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi, "whoo");
+		final ResolvedObjectIDNoVer roiv1 = new ResolvedObjectIDNoVer(rwsi, 16, "whee", false);
+		final ResolvedObjectIDNoVer roiv2 = new ResolvedObjectIDNoVer(rwsi, 75, "whoo", false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		
+		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
+		when(db.setObjectsDeleted(set(roi1, roi2), false)).thenReturn(set(roiv1, roiv2));
+
+		ws.setObjectsDeleted(user, Arrays.asList(oi1, oi2), false);
+
+		verify(l1).setObjectDeleted(24, 16, false);
+		verify(l1).setObjectDeleted(24, 75, false);
+		verify(l2).setObjectDeleted(24, 16, false);
+		verify(l2).setObjectDeleted(24, 75, false);
 	}
 }
 

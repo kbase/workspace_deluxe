@@ -2904,24 +2904,30 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public void setObjectsDeleted(final Set<ObjectIDResolvedWS> objectIDs, final boolean delete)
+	public Set<ResolvedObjectIDNoVer> setObjectsDeleted(
+			final Set<ObjectIDResolvedWS> objectIDs,
+			final boolean delete)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> ids =
 				resolveObjectIDs(objectIDs, delete, true);
 		final Map<ResolvedWorkspaceID, List<Long>> toModify =
 				new HashMap<ResolvedWorkspaceID, List<Long>>();
+		final Set<ResolvedObjectIDNoVer> ret = new HashSet<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
+			final ResolvedObjectID obj = ids.get(o);
 			if (!toModify.containsKey(ws)) {
 				toModify.put(ws, new ArrayList<Long>());
 			}
-			toModify.get(ws).add(ids.get(o).getId());
+			toModify.get(ws).add(obj.getId());
+			ret.add(new ResolvedObjectIDNoVer(ws, obj.getId(), obj.getName(), delete));
 		}
 		//Do this by workspace since per mongo docs nested $ors are crappy
 		for (final ResolvedWorkspaceID ws: toModify.keySet()) {
 			setObjectsDeleted(ws, toModify.get(ws), delete);
 			updateWorkspaceModifiedDate(ws);
 		}
+		return ret;
 	}
 	
 	private static final String M_DELOBJ_WTH = String.format(
