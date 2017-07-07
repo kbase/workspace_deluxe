@@ -18,12 +18,12 @@ public class ObjectIDResolvedWS {
 			throw new IllegalArgumentException("oid cannot be null");
 		}
 		this.rwsi = rwsi;
-		if (oid.getId() == null) {
-			this.name = oid.getName();
-			this.id = null;
-		} else {
-			this.id = oid.getId();
+		if (oid.getId().isPresent()) {
+			this.id = oid.getId().get();
 			this.name = null;
+		} else {
+			this.name = oid.getName().get();
+			this.id = null;
 		}
 		this.version = null;
 	}

@@ -734,7 +734,7 @@ public class MongoInternalsTest {
 		//possible race condition 1 - no version provided, version not yet
 		//saved, version count not yet incremented
 		ObjectIDResolvedWS oidrw = new ObjectIDResolvedWS(rwsi,
-				rso.getObjectIdentifier().getName());
+				rso.getObjectIdentifier().getName().get());
 		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw));
 		failGetObjectsNoSuchObjectExcp(oidset,
@@ -754,14 +754,14 @@ public class MongoInternalsTest {
 				new WorkspaceUserMetadata(), null);
 		final ResolvedWorkspaceID rwsi2 = mwdb.resolveWorkspace(wsi2);
 		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
-				rso.getObjectIdentifier().getName());
+				rso.getObjectIdentifier().getName().get());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
 					Arrays.asList(oidrw2_1)), String.format(
 							"No object with name %s exists in workspace %s (name setGetRace2)",
 							objname, rwsi2.getID()));
 
 		ObjectIDResolvedWS oidrw2_2 = new ObjectIDResolvedWS(rwsi2,
-				rso2.getObjectIdentifier().getName());
+				rso2.getObjectIdentifier().getName().get());
 		
 		long id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw2_2)), false, true, false, true)
@@ -771,7 +771,7 @@ public class MongoInternalsTest {
 		
 		//possible race condition 2 - as 1, but version provided
 		ObjectIDResolvedWS oidrwWithVer = new ObjectIDResolvedWS(rwsi,
-				rso.getObjectIdentifier().getName(), 1);
+				rso.getObjectIdentifier().getName().get(), 1);
 		Set<ObjectIDResolvedWS> oidsetver = new HashSet<ObjectIDResolvedWS>();
 		oidsetver.add(oidrwWithVer);
 		failGetObjectsNoSuchObjectExcp(oidsetver,
@@ -800,14 +800,14 @@ public class MongoInternalsTest {
 				new WorkspaceUserMetadata(), null);
 		final ResolvedWorkspaceID rwsi3 = mwdb.resolveWorkspace(wsi3);
 		ObjectIDResolvedWS oidrw3_1 = new ObjectIDResolvedWS(rwsi3,
-				rso.getObjectIdentifier().getName());
+				rso.getObjectIdentifier().getName().get());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw3_1)),
 				String.format("No object with name %s exists in workspace %s (name setGetRace3)",
 						objname, rwsi3.getID()));
 
 		ObjectIDResolvedWS oidrw3_2 = new ObjectIDResolvedWS(rwsi3,
-				rso2.getObjectIdentifier().getName());
+				rso2.getObjectIdentifier().getName().get());
 		id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw3_2)), false, true, false, true).get(oidrw3_2).getObjectId();
 		assertThat("correct object id", id, is(2L));
@@ -918,7 +918,7 @@ public class MongoInternalsTest {
 				.getDeclaredMethod("saveWorkspaceObject", ResolvedWorkspaceID.class,
 						long.class, String.class);
 		saveWorkspaceObject.setAccessible(true);
-		String name = rso.getObjectIdentifier().getName();
+		String name = rso.getObjectIdentifier().getName().get();
 		IDName idn = (IDName) saveWorkspaceObject.invoke(mwdb, rwsi, objid, name);
 		return new IDnPackage(idn, pkg);
 	}

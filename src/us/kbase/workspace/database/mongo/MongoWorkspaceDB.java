@@ -1693,15 +1693,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (ObjectIDNoWSNoVer o: idToPkg.keySet()) {
 			if (!objIDs.containsKey(o)) {
 				//the id or name wasn't found
-				if (o.getId() != null) {
+				if (o.getId().isPresent()) {
 					//no such id, punt
-					throw new NoSuchObjectException("There is no object with id " + o.getId(),
-							new ObjectIDResolvedWS(rwsi, o.getId()));
+					throw new NoSuchObjectException("There is no object with id " +
+							o.getId().get(), new ObjectIDResolvedWS(rwsi, o.getId().get()));
 				} else {
 					//no such name, add the unconfirmed name to all the packages
 					// and increment the counter for the object ids we need
 					for (ObjectSavePackage pkg: idToPkg.get(o)) {
-						pkg.name = o.getName();
+						pkg.name = o.getName().get();
 					}
 					newobjects++;
 				}
@@ -1738,15 +1738,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<String, Long> seenNames = new HashMap<String, Long>();
 		for (final ObjectSavePackage p: packages) {
 			final ObjectIDNoWSNoVer oi = p.wo.getObjectIdentifier();
-			if (oi.getId() != null) { //confirmed ok id
-				ret.add(saveObjectVersion(user, rwsi, oi.getId(), p));
+			if (oi.getId().isPresent()) { //confirmed ok id
+				ret.add(saveObjectVersion(user, rwsi, oi.getId().get(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
 				ret.add(saveObjectVersion(user, rwsi, objIDs.get(oi).getId(), p));
-			} else if (seenNames.containsKey(oi.getName())) {
+			} else if (seenNames.containsKey(oi.getName().get())) {
 				//we've already generated an id for this name
-				ret.add(saveObjectVersion(user, rwsi, seenNames.get(oi.getName()), p));
+				ret.add(saveObjectVersion(user, rwsi, seenNames.get(oi.getName().get()), p));
 			} else {//new name, need to generate new id
-				final IDName obj = saveWorkspaceObject(rwsi, newid++, oi.getName());
+				final IDName obj = saveWorkspaceObject(rwsi, newid++, oi.getName().get());
 				p.name = obj.name;
 				seenNames.put(obj.name, obj.id);
 				ret.add(saveObjectVersion(user, rwsi, obj.id, p));
