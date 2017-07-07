@@ -12,6 +12,8 @@ import java.util.Set;
 
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.ResolvedObjectID;
+import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -309,14 +311,14 @@ public class QueryMethods {
 	}
 	
 	//all incoming object IDs must have versions
-	Map<ResolvedMongoObjectID, Map<String, Object>> queryVersions(
-			final Set<ResolvedMongoObjectID> objectIDs, final Set<String> fields)
+	Map<ResolvedObjectID, Map<String, Object>> queryVersions(
+			final Set<ResolvedObjectID> objectIDs, final Set<String> fields)
 			throws WorkspaceCommunicationException {
 
 		final Map<ResolvedWorkspaceID, Map<Long, List<Integer>>> ids = 
 			new HashMap<ResolvedWorkspaceID, Map<Long, List<Integer>>>();
 		
-		for (final ResolvedMongoObjectID roi: objectIDs) {
+		for (final ResolvedObjectID roi: objectIDs) {
 			final ResolvedWorkspaceID rwsi = roi.getWorkspaceIdentifier();
 			if (ids.get(rwsi) == null) {
 				ids.put(rwsi, new HashMap<Long, List<Integer>>());
@@ -331,10 +333,10 @@ public class QueryMethods {
 		final Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>> data = //this is getting ridiculous
 				queryVersions(ids, fields);
 		
-		final Map<ResolvedMongoObjectID, Map<String, Object>> ret =
-				new HashMap<ResolvedMongoObjectID, Map<String,Object>>();
+		final Map<ResolvedObjectID, Map<String, Object>> ret =
+				new HashMap<ResolvedObjectID, Map<String,Object>>();
 		
-		for (final ResolvedMongoObjectID roi: objectIDs) {
+		for (final ResolvedObjectID roi: objectIDs) {
 			final Map<String, Object> d = data.get(
 					roi.getWorkspaceIdentifier()).get(roi.getId())
 					.get(roi.getVersion());
@@ -346,14 +348,14 @@ public class QueryMethods {
 	}
 	
 	//method assumes at least one version exists
-	Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>> queryAllVersions(
-			final HashSet<ResolvedMongoObjectIDNoVer> objIDs,
+	Map<ResolvedObjectIDNoVer, List<Map<String, Object>>> queryAllVersions(
+			final HashSet<ResolvedObjectIDNoVer> objIDs,
 			final Set<String> fields)
 			throws WorkspaceCommunicationException {
 		final Map<ResolvedWorkspaceID, Map<Long, List<Integer>>> ids =
 				new HashMap<ResolvedWorkspaceID, Map<Long,List<Integer>>>();
 		
-		for (final ResolvedMongoObjectIDNoVer roi: objIDs) {
+		for (final ResolvedObjectIDNoVer roi: objIDs) {
 			final ResolvedWorkspaceID rwsi = roi.getWorkspaceIdentifier();
 			if (ids.get(rwsi) == null) {
 				ids.put(rwsi, new HashMap<Long, List<Integer>>());
@@ -364,10 +366,10 @@ public class QueryMethods {
 		final Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>> data = //this is getting ridiculous
 				queryVersions(ids, fields);
 		
-		final Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>> ret =
-				new HashMap<ResolvedMongoObjectIDNoVer, List<Map<String,Object>>>();
+		final Map<ResolvedObjectIDNoVer, List<Map<String, Object>>> ret =
+				new HashMap<ResolvedObjectIDNoVer, List<Map<String,Object>>>();
 		
-		for (final ResolvedMongoObjectIDNoVer roi: objIDs) {
+		for (final ResolvedObjectIDNoVer roi: objIDs) {
 			final Map<Integer, Map<String, Object>> d = data.get(
 					roi.getWorkspaceIdentifier()).get(roi.getId());
 			final List<Integer> sorted = new ArrayList<Integer>(d.keySet());

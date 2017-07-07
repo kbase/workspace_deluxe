@@ -16,6 +16,7 @@ import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -266,7 +267,7 @@ public class ObjectInfoUtils {
 	}
 	
 	static ObjectInformation generateObjectInfo(
-			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
+			final ResolvedObjectID roi, final Map<String, Object> ver) {
 		return generateObjectInfo(roi.getWorkspaceIdentifier(), roi.getId(),
 				roi.getName(), ver);
 	}
