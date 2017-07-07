@@ -55,8 +55,8 @@ temp-dir = ws_temp_dir
 # listeners=X
 
 # any listener factory implementations and their configurations, grouped by the names in the
-# listeners configuration parameter. The listener configuration will be provided to the listener as a
-# key-value map. Example:
+# listeners configuration parameter. The listener configuration will be provided to the listener
+# as a key-value map. Example:
 # listener-X-class=us.kbase.workspace.test.listener.NullListenerFactory
 # listener-X-config-key1=value1
 # listener-X-config-key2=value2
