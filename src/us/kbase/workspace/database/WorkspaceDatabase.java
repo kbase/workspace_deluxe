@@ -422,8 +422,24 @@ public interface WorkspaceDatabase {
 			final boolean ignoreErrors) throws
 			NoSuchObjectException, WorkspaceCommunicationException;
 
-	public ObjectInformation copyObject(WorkspaceUser user, 
-			ObjectIDResolvedWS from, ObjectIDResolvedWS to)
+	/** Copies an object. If a version is not specified in the from argument and the object
+	 * specified by the to argument does not exist, all the versions of the from argument are
+	 * copied. Otherwise, only the version specified (or the most recent version) is
+	 * copied. Note that it is an error to specify an object id in the to argument that does not
+	 * exist.
+	 * @param user the user performing the copy.
+	 * @param from the copy source.
+	 * @param to the copy target.
+	 * @return the results of the copy.
+	 * @throws NoSuchObjectException if the from object does not exist or the to object id does not
+	 * exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs with the storage
+	 * system.
+	 */
+	public CopyResult copyObject(
+			WorkspaceUser user, 
+			ObjectIDResolvedWS from,
+			ObjectIDResolvedWS to)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public ObjectInformation revertObject(WorkspaceUser user,
@@ -464,8 +480,18 @@ public interface WorkspaceDatabase {
 			boolean hide) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 	
-	public void setObjectsDeleted(Set<ObjectIDResolvedWS> objectIDs,
-			boolean delete) throws NoSuchObjectException,
+	/** Delete or undelete objects.
+	 * @param objectIDs the objects to delete.
+	 * @param delete true to delete the object, false to undelete.
+	 * @return the resolved objects.
+	 * @throws NoSuchObjectException if an object doesn't exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs with the storage
+	 * system.
+	 */
+	public Set<ResolvedObjectIDNoVer> setObjectsDeleted(
+			Set<ObjectIDResolvedWS> objectIDs,
+			boolean delete)
+			throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 
 	public void setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)

@@ -44,6 +44,7 @@ import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
+import us.kbase.workspace.database.CopyResult;
 import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -735,21 +736,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_COPIED, Fields.VER_META, Fields.VER_EXT_IDS);
 	
 	@Override
-	public ObjectInformation copyObject(final WorkspaceUser user,
-			final ObjectIDResolvedWS from, final ObjectIDResolvedWS to)
+	public CopyResult copyObject(
+			final WorkspaceUser user,
+			final ObjectIDResolvedWS from,
+			final ObjectIDResolvedWS to)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		return copyOrRevert(user, from, to, false);
 	}
 	
 	@Override
-	public ObjectInformation revertObject(final WorkspaceUser user,
-			final ObjectIDResolvedWS oi)
+	public ObjectInformation revertObject(final WorkspaceUser user, final ObjectIDResolvedWS oi)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		return copyOrRevert(user, oi, null, true);
+		return copyOrRevert(user, oi, null, true).getObjectInformation();
 	}
 		
-	private ObjectInformation copyOrRevert(final WorkspaceUser user,
-			final ObjectIDResolvedWS from, ObjectIDResolvedWS to,
+	private CopyResult copyOrRevert(
+			final WorkspaceUser user,
+			final ObjectIDResolvedWS from,
+			ObjectIDResolvedWS to,
 			final boolean revert)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final ResolvedObjectID rfrom = resolveObjectIDs(
@@ -767,19 +771,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		if (rto == null && to.getId() != null) {
 			throw new NoSuchObjectException(String.format(
-					"Copy destination is specified as object id %s in workspace %s which does not exist.",
-					to.getId(), to.getWorkspaceIdentifier().getID()), to);
+					"Copy destination is specified as object id %s in workspace %s which " +
+					"does not exist.", to.getId(), to.getWorkspaceIdentifier().getID()), to);
 		}
+		final boolean copyAll;
 		final List<Map<String, Object>> versions;
 		if (rto == null && from.getVersion() == null) {
 			final ResolvedObjectIDNoVer o = new ResolvedObjectIDNoVer(rfrom);
 			versions = queryAllVersions(
 					new HashSet<ResolvedObjectIDNoVer>(Arrays.asList(o)),
 					FLDS_VER_COPYOBJ).get(o);
+			copyAll = true;
 		} else {
 			versions = Arrays.asList(queryVersions(
 					new HashSet<ResolvedObjectID>(Arrays.asList(rfrom)),
 					FLDS_VER_COPYOBJ, false).get(rfrom));
+			copyAll = false;
 		}
 		for (final Map<String, Object> v: versions) {
 			int ver = (Integer) v.get(Fields.VER_VER);
@@ -805,8 +812,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		saveObjectVersions(user, toWS, objid, versions, null);
 		final Map<String, Object> info = versions.get(versions.size() - 1);
 		updateWorkspaceModifiedDate(toWS);
-		return ObjectInfoUtils.generateObjectInfo(toWS, objid,
+		final ObjectInformation oi = ObjectInfoUtils.generateObjectInfo(toWS, objid,
 				rto == null ? to.getName() : rto.getName(), info);
+		return new CopyResult(oi, copyAll);
 	}
 	
 	final private static String M_RENAME_WS_WTH = String.format(
@@ -2904,24 +2912,30 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public void setObjectsDeleted(final Set<ObjectIDResolvedWS> objectIDs, final boolean delete)
+	public Set<ResolvedObjectIDNoVer> setObjectsDeleted(
+			final Set<ObjectIDResolvedWS> objectIDs,
+			final boolean delete)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> ids =
 				resolveObjectIDs(objectIDs, delete, true);
 		final Map<ResolvedWorkspaceID, List<Long>> toModify =
 				new HashMap<ResolvedWorkspaceID, List<Long>>();
+		final Set<ResolvedObjectIDNoVer> ret = new HashSet<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
+			final ResolvedObjectID obj = ids.get(o);
 			if (!toModify.containsKey(ws)) {
 				toModify.put(ws, new ArrayList<Long>());
 			}
-			toModify.get(ws).add(ids.get(o).getId());
+			toModify.get(ws).add(obj.getId());
+			ret.add(new ResolvedObjectIDNoVer(ws, obj.getId(), obj.getName(), delete));
 		}
 		//Do this by workspace since per mongo docs nested $ors are crappy
 		for (final ResolvedWorkspaceID ws: toModify.keySet()) {
 			setObjectsDeleted(ws, toModify.get(ws), delete);
 			updateWorkspaceModifiedDate(ws);
 		}
+		return ret;
 	}
 	
 	private static final String M_DELOBJ_WTH = String.format(

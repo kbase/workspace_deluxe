@@ -101,6 +101,24 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 			print(String.format("revertObject %s %s %s", workspaceId, objectId, version));
 		}
 
-	}
+		@Override
+		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {
+			print(String.format("setObjectDeleted %s %s %s", workspaceId, objectId, delete));
+		}
 
+		@Override
+		public void copyObject(
+				long workspaceId,
+				long objectId,
+				int version,
+				boolean allVersionsCopied) {
+			print(String.format("copyObject %s %s %s %s", workspaceId, objectId, version,
+					allVersionsCopied));
+		}
+
+		@Override
+		public void saveObject(long workspaceId, long objectId, int version, String type) {
+			print(String.format("saveObject %s %s %s %s", workspaceId, objectId, version, type));
+		}
+	}
 }

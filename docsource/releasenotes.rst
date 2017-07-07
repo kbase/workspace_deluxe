@@ -12,6 +12,11 @@ BACKWARDS INCOMPATIBILITIES:
 
 NEW FEATURES:
 
+* Adds a workspace event listener API. Event listeners must implement the
+  ``us.kbase.workspace.listener.WorkspaceEventListenerFactory`` and ``WorkspaceEventListener``
+  interfaces. Specify listeners to be loaded on start up in the ``deploy.cfg`` file (see
+  ``deploy.cfg.example`` for an example. See
+  ``us.kbase.workspace.test.listener.NullListenerFactory`` for an example implementation.
 * Added the ``getPermissionsMass`` administration command.
 * Added the ``getWorkspaceInfo`` administration command.
 * Added the ``listObjects`` administration command.

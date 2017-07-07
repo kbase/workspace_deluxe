@@ -85,7 +85,28 @@ public interface WorkspaceEventListener {
 	 * @param version the version of the reverted object.
 	 */
 	void revertObject(long workspaceId, long objectId, int version);
-	
-	//TODO NOW add more events & test
 
+	/** Notification that an object was deleted or undeleted.
+	 * @param workspaceId the workspace id.
+	 * @param objectId the object id.
+	 * @param delete true if the object was deleted, false if it was undeleted.
+	 */
+	void setObjectDeleted(long workspaceId, long objectId, boolean delete);
+
+	/** Notification that an object was copied.
+	 * @param workspaceId the workspace id of the new object.
+	 * @param objectId the object id of the new object.
+	 * @param version the version of the new object.
+	 * @param allVersionsCopied whether all the versions of the source object were copied to the
+	 * new object.
+	 */
+	void copyObject(long workspaceId, long objectId, int version, boolean allVersionsCopied);
+
+	/** Notification that an object has been saved.
+	 * @param workspaceId the id of the workspace containing the object.
+	 * @param objectId the id of the object.
+	 * @param version the version of the object.
+	 * @param type the type of the object.
+	 */
+	void saveObject(long workspaceId, long objectId, int version, final String type);
 }
