@@ -14,8 +14,6 @@ import com.google.common.base.Optional;
  */
 public class ObjectIDNoWSNoVer {
 	
-	//TODO NOW TEST unit tests
-	
 	private final static Pattern OBJ_NAME_INVALID = Pattern.compile("[^\\w\\|._-]");
 	private final static Pattern OBJ_NAME_INTEGER = Pattern.compile("^-?\\d+$");
 	private final static int MAX_NAME_LENGTH = 255;
@@ -37,7 +35,7 @@ public class ObjectIDNoWSNoVer {
 	 */
 	public ObjectIDNoWSNoVer(final long id) {
 		if (id < 1) {
-			throw new IllegalArgumentException("Object id must be > 0");
+			throw new IllegalArgumentException("id must be > 0");
 		}
 		this.name = null;
 		this.id = id;
@@ -126,7 +124,7 @@ public class ObjectIDNoWSNoVer {
 		if (obj == null) {
 			return false;
 		}
-		if (!(obj instanceof ObjectIDNoWSNoVer)) {
+		if (getClass() != obj.getClass()) {
 			return false;
 		}
 		ObjectIDNoWSNoVer other = (ObjectIDNoWSNoVer) obj;
