@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.CopyResult;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
@@ -816,6 +817,64 @@ public class WorkspaceListenerTest {
 		verify(l1).setObjectDeleted(24, 75, false);
 		verify(l2).setObjectDeleted(24, 16, false);
 		verify(l2).setObjectDeleted(24, 75, false);
+	}
+	
+	@Test
+	public void copyObject1Listener() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ObjectIdentifier from = new ObjectIdentifier(wsi, "whoo");
+		final ObjectIdentifier to = new ObjectIdentifier(wsi, "whee");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final ObjectIDResolvedWS rfrom = new ObjectIDResolvedWS(rwsi, "whoo");
+		final ObjectIDResolvedWS rto = new ObjectIDResolvedWS(rwsi, "whee");
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
+		when(db.copyObject(user, rfrom, rto)).thenReturn(new CopyResult(OBJ_INFO, false));
+
+		ws.copyObject(user, from, to);
+		
+		verify(l).copyObject(24, 42, 45, false);
+	}
+	
+	@Test
+	public void copyObject2Listeners() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
+		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ObjectIdentifier from = new ObjectIdentifier(wsi, "whoo");
+		final ObjectIdentifier to = new ObjectIdentifier(wsi, "whee");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final ObjectIDResolvedWS rfrom = new ObjectIDResolvedWS(rwsi, "whoo");
+		final ObjectIDResolvedWS rto = new ObjectIDResolvedWS(rwsi, "whee");
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		
+		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
+		when(db.copyObject(user, rfrom, rto)).thenReturn(new CopyResult(OBJ_INFO, false));
+
+		ws.copyObject(user, from, to);
+		
+		verify(l1).copyObject(24, 42, 45, false);
+		verify(l2).copyObject(24, 42, 45, false);
 	}
 }
 

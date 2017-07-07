@@ -1419,7 +1419,13 @@ public class Workspace {
 				.getObjectChecker(from, Permission.READ).check();
 		final ObjectIDResolvedWS t = new PermissionsCheckerFactory(db, user)
 				.getObjectChecker(to, Permission.WRITE).check();
-		return db.copyObject(user, f, t);
+		final CopyResult cr = db.copyObject(user, f, t);
+		final ObjectInformation oi = cr.getObjectInformation();
+		for (final WorkspaceEventListener l: listeners) {
+			l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+					cr.isAllVersionsCopied());
+		}
+		return oi;
 	}
 	
 	public ObjectInformation revertObject(final WorkspaceUser user, final ObjectIdentifier oi)

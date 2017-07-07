@@ -92,6 +92,15 @@ public interface WorkspaceEventListener {
 	 * @param delete true if the object was deleted, false if it was undeleted.
 	 */
 	void setObjectDeleted(long workspaceId, long objectId, boolean delete);
+
+	/** Notification that an object was copied.
+	 * @param workspaceId the workspace id of the new object.
+	 * @param objectId the object id of the new object.
+	 * @param version the version of the new object.
+	 * @param allVersionsCopied whether all the versions of the source object were copied to the
+	 * new object.
+	 */
+	void copyObject(long workspaceId, long objectId, int version, boolean allVersionsCopied);
 	
 	//TODO NOW add more events & test
 

@@ -65,6 +65,13 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 
 		@Override
 		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {}
+
+		@Override
+		public void copyObject(
+				long workspaceId,
+				long objectId,
+				int version,
+				boolean allVersionsCopied) {}
 		
 	}
 
