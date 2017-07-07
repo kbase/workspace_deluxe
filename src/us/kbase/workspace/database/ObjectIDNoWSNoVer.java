@@ -35,7 +35,7 @@ public class ObjectIDNoWSNoVer {
 	 */
 	public ObjectIDNoWSNoVer(final long id) {
 		if (id < 1) {
-			throw new IllegalArgumentException("id must be > 0");
+			throw new IllegalArgumentException("Object id must be > 0");
 		}
 		this.name = null;
 		this.id = id;
@@ -63,7 +63,7 @@ public class ObjectIDNoWSNoVer {
 		if (id == null) {
 			return name;
 		}
-		return "" + getId().get();
+		return "" + id;
 	}
 	
 	/** Create an object identifier from a name or an id. One of the arguments is expected to be

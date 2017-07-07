@@ -69,7 +69,8 @@ public class ObjectIdentifierTest {
 			new ObjectIDNoWSNoVer(0);
 			fail("expected exception");
 		} catch (Exception e) {
-			TestCommon.assertExceptionCorrect(e, new IllegalArgumentException("id must be > 0"));
+			TestCommon.assertExceptionCorrect(e,
+					new IllegalArgumentException("Object id must be > 0"));
 		}
 	}
 	
