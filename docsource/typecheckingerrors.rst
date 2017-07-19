@@ -19,12 +19,7 @@ Assume that the following spec has been released::
         } AType;
     };
 
-The following examples will use the command (see :ref:`scripts`)::
-
-    ws-load AModule.AType foo object.json
-
-...to load a JSON text file to a default workspace. The examples will show the
-contents of the file, the error received, and an explanation of the error.
+The examples below show an example object, the error received, and an explanation of the error.
 
 Missing property
 ----------------

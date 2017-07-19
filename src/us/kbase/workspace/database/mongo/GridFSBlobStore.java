@@ -119,11 +119,6 @@ public class GridFSBlobStore implements BlobStore {
 	}
 
 	@Override
-	public String getStoreType() {
-		return "GridFS";
-	}
-	
-	@Override
 	public List<DependencyStatus> status() {
 		//note failures are tested manually for now, if you make changes test
 		//things still work

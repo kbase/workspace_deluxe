@@ -1,6 +1,7 @@
 package us.kbase.typedobj.db.test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -23,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
-import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -184,17 +183,18 @@ public class TypeRegisteringTest {
 		readOnlyMode();
 		try {
 			db.registerModule(taxonomySpec, Arrays.asList("taxon"), Collections.<String>emptyList(), "Nobody", true);
-			Assert.fail();
+			fail();
 		} catch (NoSuchPrivilegeException ex) {
-			Assert.assertTrue(ex.getMessage().equals("User Nobody is not in list of owners of module Taxonomy"));
+			assertThat(ex.getMessage().equals(
+					"User Nobody is not in list of owners of module Taxonomy"), is(true));
 		}
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), Collections.<String>emptyList(), user, true);
 		storage.removeAllTypeStorageListeners();
 		db.registerModule(taxonomySpec, Arrays.asList("taxon"), user);
 		releaseModule("Taxonomy", user);
-		Assert.assertEquals("Taxonomy", db.getModulesByOwner(user).get(0));
-		Assert.assertTrue(db.isValidType(new TypeDefName("Taxonomy", "taxon")));
-		Assert.assertFalse(db.isValidType(new TypeDefName("Taxonomy", "taxon2")));
+		assertThat(db.getModulesByOwner(user).get(0), is("Taxonomy"));
+		assertThat(db.isValidType(new TypeDefName("Taxonomy", "taxon")), is(true));
+		assertThat(db.isValidType(new TypeDefName("Taxonomy", "taxon2")), is(false));
 		String sequenceSpec = loadSpec("simple", "Sequence");
 		initModule("Sequence", user);
 		db.registerModule(sequenceSpec, Arrays.asList("sequence_id", "sequence_pos"), user);
@@ -214,30 +214,35 @@ public class TypeRegisteringTest {
 		readOnlyMode();
 		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.asList("new_regulator"), 
 				Collections.<String>emptyList(), user, true);
-		Assert.assertEquals(3, changes.size());
-		Assert.assertFalse(changes.get(new TypeDefName("Regulation.new_regulator")).isUnregistered());
-		Assert.assertEquals("0.1", changes.get(new TypeDefName("Regulation.new_regulator")).getTypeVersion().getVerString());
-		Assert.assertFalse(changes.get(new TypeDefName("Regulation.binding_site")).isUnregistered());
-		Assert.assertEquals("2.0", changes.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
-		Assert.assertTrue(changes.get(new TypeDefName("Regulation.regulator")).isUnregistered());
+		assertThat(changes.size(), is(3));
+		assertThat(changes.get(new TypeDefName("Regulation.new_regulator")).isUnregistered(),
+				is(false));
+		assertThat(changes.get(new TypeDefName("Regulation.new_regulator"))
+				.getTypeVersion().getVerString(), is("0.1"));
+		assertThat(changes.get(new TypeDefName("Regulation.binding_site")).isUnregistered(),
+				is(false));
+		assertThat(changes.get(new TypeDefName("Regulation.binding_site"))
+				.getTypeVersion().getVerString(), is("2.0"));
+		assertThat(changes.get(new TypeDefName("Regulation.regulator")).isUnregistered(),
+				is(true));
 		storage.removeAllTypeStorageListeners();
 		db.registerModule(reg2spec, Arrays.asList("new_regulator"), Collections.<String>emptyList(), user);
 		releaseModule("Regulation", user);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "regulator", null, false);
 		checkTypeDep("Regulation", "binding_site", "Regulation", "new_regulator", "1.0", true);
-		Assert.assertEquals(2, db.getAllModuleVersions("Regulation").size());
-		Assert.assertEquals("2.0", db.getLatestTypeVersion(new TypeDefName("Regulation.binding_site")));
+		assertThat(db.getAllModuleVersions("Regulation").size(), is(2));
+		assertThat(db.getLatestTypeVersion(new TypeDefName("Regulation.binding_site")), is("2.0"));
 		Map<AbsoluteTypeDefId, String> typeToJsonSchema2 = db.getJsonSchemasForAllTypes(new ModuleDefId("Regulation"));
 		String json1 = typeToJsonSchema1.get(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 1, 0));
 		String json2 = typeToJsonSchema2.get(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0));
-		Assert.assertNotNull(json2);
-		Assert.assertFalse(json1.equals(json2));
+		assertThat(json2, is(notNullValue()));
+		assertThat(json1.equals(json2), is(false));
 		Set<RefInfo> depFuncs = db.getFuncRefsByRef(new TypeDefId("Regulation.new_regulator"));
-		Assert.assertEquals(1, depFuncs.size());
+		assertThat(depFuncs.size(), is(1));
 		TypeDetailedInfo tdi = db.getTypeDetailedInfo(new AbsoluteTypeDefId(new TypeDefName("Regulation.binding_site"), 2, 0), true, user);
-		Assert.assertTrue(tdi.getSpecDef().contains("{"));
+		assertThat(tdi.getSpecDef().contains("{"), is(true));
 		FuncDetailedInfo fdi = db.getFuncDetailedInfo("Regulation", "get_regulator_binding_sites_and_genes", null, true, user);
-		Assert.assertTrue(fdi.getSpecDef().contains("("));
+		assertThat(fdi.getSpecDef().contains("("), is(true));
 	}
 			
 	@Test
@@ -246,11 +251,12 @@ public class TypeRegisteringTest {
 		initModule("Descr", adminUser);
 		db.registerModule(sequenceSpec, Arrays.asList("sequence_id", "sequence_pos"), adminUser);
 		releaseModule("Descr", adminUser);
-		Assert.assertEquals("Descr module.\n\nEnd of comment.", db.getModuleDescription("Descr"));
-		Assert.assertEquals("", db.getTypeDescription(new TypeDefId("Descr.sequence_id")));
-		Assert.assertEquals("", db.getFuncDescription("Descr", "invis_func", null));
-		Assert.assertEquals("position of fragment on a sequence", db.getTypeDescription(new TypeDefId("Descr.sequence_pos")));
-		Assert.assertEquals("The super function.", db.getFuncDescription("Descr", "super_func", null));
+		assertThat(db.getModuleDescription("Descr"), is("Descr module.\n\nEnd of comment."));
+		assertThat(db.getTypeDescription(new TypeDefId("Descr.sequence_id")), is(""));
+		assertThat(db.getFuncDescription("Descr", "invis_func", null), is(""));
+		assertThat(db.getTypeDescription(new TypeDefId("Descr.sequence_pos")),
+				is("position of fragment on a sequence"));
+		assertThat(db.getFuncDescription("Descr", "super_func", null), is("The super function."));
 	}
 	
 	@Test
@@ -263,9 +269,11 @@ public class TypeRegisteringTest {
 		String reg2spec = loadSpec("backward", "Regulation", "2");
 		Map<TypeDefName, TypeChange> changes = db.registerModule(reg2spec, Arrays.<String>asList(), 
 				Collections.<String>emptyList(), adminUser);
-		Assert.assertEquals(2, changes.size());
-		Assert.assertEquals("1.1", changes.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
-		Assert.assertEquals("2.0", changes.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		assertThat(changes.size(), is(2));
+		assertThat(changes.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString(),
+				is("1.1"));
+		assertThat(changes.get(new TypeDefName("Regulation.binding_site"))
+				.getTypeVersion().getVerString(), is("2.0"));
 		db.releaseModule("Regulation", adminUser, false);
 		checkFuncVer("Regulation", "get_gene_descr", "2.0");
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "2.0");
@@ -273,9 +281,11 @@ public class TypeRegisteringTest {
 		String reg3spec = loadSpec("backward", "Regulation", "3");
 		Map<TypeDefName, TypeChange> changes3 = db.registerModule(reg3spec, Arrays.<String>asList(), 
 				Collections.<String>emptyList(), adminUser);
-		Assert.assertEquals(2, changes3.size());
-		Assert.assertEquals("1.2", changes3.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
-		Assert.assertEquals("3.0", changes3.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		assertThat(changes3.size(), is(2));
+		assertThat(changes3.get(new TypeDefName("Regulation.gene"))
+				.getTypeVersion().getVerString(), is("1.2"));
+		assertThat(changes3.get(new TypeDefName("Regulation.binding_site"))
+				.getTypeVersion().getVerString(), is("3.0"));
 		db.releaseModule("Regulation", adminUser, false);
 		checkFuncVer("Regulation", "get_gene_descr", "2.0");
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "3.0");
@@ -283,30 +293,33 @@ public class TypeRegisteringTest {
 		String reg4spec = loadSpec("backward", "Regulation", "4");
 		Map<TypeDefName, TypeChange> changes4 = db.registerModule(reg4spec, Arrays.<String>asList(), 
 				Collections.<String>emptyList(), adminUser);
-		Assert.assertEquals(2, changes4.size());
-		Assert.assertEquals("2.0", changes4.get(new TypeDefName("Regulation.gene")).getTypeVersion().getVerString());
-		Assert.assertEquals("4.0", changes4.get(new TypeDefName("Regulation.binding_site")).getTypeVersion().getVerString());
+		assertThat(changes4.size(), is(2));
+		assertThat(changes4.get(new TypeDefName("Regulation.gene"))
+				.getTypeVersion().getVerString(), is("2.0"));
+		assertThat(changes4.get(new TypeDefName("Regulation.binding_site"))
+				.getTypeVersion().getVerString(), is("4.0"));
 		checkTypeVer("Regulation", "binding_site", "3.0");
-		Assert.assertEquals(1, db.findModuleVersionsByTypeVersion(new TypeDefId("Regulation.binding_site", "3.0"), null).size());
-		Assert.assertEquals(3, db.getAllModuleVersions("Regulation").size());
+		assertThat(db.findModuleVersionsByTypeVersion(
+				new TypeDefId("Regulation.binding_site", "3.0"), null).size(), is(1));
+		assertThat(db.getAllModuleVersions("Regulation").size(), is(3));
 		List<AbsoluteTypeDefId> releaseVers = db.releaseModule("Regulation", adminUser, false);
 		String bindingSiteTypeVer = null;
 		for (AbsoluteTypeDefId typeDef : releaseVers) {
 			if (typeDef.getType().getTypeString().equals("Regulation.binding_site"))
 				bindingSiteTypeVer = typeDef.getVerString();
 		}
-		Assert.assertEquals("4.0", bindingSiteTypeVer);
+		assertThat(bindingSiteTypeVer, is("4.0"));
 		List<ModuleDefId> verList1 = db.findModuleVersionsByTypeVersion(TypeDefId.fromTypeString("Regulation.binding_site"), null);
-		Assert.assertEquals(1, verList1.size());
+		assertThat(verList1.size(), is(1));
 		long lastRegVer = db.getLatestModuleVersion("Regulation");
-		Assert.assertEquals(lastRegVer, (long)verList1.get(0).getVersion());
+		assertThat((long)verList1.get(0).getVersion(), is(lastRegVer));
 		List<ModuleDefId> verList2 = db.findModuleVersionsByTypeVersion(new TypeDefId("Regulation.binding_site", "4.0"), null);
-		Assert.assertEquals(1, verList2.size());
-		Assert.assertEquals(lastRegVer, (long)verList2.get(0).getVersion());
+		assertThat(verList2.size(), is(1));
+		assertThat((long)verList2.get(0).getVersion(), is(lastRegVer));
 		checkFuncVer("Regulation", "get_gene_descr", "3.0");
 		checkFuncVer("Regulation", "get_nearest_binding_sites", "4.0");
 		checkFuncVer("Regulation", "get_regulated_genes", "2.0");
-		Assert.assertEquals(4, db.getAllModuleVersions("Regulation").size());
+		assertThat(db.getAllModuleVersions("Regulation").size(), is(4));
 		// Annotations
 		String annMod = "Annotations";
 		initModule(annMod, adminUser);
@@ -314,16 +327,16 @@ public class TypeRegisteringTest {
 		db.releaseModule(annMod, adminUser, false);
 		db.registerModule(loadSpec("backward", annMod, "2"), Collections.<String>emptyList(), adminUser);
 		Map<String, String> map2 = asMap(db.releaseModule(annMod, adminUser, false));
-		Assert.assertEquals("2.0", map2.get("Annotations.type2"));
-		Assert.assertEquals("2.0", map2.get("Annotations.type3"));
+		assertThat(map2.get("Annotations.type2"), is("2.0"));
+		assertThat(map2.get("Annotations.type3"), is("2.0"));
 		db.registerModule(loadSpec("backward", annMod, "3"), Collections.<String>emptyList(), adminUser);
 		Map<String, String> map3 = asMap(db.releaseModule(annMod, adminUser, false));
-		Assert.assertEquals("3.0", map3.get("Annotations.type2"));
-		Assert.assertEquals("2.0", map3.get("Annotations.type3"));
+		assertThat(map3.get("Annotations.type2"), is("3.0"));
+		assertThat(map3.get("Annotations.type3"), is("2.0"));
 		db.registerModule(loadSpec("backward", annMod, "4"), Collections.<String>emptyList(), adminUser);
 		Map<String, String> map4 = asMap(db.releaseModule(annMod, adminUser, false));
-		Assert.assertEquals("4.0", map4.get("Annotations.type2"));
-		Assert.assertEquals("3.0", map4.get("Annotations.type3"));
+		assertThat(map4.get("Annotations.type2"), is("4.0"));
+		assertThat(map4.get("Annotations.type3"), is("3.0"));
 		// Id refs
 		String exprName = "Expression";
 		String exprSpec = loadSpec("backward", exprName);
@@ -356,16 +369,16 @@ public class TypeRegisteringTest {
 				"writeTypeSchemaRecord", "writeTypeParseRecord", "writeFuncParseRecord", "writeModuleRecords", "addRefs")) {
 			storage.removeAllTypeStorageListeners();
 			withErrorAfterMethod(errMethod);
-			Assert.assertEquals(1, storage.getTypeStorageListeners().size());
+			assertThat(storage.getTypeStorageListeners().size(), is(1));
 			try {
 				db.registerModule(spec1, Arrays.asList("seq_id", "seq_pos"), adminUser);
-				Assert.fail("Error should occur before this line");
+				fail("Error should occur before this line");
 			} catch (Exception ex) {
-				Assert.assertEquals("Method has test error at the end of body.", ex.getMessage());
-				Assert.assertEquals(verAfterInit, db.getLatestModuleVersion("First"));
-				Assert.assertEquals(typesAfterInit, db.getAllRegisteredTypes("First").size());
-				Assert.assertEquals(funcsAfterInit, db.getAllRegisteredFuncs("First").size());
-				Assert.assertEquals(objAfterInit, getStorageObjects());
+				assertThat(ex.getMessage(), is("Method has test error at the end of body."));
+				assertThat(db.getLatestModuleVersion("First"), is(verAfterInit));
+				assertThat(db.getAllRegisteredTypes("First").size(), is(typesAfterInit));
+				assertThat(db.getAllRegisteredFuncs("First").size(), is(funcsAfterInit));
+				assertThat(getStorageObjects(), is(objAfterInit));
 			}
 		}
 	}
@@ -386,9 +399,10 @@ public class TypeRegisteringTest {
 		initModule("Upper", adminUser);
 		try {
 			db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"), adminUser);
-			Assert.fail();
+			fail();
 		} catch (SpecParseException ex) {
-			Assert.assertTrue(ex.getMessage().contains("Incompatible module dependecies: Common"));
+			assertThat(ex.getMessage().contains("Incompatible module dependecies: Common"),
+					is(true));
 		}
 		db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"), 
 				Collections.<String>emptyList(), adminUser, true, restrict("Common", commonVer1));
@@ -397,25 +411,27 @@ public class TypeRegisteringTest {
 		try {
 			db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"),
 					Collections.<String>emptyList(), adminUser, false, restrict("Common", commonVer1));
-			Assert.fail();
+			fail();
 		} catch (SpecParseException ex) {
-			Assert.assertTrue(ex.getMessage().contains("Version of dependent module Common"));
+			assertThat(ex.getMessage().contains("Version of dependent module Common"), is(true));
 		}
 		try {
 			db.registerModule(loadSpec("restrict", "Upper"), Arrays.asList("upper_struct"),
 					Collections.<String>emptyList(), adminUser, false, 
 					restrict("Common", commonVer2, "Middle", middleVer1));
-			Assert.fail();
+			fail();
 		} catch (SpecParseException ex) {
-			Assert.assertTrue(ex.getMessage().contains("Version of dependent module Common"));
+			assertThat(ex.getMessage().contains("Version of dependent module Common"), is(true));
 		}
 		Map<TypeDefName, TypeChange> ret = db.registerModule(loadSpec("restrict", "Upper"), 
 				Arrays.asList("upper_struct"), Collections.<String>emptyList(), adminUser, false, 
 				restrict("Common", commonVer1, "Middle", middleVer1));
-		Assert.assertEquals(1, ret.size());
-		Assert.assertEquals(ret.get(new TypeDefName("Upper.upper_struct")).getTypeVersion().getVerString(), "0.1");
+		assertThat(ret.size(), is(1));
+		assertThat(ret.get(new TypeDefName("Upper.upper_struct")).getTypeVersion().getVerString(),
+				is("0.1"));
 		db.releaseModule("Upper", adminUser, false);
-		Assert.assertEquals(1, db.findModuleVersionsByTypeVersion(new TypeDefId("Upper.upper_struct", "1"), null).size());
+		assertThat( db.findModuleVersionsByTypeVersion(
+				new TypeDefId("Upper.upper_struct", "1"), null).size(), is(1));
 	}
 	
 	/**
@@ -450,14 +466,14 @@ public class TypeRegisteringTest {
 				db.getTypeParsingDocument(typeDef);
 				refCount += db.getTypeRefsByDep(typeDef).size();
 			}
-			Assert.assertEquals(3, refCount);
+			assertThat(refCount, is(3));
 			refCount = 0;
 			for (String func : info.getFuncs().keySet()) {
 				String funcVer = info.getFuncs().get(func).getFuncVersion();
 				db.getFuncParsingDocument(info.getModuleName(), func, funcVer);
 				refCount += db.getFuncRefsByDep(info.getModuleName(), func, funcVer).size();
 			}
-			Assert.assertEquals(2, refCount);
+			assertThat(refCount, is(2));
 		}
 		System.out.println("Search time: " + (System.currentTimeMillis() - time));
 	}
@@ -477,22 +493,22 @@ public class TypeRegisteringTest {
 		db.refreshModule("Upper", adminUser);
 		db.releaseModule("Upper", adminUser, false);
 		String common2hash = db.getModuleMD5("Common");
-		Assert.assertFalse(common1hash.equals(common2hash));
+		assertThat(common1hash.equals(common2hash), is(false));
 		String upper2hash = db.getModuleMD5("Upper");
-		Assert.assertFalse(upper1hash.equals(upper2hash));
-		Assert.assertTrue(db.findModuleVersionsByMD5("Upper", upper2hash).contains(
-				new ModuleDefId("Upper", db.getLatestModuleVersion("Upper"))));
+		assertThat(upper1hash.equals(upper2hash), is(false));
+		assertThat(db.findModuleVersionsByMD5("Upper", upper2hash).contains(
+				new ModuleDefId("Upper", db.getLatestModuleVersion("Upper"))), is(true));
 		db.registerModule(loadSpec("md5", "Common", "3"), Arrays.asList("unused_struct"), adminUser);
 		db.releaseModule("Common", adminUser, false);
 		db.refreshModule("Upper", adminUser);
 		db.releaseModule("Upper", adminUser, false);
 		String common3hash = db.getModuleMD5("Common");
-		Assert.assertFalse(common2hash.equals(common3hash));
+		assertThat(common2hash.equals(common3hash), is(false));
 		String upper3hash = db.getModuleMD5("Upper");
-		Assert.assertTrue(upper2hash.equals(upper3hash));
-		Assert.assertTrue(db.findModuleVersionsByMD5("Common", common3hash).contains(
-				new ModuleDefId("Common", db.getLatestModuleVersion("Common"))));
-		Assert.assertEquals(common3hash, db.getModuleInfo(new ModuleDefId("Common")).getMd5hash());
+		assertThat(upper2hash.equals(upper3hash), is(true));
+		assertThat(db.findModuleVersionsByMD5("Common", common3hash).contains(
+				new ModuleDefId("Common", db.getLatestModuleVersion("Common"))), is(true));
+		assertThat(db.getModuleInfo(new ModuleDefId("Common")).getMd5hash(), is(common3hash));
 	}
 	
 	@Test
@@ -500,14 +516,14 @@ public class TypeRegisteringTest {
 		for (int item = 0; item < 2; item++) {
 			db.requestModuleRegistration("NewModule", adminUser);
 			List<OwnerInfo> list = db.getNewModuleRegistrationRequests(adminUser, true);
-			Assert.assertEquals(1, list.size());
-			Assert.assertEquals("NewModule", list.get(0).getModuleName());
+			assertThat(list.size(), is(1));
+			assertThat(list.get(0).getModuleName(), is("NewModule"));
 			if (item == 0) {
 				db.refuseModuleRegistrationRequest(adminUser, "NewModule", true);
 			} else {
 				db.approveModuleRegistrationRequest(adminUser, "NewModule", true);
 			}
-			Assert.assertEquals(0, db.getNewModuleRegistrationRequests(adminUser, true).size());
+			assertThat(db.getNewModuleRegistrationRequests(adminUser, true).size(), is(0));
 		}
 		
 		failReg(null, adminUser, "Module name cannot be null or the empty string");
@@ -541,57 +557,61 @@ public class TypeRegisteringTest {
 		initModule("Test", adminUser);
 		try {
 			db.registerModule(loadSpec("error", "Test"), Arrays.asList("bebebe"), adminUser);
-			Assert.fail();
+			fail();
 		} catch (SpecParseException ex) {
-			Assert.assertTrue(ex.getMessage().contains("bebebe"));
+			assertThat(ex.getMessage().contains("bebebe"), is(true));
 		}
 		initModule("DoubleModule", adminUser);
 		try {
 			db.registerModule(loadSpec("error", "DoubleModule"), adminUser);
-			Assert.fail();
+			fail();
 		} catch (SpecParseException ex) {
-			Assert.assertTrue(ex.getMessage().contains("only one"));
+			assertThat(ex.getMessage().contains("only one"), is(true));
 		}
 		initModule("Empty", adminUser);
 		try {
 			db.registerModule("module Empty {};", Collections.<String>emptyList(), Collections.<String>emptyList(),
 					adminUser, false, Collections.<String,Long>emptyMap(), -1L);
-			Assert.fail();
+			fail();
 		} catch (SpecParseException ex) {
-			Assert.assertTrue(ex.getMessage().contains("Concurrent modification: previous module version is "));
+			assertThat(ex.getMessage().contains(
+					"Concurrent modification: previous module version is "), is(true));
 		}
 		initModule("Common", adminUser);
 		db.registerModule(loadSpec("error", "Common"), adminUser);
 		try {
 			db.registerModule(loadSpec("error", "Common"), adminUser);
-			Assert.fail();
+			fail();
 		} catch (SpecParseException ex) {
-			Assert.assertTrue(ex.getMessage().contains("There is no difference"));
+			assertThat(ex.getMessage().contains("There is no difference"), is(true));
 		}
 		try {
 			db.getJsonSchema(TypeDefId.fromTypeString("UnknownModule.UnknownType"));
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {
-			Assert.assertTrue(ex.getMessage().contains("Module doesn't exist: UnknownModule"));
+			assertThat(ex.getMessage().contains("Module doesn't exist: UnknownModule"), is(true));
 		}
 		try {
 			db.getJsonSchema(TypeDefId.fromTypeString("Common.UnknownType"));
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {
-			Assert.assertTrue(ex.getMessage().contains("Unable to locate type: Common.UnknownType"));
+			assertThat(ex.getMessage().contains("Unable to locate type: Common.UnknownType"),
+					is(true));
 		}
 		try {
 			db.getJsonSchema(TypeDefId.fromTypeString("Common.UnknownType-1.0"));
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Unable to locate type: Common.UnknownType-1.0"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Unable to locate type: Common.UnknownType-1.0"), is(true));
 		}
 		initModule("StructDuplication", adminUser);
 		try {
 			db.registerModule(loadSpec("error", "StructDuplication"), Arrays.asList("my_struct"), adminUser);
-			Assert.fail();
+			fail();
 		} catch (SpecParseException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Name duplication for field [val1]"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Name duplication for field [val1]"), is(true));
 		}
 	}
 
@@ -618,141 +638,146 @@ public class TypeRegisteringTest {
 		db.stopModuleSupport(moduleName, adminUser, true);
 		try {
 			releaseModule(moduleName, adminUser);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
-		Assert.assertFalse(new HashSet<String>(db.getAllRegisteredModules()).contains(moduleName));
+		assertThat(new HashSet<String>(db.getAllRegisteredModules()).contains(moduleName),
+				is(false));
 		try {
 			db.getLatestModuleVersion(moduleName);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		try {
 			db.getAllModuleVersions(moduleName);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		try {
 			db.getModuleInfo(moduleName);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		db.getModuleInfo(moduleName, lastModVer);
 		try {
 			db.getModuleInfo(new ModuleDefId(moduleName));
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		db.getModuleInfo(new ModuleDefId(moduleName, lastModVer));
 		try {
 			db.getModuleSpecDocument(moduleName);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		db.getModuleSpecDocument(moduleName, lastModVer);
 		try {
 			db.getModuleSpecDocument(new ModuleDefId(moduleName));
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		db.getModuleSpecDocument(new ModuleDefId(moduleName, lastModVer));
 		try {
 			db.getModuleMD5(moduleName);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		String md5 = db.getModuleMD5(moduleName, lastModVer);
 		db.findModuleVersionsByMD5(moduleName, md5);
 		try {
 			db.getModuleDescription(moduleName);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		db.getModuleDescription(moduleName, lastModVer);
 		db.getModuleOwners(moduleName);
-		Assert.assertFalse(new HashSet<String>(db.getModulesByOwner(adminUser)).contains(moduleName));
+		assertThat(new HashSet<String>(db.getModulesByOwner(adminUser)).contains(moduleName),
+				is(false));
 		//// Types
 		try {
 			db.getAllRegisteredTypes(moduleName);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		try {
 			db.getAllRegisteredTypes(new ModuleDefId(moduleName));
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		db.getAllRegisteredTypes(new ModuleDefId(moduleName, lastModVer));
 		try {
 			db.getLatestTypeVersion(new TypeDefName(moduleName, "regulator"));
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		try {
 			db.getTypeMd5Version(new TypeDefId(new TypeDefName(moduleName, "regulator")), null).getMd5();
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {}
 		String typeMd5 = db.getTypeMd5Version(new TypeDefId(moduleName + ".regulator", lastTypeVer), null).getMd5().getMD5();
-		Assert.assertNotNull(typeMd5);
+		assertThat(typeMd5, is(notNullValue()));
 		try {
 			db.getJsonSchemaDocument(new TypeDefName(moduleName, "regulator"));
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {}
 		try {
 			db.getJsonSchemaDocument(new TypeDefId(new TypeDefName(moduleName, "regulator")));
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {}
 		String jsonSchema = db.getJsonSchemaDocument(new TypeDefId(moduleName + ".regulator", lastTypeVer));
-		Assert.assertEquals(jsonSchema, db.getJsonSchemaDocument(new TypeDefId(moduleName + ".regulator", typeMd5)));
-		Assert.assertEquals(jsonSchema, db.getJsonSchemaDocument(
-				new AbsoluteTypeDefId(new TypeDefName(moduleName, "regulator"), new MD5(typeMd5))));
+		assertThat(db.getJsonSchemaDocument(new TypeDefId(moduleName + ".regulator", typeMd5)),
+				is(jsonSchema));
+		assertThat(db.getJsonSchemaDocument(new AbsoluteTypeDefId(
+				new TypeDefName(moduleName, "regulator"), new MD5(typeMd5))), is(jsonSchema));
 		try {
 			db.getTypeParsingDocument(new TypeDefName(moduleName, "regulator"));
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {}
 		try {
 			db.getTypeParsingDocument(new TypeDefId(new TypeDefName(moduleName, "regulator")));
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {}
-		Assert.assertTrue(
-				db.getTypeParsingDocument(new TypeDefId(moduleName + ".regulator", lastTypeVer)).getData().equals(
-				db.getTypeParsingDocument(new TypeDefId(moduleName + ".regulator", typeMd5)).getData()));
+		assertThat(db.getTypeParsingDocument(new TypeDefId(moduleName + ".regulator", lastTypeVer))
+					.getData(),
+				is(db.getTypeParsingDocument(new TypeDefId(moduleName + ".regulator", typeMd5))
+						.getData()));
 		try {
 			db.getTypeRefsByDep(new TypeDefId(new TypeDefName(moduleName, "regulator")));
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {}
 		db.getTypeRefsByDep(new TypeDefId(moduleName + ".regulator", lastTypeVer));
 		try {
 			db.getTypeRefsByRef(new TypeDefId(new TypeDefName(moduleName, "regulator")));
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {}
 		db.getTypeRefsByRef(new TypeDefId(moduleName + ".regulator", lastTypeVer));
 		try {
 			db.getFuncRefsByRef(new TypeDefId(new TypeDefName(moduleName, "regulator")));
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {}
 		db.getFuncRefsByRef(new TypeDefId(moduleName + ".regulator", lastTypeVer));
 		try {
 			db.stopTypeSupport(new TypeDefName(moduleName, "regulator"), adminUser, "", false);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		//// Functions
 		try {
 			db.getAllRegisteredFuncs(moduleName);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		try {
 			db.getLatestFuncVersion(moduleName, "get_genome");
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		try {
 			db.getFuncParsingDocument(moduleName, "get_genome");
-			Assert.fail();
+			fail();
 		} catch (NoSuchFuncException ex) {}
 		db.getFuncParsingDocument(moduleName, "get_genome", lastFuncVer);
 		try {
 			db.getFuncRefsByDep(moduleName, "get_genome");
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		db.getFuncRefsByDep(moduleName, "get_genome", lastFuncVer);
 		//// Other
 		try {
 			db.registerModule(loadSpec("stop", moduleName), Arrays.asList("regulator", "binding_site"), adminUser);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {}
 		try {
 			db.registerModule(loadSpec("stop", "Dependant"), Arrays.asList("new_type"), adminUser);
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {
-			Assert.assertTrue(ex.getMessage().contains("Module Regulation is no longer supported"));
+			assertThat(ex.getMessage().contains("Module Regulation is no longer supported"),
+					is(true));
 		}
 		initModule("Dependant", adminUser);
 		db.registerModule(loadSpec("stop", "Dependant"), Arrays.asList("new_type"), Collections.<String>emptyList(), 
@@ -762,12 +787,12 @@ public class TypeRegisteringTest {
 		db.releaseModule(moduleName, adminUser, false);
 		try {
 			db.refreshModule("Dependant", adminUser);
-			Assert.fail();
+			fail();
 		} catch (SpecParseException ex) {}
 		db.registerModule(loadSpec("stop", "Dependant"), Collections.<String>emptyList(), Collections.<String>emptyList(), 
 				adminUser, false, restrict(moduleName, lastModVer), null, "Test message", false);
 		db.releaseModule("Dependant", adminUser, false);
-		Assert.assertEquals("Test message", db.getModuleInfo("Dependant").getUploadComment());
+		assertThat(db.getModuleInfo("Dependant").getUploadComment(), is("Test message"));
 	}
 
 	@Test
@@ -778,13 +803,16 @@ public class TypeRegisteringTest {
 		initModule("DepModule", adminUser);
 		db.registerModule(loadSpec("deps", "DepModule"), Arrays.asList("BType"), adminUser);
 		TypeDetailedInfo tdi = db.getTypeDetailedInfo(new TypeDefId("DepModule.BType", "0.1"), false, adminUser);
-		Assert.assertEquals(1, tdi.getUsedTypeDefIds().size());
-		Assert.assertEquals(1, tdi.getUsingFuncDefIds().size());
-		Assert.assertEquals(1, db.getFuncDetailedInfo("DepModule", "new_call", "0.1", false, adminUser).getUsedTypeDefIds().size());
-		Assert.assertEquals(1, db.getTypeDetailedInfo(new TypeDefId("SomeModule.AType", "1.0"), false, adminUser).getUsingTypeDefIds().size());
+		assertThat(tdi.getUsedTypeDefIds().size(), is(1));
+		assertThat(tdi.getUsingFuncDefIds().size(), is(1));
+		assertThat(db.getFuncDetailedInfo("DepModule", "new_call", "0.1", false, adminUser)
+				.getUsedTypeDefIds().size(), is(1));
+		assertThat(db.getTypeDetailedInfo(
+				new TypeDefId("SomeModule.AType", "1.0"), false, adminUser)
+						.getUsingTypeDefIds().size(), is(1));
 		releaseModule("DepModule", adminUser);
 		Set<RefInfo> funcs = db.getFuncRefsByRef(new TypeDefId("DepModule.BType", "1.0"));
-		Assert.assertEquals(1, funcs.size());
+		assertThat(funcs.size(), is(1));
 		
 	}
 	
@@ -793,17 +821,20 @@ public class TypeRegisteringTest {
 		String module = "SomeModule";
 		try {
 			db.registerModule(loadSpec("deps", module), Arrays.asList("AType"), "author");
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {
-			Assert.assertEquals("Module SomeModule was not initialized. For that you must request ownership of the module, and your request must be approved.", ex.getMessage());
+			assertThat(ex.getMessage(), is("Module SomeModule was not initialized. For that " +
+					"you must request ownership of the module, and your request must be " +
+					"approved."));
 		}
 		initModule(module, "author");
 		db.registerModule(loadSpec("deps", module), Arrays.asList("AType"), "author");
 		try {
 			db.getModuleSpecDocument(new ModuleDefId(module), "stranger", false);		// bad
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Module wasn't uploaded: SomeModule"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Module wasn't uploaded: SomeModule"), is(true));
 		}
 		db.addOwnerToModule(adminUser, module, "friend", false, true);
 		db.getModuleSpecDocument(new ModuleDefId(module), "friend", false);
@@ -812,48 +843,58 @@ public class TypeRegisteringTest {
 		db.getFuncDetailedInfo(module, "aFunc", null, false, "friend");
 		try {
 			db.getTypeDetailedInfo(new TypeDefId(module + ".AType", "0.2"), false, "friend");
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Unable to locate type: SomeModule.AType-0.2"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Unable to locate type: SomeModule.AType-0.2"), is(true));
 		}
 		db.removeOwnerFromModule(adminUser, module, "friend", true);
 		try {
 			db.getModuleSpecDocument(new ModuleDefId(module), "friend", false);		// bad
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Module wasn't uploaded: SomeModule"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Module wasn't uploaded: SomeModule"), is(true));
 		}
 		try {
 			db.getJsonSchemaDocument(new TypeDefId(module + ".AType"), "friend");
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("This type wasn't released yet and you should be an owner to access unreleased version information"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"This type wasn't released yet and you should be an owner to access "+
+					"unreleased version information"), is(true));
 		}
 		try {
 			db.getTypeDetailedInfo(new TypeDefId(module + ".AType"), false, "friend");
-			Assert.fail();
+			fail();
 		} catch (NoSuchTypeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("This type wasn't released yet and you should be an owner to access unreleased version information"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"This type wasn't released yet and you should be an owner to access " +
+					"unreleased version information"), is(true));
 		}
 		try {
 			db.getFuncDetailedInfo(module, "aFunc", null, false, "friend");
-			Assert.fail();
+			fail();
 		} catch (NoSuchFuncException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("This function wasn't released yet and you should be an owner to access unreleased version information"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"This function wasn't released yet and you should be an owner to access " +
+					"unreleased version information"), is(true));
 		}
 		try {
 			db.addOwnerToModule("stranger", module, "stranger2", false, false);	// bad
-			Assert.fail();
+			fail();
 		} catch (NoSuchPrivilegeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("User stranger is not in list of owners of module SomeModule"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"User stranger is not in list of owners of module SomeModule"), is(true));
 		}
 		db.addOwnerToModule("author", module, "stranger", false, false);
 		db.getModuleSpecDocument(new ModuleDefId(module), "stranger", false);
 		try {
 			db.addOwnerToModule("stranger", module, "stranger2", false, false);	// bad
-			Assert.fail();
+			fail();
 		} catch (NoSuchPrivilegeException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("User stranger can not change privileges for module SomeModule"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"User stranger can not change privileges for module SomeModule"), is(true));
 		}
 		db.addOwnerToModule("author", module, "stranger", true, false);
 		db.getModuleSpecDocument(new ModuleDefId(module), "stranger", false);
@@ -861,9 +902,10 @@ public class TypeRegisteringTest {
 		db.removeOwnerFromModule("stranger", module, "stranger2", false);
 		try {
 			db.getModuleSpecDocument(new ModuleDefId(module), "stranger2", false);		// bad
-			Assert.fail();
+			fail();
 		} catch (NoSuchModuleException ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Module wasn't uploaded: SomeModule"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Module wasn't uploaded: SomeModule"), is(true));
 		}
 	}
 	
@@ -873,7 +915,8 @@ public class TypeRegisteringTest {
 		initModule(module, "author");
 		db.registerModule("module EmptyModule {};", Collections.<String>emptyList(), "author");
 		db.registerModule("module EmptyModule {funcdef foo() returns ();};", Collections.<String>emptyList(), "author");
-		Assert.assertEquals("funcdef foo() returns () authentication none;", db.getFuncDetailedInfo("EmptyModule", "foo", null, false, "author").getSpecDef());
+		assertThat(db.getFuncDetailedInfo("EmptyModule", "foo", null, false, "author")
+				.getSpecDef(), is("funcdef foo() returns () authentication none;"));
 	}
 	
 	private Map<String, Long> restrict(Object... params) {
@@ -893,11 +936,11 @@ public class TypeRegisteringTest {
 	}
 
 	private void checkTypeVer(String module, String typeName, String version) throws Exception {
-		Assert.assertEquals(version, db.getLatestTypeVersion(new TypeDefName(module, typeName)));
+		assertThat(db.getLatestTypeVersion(new TypeDefName(module, typeName)), is(version));
 	}
 
 	private void checkFuncVer(String module, String funcName, String version) throws Exception {
-		Assert.assertEquals(version, db.getLatestFuncVersion(module, funcName));
+		assertThat(db.getLatestFuncVersion(module, funcName), is(version));
 	}
 	
 	private void readOnlyMode() {
@@ -977,9 +1020,9 @@ public class TypeRegisteringTest {
 				break;
 			}
 		}
-		Assert.assertEquals(res, ret != null);
+		assertThat(ret != null, is(res));
 		if (ret != null && refVer != null) {
-			Assert.assertEquals(refVer, ret.getRefVersion());
+			assertThat(ret.getRefVersion(), is(refVer));
 		}
 	}
 }

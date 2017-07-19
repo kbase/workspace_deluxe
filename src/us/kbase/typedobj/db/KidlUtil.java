@@ -1,5 +1,8 @@
 package us.kbase.typedobj.db;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
@@ -8,8 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import junit.framework.Assert;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -41,9 +42,9 @@ public class KidlUtil {
 			JsonParseException, JsonMappingException, JsonGenerationException,
 			Exception {
 		boolean ok = true;
-		Assert.assertEquals(schemas1.keySet(), schemas2.keySet());
+		assertThat(schemas1.keySet(), is(schemas2.keySet()));
 		for (String moduleName : schemas1.keySet()) {
-			Assert.assertEquals(schemas1.get(moduleName).keySet(), schemas2.get(moduleName).keySet());
+			assertThat(schemas1.get(moduleName).keySet(), is(schemas2.get(moduleName).keySet()));
 			for (Map.Entry<String, String> entry : schemas1.get(moduleName).entrySet()) {
 				String schema1 = rewriteJson(entry.getValue());
 				String schema2 = rewriteJson(schemas2.get(moduleName).get(entry.getKey()));

@@ -25,7 +25,10 @@ public class ObjectInformation {
 	final private UncheckedUserMetadata meta;
 	final private List<Reference> refpath;
 	
-	/** Create a new MongoObjectInfo.
+	// TODO CODE make a builder, even though only meta is optional. More readable, easier to add new optional fields.
+	// TODO CODE use a typedef class vs a string.
+	
+	/** Create a new ObjectInformation.
 	 * @param id the object id.
 	 * @param name the object name.
 	 * @param typeString the absolute type of the object as a string.
@@ -42,7 +45,7 @@ public class ObjectInformation {
 			final long id,
 			final String name,
 			final String typeString,
-			final Date savedDate,
+			final Date savedDate, //TODO CODE use instant
 			final int version,
 			final WorkspaceUser savedBy,
 			final ResolvedWorkspaceID workspaceID,

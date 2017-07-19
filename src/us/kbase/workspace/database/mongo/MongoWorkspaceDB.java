@@ -5,6 +5,7 @@ import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoA
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,13 +44,17 @@ import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
+import us.kbase.workspace.database.CopyResult;
 import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.PermissionSet.Builder;
 import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.ResolvedObjectID;
+import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -78,6 +83,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationExcept
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Optional;
 import com.mongodb.BasicDBObject;
 import com.mongodb.CommandResult;
 import com.mongodb.DB;
@@ -97,7 +103,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public static final String COL_WORKSPACE_VERS = CollectionNames.COL_WORKSPACE_VERS;
 	public static final String COL_PROVENANCE = CollectionNames.COL_PROVENANCE;
 	public static final String COL_CONFIG = CollectionNames.COL_CONFIG;
-	public static final User ALL_USERS = Workspace.ALL_USERS;
+	public static final AllUsers ALL_USERS = Workspace.ALL_USERS;
 	
 
 	//TODO CONFIG this should really be configurable
@@ -316,15 +322,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						Fields.CNT_NUM, Fields.MONGO_ID));
 	}
 
-	@Override
-	public String getBackendType() {
-		return blob.getStoreType();
-	}
-
 	private final static String M_WS_DATE_WTH = String.format(
 			"{$set: {%s: #}}", Fields.WS_MODDATE);
 	
-	private void updateWorkspaceModifiedDate(final ResolvedMongoWSID rwsi)
+	private void updateWorkspaceModifiedDate(final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException {
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
@@ -426,23 +427,31 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		if (!cloning) {
 			setCreatedWorkspacePermissions(user, globalRead,
-					new ResolvedMongoWSID(wsname, count, false, false));
+					new ResolvedWorkspaceID(count, wsname, false, false));
 		}
-		return new MongoWSInfo(count, wsname, user, moddate, 0L,
-				Permission.OWNER, globalRead, false,
-				new UncheckedUserMetadata(meta));
+		return WorkspaceInformation.getBuilder()
+				.withID(count)
+				.withName(wsname)
+				.withOwner(user)
+				.withModificationDate(moddate.toInstant())
+				.withMaximumObjectID(0L)
+				.withUserPermission(Permission.OWNER)
+				.withGlobalRead(globalRead)
+				.withLocked(false)
+				.withUserMetadata(new UncheckedUserMetadata(meta))
+				.build();
 	}
 
 	private void setCreatedWorkspacePermissions(
 			final WorkspaceUser user,
 			final boolean globalRead,
-			final ResolvedMongoWSID newWSid)
+			final ResolvedWorkspaceID newWSid)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		setPermissionsForWorkspaceUsers(newWSid, Arrays.asList(user),
 				Permission.OWNER, false);
 		if (globalRead) {
-			setPermissions(newWSid, Arrays.asList(ALL_USERS), Permission.READ,
+			setPermissions(newWSid, Arrays.asList((User) ALL_USERS), Permission.READ,
 					false);
 		}
 	}
@@ -474,8 +483,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException(
 					"Metadata cannot be null or empty");
 		}
-		final Map<String, Object> ws = query.queryWorkspace(
-				query.convertResolvedWSID(rwsi), FLDS_WS_META);
+		final Map<String, Object> ws = query.queryWorkspace(rwsi, FLDS_WS_META);
 		@SuppressWarnings("unchecked")
 		final Map<String, String> currMeta = metaMongoArrayToHash(
 				(List<Object>) ws.get(Fields.WS_META));
@@ -556,8 +564,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final Set<String> FLDS_CLONE_WS =
-			newHashSet(Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL,
-					Fields.OBJ_HIDE);
+			newHashSet(Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_HIDE);
 	
 	@Override
 	public WorkspaceInformation cloneWorkspace(
@@ -573,15 +580,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			NoSuchObjectException {
 		
 		// looked at using copyObject to do this but was too messy
-		final ResolvedMongoWSID fromWS = query.convertResolvedWSID(wsid);
+		final ResolvedWorkspaceID fromWS = wsid;
 		// resolve the object before making a new workspace in case something
 		// fails
-		final Collection<ResolvedMongoObjectID> resexclude =
+		final Collection<ResolvedObjectID> resexclude =
 				resolveObjectIDs(fromWS, exclude).values();
 		final WorkspaceInformation wsinfo = createWorkspace(
 				user, newname, globalRead, description, meta, true);
-		final ResolvedMongoWSID toWS = new ResolvedMongoWSID(wsinfo.getName(),
-				wsinfo.getId(), wsinfo.isLocked(), false); //assume it's not deleted already
+		final ResolvedWorkspaceID toWS = new ResolvedWorkspaceID(wsinfo.getId(),
+				wsinfo.getName(), wsinfo.isLocked(), false); //assume it's not deleted already
 		final DBObject q = new BasicDBObject(Fields.OBJ_WS_ID, fromWS.getID());
 		//skip any objects with no versions, likely a race condition
 		//or worse the db went down post version increment pre version save
@@ -599,14 +606,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				final long objid = (Long) o.get(Fields.OBJ_ID);
 				final String name = (String) o.get(Fields.OBJ_NAME);
 				final boolean hidden = (Boolean) o.get(Fields.OBJ_HIDE);
+				final boolean deleted = (Boolean) o.get(Fields.OBJ_DEL);
 				maxid = Math.max(maxid, objid);
-				final ResolvedMongoObjectIDNoVer roi =
-						new ResolvedMongoObjectIDNoVer(fromWS, name, objid);
+				final ResolvedObjectIDNoVer roi =
+						new ResolvedObjectIDNoVer(fromWS, objid, name, deleted);
 				final List<Map<String, Object>> versions;
 				try {
 					versions = queryAllVersions(
-							new HashSet<ResolvedMongoObjectIDNoVer>(
-									Arrays.asList(roi)),
+							new HashSet<ResolvedObjectIDNoVer>(Arrays.asList(roi)),
 							FLDS_VER_COPYOBJ).get(roi);
 				} catch (NoSuchObjectException nsoe) {
 					/* The object was saved to the objects collections and the
@@ -637,25 +644,36 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (maxid > 0) {
 			incrementWorkspaceCounter(toWS, maxid);
 		}
-		updateClonedWorkspaceInformation(
+		final Instant moddate = updateClonedWorkspaceInformation(
 				user, globalRead, toWS.getID(), newname);
-		return getWorkspaceInformation(user, toWS);
+		return WorkspaceInformation.getBuilder()
+				.withID(wsinfo.getId())
+				.withName(newname)
+				.withOwner(user)
+				.withModificationDate(moddate)
+				.withMaximumObjectID(maxid)
+				.withUserPermission(Permission.OWNER)
+				.withGlobalRead(globalRead)
+				.withLocked(wsinfo.isLocked())
+				.withUserMetadata(new UncheckedUserMetadata(meta))
+				.build();
 	}
 
 	// this method expects that the id exists. If it does not it'll throw an
 	// IllegalState exception.
-	private void updateClonedWorkspaceInformation(
+	private Instant updateClonedWorkspaceInformation(
 			final WorkspaceUser user,
 			final boolean globalRead,
 			final long id,
 			final String newname)
-			throws PreExistingWorkspaceException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+			throws PreExistingWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
 		
 		final DBObject q = new BasicDBObject(Fields.WS_ID, id);
 
+		final Date moddate = new Date();
 		final DBObject ws = new BasicDBObject();
-		ws.put(Fields.WS_MODDATE, new Date());
+		ws.put(Fields.WS_MODDATE, moddate);
 		ws.put(Fields.WS_NAME, newname);
 		
 		final DBObject update = new BasicDBObject(
@@ -676,19 +694,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					"there is no workspace with ID " + id);
 		}
 		setCreatedWorkspacePermissions(user, globalRead,
-				new ResolvedMongoWSID(newname, id, false, false));
+				new ResolvedWorkspaceID(id, newname, false, false));
+		return moddate.toInstant();
 	}
 
 	private void addExcludedToCloneQuery(
-			final ResolvedMongoWSID fromWS,
-			final Collection<ResolvedMongoObjectID> resexclude,
+			final ResolvedWorkspaceID fromWS,
+			final Collection<ResolvedObjectID> resexclude,
 			final DBObject q)
 			throws WorkspaceCommunicationException {
 		if (resexclude == null || resexclude.isEmpty()) {
 			return;
 		}
 		final Set<Long> excludeids = new HashSet<Long>();
-		for (final ResolvedMongoObjectID o: resexclude) {
+		for (final ResolvedObjectID o: resexclude) {
 			excludeids.add(o.getId());
 		}
 		q.put(Fields.OBJ_ID, new BasicDBObject("$nin", excludeids));
@@ -698,10 +717,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_LOCKED);
 	
 	@Override
-	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,
-			final ResolvedWorkspaceID rwsi)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+	public void lockWorkspace(final ResolvedWorkspaceID rwsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 				.update(M_WS_ID_QRY, rwsi.getID())
@@ -710,7 +727,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return getWorkspaceInformation(user, rwsi);
 	}
 	
 	private static final Set<String> FLDS_VER_COPYOBJ = newHashSet(
@@ -720,26 +736,29 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_COPIED, Fields.VER_META, Fields.VER_EXT_IDS);
 	
 	@Override
-	public ObjectInformation copyObject(final WorkspaceUser user,
-			final ObjectIDResolvedWS from, final ObjectIDResolvedWS to)
+	public CopyResult copyObject(
+			final WorkspaceUser user,
+			final ObjectIDResolvedWS from,
+			final ObjectIDResolvedWS to)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		return copyOrRevert(user, from, to, false);
 	}
 	
 	@Override
-	public ObjectInformation revertObject(final WorkspaceUser user,
-			final ObjectIDResolvedWS oi)
+	public ObjectInformation revertObject(final WorkspaceUser user, final ObjectIDResolvedWS oi)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		return copyOrRevert(user, oi, null, true);
+		return copyOrRevert(user, oi, null, true).getObjectInformation();
 	}
 		
-	private ObjectInformation copyOrRevert(final WorkspaceUser user,
-			final ObjectIDResolvedWS from, ObjectIDResolvedWS to,
+	private CopyResult copyOrRevert(
+			final WorkspaceUser user,
+			final ObjectIDResolvedWS from,
+			ObjectIDResolvedWS to,
 			final boolean revert)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		final ResolvedMongoObjectID rfrom = resolveObjectIDs(
+		final ResolvedObjectID rfrom = resolveObjectIDs(
 				new HashSet<ObjectIDResolvedWS>(Arrays.asList(from))).get(from);
-		final ResolvedMongoObjectID rto;
+		final ResolvedObjectID rto;
 		if (revert) {
 			to = from;
 			rto = rfrom;
@@ -752,20 +771,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		if (rto == null && to.getId() != null) {
 			throw new NoSuchObjectException(String.format(
-					"Copy destination is specified as object id %s in workspace %s which does not exist.",
-					to.getId(), to.getWorkspaceIdentifier().getID()), to);
+					"Copy destination is specified as object id %s in workspace %s which " +
+					"does not exist.", to.getId(), to.getWorkspaceIdentifier().getID()), to);
 		}
+		final boolean copyAll;
 		final List<Map<String, Object>> versions;
 		if (rto == null && from.getVersion() == null) {
-			final ResolvedMongoObjectIDNoVer o =
-					new ResolvedMongoObjectIDNoVer(rfrom);
+			final ResolvedObjectIDNoVer o = new ResolvedObjectIDNoVer(rfrom);
 			versions = queryAllVersions(
-					new HashSet<ResolvedMongoObjectIDNoVer>(Arrays.asList(o)),
+					new HashSet<ResolvedObjectIDNoVer>(Arrays.asList(o)),
 					FLDS_VER_COPYOBJ).get(o);
+			copyAll = true;
 		} else {
 			versions = Arrays.asList(queryVersions(
-					new HashSet<ResolvedMongoObjectID>(Arrays.asList(rfrom)),
+					new HashSet<ResolvedObjectID>(Arrays.asList(rfrom)),
 					FLDS_VER_COPYOBJ, false).get(rfrom));
+			copyAll = false;
 		}
 		for (final Map<String, Object> v: versions) {
 			int ver = (Integer) v.get(Fields.VER_VER);
@@ -780,8 +801,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 		}
 		updateReferenceCountsForVersions(versions);
-		final ResolvedMongoWSID toWS = query.convertResolvedWSID(
-				to.getWorkspaceIdentifier());
+		final ResolvedWorkspaceID toWS = to.getWorkspaceIdentifier();
 		final long objid;
 		if (rto == null) { //need to make a new object
 			final long id = incrementWorkspaceCounter(toWS, 1);
@@ -792,18 +812,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		saveObjectVersions(user, toWS, objid, versions, null);
 		final Map<String, Object> info = versions.get(versions.size() - 1);
 		updateWorkspaceModifiedDate(toWS);
-		return ObjectInfoUtils.generateObjectInfo(toWS, objid,
+		final ObjectInformation oi = ObjectInfoUtils.generateObjectInfo(toWS, objid,
 				rto == null ? to.getName() : rto.getName(), info);
+		return new CopyResult(oi, copyAll);
 	}
 	
 	final private static String M_RENAME_WS_WTH = String.format(
 			"{$set: {%s: #, %s: #}}", Fields.WS_NAME, Fields.WS_MODDATE);
 	
 	@Override
-	public WorkspaceInformation renameWorkspace(final WorkspaceUser user,
-			final ResolvedWorkspaceID rwsi, final String newname)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+	public void renameWorkspace(final ResolvedWorkspaceID rwsi, final String newname)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (newname.equals(rwsi.getName())) {
 			throw new IllegalArgumentException("Workspace is already named " +
 					newname);
@@ -819,7 +838,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		return getWorkspaceInformation(user, rwsi);
 	}
 	
 	final private static String M_RENAME_OBJ_QRY = String.format(
@@ -833,7 +851,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		Set<ObjectIDResolvedWS> input = new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oi));
-		final ResolvedMongoObjectID roi = resolveObjectIDs(input).get(oi);
+		final ResolvedObjectID roi = resolveObjectIDs(input).get(oi);
 		if (newname.equals(roi.getName())) {
 			throw new IllegalArgumentException("Object is already named " +
 					newname);
@@ -878,8 +896,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public String getWorkspaceDescription(final ResolvedWorkspaceID rwsi) throws
 			CorruptWorkspaceDBException, WorkspaceCommunicationException {
-		return (String) query.queryWorkspace(query.convertResolvedWSID(rwsi),
-				FLDS_WS_DESC).get(Fields.WS_DESC);
+		return (String) query.queryWorkspace(rwsi, FLDS_WS_DESC).get(Fields.WS_DESC);
 	}
 	
 	private final static String M_WS_ID_QRY = String.format("{%s: #}",
@@ -908,12 +925,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi,
+	public ResolvedWorkspaceID resolveWorkspace(
+			final WorkspaceIdentifier wsi,
 			final boolean allowDeleted)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
 		Set<WorkspaceIdentifier> wsiset = new HashSet<WorkspaceIdentifier>();
 		wsiset.add(wsi);
-		return resolveWorkspaces(wsiset, allowDeleted).get(wsi);
+		return resolveWorkspaces(wsiset, allowDeleted, false).get(wsi);
 				
 	}
 	
@@ -928,18 +946,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			newHashSet(Fields.WS_ID, Fields.WS_NAME, Fields.WS_DEL,
 					Fields.WS_LOCKED);
 	
-	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
-			final Set<WorkspaceIdentifier> wsis, final boolean allowDeleted)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
-		return resolveWorkspaces(wsis, allowDeleted, false);
-	}
-	
 	@Override
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
 			final Set<WorkspaceIdentifier> wsis,
+			final boolean suppressErrors)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
+		return resolveWorkspaces(wsis, suppressErrors, suppressErrors);
+	}
+		
+	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
+			final Set<WorkspaceIdentifier> wsis,
 			final boolean allowDeleted,
 			final boolean allowMissing)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException {
+			throws WorkspaceCommunicationException, NoSuchWorkspaceException {
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> ret =
 				new HashMap<WorkspaceIdentifier, ResolvedWorkspaceID>();
 		if (wsis.isEmpty()) {
@@ -955,14 +974,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							wsi);
 				}
 			} else {
-				if (!allowDeleted &&
-						(Boolean) res.get(wsi).get(Fields.WS_DEL)) {
+				if (!allowDeleted && (Boolean) res.get(wsi).get(Fields.WS_DEL)) {
 					throw new NoSuchWorkspaceException("Workspace " +
 							wsi.getIdentifierString() + " is deleted", wsi);
 				}
-				ResolvedMongoWSID r = new ResolvedMongoWSID(
-						(String) res.get(wsi).get(Fields.WS_NAME),
+				final ResolvedWorkspaceID r = new ResolvedWorkspaceID(
 						(Long) res.get(wsi).get(Fields.WS_ID),
+						(String) res.get(wsi).get(Fields.WS_NAME),
 						(Boolean) res.get(wsi).get(Fields.WS_LOCKED), 
 						(Boolean) res.get(wsi).get(Fields.WS_DEL));
 				ret.put(wsi, r);
@@ -976,26 +994,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<ResolvedWorkspaceID> rwsis)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		final Map<ResolvedMongoWSID, Map<User, Permission>> res =
-				query.queryPermissions(query.convertResolvedWSID(rwsis), null);
+		final Map<ResolvedWorkspaceID, Map<User, Permission>> res =
+				query.queryPermissions(rwsis, null);
 		final Map<ResolvedWorkspaceID, Map<User, Permission>> ret = 
 				new HashMap<ResolvedWorkspaceID, Map<User, Permission>>();
 		//probably a better way to do this
-		for (final ResolvedMongoWSID r: res.keySet()) {
+		for (final ResolvedWorkspaceID r: res.keySet()) {
 			ret.put((ResolvedWorkspaceID)r, res.get(r)); 
 		}
 		return ret;
 	}
 	
 	@Override
-	public Permission getPermission(final WorkspaceUser user,
-			final ResolvedWorkspaceID wsi) throws 
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return getPermissions(user, wsi).getPermission(wsi, true);
+	public Permission getPermission(final WorkspaceUser user, final ResolvedWorkspaceID wsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return getPermissions(user, wsi).getPermission(wsi);
 	}
-	public PermissionSet getPermissions(final WorkspaceUser user,
-			final ResolvedWorkspaceID rwsi) throws 
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
+	public PermissionSet getPermissions(final WorkspaceUser user, final ResolvedWorkspaceID rwsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final Set<ResolvedWorkspaceID> wsis =
 				new HashSet<ResolvedWorkspaceID>();
 		wsis.add(rwsi);
@@ -1006,19 +1022,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public PermissionSet getPermissions(
 			final WorkspaceUser user, final Set<ResolvedWorkspaceID> rwsis)
 			throws WorkspaceCommunicationException, 
-			CorruptWorkspaceDBException {
-		return getPermissions(user, rwsis, Permission.READ, false, false);
+				CorruptWorkspaceDBException {
+		return getPermissions(user, rwsis, Permission.READ, false, false, false);
 	}
 
 	@Override
 	public PermissionSet getPermissions(
-			final WorkspaceUser user, final Permission perm,
+			final WorkspaceUser user,
+			final Permission perm,
 			final boolean excludeGlobalRead)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		return getPermissions(user,
-				new HashSet<ResolvedWorkspaceID>(), perm, excludeGlobalRead,
-				false);
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return getPermissions(user, new HashSet<ResolvedWorkspaceID>(), perm, excludeGlobalRead,
+				false, false);
 	}
 	
 	@Override
@@ -1027,55 +1042,70 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<ResolvedWorkspaceID> rwsis,
 			final Permission perm,
 			final boolean excludeGlobalRead,
-			final boolean excludeDeletedWorkspaces)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+			final boolean excludeDeletedWorkspaces,
+			final boolean includeProvidedWorkspaces)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (perm == null || Permission.NONE.equals(perm)) {
 			throw new IllegalArgumentException(
 					"Permission cannot be null or NONE");
 		}
-		final Set<ResolvedMongoWSID> rmwsis = query.convertResolvedWSID(rwsis);
-		final Map<ResolvedMongoWSID, Map<User, Permission>> userperms;
+		final Map<ResolvedWorkspaceID, Map<User, Permission>> userperms;
 		if (user != null) {
-			userperms = query.queryPermissions(rmwsis, 
-					new HashSet<User>(Arrays.asList(user)),
+			userperms = query.queryPermissions(rwsis, new HashSet<User>(Arrays.asList(user)),
 					perm, excludeDeletedWorkspaces);
 		} else {
-			userperms = new HashMap<ResolvedMongoWSID, Map<User,Permission>>();
+			userperms = new HashMap<ResolvedWorkspaceID, Map<User,Permission>>();
 		}
 		final Set<User> allusers = new HashSet<User>(Arrays.asList(ALL_USERS));
-		final Map<ResolvedMongoWSID, Map<User, Permission>> globalperms;
+		final Map<ResolvedWorkspaceID, Map<User, Permission>> globalperms;
 		if (excludeGlobalRead || perm.compareTo(Permission.WRITE) >= 0) {
 			if (userperms.isEmpty()) {
-				globalperms =
-						new HashMap<ResolvedMongoWSID, Map<User,Permission>>();
+				globalperms = new HashMap<ResolvedWorkspaceID, Map<User,Permission>>();
 			} else {
-				globalperms = query.queryPermissions(userperms.keySet(),
-						allusers);
+				globalperms = query.queryPermissions(userperms.keySet(), allusers);
 			}
 		} else {
-			globalperms = query.queryPermissions(rmwsis, allusers,
+			globalperms = query.queryPermissions(rwsis, allusers,
 					Permission.READ, excludeDeletedWorkspaces);
 		}
-		final MongoPermissionSet pset = new MongoPermissionSet(user, ALL_USERS);
-		for (final ResolvedMongoWSID rwsi: userperms.keySet()) {
+		return buildPermissionSet(user, rwsis, userperms, globalperms, includeProvidedWorkspaces);
+	}
+
+	private PermissionSet buildPermissionSet(
+			final WorkspaceUser user,
+			final Set<ResolvedWorkspaceID> rmwsis,
+			final Map<ResolvedWorkspaceID, Map<User, Permission>> userperms,
+			final Map<ResolvedWorkspaceID, Map<User, Permission>> globalperms,
+			final boolean includeProvidedWorkspaces) {
+		final Builder pset = PermissionSet.getBuilder(user, ALL_USERS);
+		final Set<ResolvedWorkspaceID> local = new HashSet<>(rmwsis);
+		for (final ResolvedWorkspaceID rwsi: userperms.keySet()) {
 			Permission gl = globalperms.get(rwsi) == null ? Permission.NONE :
 				globalperms.get(rwsi).get(ALL_USERS);
 			gl = gl == null ? Permission.NONE : gl;
 			Permission p = userperms.get(rwsi).get(user);
 			p = p == null ? Permission.NONE : p;
 			if (!p.equals(Permission.NONE) || !gl.equals(Permission.NONE)) {
-				pset.setPermission(rwsi, p, gl);
+				pset.withWorkspace(rwsi, p, gl);
+				local.remove(rwsi);
 			}
 			globalperms.remove(rwsi);
 		}
-		for (final ResolvedMongoWSID rwsi: globalperms.keySet()) {
+		for (final ResolvedWorkspaceID rwsi: globalperms.keySet()) {
 			final Permission gl = globalperms.get(rwsi).get(ALL_USERS);
 			if (gl != null && !gl.equals(Permission.NONE)) {
-				pset.setPermission(rwsi, Permission.NONE, gl);
+				pset.withWorkspace(rwsi, Permission.NONE, gl);
+				local.remove(rwsi);
 			}
 		}
-		return pset;
+		if (includeProvidedWorkspaces) {
+			for (final ResolvedWorkspaceID rwsid: local) {
+				if (!pset.hasWorkspace(rwsid)) {
+					pset.withUnreadableWorkspace(rwsid);
+				}
+			}
+		}
+		return pset.build();
 	}
 	
 	private static String getWSErrorId(final WorkspaceIdentifier wsi) {
@@ -1093,49 +1123,41 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_OWNER, Fields.WS_MODDATE);
 
 	@Override
-	public WorkspaceInformation setWorkspaceOwner(
+	public void setWorkspaceOwner(
 			final ResolvedWorkspaceID rwsi,
 			final WorkspaceUser owner,
 			final WorkspaceUser newUser,
-			final String newname)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		
+			final Optional<String> newname)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
-			if (newname == null) {
+			if (!newname.isPresent()) {
 				wsjongo.getCollection(COL_WORKSPACES)
 						.update(M_WS_ID_QRY, rwsi.getID())
-						.with(M_CHOWN_WS_WTH,
-								newUser.getUser(), new Date());
+						.with(M_CHOWN_WS_WTH, newUser.getUser(), new Date());
 			} else {
 				wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_ID_QRY, rwsi.getID())
-					.with(M_CHOWN_WS_NEWNAME_WTH,
-							newUser.getUser(), newname, new Date());
+					.with(M_CHOWN_WS_NEWNAME_WTH, newUser.getUser(), newname.get(), new Date());
 			}
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
-					"There is already a workspace named " + newname);
+					"There is already a workspace named " + newname.get());
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		final ResolvedMongoWSID newRwsi = new ResolvedMongoWSID(
-				newname == null ? rwsi.getName() : newname,
-				rwsi.getID(), false, false);
-		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(newUser),
-				Permission.OWNER, false);
-		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(owner),
-				Permission.ADMIN, false);
-		return getWorkspaceInformation(newUser, rwsi);
+		final ResolvedWorkspaceID newRwsi = new ResolvedWorkspaceID(
+				rwsi.getID(),
+				newname.isPresent() ? newname.get() : rwsi.getName(), false, false);
+		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(owner), Permission.ADMIN, false);
+		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(newUser), Permission.OWNER, false);
 	}
 	
 	@Override
 	public void setPermissions(final ResolvedWorkspaceID rwsi,
 			final List<WorkspaceUser> users, final Permission perm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		setPermissionsForWorkspaceUsers(query.convertResolvedWSID(rwsi),
-				users, perm, true);
+		setPermissionsForWorkspaceUsers(rwsi, users, perm, true);
 	}
 	
 	@Override
@@ -1143,12 +1165,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Permission perm)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		setPermissions(query.convertResolvedWSID(rwsi),
-				Arrays.asList(ALL_USERS), perm, false);
+		setPermissions(rwsi, Arrays.asList((User) ALL_USERS), perm, false);
 	}
 	
 	//wsid must exist as a workspace
-	private void setPermissionsForWorkspaceUsers(final ResolvedMongoWSID wsid,
+	private void setPermissionsForWorkspaceUsers(final ResolvedWorkspaceID wsid,
 			final List<WorkspaceUser> users, final Permission perm, 
 			final boolean checkowner) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
@@ -1166,7 +1187,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.ACL_PERM);
 	
 	private void setPermissions(
-			final ResolvedMongoWSID wsid,
+			final ResolvedWorkspaceID wsid,
 			final List<User> users,
 			final Permission perm,
 			final boolean checkowner)
@@ -1212,27 +1233,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public List<WorkspaceInformation> getWorkspaceInformation(
-			final PermissionSet pset, final List<WorkspaceUser> owners,
-			final WorkspaceUserMetadata meta, final Date after,
-			final Date before, final boolean showDeleted, 
+			final PermissionSet pset,
+			final List<WorkspaceUser> owners,
+			final WorkspaceUserMetadata meta,
+			final Date after,
+			final Date before,
+			final boolean showDeleted, 
 			final boolean showOnlyDeleted)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		if (!(pset instanceof MongoPermissionSet)) {
-			throw new IllegalArgumentException(
-					"Illegal implementation of PermissionSet: " +
-					pset.getClass().getName());
-		}
-		final Map<Long, ResolvedMongoWSID> rwsis =
-				new HashMap<Long, ResolvedMongoWSID>();
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		final Map<Long, ResolvedWorkspaceID> rwsis = new HashMap<Long, ResolvedWorkspaceID>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			rwsis.put(rwsi.getID(), query.convertResolvedWSID(rwsi));
+			rwsis.put(rwsi.getID(), rwsi);
 		}
 		final DBObject q = new BasicDBObject(Fields.WS_ID,
 				new BasicDBObject("$in", rwsis.keySet()));
 		if (owners != null && !owners.isEmpty()) {
-			q.put(Fields.WS_OWNER, new BasicDBObject("$in",
-					convertWorkspaceUsers(owners)));
+			q.put(Fields.WS_OWNER, new BasicDBObject("$in", convertWorkspaceUsers(owners)));
 		}
 		if (meta != null && !meta.isEmpty()) {
 			final List<DBObject> andmetaq = new LinkedList<DBObject>();
@@ -1258,19 +1274,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<Map<String, Object>> ws = query.queryCollection(
 				COL_WORKSPACES, q, FLDS_WS_NO_DESC);
 		
-		final List<WorkspaceInformation> ret =
-				new LinkedList<WorkspaceInformation>();
+		final List<WorkspaceInformation> ret = new LinkedList<WorkspaceInformation>();
 		for (final Map<String, Object> w: ws) {
-			final ResolvedWorkspaceID rwsi =
-					rwsis.get((Long) w.get(Fields.WS_ID));
+			final ResolvedWorkspaceID rwsi = rwsis.get((Long) w.get(Fields.WS_ID));
 			final boolean isDeleted = (Boolean) w.get(Fields.WS_DEL);
 			if (showOnlyDeleted) {
-				if (isDeleted &&
-						pset.hasUserPermission(rwsi, Permission.OWNER)) {
+				if (isDeleted && pset.hasUserPermission(rwsi, Permission.OWNER)) {
 					ret.add(generateWSInfo(rwsi, pset, w));
 				}
-			} else if (!isDeleted || (showDeleted &&
-					pset.hasUserPermission(rwsi, Permission.OWNER))) {
+			} else if (!isDeleted ||
+					(showDeleted && pset.hasUserPermission(rwsi, Permission.OWNER))) {
 				ret.add(generateWSInfo(rwsi, pset, w));
 			}
 		}
@@ -1289,8 +1302,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public WorkspaceUser getWorkspaceOwner(final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
-		final Map<String, Object> ws = query.queryWorkspace(m,
+		final Map<String, Object> ws = query.queryWorkspace(rwsi,
 				new HashSet<String>(Arrays.asList(Fields.WS_OWNER)));
 		return new WorkspaceUser((String) ws.get(Fields.WS_OWNER));
 	}
@@ -1298,42 +1310,44 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public WorkspaceInformation getWorkspaceInformation(
 			final WorkspaceUser user, final ResolvedWorkspaceID rwsi)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		final ResolvedMongoWSID m = query.convertResolvedWSID(rwsi);
-		final Map<String, Object> ws = query.queryWorkspace(m,
-				FLDS_WS_NO_DESC);
-		final PermissionSet perms = getPermissions(user, m);
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		final Map<String, Object> ws = query.queryWorkspace(rwsi, FLDS_WS_NO_DESC);
+		final PermissionSet perms = getPermissions(user, rwsi);
 		return generateWSInfo(rwsi, perms, ws);
 	}
 
-	private WorkspaceInformation generateWSInfo(final ResolvedWorkspaceID rwsi,
-			final PermissionSet perms, final Map<String, Object> wsdata) {
+	/* Note if rwsi is not in perm set will return ws info with NONE for both permissions. */
+	private WorkspaceInformation generateWSInfo(
+			final ResolvedWorkspaceID rwsi,
+			final PermissionSet perms,
+			final Map<String, Object> wsdata) {
 		
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) wsdata.get(Fields.WS_META);
-		return new MongoWSInfo((Long) wsdata.get(Fields.WS_ID),
-				(String) wsdata.get(Fields.WS_NAME),
-				new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)),
-				(Date) wsdata.get(Fields.WS_MODDATE),
-				(Long) wsdata.get(Fields.WS_NUMOBJ),
-				perms.getUserPermission(rwsi),
-				perms.isWorldReadable(rwsi),
-				(Boolean) wsdata.get(Fields.WS_LOCKED),
-				new UncheckedUserMetadata(metaMongoArrayToHash(meta)));
+		return WorkspaceInformation.getBuilder()
+				.withID((Long) wsdata.get(Fields.WS_ID))
+				.withName((String) wsdata.get(Fields.WS_NAME))
+				.withOwner(new WorkspaceUser((String) wsdata.get(Fields.WS_OWNER)))
+				.withModificationDate(((Date) wsdata.get(Fields.WS_MODDATE)).toInstant())
+				.withMaximumObjectID((Long) wsdata.get(Fields.WS_NUMOBJ))
+				.withUserPermission(perms.getUserPermission(rwsi))
+				.withGlobalRead(perms.isWorldReadable(rwsi))
+				.withLocked((Boolean) wsdata.get(Fields.WS_LOCKED))
+				.withUserMetadata(new UncheckedUserMetadata(metaMongoArrayToHash(meta)))
+				.build();
 	}
 	
-	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> resolveObjectIDs(
-			final ResolvedMongoWSID workspaceID,
+	private Map<ObjectIDNoWSNoVer, ResolvedObjectID> resolveObjectIDs(
+			final ResolvedWorkspaceID workspaceID,
 			final Set<ObjectIDNoWSNoVer> objects) throws
 			WorkspaceCommunicationException, NoSuchObjectException {
 		return resolveObjectIDs(workspaceID, objects, true, true);
 	}
 	
-	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID>
+	private Map<ObjectIDNoWSNoVer, ResolvedObjectID>
 				resolveObjectIDsIgnoreExceptions(
-			final ResolvedMongoWSID workspaceID,
+			final ResolvedWorkspaceID workspaceID,
 			final Set<ObjectIDNoWSNoVer> objects) throws
 			WorkspaceCommunicationException {
 		try {
@@ -1344,14 +1358,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> resolveObjectIDs(
-			final ResolvedMongoWSID workspaceID,
+	private Map<ObjectIDNoWSNoVer, ResolvedObjectID> resolveObjectIDs(
+			final ResolvedWorkspaceID workspaceID,
 			final Set<ObjectIDNoWSNoVer> objects,
 			final boolean exceptIfDeleted,
 			final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException {
 		if (objects == null || objects.isEmpty()) {
-			return new HashMap<ObjectIDNoWSNoVer, ResolvedMongoObjectID>();
+			return new HashMap<ObjectIDNoWSNoVer, ResolvedObjectID>();
 		}
 		
 		final Map<ObjectIDNoWSNoVer, ObjectIDResolvedWS> queryobjs = 
@@ -1359,12 +1373,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final ObjectIDNoWSNoVer o: objects) {
 			queryobjs.put(o, new ObjectIDResolvedWS(workspaceID, o));
 		}
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> res =
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> res =
 				resolveObjectIDs(
 					new HashSet<ObjectIDResolvedWS>(queryobjs.values()),
 					exceptIfDeleted, exceptIfMissing);
-		final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> ret = 
-				new HashMap<ObjectIDNoWSNoVer, ResolvedMongoObjectID>();
+		final Map<ObjectIDNoWSNoVer, ResolvedObjectID> ret = 
+				new HashMap<ObjectIDNoWSNoVer, ResolvedObjectID>();
 		for (final ObjectIDNoWSNoVer o: objects) {
 			if (res.containsKey(queryobjs.get(o))) {
 				ret.put(o, res.get(queryobjs.get(o)));
@@ -1375,7 +1389,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	// save object in preexisting object container
 	private ObjectInformation saveObjectVersion(final WorkspaceUser user,
-			final ResolvedMongoWSID wsid, final long objectid,
+			final ResolvedWorkspaceID wsid, final long objectid,
 			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
 		final Map<String, Object> version = new HashMap<String, Object>();
@@ -1439,7 +1453,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.OBJ_LATEST, Fields.OBJ_REFCOUNTS);
 	
 	private void saveObjectVersions(final WorkspaceUser user,
-			final ResolvedMongoWSID wsid, final long objectid,
+			final ResolvedWorkspaceID wsid, final long objectid,
 			final List<Map<String, Object>> versions, final Boolean hidden)
 			throws WorkspaceCommunicationException {
 		// collection objects might be batchable if saves are slow
@@ -1506,7 +1520,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//objectid *must not exist* in the workspace otherwise this method will recurse indefinitely
 	//the workspace must exist
 	private IDName saveWorkspaceObject(
-			final ResolvedMongoWSID wsid,
+			final ResolvedWorkspaceID wsid,
 			final long objectid,
 			final String name)
 			throws WorkspaceCommunicationException {
@@ -1533,7 +1547,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//this should be a rare event
 			//TODO BUG if id dupe throw exception, stack overflow otherwise. Can't actually happen unless bug in code though.
 			final ObjectIDNoWSNoVer o = new ObjectIDNoWSNoVer(name);
-			final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> objID =
+			final Map<ObjectIDNoWSNoVer, ResolvedObjectID> objID =
 					resolveObjectIDsIgnoreExceptions(wsid,
 							new HashSet<ObjectIDNoWSNoVer>(Arrays.asList(o)));
 			if (objID.isEmpty()) {
@@ -1664,7 +1678,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//TODO CODE break this up
 		//this method must maintain the order of the objects
 		
-		final ResolvedMongoWSID wsidmongo = query.convertResolvedWSID(rwsi);
 		final List<ObjectSavePackage> packages = saveObjectsBuildPackages(
 				objects);
 		final Map<ObjectIDNoWSNoVer, List<ObjectSavePackage>> idToPkg =
@@ -1680,23 +1693,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		
 		//confirm object IDs exist or get the id for a name, if any
-		final Map<ObjectIDNoWSNoVer, ResolvedMongoObjectID> objIDs =
-				resolveObjectIDsIgnoreExceptions(wsidmongo, idToPkg.keySet());
+		final Map<ObjectIDNoWSNoVer, ResolvedObjectID> objIDs =
+				resolveObjectIDsIgnoreExceptions(rwsi, idToPkg.keySet());
 		
 		//check each id or name provided by the user
 		int newobjects = 0;
 		for (ObjectIDNoWSNoVer o: idToPkg.keySet()) {
 			if (!objIDs.containsKey(o)) {
 				//the id or name wasn't found
-				if (o.getId() != null) {
+				if (o.getId().isPresent()) {
 					//no such id, punt
-					throw new NoSuchObjectException("There is no object with id " + o.getId(),
-							new ObjectIDResolvedWS(rwsi, o.getId()));
+					throw new NoSuchObjectException("There is no object with id " +
+							o.getId().get(), new ObjectIDResolvedWS(rwsi, o.getId().get()));
 				} else {
 					//no such name, add the unconfirmed name to all the packages
 					// and increment the counter for the object ids we need
 					for (ObjectSavePackage pkg: idToPkg.get(o)) {
-						pkg.name = o.getName();
+						pkg.name = o.getName().get();
 					}
 					newobjects++;
 				}
@@ -1709,10 +1722,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		//at this point everything should be ready to save, only comm errors
 		//can stop us now, the world is doomed
-		saveData(wsidmongo, packages);
+		saveData(rwsi, packages);
 		saveProvenance(packages);
 		updateReferenceCounts(packages);
-		long newid = incrementWorkspaceCounter(wsidmongo, newobjects);
+		long newid = incrementWorkspaceCounter(rwsi, newobjects);
 		/*  alternate impl: 1) make all save objects 2) increment all version
 		 *  counters 3) batch save versions
 		 *  This probably won't help much. Firstly, saving the same object
@@ -1733,26 +1746,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<String, Long> seenNames = new HashMap<String, Long>();
 		for (final ObjectSavePackage p: packages) {
 			final ObjectIDNoWSNoVer oi = p.wo.getObjectIdentifier();
-			if (oi.getId() != null) { //confirmed ok id
-				ret.add(saveObjectVersion(user, wsidmongo, oi.getId(), p));
+			if (oi.getId().isPresent()) { //confirmed ok id
+				ret.add(saveObjectVersion(user, rwsi, oi.getId().get(), p));
 			} else if (objIDs.get(oi) != null) {//given name translated to id
-				ret.add(saveObjectVersion(user, wsidmongo, objIDs.get(oi).getId(), p));
-			} else if (seenNames.containsKey(oi.getName())) {
+				ret.add(saveObjectVersion(user, rwsi, objIDs.get(oi).getId(), p));
+			} else if (seenNames.containsKey(oi.getName().get())) {
 				//we've already generated an id for this name
-				ret.add(saveObjectVersion(user, wsidmongo, seenNames.get(oi.getName()), p));
+				ret.add(saveObjectVersion(user, rwsi, seenNames.get(oi.getName().get()), p));
 			} else {//new name, need to generate new id
-				final IDName obj = saveWorkspaceObject(wsidmongo, newid++, oi.getName());
+				final IDName obj = saveWorkspaceObject(rwsi, newid++, oi.getName().get());
 				p.name = obj.name;
 				seenNames.put(obj.name, obj.id);
-				ret.add(saveObjectVersion(user, wsidmongo, obj.id, p));
+				ret.add(saveObjectVersion(user, rwsi, obj.id, p));
 			}
 		}
-		updateWorkspaceModifiedDate(wsidmongo);
+		updateWorkspaceModifiedDate(rwsi);
 		return ret;
 	}
 
 	//returns starting object number
-	private long incrementWorkspaceCounter(final ResolvedMongoWSID wsidmongo,
+	private long incrementWorkspaceCounter(final ResolvedWorkspaceID wsidmongo,
 			final long newobjects) throws WorkspaceCommunicationException {
 		final long lastid;
 		try {
@@ -1962,7 +1975,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private void saveData(
-			final ResolvedMongoWSID workspaceid,
+			final ResolvedWorkspaceID workspaceid,
 			final List<ObjectSavePackage> data)
 			throws WorkspaceCommunicationException {
 		try {
@@ -2015,11 +2028,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws WorkspaceCommunicationException, NoSuchObjectException,
 			TypedObjectExtractionException, CorruptWorkspaceDBException {
 		
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs =
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs =
 				resolveObjectIDs(objs.keySet(), exceptIfDeleted, includeDeleted, exceptIfMissing);
-		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
+		final Map<ResolvedObjectID, Map<String, Object>> vers = 
 				queryVersions(
-						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
+						new HashSet<ResolvedObjectID>(resobjs.values()),
 						FLDS_VER_GET_OBJECT, !exceptIfMissing);
 		if (dataMan != null) {
 			checkTotalFileSize(usedDataAllocation, objs, resobjs, vers);
@@ -2030,7 +2043,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> ret =
 				new HashMap<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>>();
 		for (final ObjectIDResolvedWS o: objs.keySet()) {
-			final ResolvedMongoObjectID roi = resobjs.get(o);
+			final ResolvedObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
 				continue; // works if roi is null or vers doesn't have the key
 			}
@@ -2041,8 +2054,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Reference copied = copyref == null ? null : new Reference(copyref);
 			@SuppressWarnings("unchecked")
 			final Map<String, List<String>> extIDs =
-					(Map<String, List<String>>) vers.get(roi).get(
-							Fields.VER_EXT_IDS);
+					(Map<String, List<String>>) vers.get(roi).get(Fields.VER_EXT_IDS);
 			@SuppressWarnings("unchecked")
 			final List<String> refs =
 					(List<String>) vers.get(roi).get(Fields.VER_REF);
@@ -2081,8 +2093,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private void checkTotalFileSize(
 			final long usedDataAllocation,
 			final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths,
-			final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs,
-			final Map<ResolvedMongoObjectID, Map<String, Object>> vers) {
+			final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs,
+			final Map<ResolvedObjectID, Map<String, Object>> vers) {
 		//could take into account that identical md5s won't incur a real
 		//size penalty, but meh
 		long size = 0;
@@ -2219,18 +2231,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, ObjectReferenceSet> ret =
 				new HashMap<ObjectIDResolvedWS, ObjectReferenceSet>();
 		
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs = 
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs = 
 				resolveObjectIDs(objs, exceptIfDeleted, includeDeleted, exceptIfMissing);
-		final Map<ResolvedMongoObjectID, Map<String, Object>> refs =
+		final Map<ResolvedObjectID, Map<String, Object>> refs =
 				queryVersions(
-						new HashSet<ResolvedMongoObjectID>(resobjs.values()),
+						new HashSet<ResolvedObjectID>(resobjs.values()),
 						FLDS_GET_REF_FROM_OBJ, !exceptIfMissing);
 		
 		for (final ObjectIDResolvedWS oi: objs) {
 			if (!resobjs.containsKey(oi)) {
 				continue;
 			}
-			final ResolvedMongoObjectID res = resobjs.get(oi);
+			final ResolvedObjectID res = resobjs.get(oi);
 			final Map<String, Object> m = refs.get(res);
 			final int ver = (Integer) m.get(Fields.VER_VER);
 			final Reference ref = new Reference(
@@ -2262,8 +2274,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (objs.isEmpty()) {
 			return ret;
 		}
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs;
-		final Map<ResolvedMongoObjectID, Boolean> exists;
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs;
+		final Map<ResolvedObjectID, Boolean> exists;
 		try {
 			resobjs = resolveObjectIDs(objs, false, true, false);
 			// the only way exists can be false if if there's DB inconsistency
@@ -2272,7 +2284,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} catch (NoSuchObjectException e) {
 			throw new RuntimeException("Threw exception when explicitly told not to", e);
 		}
-		for (final Entry<ObjectIDResolvedWS, ResolvedMongoObjectID> o: resobjs.entrySet()) {
+		for (final Entry<ObjectIDResolvedWS, ResolvedObjectID> o: resobjs.entrySet()) {
 			if (exists.get(o.getValue())) {
 				ret.put(o.getKey(), o.getValue().getReference());
 			}
@@ -2354,13 +2366,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final ResolvedWorkspaceID ws: perms.getWorkspaces()) {
 			wsids.add(ws.getID());
 		}
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resobjs =
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs =
 				resolveObjectIDs(objs);
-		verifyVersions(new HashSet<ResolvedMongoObjectID>(resobjs.values()), true);
+		verifyVersions(new HashSet<ResolvedObjectID>(resobjs.values()), true);
 		final Map<String, Set<ObjectIDResolvedWS>> ref2id =
 				new HashMap<String, Set<ObjectIDResolvedWS>>();
 		for (final ObjectIDResolvedWS oi: objs) {
-			final ResolvedMongoObjectID r = resobjs.get(oi);
+			final ResolvedObjectID r = resobjs.get(oi);
 			final String ref = r.getReference().toString();
 			if (!ref2id.containsKey(ref)) {
 				ref2id.put(ref, new HashSet<ObjectIDResolvedWS>());
@@ -2374,7 +2386,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<Map<String, Object>> vers = query.queryCollection(
 				COL_WORKSPACE_VERS, q, FLDS_GETREFOBJ);
 		final Map<Map<String, Object>, ObjectInformation> voi = objutils.generateObjectInfo(
-				perms, vers, true, false, false, true);
+				perms, vers, true, false, false, true, false);
 		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> ret = new HashMap<>();
 		for (final ObjectIDResolvedWS o: objs) {
 			ret.put(o, new HashSet<ObjectInformation>());
@@ -2441,11 +2453,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private Map<ObjectId, MongoProvenance> getProvenance(
-			final Map<ResolvedMongoObjectID, Map<String, Object>> vers)
+			final Map<ResolvedObjectID, Map<String, Object>> vers)
 			throws WorkspaceCommunicationException {
 		final Map<ObjectId, Map<String, Object>> provIDs =
 				new HashMap<ObjectId, Map<String,Object>>();
-		for (final ResolvedMongoObjectID id: vers.keySet()) {
+		for (final ResolvedObjectID id: vers.keySet()) {
 			provIDs.put((ObjectId) vers.get(id).get(Fields.VER_PROV),
 					vers.get(id));
 		}
@@ -2478,15 +2490,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean ignoreErrors) throws
 			NoSuchObjectException, WorkspaceCommunicationException {
 		//this method is a pattern - generalize somehow?
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> oids =
 				resolveObjectIDs(objectIDs, !ignoreErrors, ignoreErrors, !ignoreErrors);
 		//instead of calling verifyVersions() just query the version here
-		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
-				queryVersions(new HashSet<ResolvedMongoObjectID>(oids.values()),
+		final Map<ResolvedObjectID, Map<String, Object>> vers = 
+				queryVersions(new HashSet<ResolvedObjectID>(oids.values()),
 						FLDS_VER_TYPE, ignoreErrors);
 		final Map<ObjectIDResolvedWS, TypeAndReference> ret = new HashMap<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
-			final ResolvedMongoObjectID roi = oids.get(o);
+			final ResolvedObjectID roi = oids.get(o);
 			final Map<String, Object> v = vers.get(roi);
 			if (v != null) {
 				ret.put(o, new TypeAndReference(AbsoluteTypeDefId.fromAbsoluteTypeString(
@@ -2559,12 +2571,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public List<ObjectInformation> getObjectHistory(
 			final ObjectIDResolvedWS oi)
 		throws NoSuchObjectException, WorkspaceCommunicationException {
-		final ResolvedMongoObjectID roi = resolveObjectIDs(
+		final ResolvedObjectID roi = resolveObjectIDs(
 				new HashSet<ObjectIDResolvedWS>(Arrays.asList(oi))).get(oi);
-		final ResolvedMongoObjectIDNoVer o =
-				new ResolvedMongoObjectIDNoVer(roi);
+		final ResolvedObjectIDNoVer o =
+				new ResolvedObjectIDNoVer(roi);
 		final List<Map<String, Object>> versions = queryAllVersions(
-				new HashSet<ResolvedMongoObjectIDNoVer>(Arrays.asList(o)),
+				new HashSet<ResolvedObjectIDNoVer>(Arrays.asList(o)),
 				FLDS_VER_OBJ_HIST).get(o);
 		final LinkedList<ObjectInformation> ret =
 				new LinkedList<ObjectInformation>();
@@ -2587,7 +2599,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean includeDeleted,
 			final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> oids =
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> oids =
 				resolveObjectIDs(objectIDs, exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Set<String> fields;
 		if (includeMetadata) {
@@ -2596,14 +2608,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} else {
 			fields = FLDS_VER_META;
 		}
-		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
+		final Map<ResolvedObjectID, Map<String, Object>> vers = 
 				queryVersions(
-						new HashSet<ResolvedMongoObjectID>(oids.values()),
+						new HashSet<ResolvedObjectID>(oids.values()),
 						fields, !exceptIfMissing);
 		final Map<ObjectIDResolvedWS, ObjectInformation> ret =
 				new HashMap<ObjectIDResolvedWS, ObjectInformation>();
 		for (ObjectIDResolvedWS o: objectIDs) {
-			final ResolvedMongoObjectID roi = oids.get(o);
+			final ResolvedObjectID roi = oids.get(o);
 			if (vers.containsKey(roi)) {
 				ret.put(o, ObjectInfoUtils.generateObjectInfo(
 						roi, vers.get(roi)));
@@ -2615,20 +2627,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final Set<String> FLDS_RESOLVE_OBJS =
 			newHashSet(Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_VCNT);
 	
-	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
+	private Map<ObjectIDResolvedWS, ResolvedObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		return resolveObjectIDs(objectIDs, true, true);
 	}
 	
-	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
+	private Map<ObjectIDResolvedWS, ResolvedObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean exceptIfDeleted, final boolean exceptIfMissing)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		return resolveObjectIDs(objectIDs, exceptIfDeleted, true, exceptIfMissing);
 	}
 	
-	private Map<ObjectIDResolvedWS, ResolvedMongoObjectID> resolveObjectIDs(
+	private Map<ObjectIDResolvedWS, ResolvedObjectID> resolveObjectIDs(
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean exceptIfDeleted,
 			final boolean includeDeleted,
@@ -2637,8 +2649,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Map<ObjectIDResolvedWS, Map<String, Object>> ids = 
 				queryObjects(objectIDs, FLDS_RESOLVE_OBJS, exceptIfDeleted,
 						includeDeleted, exceptIfMissing);
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ret =
-				new HashMap<ObjectIDResolvedWS, ResolvedMongoObjectID>();
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> ret =
+				new HashMap<ObjectIDResolvedWS, ResolvedObjectID>();
 		for (final ObjectIDResolvedWS o: ids.keySet()) {
 			final String name = (String) ids.get(o).get(Fields.OBJ_NAME);
 			final long id = (Long) ids.get(o).get(Fields.OBJ_ID);
@@ -2656,9 +2668,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 							o.getWorkspaceIdentifier().getName()), o);
 				}
 			} else {
-				ret.put(o, new ResolvedMongoObjectID(
-						query.convertResolvedWSID(o.getWorkspaceIdentifier()),
-						name, id, version, deleted));
+				ret.put(o, new ResolvedObjectID(o.getWorkspaceIdentifier(),
+						id, version, name, deleted));
 			}
 		}
 		return ret;
@@ -2719,12 +2730,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//In rare race conditions an object may exist with a ver count of 1 but
 	//no versions. Really need to move this code to a backend DB with
 	//transactions if we want autoincrementing counters.
-	private Map<ResolvedMongoObjectID, Map<String, Object>> queryVersions(
-			final Set<ResolvedMongoObjectID> objectIds,
+	private Map<ResolvedObjectID, Map<String, Object>> queryVersions(
+			final Set<ResolvedObjectID> objectIds,
 			final Set<String> fields,
 			boolean ignoreMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException {
-		final Map<ResolvedMongoObjectID, Map<String, Object>> vers = 
+		final Map<ResolvedObjectID, Map<String, Object>> vers = 
 				query.queryVersions(objectIds, fields);
 		if (ignoreMissing) {
 			return vers;
@@ -2732,7 +2743,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		// the ID was resolved, but could have been deleted since then,
 		// or if the database failed between an autoincrement and a version
 		// save the version might not exist
-		for (ResolvedMongoObjectID roi: objectIds) {
+		for (ResolvedObjectID roi: objectIds) {
 			if (!vers.containsKey(roi)) {
 				ObjectIDResolvedWS oid = new ObjectIDResolvedWS(
 						roi.getWorkspaceIdentifier(), roi.getId());
@@ -2750,18 +2761,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//In rare race conditions an object may exist with a ver count of 1 but
 	//no versions. Really need to move this code to a backend DB with
 	//transactions if we want autoincrementing counters.
-	private Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>>
+	private Map<ResolvedObjectIDNoVer, List<Map<String, Object>>>
 		queryAllVersions(
-			final HashSet<ResolvedMongoObjectIDNoVer> objectIDs,
+			final HashSet<ResolvedObjectIDNoVer> objectIDs,
 			final Set<String> fields)
 			throws WorkspaceCommunicationException, NoSuchObjectException {
 		
-		final Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>> ret =
+		final Map<ResolvedObjectIDNoVer, List<Map<String, Object>>> ret =
 				query.queryAllVersions(objectIDs, fields);
-		for (final Entry<ResolvedMongoObjectIDNoVer,
+		for (final Entry<ResolvedObjectIDNoVer,
 				List<Map<String, Object>>> s: ret.entrySet()) {
 			if (s.getValue().isEmpty()) {
-				final ResolvedMongoObjectIDNoVer oid = s.getKey();
+				final ResolvedObjectIDNoVer oid = s.getKey();
 				final ObjectIDResolvedWS oidrws = new ObjectIDResolvedWS(
 						oid.getWorkspaceIdentifier(), oid.getName());
 				throw new NoSuchObjectException(String.format(
@@ -2778,15 +2789,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	 * was incremented, leaving the db in an inconsistent state. This function verifies that
 	 * the versions of the provided objects exist.
 	 */
-	private Map<ResolvedMongoObjectID, Boolean> verifyVersions(
-			final Set<ResolvedMongoObjectID> objs,
+	private Map<ResolvedObjectID, Boolean> verifyVersions(
+			final Set<ResolvedObjectID> objs,
 			final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException {
-		final Map<ResolvedMongoObjectID, Map<String, Object>> vers =
+		final Map<ResolvedObjectID, Map<String, Object>> vers =
 				queryVersions(objs, new HashSet<String>(), !exceptIfMissing); //don't actually need the data
-		final Map<ResolvedMongoObjectID, Boolean> ret =
-				new HashMap<ResolvedMongoObjectID, Boolean>();
-		for (final ResolvedMongoObjectID o: objs) {
+		final Map<ResolvedObjectID, Boolean> ret =
+				new HashMap<ResolvedObjectID, Boolean>();
+		for (final ResolvedObjectID o: objs) {
 			ret.put(o, vers.containsKey(o));
 		}
 		return ret;
@@ -2802,15 +2813,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Set<ObjectIDResolvedWSNoVer> objs = new HashSet<>();
 		for (final Reference r: refs) {
 			// this is a bit of a hack
-			objs.add(new ObjectIDResolvedWSNoVer(new ResolvedMongoWSID(
-					"a", r.getWorkspaceID(), false, false), r.getObjectID()));
+			objs.add(new ObjectIDResolvedWSNoVer(new ResolvedWorkspaceID(
+					r.getWorkspaceID(), "a", false, false), r.getObjectID()));
 		}
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> res =
 				query.queryObjects(objs, newHashSet(Fields.OBJ_DEL));
 		for (final Reference r: refs) {
 			ret.put(r, false);
-			final ObjectIDResolvedWSNoVer o = new ObjectIDResolvedWSNoVer(new ResolvedMongoWSID(
-					"a", r.getWorkspaceID(), false, false), r.getObjectID());
+			final ObjectIDResolvedWSNoVer o = new ObjectIDResolvedWSNoVer(new ResolvedWorkspaceID(
+					r.getWorkspaceID(), "a", false, false), r.getObjectID());
 			if (res.containsKey(o)) { // only false if the ref ws or obj id is bad
 				final boolean deleted = (boolean) res.get(o).get(Fields.OBJ_DEL);
 				if (!deleted) {
@@ -2825,18 +2836,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Map<ObjectIDResolvedWS, Boolean> getObjectExists(
 			final Set<ObjectIDResolvedWS> objectIDs)
 			throws WorkspaceCommunicationException {
-		final Map<ResolvedMongoObjectID, Boolean> exists;
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> objs;
+		final Map<ResolvedObjectID, Boolean> exists;
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> objs;
 		try {
 			objs = resolveObjectIDs(objectIDs, false, false);
-			final Iterator<Entry<ObjectIDResolvedWS, ResolvedMongoObjectID>> i =
+			final Iterator<Entry<ObjectIDResolvedWS, ResolvedObjectID>> i =
 					objs.entrySet().iterator();
 			while (i.hasNext()) {
 				if (i.next().getValue().isDeleted()) {
 					i.remove();
 				}
 			}
-			exists = verifyVersions(new HashSet<ResolvedMongoObjectID>(
+			exists = verifyVersions(new HashSet<ResolvedObjectID>(
 					objs.values()), false);
 		} catch (NoSuchObjectException e) {
 			throw new RuntimeException(
@@ -2861,20 +2872,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean hide)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		//TODO CODE generalize, nearly identical to delete objects
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ids =
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> ids =
 				resolveObjectIDs(objectIDs);
-		final Map<ResolvedMongoWSID, List<Long>> toModify =
-				new HashMap<ResolvedMongoWSID, List<Long>>();
+		final Map<ResolvedWorkspaceID, List<Long>> toModify =
+				new HashMap<ResolvedWorkspaceID, List<Long>>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
-			final ResolvedMongoWSID ws = query.convertResolvedWSID(
-					o.getWorkspaceIdentifier());
+			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
 			if (!toModify.containsKey(ws)) {
 				toModify.put(ws, new ArrayList<Long>());
 			}
 			toModify.get(ws).add(ids.get(o).getId());
 		}
 		//Do this by workspace since per mongo docs nested $ors are crappy
-		for (final ResolvedMongoWSID ws: toModify.keySet()) {
+		for (final ResolvedWorkspaceID ws: toModify.keySet()) {
 			setObjectsHidden(ws, toModify.get(ws), hide);
 		}
 	}
@@ -2884,7 +2894,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_HIDOBJ_QRY = String.format(
 			"{%s: #, %s: {$in: #}}", Fields.OBJ_WS_ID, Fields.OBJ_ID);
 	
-	private void setObjectsHidden(final ResolvedMongoWSID ws,
+	private void setObjectsHidden(final ResolvedWorkspaceID ws,
 			final List<Long> objectIDs, final boolean hide)
 			throws WorkspaceCommunicationException {
 		//TODO CODE general set field method?
@@ -2902,39 +2912,44 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public void setObjectsDeleted(final Set<ObjectIDResolvedWS> objectIDs,
+	public Set<ResolvedObjectIDNoVer> setObjectsDeleted(
+			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean delete)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		final Map<ObjectIDResolvedWS, ResolvedMongoObjectID> ids =
+		final Map<ObjectIDResolvedWS, ResolvedObjectID> ids =
 				resolveObjectIDs(objectIDs, delete, true);
-		final Map<ResolvedMongoWSID, List<Long>> toModify =
-				new HashMap<ResolvedMongoWSID, List<Long>>();
+		final Map<ResolvedWorkspaceID, List<Long>> toModify =
+				new HashMap<ResolvedWorkspaceID, List<Long>>();
+		final Set<ResolvedObjectIDNoVer> ret = new HashSet<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
-			final ResolvedMongoWSID ws = query.convertResolvedWSID(
-					o.getWorkspaceIdentifier());
+			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
+			final ResolvedObjectID obj = ids.get(o);
 			if (!toModify.containsKey(ws)) {
 				toModify.put(ws, new ArrayList<Long>());
 			}
-			toModify.get(ws).add(ids.get(o).getId());
+			toModify.get(ws).add(obj.getId());
+			ret.add(new ResolvedObjectIDNoVer(ws, obj.getId(), obj.getName(), delete));
 		}
 		//Do this by workspace since per mongo docs nested $ors are crappy
-		for (final ResolvedMongoWSID ws: toModify.keySet()) {
+		for (final ResolvedWorkspaceID ws: toModify.keySet()) {
 			setObjectsDeleted(ws, toModify.get(ws), delete);
 			updateWorkspaceModifiedDate(ws);
 		}
+		return ret;
 	}
 	
 	private static final String M_DELOBJ_WTH = String.format(
 			"{$set: {%s: #, %s: #}}", Fields.OBJ_DEL, Fields.OBJ_MODDATE);
 	
-	private void setObjectsDeleted(final ResolvedMongoWSID ws,
-			final List<Long> objectIDs, final boolean delete)
+	private void setObjectsDeleted(
+			final ResolvedWorkspaceID ws,
+			final List<Long> objectIDs,
+			final boolean delete)
 			throws WorkspaceCommunicationException {
 		final String query;
 		if (objectIDs.isEmpty()) {
 			query = String.format(
-					"{%s: %s, %s: %s}", Fields.OBJ_WS_ID, ws.getID(),
-					Fields.OBJ_DEL, !delete);
+					"{%s: %s, %s: %s}", Fields.OBJ_WS_ID, ws.getID(), Fields.OBJ_DEL, !delete);
 		} else {
 			query = String.format(
 					"{%s: %s, %s: {$in: [%s]}, %s: %s}",
@@ -2960,16 +2975,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//there's a possibility of a race condition here if a workspace is
 		//deleted and undeleted or vice versa in a very short amount of time,
 		//but that seems so unlikely it's not worth the code
-		final ResolvedMongoWSID mrwsi = query.convertResolvedWSID(rwsi);
+		
+		if (delete) {
+			// delete objects first so that we can't have undeleted object in a deleted workspace 
+			setObjectsDeleted(rwsi, new ArrayList<Long>(), delete);
+		}
 		try {
-			wsjongo.getCollection(COL_WORKSPACES).update(
-							M_DELWS_UPD, mrwsi.getID())
+			wsjongo.getCollection(COL_WORKSPACES).update(M_DELWS_UPD, rwsi.getID())
 					.with(M_DELWS_WTH, delete, new Date());
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		setObjectsDeleted(mrwsi, new ArrayList<Long>(), delete);
+		if (!delete) {
+			//undelete object last so we yadda yadda
+			setObjectsDeleted(rwsi, new ArrayList<Long>(), delete);
+		}
 	}
 	
 	@Override

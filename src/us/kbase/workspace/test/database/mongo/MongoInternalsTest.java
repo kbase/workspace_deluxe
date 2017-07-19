@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -60,6 +61,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedSaveObject;
+import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
@@ -79,10 +81,10 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
-import us.kbase.workspace.database.mongo.ResolvedMongoWSID;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
+import com.google.common.base.Optional;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
@@ -127,8 +129,6 @@ public class MongoInternalsTest {
 				new LocalTypeProvider(typeDefDB));
 		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 		ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
-		assertTrue("GridFS backend setup failed",
-				ws.getBackendType().equals("GridFS"));
 
 		//make a general spec that tests that don't worry about typechecking can use
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -346,7 +346,7 @@ public class MongoInternalsTest {
 		
 		//test set ws owner
 		WorkspaceTester.failSetWorkspaceOwner(ws, user1, cloning,
-				new WorkspaceUser("barbaz"), "barbaz", false, noWSExcp);
+				new WorkspaceUser("barbaz"), Optional.of("barbaz"), false, noWSExcp);
 		
 		//test list workspaces
 		List<WorkspaceInformation> wsl = ws.listWorkspaces(
@@ -635,12 +635,6 @@ public class MongoInternalsTest {
 		}
 	}
 	
-	private void assertExceptionCorrect(Exception got, Exception expected) {
-		assertThat("correct exception", got.getLocalizedMessage(),
-				is(expected.getLocalizedMessage()));
-		assertThat("correct exception type", got, is(expected.getClass()));
-	}
-	
 	@Test
 	public void raceConditionRevertObjectId() throws Exception {
 		//TODO TEST more tests like this to test internals that can't be tested otherwise
@@ -673,8 +667,7 @@ public class MongoInternalsTest {
 				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
-		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
-				wsi);
+		final ResolvedWorkspaceID rwsi = mwdb.resolveWorkspace(wsi);
 		mwdb.saveObjects(user, rwsi, Arrays.asList(rso));
 		
 		IDnPackage inp = startSaveObject(rwsi, rso, 3, at);
@@ -694,7 +687,7 @@ public class MongoInternalsTest {
 		
 		Method saveObjectVersion = mwdb.getClass()
 				.getDeclaredMethod("saveObjectVersion", WorkspaceUser.class,
-						ResolvedMongoWSID.class, long.class, ObjectSavePackage.class);
+						ResolvedWorkspaceID.class, long.class, ObjectSavePackage.class);
 		saveObjectVersion.setAccessible(true);
 		Field idid = r.getClass().getDeclaredField("id");
 		idid.setAccessible(true);
@@ -733,8 +726,7 @@ public class MongoInternalsTest {
 		
 		ResolvedSaveObject rso = createResolvedWSObj(objname, data, p, t, at);
 		ResolvedSaveObject rso2 = createResolvedWSObj(objname2, data, p, t, at);
-		ResolvedMongoWSID rwsi = (ResolvedMongoWSID) mwdb.resolveWorkspace(
-				wsi);
+		final ResolvedWorkspaceID rwsi = mwdb.resolveWorkspace(wsi);
 		
 		startSaveObject(rwsi, rso, 1, at);
 		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2)); //objid 2
@@ -742,7 +734,7 @@ public class MongoInternalsTest {
 		//possible race condition 1 - no version provided, version not yet
 		//saved, version count not yet incremented
 		ObjectIDResolvedWS oidrw = new ObjectIDResolvedWS(rwsi,
-				rso.getObjectIdentifier().getName());
+				rso.getObjectIdentifier().getName().get());
 		Set<ObjectIDResolvedWS> oidset = new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw));
 		failGetObjectsNoSuchObjectExcp(oidset,
@@ -760,17 +752,16 @@ public class MongoInternalsTest {
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi2.getName(), false, null,
 				new WorkspaceUserMetadata(), null);
-		ResolvedMongoWSID rwsi2 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
-				wsi2);
+		final ResolvedWorkspaceID rwsi2 = mwdb.resolveWorkspace(wsi2);
 		ObjectIDResolvedWS oidrw2_1 = new ObjectIDResolvedWS(rwsi2,
-				rso.getObjectIdentifier().getName());
+				rso.getObjectIdentifier().getName().get());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
 					Arrays.asList(oidrw2_1)), String.format(
 							"No object with name %s exists in workspace %s (name setGetRace2)",
 							objname, rwsi2.getID()));
 
 		ObjectIDResolvedWS oidrw2_2 = new ObjectIDResolvedWS(rwsi2,
-				rso2.getObjectIdentifier().getName());
+				rso2.getObjectIdentifier().getName().get());
 		
 		long id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw2_2)), false, true, false, true)
@@ -780,7 +771,7 @@ public class MongoInternalsTest {
 		
 		//possible race condition 2 - as 1, but version provided
 		ObjectIDResolvedWS oidrwWithVer = new ObjectIDResolvedWS(rwsi,
-				rso.getObjectIdentifier().getName(), 1);
+				rso.getObjectIdentifier().getName().get(), 1);
 		Set<ObjectIDResolvedWS> oidsetver = new HashSet<ObjectIDResolvedWS>();
 		oidsetver.add(oidrwWithVer);
 		failGetObjectsNoSuchObjectExcp(oidsetver,
@@ -807,17 +798,16 @@ public class MongoInternalsTest {
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null,
 				new WorkspaceUserMetadata(), null);
-		ResolvedMongoWSID rwsi3 = (ResolvedMongoWSID) mwdb.resolveWorkspace(
-				wsi3);
+		final ResolvedWorkspaceID rwsi3 = mwdb.resolveWorkspace(wsi3);
 		ObjectIDResolvedWS oidrw3_1 = new ObjectIDResolvedWS(rwsi3,
-				rso.getObjectIdentifier().getName());
+				rso.getObjectIdentifier().getName().get());
 		failGetObjectsNoSuchObjectExcp(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw3_1)),
 				String.format("No object with name %s exists in workspace %s (name setGetRace3)",
 						objname, rwsi3.getID()));
 
 		ObjectIDResolvedWS oidrw3_2 = new ObjectIDResolvedWS(rwsi3,
-				rso2.getObjectIdentifier().getName());
+				rso2.getObjectIdentifier().getName().get());
 		id = mwdb.getObjectInformation(new HashSet<ObjectIDResolvedWS>(
 				Arrays.asList(oidrw3_2)), false, true, false, true).get(oidrw3_2).getObjectId();
 		assertThat("correct object id", id, is(2L));
@@ -905,7 +895,7 @@ public class MongoInternalsTest {
 	}
 	
 	private IDnPackage startSaveObject(
-			final ResolvedMongoWSID rwsi,
+			final ResolvedWorkspaceID rwsi,
 			final ResolvedSaveObject rso,
 			final int objid,
 			final AbsoluteTypeDefId abstype) throws Exception {
@@ -920,15 +910,15 @@ public class MongoInternalsTest {
 		
 		Method incrementWorkspaceCounter = mwdb.getClass()
 				.getDeclaredMethod("incrementWorkspaceCounter",
-						ResolvedMongoWSID.class, long.class);
+						ResolvedWorkspaceID.class, long.class);
 		incrementWorkspaceCounter.setAccessible(true);
 		incrementWorkspaceCounter.invoke(mwdb, rwsi, 1);
 		
 		Method saveWorkspaceObject = mwdb.getClass()
-				.getDeclaredMethod("saveWorkspaceObject", ResolvedMongoWSID.class,
+				.getDeclaredMethod("saveWorkspaceObject", ResolvedWorkspaceID.class,
 						long.class, String.class);
 		saveWorkspaceObject.setAccessible(true);
-		String name = rso.getObjectIdentifier().getName();
+		String name = rso.getObjectIdentifier().getName().get();
 		IDName idn = (IDName) saveWorkspaceObject.invoke(mwdb, rwsi, objid, name);
 		return new IDnPackage(idn, pkg);
 	}

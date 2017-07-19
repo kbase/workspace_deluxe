@@ -1,6 +1,6 @@
 package us.kbase.workspace.test;
 
-import static us.kbase.common.test.TestCommon.getProp;
+import static us.kbase.common.test.TestCommon.getTestProperty;
 import static us.kbase.common.test.TestCommon.destroyDB;
 
 import java.net.URL;
@@ -22,19 +22,19 @@ public class WorkspaceTestCommon {
 	public static final String SHOCK = "shock";
 			
 	public static String getPlackupExe() {
-		return getProp(PLACKUPEXE);
+		return getTestProperty(PLACKUPEXE);
 	}
 	
 	public static String getHandleServicePSGI() {
-		return getProp(HANDLE_SRV_PSGI);
+		return getTestProperty(HANDLE_SRV_PSGI);
 	}
 	
 	public static String getHandleManagerPSGI() {
-		return getProp(HANDLE_MGR_PSGI);
+		return getTestProperty(HANDLE_MGR_PSGI);
 	}
 	
 	public static String getHandlePERL5LIB() {
-		return getProp(HANDLE_PERL5LIB);
+		return getTestProperty(HANDLE_PERL5LIB);
 	}
 	
 	//useful for tests starting a server with GFS as the backend

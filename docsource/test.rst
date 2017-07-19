@@ -20,11 +20,7 @@ In order to run tests:
 
 See :ref:`servicedeps` for more information about these test dependencies.
 
-Next, the test configuration file at ``test/test.cfg`` must be completed. Most
-values can be left as they are, assuming that the test machine has a valid
-KBase runtime installed and the dependencies listed above have been deployed
-per the standard methodology. The user account details must always be
-completed.
+Next, copy the ``test.cfg.example`` file to ``test.cfg`` and fill in appropriately.
 
 Finally::
 

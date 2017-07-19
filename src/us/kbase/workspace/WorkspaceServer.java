@@ -19,7 +19,6 @@ import us.kbase.common.service.UObject;
 import us.kbase.common.service.ServiceChecker;
 import us.kbase.common.service.ServiceChecker.ServiceException;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
-import static us.kbase.workspace.kbase.ArgUtils.checkLong;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToMetaTuple;
@@ -27,22 +26,17 @@ import static us.kbase.workspace.kbase.ArgUtils.objInfoToMetaTuple;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectProvInfo;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
-import static us.kbase.workspace.kbase.ArgUtils.toObjectPaths;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectInfoList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
-import static us.kbase.workspace.kbase.ArgUtils.longToInt;
-import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifier;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
 import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifiers;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
-import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -72,7 +66,6 @@ import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
@@ -83,7 +76,6 @@ import us.kbase.workspace.kbase.InitWorkspaceServer.InitReporter;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig;
-import us.kbase.workspace.kbase.TokenProvider;
 import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 //END_HEADER
@@ -115,7 +107,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.7.1";
+	private static final String VER = "0.7.2-dev1";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -130,7 +122,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private final URL handleManagerUrl;
-	private final TokenProvider handleMgrToken;
+	private final AuthToken handleMgrToken;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
 			new ThreadLocal<List<WorkspaceObjectData>>();
@@ -237,7 +229,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		Types types = null;
 		WorkspaceAdministration wsadmin = null;
 		URL handleManagerUrl = null;
-		TokenProvider handleMgrToken = null;
+		AuthToken handleMgrToken = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
 			logErr("Workspace server configuration has errors - all calls will fail");
@@ -313,26 +305,18 @@ public class WorkspaceServer extends JsonServerServlet {
     public void alterWorkspaceMetadata(AlterWorkspaceMetadataParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN alter_workspace_metadata
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final boolean noNew = params.getNew() == null ||
-				params.getNew().isEmpty();
-		final boolean noRemove = params.getRemove() == null ||
-				params.getRemove().isEmpty();
-		if (noNew && noRemove) {
+		final WorkspaceUserMetadata meta = params.getNew() == null || params.getNew().isEmpty() ?
+				null : new WorkspaceUserMetadata(params.getNew());
+		final List<String> remove = params.getRemove() == null || params.getRemove().isEmpty() ?
+				null : params.getRemove();
+		
+		if (meta == null && remove == null) {
 			throw new IllegalArgumentException(
 					"Must provide metadata keys to add or remove");
 		}
-		final WorkspaceIdentifier wsi =
-				processWorkspaceIdentifier(params.getWsi());
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.getWsi());
 		final WorkspaceUser user = wsmeth.getUser(authPart);
-		if (!noRemove) {
-			for (final String key: params.getRemove()) {
-				ws.removeWorkspaceMetadata(user, wsi, key);
-			}
-		}
-		if (!noNew) {
-			ws.setWorkspaceMetadata(user, wsi,
-					new WorkspaceUserMetadata(params.getNew()));
-		}
+		ws.setWorkspaceMetadata(user, wsi, meta, remove);
         //END alter_workspace_metadata
     }
 
@@ -479,7 +463,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.set_permissions", async=true)
     public void setPermissions(SetPermissionsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN set_permissions
-		wsmeth.setPermissions(params, wsmeth.getUser(authPart));
+		wsmeth.setPermissions(params, authPart);
         //END set_permissions
     }
 
@@ -528,8 +512,7 @@ public class WorkspaceServer extends JsonServerServlet {
         WorkspacePermissions returnVal = null;
         //BEGIN get_permissions_mass
 		checkAddlArgs(mass.getAdditionalProperties(), mass.getClass());
-		returnVal = wsmeth.getPermissions(
-				mass.getWorkspaces(), wsmeth.getUser(authPart));
+		returnVal = wsmeth.getPermissions(mass.getWorkspaces(), wsmeth.getUser(authPart), false);
         //END get_permissions_mass
         return returnVal;
     }
@@ -704,16 +687,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public GetObjects2Results getObjects2(GetObjects2Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         GetObjects2Results returnVal = null;
         //BEGIN get_objects2
-		checkAddlArgs(params.getAdditionalProperties(), GetObjects2Params.class);
-		final List<ObjectIdentifier> loi =
-				processObjectSpecifications(params.getObjects());
-		final boolean noData = longToBoolean(params.getNoData(), false);
-		final boolean ignoreErrors = longToBoolean(params.getIgnoreErrors(), false);
-		final List<WorkspaceObjectData> objects = ws.getObjects(
-				wsmeth.getUser(authPart), loi, noData, ignoreErrors);
-		resourcesToDelete.set(objects);
-		returnVal = new GetObjects2Results().withData(translateObjectData(
-				objects, wsmeth.getUser(authPart), handleManagerUrl, handleMgrToken, true));
+		returnVal = wsmeth.getObjects(params, wsmeth.getUser(authPart), false, resourcesToDelete);
         //END get_objects2
         return returnVal;
     }
@@ -966,57 +940,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> listObjects(ListObjectsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN list_objects
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final List<WorkspaceIdentifier> wsis = new LinkedList<WorkspaceIdentifier>();
-		if (params.getWorkspaces() != null) {
-			for (final String ws: params.getWorkspaces()) {
-				wsis.add(processWorkspaceIdentifier(ws, null));
-			}
-		}
-		if (params.getIds() != null) {
-			for (final Long id: params.getIds()) {
-				wsis.add(processWorkspaceIdentifier(null, id));
-			}
-		}
-		final TypeDefId type = params.getType() == null ? null :
-				TypeDefId.fromTypeString(params.getType());
-		if (type == null && wsis.isEmpty()) {
-			throw new IllegalArgumentException(
-					"At least one filter must be specified.");
-		}
-		final WorkspaceUser user = wsmeth.getUser(authPart);
-		final ListObjectsParameters lop;
-		if (type == null) {
-			lop = new ListObjectsParameters(user, wsis);
-		} else if (wsis.isEmpty()) {
-			lop = new ListObjectsParameters(user, type);
-		} else {
-			lop = new ListObjectsParameters(user, wsis, type);
-		}
-		final Date after = chooseDate(params.getAfter(),
-				params.getAfterEpoch(),
-				"Cannot specify both timestamp and epoch for after parameter");
-		final Date before = chooseDate(params.getBefore(),
-				params.getBeforeEpoch(),
-				"Cannot specify both timestamp and epoch for before " +
-				"parameter");
-		lop.withMinimumPermission(params.getPerm() == null ? null :
-				translatePermission(params.getPerm()))
-			.withSavers(wsmeth.convertUsers(params.getSavedby()))
-			.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
-			.withAfter(after)
-			.withBefore(before)
-			.withMinObjectID(checkLong(params.getMinObjectID(), -1))
-			.withMaxObjectID(checkLong(params.getMaxObjectID(), -1))
-			.withShowHidden(longToBoolean(params.getShowHidden()))
-			.withShowDeleted(longToBoolean(params.getShowDeleted()))
-			.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))
-			.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
-			.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
-			.withExcludeGlobal(longToBoolean(params.getExcludeGlobal()))
-			.withLimit(longToInt(params.getLimit(), "Limit", -1));
-		
-		returnVal = objInfoToTuple(ws.listObjects(lop), false);
+		returnVal = wsmeth.listObjects(params, wsmeth.getUser(authPart), false);
         //END list_objects
         return returnVal;
     }
@@ -1107,15 +1031,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public GetObjectInfo3Results getObjectInfo3(GetObjectInfo3Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         GetObjectInfo3Results returnVal = null;
         //BEGIN get_object_info3
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		final List<ObjectIdentifier> loi = processObjectSpecifications(
-				params.getObjects());
-		final List<ObjectInformation> infos = ws.getObjectInformation(
-				wsmeth.getUser(authPart), loi,
-				longToBoolean(params.getIncludeMetadata()),
-				longToBoolean(params.getIgnoreErrors()));
-		returnVal = new GetObjectInfo3Results().withInfos(objInfoToTuple(infos, true))
-				.withPaths(toObjectPaths(infos));
+		returnVal = wsmeth.getObjectInformation(params, wsmeth.getUser(authPart), false);
         //END get_object_info3
         return returnVal;
     }
@@ -1798,7 +1714,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public UObject administer(UObject command, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         UObject returnVal = null;
         //BEGIN administer
-		returnVal = new UObject(wsadmin.runCommand(authPart, command));
+		returnVal = new UObject(wsadmin.runCommand(authPart, command, resourcesToDelete));
         //END administer
         return returnVal;
     }

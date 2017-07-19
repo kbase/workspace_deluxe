@@ -56,7 +56,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
  * @author gaprice@lbl.gov
  * @author rsutormin
  */
-public final class TypedObjectValidator {
+public class TypedObjectValidator {
 	
 	private static final boolean VERBOSE_EXCEPTIONS = false;
 	

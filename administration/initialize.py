@@ -105,7 +105,7 @@ def printDBsettings(settings):
 def _get_user(token, authurl):
     if not authurl:
         print('No auth url found in deploy file, using default')
-        authurl = 'https://kbase.us/services/authorization/Sessions/Login'
+        authurl = 'https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login'
     d = {'token': token, 'fields': 'user_id'}
     print('Validating token with auth server at ' + authurl)
     ret = requests.post(authurl, data=d)

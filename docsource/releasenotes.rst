@@ -1,6 +1,42 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.7.2 (Released TBD)
+--------------------------------
+
+BACKWARDS INCOMPATIBILITIES:
+
+* Building and running the service now requires Java 8.
+* The ``getPermissions`` administration command, like the ``get_permissions`` method, is now
+  deprecated.
+
+NEW FEATURES:
+
+* Adds a workspace event listener API. Event listeners must implement the
+  ``us.kbase.workspace.listener.WorkspaceEventListenerFactory`` and ``WorkspaceEventListener``
+  interfaces. Specify listeners to be loaded on start up in the ``deploy.cfg`` file (see
+  ``deploy.cfg.example`` for an example. See
+  ``us.kbase.workspace.test.listener.NullListenerFactory`` for an example implementation.
+* Added the ``getPermissionsMass`` administration command.
+* Added the ``getWorkspaceInfo`` administration command.
+* Added the ``listObjects`` administration command.
+* Added the ``getObjectInfo`` administration command.
+* Added the ``getObjects`` administration command.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* A user name is now optional for the ``getPermissions`` administration command.
+* Fixed a bug where the administrator ``setWorkspaceOwner`` command in very specific
+  cases could allow setting an illegal workspace name.
+* Fixed a bug where an admin could delete a locked workspace.
+* Removed ``kbase-admin`` credentials from the deploy.cfg file as they're obsolete after the
+  conversion to auth2.
+* The credentials for the Handle Manager service in the deploy.cfg file now require a token.
+* The credentials for the file backend in the deploy.cfg file now require a token.
+* Fixed a bug where performing a permissions search for a readable, deleted object with an
+  incoming reference from a readable, non-deleted object would fail with a deleted object
+  exception.
+
 VERSION: 0.7.1 (Released 6/22/17)
 ---------------------------------
 

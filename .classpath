@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry excluding=".gitignore" kind="src" path="test"/>
 	<classpathentry kind="src" path="performance"/>
 	<classpathentry kind="src" path="server_scripts"/>
@@ -9,7 +10,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/ini4j/ini4j-0.5.2.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/jetty/jetty-all-7.0.0.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/jna/jna-3.4.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/junit/junit-4.9.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/servlet/servlet-api-2.5.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/syslog4j/syslog4j-0.9.46.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-collections-3.2.1.jar" sourcepath="/jars/lib/jars/apache_commons/commons-collections-3.2.1-sources.jar">
@@ -58,8 +58,14 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/shock/shock-client-0.0.14.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/HandleManagerClient-160803-08c8da3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/HandleServiceClient-160803-b9de699.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth/kbase-auth-0.4.2.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth/kbase-auth-0.4.4.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/equalsverifier/equalsverifier-2.2.2.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/junit/junit-4.12.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/hamcrest/hamcrest-core-1.3.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/mockito/mockito-core-2.7.10.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/bytebuddy/byte-buddy-1.6.8.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/bytebuddy/byte-buddy-agent-1.6.8.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/objenesis/objenesis-2.5.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.0.24.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

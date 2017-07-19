@@ -1,0 +1,1 @@
+Scripts are deprecated and will be moved to their own repo.

@@ -16,6 +16,7 @@ import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -71,11 +72,6 @@ public class ObjectInfoUtils {
 		final int querysize = params.getLimit() < 100 ? 100 :
 				params.getLimit();
 		final PermissionSet pset = params.getPermissionSet();
-		if (!(pset instanceof MongoPermissionSet)) {
-			throw new IllegalArgumentException(
-					"Illegal implementation of PermissionSet: " +
-					pset.getClass().getName());
-		}
 		if (pset.isEmpty()) {
 			return new LinkedList<ObjectInformation>();
 		}
@@ -103,7 +99,7 @@ public class ObjectInfoUtils {
 			final Map<Map<String, Object>, ObjectInformation> objs =
 					generateObjectInfo(pset, verobjs, params.isShowHidden(),
 							params.isShowDeleted(), params.isShowOnlyDeleted(),
-							params.isShowAllVersions()
+							params.isShowAllVersions(), params.asAdmin()
 							);
 			//maintain the natural DB ordering 
 			final Iterator<Map<String, Object>> veriter = verobjs.iterator();
@@ -123,8 +119,7 @@ public class ObjectInfoUtils {
 			throws WorkspaceCommunicationException {
 		final DBCursor cur;
 		try {
-			cur = query.getDatabase().getCollection(
-					query.getVersionCollection())
+			cur = query.getDatabase().getCollection(query.getVersionCollection())
 					.find(verq, projection);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -197,9 +192,13 @@ public class ObjectInfoUtils {
 	}
 	
 	Map<Map<String, Object>, ObjectInformation> generateObjectInfo(
-			final PermissionSet pset, final List<Map<String, Object>> verobjs,
-			final boolean includeHidden, final boolean includeDeleted,
-			final boolean onlyIncludeDeleted, final boolean includeAllVers)
+			final PermissionSet pset,
+			final List<Map<String, Object>> verobjs,
+			final boolean includeHidden,
+			final boolean includeDeleted,
+			final boolean onlyIncludeDeleted,
+			final boolean includeAllVers,
+			final boolean asAdmin)
 			throws WorkspaceCommunicationException {
 		final Map<Map<String, Object>, ObjectInformation> ret =
 				new HashMap<Map<String, Object>, ObjectInformation>();
@@ -209,8 +208,7 @@ public class ObjectInfoUtils {
 		final Map<Long, ResolvedWorkspaceID> ids =
 				new HashMap<Long, ResolvedWorkspaceID>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			final ResolvedMongoWSID rm = query.convertResolvedWSID(rwsi);
-			ids.put(rm.getID(), rm);
+			ids.put(rwsi.getID(), rwsi);
 		}
 		final Map<Long, Set<Long>> verdata = getObjectIDsFromVersions(verobjs);
 		//TODO PERFORMANCE This $or query might be better as multiple individual queries, test
@@ -235,7 +233,7 @@ public class ObjectInfoUtils {
 			final int ver = (Integer) vo.get(Fields.VER_VER);
 			final Map<String, Object> obj = objdata.get(wsid).get(id);
 			final int lastver = (Integer) obj.get(Fields.OBJ_VCNT);
-			final ResolvedMongoWSID rwsi = (ResolvedMongoWSID) ids.get(wsid);
+			final ResolvedWorkspaceID rwsi = ids.get(wsid);
 			boolean isDeleted = (Boolean) obj.get(Fields.OBJ_DEL);
 			if (!includeAllVers && lastver != ver) {
 				/* this is tricky. As is, if there's a failure between incrementing
@@ -253,30 +251,29 @@ public class ObjectInfoUtils {
 				continue;
 			}
 			if (onlyIncludeDeleted) {
-				if (isDeleted && pset.hasPermission(rwsi, Permission.WRITE)) {
+				if (isDeleted && (asAdmin || pset.hasPermission(rwsi, Permission.WRITE))) {
 					ret.put(vo, generateObjectInfo(rwsi, id,
 							(String) obj.get(Fields.OBJ_NAME), vo));
 				}
 				continue;
 			}
 			if (isDeleted && (!includeDeleted ||
-					!pset.hasPermission(rwsi, Permission.WRITE))) {
+					(!asAdmin && !pset.hasPermission(rwsi, Permission.WRITE)))) {
 				continue;
 			}
-			ret.put(vo, generateObjectInfo(rwsi, id,
-					(String) obj.get(Fields.OBJ_NAME), vo));
+			ret.put(vo, generateObjectInfo(rwsi, id, (String) obj.get(Fields.OBJ_NAME), vo));
 		}
 		return ret;
 	}
 	
 	static ObjectInformation generateObjectInfo(
-			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
+			final ResolvedObjectID roi, final Map<String, Object> ver) {
 		return generateObjectInfo(roi.getWorkspaceIdentifier(), roi.getId(),
 				roi.getName(), ver);
 	}
 	
 	static ObjectInformation generateObjectInfo(
-			final ResolvedMongoWSID rwsi, final long objid, final String name,
+			final ResolvedWorkspaceID rwsi, final long objid, final String name,
 			final Map<String, Object> ver) {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =

@@ -54,12 +54,12 @@ public class ObjectIDResolvedWSNoVer {
 			throw new IllegalArgumentException("id cannot be null");
 		}
 		this.rwsi = rwsi;
-		if (id.getId() == null) {
-			this.name = id.getName();
-			this.id = null;
-		} else {
+		if (id.getId().isPresent()) {
 			this.name = null;
-			this.id = id.getId();
+			this.id = id.getId().get();
+		} else {
+			this.name = id.getName().get();
+			this.id = null;
 		}
 	}
 	
