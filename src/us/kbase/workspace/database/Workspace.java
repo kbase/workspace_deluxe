@@ -1441,8 +1441,11 @@ public class Workspace {
 		final ObjectIDResolvedWS target = new PermissionsCheckerFactory(db, user)
 				.getObjectChecker(oi, Permission.WRITE).check();
 		final ObjectInformation objinfo = db.revertObject(user, target);
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
+				user, target.getWorkspaceIdentifier());
 		for (final WorkspaceEventListener l: listeners) {
-			l.revertObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), objinfo.getVersion());
+			l.revertObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), objinfo.getVersion(),
+					objinfo.getTypeString(), wsinfo.isGloballyReadable());
 		}
 		return objinfo;
 	}

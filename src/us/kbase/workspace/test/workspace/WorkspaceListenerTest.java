@@ -728,6 +728,16 @@ public class WorkspaceListenerTest {
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
 		
+		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
+				.withID(24)
+				.withName("ugh")
+				.withMaximumObjectID(2)
+				.withModificationDate(Instant.now())
+				.withOwner(new WorkspaceUser("foo"))
+				.withUserPermission(Permission.WRITE)
+				.withGlobalRead(true)
+				.build();
+		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
 		
 		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -735,10 +745,11 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
 		when(db.revertObject(user, roi)).thenReturn(OBJ_INFO);
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 		
 		ws.revertObject(user, oi);
 		
-		verify(l).revertObject(24, 42, 45);
+		verify(l).revertObject(24, 42, 45, "a type", true);
 	}
 	
 	@Test
@@ -755,6 +766,15 @@ public class WorkspaceListenerTest {
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
 		
+		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
+				.withID(24)
+				.withName("ugh")
+				.withMaximumObjectID(2)
+				.withModificationDate(Instant.now())
+				.withOwner(new WorkspaceUser("foo"))
+				.withUserPermission(Permission.WRITE)
+				.build();
+		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
 		
 		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -762,11 +782,12 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
 		when(db.revertObject(user, roi)).thenReturn(OBJ_INFO);
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 		
 		ws.revertObject(user, oi);
 		
-		verify(l1).revertObject(24, 42, 45);
-		verify(l2).revertObject(24, 42, 45);
+		verify(l1).revertObject(24, 42, 45, "a type", false);
+		verify(l2).revertObject(24, 42, 45, "a type", false);
 	}
 	
 	@Test

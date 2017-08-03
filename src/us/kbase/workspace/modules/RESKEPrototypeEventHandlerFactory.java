@@ -166,8 +166,13 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void revertObject(long workspaceId, long objectId, int version) {
-			// TODO RESKE Auto-generated method stub
+		public void revertObject(
+				final long workspaceId,
+				final long objectId,
+				final int version,
+				final String type,
+				final boolean isPublic) {
+			newVersionEvent(workspaceId, objectId, version, type, isPublic);
 			
 		}
 
