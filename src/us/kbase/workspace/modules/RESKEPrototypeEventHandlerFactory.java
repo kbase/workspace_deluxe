@@ -194,11 +194,9 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				final long workspaceId,
 				final long objectId,
 				final int version,
-				final String type) {
-			if (workspaceId > Integer.MAX_VALUE) {
-				LoggerFactory.getLogger(getClass()).error(
-						"Workspace id {} is out of int range. Cannot send data to RESKE",
-						workspaceId);
+				final String type,
+				final boolean isPublic) {
+			if (!wsidOK(workspaceId)) {
 				return;
 			}
 			
@@ -210,7 +208,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			dobj.put("timestamp", System.currentTimeMillis());
 			dobj.put("eventType", NEW_OBJECT);
 			dobj.put("storageObjectType", type.split("-")[0]);
-			dobj.put("isGlobalAccessed", false); //TODO RESKE add global
+			dobj.put("isGlobalAccessed", isPublic);
 			dobj.put("indexed", false);
 			dobj.put("processed", false);
 			try {
@@ -220,6 +218,16 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 						"RESKE save %s/%s/%s: Failed to connect to MongoDB",
 						workspaceId, objectId, version), me);
 			}
+		}
+		
+		private boolean wsidOK(final long workspaceId) {
+			if (workspaceId > Integer.MAX_VALUE) {
+				LoggerFactory.getLogger(getClass()).error(
+						"Workspace id {} is out of int range. Cannot send data to RESKE",
+						workspaceId);
+				return false;
+			}
+			return true;
 		}
 		
 	}

@@ -108,6 +108,7 @@ public interface WorkspaceEventListener {
 	 * @param objectId the id of the object.
 	 * @param version the version of the object.
 	 * @param type the type of the object.
+	 * @param isPublic true if the object is in a public workspace, false otherwise.
 	 */
-	void saveObject(long workspaceId, long objectId, int version, final String type);
+	void saveObject(long workspaceId, long objectId, int version, String type, boolean isPublic);
 }

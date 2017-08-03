@@ -694,13 +694,15 @@ public class Workspace {
 		objects = null;
 		reports.clear();
 		
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(user, rwsi);
+		
 		try {
 			sortObjects(saveobjs, ttlObjSize);
 			final List<ObjectInformation> ret = db.saveObjects(user, rwsi, saveobjs);
 			for (final WorkspaceEventListener l: listeners) {
 				for (final ObjectInformation oi: ret) {
 					l.saveObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-							oi.getTypeString());
+							oi.getTypeString(), wsinfo.isGloballyReadable());
 				}
 			}
 			return ret;

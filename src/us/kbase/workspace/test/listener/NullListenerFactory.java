@@ -117,8 +117,14 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void saveObject(long workspaceId, long objectId, int version, String type) {
-			print(String.format("saveObject %s %s %s %s", workspaceId, objectId, version, type));
+		public void saveObject(
+				long workspaceId,
+				long objectId,
+				int version,
+				String type,
+				boolean isPublic) {
+			print(String.format("saveObject %s %s %s %s %s",
+					workspaceId, objectId, version, type, isPublic));
 		}
 	}
 }
