@@ -93,16 +93,22 @@ public interface WorkspaceEventListener {
 	 */
 	void setObjectDeleted(long workspaceId, long objectId, boolean delete);
 
-	//TODO RESKE make two methods. One for a single object w/ type info, one for multiple. 
-	/** Notification that an object was copied.
+	/** Notification that a single version of an object was copied.
 	 * @param workspaceId the workspace id of the new object.
 	 * @param objectId the object id of the new object.
 	 * @param version the version of the new object.
-	 * @param allVersionsCopied whether all the versions of the source object were copied to the
-	 * new object.
+	 * @param type the type of the new object.
+	 * @param isPublic true if the new object is in a public workspace, false otherwise.
 	 */
-	void copyObject(long workspaceId, long objectId, int version, boolean allVersionsCopied);
+	void copyObject(long workspaceId, long objectId, int version, String type, boolean isPublic);
 
+	/** Notification that all the versions of an object was copied.
+	 * @param workspaceId the workspace id of the new object.
+	 * @param objectId the object id of the new object.
+	 * @param latestVersion the latest version of the new object.
+	 */
+	void copyObject(long workspaceId, long objectId, int latestVersion);
+	
 	/** Notification that an object has been saved.
 	 * @param workspaceId the id of the workspace containing the object.
 	 * @param objectId the id of the object.

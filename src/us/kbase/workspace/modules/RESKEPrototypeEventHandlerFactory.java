@@ -115,20 +115,18 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void setWorkspaceMetadata(long id) {
-			// TODO RESKE Auto-generated method stub
-			
+			// no action
 		}
 
 		@Override
 		public void lockWorkspace(long id) {
-			// TODO RESKE Auto-generated method stub
-			
+			// no action
 		}
 
 		@Override
 		public void renameWorkspace(long id, String newname) {
 			// TODO RESKE Auto-generated method stub
-			
+			// not sure if there's anything to do here
 		}
 
 		@Override
@@ -145,7 +143,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void setWorkspaceDescription(long id) {
-			// TODO RESKE Auto-generated method stub
+			// no action
 			
 		}
 
@@ -184,11 +182,16 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				final long workspaceId,
 				final long objectId,
 				final int version,
-				final boolean allVersionsCopied) {
+				final String type,
+				final boolean isPublic) {
 			// TODO RESKE Auto-generated method stub
-			
 		}
 
+		@Override
+		public void copyObject(long workspaceId, long objectId, int latestVersion) {
+			// TODO RESKE Auto-generated method stub
+		}
+		
 		@Override
 		public void saveObject(
 				final long workspaceId,
@@ -229,7 +232,5 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			}
 			return true;
 		}
-		
 	}
-
 }

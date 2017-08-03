@@ -71,7 +71,11 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 				long workspaceId,
 				long objectId,
 				int version,
-				boolean allVersionsCopied) {}
+				String type,
+				boolean isPublic) {}
+		
+		@Override
+		public void copyObject(long workspaceId, long objectId, int latestVersion) {}
 
 		@Override
 		public void saveObject(
@@ -80,7 +84,6 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 				int version,
 				String type,
 				boolean isPublic) {}
-		
 	}
 
 }

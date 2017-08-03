@@ -1423,8 +1423,14 @@ public class Workspace {
 		final CopyResult cr = db.copyObject(user, f, t);
 		final ObjectInformation oi = cr.getObjectInformation();
 		for (final WorkspaceEventListener l: listeners) {
-			l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-					cr.isAllVersionsCopied());
+			if (cr.isAllVersionsCopied()) {
+				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion());
+			} else {
+				final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
+						user, t.getWorkspaceIdentifier());
+				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+						oi.getTypeString(), wsinfo.isGloballyReadable());
+			}
 		}
 		return oi;
 	}
