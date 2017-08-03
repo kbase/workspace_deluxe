@@ -184,7 +184,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				final int version,
 				final String type,
 				final boolean isPublic) {
-			// TODO RESKE Auto-generated method stub
+			newVersionEvent(workspaceId, objectId, version, type, isPublic);
 		}
 
 		@Override
@@ -194,6 +194,15 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		
 		@Override
 		public void saveObject(
+				final long workspaceId,
+				final long objectId,
+				final int version,
+				final String type,
+				final boolean isPublic) {
+			newVersionEvent(workspaceId, objectId, version, type, isPublic);
+		}
+
+		private void newVersionEvent(
 				final long workspaceId,
 				final long objectId,
 				final int version,
