@@ -195,9 +195,16 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				final long objectId,
 				final int version,
 				final String type) {
-			DBObject dobj = new BasicDBObject();
+			if (workspaceId > Integer.MAX_VALUE) {
+				LoggerFactory.getLogger(getClass()).error(
+						"Workspace id {} is out of int range. Cannot send data to RESKE",
+						workspaceId);
+				return;
+			}
+			
+			final DBObject dobj = new BasicDBObject();
 			dobj.put("storageCode", DATA_SOURCE);
-			dobj.put("accessGroupId", workspaceId);
+			dobj.put("accessGroupId", (int) workspaceId);
 			dobj.put("accessGroupObjectId", "" + objectId);
 			dobj.put("version", version);
 			dobj.put("timestamp", System.currentTimeMillis());
