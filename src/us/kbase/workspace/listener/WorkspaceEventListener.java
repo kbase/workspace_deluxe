@@ -93,6 +93,7 @@ public interface WorkspaceEventListener {
 	 */
 	void setObjectDeleted(long workspaceId, long objectId, boolean delete);
 
+	//TODO RESKE make two methods. One for a single object w/ type info, one for multiple. 
 	/** Notification that an object was copied.
 	 * @param workspaceId the workspace id of the new object.
 	 * @param objectId the object id of the new object.
