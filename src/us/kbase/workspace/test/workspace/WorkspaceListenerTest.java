@@ -910,6 +910,15 @@ public class WorkspaceListenerTest {
 		final ObjectIDResolvedWS rfrom = new ObjectIDResolvedWS(rwsi, "whoo");
 		final ObjectIDResolvedWS rto = new ObjectIDResolvedWS(rwsi, "whee");
 		
+		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
+				.withID(24)
+				.withName("ugh")
+				.withMaximumObjectID(2)
+				.withModificationDate(Instant.now())
+				.withOwner(new WorkspaceUser("foo"))
+				.withUserPermission(Permission.WRITE)
+				.build();
+		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
 		
 		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -917,11 +926,12 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
 		when(db.copyObject(user, rfrom, rto)).thenReturn(new CopyResult(OBJ_INFO, true));
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 
 		ws.copyObject(user, from, to);
 		
-		verify(l1).copyObject(24, 42, 45);
-		verify(l2).copyObject(24, 42, 45);
+		verify(l1).copyObject(24, 42, 45, false);
+		verify(l2).copyObject(24, 42, 45, false);
 	}
 	
 	public static class SaveObjectsAnswerMatcher implements

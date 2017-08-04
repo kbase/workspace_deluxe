@@ -80,7 +80,11 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 				boolean isPublic) {}
 		
 		@Override
-		public void copyObject(long workspaceId, long objectId, int latestVersion) {}
+		public void copyObject(
+				long workspaceId,
+				long objectId,
+				int latestVersion,
+				boolean isPublic) {}
 
 		@Override
 		public void saveObject(

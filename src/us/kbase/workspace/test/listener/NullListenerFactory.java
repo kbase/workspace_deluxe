@@ -124,7 +124,11 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 		
 		@Override
-		public void copyObject(long workspaceId, long objectId, int latestVersion) {
+		public void copyObject(
+				long workspaceId,
+				long objectId,
+				int latestVersion,
+				boolean isPublic) {
 			print(String.format("copyObject %s %s %s", workspaceId, objectId, latestVersion));
 		}
 

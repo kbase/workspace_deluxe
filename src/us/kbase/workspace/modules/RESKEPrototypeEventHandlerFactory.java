@@ -193,7 +193,11 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void copyObject(long workspaceId, long objectId, int latestVersion) {
+		public void copyObject(
+				long workspaceId,
+				long objectId,
+				int latestVersion,
+				boolean isPublic) {
 			// TODO RESKE Auto-generated method stub
 		}
 		

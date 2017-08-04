@@ -96,11 +96,11 @@ public interface WorkspaceEventListener {
 	void setObjectDeleted(long workspaceId, long objectId, boolean delete);
 
 	/** Notification that a single version of an object was copied.
-	 * @param workspaceId the workspace id of the new object.
-	 * @param objectId the object id of the new object.
+	 * @param workspaceId the workspace id of the new object version.
+	 * @param objectId the object id of the new object version.
 	 * @param version the version of the new object.
-	 * @param type the type of the new object.
-	 * @param isPublic true if the new object is in a public workspace, false otherwise.
+	 * @param type the type of the new object version.
+	 * @param isPublic true if the new object version is in a public workspace, false otherwise.
 	 */
 	void copyObject(long workspaceId, long objectId, int version, String type, boolean isPublic);
 
@@ -108,8 +108,9 @@ public interface WorkspaceEventListener {
 	 * @param workspaceId the workspace id of the new object.
 	 * @param objectId the object id of the new object.
 	 * @param latestVersion the latest version of the new object.
+	 * @param isPublic true if the new object is in a public workspace, false otherwise.
 	 */
-	void copyObject(long workspaceId, long objectId, int latestVersion);
+	void copyObject(long workspaceId, long objectId, int latestVersion, boolean isPublic);
 	
 	/** Notification that an object has been saved.
 	 * @param workspaceId the id of the workspace containing the object.
