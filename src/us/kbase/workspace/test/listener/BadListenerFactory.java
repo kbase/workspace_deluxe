@@ -61,7 +61,12 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 		public void renameObject(long workspaceId, long objectId, String newName) {}
 
 		@Override
-		public void revertObject(long workspaceId, long objectId, int version) {}
+		public void revertObject(
+				long workspaceId,
+				long objectId,
+				int version,
+				String type,
+				boolean isPublic) {}
 
 		@Override
 		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {}
@@ -71,11 +76,23 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 				long workspaceId,
 				long objectId,
 				int version,
-				boolean allVersionsCopied) {}
+				String type,
+				boolean isPublic) {}
+		
+		@Override
+		public void copyObject(
+				long workspaceId,
+				long objectId,
+				int latestVersion,
+				boolean isPublic) {}
 
 		@Override
-		public void saveObject(long workspaceId, long objectId, int version, String type) {}
-		
+		public void saveObject(
+				long workspaceId,
+				long objectId,
+				int version,
+				String type,
+				boolean isPublic) {}
 	}
 
 }

@@ -141,8 +141,7 @@ public class InitWorkspaceServer {
 	public static WorkspaceInitResults initWorkspaceServer(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
-		final TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(),
-				rep);
+		final TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(), rep);
 		
 		final ConfigurableAuthService auth = setUpAuthClient(cfg, rep);
 		if (rep.isFailed()) {

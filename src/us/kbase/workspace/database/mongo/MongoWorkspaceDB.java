@@ -1021,8 +1021,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public PermissionSet getPermissions(
 			final WorkspaceUser user, final Set<ResolvedWorkspaceID> rwsis)
-			throws WorkspaceCommunicationException, 
-				CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		return getPermissions(user, rwsis, Permission.READ, false, false, false);
 	}
 

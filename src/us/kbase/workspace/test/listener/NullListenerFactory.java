@@ -97,28 +97,50 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void revertObject(long workspaceId, long objectId, int version) {
-			print(String.format("revertObject %s %s %s", workspaceId, objectId, version));
+		public void revertObject(
+				long workspaceId,
+				long objectId,
+				int version,
+				String type,
+				boolean isPublic) {
+			print(String.format("revertObject %s %s %s %s %s",
+					workspaceId, objectId, version, type, isPublic));
 		}
 
 		@Override
 		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {
 			print(String.format("setObjectDeleted %s %s %s", workspaceId, objectId, delete));
 		}
-
+		
 		@Override
 		public void copyObject(
 				long workspaceId,
 				long objectId,
 				int version,
-				boolean allVersionsCopied) {
-			print(String.format("copyObject %s %s %s %s", workspaceId, objectId, version,
-					allVersionsCopied));
+				String type,
+				boolean isPublic) {
+			print(String.format("copyObject %s %s %s %s %s", workspaceId, objectId, version,
+					type, isPublic));
+		}
+		
+		@Override
+		public void copyObject(
+				long workspaceId,
+				long objectId,
+				int latestVersion,
+				boolean isPublic) {
+			print(String.format("copyObject %s %s %s", workspaceId, objectId, latestVersion));
 		}
 
 		@Override
-		public void saveObject(long workspaceId, long objectId, int version, String type) {
-			print(String.format("saveObject %s %s %s %s", workspaceId, objectId, version, type));
+		public void saveObject(
+				long workspaceId,
+				long objectId,
+				int version,
+				String type,
+				boolean isPublic) {
+			print(String.format("saveObject %s %s %s %s %s",
+					workspaceId, objectId, version, type, isPublic));
 		}
 	}
 }

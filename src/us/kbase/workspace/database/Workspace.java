@@ -694,13 +694,15 @@ public class Workspace {
 		objects = null;
 		reports.clear();
 		
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(user, rwsi);
+		
 		try {
 			sortObjects(saveobjs, ttlObjSize);
 			final List<ObjectInformation> ret = db.saveObjects(user, rwsi, saveobjs);
 			for (final WorkspaceEventListener l: listeners) {
 				for (final ObjectInformation oi: ret) {
 					l.saveObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-							oi.getTypeString());
+							oi.getTypeString(), wsinfo.isGloballyReadable());
 				}
 			}
 			return ret;
@@ -1420,9 +1422,16 @@ public class Workspace {
 				.getObjectChecker(to, Permission.WRITE).check();
 		final CopyResult cr = db.copyObject(user, f, t);
 		final ObjectInformation oi = cr.getObjectInformation();
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
+				user, t.getWorkspaceIdentifier());
 		for (final WorkspaceEventListener l: listeners) {
-			l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-					cr.isAllVersionsCopied());
+			if (cr.isAllVersionsCopied()) {
+				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+						wsinfo.isGloballyReadable());
+			} else {
+				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+						oi.getTypeString(), wsinfo.isGloballyReadable());
+			}
 		}
 		return oi;
 	}
@@ -1433,8 +1442,11 @@ public class Workspace {
 		final ObjectIDResolvedWS target = new PermissionsCheckerFactory(db, user)
 				.getObjectChecker(oi, Permission.WRITE).check();
 		final ObjectInformation objinfo = db.revertObject(user, target);
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
+				user, target.getWorkspaceIdentifier());
 		for (final WorkspaceEventListener l: listeners) {
-			l.revertObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), objinfo.getVersion());
+			l.revertObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), objinfo.getVersion(),
+					objinfo.getTypeString(), wsinfo.isGloballyReadable());
 		}
 		return objinfo;
 	}

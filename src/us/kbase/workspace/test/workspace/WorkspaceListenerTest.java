@@ -728,6 +728,16 @@ public class WorkspaceListenerTest {
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
 		
+		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
+				.withID(24)
+				.withName("ugh")
+				.withMaximumObjectID(2)
+				.withModificationDate(Instant.now())
+				.withOwner(new WorkspaceUser("foo"))
+				.withUserPermission(Permission.WRITE)
+				.withGlobalRead(true)
+				.build();
+		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
 		
 		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -735,10 +745,11 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
 		when(db.revertObject(user, roi)).thenReturn(OBJ_INFO);
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 		
 		ws.revertObject(user, oi);
 		
-		verify(l).revertObject(24, 42, 45);
+		verify(l).revertObject(24, 42, 45, "a type", true);
 	}
 	
 	@Test
@@ -755,6 +766,15 @@ public class WorkspaceListenerTest {
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
 		
+		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
+				.withID(24)
+				.withName("ugh")
+				.withMaximumObjectID(2)
+				.withModificationDate(Instant.now())
+				.withOwner(new WorkspaceUser("foo"))
+				.withUserPermission(Permission.WRITE)
+				.build();
+		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
 		
 		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -762,11 +782,12 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
 		when(db.revertObject(user, roi)).thenReturn(OBJ_INFO);
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 		
 		ws.revertObject(user, oi);
 		
-		verify(l1).revertObject(24, 42, 45);
-		verify(l2).revertObject(24, 42, 45);
+		verify(l1).revertObject(24, 42, 45, "a type", false);
+		verify(l2).revertObject(24, 42, 45, "a type", false);
 	}
 	
 	@Test
@@ -849,6 +870,16 @@ public class WorkspaceListenerTest {
 		final ObjectIDResolvedWS rfrom = new ObjectIDResolvedWS(rwsi, "whoo");
 		final ObjectIDResolvedWS rto = new ObjectIDResolvedWS(rwsi, "whee");
 		
+		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
+				.withID(24)
+				.withName("ugh")
+				.withMaximumObjectID(2)
+				.withModificationDate(Instant.now())
+				.withOwner(new WorkspaceUser("foo"))
+				.withUserPermission(Permission.WRITE)
+				.withGlobalRead(true)
+				.build();
+		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
 		
 		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -856,10 +887,11 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
 		when(db.copyObject(user, rfrom, rto)).thenReturn(new CopyResult(OBJ_INFO, false));
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 
 		ws.copyObject(user, from, to);
 		
-		verify(l).copyObject(24, 42, 45, false);
+		verify(l).copyObject(24, 42, 45, "a type", true);
 	}
 	
 	@Test
@@ -878,13 +910,23 @@ public class WorkspaceListenerTest {
 		final ObjectIDResolvedWS rfrom = new ObjectIDResolvedWS(rwsi, "whoo");
 		final ObjectIDResolvedWS rto = new ObjectIDResolvedWS(rwsi, "whee");
 		
+		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
+				.withID(24)
+				.withName("ugh")
+				.withMaximumObjectID(2)
+				.withModificationDate(Instant.now())
+				.withOwner(new WorkspaceUser("foo"))
+				.withUserPermission(Permission.WRITE)
+				.build();
+		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
 		
 		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.copyObject(user, rfrom, rto)).thenReturn(new CopyResult(OBJ_INFO, false));
+		when(db.copyObject(user, rfrom, rto)).thenReturn(new CopyResult(OBJ_INFO, true));
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 
 		ws.copyObject(user, from, to);
 		
@@ -952,6 +994,15 @@ public class WorkspaceListenerTest {
 				76, "foo2", "foo.baz-1.0", new Date(), 1, new WorkspaceUser("foo"),
 				rwsi, "chcksum2", 22, null);
 		
+		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
+				.withID(24)
+				.withName("ugh")
+				.withMaximumObjectID(2)
+				.withModificationDate(Instant.now())
+				.withOwner(new WorkspaceUser("foo"))
+				.withUserPermission(Permission.WRITE)
+				.build();
+		
 		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
@@ -966,6 +1017,7 @@ public class WorkspaceListenerTest {
 		when(vto1.getRelabeledSize()).thenReturn(6L);
 		when(vto2.getRelabeledSize()).thenReturn(7L);
 		
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 		when(db.saveObjects(eq(user), eq(rwsi),
 				argThat(new SaveObjectsAnswerMatcher(Arrays.asList(rso1, rso2)))))
 				.thenReturn(Arrays.asList(oi1, oi2));
@@ -974,8 +1026,8 @@ public class WorkspaceListenerTest {
 		
 		ws.saveObjects(user, wsi, Arrays.asList(wso1, wso2), fac);
 		
-		verify(l).saveObject(24, 35, 6, "foo.bar-2.1");
-		verify(l).saveObject(24, 76, 1, "foo.baz-1.0");
+		verify(l).saveObject(24, 35, 6, "foo.bar-2.1", false);
+		verify(l).saveObject(24, 76, 1, "foo.baz-1.0", false);
 	}
 	
 	@Test
@@ -1014,6 +1066,16 @@ public class WorkspaceListenerTest {
 				76, "foo2", "foo.baz-1.0", new Date(), 1, new WorkspaceUser("foo"),
 				rwsi, "chcksum2", 22, null);
 		
+		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
+				.withID(24)
+				.withName("ugh")
+				.withMaximumObjectID(2)
+				.withModificationDate(Instant.now())
+				.withOwner(new WorkspaceUser("foo"))
+				.withUserPermission(Permission.WRITE)
+				.withGlobalRead(true)
+				.build();
+		
 		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
@@ -1028,6 +1090,7 @@ public class WorkspaceListenerTest {
 		when(vto1.getRelabeledSize()).thenReturn(6L);
 		when(vto2.getRelabeledSize()).thenReturn(7L);
 		
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 		when(db.saveObjects(eq(user), eq(rwsi),
 				argThat(new SaveObjectsAnswerMatcher(Arrays.asList(rso1, rso2)))))
 				.thenReturn(Arrays.asList(oi1, oi2));
@@ -1036,10 +1099,10 @@ public class WorkspaceListenerTest {
 		
 		ws.saveObjects(user, wsi, Arrays.asList(wso1, wso2), fac);
 		
-		verify(l1).saveObject(24, 35, 6, "foo.bar-2.1");
-		verify(l1).saveObject(24, 76, 1, "foo.baz-1.0");
-		verify(l2).saveObject(24, 35, 6, "foo.bar-2.1");
-		verify(l2).saveObject(24, 76, 1, "foo.baz-1.0");
+		verify(l1).saveObject(24, 35, 6, "foo.bar-2.1", true);
+		verify(l1).saveObject(24, 76, 1, "foo.baz-1.0", true);
+		verify(l2).saveObject(24, 35, 6, "foo.bar-2.1", true);
+		verify(l2).saveObject(24, 76, 1, "foo.baz-1.0", true);
 	}
 }
 
