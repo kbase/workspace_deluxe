@@ -53,7 +53,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 	public class RESKEPrototypeEventHandler implements WorkspaceEventListener {
 		
 		private static final String DATA_SOURCE = "WS";
-		private static final String NEW_OBJECT = "NEW_VERSION";
+		private static final String NEW_OBJECT_VER = "NEW_VERSION";
+		private static final String NEW_OBJECT = "NEW_ALL_VERSIONS";
 		
 		// this might need to be configurable
 		private static final String COLLECTION = "ObjectStatusEvents";
@@ -198,7 +199,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				long objectId,
 				int latestVersion,
 				boolean isPublic) {
-			// TODO RESKE Auto-generated method stub
+			newObjectEvent(workspaceId, objectId, isPublic);
 		}
 		
 		@Override
@@ -211,11 +212,28 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			newVersionEvent(workspaceId, objectId, version, type, isPublic);
 		}
 
+		private void newObjectEvent(
+				final long workspaceId,
+				final long objectId,
+				final boolean isPublic) {
+			newVersionEvent(workspaceId, objectId, null, null, NEW_OBJECT, isPublic);
+		}
+		
 		private void newVersionEvent(
 				final long workspaceId,
 				final long objectId,
-				final int version,
+				final Integer version,
 				final String type,
+				final boolean isPublic) {
+			newVersionEvent(workspaceId, objectId, version, type, NEW_OBJECT_VER, isPublic);
+		}
+		
+		private void newVersionEvent(
+				final long workspaceId,
+				final long objectId,
+				final Integer version,
+				final String type,
+				final String eventType,
 				final boolean isPublic) {
 			if (!wsidOK(workspaceId)) {
 				return;
@@ -227,8 +245,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			dobj.put("accessGroupObjectId", "" + objectId);
 			dobj.put("version", version);
 			dobj.put("timestamp", System.currentTimeMillis());
-			dobj.put("eventType", NEW_OBJECT);
-			dobj.put("storageObjectType", type.split("-")[0]);
+			dobj.put("eventType", eventType);
+			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
 			dobj.put("isGlobalAccessed", isPublic);
 			dobj.put("indexed", false);
 			dobj.put("processed", false);
