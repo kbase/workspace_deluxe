@@ -65,6 +65,16 @@ public class WorkspaceListenerTest {
 			.withUserPermission(Permission.OWNER)
 			.build();
 	
+	public static final WorkspaceInformation WS_INFO_READABLE = WorkspaceInformation.getBuilder()
+			.withID(42)
+			.withName("wsfoo")
+			.withMaximumObjectID(300)
+			.withModificationDate(Instant.now())
+			.withOwner(new WorkspaceUser("userfoo"))
+			.withUserPermission(Permission.OWNER)
+			.withGlobalRead(true)
+			.build();
+	
 	public static final ObjectInformation OBJ_INFO = new ObjectInformation(
 			42L, "whee", "a type", new Date(), 45, new WorkspaceUser("bar"),
 			new ResolvedWorkspaceID(24, "whee", false, false), "chksum",
@@ -130,7 +140,7 @@ public class WorkspaceListenerTest {
 		
 		ws.cloneWorkspace(user, wsi, "whee", false, null, null, null);
 		
-		verify(l).cloneWorkspace(42L);
+		verify(l).cloneWorkspace(42L, false);
 	}
 	
 	@Test
@@ -152,12 +162,13 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.READ, Permission.NONE).build());
-		when(db.cloneWorkspace(user, rwsi, "whee", false, null, meta, null)).thenReturn(WS_INFO);
+		when(db.cloneWorkspace(user, rwsi, "whee", true, null, meta, null))
+				.thenReturn(WS_INFO_READABLE);
 		
-		ws.cloneWorkspace(user, wsi, "whee", false, null, null, null);
+		ws.cloneWorkspace(user, wsi, "whee", true, null, null, null);
 		
-		verify(l1).cloneWorkspace(42L);
-		verify(l2).cloneWorkspace(42L);
+		verify(l1).cloneWorkspace(42L, true);
+		verify(l2).cloneWorkspace(42L, true);
 	}
 	
 	@Test
