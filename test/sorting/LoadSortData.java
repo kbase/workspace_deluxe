@@ -62,7 +62,18 @@ public class LoadSortData {
 		}
 		final Duration done = Duration.between(now, Instant.now());
 		System.out.println(String.format("%s.%s sec",
-				done.getSeconds(), done.toNanos() / 1_000_000));
+				done.getSeconds(), first3MillisDigits(done)));
+	}
+
+	private static String first3MillisDigits(final Duration d) {
+		//hack hack hack
+		String pre = ((d.getNano() / 1_000_000_000.0) + "").substring(2);
+		if (pre.length() < 3) {
+			return pre;
+		} else {
+			return pre.substring(0, 3);
+		}
+		
 	}
 
 	private static void saveObject(
