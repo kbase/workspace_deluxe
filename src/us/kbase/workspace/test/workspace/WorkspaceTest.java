@@ -6775,10 +6775,10 @@ public class WorkspaceTest extends WorkspaceTester {
 	private void assertOrdered(final ListObjectsParameters params, final boolean expectOrdered)
 			throws Exception {
 		final List<ObjectInformation> objs = ws.listObjects(params.withShowAllVersions(true));
-		System.out.println("printing sorted objs");
-		for (final ObjectInformation o: objs) {
-			System.out.println(o);
-		}
+//		System.out.println("printing sorted objs");
+//		for (final ObjectInformation o: objs) {
+//			System.out.println(o);
+//		}
 		boolean isOrdered = true;
 		final Iterator<ObjectInformation> iter = objs.iterator();
 		for (int ws = 1; ws < 3; ws++) {

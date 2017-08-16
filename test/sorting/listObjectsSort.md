@@ -1,4 +1,4 @@
-WS with 100 objects, 99900 versions spread randomly between the objects (e.g. mongo natural ordering of the versions should be random).
+WS with 100 objects, 9900 versions spread randomly between the objects (e.g. mongo natural ordering of the versions should be random).
 Easy to tell whether sorting is active since the order is ascending for versions without explicit sort instructions and descending with sort.
 
 With sort code active:
