@@ -77,17 +77,16 @@ public class ObjectInfoUtils {
 		}
 		final DBObject verq = buildQuery(params);
 		final DBObject projection = buildProjection(params);
-		final DBCursor cur = buildCursor(verq, projection);
+		final DBObject sort = buildSortSpec(params);
+		final DBCursor cur = buildCursor(verq, projection, sort);
 		
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
 		//were saved yet
 		
-		final List<ObjectInformation> ret =
-				new LinkedList<ObjectInformation>();
+		final List<ObjectInformation> ret = new LinkedList<>();
 		while (cur.hasNext() && ret.size() < params.getLimit()) {
-			final List<Map<String, Object>> verobjs =
-					new ArrayList<Map<String,Object>>();
+			final List<Map<String, Object>> verobjs = new ArrayList<>();
 			while (cur.hasNext() && verobjs.size() < querysize) {
 				try {
 					verobjs.add(QueryMethods.dbObjectToMap(cur.next()));
@@ -101,7 +100,7 @@ public class ObjectInfoUtils {
 							params.isShowDeleted(), params.isShowOnlyDeleted(),
 							params.isShowAllVersions(), params.asAdmin()
 							);
-			//maintain the natural DB ordering 
+			//maintain the ordering 
 			final Iterator<Map<String, Object>> veriter = verobjs.iterator();
 			while (veriter.hasNext() && ret.size() < params.getLimit()) {
 				final Map<String, Object> v = veriter.next();
@@ -115,12 +114,13 @@ public class ObjectInfoUtils {
 
 	private DBCursor buildCursor(
 			final DBObject verq,
-			final DBObject projection)
+			final DBObject projection,
+			final  DBObject sort)
 			throws WorkspaceCommunicationException {
 		final DBCursor cur;
 		try {
 			cur = query.getDatabase().getCollection(query.getVersionCollection())
-					.find(verq, projection);
+					.find(verq, projection).sort(sort);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -128,8 +128,7 @@ public class ObjectInfoUtils {
 		return cur;
 	}
 
-	private DBObject buildProjection(
-			final GetObjectInformationParameters params) {
+	private DBObject buildProjection(final GetObjectInformationParameters params) {
 		final DBObject projection = new BasicDBObject();
 		for (final String field: FLDS_LIST_OBJ_VER) {
 			projection.put(field, 1);
@@ -138,6 +137,22 @@ public class ObjectInfoUtils {
 			projection.put(Fields.VER_META, 1);
 		}
 		return projection;
+	}
+	
+	/* Be very careful when changing how sorting works or adding new sorts. You should be well
+	 * versed in mongodb indexing and how indexes affect how sorts work. Never allow a sort
+	 * that could occur in mongodb memory - this means there's a limit to the amount of data
+	 * that can be sorted without an error and therefore errors *will* occur when a sort on more
+	 * data than the limit is attempted.
+	 */
+	private DBObject buildSortSpec(final GetObjectInformationParameters params) {
+		final DBObject sort = new BasicDBObject();
+		if (params.isObjectIDFiltersOnly()) {
+			sort.put(Fields.VER_WS_ID, 1);
+			sort.put(Fields.VER_ID, 1);
+			sort.put(Fields.VER_VER, -1);
+		}
+		return sort;
 	}
 
 	private DBObject buildQuery(final GetObjectInformationParameters params) {
@@ -205,8 +220,7 @@ public class ObjectInfoUtils {
 		if (verobjs.isEmpty()) {
 			return ret;
 		}
-		final Map<Long, ResolvedWorkspaceID> ids =
-				new HashMap<Long, ResolvedWorkspaceID>();
+		final Map<Long, ResolvedWorkspaceID> ids = new HashMap<>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
 			ids.put(rwsi.getID(), rwsi);
 		}
@@ -215,8 +229,7 @@ public class ObjectInfoUtils {
 		final List<DBObject> orquery = new LinkedList<DBObject>();
 		for (final Long wsid: verdata.keySet()) {
 			final DBObject query = new BasicDBObject(Fields.VER_WS_ID, wsid);
-			query.put(Fields.VER_ID, new BasicDBObject(
-					"$in", verdata.get(wsid)));
+			query.put(Fields.VER_ID, new BasicDBObject("$in", verdata.get(wsid)));
 			orquery.add(query);
 		}
 		final DBObject objq = new BasicDBObject("$or", orquery);
