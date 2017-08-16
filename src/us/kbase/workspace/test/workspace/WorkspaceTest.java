@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -6710,6 +6711,96 @@ public class WorkspaceTest extends WorkspaceTester {
 				fail(String.format("ObjectID out of test bounds: %s min %s max %s",
 						oi.getObjectId(), minIDexpected, maxIDexpected));
 			}
+		}
+	}
+	
+	@Test
+	public void listObjectsSort() throws Exception {
+		/* Currently list objects will sort the results if no other filters than the object ID
+		 * filters are active. Test that this is true.
+		 * Sort is wsid asc, objid asc, ver desc.
+		 */
+		WorkspaceUser user = new WorkspaceUser("u");
+		WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("listsort1");
+		ws.createWorkspace(user, wsi1.getName(), false, null, null).getId();
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("listsort2");
+		ws.createWorkspace(user, wsi2.getName(), false, null, null).getId();
+		final Provenance p = new Provenance(user);
+		final Map<String, String> meta = ImmutableMap.of("foo", "bar");
+		
+		// save 6 objects
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o1", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o2", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o3", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o1", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o2", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o3", p);
+		
+		// more or less randomly saved versions on top of the 6 objects
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o3", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o1", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o2", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o2", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o3", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o3", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o2", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o1", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o2", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o1", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o3", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o1", p);
+		
+		// sorted, with and without object id filters
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2)), true);
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+				.withMaxObjectID(6L).withMinObjectID(1L), true);
+		
+		//unsorted (at least with descending versions)
+		// type filter
+		assertOrdered(new ListObjectsParameters(user, SAFE_TYPE1), false);
+		// after date filter
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+				.withAfter(Date.from(Instant.now().minusSeconds(100))), false);
+		// before date filter
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+				.withBefore(Date.from(Instant.now())), false);
+		// user filter
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+				.withSavers(Arrays.asList(user)), false);
+		// meta filter
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+				.withMetadata(new WorkspaceUserMetadata(meta)), false);
+	}
+
+	private void assertOrdered(final ListObjectsParameters params, final boolean expectOrdered)
+			throws Exception {
+		final List<ObjectInformation> objs = ws.listObjects(params.withShowAllVersions(true));
+//		System.out.println("printing sorted objs");
+//		for (final ObjectInformation o: objs) {
+//			System.out.println(o);
+//		}
+		boolean isOrdered = true;
+		final Iterator<ObjectInformation> iter = objs.iterator();
+		for (int ws = 1; ws < 3; ws++) {
+			for (int obj = 1; obj < 4; obj++) {
+				for (int ver = 3; ver > 0; ver--) {
+					final ObjectInformation oi = iter.next();
+					if (ws != oi.getWorkspaceId() ||
+							obj != oi.getObjectId() ||
+							ver != oi.getVersion()) {
+						isOrdered = false;
+						if (expectOrdered) {
+							fail(String.format(
+									"Expected ordered list. Failed at %s/%s/%s, got %s/%s/%s",
+									ws, obj, ver,
+									oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion()));
+						}
+					}
+				}
+			}
+		}
+		if (!expectOrdered && isOrdered) {
+			fail("Expected unordered list, was ordered.");
 		}
 	}
 
