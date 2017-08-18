@@ -56,6 +56,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		private static final String NEW_OBJECT_VER = "NEW_VERSION";
 		private static final String NEW_OBJECT = "NEW_ALL_VERSIONS";
 		private static final String CLONED_WORKSPACE = "COPY_ACCESS_GROUP";
+		private static final String RENAME_OBJECT = "RENAME_ALL_VERSIONS";
 		
 		// this might need to be configurable
 		private static final String COLLECTION = "ObjectStatusEvents";
@@ -126,8 +127,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void renameWorkspace(long id, String newname) {
-			// TODO RESKE Auto-generated method stub
-			// not sure if there's anything to do here
+			// no action
 		}
 
 		@Override
@@ -162,6 +162,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void renameObject(long workspaceId, long objectId, String newName) {
+			newEvent(workspaceId, objectId, null, null, RENAME_OBJECT, null);
 			// TODO RESKE Auto-generated method stub
 			
 		}
@@ -251,6 +252,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			dobj.put("accessGroupId", (int) workspaceId);
 			dobj.put("accessGroupObjectId", objectId == null ? null : "" + objectId);
 			dobj.put("version", version);
+			//TODO RESKE make timestamp = the event timestamp (e.g. object creation/rename)
 			dobj.put("timestamp", System.currentTimeMillis());
 			dobj.put("eventType", eventType);
 			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
