@@ -53,7 +53,10 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 	public class RESKEPrototypeEventHandler implements WorkspaceEventListener {
 		
 		private static final String DATA_SOURCE = "WS";
-		private static final String NEW_OBJECT = "NEW_VERSION";
+		private static final String NEW_OBJECT_VER = "NEW_VERSION";
+		private static final String NEW_OBJECT = "NEW_ALL_VERSIONS";
+		private static final String CLONED_WORKSPACE = "COPY_ACCESS_GROUP";
+		private static final String RENAME_OBJECT = "RENAME_ALL_VERSIONS";
 		
 		// this might need to be configurable
 		private static final String COLLECTION = "ObjectStatusEvents";
@@ -108,9 +111,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void cloneWorkspace(long id) {
-			// TODO RESKE Auto-generated method stub
-			
+		public void cloneWorkspace(final long id, final boolean isPublic) {
+			newWorkspaceEvent(id, CLONED_WORKSPACE, isPublic);
 		}
 
 		@Override
@@ -125,8 +127,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void renameWorkspace(long id, String newname) {
-			// TODO RESKE Auto-generated method stub
-			// not sure if there's anything to do here
+			// no action
 		}
 
 		@Override
@@ -161,6 +162,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void renameObject(long workspaceId, long objectId, String newName) {
+			newEvent(workspaceId, objectId, null, null, RENAME_OBJECT, null);
 			// TODO RESKE Auto-generated method stub
 			
 		}
@@ -198,7 +200,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				long objectId,
 				int latestVersion,
 				boolean isPublic) {
-			// TODO RESKE Auto-generated method stub
+			newObjectEvent(workspaceId, objectId, isPublic);
 		}
 		
 		@Override
@@ -211,12 +213,36 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			newVersionEvent(workspaceId, objectId, version, type, isPublic);
 		}
 
+		private void newObjectEvent(
+				final long workspaceId,
+				final long objectId,
+				final boolean isPublic) {
+			newEvent(workspaceId, objectId, null, null, NEW_OBJECT, isPublic);
+		}
+		
 		private void newVersionEvent(
 				final long workspaceId,
 				final long objectId,
-				final int version,
+				final Integer version,
 				final String type,
 				final boolean isPublic) {
+			newEvent(workspaceId, objectId, version, type, NEW_OBJECT_VER, isPublic);
+		}
+		
+		private void newWorkspaceEvent(
+				final long workspaceId,
+				final String eventType,
+				final boolean isPublic) {
+			newEvent(workspaceId, null, null, null, eventType, isPublic);
+		}
+		
+		private void newEvent(
+				final long workspaceId,
+				final Long objectId,
+				final Integer version,
+				final String type,
+				final String eventType,
+				final Boolean isPublic) {
 			if (!wsidOK(workspaceId)) {
 				return;
 			}
@@ -224,11 +250,12 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			final DBObject dobj = new BasicDBObject();
 			dobj.put("storageCode", DATA_SOURCE);
 			dobj.put("accessGroupId", (int) workspaceId);
-			dobj.put("accessGroupObjectId", "" + objectId);
+			dobj.put("accessGroupObjectId", objectId == null ? null : "" + objectId);
 			dobj.put("version", version);
+			//TODO RESKE make timestamp = the event timestamp (e.g. object creation/rename)
 			dobj.put("timestamp", System.currentTimeMillis());
-			dobj.put("eventType", NEW_OBJECT);
-			dobj.put("storageObjectType", type.split("-")[0]);
+			dobj.put("eventType", eventType);
+			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
 			dobj.put("isGlobalAccessed", isPublic);
 			dobj.put("indexed", false);
 			dobj.put("processed", false);
