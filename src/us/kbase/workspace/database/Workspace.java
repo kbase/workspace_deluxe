@@ -926,6 +926,43 @@ public class Workspace {
 				showDeleted, showOnlyDeleted);
 	}
 	
+	/** List workspace IDs to which a user has access. Returns much less data than
+	 * {@link #listWorkspaces(WorkspaceUser, Permission, List, WorkspaceUserMetadata, Date, Date, boolean, boolean, boolean)}
+	 * and should be faster.
+	 * @param user the user for which workspace IDs will be listed. If the user is null, only
+	 * public workspace IDs will be returned.
+	 * @param minPerm the minimum permission of the workspaces. READ will be used if minPerm is
+	 * null or NONE. If the permission is greater than READ no public workspaces will be included.
+	 * @param excludeGlobal don't include public workspaces in the results.
+	 * @return the workspace IDs.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public UserWorkspaceIDs listWorkspaceIDs(
+			final WorkspaceUser user,
+			Permission minPerm,
+			final boolean excludeGlobal)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		//TODO NOW expose in API
+		//TODO NOW expose in admin api
+		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
+			minPerm = Permission.READ;
+		}
+		final PermissionSet perms = db.getPermissions(
+				user, null, minPerm, excludeGlobal, true, false);
+		final List<Long> workspaceIDs = new LinkedList<>();
+		final List<Long> publicIDs = new LinkedList<>();
+		for (final ResolvedWorkspaceID ws: perms.getWorkspaces()) {
+			if (perms.getUserPermission(ws).equals(Permission.NONE)) {
+				publicIDs.add(ws.getID());
+			} else {
+				workspaceIDs.add(ws.getID());
+			}
+		}
+		return new UserWorkspaceIDs(user, minPerm, workspaceIDs, publicIDs);
+	}
+	
 	public List<ObjectInformation> listObjects(
 			final ListObjectsParameters params)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
@@ -1228,7 +1265,7 @@ public class Workspace {
 		}
 		return ret;
 	}
-	
+	//TODO NOW expose in admin api
 	public List<ObjectInformation> getObjectHistory(
 			final WorkspaceUser user,
 			final ObjectIdentifier oi)

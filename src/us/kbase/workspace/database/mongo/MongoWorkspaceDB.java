@@ -1121,7 +1121,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<ResolvedWorkspaceID, Map<User, Permission>> globalperms,
 			final boolean includeProvidedWorkspaces) {
 		final Builder pset = PermissionSet.getBuilder(user, ALL_USERS);
-		final Set<ResolvedWorkspaceID> local = new HashSet<>(rmwsis);
+		final Set<ResolvedWorkspaceID> local = rmwsis == null ?
+				new HashSet<>() : new HashSet<>(rmwsis);
 		for (final ResolvedWorkspaceID rwsi: userperms.keySet()) {
 			Permission gl = globalperms.get(rwsi) == null ? Permission.NONE :
 				globalperms.get(rwsi).get(ALL_USERS);

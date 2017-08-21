@@ -245,7 +245,7 @@ public interface WorkspaceDatabase {
 	 * @param excludeGlobalRead exclude globally readable workspaces.
 	 * @param excludeDeletedWorkspaces exclude deleted workspaces. Deleted
 	 * workspaces in the supplied list are not affected.
-	 * @param includeProvidedWorkspace if true, include all the workspaces in the rwsis parameter
+	 * @param includeProvidedWorkspaces if true, include all the workspaces in the rwsis parameter
 	 * regardless of whether the user has access or not. Will include workspaces with the NONE
 	 * permission, unlike the default behavior.
 	 * @return a set of permissions to workspaces for a user.

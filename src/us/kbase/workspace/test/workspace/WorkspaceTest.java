@@ -80,6 +80,7 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.User;
+import us.kbase.workspace.database.UserWorkspaceIDs;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
@@ -5771,7 +5772,82 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkWSInfoList(ws.listWorkspaces(u, null, null, null,
 				Date.from(i2.getModDate().minusMillis(1)), d5, true, false, false),
 				Arrays.asList(i2, i3, i4));
+	}
+	
+	@Test
+	public void listWorkspaceIDs() throws Exception {
+		final WorkspaceUser u1 = new WorkspaceUser("u1");
+		final WorkspaceUser u2 = new WorkspaceUser("u2");
+		final WorkspaceIdentifier wiown = new WorkspaceIdentifier("own");
+		final WorkspaceIdentifier wiadmin = new WorkspaceIdentifier("admin");
+		final WorkspaceIdentifier wiwrite = new WorkspaceIdentifier("write");
+		final WorkspaceIdentifier wiread = new WorkspaceIdentifier("read");
+		final WorkspaceIdentifier wipub = new WorkspaceIdentifier("pub");
+		final WorkspaceIdentifier winone = new WorkspaceIdentifier("none");
+		final WorkspaceIdentifier widelpub = new WorkspaceIdentifier("delpub");
+		final WorkspaceIdentifier wideladmin = new WorkspaceIdentifier("deladmin");
 		
+		ws.createWorkspace(u1, wiown.getName(), false, null, null);
+		ws.createWorkspace(u2, wiadmin.getName(), false, null, null);
+		ws.createWorkspace(u2, wiwrite.getName(), false, null, null);
+		ws.createWorkspace(u2, wiread.getName(), false, null, null);
+		ws.createWorkspace(u2, wipub.getName(), true, null, null);
+		ws.createWorkspace(u2, winone.getName(), false, null, null);
+		ws.createWorkspace(u2, widelpub.getName(), true, null, null);
+		ws.createWorkspace(u2, wideladmin.getName(), false, null, null);
+		
+		ws.setPermissions(u2, wiadmin, Arrays.asList(u1), Permission.ADMIN);
+		ws.setPermissions(u2, wideladmin, Arrays.asList(u1), Permission.ADMIN);
+		ws.setPermissions(u2, wiwrite, Arrays.asList(u1), Permission.WRITE);
+		ws.setPermissions(u2, wiread, Arrays.asList(u1), Permission.READ);
+		
+		ws.setWorkspaceDeleted(u2, widelpub, true);
+		ws.setWorkspaceDeleted(u2, wideladmin, true);
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, null, false),
+				is(new UserWorkspaceIDs(u1, Permission.READ,
+						new HashSet<>(Arrays.asList(1L, 2L, 3L, 4L)),
+						new HashSet<>(Arrays.asList(5L)))));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.NONE, false),
+				is(new UserWorkspaceIDs(u1, Permission.READ,
+						new HashSet<>(Arrays.asList(1L, 2L, 3L, 4L)),
+						new HashSet<>(Arrays.asList(5L)))));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.READ, false),
+				is(new UserWorkspaceIDs(u1, Permission.READ,
+						new HashSet<>(Arrays.asList(1L, 2L, 3L, 4L)),
+						new HashSet<>(Arrays.asList(5L)))));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.NONE, true),
+				is(new UserWorkspaceIDs(u1, Permission.READ,
+						new HashSet<>(Arrays.asList(1L, 2L, 3L, 4L)),
+						new HashSet<>())));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(null, Permission.NONE, false),
+				is(new UserWorkspaceIDs(null, Permission.READ,
+						new HashSet<>(),
+						new HashSet<>(Arrays.asList(5L)))));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(null, Permission.NONE, true),
+				is(new UserWorkspaceIDs(null, Permission.READ,
+						new HashSet<>(),
+						new HashSet<>())));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.WRITE, false),
+				is(new UserWorkspaceIDs(u1, Permission.WRITE,
+						new HashSet<>(Arrays.asList(1L, 2L, 3L)),
+						new HashSet<>())));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.ADMIN, false),
+				is(new UserWorkspaceIDs(u1, Permission.ADMIN,
+						new HashSet<>(Arrays.asList(1L, 2L)),
+						new HashSet<>())));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.OWNER, false),
+				is(new UserWorkspaceIDs(u1, Permission.OWNER,
+						new HashSet<>(Arrays.asList(1L)),
+						new HashSet<>())));
 	}
 	
 	@Test
