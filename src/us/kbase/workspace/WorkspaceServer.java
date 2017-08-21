@@ -101,7 +101,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "7abd127f957d80c6e83de4e07c3a4621019ca408";
+    private static final String gitCommitHash = "fe1dca1a0ac7cb9c99d7c43060d86b908c6fb4bd";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
@@ -899,6 +899,8 @@ public class WorkspaceServer extends JsonServerServlet {
      * <p>Original spec-file function name: list_workspace_ids</p>
      * <pre>
      * List workspace IDs to which the user has access.
+     * This function returns a subset of the information in the
+     * list_workspace_info method and should be substantially faster.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.ListWorkspaceIDsParams ListWorkspaceIDsParams}
      * @return   parameter "results" of type {@link us.kbase.workspace.ListWorkspaceIDsResults ListWorkspaceIDsResults}

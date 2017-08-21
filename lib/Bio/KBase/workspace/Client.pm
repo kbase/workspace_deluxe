@@ -4064,6 +4064,9 @@ ListWorkspaceIDsResults is a reference to a hash where the following keys are de
 
 List workspace IDs to which the user has access.
 
+This function returns a subset of the information in the
+list_workspace_info method and should be substantially faster.
+
 =back
 
 =cut
@@ -10858,9 +10861,6 @@ showOnlyDeleted has a value which is a Workspace.boolean
 =item Description
 
 Input parameters for the "list_workspace_ids" function.
-
-This function returns a subset of the information in the
-list_workspace_info method and should be substantially faster.
 
 Optional parameters:
 permission perm - filter workspaces by minimum permission level. 'None'

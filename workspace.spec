@@ -1241,9 +1241,6 @@ module Workspace {
 	/* 
 		Input parameters for the "list_workspace_ids" function.
 		
-		This function returns a subset of the information in the
-		list_workspace_info method and should be substantially faster.
-		
 		Optional parameters:
 		permission perm - filter workspaces by minimum permission level. 'None'
 			and 'readable' are ignored.
@@ -1271,7 +1268,12 @@ module Workspace {
 		list<int> pub;
 	} ListWorkspaceIDsResults;
 	
-	/* List workspace IDs to which the user has access. */
+	/*
+		List workspace IDs to which the user has access.
+		
+		This function returns a subset of the information in the
+		list_workspace_info method and should be substantially faster.
+	*/
 	funcdef list_workspace_ids(ListWorkspaceIDsParams params)
 		returns(ListWorkspaceIDsResults results) authentication optional;
 	

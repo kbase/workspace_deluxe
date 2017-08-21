@@ -735,6 +735,8 @@ public class WorkspaceClient {
      * <p>Original spec-file function name: list_workspace_ids</p>
      * <pre>
      * List workspace IDs to which the user has access.
+     * This function returns a subset of the information in the
+     * list_workspace_info method and should be substantially faster.
      * </pre>
      * @param   params   instance of type {@link us.kbase.workspace.ListWorkspaceIDsParams ListWorkspaceIDsParams}
      * @return   parameter "results" of type {@link us.kbase.workspace.ListWorkspaceIDsResults ListWorkspaceIDsResults}

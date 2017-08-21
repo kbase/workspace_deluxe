@@ -15,8 +15,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: ListWorkspaceIDsParams</p>
  * <pre>
  * Input parameters for the "list_workspace_ids" function.
- * This function returns a subset of the information in the
- * list_workspace_info method and should be substantially faster.
  * Optional parameters:
  * permission perm - filter workspaces by minimum permission level. 'None'
  *         and 'readable' are ignored.
