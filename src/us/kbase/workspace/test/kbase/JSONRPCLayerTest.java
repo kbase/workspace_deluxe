@@ -52,6 +52,8 @@ import us.kbase.workspace.ListAllTypesParams;
 import us.kbase.workspace.ListModuleVersionsParams;
 import us.kbase.workspace.ListModulesParams;
 import us.kbase.workspace.ListObjectsParams;
+import us.kbase.workspace.ListWorkspaceIDsParams;
+import us.kbase.workspace.ListWorkspaceIDsResults;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
@@ -2309,6 +2311,71 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void listWorkspaceIDs() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("own"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("admin"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("write"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("read"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("pub")
+				.withGlobalread("r"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("none"));
+
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("admin")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("a"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("write")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("w"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("read")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("r"));
+
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()),
+				Arrays.asList(1L, 2L, 3L, 4L), Arrays.asList());
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withPerm("r")),
+				Arrays.asList(1L, 2L, 3L, 4L), Arrays.asList());
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withExcludeGlobal(0L)),
+				Arrays.asList(1L, 2L, 3L, 4L), Arrays.asList(5L));
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withOnlyGlobal(1L)),
+				Arrays.asList(), Arrays.asList(5L));
+		
+		checkListWSIDs(CLIENT_NO_AUTH.listWorkspaceIds(new ListWorkspaceIDsParams()),
+				Arrays.asList(), Arrays.asList());
+		
+		checkListWSIDs(CLIENT_NO_AUTH.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withExcludeGlobal(0L)),
+				Arrays.asList(), Arrays.asList(5L));
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withPerm("a")),
+				Arrays.asList(1L, 2L), Arrays.asList());
+	}
+	
+	@Test
+	public void failListWorkspaceIDs() throws Exception {
+		final ListWorkspaceIDsParams p = new ListWorkspaceIDsParams();
+		p.setAdditionalProperties("foo", "bar");
+		try {
+			CLIENT1.listWorkspaceIds(p);
+			fail("expected exception");
+		} catch (ServerException se) {
+			assertThat("incorrect message", se.getMessage(), is(
+					"Unexpected arguments in ListWorkspaceIDsParams: foo"));
+		}
+	}
+	
+	private void checkListWSIDs(
+			final ListWorkspaceIDsResults ids,
+			final List<Long> workspaces,
+			final List<Long> pub) {
+		assertThat("incorrect workspace ids", ids.getWorkspaces(), is(workspaces));
+		assertThat("incorrect pub ids", ids.getPub(), is(pub));
+	}
+
+	@Test
 	public void listObjectsAndHistory() throws Exception {
 		CLIENT1.requestModuleOwnership("AnotherModule");
 		administerCommand(CLIENT2, "approveModRequest", "module", "AnotherModule");
@@ -3589,6 +3656,35 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void adminListWorkspaceIDs() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("own"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("read"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("read")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("r"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("write"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("write")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("w"));
+
+		final ListWorkspaceIDsResults res = CLIENT2.administer(new UObject(ImmutableMap.of(
+				"command", "listWorkspaceIDs",
+				"params", new ListWorkspaceIDsParams().withPerm("w"),
+				"user", USER1)))
+				.asClassInstance(ListWorkspaceIDsResults.class);
+		assertThat("incorrect workspaces", res.getWorkspaces(), is(Arrays.asList(1L, 3L)));
+		assertThat("incorrect pub workspaces", res.getPub(), is(Arrays.asList()));
+		
+		final Map<String, Object> cmd = new HashMap<>();
+		cmd.put("command", "listWorkspaceIDs");
+		cmd.put("params", null);
+		cmd.put("user", USER1);
+		failAdmin(CLIENT2, cmd, "Method parameters ListWorkspaceIDsParams may not be null");
+
+		cmd.put("params", new ListWorkspaceIDsParams());
+		cmd.put("user", null);
+		failAdmin(CLIENT2, cmd, "User may not be null");
+	}
+	
+	@Test
 	public void adminListObjectsWithUser() throws Exception {
 		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
 		
@@ -3615,6 +3711,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
 	}
 	
+	final TypeReference<List<Tuple11<Long, String, String, String,
+			Long, String, Long, String, String, Long, Map<String, String>>>> OBJ_TYPEREF =
+					new TypeReference<List<Tuple11<Long, String, String, String,
+						Long, String, Long, String, String, Long, Map<String, String>>>>() {};
+	
 	@Test
 	public void adminlistObjectsWithoutUser() throws Exception {
 		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
@@ -3639,8 +3740,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						"command", "listObjects",
 						"params", new ListObjectsParams().withWorkspaces(
 								Arrays.asList(ws.getWorkspace()))
-				))).asClassInstance(new TypeReference<List<Tuple11<Long, String, String, String,
-						Long, String, Long, String, String, Long, Map<String, String>>>>() {});
+				))).asClassInstance(OBJ_TYPEREF);
 		
 		assertThat("incorrect object count", ob.size(), is(1));
 		checkInfo(ob.get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
@@ -3670,6 +3770,41 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("incorrect exception", e.getMessage(), is("When listing objects as an " +
 					"admin at least one target workspace must be provided"));
 		}
+	}
+	
+	@Test
+	public void adminListObjectHistory() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("foo"));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("foo")
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withMeta(ImmutableMap.of("foo", "bar1"))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("foo")
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withMeta(ImmutableMap.of("foo", "bar2"))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> res = CLIENT2.administer(new UObject(ImmutableMap.of(
+				"command", "getObjectHistory",
+				"params", new ObjectIdentity().withWorkspace("foo").withName("whee"))))
+				.asClassInstance(OBJ_TYPEREF);
+		
+		checkInfo(res.get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, "foo",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, ImmutableMap.of("foo", "bar1"));
+		checkInfo(res.get(1), 1, "whee", SAFE_TYPE, 2, USER1, 1L, "foo",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, ImmutableMap.of("foo", "bar2"));
+		
+		final Map<String, Object> cmd = new HashMap<>();
+		cmd.put("command", "getObjectHistory");
+		cmd.put("params", null);
+		failAdmin(CLIENT2, cmd, "Method parameters ObjectIdentity may not be null");
 	}
 	
 	@Test

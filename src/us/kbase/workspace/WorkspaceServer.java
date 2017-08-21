@@ -101,7 +101,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "2a7a086e6ecf4417293b99eb0f28ba21407ca82e";
+    private static final String gitCommitHash = "148d44322774c33b78674717590386fbccfadf90";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
@@ -741,9 +741,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> getObjectHistory(ObjectIdentity object, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_history
-		final ObjectIdentifier oi = processObjectIdentifier(object);
-		returnVal = objInfoToTuple(ws.getObjectHistory(
-				wsmeth.getUser(authPart), oi), true);
+		returnVal = wsmeth.getObjectHistory(object, wsmeth.getUser(authPart), false);
         //END get_object_history
         return returnVal;
     }
@@ -892,6 +890,25 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN list_workspace_info
 		returnVal = wsmeth.listWorkspaceInfo(params, wsmeth.getUser(authPart));
         //END list_workspace_info
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: list_workspace_ids</p>
+     * <pre>
+     * List workspace IDs to which the user has access.
+     * This function returns a subset of the information in the
+     * list_workspace_info method and should be substantially faster.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ListWorkspaceIDsParams ListWorkspaceIDsParams}
+     * @return   parameter "results" of type {@link us.kbase.workspace.ListWorkspaceIDsResults ListWorkspaceIDsResults}
+     */
+    @JsonServerMethod(rpc = "Workspace.list_workspace_ids", authOptional=true, async=true)
+    public ListWorkspaceIDsResults listWorkspaceIds(ListWorkspaceIDsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
+        ListWorkspaceIDsResults returnVal = null;
+        //BEGIN list_workspace_ids
+		returnVal = wsmeth.listWorkspaceIDs(params, wsmeth.getUser(authPart));
+        //END list_workspace_ids
         return returnVal;
     }
 

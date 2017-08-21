@@ -96,12 +96,19 @@ sub new
     # We create an auth token, passing through the arguments that we were (hopefully) given.
 
     {
-	my $token = Bio::KBase::AuthToken->new(@args);
+	my %arg_hash2 = @args;
+	if (exists $arg_hash2{"token"}) {
+	    $self->{token} = $arg_hash2{"token"};
+	} elsif (exists $arg_hash2{"user_id"}) {
+	    my $token = Bio::KBase::AuthToken->new(@args);
+	    if (!$token->error_message) {
+	        $self->{token} = $token->token;
+	    }
+	}
 	
-	if (!$token->error_message)
+	if (exists $self->{token})
 	{
-	    $self->{token} = $token->token;
-	    $self->{client}->{token} = $token->token;
+	    $self->{client}->{token} = $self->{token};
 	}
     }
 
@@ -4003,6 +4010,109 @@ List workspaces viewable by the user.
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_workspace_info",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'list_workspace_info',
+				       );
+    }
+}
+ 
+
+
+=head2 list_workspace_ids
+
+  $results = $obj->list_workspace_ids($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a Workspace.ListWorkspaceIDsParams
+$results is a Workspace.ListWorkspaceIDsResults
+ListWorkspaceIDsParams is a reference to a hash where the following keys are defined:
+	perm has a value which is a Workspace.permission
+	excludeGlobal has a value which is a Workspace.boolean
+	onlyGlobal has a value which is a Workspace.boolean
+permission is a string
+boolean is an int
+ListWorkspaceIDsResults is a reference to a hash where the following keys are defined:
+	workspaces has a value which is a reference to a list where each element is an int
+	pub has a value which is a reference to a list where each element is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a Workspace.ListWorkspaceIDsParams
+$results is a Workspace.ListWorkspaceIDsResults
+ListWorkspaceIDsParams is a reference to a hash where the following keys are defined:
+	perm has a value which is a Workspace.permission
+	excludeGlobal has a value which is a Workspace.boolean
+	onlyGlobal has a value which is a Workspace.boolean
+permission is a string
+boolean is an int
+ListWorkspaceIDsResults is a reference to a hash where the following keys are defined:
+	workspaces has a value which is a reference to a list where each element is an int
+	pub has a value which is a reference to a list where each element is an int
+
+
+=end text
+
+=item Description
+
+List workspace IDs to which the user has access.
+
+This function returns a subset of the information in the
+list_workspace_info method and should be substantially faster.
+
+=back
+
+=cut
+
+ sub list_workspace_ids
+{
+    my($self, @args) = @_;
+
+# Authentication: optional
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function list_workspace_ids (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to list_workspace_ids:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'list_workspace_ids');
+	}
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "Workspace.list_workspace_ids",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'list_workspace_ids',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method list_workspace_ids",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'list_workspace_ids',
 				       );
     }
 }
@@ -10734,6 +10844,95 @@ before_epoch has a value which is a Workspace.epoch
 excludeGlobal has a value which is a Workspace.boolean
 showDeleted has a value which is a Workspace.boolean
 showOnlyDeleted has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 ListWorkspaceIDsParams
+
+=over 4
+
+
+
+=item Description
+
+Input parameters for the "list_workspace_ids" function.
+
+Optional parameters:
+permission perm - filter workspaces by minimum permission level. 'None'
+        and 'readable' are ignored.
+boolean onlyGlobal - if onlyGlobal is true only include world readable
+        workspaces. Defaults to false. If true, excludeGlobal is ignored.
+boolean excludeGlobal - if excludeGlobal is true exclude world
+        readable workspaces. Defaults to true.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+perm has a value which is a Workspace.permission
+excludeGlobal has a value which is a Workspace.boolean
+onlyGlobal has a value which is a Workspace.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+perm has a value which is a Workspace.permission
+excludeGlobal has a value which is a Workspace.boolean
+onlyGlobal has a value which is a Workspace.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 ListWorkspaceIDsResults
+
+=over 4
+
+
+
+=item Description
+
+Results of the "list_workspace_ids" function.
+
+list<int> workspaces - the workspaces to which the user has explicit
+        access.
+list<int> pub - the workspaces to which the user has access because
+        they're globally readable.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspaces has a value which is a reference to a list where each element is an int
+pub has a value which is a reference to a list where each element is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspaces has a value which is a reference to a list where each element is an int
+pub has a value which is a reference to a list where each element is an int
 
 
 =end text

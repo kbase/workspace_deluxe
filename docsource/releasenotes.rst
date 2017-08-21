@@ -23,10 +23,13 @@ NEW FEATURES:
   interfaces. Specify listeners to be loaded on start up in the ``deploy.cfg`` file (see
   ``deploy.cfg.example`` for an example). See
   ``us.kbase.workspace.test.listener.NullListenerFactory`` for an example implementation.
+* Added the ``list_workspace_ids`` method.
+* Added the ``listWorkspaceIDs`` administration command.
 * Added the ``getPermissionsMass`` administration command.
 * Added the ``getWorkspaceInfo`` administration command.
 * Added the ``listObjects`` administration command.
 * Added the ``getObjectInfo`` administration command.
+* Added the ``getObjectHistory`` administration command.
 * Added the ``getObjects`` administration command.
 * ``list_objects`` will now sort the output if no filters other than the object id filters are
   applied. The sort order is workspace id ascending, object id ascending, and version descending.

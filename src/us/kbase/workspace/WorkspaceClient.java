@@ -732,6 +732,26 @@ public class WorkspaceClient {
     }
 
     /**
+     * <p>Original spec-file function name: list_workspace_ids</p>
+     * <pre>
+     * List workspace IDs to which the user has access.
+     * This function returns a subset of the information in the
+     * list_workspace_info method and should be substantially faster.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ListWorkspaceIDsParams ListWorkspaceIDsParams}
+     * @return   parameter "results" of type {@link us.kbase.workspace.ListWorkspaceIDsResults ListWorkspaceIDsResults}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public ListWorkspaceIDsResults listWorkspaceIds(ListWorkspaceIDsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<ListWorkspaceIDsResults>> retType = new TypeReference<List<ListWorkspaceIDsResults>>() {};
+        List<ListWorkspaceIDsResults> res = caller.jsonrpcCall("Workspace.list_workspace_ids", args, retType, true, false, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: list_workspace_objects</p>
      * <pre>
      * Lists the metadata of all objects in the specified workspace with the

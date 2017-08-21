@@ -44,6 +44,7 @@ import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListObjectsParams;
+import us.kbase.workspace.ListWorkspaceIDsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -829,6 +830,17 @@ public class LoggingTest {
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
+		//get obj history
+		ac.put("command", "getObjectHistory");
+		ac.put("params", new ObjectIdentity().withRef("1/1"));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getObjectHistory", ADMIN),
+				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
 		// get objects
 		ac.put("command", "getObjects");
 		ac.put("params", new GetObjects2Params()
@@ -849,6 +861,17 @@ public class LoggingTest {
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
 				new AdminExp("listWorkspaces " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		// list ws ids
+		ac.put("command", "listWorkspaceIDs");
+		ac.put("user", USER1);
+		ac.put("params", new ListWorkspaceIDsParams());
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("listWorkspaceIDs " + USER1, ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
