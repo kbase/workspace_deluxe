@@ -741,9 +741,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> getObjectHistory(ObjectIdentity object, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>> returnVal = null;
         //BEGIN get_object_history
-		final ObjectIdentifier oi = processObjectIdentifier(object);
-		returnVal = objInfoToTuple(ws.getObjectHistory(
-				wsmeth.getUser(authPart), oi), true);
+		returnVal = wsmeth.getObjectHistory(object, wsmeth.getUser(authPart), false);
         //END get_object_history
         return returnVal;
     }

@@ -11,6 +11,7 @@ import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
+import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifier;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
@@ -53,6 +54,7 @@ import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceIDsParams;
 import us.kbase.workspace.ListWorkspaceIDsResults;
 import us.kbase.workspace.ListWorkspaceInfoParams;
+import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
@@ -633,5 +635,27 @@ public class WorkspaceServerMethods {
 			}
 		}
 		return lop;
+	}
+
+	/** Get all versions of an object.
+	 * @param object the object.
+	 * @param user the user making the request.
+	 * @param asAdmin true to ignore the user and request as an admin.
+	 * @return the object versions.
+	 * @throws InaccessibleObjectException if the object is inaccessible.
+	 * @throws NoSuchObjectException if there is no such object.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public List<Tuple11<Long, String, String, String, Long, String, Long, String, String,
+			Long, Map<String, String>>> getObjectHistory(
+			final ObjectIdentity object,
+			final WorkspaceUser user,
+			final boolean asAdmin)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException, NoSuchObjectException {
+		final ObjectIdentifier oi = processObjectIdentifier(object);
+		return objInfoToTuple(ws.getObjectHistory(user, oi, asAdmin), true);
 	}
 }
