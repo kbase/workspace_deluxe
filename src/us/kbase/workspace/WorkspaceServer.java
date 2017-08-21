@@ -101,7 +101,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "2a7a086e6ecf4417293b99eb0f28ba21407ca82e";
+    private static final String gitCommitHash = "7abd127f957d80c6e83de4e07c3a4621019ca408";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
@@ -892,6 +892,23 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN list_workspace_info
 		returnVal = wsmeth.listWorkspaceInfo(params, wsmeth.getUser(authPart));
         //END list_workspace_info
+        return returnVal;
+    }
+
+    /**
+     * <p>Original spec-file function name: list_workspace_ids</p>
+     * <pre>
+     * List workspace IDs to which the user has access.
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.workspace.ListWorkspaceIDsParams ListWorkspaceIDsParams}
+     * @return   parameter "results" of type {@link us.kbase.workspace.ListWorkspaceIDsResults ListWorkspaceIDsResults}
+     */
+    @JsonServerMethod(rpc = "Workspace.list_workspace_ids", authOptional=true, async=true)
+    public ListWorkspaceIDsResults listWorkspaceIds(ListWorkspaceIDsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
+        ListWorkspaceIDsResults returnVal = null;
+        //BEGIN list_workspace_ids
+        //TODO NOW implement
+        //END list_workspace_ids
         return returnVal;
     }
 
