@@ -523,7 +523,6 @@ public class WorkspaceServerMethods {
 			final ListWorkspaceIDsParams params,
 			WorkspaceUser user)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		//TODO NOW expose in admin api
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		if (longToBoolean(params.getOnlyGlobal())) {
 			user = null;

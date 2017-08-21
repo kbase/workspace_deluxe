@@ -132,6 +132,7 @@ getObjects                      no (3)
 setGlobalPermission             yes
 saveObjects                     yes
 listWorkspaces                  yes
+listWorkspaceIDs                yes
 listObjects                     optional (4)
 deleteWorkspace                 no
 undeleteWorkspace               no

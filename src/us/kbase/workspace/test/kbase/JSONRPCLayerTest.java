@@ -3656,6 +3656,35 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void adminListWorkspaceIDs() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("own"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("read"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("read")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("r"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("write"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("write")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("w"));
+
+		final ListWorkspaceIDsResults res = CLIENT2.administer(new UObject(ImmutableMap.of(
+				"command", "listWorkspaceIDs",
+				"params", new ListWorkspaceIDsParams().withPerm("w"),
+				"user", USER1)))
+				.asClassInstance(ListWorkspaceIDsResults.class);
+		assertThat("incorrect workspaces", res.getWorkspaces(), is(Arrays.asList(1L, 3L)));
+		assertThat("incorrect pub workspaces", res.getPub(), is(Arrays.asList()));
+		
+		final Map<String, Object> cmd = new HashMap<>();
+		cmd.put("command", "listWorkspaceIDs");
+		cmd.put("params", null);
+		cmd.put("user", USER1);
+		failAdmin(CLIENT2, cmd, "Method parameters ListWorkspaceIDsParams may not be null");
+
+		cmd.put("params", new ListWorkspaceIDsParams());
+		cmd.put("user", null);
+		failAdmin(CLIENT2, cmd, "User may not be null");
+	}
+	
+	@Test
 	public void adminListObjectsWithUser() throws Exception {
 		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
 		
