@@ -1263,14 +1263,45 @@ public class Workspace {
 		}
 		return ret;
 	}
-	//TODO NOW expose in admin api
+	
+	/** Get all versions of an object.
+	 * @param user the user making the request.
+	 * @param oi the object to query.
+	 * @return the versions of the object.
+	 * @throws InaccessibleObjectException if the object is inaccessible.
+	 * @throws NoSuchObjectException if there is no such object.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
 	public List<ObjectInformation> getObjectHistory(
 			final WorkspaceUser user,
 			final ObjectIdentifier oi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException, NoSuchObjectException {
+		return getObjectHistory(user, oi, false);
+	}
+	
+	//TODO NOW expose in admin api
+	/** Get all versions of an object.
+	 * @param user the user making the request.
+	 * @param oi the object to query.
+	 * @param asAdmin true if the user is acting as an administrator.
+	 * @return the versions of the object.
+	 * @throws InaccessibleObjectException if the object is inaccessible.
+	 * @throws NoSuchObjectException if there is no such object.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public List<ObjectInformation> getObjectHistory(
+			final WorkspaceUser user,
+			final ObjectIdentifier oi,
+			final boolean asAdmin)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
 					CorruptWorkspaceDBException, NoSuchObjectException {
 		final ObjectIDResolvedWS o = new PermissionsCheckerFactory(db, user)
-						.getObjectChecker(oi, Permission.READ).check();
+						.getObjectChecker(oi, asAdmin ? Permission.NONE : Permission.READ).check();
 		return db.getObjectHistory(o);
 	}
 	

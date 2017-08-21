@@ -539,6 +539,26 @@ public class WorkspaceTest extends WorkspaceTester {
 	}
 	
 	@Test
+	public void adminGetObjectHistory() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("listObjHistUser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("listObjHist1");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		final Provenance p = new Provenance(user);
+		final ObjectInformation obj1 = saveObject(user, wsi, null,
+				ImmutableMap.of("foo", "bar1"), SAFE_TYPE1, "std", p);
+		final ObjectInformation obj2 = saveObject(user, wsi, null,
+				ImmutableMap.of("foo", "bar2"), SAFE_TYPE1, "std", p);
+		final ObjectInformation obj3 = saveObject(user, wsi, null,
+				ImmutableMap.of("foo", "bar3"), SAFE_TYPE1, "std", p);
+		
+		final List<ObjectInformation> vers = ws.getObjectHistory(
+				null, new ObjectIdentifier(wsi, 1), true);
+		
+		assertThat("incorrect object versions", vers, is(Arrays.asList(obj1, obj2, obj3)));
+	}
+	
+	@Test
 	public void adminGetWorkspaceInfo() throws Exception {
 		WorkspaceUser user = new WorkspaceUser("blahblah");
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("somews");
