@@ -1282,7 +1282,6 @@ public class Workspace {
 		return getObjectHistory(user, oi, false);
 	}
 	
-	//TODO NOW expose in admin api
 	/** Get all versions of an object.
 	 * @param user the user making the request.
 	 * @param oi the object to query.

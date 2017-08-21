@@ -128,6 +128,7 @@ getPermissions (DEPRECATED)     optional (1)
 getPermissionsMass              no
 getWorkspaceInfo                no
 getObjectInfo                   no (2)
+getObjectHistory                no
 getObjects                      no (3)
 setGlobalPermission             yes
 saveObjects                     yes

@@ -29,6 +29,7 @@ NEW FEATURES:
 * Added the ``getWorkspaceInfo`` administration command.
 * Added the ``listObjects`` administration command.
 * Added the ``getObjectInfo`` administration command.
+* Added the ``getObjectHistory`` administration command.
 * Added the ``getObjects`` administration command.
 * ``list_objects`` will now sort the output if no filters other than the object id filters are
   applied. The sort order is workspace id ascending, object id ascending, and version descending.

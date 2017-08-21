@@ -545,11 +545,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(user, wsi.getName(), false, null, null);
 		
 		final Provenance p = new Provenance(user);
-		final ObjectInformation obj1 = saveObject(user, wsi, null,
+		final ObjectInformation obj1 = saveObject(user, wsi, ImmutableMap.of("foo", "bar1"),
 				ImmutableMap.of("foo", "bar1"), SAFE_TYPE1, "std", p);
-		final ObjectInformation obj2 = saveObject(user, wsi, null,
+		final ObjectInformation obj2 = saveObject(user, wsi, ImmutableMap.of("foo", "bar2"),
 				ImmutableMap.of("foo", "bar2"), SAFE_TYPE1, "std", p);
-		final ObjectInformation obj3 = saveObject(user, wsi, null,
+		final ObjectInformation obj3 = saveObject(user, wsi, ImmutableMap.of("foo", "bar3"),
 				ImmutableMap.of("foo", "bar3"), SAFE_TYPE1, "std", p);
 		
 		final List<ObjectInformation> vers = ws.getObjectHistory(

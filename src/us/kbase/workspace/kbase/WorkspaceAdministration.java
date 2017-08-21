@@ -33,6 +33,7 @@ import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceIDsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
+import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
@@ -68,6 +69,7 @@ public class WorkspaceAdministration {
 	private static final String LIST_OBJECTS = "listObjects";
 	private static final String SAVE_OBJECTS = "saveObjects";
 	private static final String GET_OBJECT_INFO = "getObjectInfo";
+	private static final String GET_OBJECT_HIST = "getObjectHistory";
 	private static final String GET_OBJECTS = "getObjects";
 	private static final String SET_GLOBAL_PERMISSION = "setGlobalPermission";
 	private static final String GET_WORKSPACE_INFO = "getWorkspaceInfo";
@@ -235,6 +237,12 @@ public class WorkspaceAdministration {
 			getLogger().info(GET_OBJECT_INFO);
 			return wsmeth.getObjectInformation(params, new WorkspaceUser(putativeAdmin), true);
 		}
+		if (GET_OBJECT_HIST.equals(fn)) {
+			final ObjectIdentity params = getParams(cmd, ObjectIdentity.class);
+			// method has its own logging
+			getLogger().info(GET_OBJECT_HIST);
+			return wsmeth.getObjectHistory(params, new WorkspaceUser(putativeAdmin), true);
+		}
 		if (GET_OBJECTS.equals(fn)) {
 			final GetObjects2Params params = getParams(cmd, GetObjects2Params.class);
 			// method has its own logging
@@ -249,7 +257,6 @@ public class WorkspaceAdministration {
 			return wsmeth.listWorkspaceInfo(params, user);
 		}
 		if (LIST_WORKSPACE_IDS.equals(fn)) {
-			//TODO NOW test logging
 			final ListWorkspaceIDsParams params = getParams(cmd, ListWorkspaceIDsParams.class);
 			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(LIST_WORKSPACE_IDS + " " + user.getUser());

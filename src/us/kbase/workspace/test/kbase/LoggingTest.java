@@ -830,6 +830,17 @@ public class LoggingTest {
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
+		//get obj history
+		ac.put("command", "getObjectHistory");
+		ac.put("params", new ObjectIdentity().withRef("1/1"));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getObjectHistory", ADMIN),
+				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
 		// get objects
 		ac.put("command", "getObjects");
 		ac.put("params", new GetObjects2Params()

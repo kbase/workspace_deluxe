@@ -3711,6 +3711,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
 	}
 	
+	final TypeReference<List<Tuple11<Long, String, String, String,
+			Long, String, Long, String, String, Long, Map<String, String>>>> OBJ_TYPEREF =
+					new TypeReference<List<Tuple11<Long, String, String, String,
+						Long, String, Long, String, String, Long, Map<String, String>>>>() {};
+	
 	@Test
 	public void adminlistObjectsWithoutUser() throws Exception {
 		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
@@ -3735,8 +3740,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						"command", "listObjects",
 						"params", new ListObjectsParams().withWorkspaces(
 								Arrays.asList(ws.getWorkspace()))
-				))).asClassInstance(new TypeReference<List<Tuple11<Long, String, String, String,
-						Long, String, Long, String, String, Long, Map<String, String>>>>() {});
+				))).asClassInstance(OBJ_TYPEREF);
 		
 		assertThat("incorrect object count", ob.size(), is(1));
 		checkInfo(ob.get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
@@ -3766,6 +3770,41 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("incorrect exception", e.getMessage(), is("When listing objects as an " +
 					"admin at least one target workspace must be provided"));
 		}
+	}
+	
+	@Test
+	public void adminListObjectHistory() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("foo"));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("foo")
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withMeta(ImmutableMap.of("foo", "bar1"))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("foo")
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withMeta(ImmutableMap.of("foo", "bar2"))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> res = CLIENT2.administer(new UObject(ImmutableMap.of(
+				"command", "getObjectHistory",
+				"params", new ObjectIdentity().withWorkspace("foo").withName("whee"))))
+				.asClassInstance(OBJ_TYPEREF);
+		
+		checkInfo(res.get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, "foo",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, ImmutableMap.of("foo", "bar1"));
+		checkInfo(res.get(1), 1, "whee", SAFE_TYPE, 2, USER1, 1L, "foo",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, ImmutableMap.of("foo", "bar2"));
+		
+		final Map<String, Object> cmd = new HashMap<>();
+		cmd.put("command", "getObjectHistory");
+		cmd.put("params", null);
+		failAdmin(CLIENT2, cmd, "Method parameters ObjectIdentity may not be null");
 	}
 	
 	@Test
