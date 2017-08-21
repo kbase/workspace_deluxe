@@ -23,6 +23,7 @@ NEW FEATURES:
   interfaces. Specify listeners to be loaded on start up in the ``deploy.cfg`` file (see
   ``deploy.cfg.example`` for an example). See
   ``us.kbase.workspace.test.listener.NullListenerFactory`` for an example implementation.
+* Added the ``list_workspace_ids`` method.
 * Added the ``getPermissionsMass`` administration command.
 * Added the ``getWorkspaceInfo`` administration command.
 * Added the ``listObjects`` administration command.

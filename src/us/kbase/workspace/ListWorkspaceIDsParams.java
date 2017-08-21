@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * permission perm - filter workspaces by minimum permission level. 'None'
  *         and 'readable' are ignored.
  * boolean onlyGlobal - if onlyGlobal is true only include world readable
- *         workspaces. Defaults to false.
+ *         workspaces. Defaults to false. If true, excludeGlobal is ignored.
  * boolean excludeGlobal - if excludeGlobal is true exclude world
  *         readable workspaces. Defaults to true.
  * </pre>

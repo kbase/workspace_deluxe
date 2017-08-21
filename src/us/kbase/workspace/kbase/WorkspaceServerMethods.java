@@ -50,6 +50,8 @@ import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetObjects2Results;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListObjectsParams;
+import us.kbase.workspace.ListWorkspaceIDsParams;
+import us.kbase.workspace.ListWorkspaceIDsResults;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
@@ -67,6 +69,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.User;
+import us.kbase.workspace.database.UserWorkspaceIDs;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
@@ -505,6 +508,34 @@ public class WorkspaceServerMethods {
 				longToBoolean(params.getExcludeGlobal()),
 				longToBoolean(params.getShowDeleted()),
 				longToBoolean(params.getShowOnlyDeleted())));
+	}
+	
+	/** Lists IDs of workspaces to which the user has access. Should be faster than
+	 * {@link #listWorkspaceInfo(ListWorkspaceInfoParams, WorkspaceUser)}.
+	 * @param params the method parameters.
+	 * @param user the user, or null if anonymous.
+	 * @return the results of the method.
+	 * @throws CorruptWorkspaceDBException if corrupt data was found in the storage system.
+	 * @throws WorkspaceCommunicationException if a communication error occurred with the storage
+	 * system.
+	 */
+	public ListWorkspaceIDsResults listWorkspaceIDs(
+			final ListWorkspaceIDsParams params,
+			WorkspaceUser user)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		//TODO NOW expose in admin api
+		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
+		if (longToBoolean(params.getOnlyGlobal())) {
+			user = null;
+			params.setExcludeGlobal(0L);
+		}
+		final Permission p = params.getPerm() == null ? null :
+			translatePermission(params.getPerm());
+		final UserWorkspaceIDs wsids = ws.listWorkspaceIDs(
+				user, p, longToBoolean(params.getExcludeGlobal(), true));
+		return new ListWorkspaceIDsResults()
+				.withWorkspaces(new LinkedList<>(wsids.getWorkspaceIDs()))
+				.withPub(new LinkedList<>(wsids.getPublicWorkspaceIDs()));
 	}
 	
 	/** List objects in one or more workspaces.

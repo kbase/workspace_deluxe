@@ -2937,15 +2937,15 @@ class Workspace(object):
            parameters: permission perm - filter workspaces by minimum
            permission level. 'None' and 'readable' are ignored. boolean
            onlyGlobal - if onlyGlobal is true only include world readable
-           workspaces. Defaults to false. boolean excludeGlobal - if
-           excludeGlobal is true exclude world readable workspaces. Defaults
-           to true.) -> structure: parameter "perm" of type "permission"
-           (Represents the permissions a user or users have to a workspace:
-           'a' - administrator. All operations allowed. 'w' - read/write. 'r'
-           - read. 'n' - no permissions.), parameter "excludeGlobal" of type
-           "boolean" (A boolean. 0 = false, other = true.), parameter
-           "onlyGlobal" of type "boolean" (A boolean. 0 = false, other =
-           true.)
+           workspaces. Defaults to false. If true, excludeGlobal is ignored.
+           boolean excludeGlobal - if excludeGlobal is true exclude world
+           readable workspaces. Defaults to true.) -> structure: parameter
+           "perm" of type "permission" (Represents the permissions a user or
+           users have to a workspace: 'a' - administrator. All operations
+           allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.),
+           parameter "excludeGlobal" of type "boolean" (A boolean. 0 = false,
+           other = true.), parameter "onlyGlobal" of type "boolean" (A
+           boolean. 0 = false, other = true.)
         :returns: instance of type "ListWorkspaceIDsResults" (Results of the
            "list_workspace_ids" function. list<int> workspaces - the
            workspaces to which the user has explicit access. list<int> pub -

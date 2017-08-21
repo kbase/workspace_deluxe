@@ -101,7 +101,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "fe1dca1a0ac7cb9c99d7c43060d86b908c6fb4bd";
+    private static final String gitCommitHash = "148d44322774c33b78674717590386fbccfadf90";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
@@ -909,7 +909,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public ListWorkspaceIDsResults listWorkspaceIds(ListWorkspaceIDsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         ListWorkspaceIDsResults returnVal = null;
         //BEGIN list_workspace_ids
-        //TODO NOW implement
+		returnVal = wsmeth.listWorkspaceIDs(params, wsmeth.getUser(authPart));
         //END list_workspace_ids
         return returnVal;
     }

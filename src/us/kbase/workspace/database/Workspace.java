@@ -944,8 +944,6 @@ public class Workspace {
 			Permission minPerm,
 			final boolean excludeGlobal)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		//TODO NOW expose in API
-		//TODO NOW expose in admin api
 		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
 			minPerm = Permission.READ;
 		}

@@ -52,6 +52,8 @@ import us.kbase.workspace.ListAllTypesParams;
 import us.kbase.workspace.ListModuleVersionsParams;
 import us.kbase.workspace.ListModulesParams;
 import us.kbase.workspace.ListObjectsParams;
+import us.kbase.workspace.ListWorkspaceIDsParams;
+import us.kbase.workspace.ListWorkspaceIDsResults;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
@@ -2308,6 +2310,71 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 	}
 	
+	@Test
+	public void listWorkspaceIDs() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("own"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("admin"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("write"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("read"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("pub")
+				.withGlobalread("r"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("none"));
+
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("admin")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("a"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("write")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("w"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("read")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("r"));
+
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()),
+				Arrays.asList(1L, 2L, 3L, 4L), Arrays.asList());
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withPerm("r")),
+				Arrays.asList(1L, 2L, 3L, 4L), Arrays.asList());
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withExcludeGlobal(0L)),
+				Arrays.asList(1L, 2L, 3L, 4L), Arrays.asList(5L));
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withOnlyGlobal(1L)),
+				Arrays.asList(), Arrays.asList(5L));
+		
+		checkListWSIDs(CLIENT_NO_AUTH.listWorkspaceIds(new ListWorkspaceIDsParams()),
+				Arrays.asList(), Arrays.asList());
+		
+		checkListWSIDs(CLIENT_NO_AUTH.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withExcludeGlobal(0L)),
+				Arrays.asList(), Arrays.asList(5L));
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withPerm("a")),
+				Arrays.asList(1L, 2L), Arrays.asList());
+	}
+	
+	@Test
+	public void failListWorkspaceIDs() throws Exception {
+		final ListWorkspaceIDsParams p = new ListWorkspaceIDsParams();
+		p.setAdditionalProperties("foo", "bar");
+		try {
+			CLIENT1.listWorkspaceIds(p);
+			fail("expected exception");
+		} catch (ServerException se) {
+			assertThat("incorrect message", se.getMessage(), is(
+					"Unexpected arguments in ListWorkspaceIDsParams: foo"));
+		}
+	}
+	
+	private void checkListWSIDs(
+			final ListWorkspaceIDsResults ids,
+			final List<Long> workspaces,
+			final List<Long> pub) {
+		assertThat("incorrect workspace ids", ids.getWorkspaces(), is(workspaces));
+		assertThat("incorrect pub ids", ids.getPub(), is(pub));
+	}
+
 	@Test
 	public void listObjectsAndHistory() throws Exception {
 		CLIENT1.requestModuleOwnership("AnotherModule");
