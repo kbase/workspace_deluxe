@@ -4439,27 +4439,6 @@ class Workspace(object):
             'Workspace.delete_workspace',
             [wsi], self._service_ver, context)
 
-    def undelete_workspace(self, wsi, context=None):
-        """
-        Undelete a workspace. All objects contained in the workspace are
-        undeleted, regardless of their state at the time the workspace was
-        deleted.
-        :param wsi: instance of type "WorkspaceIdentity" (A workspace
-           identifier. Select a workspace by one, and only one, of the
-           numerical id or name. ws_id id - the numerical ID of the
-           workspace. ws_name workspace - the name of the workspace.) ->
-           structure: parameter "workspace" of type "ws_name" (A string used
-           as a name for a workspace. Any string consisting of alphanumeric
-           characters and "_", ".", or "-" that is not an integer is
-           acceptable. The name may optionally be prefixed with the workspace
-           owner's user name and a colon, e.g. kbasetest:my_workspace.),
-           parameter "id" of type "ws_id" (The unique, permanent numerical ID
-           of a workspace.)
-        """
-        return self._client.call_method(
-            'Workspace.undelete_workspace',
-            [wsi], self._service_ver, context)
-
     def request_module_ownership(self, mod, context=None):
         """
         Request ownership of a module name. A Workspace administrator

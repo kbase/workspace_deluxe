@@ -1641,14 +1641,6 @@ module Workspace {
 	funcdef delete_workspace(WorkspaceIdentity wsi) returns()
 		authentication required;
 	
-	/* 
-		Undelete a workspace. All objects contained in the workspace are
-		undeleted, regardless of their state at the time the workspace was
-		deleted.
-	*/
-	funcdef undelete_workspace(WorkspaceIdentity wsi) returns()
-		authentication required;
-	
 	/* **************** Type registering functions ******************** */
 	
 	/* A type specification (typespec) file in the KBase Interface Description
