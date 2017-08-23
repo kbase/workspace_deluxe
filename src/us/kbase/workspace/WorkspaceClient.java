@@ -1053,24 +1053,6 @@ public class WorkspaceClient {
     }
 
     /**
-     * <p>Original spec-file function name: undelete_workspace</p>
-     * <pre>
-     * Undelete a workspace. All objects contained in the workspace are
-     * undeleted, regardless of their state at the time the workspace was
-     * deleted.
-     * </pre>
-     * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
-     * @throws IOException if an IO exception occurs
-     * @throws JsonClientException if a JSON RPC exception occurs
-     */
-    public void undeleteWorkspace(WorkspaceIdentity wsi, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
-        List<Object> args = new ArrayList<Object>();
-        args.add(wsi);
-        TypeReference<Object> retType = new TypeReference<Object>() {};
-        caller.jsonrpcCall("Workspace.undelete_workspace", args, retType, false, true, jsonRpcContext, this.serviceVersion);
-    }
-
-    /**
      * <p>Original spec-file function name: request_module_ownership</p>
      * <pre>
      * Request ownership of a module name. A Workspace administrator

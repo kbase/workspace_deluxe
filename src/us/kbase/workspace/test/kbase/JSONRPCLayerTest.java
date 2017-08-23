@@ -92,7 +92,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.2-dev1"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.8.0-dev1"));
 	}
 	
 	public void status() throws Exception {
@@ -1740,46 +1740,34 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void deleteUndelete() throws Exception {
-		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("delundel")
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("del")
 				.withDescription("foo"));
-		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("delundel");
+		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("del");
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
-		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("delundel")
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("del")
 				.withObjects(objects);
 		objects.add(new ObjectSaveData().withData(new UObject(data))
 				.withType(SAFE_TYPE).withName("myname"));
 		CLIENT1.saveObjects(soc);
 		List<ObjectIdentity> loi = Arrays.asList(new ObjectIdentity()
-				.withRef("delundel/myname"));
+				.withRef("del/myname"));
 		checkData(loi, data);
 		CLIENT1.deleteObjects(loi);
 		
-		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name delundel) " +
+		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name del) " +
 				"has been deleted");
 
 		CLIENT1.undeleteObjects(loi);
 		checkData(loi, data);
 		CLIENT1.deleteWorkspace(wsi);
 		
-		failGetObjects(loi, "Object myname cannot be accessed: Workspace delundel is deleted");
+		failGetObjects(loi, "Object myname cannot be accessed: Workspace del is deleted");
 
-		failGetWSDesc(wsi, "Workspace delundel is deleted");
-
-		CLIENT1.undeleteWorkspace(wsi);
-		checkData(loi, data);
-		assertThat("can get description", CLIENT1.getWorkspaceDescription(wsi),
-				is("foo"));
-		CLIENT1.deleteObjects(loi);
-		
-		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name delundel) " +
-				"has been deleted");
-
-		CLIENT1.saveObjects(soc);
-		checkData(loi, data);
+		failGetWSDesc(wsi, "Workspace del is deleted");
 	}
 	
 	@Test

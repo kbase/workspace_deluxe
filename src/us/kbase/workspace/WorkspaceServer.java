@@ -101,13 +101,13 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "148d44322774c33b78674717590386fbccfadf90";
+    private static final String gitCommitHash = "69c528958723a8c279ade8302b6490d9f7aca763";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.7.2-dev1";
+	private static final String VER = "0.8.0-dev1";
 	private static final String GIT =
 			"https://github.com/kbase/workspace_deluxe";
 
@@ -1249,23 +1249,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
 		ws.setWorkspaceDeleted(wsmeth.getUser(authPart), wksp, true);
         //END delete_workspace
-    }
-
-    /**
-     * <p>Original spec-file function name: undelete_workspace</p>
-     * <pre>
-     * Undelete a workspace. All objects contained in the workspace are
-     * undeleted, regardless of their state at the time the workspace was
-     * deleted.
-     * </pre>
-     * @param   wsi   instance of type {@link us.kbase.workspace.WorkspaceIdentity WorkspaceIdentity}
-     */
-    @JsonServerMethod(rpc = "Workspace.undelete_workspace", async=true)
-    public void undeleteWorkspace(WorkspaceIdentity wsi, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
-        //BEGIN undelete_workspace
-		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		ws.setWorkspaceDeleted(wsmeth.getUser(authPart), wksp, false);
-        //END undelete_workspace
     }
 
     /**

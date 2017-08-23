@@ -1,11 +1,13 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.7.2 (Released TBD)
+VERSION: 0.8.0 (Released TBD)
 --------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
 
+* The ``undelete_workspace`` method has been removed. Workspaces are now considered to be
+  permanently deleted.
 * Building and running the service now requires Java 8.
 * The ``getPermissions`` administration command, like the ``get_permissions`` method, is now
   deprecated.

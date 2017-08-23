@@ -106,8 +106,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void createWorkspace(long id) {
-			// TODO RESKE Auto-generated method stub
-			
+			// no action
 		}
 
 		@Override
@@ -138,8 +137,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void setPermissions(long id, Permission permission, List<WorkspaceUser> users) {
-			// TODO RESKE Auto-generated method stub
-			
+			// no action
 		}
 
 		@Override
@@ -150,13 +148,18 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName) {
-			// TODO RESKE Auto-generated method stub
-			
+			// no action
 		}
 
 		@Override
 		public void setWorkspaceDeleted(long id, boolean delete) {
-			// TODO RESKE Auto-generated method stub
+			if (delete) {
+				// TODO RESKE Auto-generated method stub
+			} else {
+				LoggerFactory.getLogger(getClass()).info(
+						"Workspace {} was deleted. Workspace deletion events are not " +
+								"supported by RESKE", id);
+			}
 			
 		}
 
