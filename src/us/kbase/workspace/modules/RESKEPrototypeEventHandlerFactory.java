@@ -165,7 +165,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void renameObject(long workspaceId, long objectId, String newName) {
-			newEvent(workspaceId, objectId, null, null, RENAME_OBJECT, null);
+			newEvent(workspaceId, objectId, null, newName, null, RENAME_OBJECT, null);
 			// TODO RESKE Auto-generated method stub
 			
 		}
@@ -220,7 +220,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				final long workspaceId,
 				final long objectId,
 				final boolean isPublic) {
-			newEvent(workspaceId, objectId, null, null, NEW_OBJECT, isPublic);
+			newEvent(workspaceId, objectId, null, null, null, NEW_OBJECT, isPublic);
 		}
 		
 		private void newVersionEvent(
@@ -229,20 +229,21 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				final Integer version,
 				final String type,
 				final boolean isPublic) {
-			newEvent(workspaceId, objectId, version, type, NEW_OBJECT_VER, isPublic);
+			newEvent(workspaceId, objectId, version, null, type, NEW_OBJECT_VER, isPublic);
 		}
 		
 		private void newWorkspaceEvent(
 				final long workspaceId,
 				final String eventType,
 				final boolean isPublic) {
-			newEvent(workspaceId, null, null, null, eventType, isPublic);
+			newEvent(workspaceId, null, null, null, null, eventType, isPublic);
 		}
 		
 		private void newEvent(
 				final long workspaceId,
 				final Long objectId,
 				final Integer version,
+				final String newName,
 				final String type,
 				final String eventType,
 				final Boolean isPublic) {
@@ -255,6 +256,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			dobj.put("accessGroupId", (int) workspaceId);
 			dobj.put("accessGroupObjectId", objectId == null ? null : "" + objectId);
 			dobj.put("version", version);
+			dobj.put("newName", newName);
 			//TODO RESKE make timestamp = the event timestamp (e.g. object creation/rename)
 			dobj.put("timestamp", System.currentTimeMillis());
 			dobj.put("eventType", eventType);
