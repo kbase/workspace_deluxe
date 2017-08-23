@@ -57,6 +57,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		private static final String NEW_OBJECT = "NEW_ALL_VERSIONS";
 		private static final String CLONED_WORKSPACE = "COPY_ACCESS_GROUP";
 		private static final String RENAME_OBJECT = "RENAME_ALL_VERSIONS";
+		private static final String DELETE_OBJECT = "DELETE_ALL_VERSIONS";
+		private static final String UNDELETE_OBJECT = "UNDELETE_ALL_VERSIONS";
 		
 		// this might need to be configurable
 		private static final String COLLECTION = "ObjectStatusEvents";
@@ -183,8 +185,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {
-			// TODO RESKE Auto-generated method stub
-			
+			newEvent(workspaceId, objectId, null, null, null,
+					delete ? DELETE_OBJECT : UNDELETE_OBJECT, null);
 		}
 
 		@Override
