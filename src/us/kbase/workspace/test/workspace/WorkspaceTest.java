@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -79,6 +80,7 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.User;
+import us.kbase.workspace.database.UserWorkspaceIDs;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
@@ -534,6 +536,26 @@ public class WorkspaceTest extends WorkspaceTester {
 						"The latest version of object 1 in workspace somews is not accessible " +
 						"to user admin", objid2));
 		assertThat("incorrect source object", e2.getInaccessibleObject(), is(objref2));
+	}
+	
+	@Test
+	public void adminGetObjectHistory() throws Exception {
+		WorkspaceUser user = new WorkspaceUser("listObjHistUser");
+		WorkspaceIdentifier wsi = new WorkspaceIdentifier("listObjHist1");
+		ws.createWorkspace(user, wsi.getName(), false, null, null);
+		
+		final Provenance p = new Provenance(user);
+		final ObjectInformation obj1 = saveObject(user, wsi, ImmutableMap.of("foo", "bar1"),
+				ImmutableMap.of("foo", "bar1"), SAFE_TYPE1, "std", p);
+		final ObjectInformation obj2 = saveObject(user, wsi, ImmutableMap.of("foo", "bar2"),
+				ImmutableMap.of("foo", "bar2"), SAFE_TYPE1, "std", p);
+		final ObjectInformation obj3 = saveObject(user, wsi, ImmutableMap.of("foo", "bar3"),
+				ImmutableMap.of("foo", "bar3"), SAFE_TYPE1, "std", p);
+		
+		final List<ObjectInformation> vers = ws.getObjectHistory(
+				null, new ObjectIdentifier(wsi, 1), true);
+		
+		assertThat("incorrect object versions", vers, is(Arrays.asList(obj1, obj2, obj3)));
 	}
 	
 	@Test
@@ -5770,7 +5792,82 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkWSInfoList(ws.listWorkspaces(u, null, null, null,
 				Date.from(i2.getModDate().minusMillis(1)), d5, true, false, false),
 				Arrays.asList(i2, i3, i4));
+	}
+	
+	@Test
+	public void listWorkspaceIDs() throws Exception {
+		final WorkspaceUser u1 = new WorkspaceUser("u1");
+		final WorkspaceUser u2 = new WorkspaceUser("u2");
+		final WorkspaceIdentifier wiown = new WorkspaceIdentifier("own");
+		final WorkspaceIdentifier wiadmin = new WorkspaceIdentifier("admin");
+		final WorkspaceIdentifier wiwrite = new WorkspaceIdentifier("write");
+		final WorkspaceIdentifier wiread = new WorkspaceIdentifier("read");
+		final WorkspaceIdentifier wipub = new WorkspaceIdentifier("pub");
+		final WorkspaceIdentifier winone = new WorkspaceIdentifier("none");
+		final WorkspaceIdentifier widelpub = new WorkspaceIdentifier("delpub");
+		final WorkspaceIdentifier wideladmin = new WorkspaceIdentifier("deladmin");
 		
+		ws.createWorkspace(u1, wiown.getName(), false, null, null);
+		ws.createWorkspace(u2, wiadmin.getName(), false, null, null);
+		ws.createWorkspace(u2, wiwrite.getName(), false, null, null);
+		ws.createWorkspace(u2, wiread.getName(), false, null, null);
+		ws.createWorkspace(u2, wipub.getName(), true, null, null);
+		ws.createWorkspace(u2, winone.getName(), false, null, null);
+		ws.createWorkspace(u2, widelpub.getName(), true, null, null);
+		ws.createWorkspace(u2, wideladmin.getName(), false, null, null);
+		
+		ws.setPermissions(u2, wiadmin, Arrays.asList(u1), Permission.ADMIN);
+		ws.setPermissions(u2, wideladmin, Arrays.asList(u1), Permission.ADMIN);
+		ws.setPermissions(u2, wiwrite, Arrays.asList(u1), Permission.WRITE);
+		ws.setPermissions(u2, wiread, Arrays.asList(u1), Permission.READ);
+		
+		ws.setWorkspaceDeleted(u2, widelpub, true);
+		ws.setWorkspaceDeleted(u2, wideladmin, true);
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, null, false),
+				is(new UserWorkspaceIDs(u1, Permission.READ,
+						new HashSet<>(Arrays.asList(1L, 2L, 3L, 4L)),
+						new HashSet<>(Arrays.asList(5L)))));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.NONE, false),
+				is(new UserWorkspaceIDs(u1, Permission.READ,
+						new HashSet<>(Arrays.asList(1L, 2L, 3L, 4L)),
+						new HashSet<>(Arrays.asList(5L)))));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.READ, false),
+				is(new UserWorkspaceIDs(u1, Permission.READ,
+						new HashSet<>(Arrays.asList(1L, 2L, 3L, 4L)),
+						new HashSet<>(Arrays.asList(5L)))));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.NONE, true),
+				is(new UserWorkspaceIDs(u1, Permission.READ,
+						new HashSet<>(Arrays.asList(1L, 2L, 3L, 4L)),
+						new HashSet<>())));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(null, Permission.NONE, false),
+				is(new UserWorkspaceIDs(null, Permission.READ,
+						new HashSet<>(),
+						new HashSet<>(Arrays.asList(5L)))));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(null, Permission.NONE, true),
+				is(new UserWorkspaceIDs(null, Permission.READ,
+						new HashSet<>(),
+						new HashSet<>())));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.WRITE, false),
+				is(new UserWorkspaceIDs(u1, Permission.WRITE,
+						new HashSet<>(Arrays.asList(1L, 2L, 3L)),
+						new HashSet<>())));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.ADMIN, false),
+				is(new UserWorkspaceIDs(u1, Permission.ADMIN,
+						new HashSet<>(Arrays.asList(1L, 2L)),
+						new HashSet<>())));
+		
+		assertThat("incorrect workspaces", ws.listWorkspaceIDs(u1, Permission.OWNER, false),
+				is(new UserWorkspaceIDs(u1, Permission.OWNER,
+						new HashSet<>(Arrays.asList(1L)),
+						new HashSet<>())));
 	}
 	
 	@Test
@@ -6710,6 +6807,96 @@ public class WorkspaceTest extends WorkspaceTester {
 				fail(String.format("ObjectID out of test bounds: %s min %s max %s",
 						oi.getObjectId(), minIDexpected, maxIDexpected));
 			}
+		}
+	}
+	
+	@Test
+	public void listObjectsSort() throws Exception {
+		/* Currently list objects will sort the results if no other filters than the object ID
+		 * filters are active. Test that this is true.
+		 * Sort is wsid asc, objid asc, ver desc.
+		 */
+		WorkspaceUser user = new WorkspaceUser("u");
+		WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("listsort1");
+		ws.createWorkspace(user, wsi1.getName(), false, null, null).getId();
+		WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("listsort2");
+		ws.createWorkspace(user, wsi2.getName(), false, null, null).getId();
+		final Provenance p = new Provenance(user);
+		final Map<String, String> meta = ImmutableMap.of("foo", "bar");
+		
+		// save 6 objects
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o1", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o2", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o3", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o1", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o2", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o3", p);
+		
+		// more or less randomly saved versions on top of the 6 objects
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o3", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o1", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o2", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o2", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o3", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o3", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o2", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o1", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o2", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o1", p);
+		saveObject(user, wsi1, meta, MT_MAP, SAFE_TYPE1, "w1o3", p);
+		saveObject(user, wsi2, meta, MT_MAP, SAFE_TYPE1, "w2o1", p);
+		
+		// sorted, with and without object id filters
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2)), true);
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+				.withMaxObjectID(6L).withMinObjectID(1L), true);
+		
+		//unsorted (at least with descending versions)
+		// type filter
+		assertOrdered(new ListObjectsParameters(user, SAFE_TYPE1), false);
+		// after date filter
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+				.withAfter(Date.from(Instant.now().minusSeconds(100))), false);
+		// before date filter
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+				.withBefore(Date.from(Instant.now())), false);
+		// user filter
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+				.withSavers(Arrays.asList(user)), false);
+		// meta filter
+		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+				.withMetadata(new WorkspaceUserMetadata(meta)), false);
+	}
+
+	private void assertOrdered(final ListObjectsParameters params, final boolean expectOrdered)
+			throws Exception {
+		final List<ObjectInformation> objs = ws.listObjects(params.withShowAllVersions(true));
+//		System.out.println("printing sorted objs");
+//		for (final ObjectInformation o: objs) {
+//			System.out.println(o);
+//		}
+		boolean isOrdered = true;
+		final Iterator<ObjectInformation> iter = objs.iterator();
+		for (int ws = 1; ws < 3; ws++) {
+			for (int obj = 1; obj < 4; obj++) {
+				for (int ver = 3; ver > 0; ver--) {
+					final ObjectInformation oi = iter.next();
+					if (ws != oi.getWorkspaceId() ||
+							obj != oi.getObjectId() ||
+							ver != oi.getVersion()) {
+						isOrdered = false;
+						if (expectOrdered) {
+							fail(String.format(
+									"Expected ordered list. Failed at %s/%s/%s, got %s/%s/%s",
+									ws, obj, ver,
+									oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion()));
+						}
+					}
+				}
+			}
+		}
+		if (!expectOrdered && isOrdered) {
+			fail("Expected unordered list, was ordered.");
 		}
 	}
 

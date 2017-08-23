@@ -16,8 +16,12 @@ import static us.kbase.common.utils.StringUtils.checkString;
  */
 public class ResolvedWorkspaceID {
 	
-	//TODO CODE merge with workspace info, no need for two classes for essentially the same thing
-	
+	//TODO CODE merge with workspace info, no need for two classes for essentially the same thing - although maybe memory concerns are relevant
+	/* maybe the way to do it is to allow requesting certain fields? feels like premature
+	 * optimization though, and the optional fields would need to be in a map or something so
+	 * they don't take up space in the object memory, although a map would be almost as bad.
+	 * there are cases where many RWSIDs are loaded into memory at once
+	 */
 	private final long id;
 	private final String wsname;
 	private final boolean locked;

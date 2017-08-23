@@ -120,79 +120,83 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private final TempFilesManager tfm;
 	
-	private static final Map<String, Map<List<String>, List<String>>> INDEXES;
 	private static final String IDX_UNIQ = "unique";
 	private static final String IDX_SPARSE = "sparse";
-	static {
+	
+	private HashMap<String, List<IndexSpecification>> getIndexSpecs() {
+		// should probably rework this and the index spec class
 		//hardcoded indexes
-		INDEXES = new HashMap<String, Map<List<String>, List<String>>>();
+		final HashMap<String, List<IndexSpecification>> indexes = new HashMap<>();
 		
 		//workspaces indexes
-		Map<List<String>, List<String>> ws = new HashMap<List<String>, List<String>>();
+		final LinkedList<IndexSpecification> ws = new LinkedList<>();
 		//find workspaces you own
-		ws.put(Arrays.asList(Fields.WS_OWNER), Arrays.asList(""));
+		ws.add(idxSpec(Fields.WS_OWNER, 1));
 		//find workspaces by permanent id
-		ws.put(Arrays.asList(Fields.WS_ID), Arrays.asList(IDX_UNIQ));
+		ws.add(idxSpec(Fields.WS_ID, 1, IDX_UNIQ));
 		//find workspaces by mutable name
-		ws.put(Arrays.asList(Fields.WS_NAME), Arrays.asList(IDX_UNIQ));
+		ws.add(idxSpec(Fields.WS_NAME, 1, IDX_UNIQ));
 		//find workspaces by metadata
-		ws.put(Arrays.asList(Fields.WS_META), Arrays.asList(IDX_SPARSE));
-		INDEXES.put(COL_WORKSPACES, ws);
+		ws.add(idxSpec(Fields.WS_META, 1, IDX_SPARSE));
+		indexes.put(COL_WORKSPACES, ws);
 		
 		//workspace acl indexes
-		Map<List<String>, List<String>> wsACL = new HashMap<List<String>, List<String>>();
+		final LinkedList<IndexSpecification> wsACL = new LinkedList<>();
 		//get a user's permission for a workspace, index covers queries
-		wsACL.put(Arrays.asList(Fields.ACL_WSID, Fields.ACL_USER, Fields.ACL_PERM), Arrays.asList(IDX_UNIQ));
+		wsACL.add(idxSpec(Fields.ACL_WSID, 1, Fields.ACL_USER, 1, Fields.ACL_PERM, 1, IDX_UNIQ));
 		//find workspaces to which a user has some level of permission, index coves queries
-		wsACL.put(Arrays.asList(Fields.ACL_USER, Fields.ACL_PERM, Fields.ACL_WSID), Arrays.asList(""));
-		INDEXES.put(COL_WS_ACLS, wsACL);
+		wsACL.add(idxSpec(Fields.ACL_USER, 1, Fields.ACL_PERM, 1, Fields.ACL_WSID, 1));
+		indexes.put(COL_WS_ACLS, wsACL);
 		
 		//workspace object indexes
-		Map<List<String>, List<String>> wsObj = new HashMap<List<String>, List<String>>();
+		final LinkedList<IndexSpecification> wsObj = new LinkedList<>();
 		//find objects by workspace id & name
-		wsObj.put(Arrays.asList(Fields.OBJ_WS_ID, Fields.OBJ_NAME), Arrays.asList(IDX_UNIQ));
+		wsObj.add(idxSpec(Fields.OBJ_WS_ID, 1, Fields.OBJ_NAME, 1, IDX_UNIQ));
 		//find object by workspace id & object id
-		wsObj.put(Arrays.asList(Fields.OBJ_WS_ID, Fields.OBJ_ID), Arrays.asList(IDX_UNIQ));
+		wsObj.add(idxSpec(Fields.OBJ_WS_ID, 1, Fields.OBJ_ID, 1, IDX_UNIQ));
 		//find recently modified objects
-		wsObj.put(Arrays.asList(Fields.OBJ_MODDATE), Arrays.asList(""));
+		wsObj.add(idxSpec(Fields.OBJ_MODDATE, 1));
 		//find object to garbage collect
-		wsObj.put(Arrays.asList(Fields.OBJ_DEL, Fields.OBJ_REFCOUNTS), Arrays.asList(""));
-		INDEXES.put(COL_WORKSPACE_OBJS, wsObj);
+		wsObj.add(idxSpec(Fields.OBJ_DEL, 1, Fields.OBJ_REFCOUNTS, 1));
+		indexes.put(COL_WORKSPACE_OBJS, wsObj);
 
 		//workspace object version indexes
-		Map<List<String>, List<String>> wsVer = new HashMap<List<String>, List<String>>();
-		//find versions
-		wsVer.put(Arrays.asList(Fields.VER_WS_ID, Fields.VER_ID,
-				Fields.VER_VER), Arrays.asList(IDX_UNIQ));
+		final LinkedList<IndexSpecification> wsVer = new LinkedList<>();
+		//find versions (might not be needed any more given next index, but keep around for now)
+		wsVer.add(idxSpec(Fields.VER_WS_ID, 1, Fields.VER_ID, 1, Fields.VER_VER, 1, IDX_UNIQ));
+		//find versions and sort descending on version
+		wsVer.add(idxSpec(Fields.VER_WS_ID, 1, Fields.VER_ID, 1, Fields.VER_VER, -1, IDX_UNIQ));
 		//find versions by data object
-		wsVer.put(Arrays.asList(Fields.VER_TYPE, Fields.VER_CHKSUM), Arrays.asList(""));
+		wsVer.add(idxSpec(Fields.VER_TYPE, 1, Fields.VER_CHKSUM, 1));
+		//find versions by user
+		wsVer.add(idxSpec(Fields.VER_SAVEDBY, 1));
 		//determine whether a particular object is referenced by this object
-		wsVer.put(Arrays.asList(Fields.VER_REF), Arrays.asList(IDX_SPARSE));
+		wsVer.add(idxSpec(Fields.VER_REF, 1, IDX_SPARSE));
 		//determine whether a particular object is included in this object's provenance
-		wsVer.put(Arrays.asList(Fields.VER_PROVREF), Arrays.asList(IDX_SPARSE));
+		wsVer.add(idxSpec(Fields.VER_PROVREF, 1, IDX_SPARSE));
 		//find objects that have the same provenance
-		wsVer.put(Arrays.asList(Fields.VER_PROV), Arrays.asList(""));
+		wsVer.add(idxSpec(Fields.VER_PROV, 1));
 		//find objects by saved date
-		wsVer.put(Arrays.asList(Fields.VER_SAVEDATE), Arrays.asList(""));
+		wsVer.add(idxSpec(Fields.VER_SAVEDATE, 1));
 		//find objects by metadata
-		wsVer.put(Arrays.asList(Fields.VER_META), Arrays.asList(IDX_SPARSE));
-		INDEXES.put(COL_WORKSPACE_VERS, wsVer);
+		wsVer.add(idxSpec(Fields.VER_META, 1, IDX_SPARSE));
+		indexes.put(COL_WORKSPACE_VERS, wsVer);
 		
 		//no indexes needed for provenance since all lookups are by _id
 		
 		//admin indexes
-		Map<List<String>, List<String>> admin = new HashMap<List<String>, List<String>>();
+		final LinkedList<IndexSpecification> admin = new LinkedList<>();
 		//find admins by name
-		admin.put(Arrays.asList(Fields.ADMIN_NAME), Arrays.asList(IDX_UNIQ));
-		INDEXES.put(COL_ADMINS, admin);
+		admin.add(idxSpec(Fields.ADMIN_NAME, 1, IDX_UNIQ));
+		indexes.put(COL_ADMINS, admin);
 		
 		//config indexes
-		Map<List<String>, List<String>> cfg =
-				new HashMap<List<String>, List<String>>();
+		final LinkedList<IndexSpecification> cfg = new LinkedList<>();
 		//ensure only one config object
-		cfg.put(Arrays.asList(Fields.CONFIG_KEY), Arrays.asList(IDX_UNIQ));
-		INDEXES.put(COL_CONFIG, cfg);
-
+		cfg.add(idxSpec(Fields.CONFIG_KEY, 1, IDX_UNIQ));
+		indexes.put(COL_CONFIG, cfg);
+		
+		return indexes;
 	}
 	
 	public MongoWorkspaceDB(final DB workspaceDB, final BlobStore blobStore,
@@ -216,6 +220,55 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		checkConfig();
 	}
 	
+	private static class IndexSpecification {
+		public DBObject index;
+		public DBObject options;
+		
+		private IndexSpecification(final DBObject index, final DBObject options) {
+			this.index = index;
+			this.options = options;
+		}
+	}
+	
+	// 1 for ascending sort, -1 for descending
+	private static IndexSpecification idxSpec(
+			final String field, final int ascendingSort,
+			final String... options) {
+		
+		return new IndexSpecification(new BasicDBObject(field, ascendingSort),
+				getIndexOptions(options));
+	}
+
+	private static IndexSpecification idxSpec(
+			final String field1, final int ascendingSort1,
+			final String field2, final int ascendingSort2,
+			final String... options) {
+		return new IndexSpecification(
+				new BasicDBObject(field1, ascendingSort1)
+						.append(field2, ascendingSort2),
+				getIndexOptions(options));
+	}
+
+	private static IndexSpecification idxSpec(
+			final String field1, final int ascendingSort1,
+			final String field2, final int ascendingSort2,
+			final String field3, final int ascendingSort3,
+			final String... options) {
+		return new IndexSpecification(
+				new BasicDBObject(field1, ascendingSort1)
+					.append(field2, ascendingSort2)
+					.append(field3, ascendingSort3),
+				getIndexOptions(options));
+	}
+	
+	private static DBObject getIndexOptions(final String[] options) {
+		final DBObject opts = new BasicDBObject();
+		for (final String s: options) {
+			opts.put(s, 1);
+		}
+		return opts;
+	}
+
 	public List<DependencyStatus> status() {
 		//note failures are tested manually for now, if you make changes test
 		//things still work
@@ -288,21 +341,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private void ensureIndexes() throws CorruptWorkspaceDBException {
-		for (String col: INDEXES.keySet()) {
+		final HashMap<String, List<IndexSpecification>> indexes = getIndexSpecs();
+		for (final String col: indexes.keySet()) {
 //			wsmongo.getCollection(col).resetIndexCache();
-			for (List<String> idx: INDEXES.get(col).keySet()) {
-				final DBObject index = new BasicDBObject();
-				final DBObject opts = new BasicDBObject();
-				for (String field: idx) {
-					index.put(field, 1);
-				}
-				for (String option: INDEXES.get(col).get(idx)) {
-					if (!option.equals("")) {
-						opts.put(option, 1);
-					}
-				}
+			for (final IndexSpecification index: indexes.get(col)) {
 				try {
-					wsmongo.getCollection(col).createIndex(index, opts);
+					wsmongo.getCollection(col).createIndex(index.index, index.options);
 				} catch (DuplicateKeyException dk) {
 					throw new CorruptWorkspaceDBException(
 							"Found duplicate index keys in the database, " +
@@ -1021,8 +1065,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public PermissionSet getPermissions(
 			final WorkspaceUser user, final Set<ResolvedWorkspaceID> rwsis)
-			throws WorkspaceCommunicationException, 
-				CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		return getPermissions(user, rwsis, Permission.READ, false, false, false);
 	}
 
@@ -1078,7 +1121,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<ResolvedWorkspaceID, Map<User, Permission>> globalperms,
 			final boolean includeProvidedWorkspaces) {
 		final Builder pset = PermissionSet.getBuilder(user, ALL_USERS);
-		final Set<ResolvedWorkspaceID> local = new HashSet<>(rmwsis);
+		final Set<ResolvedWorkspaceID> local = rmwsis == null ?
+				new HashSet<>() : new HashSet<>(rmwsis);
 		for (final ResolvedWorkspaceID rwsi: userperms.keySet()) {
 			Permission gl = globalperms.get(rwsi) == null ? Permission.NONE :
 				globalperms.get(rwsi).get(ALL_USERS);

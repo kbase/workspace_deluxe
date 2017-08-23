@@ -22,8 +22,9 @@ public interface WorkspaceEventListener {
 	
 	/** Notification that a workspace was cloned.
 	 * @param id the workspace ID.
+	 * @param isPublic true if the workspace is public, false otherwise.
 	 */
-	void cloneWorkspace(long id);
+	void cloneWorkspace(long id, boolean isPublic);
 
 	/** Notification that a workspace's meta data was altered.
 	 * @param id the id of the workspace.
@@ -83,8 +84,10 @@ public interface WorkspaceEventListener {
 	 * @param workspaceId the id of the workspace containing the object.
 	 * @param objectId the id of the object.
 	 * @param version the version of the reverted object.
+	 * @param type the type of the object.
+	 * @param isPublic true if the object is in a public workspace, false otherwise.
 	 */
-	void revertObject(long workspaceId, long objectId, int version);
+	void revertObject(long workspaceId, long objectId, int version, String type, boolean isPublic);
 
 	/** Notification that an object was deleted or undeleted.
 	 * @param workspaceId the workspace id.
@@ -93,20 +96,29 @@ public interface WorkspaceEventListener {
 	 */
 	void setObjectDeleted(long workspaceId, long objectId, boolean delete);
 
-	/** Notification that an object was copied.
+	/** Notification that a single version of an object was copied.
+	 * @param workspaceId the workspace id of the new object version.
+	 * @param objectId the object id of the new object version.
+	 * @param version the version of the new object.
+	 * @param type the type of the new object version.
+	 * @param isPublic true if the new object version is in a public workspace, false otherwise.
+	 */
+	void copyObject(long workspaceId, long objectId, int version, String type, boolean isPublic);
+
+	/** Notification that all the versions of an object was copied.
 	 * @param workspaceId the workspace id of the new object.
 	 * @param objectId the object id of the new object.
-	 * @param version the version of the new object.
-	 * @param allVersionsCopied whether all the versions of the source object were copied to the
-	 * new object.
+	 * @param latestVersion the latest version of the new object.
+	 * @param isPublic true if the new object is in a public workspace, false otherwise.
 	 */
-	void copyObject(long workspaceId, long objectId, int version, boolean allVersionsCopied);
-
+	void copyObject(long workspaceId, long objectId, int latestVersion, boolean isPublic);
+	
 	/** Notification that an object has been saved.
 	 * @param workspaceId the id of the workspace containing the object.
 	 * @param objectId the id of the object.
 	 * @param version the version of the object.
 	 * @param type the type of the object.
+	 * @param isPublic true if the object is in a public workspace, false otherwise.
 	 */
-	void saveObject(long workspaceId, long objectId, int version, final String type);
+	void saveObject(long workspaceId, long objectId, int version, String type, boolean isPublic);
 }

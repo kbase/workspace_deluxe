@@ -11,5 +11,9 @@ public class ListenerInitializationException extends Exception {
 		super(message);
 	}
 	
+	public ListenerInitializationException(final String message, final Throwable cause) {
+		super(message, cause);
+	}
+	
 
 }

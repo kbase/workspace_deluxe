@@ -1,27 +1,40 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.7.2 (Released TBD)
+VERSION: 0.8.0 (Released TBD)
 --------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
 
+* The ``undelete_workspace`` method has been removed. Workspaces are now considered to be
+  permanently deleted.
 * Building and running the service now requires Java 8.
 * The ``getPermissions`` administration command, like the ``get_permissions`` method, is now
   deprecated.
+  
+ADMIN NOTES:
+
+* Two new indexes have been added to the workspace versions mongo collection:
+    * the index ``{savedby: 1}`` with no options
+    * the index ``{ws: 1, id: 1, ver: -1}`` with ``{unique: 1}``
 
 NEW FEATURES:
 
 * Adds a workspace event listener API. Event listeners must implement the
   ``us.kbase.workspace.listener.WorkspaceEventListenerFactory`` and ``WorkspaceEventListener``
   interfaces. Specify listeners to be loaded on start up in the ``deploy.cfg`` file (see
-  ``deploy.cfg.example`` for an example. See
+  ``deploy.cfg.example`` for an example). See
   ``us.kbase.workspace.test.listener.NullListenerFactory`` for an example implementation.
+* Added the ``list_workspace_ids`` method.
+* Added the ``listWorkspaceIDs`` administration command.
 * Added the ``getPermissionsMass`` administration command.
 * Added the ``getWorkspaceInfo`` administration command.
 * Added the ``listObjects`` administration command.
 * Added the ``getObjectInfo`` administration command.
+* Added the ``getObjectHistory`` administration command.
 * Added the ``getObjects`` administration command.
+* ``list_objects`` will now sort the output if no filters other than the object id filters are
+  applied. The sort order is workspace id ascending, object id ascending, and version descending.
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
@@ -29,10 +42,10 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * Fixed a bug where the administrator ``setWorkspaceOwner`` command in very specific
   cases could allow setting an illegal workspace name.
 * Fixed a bug where an admin could delete a locked workspace.
-* Removed ``kbase-admin`` credentials from the deploy.cfg file as they're obsolete after the
+* Removed ``kbase-admin`` credentials from the ``deploy.cfg`` file as they're obsolete after the
   conversion to auth2.
-* The credentials for the Handle Manager service in the deploy.cfg file now require a token.
-* The credentials for the file backend in the deploy.cfg file now require a token.
+* The credentials for the Handle Manager service in the ``deploy.cfg`` file now require a token.
+* The credentials for the file backend in the ``deploy.cfg`` file now require a token.
 * Fixed a bug where performing a permissions search for a readable, deleted object with an
   incoming reference from a readable, non-deleted object would fail with a deleted object
   exception.

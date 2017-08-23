@@ -2927,6 +2927,36 @@ class Workspace(object):
             'Workspace.list_workspace_info',
             [params], self._service_ver, context)
 
+    def list_workspace_ids(self, params, context=None):
+        """
+        List workspace IDs to which the user has access.
+        This function returns a subset of the information in the
+        list_workspace_info method and should be substantially faster.
+        :param params: instance of type "ListWorkspaceIDsParams" (Input
+           parameters for the "list_workspace_ids" function. Optional
+           parameters: permission perm - filter workspaces by minimum
+           permission level. 'None' and 'readable' are ignored. boolean
+           onlyGlobal - if onlyGlobal is true only include world readable
+           workspaces. Defaults to false. If true, excludeGlobal is ignored.
+           boolean excludeGlobal - if excludeGlobal is true exclude world
+           readable workspaces. Defaults to true.) -> structure: parameter
+           "perm" of type "permission" (Represents the permissions a user or
+           users have to a workspace: 'a' - administrator. All operations
+           allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.),
+           parameter "excludeGlobal" of type "boolean" (A boolean. 0 = false,
+           other = true.), parameter "onlyGlobal" of type "boolean" (A
+           boolean. 0 = false, other = true.)
+        :returns: instance of type "ListWorkspaceIDsResults" (Results of the
+           "list_workspace_ids" function. list<int> workspaces - the
+           workspaces to which the user has explicit access. list<int> pub -
+           the workspaces to which the user has access because they're
+           globally readable.) -> structure: parameter "workspaces" of list
+           of Long, parameter "pub" of list of Long
+        """
+        return self._client.call_method(
+            'Workspace.list_workspace_ids',
+            [params], self._service_ver, context)
+
     def list_workspace_objects(self, params, context=None):
         """
         Lists the metadata of all objects in the specified workspace with the
@@ -4407,27 +4437,6 @@ class Workspace(object):
         """
         return self._client.call_method(
             'Workspace.delete_workspace',
-            [wsi], self._service_ver, context)
-
-    def undelete_workspace(self, wsi, context=None):
-        """
-        Undelete a workspace. All objects contained in the workspace are
-        undeleted, regardless of their state at the time the workspace was
-        deleted.
-        :param wsi: instance of type "WorkspaceIdentity" (A workspace
-           identifier. Select a workspace by one, and only one, of the
-           numerical id or name. ws_id id - the numerical ID of the
-           workspace. ws_name workspace - the name of the workspace.) ->
-           structure: parameter "workspace" of type "ws_name" (A string used
-           as a name for a workspace. Any string consisting of alphanumeric
-           characters and "_", ".", or "-" that is not an integer is
-           acceptable. The name may optionally be prefixed with the workspace
-           owner's user name and a colon, e.g. kbasetest:my_workspace.),
-           parameter "id" of type "ws_id" (The unique, permanent numerical ID
-           of a workspace.)
-        """
-        return self._client.call_method(
-            'Workspace.undelete_workspace',
             [wsi], self._service_ver, context)
 
     def request_module_ownership(self, mod, context=None):

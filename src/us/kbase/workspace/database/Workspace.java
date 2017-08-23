@@ -234,7 +234,7 @@ public class Workspace {
 				meta == null ? new WorkspaceUserMetadata() : meta,
 				exclude);
 		for (final WorkspaceEventListener l: listeners) {
-			l.cloneWorkspace(info.getId());
+			l.cloneWorkspace(info.getId(), info.isGloballyReadable());
 		}
 		return info;
 	}
@@ -694,13 +694,15 @@ public class Workspace {
 		objects = null;
 		reports.clear();
 		
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(user, rwsi);
+		
 		try {
 			sortObjects(saveobjs, ttlObjSize);
 			final List<ObjectInformation> ret = db.saveObjects(user, rwsi, saveobjs);
 			for (final WorkspaceEventListener l: listeners) {
 				for (final ObjectInformation oi: ret) {
 					l.saveObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-							oi.getTypeString());
+							oi.getTypeString(), wsinfo.isGloballyReadable());
 				}
 			}
 			return ret;
@@ -922,6 +924,41 @@ public class Workspace {
 		final PermissionSet perms = db.getPermissions(user, minPerm, excludeGlobal);
 		return db.getWorkspaceInformation(perms, users, meta, after, before,
 				showDeleted, showOnlyDeleted);
+	}
+	
+	/** List workspace IDs to which a user has access. Returns much less data than
+	 * {@link #listWorkspaces(WorkspaceUser, Permission, List, WorkspaceUserMetadata, Date, Date, boolean, boolean, boolean)}
+	 * and should be faster.
+	 * @param user the user for which workspace IDs will be listed. If the user is null, only
+	 * public workspace IDs will be returned.
+	 * @param minPerm the minimum permission of the workspaces. READ will be used if minPerm is
+	 * null or NONE. If the permission is greater than READ no public workspaces will be included.
+	 * @param excludeGlobal don't include public workspaces in the results.
+	 * @return the workspace IDs.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public UserWorkspaceIDs listWorkspaceIDs(
+			final WorkspaceUser user,
+			Permission minPerm,
+			final boolean excludeGlobal)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
+			minPerm = Permission.READ;
+		}
+		final PermissionSet perms = db.getPermissions(
+				user, null, minPerm, excludeGlobal, true, false);
+		final List<Long> workspaceIDs = new LinkedList<>();
+		final List<Long> publicIDs = new LinkedList<>();
+		for (final ResolvedWorkspaceID ws: perms.getWorkspaces()) {
+			if (perms.getUserPermission(ws).equals(Permission.NONE)) {
+				publicIDs.add(ws.getID());
+			} else {
+				workspaceIDs.add(ws.getID());
+			}
+		}
+		return new UserWorkspaceIDs(user, minPerm, workspaceIDs, publicIDs);
 	}
 	
 	public List<ObjectInformation> listObjects(
@@ -1227,13 +1264,43 @@ public class Workspace {
 		return ret;
 	}
 	
+	/** Get all versions of an object.
+	 * @param user the user making the request.
+	 * @param oi the object to query.
+	 * @return the versions of the object.
+	 * @throws InaccessibleObjectException if the object is inaccessible.
+	 * @throws NoSuchObjectException if there is no such object.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
 	public List<ObjectInformation> getObjectHistory(
 			final WorkspaceUser user,
 			final ObjectIdentifier oi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException, NoSuchObjectException {
+		return getObjectHistory(user, oi, false);
+	}
+	
+	/** Get all versions of an object.
+	 * @param user the user making the request.
+	 * @param oi the object to query.
+	 * @param asAdmin true if the user is acting as an administrator.
+	 * @return the versions of the object.
+	 * @throws InaccessibleObjectException if the object is inaccessible.
+	 * @throws NoSuchObjectException if there is no such object.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public List<ObjectInformation> getObjectHistory(
+			final WorkspaceUser user,
+			final ObjectIdentifier oi,
+			final boolean asAdmin)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
 					CorruptWorkspaceDBException, NoSuchObjectException {
 		final ObjectIDResolvedWS o = new PermissionsCheckerFactory(db, user)
-						.getObjectChecker(oi, Permission.READ).check();
+						.getObjectChecker(oi, asAdmin ? Permission.NONE : Permission.READ).check();
 		return db.getObjectHistory(o);
 	}
 	
@@ -1420,9 +1487,16 @@ public class Workspace {
 				.getObjectChecker(to, Permission.WRITE).check();
 		final CopyResult cr = db.copyObject(user, f, t);
 		final ObjectInformation oi = cr.getObjectInformation();
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
+				user, t.getWorkspaceIdentifier());
 		for (final WorkspaceEventListener l: listeners) {
-			l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-					cr.isAllVersionsCopied());
+			if (cr.isAllVersionsCopied()) {
+				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+						wsinfo.isGloballyReadable());
+			} else {
+				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+						oi.getTypeString(), wsinfo.isGloballyReadable());
+			}
 		}
 		return oi;
 	}
@@ -1433,8 +1507,11 @@ public class Workspace {
 		final ObjectIDResolvedWS target = new PermissionsCheckerFactory(db, user)
 				.getObjectChecker(oi, Permission.WRITE).check();
 		final ObjectInformation objinfo = db.revertObject(user, target);
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
+				user, target.getWorkspaceIdentifier());
 		for (final WorkspaceEventListener l: listeners) {
-			l.revertObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), objinfo.getVersion());
+			l.revertObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), objinfo.getVersion(),
+					objinfo.getTypeString(), wsinfo.isGloballyReadable());
 		}
 		return objinfo;
 	}
