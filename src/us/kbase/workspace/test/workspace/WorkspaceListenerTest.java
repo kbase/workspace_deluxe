@@ -68,7 +68,7 @@ public class WorkspaceListenerTest {
 	public static final WorkspaceInformation WS_INFO_READABLE = WorkspaceInformation.getBuilder()
 			.withID(42)
 			.withName("wsfoo")
-			.withMaximumObjectID(300)
+			.withMaximumObjectID(302)
 			.withModificationDate(Instant.now())
 			.withOwner(new WorkspaceUser("userfoo"))
 			.withUserPermission(Permission.OWNER)
@@ -644,10 +644,11 @@ public class WorkspaceListenerTest {
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
 		
 		when(db.resolveWorkspace(wsi, false)).thenReturn(rwsi);
-
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(WS_INFO_READABLE);
+		
 		ws.setWorkspaceDeleted(user, wsi, true, true);
 
-		verify(l).setWorkspaceDeleted(24, true);
+		verify(l).setWorkspaceDeleted(24, true, 302);
 	}
 	
 	@Test
@@ -665,11 +666,12 @@ public class WorkspaceListenerTest {
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
 		
 		when(db.resolveWorkspace(wsi, true)).thenReturn(rwsi);
+		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(WS_INFO);
 
 		ws.setWorkspaceDeleted(user, wsi, false, true);
 
-		verify(l1).setWorkspaceDeleted(24, false);
-		verify(l2).setWorkspaceDeleted(24, false);
+		verify(l1).setWorkspaceDeleted(24, false, 300);
+		verify(l2).setWorkspaceDeleted(24, false, 300);
 	}
 	
 	@Test

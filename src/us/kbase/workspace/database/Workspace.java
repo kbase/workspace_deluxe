@@ -1605,8 +1605,9 @@ public class Workspace {
 		// once a workpace is locked, it's locked. Period.
 		PermissionsCheckerFactory.checkLocked(Permission.ADMIN, wsid);
 		db.setWorkspaceDeleted(wsid, delete);
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(user, wsid);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceDeleted(wsid.getID(), delete);
+			l.setWorkspaceDeleted(wsid.getID(), delete, wsinfo.getMaximumObjectID());
 		}
 		return wsid.getID();
 	}
