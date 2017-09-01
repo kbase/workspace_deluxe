@@ -60,6 +60,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		private static final String DELETE_OBJECT = "DELETE_ALL_VERSIONS";
 		private static final String UNDELETE_OBJECT = "UNDELETE_ALL_VERSIONS";
 		private static final String DELETE_WS = "DELETE_ACCESS_GROUP";
+		private static final String SET_GLOBAL_READ = "PUBLISH_ACCESS_GROUP";
+		private static final String REMOVE_GLOBAL_READ = "UNPUBLISH_ACCESS_GROUP";
 		
 		// this might need to be configurable
 		private static final String COLLECTION = "ObjectStatusEvents";
@@ -134,7 +136,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void setGlobalPermission(long id, Permission permission) {
-			// TODO RESKE Auto-generated method stub
+			newWorkspaceEvent(id, Permission.READ.equals(permission) ?
+					SET_GLOBAL_READ : REMOVE_GLOBAL_READ, null);
 			
 		}
 
@@ -239,7 +242,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		private void newWorkspaceEvent(
 				final long workspaceId,
 				final String eventType,
-				final boolean isPublic) {
+				final Boolean isPublic) {
 			newEvent(workspaceId, null, null, null, null, eventType, isPublic);
 		}
 		
