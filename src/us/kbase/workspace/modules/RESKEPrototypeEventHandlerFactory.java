@@ -59,6 +59,9 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		private static final String RENAME_OBJECT = "RENAME_ALL_VERSIONS";
 		private static final String DELETE_OBJECT = "DELETE_ALL_VERSIONS";
 		private static final String UNDELETE_OBJECT = "UNDELETE_ALL_VERSIONS";
+		private static final String DELETE_WS = "DELETE_ACCESS_GROUP";
+		private static final String SET_GLOBAL_READ = "PUBLISH_ACCESS_GROUP";
+		private static final String REMOVE_GLOBAL_READ = "UNPUBLISH_ACCESS_GROUP";
 		
 		// this might need to be configurable
 		private static final String COLLECTION = "ObjectStatusEvents";
@@ -133,7 +136,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 
 		@Override
 		public void setGlobalPermission(long id, Permission permission) {
-			// TODO RESKE Auto-generated method stub
+			newWorkspaceEvent(id, Permission.READ.equals(permission) ?
+					SET_GLOBAL_READ : REMOVE_GLOBAL_READ, null);
 			
 		}
 
@@ -154,12 +158,15 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void setWorkspaceDeleted(long id, boolean delete) {
+		public void setWorkspaceDeleted(
+				final long id,
+				final boolean delete,
+				final long maxObjectID) {
 			if (delete) {
-				// TODO RESKE Auto-generated method stub
+				newEvent(id, maxObjectID, null, null, null, DELETE_WS, null);
 			} else {
 				LoggerFactory.getLogger(getClass()).info(
-						"Workspace {} was deleted. Workspace deletion events are not " +
+						"Workspace {} was undeleted. Workspace undeletion events are not " +
 								"supported by RESKE", id);
 			}
 			
@@ -168,8 +175,6 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		@Override
 		public void renameObject(long workspaceId, long objectId, String newName) {
 			newEvent(workspaceId, objectId, null, newName, null, RENAME_OBJECT, null);
-			// TODO RESKE Auto-generated method stub
-			
 		}
 
 		@Override
@@ -237,7 +242,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		private void newWorkspaceEvent(
 				final long workspaceId,
 				final String eventType,
-				final boolean isPublic) {
+				final Boolean isPublic) {
 			newEvent(workspaceId, null, null, null, null, eventType, isPublic);
 		}
 		
