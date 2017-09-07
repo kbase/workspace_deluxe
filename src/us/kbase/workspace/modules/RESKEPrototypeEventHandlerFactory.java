@@ -268,6 +268,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			dobj.put("timestamp", System.currentTimeMillis());
 			dobj.put("eventType", eventType);
 			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
+			dobj.put("storageObjectTypeVersion", type == null ?
+					null : Integer.parseInt(type.split("-")[1].split("\\.")[0]));
 			dobj.put("isGlobalAccessed", isPublic);
 			dobj.put("indexed", false);
 			dobj.put("processed", false);
