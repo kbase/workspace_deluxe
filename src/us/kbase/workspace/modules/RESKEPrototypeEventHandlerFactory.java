@@ -44,7 +44,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		if (mongoUser == null || mongoUser.trim().isEmpty()) {
 			mongoUser = null;
 		}
-		final String mongoPwd = cfg.get("reske.mongopwd");
+		final String mongoPwd = cfg.get("mongopwd");
 		LoggerFactory.getLogger(getClass()).info("Starting RESKE Prototype event handler. " +
 				"mongohost={} mongodatabase={} mongouser={}", mongoHost, mongoDatabase, mongoUser);
 		return new RESKEPrototypeEventHandler(mongoHost, mongoDatabase, mongoUser, mongoPwd);
