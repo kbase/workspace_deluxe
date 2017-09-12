@@ -24,33 +24,38 @@ import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 /** A prototype event handler that emits workspace events in a format understood by the KBase
- * RESKE service. In production the workspace handler should feed into a message queue with a
- * generic format and then other services should read from that queue.
- * @author gaprice@lbl.gov
+ * Knowledge Engine service. In production the workspace handler should feed into a message 
+ * queue with a generic format and then other services should read from that queue.
+ * @author Roman Sutormin
  *
  */
-public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListenerFactory {
+public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEventListenerFactory {
 
-	//TODO RESKE JAVADOC
-	//TODO RESKE TEST
+	//TODO JAVADOC
+	//TODO TEST
 	
 	@Override
 	public WorkspaceEventListener configure(final Map<String, String> cfg)
 			throws ListenerInitializationException {
-		//TODO RESKE may need more opts for sharding
 		final String mongoHost = cfg.get("mongohost");
 		final String mongoDatabase = cfg.get("mongodatabase");
 		String mongoUser = cfg.get("mongouser");
-		if (mongoUser == null || mongoUser.trim().isEmpty()) {
+		if (mongoUser != null && mongoUser.trim().isEmpty()) {
 			mongoUser = null;
 		}
 		final String mongoPwd = cfg.get("mongopwd");
-		LoggerFactory.getLogger(getClass()).info("Starting RESKE Prototype event handler. " +
-				"mongohost={} mongodatabase={} mongouser={}", mongoHost, mongoDatabase, mongoUser);
-		return new RESKEPrototypeEventHandler(mongoHost, mongoDatabase, mongoUser, mongoPwd);
+        String mongoCollection = cfg.get("mongocollection");
+        if (mongoCollection != null && mongoCollection.trim().isEmpty()) {
+            mongoCollection = null;
+        }
+		LoggerFactory.getLogger(getClass()).info("Starting Knowledge Engine Prototype event " +
+		        "handler. mongohost={} mongodatabase={} mongouser={} mongocollection={}", 
+		        mongoHost, mongoDatabase, mongoUser, mongoCollection);
+		return new KnowledgeEnginePrototypeEventHandler(mongoHost, mongoDatabase, mongoUser, 
+		        mongoPwd, mongoCollection);
 	}
 	
-	public class RESKEPrototypeEventHandler implements WorkspaceEventListener {
+	public class KnowledgeEnginePrototypeEventHandler implements WorkspaceEventListener {
 		
 		private static final String DATA_SOURCE = "WS";
 		private static final String NEW_OBJECT_VER = "NEW_VERSION";
@@ -64,20 +69,25 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		private static final String REMOVE_GLOBAL_READ = "UNPUBLISH_ACCESS_GROUP";
 		
 		// this might need to be configurable
-		private static final String COLLECTION = "ObjectStatusEvents";
+		private static final String DEFAULT_COLLECTION_NAME = "KEObjectEvents";
 		
 		private final DB db;
+		private final String mongoCollection;
 
-		public RESKEPrototypeEventHandler(
+		public KnowledgeEnginePrototypeEventHandler(
 				final String mongoHost,
 				final String mongoDatabase,
 				String mongoUser,
-				final String mongoPwd)
+				final String mongoPwd,
+				String mongoCollection)
 				throws ListenerInitializationException {
-			//TODO RESKE check args
 			if (mongoUser == null || mongoUser.trim().isEmpty()) {
 				mongoUser = null;
 			}
+			if (mongoCollection == null || mongoCollection.trim().isEmpty()) {
+			    mongoCollection = DEFAULT_COLLECTION_NAME;
+			}
+			this.mongoCollection = mongoCollection;
 			try {
 				if (mongoUser == null) {
 					db = GetMongoDB.getDB(mongoHost, mongoDatabase, 0, 10);
@@ -185,7 +195,6 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				final String type,
 				final boolean isPublic) {
 			newVersionEvent(workspaceId, objectId, version, type, isPublic);
-			
 		}
 
 		@Override
@@ -264,7 +273,6 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			dobj.put("accessGroupObjectId", objectId == null ? null : "" + objectId);
 			dobj.put("version", version);
 			dobj.put("newName", newName);
-			//TODO RESKE make timestamp = the event timestamp (e.g. object creation/rename)
 			dobj.put("timestamp", System.currentTimeMillis());
 			dobj.put("eventType", eventType);
 			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
@@ -274,10 +282,10 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			dobj.put("indexed", false);
 			dobj.put("processed", false);
 			try {
-				db.getCollection(COLLECTION).insert(dobj);
+				db.getCollection(mongoCollection).insert(dobj);
 			} catch (MongoException me) {
 				LoggerFactory.getLogger(getClass()).error(String.format(
-						"RESKE save %s/%s/%s: Failed to connect to MongoDB",
+						"KnowledgeEngine save %s/%s/%s: Failed to connect to MongoDB",
 						workspaceId, objectId, version), me);
 			}
 		}
@@ -285,7 +293,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		private boolean wsidOK(final long workspaceId) {
 			if (workspaceId > Integer.MAX_VALUE) {
 				LoggerFactory.getLogger(getClass()).error(
-						"Workspace id {} is out of int range. Cannot send data to RESKE",
+						"Workspace id {} is out of int range. Cannot send data to KnowledgeEngine",
 						workspaceId);
 				return false;
 			}
