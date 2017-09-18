@@ -1,5 +1,6 @@
 package us.kbase.workspace.test.listener;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -114,14 +115,8 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 		
 		@Override
-		public void copyObject(
-				long workspaceId,
-				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {
-			print(String.format("copyObject %s %s %s %s %s", workspaceId, objectId, version,
-					type, isPublic));
+		public void copyObject(ObjectInformation object, boolean isPublic) {
+			print(String.format("copyObject %s %s", object, isPublic));
 		}
 		
 		@Override
@@ -129,8 +124,10 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 				long workspaceId,
 				long objectId,
 				int latestVersion,
+				Instant time,
 				boolean isPublic) {
-			print(String.format("copyObject %s %s %s", workspaceId, objectId, latestVersion));
+			print(String.format("copyObject %s %s %s %s %s",
+					workspaceId, objectId, latestVersion, time, isPublic));
 		}
 
 		@Override

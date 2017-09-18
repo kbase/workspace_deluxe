@@ -1,5 +1,6 @@
 package us.kbase.workspace.test.listener;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -73,18 +74,14 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {}
 
 		@Override
-		public void copyObject(
-				long workspaceId,
-				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {}
+		public void copyObject(ObjectInformation object, boolean isPublic) {}
 		
 		@Override
 		public void copyObject(
 				long workspaceId,
 				long objectId,
 				int latestVersion,
+				Instant time,
 				boolean isPublic) {}
 
 		@Override

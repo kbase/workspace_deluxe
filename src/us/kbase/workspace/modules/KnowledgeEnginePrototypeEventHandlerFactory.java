@@ -206,22 +206,19 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void copyObject(
-				final long workspaceId,
-				final long objectId,
-				final int version,
-				final String type,
-				final boolean isPublic) {
-			newVersionEvent(workspaceId, objectId, version, type, isPublic, null);
+		public void copyObject(final ObjectInformation oi, final boolean isPublic) {
+			newVersionEvent(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+					oi.getTypeString(), isPublic, oi.getSavedDate().toInstant());
 		}
 
 		@Override
 		public void copyObject(
-				long workspaceId,
-				long objectId,
-				int latestVersion,
-				boolean isPublic) {
-			newObjectEvent(workspaceId, objectId, isPublic, null);
+				final long workspaceId,
+				final long objectId,
+				final int latestVersion,
+				final Instant time,
+				final boolean isPublic) {
+			newObjectEvent(workspaceId, objectId, isPublic, time);
 		}
 		
 		@Override

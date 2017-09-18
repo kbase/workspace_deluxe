@@ -1,5 +1,6 @@
 package us.kbase.workspace.listener;
 
+import java.time.Instant;
 import java.util.List;
 
 import com.google.common.base.Optional;
@@ -99,21 +100,24 @@ public interface WorkspaceEventListener {
 	void setObjectDeleted(long workspaceId, long objectId, boolean delete);
 
 	/** Notification that a single version of an object was copied.
-	 * @param workspaceId the workspace id of the new object version.
-	 * @param objectId the object id of the new object version.
-	 * @param version the version of the new object.
-	 * @param type the type of the new object version.
+	 * @param object information about the new object version.
 	 * @param isPublic true if the new object version is in a public workspace, false otherwise.
 	 */
-	void copyObject(long workspaceId, long objectId, int version, String type, boolean isPublic);
+	void copyObject(ObjectInformation object, boolean isPublic);
 
 	/** Notification that all the versions of an object was copied.
 	 * @param workspaceId the workspace id of the new object.
 	 * @param objectId the object id of the new object.
 	 * @param latestVersion the latest version of the new object.
+	 * @param time the time the last version was copied.
 	 * @param isPublic true if the new object is in a public workspace, false otherwise.
 	 */
-	void copyObject(long workspaceId, long objectId, int latestVersion, boolean isPublic);
+	void copyObject(
+			long workspaceId,
+			long objectId,
+			int latestVersion,
+			Instant time,
+			boolean isPublic);
 	
 	/** Notification that an object has been saved.
 	 * @param object information about the object.
