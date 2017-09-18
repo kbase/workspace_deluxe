@@ -72,6 +72,7 @@ public class Workspace {
 	//TODO GC garbage collection - see WOR-45
 	//TODO SEARCH index typespecs
 	//TODO CODE look into eliminating all the DB implementation specific classes, too much of a pain just to ensure not moving objects between implementations
+	//TODO CODE wrap event listeners in try/catch, catch everything & log & continue
 	
 	public static final AllUsers ALL_USERS = new AllUsers('*');
 	
@@ -701,8 +702,7 @@ public class Workspace {
 			final List<ObjectInformation> ret = db.saveObjects(user, rwsi, saveobjs);
 			for (final WorkspaceEventListener l: listeners) {
 				for (final ObjectInformation oi: ret) {
-					l.saveObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-							oi.getTypeString(), wsinfo.isGloballyReadable());
+					l.saveObject(oi, wsinfo.isGloballyReadable());
 				}
 			}
 			return ret;

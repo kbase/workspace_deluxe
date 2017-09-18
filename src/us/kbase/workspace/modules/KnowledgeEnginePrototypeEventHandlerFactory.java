@@ -2,6 +2,7 @@ package us.kbase.workspace.modules;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,7 @@ import com.mongodb.MongoTimeoutException;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.listener.ListenerInitializationException;
@@ -126,7 +128,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 
 		@Override
 		public void cloneWorkspace(final long id, final boolean isPublic) {
-			newWorkspaceEvent(id, CLONED_WORKSPACE, isPublic);
+			newWorkspaceEvent(id, CLONED_WORKSPACE, isPublic, null);
 		}
 
 		@Override
@@ -147,7 +149,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		@Override
 		public void setGlobalPermission(long id, Permission permission) {
 			newWorkspaceEvent(id, Permission.READ.equals(permission) ?
-					SET_GLOBAL_READ : REMOVE_GLOBAL_READ, null);
+					SET_GLOBAL_READ : REMOVE_GLOBAL_READ, null, null);
 			
 		}
 
@@ -173,7 +175,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 				final boolean delete,
 				final long maxObjectID) {
 			if (delete) {
-				newEvent(id, maxObjectID, null, null, null, DELETE_WS, null);
+				newEvent(id, maxObjectID, null, null, null, DELETE_WS, null, null);
 			} else {
 				LoggerFactory.getLogger(getClass()).info(
 						"Workspace {} was undeleted. Workspace undeletion events are not " +
@@ -184,7 +186,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 
 		@Override
 		public void renameObject(long workspaceId, long objectId, String newName) {
-			newEvent(workspaceId, objectId, null, newName, null, RENAME_OBJECT, null);
+			newEvent(workspaceId, objectId, null, newName, null, RENAME_OBJECT, null, null);
 		}
 
 		@Override
@@ -194,13 +196,13 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 				final int version,
 				final String type,
 				final boolean isPublic) {
-			newVersionEvent(workspaceId, objectId, version, type, isPublic);
+			newVersionEvent(workspaceId, objectId, version, type, isPublic, null);
 		}
 
 		@Override
 		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {
 			newEvent(workspaceId, objectId, null, null, null,
-					delete ? DELETE_OBJECT : UNDELETE_OBJECT, null);
+					delete ? DELETE_OBJECT : UNDELETE_OBJECT, null, null);
 		}
 
 		@Override
@@ -210,7 +212,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 				final int version,
 				final String type,
 				final boolean isPublic) {
-			newVersionEvent(workspaceId, objectId, version, type, isPublic);
+			newVersionEvent(workspaceId, objectId, version, type, isPublic, null);
 		}
 
 		@Override
@@ -219,24 +221,21 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 				long objectId,
 				int latestVersion,
 				boolean isPublic) {
-			newObjectEvent(workspaceId, objectId, isPublic);
+			newObjectEvent(workspaceId, objectId, isPublic, null);
 		}
 		
 		@Override
-		public void saveObject(
-				final long workspaceId,
-				final long objectId,
-				final int version,
-				final String type,
-				final boolean isPublic) {
-			newVersionEvent(workspaceId, objectId, version, type, isPublic);
+		public void saveObject(final ObjectInformation oi, final boolean isPublic) {
+			newVersionEvent(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+					oi.getTypeString(), isPublic, oi.getSavedDate().toInstant());
 		}
 
 		private void newObjectEvent(
 				final long workspaceId,
 				final long objectId,
-				final boolean isPublic) {
-			newEvent(workspaceId, objectId, null, null, null, NEW_OBJECT, isPublic);
+				final boolean isPublic,
+				final Instant time) {
+			newEvent(workspaceId, objectId, null, null, null, NEW_OBJECT, isPublic, time);
 		}
 		
 		private void newVersionEvent(
@@ -244,15 +243,17 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 				final long objectId,
 				final Integer version,
 				final String type,
-				final boolean isPublic) {
-			newEvent(workspaceId, objectId, version, null, type, NEW_OBJECT_VER, isPublic);
+				final boolean isPublic,
+				final Instant time) {
+			newEvent(workspaceId, objectId, version, null, type, NEW_OBJECT_VER, isPublic, time);
 		}
 		
 		private void newWorkspaceEvent(
 				final long workspaceId,
 				final String eventType,
-				final Boolean isPublic) {
-			newEvent(workspaceId, null, null, null, null, eventType, isPublic);
+				final Boolean isPublic,
+				final Instant time) {
+			newEvent(workspaceId, null, null, null, null, eventType, isPublic, time);
 		}
 		
 		private void newEvent(
@@ -262,7 +263,8 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 				final String newName,
 				final String type,
 				final String eventType,
-				final Boolean isPublic) {
+				final Boolean isPublic,
+				final Instant time) {
 			if (!wsidOK(workspaceId)) {
 				return;
 			}
@@ -273,7 +275,8 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 			dobj.put("accessGroupObjectId", objectId == null ? null : "" + objectId);
 			dobj.put("version", version);
 			dobj.put("newName", newName);
-			dobj.put("timestamp", System.currentTimeMillis());
+			//TODO NOW remove sys time when time can't be null
+			dobj.put("timestamp", time == null ? System.currentTimeMillis(): time.toEpochMilli());
 			dobj.put("eventType", eventType);
 			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
 			dobj.put("storageObjectTypeVersion", type == null ?

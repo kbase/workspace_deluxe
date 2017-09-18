@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.google.common.base.Optional;
 
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.listener.ListenerInitializationException;
@@ -87,12 +88,7 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 				boolean isPublic) {}
 
 		@Override
-		public void saveObject(
-				long workspaceId,
-				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {}
+		public void saveObject(ObjectInformation oi, boolean isPublic) {}
 	}
 
 }

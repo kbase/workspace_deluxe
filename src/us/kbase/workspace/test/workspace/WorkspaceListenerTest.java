@@ -60,7 +60,7 @@ public class WorkspaceListenerTest {
 			.withID(42)
 			.withName("wsfoo")
 			.withMaximumObjectID(300)
-			.withModificationDate(Instant.now())
+			.withModificationDate(Instant.ofEpochMilli(20000))
 			.withOwner(new WorkspaceUser("userfoo"))
 			.withUserPermission(Permission.OWNER)
 			.build();
@@ -69,14 +69,14 @@ public class WorkspaceListenerTest {
 			.withID(42)
 			.withName("wsfoo")
 			.withMaximumObjectID(302)
-			.withModificationDate(Instant.now())
+			.withModificationDate(Instant.ofEpochMilli(30000))
 			.withOwner(new WorkspaceUser("userfoo"))
 			.withUserPermission(Permission.OWNER)
 			.withGlobalRead(true)
 			.build();
 	
 	public static final ObjectInformation OBJ_INFO = new ObjectInformation(
-			42L, "whee", "a type", new Date(), 45, new WorkspaceUser("bar"),
+			42L, "whee", "a type", new Date(40000), 45, new WorkspaceUser("bar"),
 			new ResolvedWorkspaceID(24, "whee", false, false), "chksum",
 			20, new UncheckedUserMetadata(Collections.emptyMap()));
 
@@ -1000,11 +1000,11 @@ public class WorkspaceListenerTest {
 				Collections.emptyMap());
 		
 		final ObjectInformation oi1 = new ObjectInformation(
-				35, "foo1", "foo.bar-2.1", new Date(), 6, new WorkspaceUser("foo"),
+				35, "foo1", "foo.bar-2.1", new Date(60000), 6, new WorkspaceUser("foo"),
 				rwsi, "chcksum1", 18, null);
 		
 		final ObjectInformation oi2 = new ObjectInformation(
-				76, "foo2", "foo.baz-1.0", new Date(), 1, new WorkspaceUser("foo"),
+				76, "foo2", "foo.baz-1.0", new Date(70000), 1, new WorkspaceUser("foo"),
 				rwsi, "chcksum2", 22, null);
 		
 		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
@@ -1039,8 +1039,8 @@ public class WorkspaceListenerTest {
 		
 		ws.saveObjects(user, wsi, Arrays.asList(wso1, wso2), fac);
 		
-		verify(l).saveObject(24, 35, 6, "foo.bar-2.1", false);
-		verify(l).saveObject(24, 76, 1, "foo.baz-1.0", false);
+		verify(l).saveObject(oi1, false);
+		verify(l).saveObject(oi2, false);
 	}
 	
 	@Test
@@ -1072,11 +1072,11 @@ public class WorkspaceListenerTest {
 				Collections.emptyMap());
 		
 		final ObjectInformation oi1 = new ObjectInformation(
-				35, "foo1", "foo.bar-2.1", new Date(), 6, new WorkspaceUser("foo"),
+				35, "foo1", "foo.bar-2.1", new Date(60000), 6, new WorkspaceUser("foo"),
 				rwsi, "chcksum1", 18, null);
 		
 		final ObjectInformation oi2 = new ObjectInformation(
-				76, "foo2", "foo.baz-1.0", new Date(), 1, new WorkspaceUser("foo"),
+				76, "foo2", "foo.baz-1.0", new Date(70000), 1, new WorkspaceUser("foo"),
 				rwsi, "chcksum2", 22, null);
 		
 		final WorkspaceInformation wsinfo = WorkspaceInformation.getBuilder()
@@ -1112,10 +1112,10 @@ public class WorkspaceListenerTest {
 		
 		ws.saveObjects(user, wsi, Arrays.asList(wso1, wso2), fac);
 		
-		verify(l1).saveObject(24, 35, 6, "foo.bar-2.1", true);
-		verify(l1).saveObject(24, 76, 1, "foo.baz-1.0", true);
-		verify(l2).saveObject(24, 35, 6, "foo.bar-2.1", true);
-		verify(l2).saveObject(24, 76, 1, "foo.baz-1.0", true);
+		verify(l1).saveObject(oi1, true);
+		verify(l1).saveObject(oi2, true);
+		verify(l2).saveObject(oi1, true);
+		verify(l2).saveObject(oi2, true);
 	}
 }
 

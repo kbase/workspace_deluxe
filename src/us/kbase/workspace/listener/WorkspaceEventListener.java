@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.google.common.base.Optional;
 
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceUser;
 
@@ -115,11 +116,8 @@ public interface WorkspaceEventListener {
 	void copyObject(long workspaceId, long objectId, int latestVersion, boolean isPublic);
 	
 	/** Notification that an object has been saved.
-	 * @param workspaceId the id of the workspace containing the object.
-	 * @param objectId the id of the object.
-	 * @param version the version of the object.
-	 * @param type the type of the object.
+	 * @param object information about the object.
 	 * @param isPublic true if the object is in a public workspace, false otherwise.
 	 */
-	void saveObject(long workspaceId, long objectId, int version, String type, boolean isPublic);
+	void saveObject(ObjectInformation object, boolean isPublic);
 }
