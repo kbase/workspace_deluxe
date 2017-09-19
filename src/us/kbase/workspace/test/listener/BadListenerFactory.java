@@ -51,7 +51,7 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 		public void setPermissions(long id, Permission permission, List<WorkspaceUser> users) {}
 
 		@Override
-		public void setWorkspaceDescription(long id) {}
+		public void setWorkspaceDescription(long id, Instant time) {}
 
 		@Override
 		public void setWorkspaceOwner(

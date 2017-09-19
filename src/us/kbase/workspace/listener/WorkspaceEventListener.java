@@ -59,8 +59,9 @@ public interface WorkspaceEventListener {
 
 	/** Notification that the workspace description has been set or altered.
 	 * @param id the id of the workspace.
+	 * @param time the time the description change event occurred.
 	 */
-	void setWorkspaceDescription(long id);
+	void setWorkspaceDescription(long id, Instant time);
 
 	/** Notification that the owner of a workspace has been changed.
 	 * @param id the id of the workspace.

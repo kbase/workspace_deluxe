@@ -79,8 +79,8 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setWorkspaceDescription(long id) {
-			print("setWorkspaceDescription " + id);
+		public void setWorkspaceDescription(long id, Instant time) {
+			print(String.format("setWorkspaceDescription %s %s", id, time));
 		}
 
 		@Override
@@ -89,7 +89,8 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 				WorkspaceUser newUser,
 				Optional<String> newName,
 				Instant time) {
-			print("setWorkspaceOwner " + id + " " + newUser.getUser() + " " + newName);
+			print(String.format("setWorkspaceOwner %s %s %s %s", id, newUser.getUser(), newName,
+					time));
 		}
 
 		@Override

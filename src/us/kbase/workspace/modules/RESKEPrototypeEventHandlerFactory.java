@@ -151,9 +151,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void setWorkspaceDescription(long id) {
+		public void setWorkspaceDescription(final long id, final Instant time) {
 			// no action
-			
 		}
 
 		@Override

@@ -282,8 +282,15 @@ public interface WorkspaceDatabase {
 			ResolvedWorkspaceID rwsi)
 			throws CorruptWorkspaceDBException, WorkspaceCommunicationException;
 	
-	public void setWorkspaceDescription(ResolvedWorkspaceID wsid,
-			String description) throws WorkspaceCommunicationException;
+	/** Set or change the workspace description.
+	 * @param wsid the workspace to modify.
+	 * @param description the workspace description.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 */
+	public Instant setWorkspaceDescription(ResolvedWorkspaceID wsid, String description)
+			throws WorkspaceCommunicationException;
 
 	public String getWorkspaceDescription(ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;

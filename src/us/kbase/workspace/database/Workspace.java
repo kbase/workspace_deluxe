@@ -283,9 +283,10 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("set description on").check();
-		db.setWorkspaceDescription(wsid, pruneWorkspaceDescription(description));
+		final Instant time = db.setWorkspaceDescription(
+				wsid, pruneWorkspaceDescription(description));
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceDescription(wsid.getID());
+			l.setWorkspaceDescription(wsid.getID(), time);
 		}
 	}
 	

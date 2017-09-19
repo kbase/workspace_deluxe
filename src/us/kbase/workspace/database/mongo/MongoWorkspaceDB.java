@@ -954,17 +954,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			"{$set: {%s: #, %s: #}}", Fields.WS_DESC, Fields.WS_MODDATE);
 	
 	@Override
-	public void setWorkspaceDescription(final ResolvedWorkspaceID rwsi,
+	public Instant setWorkspaceDescription(final ResolvedWorkspaceID rwsi,
 			final String description) throws WorkspaceCommunicationException {
 		//TODO CODE generalized method for setting fields?
+		final Instant now = Instant.now();
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 				.update(M_WS_ID_QRY, rwsi.getID())
-				.with(M_DESC_WTH, description, new Date());
+				.with(M_DESC_WTH, description, Date.from(now));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		return now;
 	}
 	
 	@Override
