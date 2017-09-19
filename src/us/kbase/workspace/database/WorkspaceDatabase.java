@@ -173,7 +173,16 @@ public interface WorkspaceDatabase {
 			Optional<String> newName)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public void setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
+	/** Set the global permission on a workspace - e.g. whether the workspace is readable by the
+	 * public or not.
+	 * @param rwsi the workspace.
+	 * @param perm the new global permission for the workspace - either READ or NONE.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 */
+	public Instant setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Get the permission for a workspace for one user. Takes global

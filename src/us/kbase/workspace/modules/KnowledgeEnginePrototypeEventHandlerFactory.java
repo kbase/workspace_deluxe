@@ -147,10 +147,9 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void setGlobalPermission(long id, Permission permission) {
-			newWorkspaceEvent(id, Permission.READ.equals(permission) ?
-					SET_GLOBAL_READ : REMOVE_GLOBAL_READ, null, null);
-			
+		public void setGlobalPermission(final long id, final Permission perm, final Instant time) {
+			newWorkspaceEvent(id, Permission.READ.equals(perm) ?
+					SET_GLOBAL_READ : REMOVE_GLOBAL_READ, null, time);
 		}
 
 		@Override

@@ -456,9 +456,9 @@ public class Workspace {
 					+ rwsi.getID() + ", name " + rwsi.getName() +
 					", is locked and may not be modified");
 		}
-		db.setGlobalPermission(rwsi, permission);
+		final Instant time = db.setGlobalPermission(rwsi, permission);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setGlobalPermission(rwsi.getID(), permission);
+			l.setGlobalPermission(rwsi.getID(), permission, time);
 		}
 		return rwsi.getID();
 	}

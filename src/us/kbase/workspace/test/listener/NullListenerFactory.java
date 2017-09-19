@@ -69,8 +69,8 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setGlobalPermission(long id, Permission permission) {
-			print("setGlobalPermission " + id + " " + permission);
+		public void setGlobalPermission(long id, Permission permission, Instant time) {
+			print(String.format("setGlobalPermission %s %s %s", id, permission, time));
 		}
 
 		@Override

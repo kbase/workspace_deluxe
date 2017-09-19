@@ -451,10 +451,12 @@ public class WorkspaceListenerTest {
 		
 		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
 		when(db.getPermission(user, rwsi)).thenReturn(Permission.ADMIN);
+		when(db.setGlobalPermission(rwsi, Permission.READ))
+				.thenReturn(Instant.ofEpochMilli(50000));
 		
 		ws.setGlobalPermission(user, wsi, Permission.READ);
 		
-		verify(l).setGlobalPermission(24L, Permission.READ);
+		verify(l).setGlobalPermission(24L, Permission.READ, Instant.ofEpochMilli(50000));
 	}
 	
 	@Test
@@ -473,11 +475,13 @@ public class WorkspaceListenerTest {
 		
 		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
 		when(db.getPermission(user, rwsi)).thenReturn(Permission.ADMIN);
+		when(db.setGlobalPermission(rwsi, Permission.READ))
+				.thenReturn(Instant.ofEpochMilli(50000));
 		
 		ws.setGlobalPermission(user, wsi, Permission.READ);
 		
-		verify(l1).setGlobalPermission(24L, Permission.READ);
-		verify(l2).setGlobalPermission(24L, Permission.READ);
+		verify(l1).setGlobalPermission(24L, Permission.READ, Instant.ofEpochMilli(50000));
+		verify(l2).setGlobalPermission(24L, Permission.READ, Instant.ofEpochMilli(50000));
 	}
 	
 	@Test
