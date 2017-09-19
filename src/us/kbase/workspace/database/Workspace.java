@@ -196,22 +196,24 @@ public class Workspace {
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("alter metadata for").check();
 		boolean set = false;
+		Instant time = null;
+		// should merge this into one db call
 		try {
 			if (meta != null && !meta.isEmpty()) {
-				db.setWorkspaceMeta(wsid, meta);
+				time = db.setWorkspaceMeta(wsid, meta);
 				set = true;
 			}
 			if (keysToRemove != null) {
 				noNulls(keysToRemove, "null metadata keys are not allowed");
 				for (final String key: keysToRemove) {
-					db.removeWorkspaceMetaKey(wsid, key);
+					time = db.removeWorkspaceMetaKey(wsid, key);
 					set = true;
 				}
 			}
 		} finally {
 			if (set) {
 				for (final WorkspaceEventListener l: listeners) {
-					l.setWorkspaceMetadata(wsid.getID());
+					l.setWorkspaceMetadata(wsid.getID(), time);
 				}
 			}
 		}

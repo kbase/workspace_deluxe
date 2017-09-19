@@ -36,7 +36,7 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 		public void cloneWorkspace(long id, boolean isPublic) {}
 
 		@Override
-		public void setWorkspaceMetadata(long id) {}
+		public void setWorkspaceMetadata(long id, Instant time) {}
 
 		@Override
 		public void lockWorkspace(long id, Instant time) {}

@@ -54,8 +54,8 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setWorkspaceMetadata(long id) {
-			print("setWorkspaceMetadata " + id);
+		public void setWorkspaceMetadata(long id, Instant time) {
+			print(String.format("setWorkspaceMetadata %s %s", id, time));
 		}
 
 		@Override

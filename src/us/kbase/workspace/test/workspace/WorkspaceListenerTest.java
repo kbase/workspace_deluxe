@@ -1,5 +1,7 @@
 package us.kbase.workspace.test.workspace;
 
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
@@ -193,7 +195,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l, never()).setWorkspaceMetadata(24L);
+		verify(l, never()).setWorkspaceMetadata(anyLong(), any(Instant.class));
 	}
 	
 	@Test
@@ -215,10 +217,12 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
+		when(db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
+
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l).setWorkspaceMetadata(24L);
+		verify(l).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -241,11 +245,13 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
+		when(db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
+
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l1).setWorkspaceMetadata(24L);
-		verify(l2).setWorkspaceMetadata(24L);
+		verify(l1).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
+		verify(l2).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -276,7 +282,7 @@ public class WorkspaceListenerTest {
 			//fine
 		}
 		
-		verify(l, never()).setWorkspaceMetadata(24L);
+		verify(l, never()).setWorkspaceMetadata(anyLong(), any(Instant.class));
 	}
 	
 	@Test
@@ -298,6 +304,7 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
+		when(db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
 		
 		doThrow(new WorkspaceCommunicationException("whee"))
 				.when(db).removeWorkspaceMetaKey(rwsi, "foo");
@@ -307,7 +314,7 @@ public class WorkspaceListenerTest {
 			//fine
 		}
 		
-		verify(l).setWorkspaceMetadata(24L);
+		verify(l).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -328,6 +335,8 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
+		when(db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
+		when(db.removeWorkspaceMetaKey(rwsi, "bar")).thenReturn(Instant.ofEpochMilli(30000));
 		
 		doThrow(new WorkspaceCommunicationException("whee"))
 				.when(db).removeWorkspaceMetaKey(rwsi, "foo");
@@ -337,7 +346,7 @@ public class WorkspaceListenerTest {
 			//fine
 		}
 		
-		verify(l).setWorkspaceMetadata(24L);
+		verify(l).setWorkspaceMetadata(24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test

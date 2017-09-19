@@ -30,8 +30,9 @@ public interface WorkspaceEventListener {
 
 	/** Notification that a workspace's meta data was altered.
 	 * @param id the id of the workspace.
+	 * @param time the time the metadata event occurred.
 	 */
-	void setWorkspaceMetadata(long id);
+	void setWorkspaceMetadata(long id, Instant time);
 	
 	/** Notification that a workspace has been locked.
 	 * @param id the id of the workspace.

@@ -123,7 +123,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void setWorkspaceMetadata(long id) {
+		public void setWorkspaceMetadata(final long id, final Instant time) {
 			// no action
 		}
 

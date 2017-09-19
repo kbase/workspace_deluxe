@@ -521,14 +521,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_MODDATE); 
 	
 	@Override
-	public void setWorkspaceMeta(final ResolvedWorkspaceID rwsi,
+	public Instant setWorkspaceMeta(final ResolvedWorkspaceID rwsi,
 			final WorkspaceUserMetadata newMeta)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		
 		if (newMeta == null || newMeta.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Metadata cannot be null or empty");
+			throw new IllegalArgumentException("Metadata cannot be null or empty");
 		}
 		final Map<String, Object> ws = query.queryWorkspace(rwsi, FLDS_WS_META);
 		@SuppressWarnings("unchecked")
@@ -548,6 +547,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * happens once at the beginning of the method. That has virtually no 
 		 * repercussions whatsoever, so meh.
 		 */
+		Instant time = null;
 		for (final Entry<String, String> e: newMeta.getMetadata().entrySet()) {
 			final String key = e.getKey();
 			final String value = e.getValue();
@@ -556,9 +556,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				//replace the value if it exists already
 				WriteResult wr;
 				try {
+					time = Instant.now();
 					wr = wsjongo.getCollection(COL_WORKSPACES)
 							.update(M_WS_META_QRY, rwsi.getID(), key)
-							.with(M_SET_WS_META_WTH, value, new Date());
+							.with(M_SET_WS_META_WTH, value, Date.from(time));
 				} catch (MongoException me) {
 					throw new WorkspaceCommunicationException(
 							"There was a problem communicating with the database",
@@ -569,11 +570,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					continue;
 				}
 				//add the key/value pair to the array
+				time = Instant.now();
 				try {
 					wr = wsjongo.getCollection(COL_WORKSPACES)
 							.update(M_SET_WS_META_NOT_QRY, rwsi.getID(), key)
-							.with(M_SET_WS_META_NOT_WTH, key, value,
-									new Date());
+							.with(M_SET_WS_META_NOT_WTH, key, value, Date.from(time));
 				} catch (MongoException me) {
 					throw new WorkspaceCommunicationException(
 							"There was a problem communicating with the database",
@@ -589,6 +590,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				 */
 			}
 		}
+		return time;
 	}
 	
 	
@@ -597,17 +599,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_META, Fields.META_KEY, Fields.WS_MODDATE);
 	
 	@Override
-	public void removeWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
+	public Instant removeWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
 			final String key) throws WorkspaceCommunicationException {
-		
+		final Instant time = Instant.now();
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_META_QRY, rwsi.getID(), key)
-					.with(M_REM_META_WTH, key, new Date());
+					.with(M_REM_META_WTH, key, Date.from(time));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		return time;
 	}
 	
 	private static final Set<String> FLDS_CLONE_WS =
