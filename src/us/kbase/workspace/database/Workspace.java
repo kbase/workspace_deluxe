@@ -167,7 +167,7 @@ public class Workspace {
 				pruneWorkspaceDescription(description),
 				meta == null ? new WorkspaceUserMetadata() : meta);
 		for (final WorkspaceEventListener l: listeners) {
-			l.createWorkspace(ret.getId());
+			l.createWorkspace(ret.getId(), ret.getModDate());
 		}
 		return ret;
 	}

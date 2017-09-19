@@ -19,8 +19,9 @@ public interface WorkspaceEventListener {
 	
 	/** Notification that a workspace was created.
 	 * @param id the workspace ID.
+	 * @param time the time the create event occurred.
 	 */
-	void createWorkspace(long id);
+	void createWorkspace(long id, Instant time);
 	
 	/** Notification that a workspace was cloned.
 	 * @param id the workspace ID.

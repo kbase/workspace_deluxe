@@ -30,7 +30,7 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 	public class BadListener implements WorkspaceEventListener {
 
 		@Override
-		public void createWorkspace(long id) {}
+		public void createWorkspace(long id, Instant time) {}
 
 		@Override
 		public void cloneWorkspace(long id, boolean isPublic, Instant time) {}

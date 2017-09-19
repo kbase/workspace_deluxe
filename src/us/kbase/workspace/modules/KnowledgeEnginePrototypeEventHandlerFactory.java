@@ -122,7 +122,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void createWorkspace(long id) {
+		public void createWorkspace(final long id, final Instant time) {
 			// no action
 		}
 

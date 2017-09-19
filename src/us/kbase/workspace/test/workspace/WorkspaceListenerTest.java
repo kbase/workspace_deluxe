@@ -98,7 +98,7 @@ public class WorkspaceListenerTest {
 		
 		ws.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, null);
 		
-		verify(l).createWorkspace(42L);
+		verify(l).createWorkspace(42L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -117,8 +117,8 @@ public class WorkspaceListenerTest {
 		
 		ws.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, null);
 		
-		verify(l1).createWorkspace(42L);
-		verify(l2).createWorkspace(42L);
+		verify(l1).createWorkspace(42L, Instant.ofEpochMilli(20000));
+		verify(l2).createWorkspace(42L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test

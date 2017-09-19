@@ -44,8 +44,8 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void createWorkspace(long id) {
-			print("createWorkspace " + id);
+		public void createWorkspace(long id, Instant time) {
+			print(String.format("createWorkspace %s %s", id, time));
 		}
 
 		@Override
