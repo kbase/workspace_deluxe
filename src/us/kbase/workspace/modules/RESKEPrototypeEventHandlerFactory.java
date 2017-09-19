@@ -273,8 +273,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			dobj.put("accessGroupObjectId", objectId == null ? null : "" + objectId);
 			dobj.put("version", version);
 			dobj.put("newName", newName);
-			//TODO RESKE make timestamp = the event timestamp (e.g. object creation/rename)
-			dobj.put("timestamp", time == null ? System.currentTimeMillis() : time.toEpochMilli());
+			dobj.put("timestamp", time.toEpochMilli());
 			dobj.put("eventType", eventType);
 			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
 			dobj.put("storageObjectTypeVersion", type == null ?

@@ -168,10 +168,10 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 
 		@Override
 		public void setWorkspaceOwner(
-				long id,
-				WorkspaceUser newUser,
-				Optional<String> newName,
-				Instant time) {
+				final long id,
+				final WorkspaceUser newUser,
+				final Optional<String> newName,
+				final Instant time) {
 			// no action
 		}
 
@@ -279,8 +279,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 			dobj.put("accessGroupObjectId", objectId == null ? null : "" + objectId);
 			dobj.put("version", version);
 			dobj.put("newName", newName);
-			//TODO NOW remove sys time when time can't be null
-			dobj.put("timestamp", time == null ? System.currentTimeMillis(): time.toEpochMilli());
+			dobj.put("timestamp", time.toEpochMilli());
 			dobj.put("eventType", eventType);
 			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
 			dobj.put("storageObjectTypeVersion", type == null ?
