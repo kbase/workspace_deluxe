@@ -473,8 +473,7 @@ public interface WorkspaceDatabase {
 	public void renameWorkspace(ResolvedWorkspaceID wsid, String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public ObjectInformation renameObject(
-			ObjectIDResolvedWS object, String newname)
+	public ObjectInfoWithModDate renameObject(ObjectIDResolvedWS object, String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public void setObjectsHidden(Set<ObjectIDResolvedWS> objectIDs,

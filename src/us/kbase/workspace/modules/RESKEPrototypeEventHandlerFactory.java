@@ -178,9 +178,12 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void renameObject(long workspaceId, long objectId, String newName) {
-			//TODO TIMESTAMP
-			newEvent(workspaceId, objectId, null, newName, null, RENAME_OBJECT, null, null);
+		public void renameObject(
+				final long workspaceId,
+				final long objectId,
+				final String newName,
+				final Instant time) {
+			newEvent(workspaceId, objectId, null, newName, null, RENAME_OBJECT, null, time);
 		}
 
 		@Override

@@ -48,6 +48,7 @@ import us.kbase.workspace.database.CopyResult;
 import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectInfoWithModDate;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
@@ -94,6 +95,8 @@ import com.mongodb.MongoException;
 import com.mongodb.WriteResult;
 
 public class MongoWorkspaceDB implements WorkspaceDatabase {
+	
+	// TODO TEST need some lower level tests for this module rather than just integration tests
 
 	public static final String COL_ADMINS = CollectionNames.COL_ADMINS;
 	public static final String COL_WS_CNT = CollectionNames.COL_WS_CNT;
@@ -890,7 +893,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			"{$set: {%s: #, %s: #}}", Fields.OBJ_NAME, Fields.OBJ_MODDATE);
 	
 	@Override
-	public ObjectInformation renameObject(final ObjectIDResolvedWS oi,
+	public ObjectInfoWithModDate renameObject(
+			final ObjectIDResolvedWS oi,
 			final String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		Set<ObjectIDResolvedWS> input = new HashSet<ObjectIDResolvedWS>(
@@ -900,11 +904,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException("Object is already named " +
 					newname);
 		}
+		final Instant time = Instant.now();
 		try {
 			wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.update(M_RENAME_OBJ_QRY,
 							roi.getWorkspaceIdentifier().getID(), roi.getId())
-					.with(M_RENAME_OBJ_WTH, newname, new Date());
+					.with(M_RENAME_OBJ_WTH, newname, Date.from(time));
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already an object in the workspace named " +
@@ -920,7 +925,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final ObjectInformation oinf =
 				getObjectInformation(input, false, true, false, true).get(oid);
 		updateWorkspaceModifiedDate(roi.getWorkspaceIdentifier());
-		return oinf;
+		return new ObjectInfoWithModDate(oinf, time);
 	}
 	
 	//projection lists

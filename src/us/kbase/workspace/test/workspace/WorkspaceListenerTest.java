@@ -34,6 +34,7 @@ import us.kbase.workspace.database.CopyResult;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectInfoWithModDate;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
@@ -693,11 +694,12 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.renameObject(roi, "bollocks")).thenReturn(OBJ_INFO);
+		when(db.renameObject(roi, "bollocks")).thenReturn(
+				new ObjectInfoWithModDate(OBJ_INFO, Instant.ofEpochMilli(20000)));
 		
 		ws.renameObject(user, oi, "bollocks");
 
-		verify(l).renameObject(24, 42, "bollocks");
+		verify(l).renameObject(24, 42, "bollocks", Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -720,12 +722,13 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.renameObject(roi, "bollocks")).thenReturn(OBJ_INFO);
+		when(db.renameObject(roi, "bollocks")).thenReturn(
+				new ObjectInfoWithModDate(OBJ_INFO, Instant.ofEpochMilli(20000)));
 		
 		ws.renameObject(user, oi, "bollocks");
 
-		verify(l1).renameObject(24, 42, "bollocks");
-		verify(l2).renameObject(24, 42, "bollocks");
+		verify(l1).renameObject(24, 42, "bollocks", Instant.ofEpochMilli(20000));
+		verify(l2).renameObject(24, 42, "bollocks", Instant.ofEpochMilli(20000));
 	}
 	
 	@Test

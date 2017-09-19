@@ -1469,9 +1469,11 @@ public class Workspace {
 		final ObjectIDResolvedWS obj = new PermissionsCheckerFactory(db, user)
 				.getObjectChecker(oi, Permission.WRITE)
 				.withOperation("rename objects in").check();
-		final ObjectInformation objinfo = db.renameObject(obj, newname);
+		final ObjectInfoWithModDate objdate = db.renameObject(obj, newname);
+		final ObjectInformation objinfo = objdate.getObjectInfo();
 		for (final WorkspaceEventListener l: listeners) {
-			l.renameObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), newname);
+			l.renameObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), newname,
+					objdate.getModificationDate());
 		}
 		return objinfo;
 	}

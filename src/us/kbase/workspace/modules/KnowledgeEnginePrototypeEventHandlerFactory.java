@@ -185,8 +185,8 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void renameObject(long workspaceId, long objectId, String newName) {
-			newEvent(workspaceId, objectId, null, newName, null, RENAME_OBJECT, null, null);
+		public void renameObject(long workspaceId, long objectId, String newName, Instant time) {
+			newEvent(workspaceId, objectId, null, newName, null, RENAME_OBJECT, null, time);
 		}
 
 		@Override

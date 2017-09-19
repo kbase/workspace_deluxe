@@ -80,8 +80,9 @@ public interface WorkspaceEventListener {
 	 * @param workspaceId the id of the workspace containing the object.
 	 * @param objectId the id of the object.
 	 * @param newName the object's new name.
+	 * @param time the time the rename event occurred.
 	 */
-	void renameObject(long workspaceId, long objectId, String newName);
+	void renameObject(long workspaceId, long objectId, String newName, Instant time);
 
 	/** Notification that an object has been reverted.
 	 * @param object information about the reverted object.
