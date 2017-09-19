@@ -868,16 +868,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			"{$set: {%s: #, %s: #}}", Fields.WS_NAME, Fields.WS_MODDATE);
 	
 	@Override
-	public void renameWorkspace(final ResolvedWorkspaceID rwsi, final String newname)
+	public Instant renameWorkspace(final ResolvedWorkspaceID rwsi, final String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (newname.equals(rwsi.getName())) {
 			throw new IllegalArgumentException("Workspace is already named " +
 					newname);
 		}
+		final Instant now = Instant.now();
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_ID_QRY, rwsi.getID())
-					.with(M_RENAME_WS_WTH, newname, new Date());
+					.with(M_RENAME_WS_WTH, newname, Date.from(now));
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already a workspace named " + newname);
@@ -885,6 +886,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		return now;
 	}
 	
 	final private static String M_RENAME_OBJ_QRY = String.format(

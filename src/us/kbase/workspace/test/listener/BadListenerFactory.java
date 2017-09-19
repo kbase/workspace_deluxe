@@ -42,7 +42,7 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 		public void lockWorkspace(long id) {}
 
 		@Override
-		public void renameWorkspace(long id, String newName) {}
+		public void renameWorkspace(long id, String newName, Instant time) {}
 
 		@Override
 		public void setGlobalPermission(long id, Permission permission, Instant time) {}

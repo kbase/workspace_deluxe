@@ -1453,9 +1453,9 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.OWNER).withOperation("rename").check();
 		new WorkspaceIdentifier(newname, user); //check for errors
-		db.renameWorkspace(wsid, newname);
+		final Instant time = db.renameWorkspace(wsid, newname);
 		for (final WorkspaceEventListener l: listeners) {
-			l.renameWorkspace(wsid.getID(), newname);
+			l.renameWorkspace(wsid.getID(), newname, time);
 		}
 		return db.getWorkspaceInformation(user, wsid);
 	}

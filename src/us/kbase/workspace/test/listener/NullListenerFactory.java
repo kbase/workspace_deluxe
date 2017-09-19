@@ -64,8 +64,8 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void renameWorkspace(long id, String newName) {
-			print("renameWorkspace " + id + " " + newName);
+		public void renameWorkspace(long id, String newName, Instant time) {
+			print(String.format("renameWorkspace %s %s %s", id, newName, time));
 		}
 
 		@Override

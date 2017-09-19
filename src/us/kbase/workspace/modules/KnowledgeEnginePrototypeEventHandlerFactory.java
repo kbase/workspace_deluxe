@@ -142,7 +142,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void renameWorkspace(long id, String newname) {
+		public void renameWorkspace(final long id, final String newname, final Instant time) {
 			// no action
 		}
 

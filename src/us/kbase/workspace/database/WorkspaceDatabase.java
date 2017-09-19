@@ -494,11 +494,12 @@ public interface WorkspaceDatabase {
 	/** Rename a workspace.
 	 * @param wsid the workspace.
 	 * @param newname the new name for the workspace.
+	 * @return the workspace modification time.
 	 * @throws WorkspaceCommunicationException if a communication error with
 	 * the storage system occurs
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
 	 */
-	public void renameWorkspace(ResolvedWorkspaceID wsid, String newname)
+	public Instant renameWorkspace(ResolvedWorkspaceID wsid, String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	public ObjectInfoWithModDate renameObject(ObjectIDResolvedWS object, String newname)

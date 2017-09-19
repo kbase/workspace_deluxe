@@ -41,8 +41,9 @@ public interface WorkspaceEventListener {
 	/** Notification that a workspace has been renamed.
 	 * @param id the id of the workspace.
 	 * @param newname the new name of the workspace.
+	 * @param time the time the rename event occurred.
 	 */
-	void renameWorkspace(long id, final String newname);
+	void renameWorkspace(long id, final String newname, Instant time);
 
 	/** Notification that the global permission for a workspace has been altered.
 	 * @param id the id of the workspace.

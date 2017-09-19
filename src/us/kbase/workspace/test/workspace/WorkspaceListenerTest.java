@@ -405,10 +405,11 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
+		when(db.renameWorkspace(rwsi, "foobar")).thenReturn(Instant.ofEpochMilli(10000));
 		
 		ws.renameWorkspace(user, wsi, "foobar");
 		
-		verify(l).renameWorkspace(24L, "foobar");
+		verify(l).renameWorkspace(24L, "foobar", Instant.ofEpochMilli(10000));
 	}
 	
 	@Test
@@ -429,11 +430,12 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
+		when(db.renameWorkspace(rwsi, "foobar")).thenReturn(Instant.ofEpochMilli(10000));
 		
 		ws.renameWorkspace(user, wsi, "foobar");
 		
-		verify(l1).renameWorkspace(24L, "foobar");
-		verify(l2).renameWorkspace(24L, "foobar");
+		verify(l1).renameWorkspace(24L, "foobar", Instant.ofEpochMilli(10000));
+		verify(l2).renameWorkspace(24L, "foobar", Instant.ofEpochMilli(10000));
 	}
 	
 	@Test
