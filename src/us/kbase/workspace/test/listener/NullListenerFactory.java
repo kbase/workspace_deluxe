@@ -110,8 +110,13 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {
-			print(String.format("setObjectDeleted %s %s %s", workspaceId, objectId, delete));
+		public void setObjectDeleted(
+				long workspaceId,
+				long objectId,
+				boolean delete,
+				Instant time) {
+			print(String.format("setObjectDeleted %s %s %s %s",
+					workspaceId, objectId, delete, time));
 		}
 		
 		@Override

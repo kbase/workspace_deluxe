@@ -96,8 +96,9 @@ public interface WorkspaceEventListener {
 	 * @param workspaceId the workspace id.
 	 * @param objectId the object id.
 	 * @param delete true if the object was deleted, false if it was undeleted.
+	 * @param time the time the delete event occurred.
 	 */
-	void setObjectDeleted(long workspaceId, long objectId, boolean delete);
+	void setObjectDeleted(long workspaceId, long objectId, boolean delete, Instant time);
 
 	/** Notification that a single version of an object was copied.
 	 * @param object information about the new object version.

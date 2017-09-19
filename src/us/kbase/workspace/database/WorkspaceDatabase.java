@@ -1,5 +1,6 @@
 package us.kbase.workspace.database;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -483,12 +484,12 @@ public interface WorkspaceDatabase {
 	/** Delete or undelete objects.
 	 * @param objectIDs the objects to delete.
 	 * @param delete true to delete the object, false to undelete.
-	 * @return the resolved objects.
+	 * @return the resolved objects mapped to the time of their deletion.
 	 * @throws NoSuchObjectException if an object doesn't exist.
 	 * @throws WorkspaceCommunicationException if a communication error occurs with the storage
 	 * system.
 	 */
-	public Set<ResolvedObjectIDNoVer> setObjectsDeleted(
+	public Map<ResolvedObjectIDNoVer, Instant> setObjectsDeleted(
 			Set<ObjectIDResolvedWS> objectIDs,
 			boolean delete)
 			throws NoSuchObjectException,

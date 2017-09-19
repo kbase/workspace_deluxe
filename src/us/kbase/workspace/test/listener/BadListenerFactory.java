@@ -71,7 +71,11 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 				boolean isPublic) {}
 
 		@Override
-		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {}
+		public void setObjectDeleted(
+				long workspaceId,
+				long objectId,
+				boolean delete,
+				Instant time) {}
 
 		@Override
 		public void copyObject(ObjectInformation object, boolean isPublic) {}

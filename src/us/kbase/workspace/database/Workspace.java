@@ -4,6 +4,7 @@ import static us.kbase.workspace.database.Util.nonNull;
 import static us.kbase.workspace.database.Util.noNulls;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1539,11 +1540,12 @@ public class Workspace {
 						.getObjectChecker(loi, Permission.WRITE)
 						.withOperation((delete ? "" : "un") + "delete objects from")
 						.check();
-		final Set<ResolvedObjectIDNoVer> objs = db.setObjectsDeleted(
+		final Map<ResolvedObjectIDNoVer, Instant> objs = db.setObjectsDeleted(
 				new HashSet<ObjectIDResolvedWS>(ws.values()), delete);
 		for (final WorkspaceEventListener l: listeners) {
-			for (final ResolvedObjectIDNoVer o: objs) {
-				l.setObjectDeleted(o.getWorkspaceIdentifier().getID(), o.getId(), delete);
+			for (final ResolvedObjectIDNoVer o: objs.keySet()) {
+				l.setObjectDeleted(o.getWorkspaceIdentifier().getID(), o.getId(), delete,
+						objs.get(o));
 			}
 		}
 	}

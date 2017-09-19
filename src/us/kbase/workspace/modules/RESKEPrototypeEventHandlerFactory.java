@@ -196,10 +196,13 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {
-			//TODO TIMESTAMP
+		public void setObjectDeleted(
+				final long workspaceId,
+				final long objectId,
+				final boolean delete,
+				final Instant time) {
 			newEvent(workspaceId, objectId, null, null, null,
-					delete ? DELETE_OBJECT : UNDELETE_OBJECT, null, null);
+					delete ? DELETE_OBJECT : UNDELETE_OBJECT, null, time);
 		}
 
 		@Override

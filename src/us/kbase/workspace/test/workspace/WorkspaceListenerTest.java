@@ -826,12 +826,14 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.setObjectsDeleted(set(roi1, roi2), true)).thenReturn(set(roiv1, roiv2));
+		when(db.setObjectsDeleted(set(roi1, roi2), true)).thenReturn(ImmutableMap.of(
+				roiv1, Instant.ofEpochMilli(20000),
+				roiv2, Instant.ofEpochMilli(30000)));
 
 		ws.setObjectsDeleted(user, Arrays.asList(oi1, oi2), true);
 
-		verify(l).setObjectDeleted(24, 16, true);
-		verify(l).setObjectDeleted(24, 75, true);
+		verify(l).setObjectDeleted(24, 16, true, Instant.ofEpochMilli(20000));
+		verify(l).setObjectDeleted(24, 75, true, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -858,14 +860,16 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.setObjectsDeleted(set(roi1, roi2), false)).thenReturn(set(roiv1, roiv2));
+		when(db.setObjectsDeleted(set(roi1, roi2), false)).thenReturn(ImmutableMap.of(
+				roiv1, Instant.ofEpochMilli(20000),
+				roiv2, Instant.ofEpochMilli(30000)));
 
 		ws.setObjectsDeleted(user, Arrays.asList(oi1, oi2), false);
 
-		verify(l1).setObjectDeleted(24, 16, false);
-		verify(l1).setObjectDeleted(24, 75, false);
-		verify(l2).setObjectDeleted(24, 16, false);
-		verify(l2).setObjectDeleted(24, 75, false);
+		verify(l1).setObjectDeleted(24, 16, false, Instant.ofEpochMilli(20000));
+		verify(l1).setObjectDeleted(24, 75, false, Instant.ofEpochMilli(30000));
+		verify(l2).setObjectDeleted(24, 16, false, Instant.ofEpochMilli(20000));
+		verify(l2).setObjectDeleted(24, 75, false, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test

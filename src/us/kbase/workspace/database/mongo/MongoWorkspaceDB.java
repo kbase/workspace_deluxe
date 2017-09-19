@@ -2956,7 +2956,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public Set<ResolvedObjectIDNoVer> setObjectsDeleted(
+	public Map<ResolvedObjectIDNoVer, Instant> setObjectsDeleted(
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean delete)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
@@ -2964,7 +2964,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				resolveObjectIDs(objectIDs, delete, true);
 		final Map<ResolvedWorkspaceID, List<Long>> toModify =
 				new HashMap<ResolvedWorkspaceID, List<Long>>();
-		final Set<ResolvedObjectIDNoVer> ret = new HashSet<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
 			final ResolvedObjectID obj = ids.get(o);
@@ -2972,12 +2971,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				toModify.put(ws, new ArrayList<Long>());
 			}
 			toModify.get(ws).add(obj.getId());
-			ret.add(new ResolvedObjectIDNoVer(ws, obj.getId(), obj.getName(), delete));
 		}
 		//Do this by workspace since per mongo docs nested $ors are crappy
+		final Map<ResolvedWorkspaceID, Instant> modtimes = new HashMap<>();
 		for (final ResolvedWorkspaceID ws: toModify.keySet()) {
-			setObjectsDeleted(ws, toModify.get(ws), delete);
+			modtimes.put(ws, setObjectsDeleted(ws, toModify.get(ws), delete));
 			updateWorkspaceModifiedDate(ws);
+		}
+		final Map<ResolvedObjectIDNoVer, Instant> ret = new HashMap<>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
+			final ResolvedObjectID obj = ids.get(o);
+			ret.put(new ResolvedObjectIDNoVer(ws, obj.getId(), obj.getName(), delete),
+					modtimes.get(ws));
 		}
 		return ret;
 	}
@@ -2985,7 +2991,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_DELOBJ_WTH = String.format(
 			"{$set: {%s: #, %s: #}}", Fields.OBJ_DEL, Fields.OBJ_MODDATE);
 	
-	private void setObjectsDeleted(
+	private Instant setObjectsDeleted(
 			final ResolvedWorkspaceID ws,
 			final List<Long> objectIDs,
 			final boolean delete)
@@ -3000,13 +3006,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					Fields.OBJ_WS_ID, ws.getID(), Fields.OBJ_ID,
 					StringUtils.join(objectIDs, ", "), Fields.OBJ_DEL, !delete);
 		}
+		final Instant time;
 		try {
+			time = Instant.now();
 			wsjongo.getCollection(COL_WORKSPACE_OBJS).update(query).multi()
-					.with(M_DELOBJ_WTH, delete, new Date());
+					.with(M_DELOBJ_WTH, delete, Date.from(time));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		return time;
 	}
 	
 	private static final String M_DELWS_UPD = String.format("{%s: #}",
