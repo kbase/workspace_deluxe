@@ -413,9 +413,9 @@ public class Workspace {
 						user.getUser(), wsi.getIdentifierString()));
 			}
 		}
-		db.setPermissions(wsid, users, permission);
+		final Instant time = db.setPermissions(wsid, users, permission);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setPermissions(wsid.getID(), permission, users);
+			l.setPermissions(wsid.getID(), permission, users, time);
 		}
 		return wsid.getID();
 	}

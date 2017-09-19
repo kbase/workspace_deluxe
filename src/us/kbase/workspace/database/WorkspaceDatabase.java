@@ -141,9 +141,20 @@ public interface WorkspaceDatabase {
 	public void lockWorkspace(ResolvedWorkspaceID wsid)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public void setPermissions(ResolvedWorkspaceID rwsi,
-			List<WorkspaceUser> users, Permission perm) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	/** Set permissions on a workspace.
+	 * @param rwsi the workspace to alter.
+	 * @param users the users for which the permission will be set.
+	 * @param perm the permission to set.
+	 * @return the workspace modification date.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 */
+	public Instant setPermissions(
+			ResolvedWorkspaceID rwsi,
+			List<WorkspaceUser> users,
+			Permission perm)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	/** Change a workspace's owner.
 	 * @param rwsi the workspace.

@@ -146,7 +146,11 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void setPermissions(long id, Permission permission, List<WorkspaceUser> users) {
+		public void setPermissions(
+				final long id,
+				final Permission permission,
+				final List<WorkspaceUser> users,
+				final Instant time) {
 			// no action
 		}
 

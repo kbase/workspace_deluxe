@@ -490,6 +490,7 @@ public class WorkspaceListenerTest {
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final List<WorkspaceUser> users = Arrays.asList(new WorkspaceUser("foobar"));
 		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
 		
@@ -497,10 +498,12 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, rwsi)).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
+		when(db.setPermissions(rwsi, users, Permission.WRITE))
+				.thenReturn(Instant.ofEpochMilli(40000));
 		
-		ws.setPermissions(user, wsi, Arrays.asList(new WorkspaceUser("foobar")), Permission.WRITE);
+		ws.setPermissions(user, wsi, users, Permission.WRITE);
 		
-		verify(l).setPermissions(24, Permission.WRITE, Arrays.asList(new WorkspaceUser("foobar")));
+		verify(l).setPermissions(24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
 	}
 	
 	@Test
@@ -514,6 +517,7 @@ public class WorkspaceListenerTest {
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final List<WorkspaceUser> users = Arrays.asList(new WorkspaceUser("foobar"));
 		
 		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
 		
@@ -521,13 +525,13 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, rwsi)).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
+		when(db.setPermissions(rwsi, users, Permission.WRITE))
+				.thenReturn(Instant.ofEpochMilli(40000));
 		
-		ws.setPermissions(user, wsi, Arrays.asList(new WorkspaceUser("foobar")), Permission.WRITE);
+		ws.setPermissions(user, wsi, users, Permission.WRITE);
 		
-		verify(l1).setPermissions(24, Permission.WRITE,
-				Arrays.asList(new WorkspaceUser("foobar")));
-		verify(l2).setPermissions(24, Permission.WRITE,
-				Arrays.asList(new WorkspaceUser("foobar")));
+		verify(l1).setPermissions(24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
+		verify(l2).setPermissions(24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
 	}
 	
 	@Test

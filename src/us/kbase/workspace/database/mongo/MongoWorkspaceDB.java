@@ -1208,10 +1208,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public void setPermissions(final ResolvedWorkspaceID rwsi,
+	public Instant setPermissions(final ResolvedWorkspaceID rwsi,
 			final List<WorkspaceUser> users, final Permission perm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		setPermissionsForWorkspaceUsers(rwsi, users, perm, true);
+		return setPermissionsForWorkspaceUsers(rwsi, users, perm, true);
 	}
 	
 	@Override
@@ -1223,7 +1223,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	//wsid must exist as a workspace
-	private void setPermissionsForWorkspaceUsers(final ResolvedWorkspaceID wsid,
+	private Instant setPermissionsForWorkspaceUsers(final ResolvedWorkspaceID wsid,
 			final List<WorkspaceUser> users, final Permission perm, 
 			final boolean checkowner) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
@@ -1231,7 +1231,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (User user: users) {
 			u.add(user);
 		}
-		setPermissions(wsid, u, perm, checkowner);
+		return setPermissions(wsid, u, perm, checkowner);
 		
 	}
 	
@@ -1240,7 +1240,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_PERMS_UPD = String.format("{$set: {%s: #}}",
 			Fields.ACL_PERM);
 	
-	private void setPermissions(
+	private Instant setPermissions(
 			final ResolvedWorkspaceID wsid,
 			final List<User> users,
 			final Permission perm,
@@ -1278,6 +1278,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"There was a problem communicating with the database", me);
 			}
 		}
+		// hmm. should the workspace mod date be changed when setting perms? Currently not
+		return Instant.now();
 	}
 	
 	private static final Set<String> FLDS_WS_NO_DESC = 

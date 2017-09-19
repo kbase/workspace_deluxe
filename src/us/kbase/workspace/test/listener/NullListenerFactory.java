@@ -74,8 +74,12 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setPermissions(long id, Permission permission, List<WorkspaceUser> users) {
-			print("setPermissions " + id + " " + permission + " " + users);
+		public void setPermissions(
+				long id,
+				Permission permission,
+				List<WorkspaceUser> users,
+				Instant time) {
+			print(String.format("setPermissions %s %s %s %s", id, permission, users, time));
 		}
 
 		@Override

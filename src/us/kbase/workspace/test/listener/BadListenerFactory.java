@@ -48,7 +48,11 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 		public void setGlobalPermission(long id, Permission permission) {}
 
 		@Override
-		public void setPermissions(long id, Permission permission, List<WorkspaceUser> users) {}
+		public void setPermissions(
+				long id,
+				Permission permission,
+				List<WorkspaceUser> users,
+				Instant time) {}
 
 		@Override
 		public void setWorkspaceDescription(long id, Instant time) {}
