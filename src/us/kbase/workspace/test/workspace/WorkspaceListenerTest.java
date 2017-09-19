@@ -597,10 +597,13 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
 		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
+		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.absent()))
+				.thenReturn(Instant.ofEpochMilli(30000));
 		
 		ws.setWorkspaceOwner(user, wsi, newUser, Optional.absent(), false);
 
-		verify(l).setWorkspaceOwner(24L, newUser, Optional.absent());
+		verify(l).setWorkspaceOwner(24L, newUser, Optional.absent(),
+				Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -624,11 +627,15 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
 		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
+		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.of("bar:foobar")))
+				.thenReturn(Instant.ofEpochMilli(30000));
 		
 		ws.setWorkspaceOwner(user, wsi, newUser, Optional.absent(), false);
 
-		verify(l1).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"));
-		verify(l2).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"));
+		verify(l1).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"),
+				Instant.ofEpochMilli(30000));
+		verify(l2).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"),
+				Instant.ofEpochMilli(30000));
 	}
 	
 	@Test

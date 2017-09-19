@@ -66,8 +66,9 @@ public interface WorkspaceEventListener {
 	 * @param id the id of the workspace.
 	 * @param newUser the new owner of the workspace.
 	 * @param newName the new name for the workspace, if any.
+	 * @param time the time the owner change event occurred.
 	 */
-	void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName);
+	void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName, Instant time);
 
 	/** Notification that a workspace has been deleted or undeleted.
 	 * @param id the id of the workspace.

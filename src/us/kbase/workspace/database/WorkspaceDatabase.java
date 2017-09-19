@@ -150,11 +150,12 @@ public interface WorkspaceDatabase {
 	 * @param user the current owner.
 	 * @param newUser the new owner.
 	 * @param newName the new workspace name, or null if the name should not change.
+	 * @return the workspace modification time.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
 	 * the storage system.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
 	 */
-	public void setWorkspaceOwner(
+	public Instant setWorkspaceOwner(
 			ResolvedWorkspaceID rwsi,
 			WorkspaceUser user,
 			WorkspaceUser newUser,

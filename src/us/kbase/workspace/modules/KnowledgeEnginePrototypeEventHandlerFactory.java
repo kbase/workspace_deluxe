@@ -165,7 +165,11 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName) {
+		public void setWorkspaceOwner(
+				long id,
+				WorkspaceUser newUser,
+				Optional<String> newName,
+				Instant time) {
 			// no action
 		}
 

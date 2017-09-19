@@ -357,9 +357,9 @@ public class Workspace {
 				newName = Optional.absent(); // no need to change name
 			}
 		}
-		db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+		final Instant time = db.setWorkspaceOwner(rwsi, owner, newUser, newName);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceOwner(rwsi.getID(), newUser, newName);
+			l.setWorkspaceOwner(rwsi.getID(), newUser, newName, time);
 		}
 		return db.getWorkspaceInformation(newUser, rwsi);
 	}

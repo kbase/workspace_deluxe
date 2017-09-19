@@ -1172,21 +1172,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_OWNER, Fields.WS_MODDATE);
 
 	@Override
-	public void setWorkspaceOwner(
+	public Instant setWorkspaceOwner(
 			final ResolvedWorkspaceID rwsi,
 			final WorkspaceUser owner,
 			final WorkspaceUser newUser,
 			final Optional<String> newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		final Instant now = Instant.now();
 		try {
 			if (!newname.isPresent()) {
 				wsjongo.getCollection(COL_WORKSPACES)
 						.update(M_WS_ID_QRY, rwsi.getID())
-						.with(M_CHOWN_WS_WTH, newUser.getUser(), new Date());
+						.with(M_CHOWN_WS_WTH, newUser.getUser(), Date.from(now));
 			} else {
 				wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_ID_QRY, rwsi.getID())
-					.with(M_CHOWN_WS_NEWNAME_WTH, newUser.getUser(), newname.get(), new Date());
+					.with(M_CHOWN_WS_NEWNAME_WTH,
+							newUser.getUser(), newname.get(), Date.from(now));
 			}
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
@@ -1200,6 +1202,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				newname.isPresent() ? newname.get() : rwsi.getName(), false, false);
 		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(owner), Permission.ADMIN, false);
 		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(newUser), Permission.OWNER, false);
+		return now;
 	}
 	
 	@Override

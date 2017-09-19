@@ -157,7 +157,11 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName) {
+		public void setWorkspaceOwner(
+				final long id,
+				final WorkspaceUser newUser,
+				final Optional<String> newName,
+				final Instant time) {
 			// no action
 		}
 
