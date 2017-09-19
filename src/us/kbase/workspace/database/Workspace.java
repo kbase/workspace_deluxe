@@ -1510,8 +1510,7 @@ public class Workspace {
 		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
 				user, target.getWorkspaceIdentifier());
 		for (final WorkspaceEventListener l: listeners) {
-			l.revertObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), objinfo.getVersion(),
-					objinfo.getTypeString(), wsinfo.isGloballyReadable());
+			l.revertObject(objinfo, wsinfo.isGloballyReadable());
 		}
 		return objinfo;
 	}

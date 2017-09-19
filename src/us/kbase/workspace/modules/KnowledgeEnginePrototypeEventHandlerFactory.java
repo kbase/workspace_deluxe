@@ -190,13 +190,9 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void revertObject(
-				final long workspaceId,
-				final long objectId,
-				final int version,
-				final String type,
-				final boolean isPublic) {
-			newVersionEvent(workspaceId, objectId, version, type, isPublic, null);
+		public void revertObject(final ObjectInformation oi, final boolean isPublic) {
+			newVersionEvent(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+					oi.getTypeString(), isPublic, oi.getSavedDate().toInstant());
 		}
 
 		@Override

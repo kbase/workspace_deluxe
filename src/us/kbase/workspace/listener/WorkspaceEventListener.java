@@ -84,13 +84,10 @@ public interface WorkspaceEventListener {
 	void renameObject(long workspaceId, long objectId, String newName);
 
 	/** Notification that an object has been reverted.
-	 * @param workspaceId the id of the workspace containing the object.
-	 * @param objectId the id of the object.
-	 * @param version the version of the reverted object.
-	 * @param type the type of the object.
+	 * @param object information about the reverted object.
 	 * @param isPublic true if the object is in a public workspace, false otherwise.
 	 */
-	void revertObject(long workspaceId, long objectId, int version, String type, boolean isPublic);
+	void revertObject(ObjectInformation object, boolean isPublic);
 
 	/** Notification that an object was deleted or undeleted.
 	 * @param workspaceId the workspace id.

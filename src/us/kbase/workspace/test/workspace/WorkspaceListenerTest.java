@@ -762,7 +762,7 @@ public class WorkspaceListenerTest {
 		
 		ws.revertObject(user, oi);
 		
-		verify(l).revertObject(24, 42, 45, "a type", true);
+		verify(l).revertObject(OBJ_INFO, true);
 	}
 	
 	@Test
@@ -799,8 +799,8 @@ public class WorkspaceListenerTest {
 		
 		ws.revertObject(user, oi);
 		
-		verify(l1).revertObject(24, 42, 45, "a type", false);
-		verify(l2).revertObject(24, 42, 45, "a type", false);
+		verify(l1).revertObject(OBJ_INFO, false);
+		verify(l2).revertObject(OBJ_INFO, false);
 	}
 	
 	@Test

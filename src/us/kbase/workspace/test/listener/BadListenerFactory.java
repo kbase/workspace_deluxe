@@ -63,12 +63,7 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 		public void renameObject(long workspaceId, long objectId, String newName) {}
 
 		@Override
-		public void revertObject(
-				long workspaceId,
-				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {}
+		public void revertObject(ObjectInformation obj, boolean isPublic) {}
 
 		@Override
 		public void setObjectDeleted(

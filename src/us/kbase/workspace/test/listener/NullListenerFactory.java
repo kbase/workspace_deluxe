@@ -99,14 +99,8 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void revertObject(
-				long workspaceId,
-				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {
-			print(String.format("revertObject %s %s %s %s %s",
-					workspaceId, objectId, version, type, isPublic));
+		public void revertObject(ObjectInformation oi, boolean isPublic) {
+			print(String.format("revertObject %s %s", oi, isPublic));
 		}
 
 		@Override
