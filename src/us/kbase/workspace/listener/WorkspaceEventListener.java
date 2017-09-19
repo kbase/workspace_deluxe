@@ -35,8 +35,9 @@ public interface WorkspaceEventListener {
 	
 	/** Notification that a workspace has been locked.
 	 * @param id the id of the workspace.
+	 * @param time the time the lock event occurred.
 	 */
-	void lockWorkspace(long id);
+	void lockWorkspace(long id, Instant time);
 
 	/** Notification that a workspace has been renamed.
 	 * @param id the id of the workspace.

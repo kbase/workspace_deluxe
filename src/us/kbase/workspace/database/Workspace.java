@@ -260,9 +260,9 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("lock").check();
-		db.lockWorkspace(wsid);
+		final Instant time = db.lockWorkspace(wsid);
 		for (final WorkspaceEventListener l: listeners) {
-			l.lockWorkspace(wsid.getID());
+			l.lockWorkspace(wsid.getID(), time);
 		}
 		return db.getWorkspaceInformation(user, wsid);
 	}

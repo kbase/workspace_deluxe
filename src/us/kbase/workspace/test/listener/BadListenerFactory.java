@@ -39,7 +39,7 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 		public void setWorkspaceMetadata(long id) {}
 
 		@Override
-		public void lockWorkspace(long id) {}
+		public void lockWorkspace(long id, Instant time) {}
 
 		@Override
 		public void renameWorkspace(long id, String newName, Instant time) {}

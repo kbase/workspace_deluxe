@@ -764,7 +764,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_LOCKED);
 	
 	@Override
-	public void lockWorkspace(final ResolvedWorkspaceID rwsi)
+	public Instant lockWorkspace(final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
@@ -774,6 +774,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		// ws mod date isn't changed, maybe it should be?
+		return Instant.now();
 	}
 	
 	private static final Set<String> FLDS_VER_COPYOBJ = newHashSet(

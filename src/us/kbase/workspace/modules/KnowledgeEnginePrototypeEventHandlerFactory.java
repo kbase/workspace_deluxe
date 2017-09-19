@@ -137,7 +137,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void lockWorkspace(long id) {
+		public void lockWorkspace(final long id, final Instant time) {
 			// no action
 		}
 

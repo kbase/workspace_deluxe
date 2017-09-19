@@ -357,10 +357,11 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
+		when(db.lockWorkspace(rwsi)).thenReturn(Instant.ofEpochMilli(20000));
 		
 		ws.lockWorkspace(user, wsi);
 		
-		verify(l).lockWorkspace(24L);
+		verify(l).lockWorkspace(24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -381,11 +382,12 @@ public class WorkspaceListenerTest {
 		when(db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
+		when(db.lockWorkspace(rwsi)).thenReturn(Instant.ofEpochMilli(20000));
 		
 		ws.lockWorkspace(user, wsi);
 		
-		verify(l1).lockWorkspace(24L);
-		verify(l2).lockWorkspace(24L);
+		verify(l1).lockWorkspace(24L, Instant.ofEpochMilli(20000));
+		verify(l2).lockWorkspace(24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test

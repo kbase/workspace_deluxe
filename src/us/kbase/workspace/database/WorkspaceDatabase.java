@@ -134,11 +134,12 @@ public interface WorkspaceDatabase {
 	/** Lock a workspace, preventing further modifications other than making the workspace
 	 * publicly readable.
 	 * @param wsid the workspace.
+	 * @return the modification date of the workspace.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
 	 * the storage system.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
 	 */
-	public void lockWorkspace(ResolvedWorkspaceID wsid)
+	public Instant lockWorkspace(ResolvedWorkspaceID wsid)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Set permissions on a workspace.
