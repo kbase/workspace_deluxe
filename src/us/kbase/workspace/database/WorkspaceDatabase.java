@@ -494,7 +494,13 @@ public interface WorkspaceDatabase {
 			throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 
-	public void setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
+	/** Delete or undelete a workspace.
+	 * @param wsid the workspace ID.
+	 * @param delete true to delete the workspace, false to undelete it.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException
+	 */
+	public Instant setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
 			throws WorkspaceCommunicationException;
 	
 	public List<WorkspaceInformation> getWorkspaceInformation(

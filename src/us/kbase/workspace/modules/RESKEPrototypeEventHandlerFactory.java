@@ -165,10 +165,10 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		public void setWorkspaceDeleted(
 				final long id,
 				final boolean delete,
-				final long maxObjectID) {
-			//TODO TIMESTAMP
+				final long maxObjectID,
+				final Instant time) {
 			if (delete) {
-				newEvent(id, maxObjectID, null, null, null, DELETE_WS, null, null);
+				newEvent(id, maxObjectID, null, null, null, DELETE_WS, null, time);
 			} else {
 				LoggerFactory.getLogger(getClass()).info(
 						"Workspace {} was undeleted. Workspace undeletion events are not " +

@@ -646,10 +646,11 @@ public class WorkspaceListenerTest {
 		
 		when(db.resolveWorkspace(wsi, false)).thenReturn(rwsi);
 		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(WS_INFO_READABLE);
+		when(db.setWorkspaceDeleted(rwsi, true)).thenReturn(Instant.ofEpochMilli(20000));
 		
 		ws.setWorkspaceDeleted(user, wsi, true, true);
 
-		verify(l).setWorkspaceDeleted(24, true, 302);
+		verify(l).setWorkspaceDeleted(24, true, 302, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -668,11 +669,12 @@ public class WorkspaceListenerTest {
 		
 		when(db.resolveWorkspace(wsi, true)).thenReturn(rwsi);
 		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(WS_INFO);
+		when(db.setWorkspaceDeleted(rwsi, false)).thenReturn(Instant.ofEpochMilli(20000));
 
 		ws.setWorkspaceDeleted(user, wsi, false, true);
 
-		verify(l1).setWorkspaceDeleted(24, false, 300);
-		verify(l2).setWorkspaceDeleted(24, false, 300);
+		verify(l1).setWorkspaceDeleted(24, false, 300, Instant.ofEpochMilli(20000));
+		verify(l2).setWorkspaceDeleted(24, false, 300, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test

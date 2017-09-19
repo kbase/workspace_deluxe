@@ -3028,7 +3028,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_DELWS_WTH = String.format(
 			"{$set: {%s: #, %s: #}}", Fields.WS_DEL, Fields.WS_MODDATE);
 	
-	public void setWorkspaceDeleted(final ResolvedWorkspaceID rwsi,
+	public Instant setWorkspaceDeleted(final ResolvedWorkspaceID rwsi,
 			final boolean delete) throws WorkspaceCommunicationException {
 		//there's a possibility of a race condition here if a workspace is
 		//deleted and undeleted or vice versa in a very short amount of time,
@@ -3038,9 +3038,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			// delete objects first so that we can't have undeleted object in a deleted workspace 
 			setObjectsDeleted(rwsi, new ArrayList<Long>(), delete);
 		}
+		final Instant now = Instant.now();
 		try {
 			wsjongo.getCollection(COL_WORKSPACES).update(M_DELWS_UPD, rwsi.getID())
-					.with(M_DELWS_WTH, delete, new Date());
+					.with(M_DELWS_WTH, delete, Date.from(now));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -3049,6 +3050,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//undelete object last so we yadda yadda
 			setObjectsDeleted(rwsi, new ArrayList<Long>(), delete);
 		}
+		return now;
 	}
 	
 	@Override

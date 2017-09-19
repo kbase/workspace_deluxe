@@ -73,8 +73,9 @@ public interface WorkspaceEventListener {
 	 * @param id the id of the workspace.
 	 * @param delete true for a delete event, false for an undelete event.
 	 * @param maxObjectID the maximum ID for any object in the workspace.
+	 * @param time the time the deletion event occurred.
 	 */
-	void setWorkspaceDeleted(long id, boolean delete, long maxObjectID);
+	void setWorkspaceDeleted(long id, boolean delete, long maxObjectID, Instant time);
 
 	/** Notification that an object has been renamed.
 	 * @param workspaceId the id of the workspace containing the object.
