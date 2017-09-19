@@ -117,9 +117,8 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void cloneWorkspace(final long id, final boolean isPublic) {
-			//TODO TIMESTAMP
-			newWorkspaceEvent(id, CLONED_WORKSPACE, isPublic, null);
+		public void cloneWorkspace(final long id, final boolean isPublic, final Instant time) {
+			newWorkspaceEvent(id, CLONED_WORKSPACE, isPublic, time);
 		}
 
 		@Override

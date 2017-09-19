@@ -25,8 +25,9 @@ public interface WorkspaceEventListener {
 	/** Notification that a workspace was cloned.
 	 * @param id the workspace ID.
 	 * @param isPublic true if the workspace is public, false otherwise.
+	 * @param time the time the clone event occurred.
 	 */
-	void cloneWorkspace(long id, boolean isPublic);
+	void cloneWorkspace(long id, boolean isPublic, Instant time);
 
 	/** Notification that a workspace's meta data was altered.
 	 * @param id the id of the workspace.

@@ -238,7 +238,7 @@ public class Workspace {
 				meta == null ? new WorkspaceUserMetadata() : meta,
 				exclude);
 		for (final WorkspaceEventListener l: listeners) {
-			l.cloneWorkspace(info.getId(), info.isGloballyReadable());
+			l.cloneWorkspace(info.getId(), info.isGloballyReadable(), info.getModDate());
 		}
 		return info;
 	}
