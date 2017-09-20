@@ -31,7 +31,7 @@ import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
  * @author gaprice@lbl.gov
  *
  */
-public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListenerFactory {
+public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListenerFactory {
 
 	//TODO RESKE JAVADOC
 	//TODO RESKE TEST
@@ -49,10 +49,10 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		final String mongoPwd = cfg.get("mongopwd");
 		LoggerFactory.getLogger(getClass()).info("Starting RESKE Prototype event handler. " +
 				"mongohost={} mongodatabase={} mongouser={}", mongoHost, mongoDatabase, mongoUser);
-		return new RESKEPrototypeEventHandler(mongoHost, mongoDatabase, mongoUser, mongoPwd);
+		return new SearthPrototypeEventHandler(mongoHost, mongoDatabase, mongoUser, mongoPwd);
 	}
 	
-	public class RESKEPrototypeEventHandler implements WorkspaceEventListener {
+	public class SearthPrototypeEventHandler implements WorkspaceEventListener {
 		
 		private static final String DATA_SOURCE = "WS";
 		private static final String NEW_OBJECT_VER = "NEW_VERSION";
@@ -70,7 +70,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		
 		private final DB db;
 
-		public RESKEPrototypeEventHandler(
+		public SearthPrototypeEventHandler(
 				final String mongoHost,
 				final String mongoDatabase,
 				String mongoUser,
