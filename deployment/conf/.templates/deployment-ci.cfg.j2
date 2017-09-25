@@ -1,0 +1,26 @@
+# This configuration has defaults to work with docker-compose test config
+[Workspace]
+basedir={{ basedir|default('workspace') }}
+mongodb-database={{ mongodb_database|default('workspace') }}
+mongodb-pwd={{ mongodb_pwd|default('') }}
+ws-admin={{ ws_admin|default('wsadmin') }}
+# backend user is wstest globus user in ci
+# use that acct to generate token
+backend-token={{ backend_token|default('62IYPZGS7O773DBLZZCSE542BP4C2E7G') }} # test data wsadmin user
+mongodb-host={{ mongodb_host|default('ci-mongo') }}
+mongodb-user={{ mongodb_user|default('wsserv') }}
+service-port={{ service_port|default('7058') }}
+max-memory={{ max_memory|default('15000') }}
+min-memory={{ min_memory|default('10000') }}
+temp-dir={{ temp_dir|default('ws_temp_dir') }}
+server-threads={{ server_threads|default('20') }}
+mongodb-retry={{ mongodb_retry|default('0') }}
+handle-service-url={{ handle_service|default("http://handle_service:7109/") }}
+handle-manager-url={{ handle_manager|default("http://handle_manager:9001/") }}
+# The KBase authorization server url.
+auth-service-url={{ auth_service|default("http://auth2/api/legacy/KBase") }}
+auth-server-url={{ auth_erver_url|default("http://auth2/api/legacy/KBase") }}
+# The Globus v1 authorization API url.  auth2 supports this directly
+globus-url = {{ globus_url|default("https://ci.kbase.us/services/auth/api/legacy/globus") }}
+#the credentials used for the handle manager.
+handle-manager-token={{ handle_manager_token|default("62IYPZGS7O773DBLZZCSE542BP4C2E7G") }} # test data wsadmin user

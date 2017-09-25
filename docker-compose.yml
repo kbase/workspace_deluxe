@@ -1,0 +1,70 @@
+version: "3.1"
+services:
+  workspace:
+    image: kbase/kb_workspace
+    ports:
+      - "7058:7058"
+    depends_on: ["auth2", "mongoinit", "handle_service", "handle_manager"]
+
+  shock:
+    image: kbase/kb_shock:develop
+    ports:
+      - "7044:7044"
+    depends_on: ["ci-mongo"]
+
+  auth2:
+    image: kbase/kb_auth2
+    ports:
+      - "8080:8080"
+    depends_on: ["ci-mongo"]
+
+  mongoinit:
+    image: mongo:2
+    volumes:
+      - ./ws.mongodump:/mnt/ws.mongodump
+    entrypoint: [ "mongorestore", "--host", "ci-mongo", "/mnt/ws.mongodump"]
+    depends_on: [ "ci-mongo" ]
+  
+  ci-mongo:
+    image: mongo:2
+    ports:
+      - "27017:27017"
+
+  handle_service:
+    image: kbase/handle_service:${TRAVIS_BRANCH:-latest}
+    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/handle_service/handle_service-ci.yml"]
+    ports:
+      - "7109:7109"
+    secrets:
+      - auth_data
+    depends_on: ["handle_manager", "ci-mysql"]
+
+  mysqlinit:
+    image: mysql:5.5
+    volumes:
+      - ./mysqldump:/mnt/mysqldump
+    entrypoint: [ "mysql", "-h", "ci-mysql", "-e", "source /mnt/mysqldump"]
+    depends_on: [ "ci-mysql" ]
+
+  handle_manager:
+    image: kbase/handle_mngr:latest
+    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/handle_mngr/handle_mngr-ci.yml"]
+    ports:
+      - "9001:9001"
+    secrets:
+      - auth_data
+
+  ci-mysql:
+    image: mysql:5.5
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "3306:3306"
+
+# Authentication token for gitlab needs to be specified in the secrets file into the
+# form "PRIVATE-TOKEN:GITLABTOKENSTRING" with no space after the colon, this sets an HTTP header
+# of PRIVATE_TOKEN which will be used by the gitlab service endpoint for auth
+secrets:
+  auth_data:
+    file: secrets/auth_data
+
