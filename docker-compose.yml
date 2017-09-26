@@ -2,18 +2,25 @@ version: "3.1"
 services:
   workspace:
     image: kbase/kb_workspace
+    secrets:
+      - auth_data
     ports:
       - "7058:7058"
     depends_on: ["auth2", "mongoinit", "handle_service", "handle_manager"]
 
   shock:
     image: kbase/kb_shock:develop
+    secrets:
+      - auth_data
     ports:
       - "7044:7044"
     depends_on: ["ci-mongo"]
 
   auth2:
     image: kbase/kb_auth2
+    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/auth2/auth2-minikb.yml"]
+    secrets:
+      - auth_data
     ports:
       - "8080:8080"
     depends_on: ["ci-mongo"]
@@ -29,10 +36,11 @@ services:
     image: mongo:2
     ports:
       - "27017:27017"
-
+    command: --smallfiles
+  
   handle_service:
     image: kbase/handle_service:${TRAVIS_BRANCH:-latest}
-    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/handle_service/handle_service-ci.yml"]
+    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/handle_service/handle_service-minikb.yml"]
     ports:
       - "7109:7109"
     secrets:
@@ -48,7 +56,7 @@ services:
 
   handle_manager:
     image: kbase/handle_mngr:latest
-    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/handle_mngr/handle_mngr-ci.yml"]
+    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/handle_mngr/handle_mngr-minikb.yml"]
     ports:
       - "9001:9001"
     secrets:
