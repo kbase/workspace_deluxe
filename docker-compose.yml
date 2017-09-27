@@ -10,6 +10,8 @@ services:
 
   shock:
     image: kbase/kb_shock:develop
+    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/shock/shock-minikb.yml"]
+
     secrets:
       - auth_data
     ports:
