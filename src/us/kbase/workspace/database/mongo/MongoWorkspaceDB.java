@@ -419,7 +419,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			// this is almost impossible to test and will probably almost never
 			// happen
 			throw new PreExistingWorkspaceException(String.format(
-					"Workspace name %s is already in use", wsname));
+					"Workspace name %s is already in use", wsname), mdk);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
