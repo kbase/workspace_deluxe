@@ -1,6 +1,19 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.7.1-hotfix1 (Released 9/27/17)
+-----------------------------------------
+
+BACKWARDS INCOMPATIBILIES:
+
+* The workspaces collection name index has been made sparse. The index must be changed before
+  deploying this version.
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* Fixed a bug that could cause workspace clones to fail under certain conditions.
+
+
 VERSION: 0.7.1 (Released 6/22/17)
 ---------------------------------
 
