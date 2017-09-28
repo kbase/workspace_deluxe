@@ -128,7 +128,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//find workspaces by permanent id
 		ws.put(Arrays.asList(Fields.WS_ID), Arrays.asList(IDX_UNIQ));
 		//find workspaces by mutable name
-		ws.put(Arrays.asList(Fields.WS_NAME), Arrays.asList(IDX_UNIQ));
+		ws.put(Arrays.asList(Fields.WS_NAME), Arrays.asList(IDX_UNIQ, IDX_SPARSE));
 		//find workspaces by metadata
 		ws.put(Arrays.asList(Fields.WS_META), Arrays.asList(IDX_SPARSE));
 		INDEXES.put(COL_WORKSPACES, ws);
@@ -136,9 +136,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//workspace acl indexes
 		Map<List<String>, List<String>> wsACL = new HashMap<List<String>, List<String>>();
 		//get a user's permission for a workspace, index covers queries
-		wsACL.put(Arrays.asList(Fields.ACL_WSID, Fields.ACL_USER, Fields.ACL_PERM), Arrays.asList(IDX_UNIQ));
+		wsACL.put(Arrays.asList(Fields.ACL_WSID, Fields.ACL_USER, Fields.ACL_PERM),
+				Arrays.asList(IDX_UNIQ));
 		//find workspaces to which a user has some level of permission, index coves queries
-		wsACL.put(Arrays.asList(Fields.ACL_USER, Fields.ACL_PERM, Fields.ACL_WSID), Arrays.asList(""));
+		wsACL.put(Arrays.asList(Fields.ACL_USER, Fields.ACL_PERM, Fields.ACL_WSID),
+				Arrays.asList(""));
 		INDEXES.put(COL_WS_ACLS, wsACL);
 		
 		//workspace object indexes
