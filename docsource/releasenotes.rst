@@ -17,6 +17,8 @@ ADMIN NOTES:
 * Two new indexes have been added to the workspace versions mongo collection:
     * the index ``{savedby: 1}`` with no options
     * the index ``{ws: 1, id: 1, ver: -1}`` with ``{unique: 1}``
+* The workspaces collection name index has been made sparse. The index must be changed before
+  deploying this version.
 
 NEW FEATURES:
 
@@ -49,6 +51,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * Fixed a bug where performing a permissions search for a readable, deleted object with an
   incoming reference from a readable, non-deleted object would fail with a deleted object
   exception.
+* Fixed a bug that could cause workspace clones to fail under certain conditions.
 
 VERSION: 0.7.1 (Released 6/22/17)
 ---------------------------------
