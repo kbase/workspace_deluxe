@@ -1,14 +1,11 @@
 Workspace service release notes
 ===============================
 
-<<<<<<< HEAD
 VERSION: 0.8.0 (Released TBD)
 --------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
 
-* The workspaces collection name index has been made sparse. The index must be changed before
-  deploying this version.
 * The ``undelete_workspace`` method has been removed. Workspaces are now considered to be
   permanently deleted.
 * Building and running the service now requires Java 8.
@@ -20,6 +17,8 @@ ADMIN NOTES:
 * Two new indexes have been added to the workspace versions mongo collection:
     * the index ``{savedby: 1}`` with no options
     * the index ``{ws: 1, id: 1, ver: -1}`` with ``{unique: 1}``
+* The workspaces collection name index has been made sparse. The index must be changed before
+  deploying this version.
 
 NEW FEATURES:
 
