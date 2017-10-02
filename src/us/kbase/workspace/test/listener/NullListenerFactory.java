@@ -50,7 +50,7 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 
 		@Override
 		public void cloneWorkspace(long id, boolean isPublic, Instant time) {
-			print(String.format("cloneWorkspace %s %s", id, isPublic, time));
+			print(String.format("cloneWorkspace %s %s %s", id, isPublic, time));
 		}
 
 		@Override
