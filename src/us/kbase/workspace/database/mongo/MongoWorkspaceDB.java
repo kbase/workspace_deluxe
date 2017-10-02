@@ -137,8 +137,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.add(idxSpec(Fields.WS_OWNER, 1));
 		//find workspaces by permanent id
 		ws.add(idxSpec(Fields.WS_ID, 1, IDX_UNIQ));
-		//find workspaces by mutable name
-		ws.add(idxSpec(Fields.WS_NAME, 1, IDX_UNIQ));
+		// find workspaces by mutable name. Sparse to avoid indexing workspaces without names,
+		// which means the workspace is mid-clone. Since null can only be in the unique index
+		// once, only workspace could be clones at a time w/o sparse.
+		ws.add(idxSpec(Fields.WS_NAME, 1, IDX_UNIQ, IDX_SPARSE));
 		//find workspaces by metadata
 		ws.add(idxSpec(Fields.WS_META, 1, IDX_SPARSE));
 		indexes.put(COL_WORKSPACES, ws);
@@ -467,7 +469,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			// this is almost impossible to test and will probably almost never
 			// happen
 			throw new PreExistingWorkspaceException(String.format(
-					"Workspace name %s is already in use", wsname));
+					"Workspace name %s is already in use", wsname), mdk);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);

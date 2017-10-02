@@ -1,11 +1,14 @@
 Workspace service release notes
 ===============================
 
+<<<<<<< HEAD
 VERSION: 0.8.0 (Released TBD)
 --------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
 
+* The workspaces collection name index has been made sparse. The index must be changed before
+  deploying this version.
 * The ``undelete_workspace`` method has been removed. Workspaces are now considered to be
   permanently deleted.
 * Building and running the service now requires Java 8.
@@ -49,6 +52,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * Fixed a bug where performing a permissions search for a readable, deleted object with an
   incoming reference from a readable, non-deleted object would fail with a deleted object
   exception.
+* Fixed a bug that could cause workspace clones to fail under certain conditions.
 
 VERSION: 0.7.1 (Released 6/22/17)
 ---------------------------------

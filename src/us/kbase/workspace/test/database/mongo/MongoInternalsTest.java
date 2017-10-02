@@ -215,6 +215,25 @@ public class MongoInternalsTest {
 	}
 	
 	@Test
+	public void cloneWithWorkspaceInCloningState() throws Exception {
+		/* test that cloning a workspace while another workspace is in the cloning state
+		 * (could be due to multiple clones occurring at the same time or a clone stuck in mid
+		 * clone state due to a DB or service failure) works.
+		 * Prior implementations used a unique non-sparse name index and omitted the workspace name
+		 * when inserting the record, which caused null to be added to the index. This means
+		 * only one workspace could be in the cloning state at once, which is exceptionally bad
+		 * when a clone fails and a record is left in the db in the cloning state.
+		 */
+		WorkspaceUser user = new WorkspaceUser("foo");
+		
+		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
+		createWSForClone(user, "baz", false, null, meta);
+		ws.createWorkspace(user, "whee", false, null, meta);
+		ws.cloneWorkspace(user, new WorkspaceIdentifier("whee"), "foo", false, null, meta, null);
+		checkClonedWorkspace(2, "whee", user, null, new HashMap<String, String>(), false, true);
+	}
+	
+	@Test
 	public void cloningWorkspaceInaccessible() throws Exception {
 		final WorkspaceUser user1 = new WorkspaceUser("shoopty");
 		final WorkspaceUser user2 = new WorkspaceUser("whoop");
