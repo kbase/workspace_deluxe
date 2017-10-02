@@ -1,5 +1,6 @@
 package us.kbase.workspace.database;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -90,16 +91,22 @@ public interface WorkspaceDatabase {
 	 * 
 	 * @param wsid the workspace for which metadata will be altered.
 	 * @param meta the metadata to add to the workspace.
+	 * @return the workspace modification time.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 * @throws IllegalArgumentException if no metadata is supplied or the 
 	 * updated metadata exceeds the allowed size.
 	 */
-	public void setWorkspaceMeta(ResolvedWorkspaceID wsid,
-			WorkspaceUserMetadata meta)
+	public Instant setWorkspaceMeta(ResolvedWorkspaceID wsid, WorkspaceUserMetadata meta)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
+	/** Remove a metadata key from a workspace.
+	 * @param wsid the workspace for which metadata will be altered.
+	 * @param key the key to remove from the metadata.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 */
+	public Instant removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
 			throws WorkspaceCommunicationException;
 	
 	/** Clone a workspace.
@@ -133,34 +140,56 @@ public interface WorkspaceDatabase {
 	/** Lock a workspace, preventing further modifications other than making the workspace
 	 * publicly readable.
 	 * @param wsid the workspace.
+	 * @return the modification date of the workspace.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
 	 * the storage system.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
 	 */
-	public void lockWorkspace(ResolvedWorkspaceID wsid)
+	public Instant lockWorkspace(ResolvedWorkspaceID wsid)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public void setPermissions(ResolvedWorkspaceID rwsi,
-			List<WorkspaceUser> users, Permission perm) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	/** Set permissions on a workspace.
+	 * @param rwsi the workspace to alter.
+	 * @param users the users for which the permission will be set.
+	 * @param perm the permission to set.
+	 * @return the workspace modification date.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 */
+	public Instant setPermissions(
+			ResolvedWorkspaceID rwsi,
+			List<WorkspaceUser> users,
+			Permission perm)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	/** Change a workspace's owner.
 	 * @param rwsi the workspace.
 	 * @param user the current owner.
 	 * @param newUser the new owner.
 	 * @param newName the new workspace name, or null if the name should not change.
+	 * @return the workspace modification time.
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
 	 * the storage system.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
 	 */
-	public void setWorkspaceOwner(
+	public Instant setWorkspaceOwner(
 			ResolvedWorkspaceID rwsi,
 			WorkspaceUser user,
 			WorkspaceUser newUser,
 			Optional<String> newName)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public void setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
+	/** Set the global permission on a workspace - e.g. whether the workspace is readable by the
+	 * public or not.
+	 * @param rwsi the workspace.
+	 * @param perm the new global permission for the workspace - either READ or NONE.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 */
+	public Instant setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Get the permission for a workspace for one user. Takes global
@@ -280,8 +309,15 @@ public interface WorkspaceDatabase {
 			ResolvedWorkspaceID rwsi)
 			throws CorruptWorkspaceDBException, WorkspaceCommunicationException;
 	
-	public void setWorkspaceDescription(ResolvedWorkspaceID wsid,
-			String description) throws WorkspaceCommunicationException;
+	/** Set or change the workspace description.
+	 * @param wsid the workspace to modify.
+	 * @param description the workspace description.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 */
+	public Instant setWorkspaceDescription(ResolvedWorkspaceID wsid, String description)
+			throws WorkspaceCommunicationException;
 
 	public String getWorkspaceDescription(ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
@@ -465,15 +501,15 @@ public interface WorkspaceDatabase {
 	/** Rename a workspace.
 	 * @param wsid the workspace.
 	 * @param newname the new name for the workspace.
+	 * @return the workspace modification time.
 	 * @throws WorkspaceCommunicationException if a communication error with
 	 * the storage system occurs
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
 	 */
-	public void renameWorkspace(ResolvedWorkspaceID wsid, String newname)
+	public Instant renameWorkspace(ResolvedWorkspaceID wsid, String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public ObjectInformation renameObject(
-			ObjectIDResolvedWS object, String newname)
+	public ObjectInfoWithModDate renameObject(ObjectIDResolvedWS object, String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public void setObjectsHidden(Set<ObjectIDResolvedWS> objectIDs,
@@ -483,18 +519,24 @@ public interface WorkspaceDatabase {
 	/** Delete or undelete objects.
 	 * @param objectIDs the objects to delete.
 	 * @param delete true to delete the object, false to undelete.
-	 * @return the resolved objects.
+	 * @return the resolved objects mapped to the time of their deletion.
 	 * @throws NoSuchObjectException if an object doesn't exist.
 	 * @throws WorkspaceCommunicationException if a communication error occurs with the storage
 	 * system.
 	 */
-	public Set<ResolvedObjectIDNoVer> setObjectsDeleted(
+	public Map<ResolvedObjectIDNoVer, Instant> setObjectsDeleted(
 			Set<ObjectIDResolvedWS> objectIDs,
 			boolean delete)
 			throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 
-	public void setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
+	/** Delete or undelete a workspace.
+	 * @param wsid the workspace ID.
+	 * @param delete true to delete the workspace, false to undelete it.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException
+	 */
+	public Instant setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
 			throws WorkspaceCommunicationException;
 	
 	public List<WorkspaceInformation> getWorkspaceInformation(
