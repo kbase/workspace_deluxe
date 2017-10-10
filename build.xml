@@ -231,7 +231,7 @@
     <!-- first copy some files into the deployment directory -->
     <copy file="server_scripts/glassfish_administer_service.py" todir="deployment/bin" />
     <chmod file="deployment/bin/glassfish_administer_service.py" perm="755" />
-    <copy file="${dist}/${war.file}" todir="deployment/lib" />
+    <copy file="${dist}/${war.file}" todir="deployment/services/workspace/" />
     <exec executable="./build_docker_image.sh" />
   </target>
 

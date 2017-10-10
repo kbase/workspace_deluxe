@@ -1,4 +1,4 @@
-FROM kbase/kb_jdk
+FROM kbase/kb_jre
 
 # These ARGs values are passed in via the docker build command
 ARG BUILD_DATE
@@ -11,7 +11,7 @@ RUN cd /usr/local && \
     rm glassfish-3.1.2.2.zip && \
     echo >>glassfish3/glassfish/config/osgi.properties 'jre-1.8=${jre-1.7}'
 
-ENV GLASSFISH /usr/local/glassfish-3.1.2.2
+ENV GLASSFISH /usr/local/glassfish3
 
 RUN mkdir /kb
 
