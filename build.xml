@@ -226,7 +226,7 @@
     <delete dir="workspace_docs"/>
   </target>
 
-  <target name="dockerimage" depends="buildwar" description="build the docker image">
+  <target name="docker_image" depends="buildwar" description="build the docker image">
     <!-- make the docker image that for workspace -->
     <!-- first copy some files into the deployment directory -->
     <copy file="server_scripts/glassfish_administer_service.py" todir="deployment/bin" />
