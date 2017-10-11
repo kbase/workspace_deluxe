@@ -92,5 +92,5 @@ export KB_DEPLOYMENT_CONFIG=$DIR/../conf/deployment.cfg
 # rm -rf /kb/deployment/services/workspace/glassfish_domain/Workspace/osgi-cache
 # Try to expand the template and then startup the jetty server if only that succeeds
 ${J2} $TEMPLATE $DATA_SRC > $KB_DEPLOYMENT_CONFIG && \
-$DIR/glassfish_administer_service.py --admin $GLASSFISH/bin/asadmin --domain Workspace --domain-dir $DIR/../services/workspace/glassfish_domain --war $DIR/../services/workspace/WorkspaceService.war --port 7058 --threads 20 --Xms 10000 --Xmx 15000 --properties KB_DEPLOYMENT_CONFIG=$KB_DEPLOYMENT_CONFIG
+$DIR/glassfish_administer_service.py --verbose --admin $GLASSFISH/bin/asadmin --domain Workspace --domain-dir $DIR/../services/workspace/glassfish_domain --war $DIR/../services/workspace/WorkspaceService.war --port 7058 --threads 20 --Xms 10000 --Xmx 15000 --properties KB_DEPLOYMENT_CONFIG=$KB_DEPLOYMENT_CONFIG
 tail -n 1000 -f $DIR/../services/workspace/glassfish_domain/Workspace/logs/server.log
