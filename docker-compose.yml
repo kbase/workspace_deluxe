@@ -1,10 +1,9 @@
 version: "3.1"
+#
 services:
   workspace:
     image: kbase/kb_workspace
-    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/workspace/workspace-minikb.yml"]
-    secrets:
-      - auth_data
+    command: [ "https://raw.githubusercontent.com/kbase/workspace_deluxe/docker/deployment/conf/workspace-minikb.yml"]
     ports:
       - "7058:7058"
     depends_on: ["auth2", "handle_service", "handle_manager", "ci-mongo"]
@@ -19,39 +18,28 @@ services:
   
   handle_service:
     image: kbase/handle_service:${TRAVIS_BRANCH:-latest}
-    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/handle_service/handle_service-minikb.yml"]
+    command: [ "https://raw.githubusercontent.com/kbase/workspace_deluxe/docker/deployment/conf/handle_service-minikb.yml"]
     ports:
       - "7109:7109"
-    secrets:
-      - auth_data
     depends_on: ["handle_manager", "ci-mysql", "mysqlinit", "shock", "auth2"]
 
   shock:
     image: kbase/kb_shock:develop
-    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/shock/shock-minikb.yml"]
-
-    secrets:
-      - auth_data
+    command: [ "https://raw.githubusercontent.com/kbase/workspace_deluxe/docker/deployment/conf/shock-minikb.yml"]
     ports:
       - "7044:7044"
     depends_on: ["ci-mongo"]
 
   handle_manager:
     image: kbase/handle_mngr:latest
-    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/handle_mngr/handle_mngr-minikb.yml"]
+    command: [ "https://raw.githubusercontent.com/kbase/workspace_deluxe/docker/deployment/conf/handle_mngr-minikb.yml"]
     ports:
       - "9001:9001"
     depends_on: ["auth2"]
-    secrets:
-      - auth_data
 
   auth2:
     image: kbase/kb_auth2
-    command: [ "https://gitlab.kbase.lbl.gov:1443/devops/serviceconf/raw/master/auth2/auth2-minikb.yml"]
-#    command: [ "/run/secrets/auth_config"]
-    secrets:
-      - auth_data
-#      - auth_config
+    command: [ "https://raw.githubusercontent.com/kbase/workspace_deluxe/docker/deployment/conf/auth2-minikb.yml"]
     ports:
       - "8080:8080"
     depends_on: ["ci-mongo"]
@@ -73,7 +61,7 @@ services:
     image: mysql:5.5
     volumes:
       - ./mysqldump:/mnt/mysqldump
-    entrypoint: [ "mysql", "-h", "ci-mysql", "-e", "source /mnt/mysqldump"]
+    entrypoint: [ "mysql", "-h", "ci-mysql", "-v", "-e", "source /mnt/mysqldump"]
     depends_on: [ "ci-mysql" ]
 
   ci-mysql:
@@ -82,12 +70,3 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
     ports:
       - "3306:3306"
-
-# Authentication token for gitlab needs to be specified in the secrets file into the
-# form "PRIVATE-TOKEN:GITLABTOKENSTRING" with no space after the colon, this sets an HTTP header
-# of PRIVATE_TOKEN which will be used by the gitlab service endpoint for auth
-secrets:
-  auth_data:
-    file: secrets/auth_data
-  auth_config:
-    file: /Users/sychan/src/serviceconf/auth2/auth2-minikb.yml
