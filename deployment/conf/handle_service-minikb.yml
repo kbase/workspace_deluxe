@@ -1,4 +1,0 @@
-mysql_user : hsiadmin
-mysql_pass : fakesecurity
-default_shock_server: http://shock:7044/
-auth_service_url : http://auth2:8080/api/legacy/KBase/Sessions/Login
