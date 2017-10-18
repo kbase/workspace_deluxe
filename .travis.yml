@@ -1,8 +1,8 @@
 dist: trusty
 sudo: required
 language: java
-java:
-  - openjdk
+jdk:
+  - openjdk8
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y ant-optional
@@ -14,7 +14,7 @@ install:
   - cd -
 
 script:
-  - ant compile
+  - ant $ANT_TEST
 
 jobs:
   include:
