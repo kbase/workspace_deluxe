@@ -7,23 +7,19 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y ant-optional
 env:
-    - ANT_TEST=compile
+  global:
+    secure: "jhGBqc4vW+ALi5S2soFhBpfV11d6xXswwUA/s53WT2N4sNIA2vLOf55vI5cQcOnqOTe86PQpLXgbV5Eycp+cunaQJBTzEjAGJuHS/N1ThWyWo5MDchM78winTUYFBUrvjd1XhBx5JBJCLyQowl6yZa14LQ6uj4zbTcXK8VAin8w="
+    secure: "YZhh9Ry9SGHp9043WvZhJDGHH2V1V7H6DuPwrGuCouOIJesaqM+zAM28GnRSkSLk5yz9M9oty/3d+d20mpwojbJNddROAvCGz54jeaSMciWfrnQiMi2coU8Bgzch8reh5u1tSNpVqO73MRzX4O2dGKs5SiI/YIHl/URiWpe9GsE="
 install:
   - cd ..
   - git clone https://github.com/kbase/jars
   - cd -
 
 script:
-  - ant $ANT_TEST
+  - ant compile
 
-jobs:
-  include:
-    - stage: deploy
-      env: # The following are secure declarations for DOCKER_EMAIL, DOCKER_USER, DOCKER_PASS
-        secure: "jhGBqc4vW+ALi5S2soFhBpfV11d6xXswwUA/s53WT2N4sNIA2vLOf55vI5cQcOnqOTe86PQpLXgbV5Eycp+cunaQJBTzEjAGJuHS/N1ThWyWo5MDchM78winTUYFBUrvjd1XhBx5JBJCLyQowl6yZa14LQ6uj4zbTcXK8VAin8w="
-        secure: "YZhh9Ry9SGHp9043WvZhJDGHH2V1V7H6DuPwrGuCouOIJesaqM+zAM28GnRSkSLk5yz9M9oty/3d+d20mpwojbJNddROAvCGz54jeaSMciWfrnQiMi2coU8Bgzch8reh5u1tSNpVqO73MRzX4O2dGKs5SiI/YIHl/URiWpe9GsE="
-      script: # Only push to dockerhub if this isn't a PR and we're updating master or develop
-        - docker pull kbase/kb_jre
-        - ant docker_image
-        - IMAGE_NAME=kbase/kb_workspace ./push2dockerhub.sh
+deploy:
+  - docker pull kbase/kb_jre
+  - ant docker_image
+  - IMAGE_NAME=kbase/kb_workspace ./push2dockerhub.sh
 
