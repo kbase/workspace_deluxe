@@ -3,6 +3,7 @@ package us.kbase.workspace.modules;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -273,14 +274,13 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 			dobj.put("accessGroupObjectId", objectId == null ? null : "" + objectId);
 			dobj.put("version", version);
 			dobj.put("newName", newName);
-			dobj.put("timestamp", time.toEpochMilli());
+			dobj.put("timestamp", Date.from(time));
 			dobj.put("eventType", eventType);
 			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
 			dobj.put("storageObjectTypeVersion", type == null ?
 					null : Integer.parseInt(type.split("-")[1].split("\\.")[0]));
 			dobj.put("isGlobalAccessed", isPublic);
-			dobj.put("indexed", false);
-			dobj.put("processed", false);
+			dobj.put("procst", "UNPROC");
 			try {
 				db.getCollection(COLLECTION).insert(dobj);
 			} catch (MongoException me) {
