@@ -16,6 +16,7 @@ install:
   - cd -
 
 script:
+  - ant javadoc
   - ant compile
 
 after_success:
