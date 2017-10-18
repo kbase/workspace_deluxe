@@ -11,7 +11,7 @@ install:
   - cd -
 
 script:
-  - echo "I would run tests in travis if I could!"
+  - ant compile
 
 jobs:
   include:
