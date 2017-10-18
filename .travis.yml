@@ -18,7 +18,7 @@ install:
 script:
   - ant compile
 
-deploy:
+after_success:
   - docker pull kbase/kb_jre
   - ant docker_image
   - IMAGE_NAME=kbase/kb_workspace ./push2dockerhub.sh
