@@ -7,7 +7,7 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y ant-optional
 env:
-  global:
+  global: # The following are for the dockerhub DOCKER_USER and DOCKER_PASS env vars used in the push script
     secure: "jhGBqc4vW+ALi5S2soFhBpfV11d6xXswwUA/s53WT2N4sNIA2vLOf55vI5cQcOnqOTe86PQpLXgbV5Eycp+cunaQJBTzEjAGJuHS/N1ThWyWo5MDchM78winTUYFBUrvjd1XhBx5JBJCLyQowl6yZa14LQ6uj4zbTcXK8VAin8w="
     secure: "YZhh9Ry9SGHp9043WvZhJDGHH2V1V7H6DuPwrGuCouOIJesaqM+zAM28GnRSkSLk5yz9M9oty/3d+d20mpwojbJNddROAvCGz54jeaSMciWfrnQiMi2coU8Bgzch8reh5u1tSNpVqO73MRzX4O2dGKs5SiI/YIHl/URiWpe9GsE="
 install:
