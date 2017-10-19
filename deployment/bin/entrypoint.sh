@@ -59,7 +59,8 @@ if [ "$1" ] ; then
         TMPDIR=/tmp/data$$
         mkdir $TMPDIR
         # Fetch the file, and have it error out on any redirects to avoid a 200 response
-        # that is just a redirect to a login screen
+        # that is just a redirect to a login screen. Ignore cert signing issues for when
+        # we connect to an internal server with self-signed certs.
         wget -q -nd --max-redirect=0 --no-check-certificate --header="${AUTH_DATA}" -P $TMPDIR -N $1  || \
             error_exit "Error fetching $1"
         # Use a file glob to pickup whatever the file name ended up being (to avoid parsing URL for name)
@@ -78,6 +79,7 @@ if [ "$2" ] ; then
         TMPDIR2=/tmp/template$$
         mkdir $TMPDIR2
         pushd $TMPDIR2
+        # Ignore certs signing issues for when we connect to an internal server with self-signed certs.
         wget -q -nd --max-redirect=0 --no-check-certificate --header="${AUTH_TEMPLATE}" -P $TMPDIR2 -N $2 || \
             error_exit "Error fetching $2"
         popd
