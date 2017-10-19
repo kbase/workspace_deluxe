@@ -11,6 +11,8 @@
 # sychan@lbl.gov
 # 8/31/2017
 
+# Assign the tag to be used for the docker image, and pull the git commit from either
+# the TRAVIS_COMMIT env var if available, or else get the short commit via git cmd
 TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH ; fi`
 COMMIT=${TRAVIS_COMMIT:-`git rev-parse --short HEAD`}
 
