@@ -15,7 +15,6 @@ import sys
 
 _PARALLEL_GC = "-XX:-UseParallelGC"
 _PARALLEL_GC_ESC = "-XX\:-UseParallelGC"
-_VERBOSE = False
 
 
 def _parseArgs():
@@ -56,10 +55,11 @@ def _parseArgs():
 
 class CommandGlassfishDomain(object):
 
-    def __init__(self, asadminpath, domain, domainpath):
+    def __init__(self, asadminpath, domain, domainpath, verbose):
         self.asadminpath = asadminpath
         self.domain = domain
         self.path = None
+        self.verbose = verbose
         if (domainpath):
             domaindir = os.path.abspath(os.path.expanduser(domainpath))
             if not os.path.isdir(domaindir):
@@ -272,7 +272,7 @@ class CommandGlassfishDomain(object):
         return self._run_local_command('list-domains')
 
     def _run_local_command(self, subcmd, *args):
-        if _VERBOSE:
+        if self.verbose:
             print("Running local command:", subcmd, list(args), file=sys.stderr)
         cmd = [self.asadminpath, subcmd]
         if (self.path):
@@ -284,7 +284,7 @@ class CommandGlassfishDomain(object):
             sys.exit(1)
 
     def _run_remote_command(self, *cmd):
-        if _VERBOSE:
+        if self.verbose:
             print("Running remote command:", list(cmd), file=sys.stderr)
         try:
             return subprocess.check_output([self.asadminpath, '-p',
@@ -296,8 +296,7 @@ class CommandGlassfishDomain(object):
 
 if __name__ == '__main__':
     args = _parseArgs()
-    _VERBOSE = args.verbose
-    gf = CommandGlassfishDomain(args.admin, args.domain, args.domain_dir)
+    gf = CommandGlassfishDomain(args.admin, args.domain, args.domain_dir, args.verbose)
     if args.war is None:
         gf.stop_service(args.port)
     else:
