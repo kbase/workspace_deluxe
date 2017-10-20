@@ -28,10 +28,11 @@ handle-manager-token={{ handle_manager_token|default("") }}
 kbase-admin-token={{ kbase_admin_token|default("") }}
 
 # configuration options for RESKE
-listeners=Search,KnowledgeEngine
-listener-Search-class=us.kbase.workspace.modules.RESKEPrototypeEventHandlerFactory
+listeners={{ listeners|default("Search,KnowledgeEngine") }}
+listener-Search-class={{ listener_search_class|default("us.kbase.workspace.modules.SearchPrototypeEventHandlerFactory") }}
 listener-Search-config-mongohost={{ listener_search_config_mongohost|default("") }}
-listener-Search-config-mongodatabase=DataStatus
-listener-KnowledgeEngine-class=us.kbase.workspace.modules.KnowledgeEnginePrototypeEventHandlerFactory
+listener-Search-config-mongodatabase={{ listener_search_config_mongodatabase|default("DataStatus") }}
+listener-KnowledgeEngine-class={{ listener_KnowledgeEngine_class|default("us.kbase.workspace.modules.KnowledgeEnginePrototypeEventHandlerFactory") }}
 listener-KnowledgeEngine-config-mongohost={{ listener_knowledgeengine_config_mongohost|default("") }}
-listener-KnowledgeEngine-config-mongodatabase=KnowledgeEngine
+listener-KnowledgeEngine-config-mongodatabase={{ listener_KnowledgeEngine_config_mongodatabase|default("KnowledgeEngine") }}
+
