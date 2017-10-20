@@ -26,4 +26,5 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
       us.kbase.vcs-branch=$BRANCH \
       maintainer="Steve Chan sychan@lbl.gov"
 
+EXPOSE 7058
 ENTRYPOINT [ "/kb/deployment/bin/entrypoint.sh" ]
