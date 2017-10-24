@@ -27,7 +27,7 @@ import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 /** A prototype event handler that emits workspace events in a format understood by the KBase
- * RESKE service. In production the workspace handler should feed into a message queue with a
+ * Search service. In production the workspace handler should feed into a message queue with a
  * generic format and then other services should read from that queue.
  * @author gaprice@lbl.gov
  *
@@ -48,7 +48,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 			mongoUser = null;
 		}
 		final String mongoPwd = cfg.get("mongopwd");
-		LoggerFactory.getLogger(getClass()).info("Starting RESKE Prototype event handler. " +
+		LoggerFactory.getLogger(getClass()).info("Starting Search Prototype event handler. " +
 				"mongohost={} mongodatabase={} mongouser={}", mongoHost, mongoDatabase, mongoUser);
 		return new SearthPrototypeEventHandler(mongoHost, mongoDatabase, mongoUser, mongoPwd);
 	}
@@ -67,7 +67,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 		private static final String REMOVE_GLOBAL_READ = "UNPUBLISH_ACCESS_GROUP";
 		
 		// this might need to be configurable
-		private static final String COLLECTION = "ObjectStatusEvents";
+		private static final String COLLECTION = "searchEvents";
 		
 		private final DB db;
 
@@ -177,7 +177,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 			} else {
 				LoggerFactory.getLogger(getClass()).info(
 						"Workspace {} was undeleted. Workspace undeletion events are not " +
-								"supported by RESKE", id);
+								"supported by KBase Search", id);
 			}
 			
 		}
@@ -269,18 +269,18 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 			}
 			
 			final DBObject dobj = new BasicDBObject();
-			dobj.put("storageCode", DATA_SOURCE);
-			dobj.put("accessGroupId", (int) workspaceId);
-			dobj.put("accessGroupObjectId", objectId == null ? null : "" + objectId);
-			dobj.put("version", version);
-			dobj.put("newName", newName);
-			dobj.put("timestamp", Date.from(time));
-			dobj.put("eventType", eventType);
-			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
-			dobj.put("storageObjectTypeVersion", type == null ?
+			dobj.put("strcde", DATA_SOURCE);
+			dobj.put("accgrp", (int) workspaceId);
+			dobj.put("objid", objectId == null ? null : "" + objectId);
+			dobj.put("ver", version);
+			dobj.put("newname", newName);
+			dobj.put("time", Date.from(time));
+			dobj.put("evtype", eventType);
+			dobj.put("objtype", type == null ? null : type.split("-")[0]);
+			dobj.put("objtypever", type == null ?
 					null : Integer.parseInt(type.split("-")[1].split("\\.")[0]));
-			dobj.put("isGlobalAccessed", isPublic);
-			dobj.put("procst", "UNPROC");
+			dobj.put("public", isPublic);
+			dobj.put("status", "UNPROC");
 			try {
 				db.getCollection(COLLECTION).insert(dobj);
 			} catch (MongoException me) {
@@ -293,7 +293,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 		private boolean wsidOK(final long workspaceId) {
 			if (workspaceId > Integer.MAX_VALUE) {
 				LoggerFactory.getLogger(getClass()).error(
-						"Workspace id {} is out of int range. Cannot send data to RESKE",
+						"Workspace id {} is out of int range. Cannot send data to KBase Search",
 						workspaceId);
 				return false;
 			}
