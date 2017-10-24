@@ -48,6 +48,7 @@ import us.kbase.workspace.database.CopyResult;
 import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectInfoWithModDate;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
@@ -94,6 +95,8 @@ import com.mongodb.MongoException;
 import com.mongodb.WriteResult;
 
 public class MongoWorkspaceDB implements WorkspaceDatabase {
+	
+	// TODO TEST need some lower level tests for this module rather than just integration tests
 
 	public static final String COL_ADMINS = CollectionNames.COL_ADMINS;
 	public static final String COL_WS_CNT = CollectionNames.COL_WS_CNT;
@@ -134,8 +137,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.add(idxSpec(Fields.WS_OWNER, 1));
 		//find workspaces by permanent id
 		ws.add(idxSpec(Fields.WS_ID, 1, IDX_UNIQ));
-		//find workspaces by mutable name
-		ws.add(idxSpec(Fields.WS_NAME, 1, IDX_UNIQ));
+		// find workspaces by mutable name. Sparse to avoid indexing workspaces without names,
+		// which means the workspace is mid-clone. Since null can only be in the unique index
+		// once, only workspace could be clones at a time w/o sparse.
+		ws.add(idxSpec(Fields.WS_NAME, 1, IDX_UNIQ, IDX_SPARSE));
 		//find workspaces by metadata
 		ws.add(idxSpec(Fields.WS_META, 1, IDX_SPARSE));
 		indexes.put(COL_WORKSPACES, ws);
@@ -464,7 +469,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			// this is almost impossible to test and will probably almost never
 			// happen
 			throw new PreExistingWorkspaceException(String.format(
-					"Workspace name %s is already in use", wsname));
+					"Workspace name %s is already in use", wsname), mdk);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -518,14 +523,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_MODDATE); 
 	
 	@Override
-	public void setWorkspaceMeta(final ResolvedWorkspaceID rwsi,
+	public Instant setWorkspaceMeta(final ResolvedWorkspaceID rwsi,
 			final WorkspaceUserMetadata newMeta)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
 		
 		if (newMeta == null || newMeta.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Metadata cannot be null or empty");
+			throw new IllegalArgumentException("Metadata cannot be null or empty");
 		}
 		final Map<String, Object> ws = query.queryWorkspace(rwsi, FLDS_WS_META);
 		@SuppressWarnings("unchecked")
@@ -545,6 +549,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * happens once at the beginning of the method. That has virtually no 
 		 * repercussions whatsoever, so meh.
 		 */
+		Instant time = null;
 		for (final Entry<String, String> e: newMeta.getMetadata().entrySet()) {
 			final String key = e.getKey();
 			final String value = e.getValue();
@@ -553,9 +558,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				//replace the value if it exists already
 				WriteResult wr;
 				try {
+					time = Instant.now();
 					wr = wsjongo.getCollection(COL_WORKSPACES)
 							.update(M_WS_META_QRY, rwsi.getID(), key)
-							.with(M_SET_WS_META_WTH, value, new Date());
+							.with(M_SET_WS_META_WTH, value, Date.from(time));
 				} catch (MongoException me) {
 					throw new WorkspaceCommunicationException(
 							"There was a problem communicating with the database",
@@ -566,11 +572,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					continue;
 				}
 				//add the key/value pair to the array
+				time = Instant.now();
 				try {
 					wr = wsjongo.getCollection(COL_WORKSPACES)
 							.update(M_SET_WS_META_NOT_QRY, rwsi.getID(), key)
-							.with(M_SET_WS_META_NOT_WTH, key, value,
-									new Date());
+							.with(M_SET_WS_META_NOT_WTH, key, value, Date.from(time));
 				} catch (MongoException me) {
 					throw new WorkspaceCommunicationException(
 							"There was a problem communicating with the database",
@@ -586,6 +592,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				 */
 			}
 		}
+		return time;
 	}
 	
 	
@@ -594,17 +601,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_META, Fields.META_KEY, Fields.WS_MODDATE);
 	
 	@Override
-	public void removeWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
+	public Instant removeWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
 			final String key) throws WorkspaceCommunicationException {
-		
+		final Instant time = Instant.now();
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_META_QRY, rwsi.getID(), key)
-					.with(M_REM_META_WTH, key, new Date());
+					.with(M_REM_META_WTH, key, Date.from(time));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		return time;
 	}
 	
 	private static final Set<String> FLDS_CLONE_WS =
@@ -761,7 +769,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_LOCKED);
 	
 	@Override
-	public void lockWorkspace(final ResolvedWorkspaceID rwsi)
+	public Instant lockWorkspace(final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
@@ -771,6 +779,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		// ws mod date isn't changed, maybe it should be?
+		return Instant.now();
 	}
 	
 	private static final Set<String> FLDS_VER_COPYOBJ = newHashSet(
@@ -865,16 +875,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			"{$set: {%s: #, %s: #}}", Fields.WS_NAME, Fields.WS_MODDATE);
 	
 	@Override
-	public void renameWorkspace(final ResolvedWorkspaceID rwsi, final String newname)
+	public Instant renameWorkspace(final ResolvedWorkspaceID rwsi, final String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (newname.equals(rwsi.getName())) {
 			throw new IllegalArgumentException("Workspace is already named " +
 					newname);
 		}
+		final Instant now = Instant.now();
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_ID_QRY, rwsi.getID())
-					.with(M_RENAME_WS_WTH, newname, new Date());
+					.with(M_RENAME_WS_WTH, newname, Date.from(now));
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already a workspace named " + newname);
@@ -882,6 +893,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		return now;
 	}
 	
 	final private static String M_RENAME_OBJ_QRY = String.format(
@@ -890,7 +902,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			"{$set: {%s: #, %s: #}}", Fields.OBJ_NAME, Fields.OBJ_MODDATE);
 	
 	@Override
-	public ObjectInformation renameObject(final ObjectIDResolvedWS oi,
+	public ObjectInfoWithModDate renameObject(
+			final ObjectIDResolvedWS oi,
 			final String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		Set<ObjectIDResolvedWS> input = new HashSet<ObjectIDResolvedWS>(
@@ -900,11 +913,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException("Object is already named " +
 					newname);
 		}
+		final Instant time = Instant.now();
 		try {
 			wsjongo.getCollection(COL_WORKSPACE_OBJS)
 					.update(M_RENAME_OBJ_QRY,
 							roi.getWorkspaceIdentifier().getID(), roi.getId())
-					.with(M_RENAME_OBJ_WTH, newname, new Date());
+					.with(M_RENAME_OBJ_WTH, newname, Date.from(time));
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already an object in the workspace named " +
@@ -920,7 +934,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final ObjectInformation oinf =
 				getObjectInformation(input, false, true, false, true).get(oid);
 		updateWorkspaceModifiedDate(roi.getWorkspaceIdentifier());
-		return oinf;
+		return new ObjectInfoWithModDate(oinf, time);
 	}
 	
 	//projection lists
@@ -949,17 +963,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			"{$set: {%s: #, %s: #}}", Fields.WS_DESC, Fields.WS_MODDATE);
 	
 	@Override
-	public void setWorkspaceDescription(final ResolvedWorkspaceID rwsi,
+	public Instant setWorkspaceDescription(final ResolvedWorkspaceID rwsi,
 			final String description) throws WorkspaceCommunicationException {
 		//TODO CODE generalized method for setting fields?
+		final Instant now = Instant.now();
 		try {
 			wsjongo.getCollection(COL_WORKSPACES)
 				.update(M_WS_ID_QRY, rwsi.getID())
-				.with(M_DESC_WTH, description, new Date());
+				.with(M_DESC_WTH, description, Date.from(now));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		return now;
 	}
 	
 	@Override
@@ -1167,21 +1183,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.WS_OWNER, Fields.WS_MODDATE);
 
 	@Override
-	public void setWorkspaceOwner(
+	public Instant setWorkspaceOwner(
 			final ResolvedWorkspaceID rwsi,
 			final WorkspaceUser owner,
 			final WorkspaceUser newUser,
 			final Optional<String> newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		final Instant now = Instant.now();
 		try {
 			if (!newname.isPresent()) {
 				wsjongo.getCollection(COL_WORKSPACES)
 						.update(M_WS_ID_QRY, rwsi.getID())
-						.with(M_CHOWN_WS_WTH, newUser.getUser(), new Date());
+						.with(M_CHOWN_WS_WTH, newUser.getUser(), Date.from(now));
 			} else {
 				wsjongo.getCollection(COL_WORKSPACES)
 					.update(M_WS_ID_QRY, rwsi.getID())
-					.with(M_CHOWN_WS_NEWNAME_WTH, newUser.getUser(), newname.get(), new Date());
+					.with(M_CHOWN_WS_NEWNAME_WTH,
+							newUser.getUser(), newname.get(), Date.from(now));
 			}
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
@@ -1195,25 +1213,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				newname.isPresent() ? newname.get() : rwsi.getName(), false, false);
 		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(owner), Permission.ADMIN, false);
 		setPermissionsForWorkspaceUsers(newRwsi, Arrays.asList(newUser), Permission.OWNER, false);
+		return now;
 	}
 	
 	@Override
-	public void setPermissions(final ResolvedWorkspaceID rwsi,
+	public Instant setPermissions(final ResolvedWorkspaceID rwsi,
 			final List<WorkspaceUser> users, final Permission perm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		setPermissionsForWorkspaceUsers(rwsi, users, perm, true);
+		return setPermissionsForWorkspaceUsers(rwsi, users, perm, true);
 	}
 	
 	@Override
-	public void setGlobalPermission(final ResolvedWorkspaceID rwsi,
+	public Instant setGlobalPermission(final ResolvedWorkspaceID rwsi,
 			final Permission perm)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		setPermissions(rwsi, Arrays.asList((User) ALL_USERS), perm, false);
+		return setPermissions(rwsi, Arrays.asList((User) ALL_USERS), perm, false);
 	}
 	
 	//wsid must exist as a workspace
-	private void setPermissionsForWorkspaceUsers(final ResolvedWorkspaceID wsid,
+	private Instant setPermissionsForWorkspaceUsers(final ResolvedWorkspaceID wsid,
 			final List<WorkspaceUser> users, final Permission perm, 
 			final boolean checkowner) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
@@ -1221,7 +1240,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (User user: users) {
 			u.add(user);
 		}
-		setPermissions(wsid, u, perm, checkowner);
+		return setPermissions(wsid, u, perm, checkowner);
 		
 	}
 	
@@ -1230,7 +1249,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_PERMS_UPD = String.format("{$set: {%s: #}}",
 			Fields.ACL_PERM);
 	
-	private void setPermissions(
+	private Instant setPermissions(
 			final ResolvedWorkspaceID wsid,
 			final List<User> users,
 			final Permission perm,
@@ -1268,6 +1287,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"There was a problem communicating with the database", me);
 			}
 		}
+		// hmm. should the workspace mod date be changed when setting perms? Currently not
+		return Instant.now();
 	}
 	
 	private static final Set<String> FLDS_WS_NO_DESC = 
@@ -2956,7 +2977,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public Set<ResolvedObjectIDNoVer> setObjectsDeleted(
+	public Map<ResolvedObjectIDNoVer, Instant> setObjectsDeleted(
 			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean delete)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
@@ -2964,7 +2985,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				resolveObjectIDs(objectIDs, delete, true);
 		final Map<ResolvedWorkspaceID, List<Long>> toModify =
 				new HashMap<ResolvedWorkspaceID, List<Long>>();
-		final Set<ResolvedObjectIDNoVer> ret = new HashSet<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
 			final ResolvedObjectID obj = ids.get(o);
@@ -2972,12 +2992,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				toModify.put(ws, new ArrayList<Long>());
 			}
 			toModify.get(ws).add(obj.getId());
-			ret.add(new ResolvedObjectIDNoVer(ws, obj.getId(), obj.getName(), delete));
 		}
 		//Do this by workspace since per mongo docs nested $ors are crappy
+		final Map<ResolvedWorkspaceID, Instant> modtimes = new HashMap<>();
 		for (final ResolvedWorkspaceID ws: toModify.keySet()) {
-			setObjectsDeleted(ws, toModify.get(ws), delete);
+			modtimes.put(ws, setObjectsDeleted(ws, toModify.get(ws), delete));
 			updateWorkspaceModifiedDate(ws);
+		}
+		final Map<ResolvedObjectIDNoVer, Instant> ret = new HashMap<>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
+			final ResolvedObjectID obj = ids.get(o);
+			ret.put(new ResolvedObjectIDNoVer(ws, obj.getId(), obj.getName(), delete),
+					modtimes.get(ws));
 		}
 		return ret;
 	}
@@ -2985,7 +3012,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_DELOBJ_WTH = String.format(
 			"{$set: {%s: #, %s: #}}", Fields.OBJ_DEL, Fields.OBJ_MODDATE);
 	
-	private void setObjectsDeleted(
+	private Instant setObjectsDeleted(
 			final ResolvedWorkspaceID ws,
 			final List<Long> objectIDs,
 			final boolean delete)
@@ -3000,13 +3027,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					Fields.OBJ_WS_ID, ws.getID(), Fields.OBJ_ID,
 					StringUtils.join(objectIDs, ", "), Fields.OBJ_DEL, !delete);
 		}
+		final Instant time;
 		try {
+			time = Instant.now();
 			wsjongo.getCollection(COL_WORKSPACE_OBJS).update(query).multi()
-					.with(M_DELOBJ_WTH, delete, new Date());
+					.with(M_DELOBJ_WTH, delete, Date.from(time));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		return time;
 	}
 	
 	private static final String M_DELWS_UPD = String.format("{%s: #}",
@@ -3014,7 +3044,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String M_DELWS_WTH = String.format(
 			"{$set: {%s: #, %s: #}}", Fields.WS_DEL, Fields.WS_MODDATE);
 	
-	public void setWorkspaceDeleted(final ResolvedWorkspaceID rwsi,
+	public Instant setWorkspaceDeleted(final ResolvedWorkspaceID rwsi,
 			final boolean delete) throws WorkspaceCommunicationException {
 		//there's a possibility of a race condition here if a workspace is
 		//deleted and undeleted or vice versa in a very short amount of time,
@@ -3024,9 +3054,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			// delete objects first so that we can't have undeleted object in a deleted workspace 
 			setObjectsDeleted(rwsi, new ArrayList<Long>(), delete);
 		}
+		final Instant now = Instant.now();
 		try {
 			wsjongo.getCollection(COL_WORKSPACES).update(M_DELWS_UPD, rwsi.getID())
-					.with(M_DELWS_WTH, delete, new Date());
+					.with(M_DELWS_WTH, delete, Date.from(now));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -3035,6 +3066,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//undelete object last so we yadda yadda
 			setObjectsDeleted(rwsi, new ArrayList<Long>(), delete);
 		}
+		return now;
 	}
 	
 	@Override

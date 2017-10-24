@@ -2,6 +2,8 @@ package us.kbase.workspace.modules;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +19,7 @@ import com.mongodb.MongoTimeoutException;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.listener.ListenerInitializationException;
@@ -24,12 +27,12 @@ import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 /** A prototype event handler that emits workspace events in a format understood by the KBase
- * RESKE service. In production the workspace handler should feed into a message queue with a
+ * Search service. In production the workspace handler should feed into a message queue with a
  * generic format and then other services should read from that queue.
  * @author gaprice@lbl.gov
  *
  */
-public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListenerFactory {
+public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListenerFactory {
 
 	//TODO RESKE JAVADOC
 	//TODO RESKE TEST
@@ -45,12 +48,12 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 			mongoUser = null;
 		}
 		final String mongoPwd = cfg.get("mongopwd");
-		LoggerFactory.getLogger(getClass()).info("Starting RESKE Prototype event handler. " +
+		LoggerFactory.getLogger(getClass()).info("Starting Search Prototype event handler. " +
 				"mongohost={} mongodatabase={} mongouser={}", mongoHost, mongoDatabase, mongoUser);
-		return new RESKEPrototypeEventHandler(mongoHost, mongoDatabase, mongoUser, mongoPwd);
+		return new SearthPrototypeEventHandler(mongoHost, mongoDatabase, mongoUser, mongoPwd);
 	}
 	
-	public class RESKEPrototypeEventHandler implements WorkspaceEventListener {
+	public class SearthPrototypeEventHandler implements WorkspaceEventListener {
 		
 		private static final String DATA_SOURCE = "WS";
 		private static final String NEW_OBJECT_VER = "NEW_VERSION";
@@ -64,11 +67,11 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		private static final String REMOVE_GLOBAL_READ = "UNPUBLISH_ACCESS_GROUP";
 		
 		// this might need to be configurable
-		private static final String COLLECTION = "ObjectStatusEvents";
+		private static final String COLLECTION = "searchEvents";
 		
 		private final DB db;
 
-		public RESKEPrototypeEventHandler(
+		public SearthPrototypeEventHandler(
 				final String mongoHost,
 				final String mongoDatabase,
 				String mongoUser,
@@ -110,50 +113,56 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		}
 
 		@Override
-		public void createWorkspace(long id) {
+		public void createWorkspace(final long id, final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void cloneWorkspace(final long id, final boolean isPublic) {
-			newWorkspaceEvent(id, CLONED_WORKSPACE, isPublic);
+		public void cloneWorkspace(final long id, final boolean isPublic, final Instant time) {
+			newWorkspaceEvent(id, CLONED_WORKSPACE, isPublic, time);
 		}
 
 		@Override
-		public void setWorkspaceMetadata(long id) {
+		public void setWorkspaceMetadata(final long id, final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void lockWorkspace(long id) {
+		public void lockWorkspace(final long id, final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void renameWorkspace(long id, String newname) {
+		public void renameWorkspace(final long id, final String newname, final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void setGlobalPermission(long id, Permission permission) {
-			newWorkspaceEvent(id, Permission.READ.equals(permission) ?
-					SET_GLOBAL_READ : REMOVE_GLOBAL_READ, null);
-			
+		public void setGlobalPermission(final long id, final Permission perm, final Instant time) {
+			newWorkspaceEvent(id, Permission.READ.equals(perm) ?
+					SET_GLOBAL_READ : REMOVE_GLOBAL_READ, null, time);
 		}
 
 		@Override
-		public void setPermissions(long id, Permission permission, List<WorkspaceUser> users) {
+		public void setPermissions(
+				final long id,
+				final Permission permission,
+				final List<WorkspaceUser> users,
+				final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void setWorkspaceDescription(long id) {
+		public void setWorkspaceDescription(final long id, final Instant time) {
 			// no action
-			
 		}
 
 		@Override
-		public void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName) {
+		public void setWorkspaceOwner(
+				final long id,
+				final WorkspaceUser newUser,
+				final Optional<String> newName,
+				final Instant time) {
 			// no action
 		}
 
@@ -161,73 +170,71 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		public void setWorkspaceDeleted(
 				final long id,
 				final boolean delete,
-				final long maxObjectID) {
+				final long maxObjectID,
+				final Instant time) {
 			if (delete) {
-				newEvent(id, maxObjectID, null, null, null, DELETE_WS, null);
+				newEvent(id, maxObjectID, null, null, null, DELETE_WS, null, time);
 			} else {
 				LoggerFactory.getLogger(getClass()).info(
 						"Workspace {} was undeleted. Workspace undeletion events are not " +
-								"supported by RESKE", id);
+								"supported by KBase Search", id);
 			}
 			
 		}
 
 		@Override
-		public void renameObject(long workspaceId, long objectId, String newName) {
-			newEvent(workspaceId, objectId, null, newName, null, RENAME_OBJECT, null);
-		}
-
-		@Override
-		public void revertObject(
+		public void renameObject(
 				final long workspaceId,
 				final long objectId,
-				final int version,
-				final String type,
-				final boolean isPublic) {
-			newVersionEvent(workspaceId, objectId, version, type, isPublic);
-			
+				final String newName,
+				final Instant time) {
+			newEvent(workspaceId, objectId, null, newName, null, RENAME_OBJECT, null, time);
 		}
 
 		@Override
-		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {
+		public void revertObject(final ObjectInformation oi, final boolean isPublic) {
+			newVersionEvent(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+					oi.getTypeString(), isPublic, oi.getSavedDate().toInstant());
+		}
+
+		@Override
+		public void setObjectDeleted(
+				final long workspaceId,
+				final long objectId,
+				final boolean delete,
+				final Instant time) {
 			newEvent(workspaceId, objectId, null, null, null,
-					delete ? DELETE_OBJECT : UNDELETE_OBJECT, null);
+					delete ? DELETE_OBJECT : UNDELETE_OBJECT, null, time);
+		}
+
+		@Override
+		public void copyObject(final ObjectInformation oi, final boolean isPublic) {
+			newVersionEvent(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+					oi.getTypeString(), isPublic, oi.getSavedDate().toInstant());
 		}
 
 		@Override
 		public void copyObject(
 				final long workspaceId,
 				final long objectId,
-				final int version,
-				final String type,
+				final int latestVersion,
+				final Instant time,
 				final boolean isPublic) {
-			newVersionEvent(workspaceId, objectId, version, type, isPublic);
-		}
-
-		@Override
-		public void copyObject(
-				long workspaceId,
-				long objectId,
-				int latestVersion,
-				boolean isPublic) {
-			newObjectEvent(workspaceId, objectId, isPublic);
+			newObjectEvent(workspaceId, objectId, isPublic, time);
 		}
 		
 		@Override
-		public void saveObject(
-				final long workspaceId,
-				final long objectId,
-				final int version,
-				final String type,
-				final boolean isPublic) {
-			newVersionEvent(workspaceId, objectId, version, type, isPublic);
+		public void saveObject(final ObjectInformation oi, final boolean isPublic) {
+			newVersionEvent(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+					oi.getTypeString(), isPublic, oi.getSavedDate().toInstant());
 		}
 
 		private void newObjectEvent(
 				final long workspaceId,
 				final long objectId,
-				final boolean isPublic) {
-			newEvent(workspaceId, objectId, null, null, null, NEW_OBJECT, isPublic);
+				final boolean isPublic,
+				final Instant time) {
+			newEvent(workspaceId, objectId, null, null, null, NEW_OBJECT, isPublic, time);
 		}
 		
 		private void newVersionEvent(
@@ -235,15 +242,17 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				final long objectId,
 				final Integer version,
 				final String type,
-				final boolean isPublic) {
-			newEvent(workspaceId, objectId, version, null, type, NEW_OBJECT_VER, isPublic);
+				final boolean isPublic,
+				final Instant time) {
+			newEvent(workspaceId, objectId, version, null, type, NEW_OBJECT_VER, isPublic, time);
 		}
 		
 		private void newWorkspaceEvent(
 				final long workspaceId,
 				final String eventType,
-				final Boolean isPublic) {
-			newEvent(workspaceId, null, null, null, null, eventType, isPublic);
+				final Boolean isPublic,
+				final Instant time) {
+			newEvent(workspaceId, null, null, null, null, eventType, isPublic, time);
 		}
 		
 		private void newEvent(
@@ -253,26 +262,25 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 				final String newName,
 				final String type,
 				final String eventType,
-				final Boolean isPublic) {
+				final Boolean isPublic,
+				final Instant time) {
 			if (!wsidOK(workspaceId)) {
 				return;
 			}
 			
 			final DBObject dobj = new BasicDBObject();
-			dobj.put("storageCode", DATA_SOURCE);
-			dobj.put("accessGroupId", (int) workspaceId);
-			dobj.put("accessGroupObjectId", objectId == null ? null : "" + objectId);
-			dobj.put("version", version);
-			dobj.put("newName", newName);
-			//TODO RESKE make timestamp = the event timestamp (e.g. object creation/rename)
-			dobj.put("timestamp", System.currentTimeMillis());
-			dobj.put("eventType", eventType);
-			dobj.put("storageObjectType", type == null ? null : type.split("-")[0]);
-			dobj.put("storageObjectTypeVersion", type == null ?
+			dobj.put("strcde", DATA_SOURCE);
+			dobj.put("accgrp", (int) workspaceId);
+			dobj.put("objid", objectId == null ? null : "" + objectId);
+			dobj.put("ver", version);
+			dobj.put("newname", newName);
+			dobj.put("time", Date.from(time));
+			dobj.put("evtype", eventType);
+			dobj.put("objtype", type == null ? null : type.split("-")[0]);
+			dobj.put("objtypever", type == null ?
 					null : Integer.parseInt(type.split("-")[1].split("\\.")[0]));
-			dobj.put("isGlobalAccessed", isPublic);
-			dobj.put("indexed", false);
-			dobj.put("processed", false);
+			dobj.put("public", isPublic);
+			dobj.put("status", "UNPROC");
 			try {
 				db.getCollection(COLLECTION).insert(dobj);
 			} catch (MongoException me) {
@@ -285,7 +293,7 @@ public class RESKEPrototypeEventHandlerFactory implements WorkspaceEventListener
 		private boolean wsidOK(final long workspaceId) {
 			if (workspaceId > Integer.MAX_VALUE) {
 				LoggerFactory.getLogger(getClass()).error(
-						"Workspace id {} is out of int range. Cannot send data to RESKE",
+						"Workspace id {} is out of int range. Cannot send data to KBase Search",
 						workspaceId);
 				return false;
 			}

@@ -1,10 +1,12 @@
 package us.kbase.workspace.test.listener;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Optional;
 
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.listener.ListenerInitializationException;
@@ -28,71 +30,70 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 	public class BadListener implements WorkspaceEventListener {
 
 		@Override
-		public void createWorkspace(long id) {}
+		public void createWorkspace(long id, Instant time) {}
 
 		@Override
-		public void cloneWorkspace(long id, boolean isPublic) {}
+		public void cloneWorkspace(long id, boolean isPublic, Instant time) {}
 
 		@Override
-		public void setWorkspaceMetadata(long id) {}
+		public void setWorkspaceMetadata(long id, Instant time) {}
 
 		@Override
-		public void lockWorkspace(long id) {}
+		public void lockWorkspace(long id, Instant time) {}
 
 		@Override
-		public void renameWorkspace(long id, String newName) {}
+		public void renameWorkspace(long id, String newName, Instant time) {}
 
 		@Override
-		public void setGlobalPermission(long id, Permission permission) {}
+		public void setGlobalPermission(long id, Permission permission, Instant time) {}
 
 		@Override
-		public void setPermissions(long id, Permission permission, List<WorkspaceUser> users) {}
+		public void setPermissions(
+				long id,
+				Permission permission,
+				List<WorkspaceUser> users,
+				Instant time) {}
 
 		@Override
-		public void setWorkspaceDescription(long id) {}
+		public void setWorkspaceDescription(long id, Instant time) {}
 
 		@Override
-		public void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName) {}
+		public void setWorkspaceOwner(
+				long id,
+				WorkspaceUser
+				newUser,
+				Optional<String> newName,
+				Instant time) {}
 
 		@Override
-		public void setWorkspaceDeleted(long id, boolean delete, long maxObjectID) {}
+		public void setWorkspaceDeleted(long id, boolean delete, long maxObjectID, Instant time) {}
 
 		@Override
-		public void renameObject(long workspaceId, long objectId, String newName) {}
+		public void renameObject(long workspaceId, long objectId, String newName, Instant time) {}
 
 		@Override
-		public void revertObject(
+		public void revertObject(ObjectInformation obj, boolean isPublic) {}
+
+		@Override
+		public void setObjectDeleted(
 				long workspaceId,
 				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {}
+				boolean delete,
+				Instant time) {}
 
 		@Override
-		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {}
-
-		@Override
-		public void copyObject(
-				long workspaceId,
-				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {}
+		public void copyObject(ObjectInformation object, boolean isPublic) {}
 		
 		@Override
 		public void copyObject(
 				long workspaceId,
 				long objectId,
 				int latestVersion,
+				Instant time,
 				boolean isPublic) {}
 
 		@Override
-		public void saveObject(
-				long workspaceId,
-				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {}
+		public void saveObject(ObjectInformation oi, boolean isPublic) {}
 	}
 
 }

@@ -1,10 +1,12 @@
 package us.kbase.workspace.test.listener;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Optional;
 
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.listener.ListenerInitializationException;
@@ -42,85 +44,87 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void createWorkspace(long id) {
-			print("createWorkspace " + id);
+		public void createWorkspace(long id, Instant time) {
+			print(String.format("createWorkspace %s %s", id, time));
 		}
 
 		@Override
-		public void cloneWorkspace(long id, boolean isPublic) {
-			print("cloneWorkspace " + id + " " + isPublic);
+		public void cloneWorkspace(long id, boolean isPublic, Instant time) {
+			print(String.format("cloneWorkspace %s %s %s", id, isPublic, time));
 		}
 
 		@Override
-		public void setWorkspaceMetadata(long id) {
-			print("setWorkspaceMetadata " + id);
+		public void setWorkspaceMetadata(long id, Instant time) {
+			print(String.format("setWorkspaceMetadata %s %s", id, time));
 		}
 
 		@Override
-		public void lockWorkspace(long id) {
-			print("lockWorkspace " + id);
+		public void lockWorkspace(long id, Instant time) {
+			print(String.format("lockWorkspace %s %s", id, time));
 		}
 
 		@Override
-		public void renameWorkspace(long id, String newName) {
-			print("renameWorkspace " + id + " " + newName);
+		public void renameWorkspace(long id, String newName, Instant time) {
+			print(String.format("renameWorkspace %s %s %s", id, newName, time));
 		}
 
 		@Override
-		public void setGlobalPermission(long id, Permission permission) {
-			print("setGlobalPermission " + id + " " + permission);
+		public void setGlobalPermission(long id, Permission permission, Instant time) {
+			print(String.format("setGlobalPermission %s %s %s", id, permission, time));
 		}
 
 		@Override
-		public void setPermissions(long id, Permission permission, List<WorkspaceUser> users) {
-			print("setPermissions " + id + " " + permission + " " + users);
+		public void setPermissions(
+				long id,
+				Permission permission,
+				List<WorkspaceUser> users,
+				Instant time) {
+			print(String.format("setPermissions %s %s %s %s", id, permission, users, time));
 		}
 
 		@Override
-		public void setWorkspaceDescription(long id) {
-			print("setWorkspaceDescription " + id);
+		public void setWorkspaceDescription(long id, Instant time) {
+			print(String.format("setWorkspaceDescription %s %s", id, time));
 		}
 
 		@Override
-		public void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName) {
-			print("setWorkspaceOwner " + id + " " + newUser.getUser() + " " + newName);
+		public void setWorkspaceOwner(
+				long id,
+				WorkspaceUser newUser,
+				Optional<String> newName,
+				Instant time) {
+			print(String.format("setWorkspaceOwner %s %s %s %s", id, newUser.getUser(), newName,
+					time));
 		}
 
 		@Override
-		public void setWorkspaceDeleted(long id, boolean delete, long maxObjectID) {
-			print("setWorkspaceDeleted " + id + " " + delete);
+		public void setWorkspaceDeleted(long id, boolean delete, long maxObjectID, Instant time) {
+			print(String.format("setWorkspaceDeleted %s %s %s", id, delete, time));
 		}
 
 		@Override
-		public void renameObject(long workspaceId, long objectId, String newName) {
-			print(String.format("renameObject %s %s %s", workspaceId, objectId, newName));
+		public void renameObject(long workspaceId, long objectId, String newName, Instant time) {
+			print(String.format("renameObject %s %s %s %s", workspaceId, objectId, newName, time));
 		}
 
 		@Override
-		public void revertObject(
+		public void revertObject(ObjectInformation oi, boolean isPublic) {
+			print(String.format("revertObject %s %s", oi, isPublic));
+		}
+
+		@Override
+		public void setObjectDeleted(
 				long workspaceId,
 				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {
-			print(String.format("revertObject %s %s %s %s %s",
-					workspaceId, objectId, version, type, isPublic));
-		}
-
-		@Override
-		public void setObjectDeleted(long workspaceId, long objectId, boolean delete) {
-			print(String.format("setObjectDeleted %s %s %s", workspaceId, objectId, delete));
+				boolean delete,
+				Instant time) {
+			print(String.format("setObjectDeleted %s %s %s %s",
+					workspaceId, objectId, delete, time));
 		}
 		
 		@Override
-		public void copyObject(
-				long workspaceId,
-				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {
-			print(String.format("copyObject %s %s %s %s %s", workspaceId, objectId, version,
-					type, isPublic));
+		public void copyObject(ObjectInformation object, boolean isPublic) {
+			print(String.format("copyObject %s %s", object, isPublic));
 		}
 		
 		@Override
@@ -128,19 +132,15 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 				long workspaceId,
 				long objectId,
 				int latestVersion,
+				Instant time,
 				boolean isPublic) {
-			print(String.format("copyObject %s %s %s", workspaceId, objectId, latestVersion));
+			print(String.format("copyObject %s %s %s %s %s",
+					workspaceId, objectId, latestVersion, time, isPublic));
 		}
 
 		@Override
-		public void saveObject(
-				long workspaceId,
-				long objectId,
-				int version,
-				String type,
-				boolean isPublic) {
-			print(String.format("saveObject %s %s %s %s %s",
-					workspaceId, objectId, version, type, isPublic));
+		public void saveObject(ObjectInformation oi, boolean isPublic) {
+			print(String.format("saveObject %s %s", oi, isPublic));
 		}
 	}
 }
