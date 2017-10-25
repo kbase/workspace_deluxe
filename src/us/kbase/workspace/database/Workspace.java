@@ -4,6 +4,7 @@ import static us.kbase.workspace.database.Util.nonNull;
 import static us.kbase.workspace.database.Util.noNulls;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -72,6 +73,7 @@ public class Workspace {
 	//TODO GC garbage collection - see WOR-45
 	//TODO SEARCH index typespecs
 	//TODO CODE look into eliminating all the DB implementation specific classes, too much of a pain just to ensure not moving objects between implementations
+	//TODO CODE wrap event listeners in try/catch, catch everything & log & continue
 	
 	public static final AllUsers ALL_USERS = new AllUsers('*');
 	
@@ -165,7 +167,7 @@ public class Workspace {
 				pruneWorkspaceDescription(description),
 				meta == null ? new WorkspaceUserMetadata() : meta);
 		for (final WorkspaceEventListener l: listeners) {
-			l.createWorkspace(ret.getId());
+			l.createWorkspace(ret.getId(), ret.getModDate());
 		}
 		return ret;
 	}
@@ -194,22 +196,24 @@ public class Workspace {
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("alter metadata for").check();
 		boolean set = false;
+		Instant time = null;
+		// should merge this into one db call
 		try {
 			if (meta != null && !meta.isEmpty()) {
-				db.setWorkspaceMeta(wsid, meta);
+				time = db.setWorkspaceMeta(wsid, meta);
 				set = true;
 			}
 			if (keysToRemove != null) {
 				noNulls(keysToRemove, "null metadata keys are not allowed");
 				for (final String key: keysToRemove) {
-					db.removeWorkspaceMetaKey(wsid, key);
+					time = db.removeWorkspaceMetaKey(wsid, key);
 					set = true;
 				}
 			}
 		} finally {
 			if (set) {
 				for (final WorkspaceEventListener l: listeners) {
-					l.setWorkspaceMetadata(wsid.getID());
+					l.setWorkspaceMetadata(wsid.getID(), time);
 				}
 			}
 		}
@@ -234,7 +238,7 @@ public class Workspace {
 				meta == null ? new WorkspaceUserMetadata() : meta,
 				exclude);
 		for (final WorkspaceEventListener l: listeners) {
-			l.cloneWorkspace(info.getId(), info.isGloballyReadable());
+			l.cloneWorkspace(info.getId(), info.isGloballyReadable(), info.getModDate());
 		}
 		return info;
 	}
@@ -258,9 +262,9 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("lock").check();
-		db.lockWorkspace(wsid);
+		final Instant time = db.lockWorkspace(wsid);
 		for (final WorkspaceEventListener l: listeners) {
-			l.lockWorkspace(wsid.getID());
+			l.lockWorkspace(wsid.getID(), time);
 		}
 		return db.getWorkspaceInformation(user, wsid);
 	}
@@ -281,9 +285,10 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.ADMIN)
 				.withOperation("set description on").check();
-		db.setWorkspaceDescription(wsid, pruneWorkspaceDescription(description));
+		final Instant time = db.setWorkspaceDescription(
+				wsid, pruneWorkspaceDescription(description));
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceDescription(wsid.getID());
+			l.setWorkspaceDescription(wsid.getID(), time);
 		}
 	}
 	
@@ -355,9 +360,9 @@ public class Workspace {
 				newName = Optional.absent(); // no need to change name
 			}
 		}
-		db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+		final Instant time = db.setWorkspaceOwner(rwsi, owner, newUser, newName);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceOwner(rwsi.getID(), newUser, newName);
+			l.setWorkspaceOwner(rwsi.getID(), newUser, newName, time);
 		}
 		return db.getWorkspaceInformation(newUser, rwsi);
 	}
@@ -410,9 +415,9 @@ public class Workspace {
 						user.getUser(), wsi.getIdentifierString()));
 			}
 		}
-		db.setPermissions(wsid, users, permission);
+		final Instant time = db.setPermissions(wsid, users, permission);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setPermissions(wsid.getID(), permission, users);
+			l.setPermissions(wsid.getID(), permission, users, time);
 		}
 		return wsid.getID();
 	}
@@ -453,9 +458,9 @@ public class Workspace {
 					+ rwsi.getID() + ", name " + rwsi.getName() +
 					", is locked and may not be modified");
 		}
-		db.setGlobalPermission(rwsi, permission);
+		final Instant time = db.setGlobalPermission(rwsi, permission);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setGlobalPermission(rwsi.getID(), permission);
+			l.setGlobalPermission(rwsi.getID(), permission, time);
 		}
 		return rwsi.getID();
 	}
@@ -701,8 +706,7 @@ public class Workspace {
 			final List<ObjectInformation> ret = db.saveObjects(user, rwsi, saveobjs);
 			for (final WorkspaceEventListener l: listeners) {
 				for (final ObjectInformation oi: ret) {
-					l.saveObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-							oi.getTypeString(), wsinfo.isGloballyReadable());
+					l.saveObject(oi, wsinfo.isGloballyReadable());
 				}
 			}
 			return ret;
@@ -1451,9 +1455,9 @@ public class Workspace {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.OWNER).withOperation("rename").check();
 		new WorkspaceIdentifier(newname, user); //check for errors
-		db.renameWorkspace(wsid, newname);
+		final Instant time = db.renameWorkspace(wsid, newname);
 		for (final WorkspaceEventListener l: listeners) {
-			l.renameWorkspace(wsid.getID(), newname);
+			l.renameWorkspace(wsid.getID(), newname, time);
 		}
 		return db.getWorkspaceInformation(user, wsid);
 	}
@@ -1468,9 +1472,11 @@ public class Workspace {
 		final ObjectIDResolvedWS obj = new PermissionsCheckerFactory(db, user)
 				.getObjectChecker(oi, Permission.WRITE)
 				.withOperation("rename objects in").check();
-		final ObjectInformation objinfo = db.renameObject(obj, newname);
+		final ObjectInfoWithModDate objdate = db.renameObject(obj, newname);
+		final ObjectInformation objinfo = objdate.getObjectInfo();
 		for (final WorkspaceEventListener l: listeners) {
-			l.renameObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), newname);
+			l.renameObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), newname,
+					objdate.getModificationDate());
 		}
 		return objinfo;
 	}
@@ -1492,10 +1498,9 @@ public class Workspace {
 		for (final WorkspaceEventListener l: listeners) {
 			if (cr.isAllVersionsCopied()) {
 				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-						wsinfo.isGloballyReadable());
+						oi.getSavedDate().toInstant(), wsinfo.isGloballyReadable());
 			} else {
-				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-						oi.getTypeString(), wsinfo.isGloballyReadable());
+				l.copyObject(oi, wsinfo.isGloballyReadable());
 			}
 		}
 		return oi;
@@ -1510,8 +1515,7 @@ public class Workspace {
 		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
 				user, target.getWorkspaceIdentifier());
 		for (final WorkspaceEventListener l: listeners) {
-			l.revertObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), objinfo.getVersion(),
-					objinfo.getTypeString(), wsinfo.isGloballyReadable());
+			l.revertObject(objinfo, wsinfo.isGloballyReadable());
 		}
 		return objinfo;
 	}
@@ -1540,11 +1544,12 @@ public class Workspace {
 						.getObjectChecker(loi, Permission.WRITE)
 						.withOperation((delete ? "" : "un") + "delete objects from")
 						.check();
-		final Set<ResolvedObjectIDNoVer> objs = db.setObjectsDeleted(
+		final Map<ResolvedObjectIDNoVer, Instant> objs = db.setObjectsDeleted(
 				new HashSet<ObjectIDResolvedWS>(ws.values()), delete);
 		for (final WorkspaceEventListener l: listeners) {
-			for (final ResolvedObjectIDNoVer o: objs) {
-				l.setObjectDeleted(o.getWorkspaceIdentifier().getID(), o.getId(), delete);
+			for (final ResolvedObjectIDNoVer o: objs.keySet()) {
+				l.setObjectDeleted(o.getWorkspaceIdentifier().getID(), o.getId(), delete,
+						objs.get(o));
 			}
 		}
 	}
@@ -1604,10 +1609,10 @@ public class Workspace {
 		}
 		// once a workpace is locked, it's locked. Period.
 		PermissionsCheckerFactory.checkLocked(Permission.ADMIN, wsid);
-		db.setWorkspaceDeleted(wsid, delete);
+		final Instant time = db.setWorkspaceDeleted(wsid, delete);
 		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(user, wsid);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceDeleted(wsid.getID(), delete, wsinfo.getMaximumObjectID());
+			l.setWorkspaceDeleted(wsid.getID(), delete, wsinfo.getMaximumObjectID(), time);
 		}
 		return wsid.getID();
 	}
