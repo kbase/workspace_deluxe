@@ -46,8 +46,6 @@ docker_image: build-libs build-docs
 	cp server_scripts/glassfish_administer_service.py deployment/bin
 	chmod 755 deployment/bin/glassfish_administer_service.py
 	cp dist/$(WAR) deployment/services/workspace/
-	mkdir -p deployment/services/workspace/webroot
-	cp  -r docs/* deployment/services/workspace//webroot/
 	./build/build_docker_image.sh
 
 compile: compile-typespec compile-typespec-java compile-html
