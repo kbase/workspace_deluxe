@@ -1,0 +1,27 @@
+dist: trusty
+sudo: required
+language: java
+jdk:
+  - openjdk8
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y ant-optional
+  - sudo pip install sphinx
+env:
+  global: # The following are for the dockerhub DOCKER_USER and DOCKER_PASS env vars used in the push script
+    - secure: "LhqxUzhY8yFbofC7R4AziikLSEKKPG1hmRL5PgrYx/sy94UkeRHVbUh2ChS18LrUdkZ9gXkU/rBsmKfrHtzPVZlYZFKVOEafssZER800pQmB+7POaUat/rxD/HUVTBbb5HY7exz0+AoIBH24lx3BtVq/AKHxsWhc6w6h0ZNhmAM="
+    - secure: "FWcWwOIivZLZ9LRWY3XWlNK0RRZCOouW4Vsl36jScPioeVv/z8/6lPzyVdz5oLGpFeaJz1djeg9BwaS3HtfGoSfzF5bNAEOOO2zXZj8XrjQHnhM43/KYWyVR6epppjJrwTjowzxP0BLRDahsOJLZGJYOhZuoqMMS9E0kA3qJtVM="
+install:
+  - cd ..
+  - git clone https://github.com/kbase/jars
+  - cd -
+
+script:
+  - ant javadoc
+  - ant compile
+  - docker pull kbase/kb_jre
+  - make docker_image
+
+after_success:
+  - IMAGE_NAME=kbase/kb_workspace ./build/push2dockerhub.sh
+
