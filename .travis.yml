@@ -6,6 +6,7 @@ jdk:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y ant-optional
+  - sudo pip install sphinx
 env:
   global: # The following are for the dockerhub DOCKER_USER and DOCKER_PASS env vars used in the push script
     - secure: "LhqxUzhY8yFbofC7R4AziikLSEKKPG1hmRL5PgrYx/sy94UkeRHVbUh2ChS18LrUdkZ9gXkU/rBsmKfrHtzPVZlYZFKVOEafssZER800pQmB+7POaUat/rxD/HUVTBbb5HY7exz0+AoIBH24lx3BtVq/AKHxsWhc6w6h0ZNhmAM="
