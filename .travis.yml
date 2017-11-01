@@ -19,7 +19,7 @@ script:
   - ant javadoc
   - ant compile
   - docker pull kbase/kb_jre
-  - ant docker_image
+  - make docker_image
 
 after_success:
   - IMAGE_NAME=kbase/kb_workspace ./build/push2dockerhub.sh

@@ -41,6 +41,15 @@ build-docs:
 	cp $(SERVICE).spec docs/.
 	cp docshtml/* docs/.
 
+docker_image: build-libs build-docs 
+	$(ANT) buildwar
+	cp server_scripts/glassfish_administer_service.py deployment/bin
+	chmod 755 deployment/bin/glassfish_administer_service.py
+	cp dist/$(WAR) deployment/services/workspace/
+	mkdir -p deployment/services/workspace/webroot
+	cp  -r docs/* deployment/services/workspace//webroot/
+	./build/build_docker_image.sh
+
 compile: compile-typespec compile-typespec-java compile-html
 
 compile-java-client:
@@ -129,4 +138,5 @@ clean:
 	$(ANT) clean
 	-rm -rf docs
 	-rm -rf bin
+	-rm -rf deployment/services/workspace/*
 	@#TODO remove lib once files are generated on the fly
