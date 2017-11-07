@@ -21,42 +21,45 @@ def _parseArgs():
     parser = ArgumentParser(description='script to administer a Glassfish ' +
                             ' application.')
     parser.add_argument('-w', '--war',
-                         help='path to the application WAR file. If ' +
-                         'omitted, the service at the port and domain is ' +
-                         'stopped.')
+                        help='path to the application WAR file. If ' +
+                        'omitted, the service at the port and domain is ' +
+                        'stopped.')
     parser.add_argument('-a', '--admin', required=True,
-                         help='location of the Glassfish asadmin program.')
+                        help='location of the Glassfish asadmin program.')
     parser.add_argument('-d', '--domain', required=True,
-                         help='name of the Glassfish domain where the ' +
-                         'application is or will be installed.')
+                        help='name of the Glassfish domain where the ' +
+                        'application is or will be installed.')
     parser.add_argument('-l', '--domain-dir',
-                         help='directory where the glassfish domain ' +
-                         'information and logs will be stored. Defaults to ' +
-                         'glassfish/domains.')
+                        help='directory where the glassfish domain ' +
+                        'information and logs will be stored. Defaults to ' +
+                        'glassfish/domains.')
     parser.add_argument('-p', '--port', required=True, type=int,
-                         help='the port where the application runs.')
+                        help='the port where the application runs.')
     parser.add_argument('-t', '--threads', type=int, default=20,
-                         help='the number of threads for the application.')
+                        help='the number of threads for the application.')
     parser.add_argument('-s', '--Xms', type=int,
-                         help='minimum memory for the domain in MB. ' +
-                         'This will cause a domain restart if changed.')
+                        help='minimum memory for the domain in MB. ' +
+                        'This will cause a domain restart if changed.')
     parser.add_argument('-x', '--Xmx', type=int,
-                         help='maximum memory for the domain in MB. ' +
-                         'This will cause a domain restart if changed.')
+                        help='maximum memory for the domain in MB. ' +
+                        'This will cause a domain restart if changed.')
     parser.add_argument('-r', '--properties', nargs='*',
-                         help='JVM system properties to add to the server.')
+                        help='JVM system properties to add to the server.')
     parser.add_argument('-g', '--noparallelgc', action='store_true',
-                         help='turn off the parallel garbage ' +
-                         ' collector and use the standard gc.')
+                        help='turn off the parallel garbage ' +
+                        ' collector and use the standard gc.')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Verbose logging of glassfish actions')
     return parser.parse_args()
 
 
 class CommandGlassfishDomain(object):
 
-    def __init__(self, asadminpath, domain, domainpath):
+    def __init__(self, asadminpath, domain, domainpath, verbose):
         self.asadminpath = asadminpath
         self.domain = domain
         self.path = None
+        self.verbose = verbose
         if (domainpath):
             domaindir = os.path.abspath(os.path.expanduser(domainpath))
             if not os.path.isdir(domaindir):
@@ -78,7 +81,7 @@ class CommandGlassfishDomain(object):
         self.start_domain()
 
     def get_admin_port(self):
-        #the fact I have to do this is moronic
+        # the fact I have to do this is moronic
         if (self.path):
             domains = self.path
         else:
@@ -122,23 +125,19 @@ class CommandGlassfishDomain(object):
     def start_service(self, war, port, threads):
         portstr = str(port)
         threadstr = str(threads)
-        if 'server-' + portstr in self._run_remote_command(
-            'list-virtual-servers'):
+        if 'server-' + portstr in self._run_remote_command('list-virtual-servers'):
             print("Virtual server already exists")
         else:
             print(self._run_remote_command(
                 'create-virtual-server', '--hosts',
                 '${com.sun.aas.hostName}', 'server-' + portstr).rstrip())
-        if 'thread-pool-' + portstr in self._run_remote_command(
-            'list-threadpools', 'server'):
+        if 'thread-pool-' + portstr in self._run_remote_command('list-threadpools', 'server'):
             print("Threadpool already exists")
         else:
-            print(self._run_remote_command(
-                'create-threadpool', '--maxthreadpoolsize=' + threadstr,
-                '--minthreadpoolsize=' + threadstr, 'thread-pool-' + portstr)
-                  .rstrip())
-        if 'http-listener-' + portstr in self._run_remote_command(
-            'list-http-listeners'):
+            print(self._run_remote_command('create-threadpool', '--maxthreadpoolsize=' + threadstr,
+                                           '--minthreadpoolsize=' + threadstr,
+                                           'thread-pool-' + portstr).rstrip())
+        if 'http-listener-' + portstr in self._run_remote_command('list-http-listeners'):
             print('Http listener already exists')
         else:
             print(self._run_remote_command(
@@ -187,20 +186,16 @@ class CommandGlassfishDomain(object):
         if 'app-' + portstr in self._run_remote_command('list-applications'):
             print(self._run_remote_command('undeploy', 'app-' + portstr)
                   .rstrip())
-        if 'http-listener-' + portstr in self._run_remote_command(
-            'list-http-listeners'):
-            print(self._run_remote_command(
-                'delete-http-listener', 'http-listener-' + portstr).rstrip())
-        if 'http-listener-' + portstr in self._run_remote_command(
-            'list-protocols'):
-            print(self._run_remote_command(
-                'delete-protocol', 'http-listener-' + portstr).rstrip())
-        if 'thread-pool-' + portstr in self._run_remote_command(
-            'list-threadpools', 'server'):
+        if 'http-listener-' + portstr in self._run_remote_command('list-http-listeners'):
+            print(self._run_remote_command('delete-http-listener',
+                                           'http-listener-' + portstr).rstrip())
+        if 'http-listener-' + portstr in self._run_remote_command('list-protocols'):
+            print(self._run_remote_command('delete-protocol',
+                                           'http-listener-' + portstr).rstrip())
+        if 'thread-pool-' + portstr in self._run_remote_command('list-threadpools', 'server'):
             print(self._run_remote_command(
                 'delete-threadpool', 'thread-pool-' + portstr).rstrip())
-        if 'server-' + portstr in self._run_remote_command(
-            'list-virtual-servers'):
+        if 'server-' + portstr in self._run_remote_command('list-virtual-servers'):
             print(self._run_remote_command(
                 'delete-virtual-server', 'server-' + portstr).rstrip())
 
@@ -277,6 +272,8 @@ class CommandGlassfishDomain(object):
         return self._run_local_command('list-domains')
 
     def _run_local_command(self, subcmd, *args):
+        if self.verbose:
+            print("Running local command:", subcmd, list(args), file=sys.stderr)
         cmd = [self.asadminpath, subcmd]
         if (self.path):
             cmd.extend(['--domaindir', self.path])
@@ -287,6 +284,8 @@ class CommandGlassfishDomain(object):
             sys.exit(1)
 
     def _run_remote_command(self, *cmd):
+        if self.verbose:
+            print("Running remote command:", list(cmd), file=sys.stderr)
         try:
             return subprocess.check_output([self.asadminpath, '-p',
                                             self.adminport] + list(cmd))
@@ -297,8 +296,8 @@ class CommandGlassfishDomain(object):
 
 if __name__ == '__main__':
     args = _parseArgs()
-    gf = CommandGlassfishDomain(args.admin, args.domain, args.domain_dir)
-    if (args.war == None):
+    gf = CommandGlassfishDomain(args.admin, args.domain, args.domain_dir, args.verbose)
+    if args.war is None:
         gf.stop_service(args.port)
     else:
         if (args.noparallelgc):
