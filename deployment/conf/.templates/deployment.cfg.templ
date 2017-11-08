@@ -1,5 +1,4 @@
 [Workspace]
-basedir={{ default .Env.basedir "workspace" }}
 mongodb-database={{ default .Env.mongodb_database "workspace" }}
 mongodb-pwd={{ default .Env.mongodb_pwd "" }}
 ws-admin={{ default .Env.ws_admin "scanonadmin" }}
@@ -24,7 +23,6 @@ auth-service-url-allow-insecure={{ default .Env.auth_service_url_allow_insecure 
 globus-url = {{ default .Env.globus_url "https://ci.kbase.us/services/auth/api/legacy/globus" }}
 #the credentials used for the handle manager.
 handle-manager-token={{ default .Env.handle_manager_token "" }}
-kbase-admin-token={{ default .Env.kbase_admin_token "" }}
 
 # configuration options for RESKE
 listeners={{ default .Env.listeners "Search,KnowledgeEngine" }}
