@@ -19,12 +19,7 @@ ADMIN NOTES:
     * the index ``{ws: 1, id: 1, ver: -1}`` with ``{unique: 1}``
 * The workspaces collection name index has been made sparse. The index must be changed before
   deploying this version.
-
-* Code/configuration has been added that enables automatic travis builds of a kbase/kb_workspace
-  docker image, and automated pushing of this image to dockerhub. This is a major step forward
-  to support continuous deployment. The docker image uses the a modified version of the dockerize
-  wrapper program by Jason Wilder which is included in the KBase base java image. Details of
-  deployment in a mini-kbase docker-compose stack are in the kbase/mini_kb repo github repo
+* Added docker file & code for pushing docker image in a travis build.
 
 NEW FEATURES:
 
