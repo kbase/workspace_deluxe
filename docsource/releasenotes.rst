@@ -19,6 +19,7 @@ ADMIN NOTES:
     * the index ``{ws: 1, id: 1, ver: -1}`` with ``{unique: 1}``
 * The workspaces collection name index has been made sparse. The index must be changed before
   deploying this version.
+* Added docker file & code for pushing docker image in a travis build.
 
 NEW FEATURES:
 

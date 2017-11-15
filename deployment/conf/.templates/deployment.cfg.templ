@@ -1,0 +1,35 @@
+[Workspace]
+mongodb-database={{ default .Env.mongodb_database "workspace" }}
+mongodb-pwd={{ default .Env.mongodb_pwd "" }}
+ws-admin={{ default .Env.ws_admin "scanonadmin" }}
+# backend user is wstest globus user in ci
+# use that acct to generate token
+backend-token={{ default .Env.backend_token "" }}
+mongodb-host={{ default .Env.mongodb_host "ci-mongo" }}
+mongodb-user={{ default .Env.mongodb_user "wsserv" }}
+service-port={{ default .Env.service_port "7058" }}
+max-memory={{ default .Env.max_memory "15000" }}
+min-memory={{ default .Env.min_memory "10000" }}
+temp-dir={{ default .Env.temp_dir "ws_temp_dir" }}
+server-threads={{ default .Env.server_threads "20" }}
+mongodb-retry={{ default .Env.mongodb_retry "0" }}
+ignore-handle-service={{ default .Env.ignore_handle_service ""}}
+handle-service-url={{ default .Env.handle_service "https://ci.kbase.us/services/handleservice/" }}
+handle-manager-url={{ default .Env.handle_manager "https://ci.kbase.us/services/handlemngr/" }}
+# The KBase authorization server url.
+auth-service-url={{ default .Env.auth_service "https://ci.kbase.us/services/auth/api/legacy/KBase" }}
+auth-service-url-allow-insecure={{ default .Env.auth_service_url_allow_insecure "" }}
+# The Globus v1 authorization API url.  auth2 supports this directly
+globus-url = {{ default .Env.globus_url "https://ci.kbase.us/services/auth/api/legacy/globus" }}
+#the credentials used for the handle manager.
+handle-manager-token={{ default .Env.handle_manager_token "" }}
+
+# configuration options for RESKE
+listeners={{ default .Env.listeners "Search,KnowledgeEngine" }}
+listener-Search-class={{ default .Env.listener_search_class "us.kbase.workspace.modules.SearchPrototypeEventHandlerFactory" }}
+listener-Search-config-mongohost={{ default .Env.listener_search_config_mongohost "" }}
+listener-Search-config-mongodatabase={{ default .Env.listener_search_config_mongodatabase "DataStatus" }}
+listener-KnowledgeEngine-class={{ default .Env.listener_KnowledgeEngine_class "us.kbase.workspace.modules.KnowledgeEnginePrototypeEventHandlerFactory" }}
+listener-KnowledgeEngine-config-mongohost={{ default .Env.listener_knowledgeengine_config_mongohost "" }}
+listener-KnowledgeEngine-config-mongodatabase={{ default .Env.listener_KnowledgeEngine_config_mongodatabase "KnowledgeEngine" }}
+
