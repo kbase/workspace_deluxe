@@ -20,6 +20,12 @@ ADMIN NOTES:
 * The workspaces collection name index has been made sparse. The index must be changed before
   deploying this version.
 
+* Code/configuration has been added that enables automatic travis builds of a kbase/kb_workspace
+  docker image, and automated pushing of this image to dockerhub. This is a major step forward
+  to support continuous deployment. The docker image uses the a modified version of the dockerize
+  wrapper program by Jason Wilder which is included in the KBase base java image. Details of
+  deployment in a mini-kbase docker-compose stack are in the kbase/mini_kb repo github repo
+
 NEW FEATURES:
 
 * Adds a workspace event listener API. Event listeners must implement the
