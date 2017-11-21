@@ -44,7 +44,6 @@ build-docs:
 docker_image: build-libs build-docs 
 	$(ANT) buildwar
 	cp server_scripts/glassfish_administer_service.py deployment/bin
-	cp administration/initialize.py deployment/bin
 	chmod 755 deployment/bin/glassfish_administer_service.py
 	cp dist/$(WAR) deployment/services/workspace/
 	./build/build_docker_image.sh
