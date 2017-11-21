@@ -76,6 +76,7 @@ class CommandGlassfishDomain(object):
         else:
             print('Creating domain ' + self.domain + p)
             print(self._run_local_command('create-domain', '--nopassword=true',
+                                          '--instanceport=32768',  # move instanceport off 8080
                                           self.domain).rstrip())
         self.adminport = self.get_admin_port()
         self.start_domain()
