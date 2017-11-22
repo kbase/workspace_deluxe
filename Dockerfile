@@ -31,5 +31,5 @@ ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
 CMD [ "-template", "/kb/deployment/conf/.templates/deployment.cfg.templ:$KB_DEPLOYMENT_CONFIG", \
       "-template", "/kb/deployment/conf/.templates/start_workspace.sh.templ:/kb/deployment/bin/start_workspace.sh", \
       "-stdout", "/kb/deployment/services/workspace/glassfish_domain/Workspace/logs/server.log", \
-      "/kb/deployment/bin/start_workspace.sh" ]
+      "/bin/bash", "/kb/deployment/bin/start_workspace.sh" ]
 

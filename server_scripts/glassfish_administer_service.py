@@ -35,6 +35,8 @@ def _parseArgs():
                         'glassfish/domains.')
     parser.add_argument('-p', '--port', required=True, type=int,
                         help='the port where the application runs.')
+    parser.add_argument('-i', '--instanceport', type=int, default=8080,
+                        help='port for glassfish -instanceport option in create-domain')
     parser.add_argument('-t', '--threads', type=int, default=20,
                         help='the number of threads for the application.')
     parser.add_argument('-s', '--Xms', type=int,
@@ -55,11 +57,12 @@ def _parseArgs():
 
 class CommandGlassfishDomain(object):
 
-    def __init__(self, asadminpath, domain, domainpath, verbose):
+    def __init__(self, asadminpath, domain, domainpath, verbose, instanceport):
         self.asadminpath = asadminpath
         self.domain = domain
         self.path = None
         self.verbose = verbose
+        self.instanceport = instanceport
         if (domainpath):
             domaindir = os.path.abspath(os.path.expanduser(domainpath))
             if not os.path.isdir(domaindir):
@@ -76,7 +79,7 @@ class CommandGlassfishDomain(object):
         else:
             print('Creating domain ' + self.domain + p)
             print(self._run_local_command('create-domain', '--nopassword=true',
-                                          '--instanceport=32768',  # move instanceport off 8080
+                                          '--instanceport='+str(self.instanceport),  # move instanceport off 8080
                                           self.domain).rstrip())
         self.adminport = self.get_admin_port()
         self.start_domain()
@@ -297,7 +300,7 @@ class CommandGlassfishDomain(object):
 
 if __name__ == '__main__':
     args = _parseArgs()
-    gf = CommandGlassfishDomain(args.admin, args.domain, args.domain_dir, args.verbose)
+    gf = CommandGlassfishDomain(args.admin, args.domain, args.domain_dir, args.verbose, args.instanceport)
     if args.war is None:
         gf.stop_service(args.port)
     else:
