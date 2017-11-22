@@ -5,7 +5,8 @@ cd /kb/deployment
 # the defaults are based on
 bin/glassfish_administer_service.py --verbose --admin $GLASSFISH/bin/asadmin --domain Workspace \
         --domain-dir /kb/deployment/services/workspace/glassfish_domain \
-        --war /kb/deployment/services/workspace/WorkspaceService.war --port {{ default .Env.service_port "7058" }} \
+        --war /kb/deployment/services/workspace/WorkspaceService.war \
+        --port {{ default .Env.service_port "7058" }} --instanceport {{ default .Env.instance_port "32768" }} \
         --threads {{ default .Env.server_threads "20" }} \
         --Xms {{ default .Env.min_memory "10000" }} --Xmx {{ default .Env.max_memory "15000" }} \
         --properties KB_DEPLOYMENT_CONFIG=$KB_DEPLOYMENT_CONFIG  && \
