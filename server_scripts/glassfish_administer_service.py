@@ -36,7 +36,7 @@ def _parseArgs():
     parser.add_argument('-p', '--port', required=True, type=int,
                         help='the port where the application runs.')
     parser.add_argument('-i', '--instanceport', type=int, default=8080,
-                        help='port for glassfish -instanceport option in create-domain')
+                        help='port for glassfish --instanceport option in create-domain')
     parser.add_argument('-t', '--threads', type=int, default=20,
                         help='the number of threads for the application.')
     parser.add_argument('-s', '--Xms', type=int,
@@ -62,7 +62,6 @@ class CommandGlassfishDomain(object):
         self.domain = domain
         self.path = None
         self.verbose = verbose
-        self.instanceport = instanceport
         if (domainpath):
             domaindir = os.path.abspath(os.path.expanduser(domainpath))
             if not os.path.isdir(domaindir):
@@ -79,7 +78,7 @@ class CommandGlassfishDomain(object):
         else:
             print('Creating domain ' + self.domain + p)
             print(self._run_local_command('create-domain', '--nopassword=true',
-                                          '--instanceport='+str(self.instanceport),  # move instanceport off 8080
+                                          '--instanceport=' + str(instanceport),  # move instanceport off 8080
                                           self.domain).rstrip())
         self.adminport = self.get_admin_port()
         self.start_domain()
