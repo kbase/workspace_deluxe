@@ -27,6 +27,7 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
 
 EXPOSE 7058
 ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
+WORKDIR /kb/deployment/services/workspace/tomcat
 CMD [ "-template", "/kb/deployment/conf/.templates/deployment.cfg.templ:/kb/deployment/conf/deployment.cfg", \
       "-template", "/kb/deployment/conf/.templates/server.xml.templ:/kb/deployment/services/workspace/tomcat/conf/server.xml", \
       "-template", "/kb/deployment/conf/.templates/tomcat-users.xml.templ:/kb/deployment/services/workspace/tomcat/conf/tomcat-users.xml", \
