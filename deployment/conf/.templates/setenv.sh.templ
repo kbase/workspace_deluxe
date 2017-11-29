@@ -23,6 +23,6 @@ done
 if [ -z "$JAVA_OPTS" ]; then
 	JAVA_OPTS="-Djava.awt.headless=true -server \
                -Xms{{ default .Env.min_memory "10000" }}m -Xmx{{ default .Env.max_memory "15000" }}m \
-               -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled"
+               -XX:+UseG1GC"
 fi
 
