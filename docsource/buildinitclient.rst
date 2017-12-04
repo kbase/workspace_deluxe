@@ -94,7 +94,7 @@ For simplicity, copy the required jars into a single directory::
     jackson-annotations-2.5.4.jar        kbase-auth-0.4.4.jar
     jackson-core-2.5.4.jar               kbase-common-0.0.24.jar
     jackson-databind-2.5.4.jar           WorkspaceClient.jar
-    
+
 
 When creating an application using the WSS it's advisable to use a build tool
 like ``ant``, ``maven``, or ``gradle`` to organize the required jars.
@@ -118,8 +118,7 @@ This simple program initializes and calls a method on the WSS client::
                 "https://ci.kbase.us/services/auth/api/legacy/KBase/Sessions/Login/";
 
             ConfigurableAuthService authService = new ConfigurableAuthService(
-                    new AuthConfig().withKBaseAuthServerURL(new URL(authUrl))
-                    .withAllowInsecureURLs("true"));
+                    new AuthConfig().withKBaseAuthServerURL(new URL(authUrl));
 
             String tokenString = YOUR_AUTH_TOKEN_HERE;
             AuthToken token = authService.validateToken(tokenString);
