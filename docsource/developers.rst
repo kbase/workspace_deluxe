@@ -31,15 +31,19 @@ Deploying the Workspace Service locally
 ----------------------------------------
 These instructions are known to work on Ubuntu 16.04 LTS.
 
-1. Install the dependencies pymongo v2.8, GlassFish v3.1.*, mongodb >=v2.6.* and the KBase Jars directory.
+1. Install the dependencies pymongo v2.8, GlassFish v3.1.*, mongodb >=v2.6.*, kb-sdk and the KBase Jars directory.
 
 .. code-block:: bash
 
     $ sudo pip install pymongo==2.8
 
-The GlassFish download URL is http://www.oracle.com/technetwork/middleware/glassfish/downloads/ogs-3-1-1-downloads-439803.html. The unix shell script (ogs-3.1.2.2-unix.sh) install of GlassFish is simple since the application configuration is also handled during install. Follow the wizard instructions to complete the GlassFish installation. Leave all config values to default values. The rest of this playbook assumes that you have the mongo and glassfish binaries of these applications set in your environment path variable.
+The GlassFish download URL is http://www.oracle.com/technetwork/middleware/glassfish/downloads/ogs-3-1-1-downloads-439803.html. The unix shell script (ogs-3.1.2.2-unix.sh) install of GlassFish is simple since the application configuration is also handled during install. Follow the wizard instructions to complete the GlassFish installation. Leave all config values to default values.
+
+Install `kb-sdk <https://github.com/kbase/kb_sdk>`_.
 
 The KBase Jars directory must be placed in a directory that is adjacent to the workspace directory.
+
+The rest of this playbook assumes that you have the Glassfish, Mongo and kb-sdk binaries in your system environment path variable.
 
 .. code-block:: bash
    $ cd [PATH_TO_YOUR_WORKSPACE_DIR]
