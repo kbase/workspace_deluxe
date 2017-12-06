@@ -31,7 +31,7 @@ Deploying the Worspace Service locally
 --------------------------------------
 These instructions are known to work on Ubuntu 16.04 LTS.
 
-1. Install pymongo v2.8, mongodb v3.4.* and GlassFish v3.1.*.
+1. Install the dependencies pymongo v2.8, GlassFish v3.1.*, mongodb v3.4.* and the KBase Jars directory.
 
 .. code-block:: bash
 
@@ -39,6 +39,12 @@ These instructions are known to work on Ubuntu 16.04 LTS.
 
 The GlassFish download URL is http://www.oracle.com/technetwork/middleware/glassfish/downloads/ogs-3-1-1-downloads-439803.html. The unix shell script (ogs-3.1.2.2-unix.sh) install of GlassFish is simple since the application configuration is also handled during install. Follow the wizard instructions to complete the GlassFish installation. Leave all config values to default values. The rest of this playbook assumes that you have the mongo and glassfish binaries of these applications set in your environment path variable.
 
+The KBase Jars directory must be placed in a directory that is adjacent to the workspace directory.
+
+.. code-block:: bash
+   $ cd [PATH_TO_YOUR_WORKSPACE_DIR]
+   $ cd ..
+   $ git clone https://github.com/kbase/jars.git
 
 
 2. Start mongodb. Open a new terminal and create a directory for your mongo data (if one does not already exist), then start mongodb.
@@ -116,7 +122,7 @@ Make the following changes -
     # Note: ignore-handle-service does not exist and needs to be added
     ignore-handle-service = true
 
-4. Initialize and start the workspace service.
+4. Initialize and start the workspace service. This deployment uses gridFS rather than shock as a file backend and does not support handles to shock nodes in objects, and any attempt to save an object with handles will fail.
 
 .. code-block:: bash
 
