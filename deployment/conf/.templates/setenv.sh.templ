@@ -22,7 +22,7 @@ done
 # Default Java options
 if [ -z "$JAVA_OPTS" ]; then
 	JAVA_OPTS="-Djava.awt.headless=true -server \
-               -Xms{{ default .Env.min_memory "10000" }}m -Xmx{{ default .Env.max_memory "15000" }}m \
+               -Xms{{ default .Env.min_memory "1000" }}m -Xmx{{ default .Env.max_memory "3000" }}m \
                -XX:+UseG1GC"
 fi
 
