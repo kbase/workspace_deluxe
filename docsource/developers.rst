@@ -27,11 +27,11 @@ To compile, simply run ``make compile``. The
 `kb-sdk <https://github.com/kbase/kb_sdk>`_ executable must be in the system
 path.
 
-Deploying the Worspace Service locally
---------------------------------------
+Deploying the Workspace Service locally
+----------------------------------------
 These instructions are known to work on Ubuntu 16.04 LTS.
 
-1. Install the dependencies pymongo v2.8, GlassFish v3.1.*, mongodb v3.4.* and the KBase Jars directory.
+1. Install the dependencies pymongo v2.8, GlassFish v3.1.*, mongodb >=v2.6.* and the KBase Jars directory.
 
 .. code-block:: bash
 
