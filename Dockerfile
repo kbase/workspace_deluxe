@@ -5,7 +5,8 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG BRANCH=develop
 
-RUN apt-get install -y wget python-minimal && \
+RUN apt-get update && \
+    apt-get install -y wget python-minimal && \
     cd /usr/local && \
     wget  http://download.oracle.com/glassfish/3.1.2.2/release/glassfish-3.1.2.2.zip && \
     unzip glassfish-3.1.2.2.zip && \
