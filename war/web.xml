@@ -6,6 +6,7 @@
     <servlet>
         <servlet-name>RootServlet</servlet-name>
         <servlet-class>us.kbase.workspace.WorkspaceServer</servlet-class>
+        <load-on-startup>1</load-on-startup>
     </servlet>
     <servlet>
         <servlet-name>DocServlet</servlet-name>
