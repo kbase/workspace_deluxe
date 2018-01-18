@@ -5,18 +5,16 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG BRANCH=develop
 
-RUN apt-get update && \
-    apt-get install -y wget python-minimal && \
-    cd /usr/local && \
-    wget  http://download.oracle.com/glassfish/3.1.2.2/release/glassfish-3.1.2.2.zip && \
-    unzip glassfish-3.1.2.2.zip && \
-    rm glassfish-3.1.2.2.zip && \
-    echo >>glassfish3/glassfish/config/osgi.properties 'jre-1.8=${jre-1.7}'
-
-ENV GLASSFISH /usr/local/glassfish3
-ENV KB_DEPLOYMENT_CONFIG /kb/deployment/conf/deployment.cfg
-
 COPY deployment/ /kb/deployment/
+
+RUN /usr/bin/tomcat8-instance-create /kb/deployment/services/workspace/tomcat && \
+    mv /kb/deployment/services/workspace/WorkspaceService.war /kb/deployment/services/workspace/tomcat/webapps/ROOT.war && \
+    rm -rf /kb/deployment/services/workspace/tomcat/webapps/ROOT
+
+# Must set catalina_base to match location of tomcat8-instance-create dir
+# before calling /usr/share/tomcat8/bin/catalina.sh
+ENV CATALINA_BASE /kb/deployment/services/workspace/tomcat
+ENV KB_DEPLOYMENT_CONFIG /kb/deployment/conf/deployment.cfg
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to
 # the end
@@ -29,8 +27,13 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
 
 EXPOSE 7058
 ENTRYPOINT [ "/kb/deployment/bin/dockerize" ]
-CMD [ "-template", "/kb/deployment/conf/.templates/deployment.cfg.templ:$KB_DEPLOYMENT_CONFIG", \
-      "-template", "/kb/deployment/conf/.templates/start_workspace.sh.templ:/kb/deployment/bin/start_workspace.sh", \
-      "-stdout", "/kb/deployment/services/workspace/glassfish_domain/Workspace/logs/server.log", \
-      "/bin/bash", "/kb/deployment/bin/start_workspace.sh" ]
+WORKDIR /kb/deployment/services/workspace/tomcat
+CMD [ "-template", "/kb/deployment/conf/.templates/deployment.cfg.templ:/kb/deployment/conf/deployment.cfg", \
+      "-template", "/kb/deployment/conf/.templates/server.xml.templ:/kb/deployment/services/workspace/tomcat/conf/server.xml", \
+      "-template", "/kb/deployment/conf/.templates/tomcat-users.xml.templ:/kb/deployment/services/workspace/tomcat/conf/tomcat-users.xml", \
+      "-template", "/kb/deployment/conf/.templates/logging.properties.templ:/kb/deployment/services/workspace/tomcat/conf/logging.properties", \
+      "-template", "/kb/deployment/conf/.templates/setenv.sh.templ:/kb/deployment/services/workspace/tomcat/bin/setenv.sh", \
+      "-stdout", "/kb/deployment/services/workspace/tomcat/logs/catalina.out", \
+      "-stdout", "/kb/deployment/services/workspace/tomcat/logs/access.log", \
+      "/usr/share/tomcat8/bin/catalina.sh", "run" ]
 
