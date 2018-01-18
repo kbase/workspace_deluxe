@@ -55,6 +55,9 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 	
 	public class SearthPrototypeEventHandler implements WorkspaceEventListener {
 		
+		private static final String TRUE = "true";
+		private static final String IS_TEMP_NARRATIVE = "is_temporary";
+		private static final String NARRATIVE_TYPE = "KBaseNarrative.Narrative";
 		private static final String DATA_SOURCE = "WS";
 		private static final String NEW_OBJECT_VER = "NEW_VERSION";
 		private static final String NEW_OBJECT = "NEW_ALL_VERSIONS";
@@ -225,6 +228,10 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 		
 		@Override
 		public void saveObject(final ObjectInformation oi, final boolean isPublic) {
+			if (oi.getTypeString().startsWith(NARRATIVE_TYPE) &&
+				TRUE.equals(oi.getUserMetaData().getMetadata().get(IS_TEMP_NARRATIVE))) {
+					return;
+			}
 			newVersionEvent(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
 					oi.getTypeString(), isPublic, oi.getSavedDate().toInstant());
 		}
