@@ -1,6 +1,5 @@
 Workspace service release notes
 ===============================
-
 VERSION: 0.8.0 (Released TBD)
 --------------------------------
 
@@ -20,6 +19,9 @@ ADMIN NOTES:
 * The workspaces collection name index has been made sparse. The index must be changed before
   deploying this version.
 * Added docker file & code for pushing docker image in a travis build.
+* Updated repo to automatically build deployable docker images and push them to dockerhub
+* Deployable docker images run in tomcat, not glassfish
+* Documentation on how to run workspace under tomcat
 
 NEW FEATURES:
 
