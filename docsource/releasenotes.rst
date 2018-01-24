@@ -1,5 +1,12 @@
 Workspace service release notes
 ===============================
+VERSION: 0.8.1 (Released TBD)
+-------------------------------
+
+ADMIN NOTES:
+* Updated repo to automatically build deployable docker images and push them to dockerhub
+* Deployable docker images run in tomcat, not glassfish
+* Documentation on how to run workspace under tomcat
 
 VERSION: 0.8.0 (Released TBD)
 --------------------------------
