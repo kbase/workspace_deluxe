@@ -164,6 +164,58 @@ public class ResourceUsageConfigurationBuilder {
 		public long getMaxReturnedDataSize() {
 			return maxReturnedDataSize;
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + maxIncomingDataMemoryUsage;
+			result = prime * result + maxObjectSize;
+			result = prime * result + maxRelabelAndSortMemoryUsage;
+			result = prime * result + maxReturnedDataMemoryUsage;
+			result = prime * result + (int) (maxReturnedDataSize ^ (maxReturnedDataSize >>> 32));
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			ResourceUsageConfiguration other = (ResourceUsageConfiguration) obj;
+			if (!getOuterType().equals(other.getOuterType())) {
+				return false;
+			}
+			if (maxIncomingDataMemoryUsage != other.maxIncomingDataMemoryUsage) {
+				return false;
+			}
+			if (maxObjectSize != other.maxObjectSize) {
+				return false;
+			}
+			if (maxRelabelAndSortMemoryUsage != other.maxRelabelAndSortMemoryUsage) {
+				return false;
+			}
+			if (maxReturnedDataMemoryUsage != other.maxReturnedDataMemoryUsage) {
+				return false;
+			}
+			if (maxReturnedDataSize != other.maxReturnedDataSize) {
+				return false;
+			}
+			return true;
+		}
+
+		private ResourceUsageConfigurationBuilder getOuterType() {
+			return ResourceUsageConfigurationBuilder.this;
+		}
+		
+		
 	}
 
 }

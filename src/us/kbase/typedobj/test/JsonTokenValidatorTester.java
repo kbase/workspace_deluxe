@@ -1,13 +1,14 @@
 package us.kbase.typedobj.test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Arrays;
 import java.util.Random;
-
-import junit.framework.Assert;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -71,7 +72,7 @@ public class JsonTokenValidatorTester {
 			ValidatedTypedObject report = new TypedObjectValidator(
 					new LocalTypeProvider(db)).validate(new UObject(jp, null), 
 					new TypeDefId(new TypeDefName(moduleName, typeName)), han);
-			Assert.assertTrue(report.isInstanceValid());
+			assertThat(report.isInstanceValid(), is(true));
 			System.out.println(buffer + "\t" + f.length() + "\t" + (System.currentTimeMillis() - time) + " ms");
 			jp.setRoot(null);
 			File f2 = new File("temp_files/temp_validation2.json");

@@ -1,17 +1,23 @@
 package us.kbase.common.test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.ini4j.Ini;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -37,9 +43,12 @@ public class TestCommon {
 	public static final String TEST_TEMP_DIR = "test.temp.dir";
 	public static final String KEEP_TEMP_DIR = "test.temp.dir.keep";
 	
-	public static final String TEST_USER_PREFIX = "test.user";
-	public static final String TEST_PWD_PREFIX = "test.pwd";
 	public static final String TEST_TOKEN_PREFIX = "test.token";
+	
+	public static final String TEST_CONFIG_FILE_PROP_NAME = "test.cfg";
+	public static final String TEST_CONFIG_FILE_SECTION = "Workspacetest";
+	
+	private static Map<String, String> testConfig = null;
 			
 	public static void stfuLoggers() {
 		((ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory
@@ -54,70 +63,60 @@ public class TestCommon {
 				System.getProperty("java.runtime.version"));
 	}
 	
-	public static String getProp(String prop) {
-		if (System.getProperty(prop) == null ||
-				System.getProperty(prop).isEmpty()) {
-			throw new TestException("Property " + prop +
-					" cannot be null or the empty string.");
+	public static String getTestProperty(final String propertyKey) {
+		getTestConfig();
+		final String prop = testConfig.get(propertyKey);
+		if (prop == null || prop.trim().isEmpty()) {
+			throw new TestException(String.format(
+					"Property %s in section %s of test file %s is missing",
+					propertyKey, TEST_CONFIG_FILE_SECTION, getConfigFilePath()));
 		}
-		return System.getProperty(prop);
+		return prop;
 	}
-	
-	public static boolean hasToken(final int user) {
-		final String t = System.getProperty(TEST_TOKEN_PREFIX + user);
-		if (t == null || t.isEmpty()) {
-			final String u = System.getProperty(TEST_USER_PREFIX + user);
-			final String p = System.getProperty(TEST_PWD_PREFIX + user);
-			if (u == null || u.isEmpty()) {
-				throw new TestException(String.format(
-						"Neither %s or %s are set in the test configuration",
-						TEST_TOKEN_PREFIX + user, TEST_USER_PREFIX + user));
-			}
-			if (p == null || p.isEmpty()) {
-				throw new TestException(String.format(
-						"%s is not set in the test configuration",
-						TEST_PWD_PREFIX + user));
-			}
-			return false;
-		} else {
-			return true;
+
+	private static void getTestConfig() {
+		if (testConfig != null) {
+			return;
 		}
+		final Path testCfgFilePath = getConfigFilePath();
+		final Ini ini;
+		try {
+			ini = new Ini(testCfgFilePath.toFile());
+		} catch (IOException ioe) {
+			throw new TestException(String.format(
+					"IO Error reading the test configuration file %s: %s",
+					testCfgFilePath, ioe.getMessage()), ioe);
+		}
+		testConfig = ini.get(TEST_CONFIG_FILE_SECTION);
+		if (testConfig == null) {
+			throw new TestException(String.format("No section %s found in test config file %s",
+					TEST_CONFIG_FILE_SECTION, testCfgFilePath));
+		}
+	}
+
+	private static Path getConfigFilePath() {
+		final String testCfgFilePathStr = System.getProperty(TEST_CONFIG_FILE_PROP_NAME);
+		if (testCfgFilePathStr == null || testCfgFilePathStr.trim().isEmpty()) {
+			throw new TestException(String.format("Cannot get the test config file path." +
+					" Ensure the java system property %s is set to the test config file location.",
+					TEST_CONFIG_FILE_PROP_NAME));
+		}
+		return Paths.get(testCfgFilePathStr).toAbsolutePath().normalize();
 	}
 	
 	public static AuthToken getToken(
 			final int user,
 			final ConfigurableAuthService auth) {
 		try {
-			if (hasToken(user)) {
-				return auth.validateToken(getToken(user));
-			} else {
-				return auth.login(getUserName(user), getPwd(user)).getToken();
-			}
+			return auth.validateToken(getToken(user));
 		} catch (AuthException | IOException e) {
 			throw new TestException(String.format(
-					"Couldn't log in user #%s with %s : %s", user,
-					hasToken(user) ? "token" : "username " + getUserName(user),
-					e.getMessage()), e);
+					"Couldn't log in user #%s with token : %s", user, e.getMessage()), e);
 		}
 	}
 	
 	public static String getToken(final int user) {
-		return getProp(TEST_TOKEN_PREFIX + user);
-	}
-	
-	public static String getUserName(final int user) {
-		return getProp(TEST_USER_PREFIX + user);
-	}
-	
-	public static String getPwd(final int user) {
-		return getProp(TEST_PWD_PREFIX + user);
-	}
-	
-	public static String getPwdNullIfToken(final int user) {
-		if (hasToken(user)) {
-			return null;
-		}
-		return getPwd(user);
+		return getTestProperty(TEST_TOKEN_PREFIX + user);
 	}
 	
 	public static URL getAuthUrl() {
@@ -126,7 +125,7 @@ public class TestCommon {
 	
 	private static URL getURL(String prop) {
 		try {
-			return new URL(getProp(prop));
+			return new URL(getTestProperty(prop));
 		} catch (MalformedURLException e) {
 			throw new TestException("Property " + prop + " is not a valid url",
 					e);
@@ -138,35 +137,35 @@ public class TestCommon {
 	}
 	
 	public static String getTempDir() {
-		return getProp(TEST_TEMP_DIR);
+		return getTestProperty(TEST_TEMP_DIR);
 	}
 	
 	public static String getMongoExe() {
-		return getProp(MONGOEXE);
+		return getTestProperty(MONGOEXE);
 	}
 	
 	public static String getShockExe() {
-		return getProp(SHOCKEXE);
+		return getTestProperty(SHOCKEXE);
 	}
 	
 	public static String getShockVersion() {
-		return getProp(SHOCKVER);
+		return getTestProperty(SHOCKVER);
 	}
 
 	public static String getMySQLExe() {
-		return getProp(MYSQLEXE);
+		return getTestProperty(MYSQLEXE);
 	}
 	
 	public static String getMySQLInstallExe() {
-		return getProp(MYSQL_INSTALL_EXE);
+		return getTestProperty(MYSQL_INSTALL_EXE);
 	}
 	
 	public static boolean getDeleteTempFiles() {
-		return !"true".equals(System.getProperty(KEEP_TEMP_DIR));
+		return !"true".equals(getTestProperty(KEEP_TEMP_DIR));
 	}
 	
 	public static boolean useWiredTigerEngine() {
-		return "true".equals(System.getProperty(MONGO_USE_WIRED_TIGER));
+		return "true".equals(getTestProperty(MONGO_USE_WIRED_TIGER));
 	}
 	
 	public static void destroyDB(DB db) {
@@ -185,7 +184,7 @@ public class TestCommon {
 				ExceptionUtils.getStackTrace(got),
 				got.getLocalizedMessage(),
 				is(expected.getLocalizedMessage()));
-		assertThat("incorrect exception type", got, is(expected.getClass()));
+		assertThat("incorrect exception type", got, instanceOf(expected.getClass()));
 	}
 	
 	public static void assertNoTempFilesExist(TempFilesManager tfm)
@@ -226,5 +225,10 @@ public class TestCommon {
 		Field m = cu.getDeclaredField("m");
 		m.setAccessible(true);
 		return (Map<String, String>) m.get(unmodifiable);
+	}
+	
+	@SafeVarargs
+	public static <T> Set<T> set(T... objects) {
+		return new HashSet<T>(Arrays.asList(objects));
 	}
 }

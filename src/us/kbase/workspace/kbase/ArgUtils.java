@@ -8,6 +8,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import java.io.IOException;
 import java.net.URL;
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
@@ -34,7 +35,6 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.handlemngr.HandleMngrClient;
-import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
@@ -178,11 +178,19 @@ public class ArgUtils {
 		}
 	}
 	
-	public static String formatDate(final Date date) {
+	private static String formatDate(final Date date) {
 		if (date == null) {
 			return null;
 		}
 		return DATE_FORMATTER.print(new DateTime(date));
+	}
+	
+	private static String formatDate(final Instant date) {
+		if (date == null) {
+			return null;
+		}
+		return formatDate(Date.from(date));
+		
 	}
 	
 	private static List<Object> translateMethodParametersToObject(
@@ -228,7 +236,7 @@ public class ArgUtils {
 				.withE2(info.getName())
 				.withE3(info.getOwner().getUser())
 				.withE4(formatDate(info.getModDate()))
-				.withE5(info.getApproximateObjects())
+				.withE5(info.getMaximumObjectID())
 				.withE6(translatePermission(info.getUserPermission())) 
 				.withE7(translatePermission(info.isGloballyReadable()))
 				.withE8(info.getLockState())
@@ -253,7 +261,7 @@ public class ArgUtils {
 				.withE1(info.getName())
 				.withE2(info.getOwner().getUser())
 				.withE3(formatDate(info.getModDate()))
-				.withE4(info.getApproximateObjects())
+				.withE4(info.getMaximumObjectID())
 				.withE5(translatePermission(info.getUserPermission())) 
 				.withE6(translatePermission(info.isGloballyReadable()));
 	}
@@ -371,7 +379,7 @@ public class ArgUtils {
 			final List<WorkspaceObjectData> objects, 
 			final WorkspaceUser user,
 			final URL handleManagerURl,
-			final TokenProvider handleManagertoken,
+			final AuthToken handleManagertoken,
 			final boolean logObjects)
 			throws JsonParseException, IOException {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
@@ -431,7 +439,7 @@ public class ArgUtils {
 			final List<WorkspaceObjectData> objects,
 			final WorkspaceUser user,
 			final URL handleManagerURl,
-			final TokenProvider handleManagertoken,
+			final AuthToken handleManagertoken,
 			final boolean logObjects) {
 		final List<us.kbase.workspace.ObjectProvenanceInfo> ret =
 				new ArrayList<us.kbase.workspace.ObjectProvenanceInfo>();
@@ -487,33 +495,15 @@ public class ArgUtils {
 			final WorkspaceObjectData o,
 			final WorkspaceUser user,
 			final URL handleManagerURL,
-			final TokenProvider handleManagertoken) {
+			final AuthToken handleManagertoken) {
 		final List<String> handles = o.getExtractedIds().get(
 				HandleIdHandlerFactory.type.getType());
 		if (handles == null || handles.isEmpty()) {
 			return new HandleError(null, null);
 		}
-		final AuthToken token;
-		try {
-			token = handleManagertoken.getToken();
-		} catch (AuthException e) {
-			return new HandleError(
-					"Unable to contact the Handle Manager - " +
-							"couldn't refresh the workspace credentials: " +
-							e.getMessage(),
-					ExceptionUtils.getStackTrace(e));
-		} catch (IOException e) {
-			return new HandleError(
-					"Unable to contact the Handle Manager - " +
-							"an IO error occured while attempting to " + 
-							"refresh the workspace credentials: " +
-							e.getMessage(),
-					ExceptionUtils.getStackTrace(e));
-		}
-		
 		final HandleMngrClient hmc;
 		try {
-			hmc = new HandleMngrClient(handleManagerURL, token);
+			hmc = new HandleMngrClient(handleManagerURL, handleManagertoken);
 			if (handleManagerURL.getProtocol().equals("http")) {
 				hmc.setIsInsecureHttpConnectionAllowed(true);
 			}

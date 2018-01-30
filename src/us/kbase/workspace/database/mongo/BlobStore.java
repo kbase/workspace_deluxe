@@ -65,8 +65,6 @@ public interface BlobStore {
 	public String getExternalIdentifier(MD5 md5) throws
 		BlobStoreCommunicationException, NoSuchBlobException;
 	
-	public String getStoreType();
-
 	/** Returns the status of the blob store's dependencies.
 	 * @return the dependency status.
 	 */

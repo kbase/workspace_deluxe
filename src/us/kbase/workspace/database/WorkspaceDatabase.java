@@ -1,9 +1,12 @@
 package us.kbase.workspace.database;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.google.common.base.Optional;
 
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -17,23 +20,64 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
 public interface WorkspaceDatabase {
 	
-	public String getBackendType();
-	
-	//TODO CODE return workspace info insted of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
+	//TODO CODE return workspace info instead of resolved WS ID? Almost the same info. Switch to global read boolean on WS first.
+	/** Resolve a workspace identifier.
+	 * @param wsi the workspace identifier.
+	 * @return the resolved identifier.
+	 * @throws NoSuchWorkspaceException if the workspace is deleted or doesn't exist.
+	 * @throws WorkspaceCommunicationException if an error occurred while communicating with the
+	 * storage system.
+	 */
 	public ResolvedWorkspaceID resolveWorkspace(final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
+	/** Resolve a set of workspace identifiers.
+	 * @param wsis the workspace identifiers.
+	 * @return the resolved workspace identifiers.
+	 * @throws NoSuchWorkspaceException if any of the workspaces are deleted or don't exist.
+	 * @throws WorkspaceCommunicationException if an error occurred while communicating with the
+	 * storage system.
+	 */
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
-			Set<WorkspaceIdentifier> rwsis) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException;
+			Set<WorkspaceIdentifier> wsis)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 
-	public ResolvedWorkspaceID resolveWorkspace(WorkspaceIdentifier wsi,
-			boolean allowDeleted) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException;
+	/** Resolve a workspace identifier.
+	 * 
+	 * WARNING - may return deleted workspaces. There is no guarantee how long deleted workspaces
+	 * may remain in the system, and attempting to access them again may result in an exception.
+	 * 
+	 * @param wsi the workspace identifier.
+	 * @param allowDeleted allow the target workspace to be in the deleted state.
+	 * @return the resolved identifier.
+	 * @throws NoSuchWorkspaceException if the workspace doesn't exist or if allowDeleted is false
+	 * and the workspace is deleted.
+	 * @throws WorkspaceCommunicationException if an error occurred while communicating with the
+	 * storage system.
+	 */
+	public ResolvedWorkspaceID resolveWorkspace(
+			WorkspaceIdentifier wsi,
+			boolean allowDeleted)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 	
+	/** Resolve a set of workspace identifiers.
+	 * 
+	 * WARNING - may return deleted workspaces. There is no guarantee how long deleted workspaces
+	 * may remain in the system, and attempting to access them again may result in an exception.
+	 * 
+	 * @param wsis the workspace identifiers.
+	 * @param suppressErrors if true, deleted workspaces will be returned in the results, and
+	 * workspace identifiers that specify non-existent workspaces will be ignored. If false,
+	 * errors will be thrown for either case.
+	 * @return resolved workspace identifiers.
+	 * @throws NoSuchWorkspaceException if suppressErrors is false and any of the specified
+	 * workspaces don't exist or are deleted.
+	 * @throws WorkspaceCommunicationException if an error occurred while communicating with the
+	 * storage system.
+	 */
 	public Map<WorkspaceIdentifier, ResolvedWorkspaceID> resolveWorkspaces(
-			Set<WorkspaceIdentifier> wsis, boolean allowDeleted,
-			boolean allowMissing)
+			Set<WorkspaceIdentifier> wsis,
+			boolean suppressErrors)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException;
 
 	public WorkspaceInformation createWorkspace(WorkspaceUser owner,
@@ -47,16 +91,22 @@ public interface WorkspaceDatabase {
 	 * 
 	 * @param wsid the workspace for which metadata will be altered.
 	 * @param meta the metadata to add to the workspace.
+	 * @return the workspace modification time.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 * @throws IllegalArgumentException if no metadata is supplied or the 
 	 * updated metadata exceeds the allowed size.
 	 */
-	public void setWorkspaceMeta(ResolvedWorkspaceID wsid,
-			WorkspaceUserMetadata meta)
+	public Instant setWorkspaceMeta(ResolvedWorkspaceID wsid, WorkspaceUserMetadata meta)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	public void removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
+	/** Remove a metadata key from a workspace.
+	 * @param wsid the workspace for which metadata will be altered.
+	 * @param key the key to remove from the metadata.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 */
+	public Instant removeWorkspaceMetaKey(ResolvedWorkspaceID wsid, String key)
 			throws WorkspaceCommunicationException;
 	
 	/** Clone a workspace.
@@ -87,19 +137,59 @@ public interface WorkspaceDatabase {
 			WorkspaceCommunicationException, CorruptWorkspaceDBException,
 			NoSuchObjectException;
 	
-	public WorkspaceInformation lockWorkspace(WorkspaceUser user,
-			ResolvedWorkspaceID wsid)
+	/** Lock a workspace, preventing further modifications other than making the workspace
+	 * publicly readable.
+	 * @param wsid the workspace.
+	 * @return the modification date of the workspace.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 */
+	public Instant lockWorkspace(ResolvedWorkspaceID wsid)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public void setPermissions(ResolvedWorkspaceID rwsi,
-			List<WorkspaceUser> users, Permission perm) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	/** Set permissions on a workspace.
+	 * @param rwsi the workspace to alter.
+	 * @param users the users for which the permission will be set.
+	 * @param perm the permission to set.
+	 * @return the workspace modification date.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 */
+	public Instant setPermissions(
+			ResolvedWorkspaceID rwsi,
+			List<WorkspaceUser> users,
+			Permission perm)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	public WorkspaceInformation setWorkspaceOwner(ResolvedWorkspaceID rwsi,
-			WorkspaceUser user, WorkspaceUser newUser, String newName)
+	/** Change a workspace's owner.
+	 * @param rwsi the workspace.
+	 * @param user the current owner.
+	 * @param newUser the new owner.
+	 * @param newName the new workspace name, or null if the name should not change.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 */
+	public Instant setWorkspaceOwner(
+			ResolvedWorkspaceID rwsi,
+			WorkspaceUser user,
+			WorkspaceUser newUser,
+			Optional<String> newName)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public void setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
+	/** Set the global permission on a workspace - e.g. whether the workspace is readable by the
+	 * public or not.
+	 * @param rwsi the workspace.
+	 * @param perm the new global permission for the workspace - either READ or NONE.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 */
+	public Instant setGlobalPermission(ResolvedWorkspaceID rwsi, Permission perm)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Get the permission for a workspace for one user. Takes global
@@ -115,8 +205,7 @@ public interface WorkspaceDatabase {
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 */
-	public Permission getPermission(WorkspaceUser user,
-			ResolvedWorkspaceID rwsi)
+	public Permission getPermission(WorkspaceUser user, ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Get permissions for a workspace for one user. This method will also
@@ -126,14 +215,14 @@ public interface WorkspaceDatabase {
 	 *  
 	 * @param user the user for whom to get permissions. If the user is null,
 	 * only the global readability of the workspace will be returned. 
-	 * @param rwsi the workspace to check.
+	 * @param rwsi the workspace to check. Note that the workspace may not be in
+	 * the output - this indicates the user has no permissions to the workspace.
 	 * @return the user's and global users' permission for the workspace.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 */
-	public PermissionSet getPermissions(WorkspaceUser user,
-			ResolvedWorkspaceID rwsi) throws 
-			WorkspaceCommunicationException, CorruptWorkspaceDBException;
+	public PermissionSet getPermissions(WorkspaceUser user, ResolvedWorkspaceID rwsi)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Get permissions for a set of workspaces for one user. If the user is
 	 * null, only the global readability of the workspaces will be returned.
@@ -142,13 +231,14 @@ public interface WorkspaceDatabase {
 	 * 
 	 * @param user the user for whom to get permissions. If the user is null,
 	 * only the global readability of the workspaces will be returned. 
-	 * @param rwsis the workspaces to check.
+	 * @param rwsis the workspaces to check. If empty, all workspaces
+	 * to which the user has permission will be returned. Note that not all the workspaces in the
+	 * set may be in the output - this indicates the user has no permissions to that workspace.
 	 * @return the user's and global users' permission for the workspaces.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 */
-	public PermissionSet getPermissions(WorkspaceUser user,
-			Set<ResolvedWorkspaceID> rwsis)
+	public PermissionSet getPermissions(WorkspaceUser user, Set<ResolvedWorkspaceID> rwsis)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Returns all the workspaces for which the user has the specified
@@ -166,8 +256,10 @@ public interface WorkspaceDatabase {
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 */
-	public PermissionSet getPermissions(WorkspaceUser user,
-			Permission perm, boolean excludeGlobalRead)
+	public PermissionSet getPermissions(
+			WorkspaceUser user,
+			Permission perm,
+			boolean excludeGlobalRead)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
 	/** Get permissions for a set of workspaces for one user.
@@ -175,19 +267,27 @@ public interface WorkspaceDatabase {
 	 * @param user the user for whom to get permissions. If the user is null,
 	 * only the global readability of the workspaces will be returned. 
 	 * @param rwsis the list of workspaces to check. If empty, all workspaces
-	 * to which the user has permission will be returned.
+	 * to which the user has permission will be returned. Note that not all the workspaces in the
+	 * set may be in the output - this indicates the user has no permissions to that workspace.
 	 * @param perm the minimum permission required for a workspace to be
-	 * included in the permission set.
+	 * included in the permission set. Minimum READ.
 	 * @param excludeGlobalRead exclude globally readable workspaces.
 	 * @param excludeDeletedWorkspaces exclude deleted workspaces. Deleted
 	 * workspaces in the supplied list are not affected.
+	 * @param includeProvidedWorkspaces if true, include all the workspaces in the rwsis parameter
+	 * regardless of whether the user has access or not. Will include workspaces with the NONE
+	 * permission, unlike the default behavior.
 	 * @return a set of permissions to workspaces for a user.
 	 * @throws WorkspaceCommunicationException if a communication error occurs.
 	 * @throws CorruptWorkspaceDBException if the workspace database is corrupt.
 	 */
-	public PermissionSet getPermissions(WorkspaceUser user,
-			Set<ResolvedWorkspaceID> rwsis, Permission perm,
-			boolean excludeGlobalRead, boolean excludeDeletedWorkspaces)
+	public PermissionSet getPermissions(
+			WorkspaceUser user,
+			Set<ResolvedWorkspaceID> rwsis,
+			Permission perm,
+			boolean excludeGlobalRead,
+			boolean excludeDeletedWorkspaces,
+			boolean includeProvidedWorkspaces)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
 	/** Returns all users' permissions for a set of workspaces */
@@ -195,12 +295,29 @@ public interface WorkspaceDatabase {
 			Set<ResolvedWorkspaceID> rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 
-	public WorkspaceInformation getWorkspaceInformation(WorkspaceUser user,
-			ResolvedWorkspaceID rwsi) throws CorruptWorkspaceDBException,
-			WorkspaceCommunicationException;
+	/** Get information about a workspace.
+	 * @param user the user that is requesting the information.
+	 * @param rwsi the workspace.
+	 * @return the workspace information.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage
+	 * system.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 */
+	public WorkspaceInformation getWorkspaceInformation(
+			WorkspaceUser user,
+			ResolvedWorkspaceID rwsi)
+			throws CorruptWorkspaceDBException, WorkspaceCommunicationException;
 	
-	public void setWorkspaceDescription(ResolvedWorkspaceID wsid,
-			String description) throws WorkspaceCommunicationException;
+	/** Set or change the workspace description.
+	 * @param wsid the workspace to modify.
+	 * @param description the workspace description.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 */
+	public Instant setWorkspaceDescription(ResolvedWorkspaceID wsid, String description)
+			throws WorkspaceCommunicationException;
 
 	public String getWorkspaceDescription(ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
@@ -305,6 +422,8 @@ public interface WorkspaceDatabase {
 			throws WorkspaceCommunicationException, NoSuchObjectException;
 	
 	/** Get information about a set of objects.
+	 * 
+	 * Note that the reference path provided is always simply the reference of the object.
 	 * @param objectIDs the object IDs for which to retrieve information.
 	 * @param includeMetadata true to return user supplied metadata with the
 	 * information.
@@ -339,8 +458,24 @@ public interface WorkspaceDatabase {
 			final boolean ignoreErrors) throws
 			NoSuchObjectException, WorkspaceCommunicationException;
 
-	public ObjectInformation copyObject(WorkspaceUser user, 
-			ObjectIDResolvedWS from, ObjectIDResolvedWS to)
+	/** Copies an object. If a version is not specified in the from argument and the object
+	 * specified by the to argument does not exist, all the versions of the from argument are
+	 * copied. Otherwise, only the version specified (or the most recent version) is
+	 * copied. Note that it is an error to specify an object id in the to argument that does not
+	 * exist.
+	 * @param user the user performing the copy.
+	 * @param from the copy source.
+	 * @param to the copy target.
+	 * @return the results of the copy.
+	 * @throws NoSuchObjectException if the from object does not exist or the to object id does not
+	 * exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs with the storage
+	 * system.
+	 */
+	public CopyResult copyObject(
+			WorkspaceUser user, 
+			ObjectIDResolvedWS from,
+			ObjectIDResolvedWS to)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public ObjectInformation revertObject(WorkspaceUser user,
@@ -363,23 +498,45 @@ public interface WorkspaceDatabase {
 			boolean includeHidden, int limit)
 			throws WorkspaceCommunicationException;
 	
-	public WorkspaceInformation renameWorkspace(WorkspaceUser user,
-			ResolvedWorkspaceID wsid, String newname)
+	/** Rename a workspace.
+	 * @param wsid the workspace.
+	 * @param newname the new name for the workspace.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException if a communication error with
+	 * the storage system occurs
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public Instant renameWorkspace(ResolvedWorkspaceID wsid, String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
-	public ObjectInformation renameObject(
-			ObjectIDResolvedWS object, String newname)
+	public ObjectInfoWithModDate renameObject(ObjectIDResolvedWS object, String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	public void setObjectsHidden(Set<ObjectIDResolvedWS> objectIDs,
 			boolean hide) throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 	
-	public void setObjectsDeleted(Set<ObjectIDResolvedWS> objectIDs,
-			boolean delete) throws NoSuchObjectException,
+	/** Delete or undelete objects.
+	 * @param objectIDs the objects to delete.
+	 * @param delete true to delete the object, false to undelete.
+	 * @return the resolved objects mapped to the time of their deletion.
+	 * @throws NoSuchObjectException if an object doesn't exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs with the storage
+	 * system.
+	 */
+	public Map<ResolvedObjectIDNoVer, Instant> setObjectsDeleted(
+			Set<ObjectIDResolvedWS> objectIDs,
+			boolean delete)
+			throws NoSuchObjectException,
 			WorkspaceCommunicationException;
 
-	public void setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
+	/** Delete or undelete a workspace.
+	 * @param wsid the workspace ID.
+	 * @param delete true to delete the workspace, false to undelete it.
+	 * @return the workspace modification time.
+	 * @throws WorkspaceCommunicationException
+	 */
+	public Instant setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
 			throws WorkspaceCommunicationException;
 	
 	public List<WorkspaceInformation> getWorkspaceInformation(

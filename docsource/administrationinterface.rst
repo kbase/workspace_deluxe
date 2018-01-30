@@ -119,20 +119,33 @@ all have the same basic structure:
         
 The methods currently available are:
 
-=====================  =================
-Method                 ``user`` required
-=====================  =================
-createWorkspace        yes
-setPermissions         no
-getPermissions         yes
-setGlobalPermission    yes
-saveObjects            yes
-listWorkspaces         yes
-deleteWorkspace        no
-undeleteWorkspace      no
-grantModuleOwnership   no
-removeModuleOwnership  no
-=====================  =================
+==============================  =================
+Method                          ``user`` required
+==============================  =================
+createWorkspace                 yes
+setPermissions                  no
+getPermissions (DEPRECATED)     optional (1)
+getPermissionsMass              no
+getWorkspaceInfo                no
+getObjectInfo                   no (2)
+getObjectHistory                no
+getObjects                      no (3)
+setGlobalPermission             yes
+saveObjects                     yes
+listWorkspaces                  yes
+listWorkspaceIDs                yes
+listObjects                     optional (4)
+deleteWorkspace                 no
+undeleteWorkspace               no
+grantModuleOwnership            no
+removeModuleOwnership           no
+==============================  =================
+
+#. If omitted, returns the permissions as if the user is an administrator of the workspace.
+#. Parameters are as get_object_info3.
+#. Parameters are as get_objects2.
+#. If omitted, returns all objects requested, but at least one and no more than 1000 workspaces
+   must be specified.
 
 Example usage:
 

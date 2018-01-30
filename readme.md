@@ -23,9 +23,9 @@ The WSS documentation describes how to install, configure, run, develop, and
 use the WSS. The easiest way to read the documentation is to find an already
 built instance online:
 
-* [KBase Continuous Integration](http://ci.kbase.us/services/ws/docs/)
-* [KBase Next](http://next.kbase.us/services/ws/docs/)
-* [KBase Production](http://kbase.us/services/ws/docs/)
+* [KBase Continuous Integration](https://ci.kbase.us/services/ws/docs/)
+* [KBase Next](https://next.kbase.us/services/ws/docs/)
+* [KBase Production](https://kbase.us/services/ws/docs/)
 
 The documentation can also be read on Github as
 [restructured text (reST) files](https://github.com/kbase/workspace_deluxe/tree/master/docsource).
@@ -46,7 +46,7 @@ assume that the KBase runtime or `dev_container` are installed.
 
 The build requires:
 
-Java JDK 7+ ([install instructions](https://www.digitalocean.com/community/tutorials/how-to-install-java-on-ubuntu-with-apt-get))
+Java JDK 8+
 
 [Java ant](http://ant.apache.org):
 

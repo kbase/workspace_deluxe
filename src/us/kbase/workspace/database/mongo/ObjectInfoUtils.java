@@ -16,6 +16,7 @@ import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -71,27 +72,21 @@ public class ObjectInfoUtils {
 		final int querysize = params.getLimit() < 100 ? 100 :
 				params.getLimit();
 		final PermissionSet pset = params.getPermissionSet();
-		if (!(pset instanceof MongoPermissionSet)) {
-			throw new IllegalArgumentException(
-					"Illegal implementation of PermissionSet: " +
-					pset.getClass().getName());
-		}
 		if (pset.isEmpty()) {
 			return new LinkedList<ObjectInformation>();
 		}
 		final DBObject verq = buildQuery(params);
 		final DBObject projection = buildProjection(params);
-		final DBCursor cur = buildCursor(verq, projection);
+		final DBObject sort = buildSortSpec(params);
+		final DBCursor cur = buildCursor(verq, projection, sort);
 		
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
 		//were saved yet
 		
-		final List<ObjectInformation> ret =
-				new LinkedList<ObjectInformation>();
+		final List<ObjectInformation> ret = new LinkedList<>();
 		while (cur.hasNext() && ret.size() < params.getLimit()) {
-			final List<Map<String, Object>> verobjs =
-					new ArrayList<Map<String,Object>>();
+			final List<Map<String, Object>> verobjs = new ArrayList<>();
 			while (cur.hasNext() && verobjs.size() < querysize) {
 				try {
 					verobjs.add(QueryMethods.dbObjectToMap(cur.next()));
@@ -103,9 +98,9 @@ public class ObjectInfoUtils {
 			final Map<Map<String, Object>, ObjectInformation> objs =
 					generateObjectInfo(pset, verobjs, params.isShowHidden(),
 							params.isShowDeleted(), params.isShowOnlyDeleted(),
-							params.isShowAllVersions()
+							params.isShowAllVersions(), params.asAdmin()
 							);
-			//maintain the natural DB ordering 
+			//maintain the ordering 
 			final Iterator<Map<String, Object>> veriter = verobjs.iterator();
 			while (veriter.hasNext() && ret.size() < params.getLimit()) {
 				final Map<String, Object> v = veriter.next();
@@ -119,13 +114,13 @@ public class ObjectInfoUtils {
 
 	private DBCursor buildCursor(
 			final DBObject verq,
-			final DBObject projection)
+			final DBObject projection,
+			final  DBObject sort)
 			throws WorkspaceCommunicationException {
 		final DBCursor cur;
 		try {
-			cur = query.getDatabase().getCollection(
-					query.getVersionCollection())
-					.find(verq, projection);
+			cur = query.getDatabase().getCollection(query.getVersionCollection())
+					.find(verq, projection).sort(sort);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -133,8 +128,7 @@ public class ObjectInfoUtils {
 		return cur;
 	}
 
-	private DBObject buildProjection(
-			final GetObjectInformationParameters params) {
+	private DBObject buildProjection(final GetObjectInformationParameters params) {
 		final DBObject projection = new BasicDBObject();
 		for (final String field: FLDS_LIST_OBJ_VER) {
 			projection.put(field, 1);
@@ -143,6 +137,22 @@ public class ObjectInfoUtils {
 			projection.put(Fields.VER_META, 1);
 		}
 		return projection;
+	}
+	
+	/* Be very careful when changing how sorting works or adding new sorts. You should be well
+	 * versed in mongodb indexing and how indexes affect how sorts work. Never allow a sort
+	 * that could occur in mongodb memory - this means there's a limit to the amount of data
+	 * that can be sorted without an error and therefore errors *will* occur when a sort on more
+	 * data than the limit is attempted.
+	 */
+	private DBObject buildSortSpec(final GetObjectInformationParameters params) {
+		final DBObject sort = new BasicDBObject();
+		if (params.isObjectIDFiltersOnly()) {
+			sort.put(Fields.VER_WS_ID, 1);
+			sort.put(Fields.VER_ID, 1);
+			sort.put(Fields.VER_VER, -1);
+		}
+		return sort;
 	}
 
 	private DBObject buildQuery(final GetObjectInformationParameters params) {
@@ -197,28 +207,29 @@ public class ObjectInfoUtils {
 	}
 	
 	Map<Map<String, Object>, ObjectInformation> generateObjectInfo(
-			final PermissionSet pset, final List<Map<String, Object>> verobjs,
-			final boolean includeHidden, final boolean includeDeleted,
-			final boolean onlyIncludeDeleted, final boolean includeAllVers)
+			final PermissionSet pset,
+			final List<Map<String, Object>> verobjs,
+			final boolean includeHidden,
+			final boolean includeDeleted,
+			final boolean onlyIncludeDeleted,
+			final boolean includeAllVers,
+			final boolean asAdmin)
 			throws WorkspaceCommunicationException {
 		final Map<Map<String, Object>, ObjectInformation> ret =
 				new HashMap<Map<String, Object>, ObjectInformation>();
 		if (verobjs.isEmpty()) {
 			return ret;
 		}
-		final Map<Long, ResolvedWorkspaceID> ids =
-				new HashMap<Long, ResolvedWorkspaceID>();
+		final Map<Long, ResolvedWorkspaceID> ids = new HashMap<>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			final ResolvedMongoWSID rm = query.convertResolvedWSID(rwsi);
-			ids.put(rm.getID(), rm);
+			ids.put(rwsi.getID(), rwsi);
 		}
 		final Map<Long, Set<Long>> verdata = getObjectIDsFromVersions(verobjs);
 		//TODO PERFORMANCE This $or query might be better as multiple individual queries, test
 		final List<DBObject> orquery = new LinkedList<DBObject>();
 		for (final Long wsid: verdata.keySet()) {
 			final DBObject query = new BasicDBObject(Fields.VER_WS_ID, wsid);
-			query.put(Fields.VER_ID, new BasicDBObject(
-					"$in", verdata.get(wsid)));
+			query.put(Fields.VER_ID, new BasicDBObject("$in", verdata.get(wsid)));
 			orquery.add(query);
 		}
 		final DBObject objq = new BasicDBObject("$or", orquery);
@@ -235,7 +246,7 @@ public class ObjectInfoUtils {
 			final int ver = (Integer) vo.get(Fields.VER_VER);
 			final Map<String, Object> obj = objdata.get(wsid).get(id);
 			final int lastver = (Integer) obj.get(Fields.OBJ_VCNT);
-			final ResolvedMongoWSID rwsi = (ResolvedMongoWSID) ids.get(wsid);
+			final ResolvedWorkspaceID rwsi = ids.get(wsid);
 			boolean isDeleted = (Boolean) obj.get(Fields.OBJ_DEL);
 			if (!includeAllVers && lastver != ver) {
 				/* this is tricky. As is, if there's a failure between incrementing
@@ -253,30 +264,29 @@ public class ObjectInfoUtils {
 				continue;
 			}
 			if (onlyIncludeDeleted) {
-				if (isDeleted && pset.hasPermission(rwsi, Permission.WRITE)) {
+				if (isDeleted && (asAdmin || pset.hasPermission(rwsi, Permission.WRITE))) {
 					ret.put(vo, generateObjectInfo(rwsi, id,
 							(String) obj.get(Fields.OBJ_NAME), vo));
 				}
 				continue;
 			}
 			if (isDeleted && (!includeDeleted ||
-					!pset.hasPermission(rwsi, Permission.WRITE))) {
+					(!asAdmin && !pset.hasPermission(rwsi, Permission.WRITE)))) {
 				continue;
 			}
-			ret.put(vo, generateObjectInfo(rwsi, id,
-					(String) obj.get(Fields.OBJ_NAME), vo));
+			ret.put(vo, generateObjectInfo(rwsi, id, (String) obj.get(Fields.OBJ_NAME), vo));
 		}
 		return ret;
 	}
 	
 	static ObjectInformation generateObjectInfo(
-			final ResolvedMongoObjectID roi, final Map<String, Object> ver) {
+			final ResolvedObjectID roi, final Map<String, Object> ver) {
 		return generateObjectInfo(roi.getWorkspaceIdentifier(), roi.getId(),
 				roi.getName(), ver);
 	}
 	
 	static ObjectInformation generateObjectInfo(
-			final ResolvedMongoWSID rwsi, final long objid, final String name,
+			final ResolvedWorkspaceID rwsi, final long objid, final String name,
 			final Map<String, Object> ver) {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =

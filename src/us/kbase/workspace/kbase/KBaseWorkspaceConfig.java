@@ -5,14 +5,16 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class KBaseWorkspaceConfig {
 	
-	//TODO AUTH LATER remove user names and pwds when auth2 server is up
 	//TODO TEST unit tests
+	//TODO JAVADOCS
 	
 	//required deploy parameters:
 	private static final String HOST = "mongodb-host";
@@ -20,7 +22,6 @@ public class KBaseWorkspaceConfig {
 	//startup workspace admin user
 	private static final String WSADMIN = "ws-admin";
 	//required backend param:
-	private static final String BACKEND_SECRET = "backend-secret";
 	private static final String BACKEND_TOKEN = "backend-token";
 	//mongo db auth params:
 	private static final String MONGO_USER = "mongodb-user";
@@ -32,20 +33,17 @@ public class KBaseWorkspaceConfig {
 	private static final String KBASE_AUTH_URL = "auth-service-url";
 	private static final String GLOBUS_AUTH_URL = "globus-url";
 	
-
-	//credentials to use for user queries
-	private static final String KBASE_ADMIN_USER = "kbase-admin-user";
-	private static final String KBASE_ADMIN_PWD = "kbase-admin-pwd";
-	private static final String KBASE_ADMIN_TOKEN = "kbase-admin-token";
-
 	//handle service / manager info
-	private static final String IGNORE_HANDLE_SERVICE =
-			"ignore-handle-service";
+	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
 	private static final String HANDLE_SERVICE_URL = "handle-service-url";
 	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
-	private static final String HANDLE_MANAGER_USER = "handle-manager-user";
-	private static final String HANDLE_MANAGER_PWD = "handle-manager-pwd";
 	private static final String HANDLE_MANAGER_TOKEN = "handle-manager-token";
+	
+	// listeners
+	private static final String LISTENERS = "listeners";
+	private static final String LISTENER_PREFIX = "listener-";
+	private static final String LISTENER_CLASS = "-class";
+	private static final String LISTENER_CONFIG = "-config-";
 	
 	//directory for temp files
 	private static final String TEMP_DIR = "temp-dir";
@@ -55,11 +53,7 @@ public class KBaseWorkspaceConfig {
 	
 	private final String host;
 	private final String db;
-	private final String backendSecret;
 	private final String backendToken;
-	private final String kbaseAdminUser;
-	private final String kbaseAdminPassword;
-	private final String kbaseAdminToken;
 	private final String tempDir;
 	private final String workspaceAdmin;
 	private final String mongoUser;
@@ -70,35 +64,33 @@ public class KBaseWorkspaceConfig {
 	private final boolean ignoreHandleService;
 	private final URL handleServiceURL;
 	private final URL handleManagerURL;
-	private final String handleManagerUser;
-	private final String handleManagerPassword;
 	private final String handleManagerToken;
 	private final List<String> errors;
 	private final List<String> infoMessages;
 	private final String paramReport;
-
-	private class Creds {
-		final String token;
-		final String user;
-		final String pwd;
-		final boolean allNull;
+	private final List<ListenerConfig> listenerConfigs;
+	
+	public static class ListenerConfig {
 		
-		private Creds(
-				final String token,
-				final String user,
-				final String pwd) {
-			super();
-			this.token = token;
-			this.user = user;
-			this.pwd = pwd;
-			if (token == null && user == null && pwd == null) {
-				allNull = true;
-			} else {
-				allNull = false;
-			}
+		private final String listenerClass;
+		private final Map<String, String> config;
+		
+		private ListenerConfig(
+				final String listenerClass,
+				final Map<String, String> config) {
+			this.listenerClass = listenerClass;
+			this.config = Collections.unmodifiableMap(config);
+		}
+
+		public String getListenerClass() {
+			return listenerClass;
+		}
+
+		public Map<String, String> getConfig() {
+			return config;
 		}
 	}
-	
+
 	public KBaseWorkspaceConfig(final Map<String, String> config) {
 		if (config == null) {
 			throw new NullPointerException("config cannot be null");
@@ -109,8 +101,7 @@ public class KBaseWorkspaceConfig {
 		for (final String param: REQUIRED_PARAMS) {
 			final String paramval = config.get(param);
 			if (paramval == null || paramval.isEmpty()) {
-				paramErrors.add("Must provide param " + param +
-						" in config file");
+				paramErrors.add("Must provide param " + param + " in config file");
 			}
 		}
 		host = config.get(HOST);
@@ -121,27 +112,11 @@ public class KBaseWorkspaceConfig {
 		globusURL = getUrl(config, GLOBUS_AUTH_URL, paramErrors);
 		
 		final String beToken = config.get(BACKEND_TOKEN);
-		if (beToken == null || beToken.isEmpty()) {
+		if (beToken == null || beToken.trim().isEmpty()) {
 			backendToken = null;
-			final String beSecret = config.get(BACKEND_SECRET);
-			if (beSecret == null || beSecret.isEmpty()) {
-				paramErrors.add(String.format(
-						"Must provide either %s or %s in the config file",
-						BACKEND_TOKEN, BACKEND_SECRET));
-				backendSecret = null;
-			} else {
-				backendSecret = beSecret;
-			}
 		} else {
 			backendToken = beToken;
-			backendSecret = null;
 		}
-		
-		final Creds c = getCreds(KBASE_ADMIN_TOKEN, KBASE_ADMIN_USER,
-				KBASE_ADMIN_PWD, config, paramErrors);
-		kbaseAdminUser = c.user;
-		kbaseAdminPassword = c.pwd;
-		kbaseAdminToken = c.token;
 		
 		workspaceAdmin = config.get(WSADMIN); //doesn't matter what's here
 		
@@ -171,58 +146,75 @@ public class KBaseWorkspaceConfig {
 					"handle IDs will fail typechecking.");
 			handleServiceURL = null;
 			handleManagerURL = null;
-			handleManagerUser = null;
-			handleManagerPassword = null;
 			handleManagerToken = null;
 		} else {
-			final URL hsURL = getUrl(config, HANDLE_SERVICE_URL,
-					paramErrors);
-			final URL hmURL = getUrl(config, HANDLE_MANAGER_URL,
-					paramErrors);
-			final Creds hc = getCreds(HANDLE_MANAGER_TOKEN,
-					HANDLE_MANAGER_USER, HANDLE_MANAGER_PWD, config,
-					paramErrors);
-			if (hc.allNull) {
+			final String token = config.get(HANDLE_MANAGER_TOKEN);
+			final URL hsURL = getUrl(config, HANDLE_SERVICE_URL, paramErrors);
+			final URL hmURL = getUrl(config, HANDLE_MANAGER_URL, paramErrors);
+			if (token == null || token.trim().isEmpty()) {
+				handleManagerToken = null;
 				handleServiceURL = null;
 				handleManagerURL = null;
+				paramErrors.add(String.format(
+						"Must provide %s in config file", HANDLE_MANAGER_TOKEN));
 			} else {
 				handleServiceURL = hsURL;
 				handleManagerURL = hmURL;
+				handleManagerToken = token;
 			}
-			handleManagerToken = hc.token;
-			handleManagerUser = hc.user;
-			handleManagerPassword = hc.pwd;
 		}
 		
 		mongoReconnectAttempts = getReconnectCount(config, infoMsgs);
+		listenerConfigs = getListenerConfigs(config, paramErrors);
 		errors = Collections.unmodifiableList(paramErrors);
 		infoMessages = Collections.unmodifiableList(infoMsgs);
 		paramReport = generateParamReport(config);
 	}
 	
-	private Creds getCreds(
-			final String paramToken,
-			final String paramUser,
-			final String paramPwd,
+	private List<ListenerConfig> getListenerConfigs(
 			final Map<String, String> config,
 			final List<String> paramErrors) {
-
-		final String token = config.get(paramToken);
-		if (token == null || token.isEmpty()) {
-			final String user = config.get(paramUser);
-			final String pwd = config.get(paramPwd);
-			final boolean hasUser = user != null && !user.isEmpty();
-			final boolean hasPwd = pwd != null && !pwd.isEmpty();
-			if (!hasUser || !hasPwd) {
-				paramErrors.add(String.format(
-						"Must provide either %s or %s and %s in config file",
-						paramToken, paramUser, paramPwd));
-				return new Creds(null, null, null);
-			}
-			return new Creds(null, user, pwd);
-		} else {
-			return new Creds(token, null, null);
+		final String listenersStr = config.get(LISTENERS);
+		if (listenersStr == null || listenersStr.trim().isEmpty()) {
+			return Collections.emptyList();
 		}
+		final List<ListenerConfig> ret = new LinkedList<>();
+		final List<String> listeners = Arrays.asList(listenersStr.split(","));
+		for (final String name: listeners) {
+			final String listenerStart = LISTENER_PREFIX + name;
+			final String classStr = config.get(listenerStart + LISTENER_CLASS);
+			if (nullOrEmpty(classStr)) {
+				paramErrors.add("Missing listener class: " + listenerStart + LISTENER_CLASS);
+			}
+			final Map<String, String> cfg = getListenerConfig(
+					config, listenerStart + LISTENER_CONFIG, paramErrors);
+			ret.add(new ListenerConfig(classStr, cfg));
+		}
+		return Collections.unmodifiableList(ret);
+	}
+	
+	private Map<String, String> getListenerConfig(
+			final Map<String, String> config,
+			final String prefix,
+			final List<String> paramErrors) {
+		final Map<String, String> ret = new HashMap<>();
+		for (final String key: config.keySet()) {
+			if (key.startsWith(prefix)) {
+				final String ckey = key.replaceFirst(prefix, "");
+				if (ckey.trim().isEmpty()) {
+					paramErrors.add("Invalid listener configuration item: " + key);
+				}
+				ret.put(ckey, config.get(key));
+			}
+		}
+		return ret;
+	}
+
+	private boolean nullOrEmpty(final String s) {
+		if (s == null || s.trim().isEmpty()) {
+			return true;
+		}
+		return false;
 	}
 
 	private String generateParamReport(final Map<String, String> cfg) {
@@ -231,8 +223,7 @@ public class KBaseWorkspaceConfig {
 				Arrays.asList(HOST, DB, MONGO_USER, GLOBUS_AUTH_URL,
 						KBASE_AUTH_URL));
 		if (!ignoreHandleService) {
-			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL,
-					HANDLE_MANAGER_URL, HANDLE_MANAGER_USER));
+			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL, HANDLE_MANAGER_URL));
 		}
 		for (final String s: paramSet) {
 			if (cfg.containsKey(s)) {
@@ -241,6 +232,11 @@ public class KBaseWorkspaceConfig {
 		}
 		if (mongoPassword != null && !mongoPassword.isEmpty()) {
 			params += MONGO_PWD + "=[redacted for your safety and comfort]\n";
+		}
+		if (!listenerConfigs.isEmpty()) {
+			final List<String> listeners = listenerConfigs.stream().map(l -> l.getListenerClass())
+					.collect(Collectors.toList());
+			params += LISTENERS + "=" + String.join(",", listeners);
 		}
 		return params;
 	}
@@ -251,15 +247,13 @@ public class KBaseWorkspaceConfig {
 			final List<String> errors) {
 		final String urlStr = wsConfig.get(configKey);
 		if (urlStr == null || urlStr.isEmpty()) {
-			errors.add("Must provide param " + configKey +
-					" in config file");
+			errors.add("Must provide param " + configKey + " in config file");
 			return null;
 		}
 		try {
 			return new URL(urlStr);
 		} catch (MalformedURLException e) {
-			errors.add("Invalid url for parameter " + configKey + ": " +
-					urlStr);
+			errors.add("Invalid url for parameter " + configKey + ": " + urlStr);
 		}
 		return null;
 	}
@@ -304,26 +298,10 @@ public class KBaseWorkspaceConfig {
 		return globusURL;
 	}
 	
-	public String getBackendSecret() {
-		return backendSecret;
-	}
-	
 	public String getBackendToken() {
 		return backendToken;
 	}
 
-	public String getKbaseAdminUser() {
-		return kbaseAdminUser;
-	}
-
-	public String getKbaseAdminPassword() {
-		return kbaseAdminPassword;
-	}
-	
-	public String getKBaseAdminToken() {
-		return kbaseAdminToken;
-	}
-	
 	public String getTempDir() {
 		return tempDir;
 	}
@@ -356,16 +334,12 @@ public class KBaseWorkspaceConfig {
 		return handleManagerURL;
 	}
 
-	public String getHandleManagerUser() {
-		return handleManagerUser;
-	}
-
-	public String getHandleManagerPassword() {
-		return handleManagerPassword;
-	}
-	
 	public String getHandleManagerToken() {
 		return handleManagerToken;
+	}
+
+	public List<ListenerConfig> getListenerConfigs() {
+		return listenerConfigs;
 	}
 
 	public List<String> getErrors() {

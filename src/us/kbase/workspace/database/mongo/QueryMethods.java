@@ -12,6 +12,8 @@ import java.util.Set;
 
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Permission;
+import us.kbase.workspace.database.ResolvedObjectID;
+import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -93,29 +95,47 @@ public class QueryMethods {
 	}
 
 
-	Map<String, Object> queryWorkspace(final ResolvedMongoWSID rwsi,
+	Map<String, Object> queryWorkspace(final ResolvedWorkspaceID rwsi,
 			final Set<String> fields) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		final Set<ResolvedMongoWSID> rwsiset = new HashSet<ResolvedMongoWSID>();
+		final Set<ResolvedWorkspaceID> rwsiset = new HashSet<ResolvedWorkspaceID>();
 		rwsiset.add(rwsi);
 		return queryWorkspacesByResolvedID(rwsiset, fields).get(rwsi);
 	}
 	
-	Map<ResolvedMongoWSID, Map<String, Object>>
-			queryWorkspacesByResolvedID(final Set<ResolvedMongoWSID> rwsiset,
+	Map<ResolvedWorkspaceID, Map<String, Object>>
+			queryWorkspacesByResolvedID(final Set<ResolvedWorkspaceID> rwsiset,
 			final Set<String> fields) throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
-		final Map<Long, ResolvedMongoWSID> ids =
-				new HashMap<Long, ResolvedMongoWSID>();
-		for (ResolvedMongoWSID r: rwsiset) {
+		final Map<Long, ResolvedWorkspaceID> ids =
+				new HashMap<Long, ResolvedWorkspaceID>();
+		for (ResolvedWorkspaceID r: rwsiset) {
 			ids.put(r.getID(), r);
 		}
 		final Map<Long, Map<String, Object>> idres =
 				queryWorkspacesByID(ids.keySet(), fields, false);
-		final Map<ResolvedMongoWSID, Map<String, Object>> ret =
-				new HashMap<ResolvedMongoWSID, Map<String,Object>>();
+		final Map<ResolvedWorkspaceID, Map<String, Object>> ret =
+				new HashMap<ResolvedWorkspaceID, Map<String,Object>>();
 		for (final Long id: ids.keySet()) {
 			if (!idres.containsKey(id)) {
+				/* This will cause havoc when GC is active. Could resolve a deleted workspace,
+				 * which is allowed, and then GC before getting here
+				 * 
+				 * UPDATE - In general deleted workspaces shouldn't get resolved workspace ids.
+				 * there are currently (5/30/17) two places where they can:
+				 * 1) to undelete a workspace, and that should go directly to an undelete method.
+				 * 2) When traversing the object graph into deleted workspaces. The user would
+				 * have to extract the workspace ID and send it here, but that should be safe since
+				 * if its in the object graph, it contains objects with non-zero reference counts
+				 * and therefore can't be deleted permanently.
+				 * 
+				 * TODO CODE consider making the undelete method take a workspaceIdentifier
+				 * rather than a resolved ID to remove any ability to get a resolved ID for a
+				 * deleted workspace.
+				 * 
+				 * Also consider just returning all the WS info in one shot rather than futzing
+				 * with resolved IDs and WorkspaceInfos.
+				 */
 				throw new CorruptWorkspaceDBException(
 						"Resolved workspace unexpectedly deleted from database: "
 						+ id);
@@ -217,19 +237,18 @@ public class QueryMethods {
 		if (objectIDs.isEmpty()) {
 			return new HashMap<ObjectIDResolvedWSNoVer, Map<String,Object>>();
 		}
-		final Map<Long, ResolvedMongoWSID> idToWS =
-				new HashMap<Long, ResolvedMongoWSID>();
-		final Map<ResolvedMongoWSID,
+		final Map<Long, ResolvedWorkspaceID> idToWS =
+				new HashMap<Long, ResolvedWorkspaceID>();
+		final Map<ResolvedWorkspaceID,
 				Map<Long, ObjectIDResolvedWSNoVer>> ids = 
-						new HashMap<ResolvedMongoWSID,
+						new HashMap<ResolvedWorkspaceID,
 								Map<Long, ObjectIDResolvedWSNoVer>>();
-		final Map<ResolvedMongoWSID,
+		final Map<ResolvedWorkspaceID,
 				Map<String, ObjectIDResolvedWSNoVer>> names = 
-						new HashMap<ResolvedMongoWSID,
+						new HashMap<ResolvedWorkspaceID,
 								Map<String, ObjectIDResolvedWSNoVer>>();
 		for (final ObjectIDResolvedWSNoVer o: objectIDs) {
-			final ResolvedMongoWSID rwsi =
-					convertResolvedWSID(o.getWorkspaceIdentifier());
+			final ResolvedWorkspaceID rwsi = o.getWorkspaceIdentifier();
 			idToWS.put(rwsi.getID(), rwsi);
 			if (o.getId() == null) {
 				if (names.get(rwsi) == null) {
@@ -248,7 +267,7 @@ public class QueryMethods {
 		
 		//TODO PERFORMANCE This $or query might be better as multiple individual queries, test
 		final List<DBObject> orquery = new LinkedList<DBObject>();
-		for (final ResolvedMongoWSID rwsi: names.keySet()) {
+		for (final ResolvedWorkspaceID rwsi: names.keySet()) {
 			final DBObject query = new BasicDBObject(Fields.OBJ_WS_ID,
 					rwsi.getID());
 			query.put(Fields.OBJ_NAME, new BasicDBObject(
@@ -259,7 +278,7 @@ public class QueryMethods {
 			query.put(Fields.OBJ_VCNT, new BasicDBObject("$gt", 0));
 			orquery.add(query);
 		}
-		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
+		for (final ResolvedWorkspaceID rwsi: ids.keySet()) {
 			final DBObject query = new BasicDBObject(Fields.OBJ_WS_ID,
 					rwsi.getID());
 			query.put(Fields.OBJ_ID, new BasicDBObject(
@@ -277,7 +296,7 @@ public class QueryMethods {
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ret =
 				new HashMap<ObjectIDResolvedWSNoVer, Map<String, Object>>();
 		for (Map<String, Object> m: queryres) {
-			final ResolvedMongoWSID rwsi =
+			final ResolvedWorkspaceID rwsi =
 					idToWS.get((Long) m.get(Fields.OBJ_WS_ID));
 			final String name = (String) m.get(Fields.OBJ_NAME);
 			final Long id = (Long) m.get(Fields.OBJ_ID);
@@ -292,16 +311,15 @@ public class QueryMethods {
 	}
 	
 	//all incoming object IDs must have versions
-	Map<ResolvedMongoObjectID, Map<String, Object>> queryVersions(
-			final Set<ResolvedMongoObjectID> objectIDs, final Set<String> fields)
+	Map<ResolvedObjectID, Map<String, Object>> queryVersions(
+			final Set<ResolvedObjectID> objectIDs, final Set<String> fields)
 			throws WorkspaceCommunicationException {
 
-		final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids = 
-			new HashMap<ResolvedMongoWSID, Map<Long, List<Integer>>>();
+		final Map<ResolvedWorkspaceID, Map<Long, List<Integer>>> ids = 
+			new HashMap<ResolvedWorkspaceID, Map<Long, List<Integer>>>();
 		
-		for (final ResolvedMongoObjectID roi: objectIDs) {
-			final ResolvedMongoWSID rwsi =
-					convertResolvedWSID(roi.getWorkspaceIdentifier());
+		for (final ResolvedObjectID roi: objectIDs) {
+			final ResolvedWorkspaceID rwsi = roi.getWorkspaceIdentifier();
 			if (ids.get(rwsi) == null) {
 				ids.put(rwsi, new HashMap<Long, List<Integer>>());
 			}
@@ -312,13 +330,13 @@ public class QueryMethods {
 		}
 		
 		// ws id, obj id, obj version, version data map
-		final Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>> data = //this is getting ridiculous
+		final Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>> data = //this is getting ridiculous
 				queryVersions(ids, fields);
 		
-		final Map<ResolvedMongoObjectID, Map<String, Object>> ret =
-				new HashMap<ResolvedMongoObjectID, Map<String,Object>>();
+		final Map<ResolvedObjectID, Map<String, Object>> ret =
+				new HashMap<ResolvedObjectID, Map<String,Object>>();
 		
-		for (final ResolvedMongoObjectID roi: objectIDs) {
+		for (final ResolvedObjectID roi: objectIDs) {
 			final Map<String, Object> d = data.get(
 					roi.getWorkspaceIdentifier()).get(roi.getId())
 					.get(roi.getVersion());
@@ -330,29 +348,28 @@ public class QueryMethods {
 	}
 	
 	//method assumes at least one version exists
-	Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>> queryAllVersions(
-			final HashSet<ResolvedMongoObjectIDNoVer> objIDs,
+	Map<ResolvedObjectIDNoVer, List<Map<String, Object>>> queryAllVersions(
+			final HashSet<ResolvedObjectIDNoVer> objIDs,
 			final Set<String> fields)
 			throws WorkspaceCommunicationException {
-		final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids =
-				new HashMap<ResolvedMongoWSID, Map<Long,List<Integer>>>();
+		final Map<ResolvedWorkspaceID, Map<Long, List<Integer>>> ids =
+				new HashMap<ResolvedWorkspaceID, Map<Long,List<Integer>>>();
 		
-		for (final ResolvedMongoObjectIDNoVer roi: objIDs) {
-			final ResolvedMongoWSID rwsi =
-					convertResolvedWSID(roi.getWorkspaceIdentifier());
+		for (final ResolvedObjectIDNoVer roi: objIDs) {
+			final ResolvedWorkspaceID rwsi = roi.getWorkspaceIdentifier();
 			if (ids.get(rwsi) == null) {
 				ids.put(rwsi, new HashMap<Long, List<Integer>>());
 			}
 			ids.get(rwsi).put(roi.getId(), new LinkedList<Integer>());
 		}
 		// ws id, obj id, obj version, version data map
-		final Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>> data = //this is getting ridiculous
+		final Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>> data = //this is getting ridiculous
 				queryVersions(ids, fields);
 		
-		final Map<ResolvedMongoObjectIDNoVer, List<Map<String, Object>>> ret =
-				new HashMap<ResolvedMongoObjectIDNoVer, List<Map<String,Object>>>();
+		final Map<ResolvedObjectIDNoVer, List<Map<String, Object>>> ret =
+				new HashMap<ResolvedObjectIDNoVer, List<Map<String,Object>>>();
 		
-		for (final ResolvedMongoObjectIDNoVer roi: objIDs) {
+		for (final ResolvedObjectIDNoVer roi: objIDs) {
 			final Map<Integer, Map<String, Object>> d = data.get(
 					roi.getWorkspaceIdentifier()).get(roi.getId());
 			final List<Integer> sorted = new ArrayList<Integer>(d.keySet());
@@ -367,8 +384,8 @@ public class QueryMethods {
 		return ret;
 	}
 	
-	private Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>>
-			queryVersions(final Map<ResolvedMongoWSID, Map<Long, List<Integer>>> ids,
+	private Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>>
+			queryVersions(final Map<ResolvedWorkspaceID, Map<Long, List<Integer>>> ids,
 			final Set<String> fields) throws WorkspaceCommunicationException {
 		fields.add(Fields.VER_ID);
 		fields.add(Fields.VER_VER);
@@ -377,9 +394,9 @@ public class QueryMethods {
 		//workspace at a time. If profiling shows this is slow investigate
 		//further
 		//actually, $or queries just suck it seems. Way faster to do single queries
-		final Map<ResolvedMongoWSID, Map<Long, Map<Integer, Map<String, Object>>>>
-			ret = new HashMap<ResolvedMongoWSID, Map<Long,Map<Integer,Map<String,Object>>>>();
-		for (final ResolvedMongoWSID rwsi: ids.keySet()) {
+		final Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>>
+			ret = new HashMap<ResolvedWorkspaceID, Map<Long,Map<Integer,Map<String,Object>>>>();
+		for (final ResolvedWorkspaceID rwsi: ids.keySet()) {
 			ret.put(rwsi, new HashMap<Long, Map<Integer, Map<String,Object>>>());
 			for (final Long objectID: ids.get(rwsi).keySet()) {
 				ret.get(rwsi).put(objectID,
@@ -482,26 +499,26 @@ public class QueryMethods {
 	}
 	
 	Map<User, Permission> queryPermissions(
-			final ResolvedMongoWSID rwsi) throws
+			final ResolvedWorkspaceID rwsi) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		return queryPermissions(rwsi, null);
 	}
 	
 	Map<User, Permission> queryPermissions(
-			final ResolvedMongoWSID rwsi, final Set<User> users) throws
+			final ResolvedWorkspaceID rwsi, final Set<User> users) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final Set<ResolvedMongoWSID> wsis = new HashSet<ResolvedMongoWSID>();
+		final Set<ResolvedWorkspaceID> wsis = new HashSet<ResolvedWorkspaceID>();
 		wsis.add(rwsi);
 		return queryPermissions(wsis, users).get(rwsi);
 	}
 	
-	Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
-			final Set<ResolvedMongoWSID> rwsis, final Set<User> users) throws
+	Map<ResolvedWorkspaceID, Map<User, Permission>> queryPermissions(
+			final Set<ResolvedWorkspaceID> rwsis, final Set<User> users) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		return queryPermissions(rwsis, users, Permission.NONE, false);
 	}
 	
-	Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
+	Map<ResolvedWorkspaceID, Map<User, Permission>> queryPermissions(
 			final Set<User> users, final Permission minPerm) throws
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		return queryPermissions(null, users, minPerm, false);
@@ -511,19 +528,17 @@ public class QueryMethods {
 			new HashSet<String>(Arrays.asList(Fields.WS_ID, Fields.WS_NAME,
 					Fields.WS_LOCKED, Fields.WS_DEL));
 	
-	Map<ResolvedMongoWSID, Map<User, Permission>> queryPermissions(
-			final Set<ResolvedMongoWSID> rwsis,
+	Map<ResolvedWorkspaceID, Map<User, Permission>> queryPermissions(
+			final Set<ResolvedWorkspaceID> rwsis,
 			final Set<User> users,
 			final Permission minPerm,
 			final boolean excludeDeletedWorkspaces)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final DBObject query = new BasicDBObject();
-		final Map<Long, ResolvedMongoWSID> idToWS =
-				new HashMap<Long, ResolvedMongoWSID>();
+		final Map<Long, ResolvedWorkspaceID> idToWS = new HashMap<Long, ResolvedWorkspaceID>();
 		if (rwsis != null && rwsis.size() > 0) {
 			final Set<Long> wsids = new HashSet<Long>();
-			for (final ResolvedMongoWSID r: rwsis) {
+			for (final ResolvedWorkspaceID r: rwsis) {
 				idToWS.put(r.getID(), r);
 				wsids.add(r.getID());
 			}
@@ -537,8 +552,7 @@ public class QueryMethods {
 			query.put(Fields.ACL_USER, new BasicDBObject("$in", u));
 		}
 		if (minPerm != null & !Permission.NONE.equals(minPerm)) {
-			query.put(Fields.ACL_PERM, new BasicDBObject("$gte",
-					minPerm.getPermission()));
+			query.put(Fields.ACL_PERM, new BasicDBObject("$gte", minPerm.getPermission()));
 		}
 		final DBObject proj = new BasicDBObject();
 		proj.put(Fields.MONGO_ID, 0);
@@ -546,13 +560,11 @@ public class QueryMethods {
 		proj.put(Fields.ACL_PERM, 1);
 		proj.put(Fields.ACL_WSID, 1);
 		
-		final Map<ResolvedMongoWSID, Map<User, Permission>> wsidToPerms =
-				new HashMap<ResolvedMongoWSID, Map<User, Permission>>();
-		final Map<Long, List<DBObject>> noWS =
-				new HashMap<Long, List<DBObject>>();
+		final Map<ResolvedWorkspaceID, Map<User, Permission>> wsidToPerms =
+				new HashMap<ResolvedWorkspaceID, Map<User, Permission>>();
+		final Map<Long, List<DBObject>> noWS = new HashMap<Long, List<DBObject>>();
 		try {
-			final DBCursor res = wsmongo.getCollection(workspaceACLCollection)
-					.find(query, proj);
+			final DBCursor res = wsmongo.getCollection(workspaceACLCollection).find(query, proj);
 			for (final DBObject m: res) {
 				final Long id = (Long) m.get(Fields.ACL_WSID);
 				if (!idToWS.containsKey(id)) {
@@ -561,7 +573,7 @@ public class QueryMethods {
 					}
 					noWS.get(id).add(m);
 				} else {
-					final ResolvedMongoWSID wsid = idToWS.get(id);
+					final ResolvedWorkspaceID wsid = idToWS.get(id);
 					addPerm(wsidToPerms, m, wsid);
 				}
 			}
@@ -570,20 +582,19 @@ public class QueryMethods {
 					"There was a problem communicating with the database", me);
 		}
 		if (rwsis != null) {
-			for (ResolvedMongoWSID rwsi: rwsis) {
+			for (ResolvedWorkspaceID rwsi: rwsis) {
 				if (!wsidToPerms.containsKey(rwsi)) {
 					wsidToPerms.put(rwsi, new HashMap<User, Permission>());
 				}
 			}
 		}
 		if (!noWS.isEmpty()) {
-			final Map<Long, Map<String, Object>> ws =
-					queryWorkspacesByID(noWS.keySet(), PROJ_WS_ID_NAME_LOCK_DEL,
-							excludeDeletedWorkspaces);
+			final Map<Long, Map<String, Object>> ws = queryWorkspacesByID(
+					noWS.keySet(), PROJ_WS_ID_NAME_LOCK_DEL, excludeDeletedWorkspaces);
 			for (final Long id: ws.keySet()) {
-				final ResolvedMongoWSID wsid = new ResolvedMongoWSID(
-						(String) ws.get(id).get(Fields.WS_NAME),
+				final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(
 						(Long) ws.get(id).get(Fields.WS_ID),
+						(String) ws.get(id).get(Fields.WS_NAME),
 						(Boolean) ws.get(id).get(Fields.WS_LOCKED),
 						(Boolean) ws.get(id).get(Fields.WS_DEL));
 				for (final DBObject m: noWS.get(id)) {
@@ -595,8 +606,8 @@ public class QueryMethods {
 	}
 
 	private void addPerm(
-			final Map<ResolvedMongoWSID, Map<User, Permission>> wsidToPerms,
-			final DBObject m, final ResolvedMongoWSID wsid)
+			final Map<ResolvedWorkspaceID, Map<User, Permission>> wsidToPerms,
+			final DBObject m, final ResolvedWorkspaceID wsid)
 			throws CorruptWorkspaceDBException {
 		if (!wsidToPerms.containsKey(wsid)) {
 			wsidToPerms.put(wsid, new HashMap<User, Permission>());
@@ -626,22 +637,5 @@ public class QueryMethods {
 						"Illegal user %s found in database", user));
 			}
 		}
-	}
-	
-	ResolvedMongoWSID convertResolvedWSID(ResolvedWorkspaceID rwsi) {
-		if (!(rwsi instanceof ResolvedMongoWSID)) {
-			throw new RuntimeException(
-					"Passed incorrect implementation of ResolvedWorkspaceID:" +
-					(rwsi == null ? null : rwsi.getClass()));
-		}
-		return (ResolvedMongoWSID) rwsi;
-	}
-	
-	Set<ResolvedMongoWSID> convertResolvedWSID(Set<ResolvedWorkspaceID> rwsis) {
-		final Set<ResolvedMongoWSID> ret = new HashSet<ResolvedMongoWSID>();
-		for (final ResolvedWorkspaceID rwsi: rwsis) {
-			ret.add(convertResolvedWSID(rwsi));
-		}
-		return ret;
 	}
 }

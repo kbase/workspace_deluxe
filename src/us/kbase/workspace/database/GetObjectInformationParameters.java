@@ -6,7 +6,7 @@ import java.util.List;
 import us.kbase.typedobj.core.TypeDefId;
 
 /** Parameters for the WorkspaceDatabase getObjectInformation method.
- * Created from ListObjectsParameters.
+ * Created from {@link ListObjectsParameters}.
  * 
  * @author gaprice@lbl.gov
  *
@@ -26,6 +26,7 @@ public class GetObjectInformationParameters {
 	final private boolean showOnlyDeleted;
 	final private boolean showAllVers;
 	final private boolean includeMetaData;
+	final private boolean asAdmin;
 	final private int limit;
 	
 	GetObjectInformationParameters(
@@ -42,7 +43,8 @@ public class GetObjectInformationParameters {
 			final boolean showOnlyDeleted,
 			final boolean showAllVers,
 			final boolean includeMetaData,
-			final int limit) {
+			final int limit,
+			final boolean asAdmin) {
 		super();
 		this.pset = pset;
 		this.type = type;
@@ -58,6 +60,7 @@ public class GetObjectInformationParameters {
 		this.showAllVers = showAllVers;
 		this.includeMetaData = includeMetaData;
 		this.limit = limit;
+		this.asAdmin = asAdmin;
 	}
 
 	/** Returns the set of workspace permissions to be used when listing
@@ -160,5 +163,27 @@ public class GetObjectInformationParameters {
 	 */
 	public int getLimit() {
 		return limit;
+	}
+	
+	/** Return whether this query should be executed with administrator privileges.
+	 * @return whether the user requesting the query is a global administrator.
+	 */
+	public boolean asAdmin() {
+		return asAdmin;
+	}
+	
+	/** Check if there are no filters set other than the object ID filters. The object ID filters
+	 * may or may not be set.
+	 * The other filters are the two date filters, the metadata filter, the savers filter, and
+	 * the type filter.
+	 * @return true if no filters other than the object ID filters are set.
+	 */
+	public boolean isObjectIDFiltersOnly() {
+		boolean oidFiltersOnly = after == null;
+		oidFiltersOnly = oidFiltersOnly && before == null;
+		oidFiltersOnly = oidFiltersOnly && meta.isEmpty();
+		oidFiltersOnly = oidFiltersOnly && savers.isEmpty();
+		oidFiltersOnly = oidFiltersOnly && type == null; // must have workspaces specified
+		return oidFiltersOnly;
 	}
 }

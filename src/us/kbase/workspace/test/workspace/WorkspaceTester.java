@@ -13,9 +13,12 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,6 +65,7 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.Provenance.ExternalData;
@@ -78,7 +82,6 @@ import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.TokenProvider;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import ch.qos.logback.classic.Level;
@@ -87,6 +90,7 @@ import ch.qos.logback.classic.Logger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Optional;
 import com.mongodb.DB;
 
 @RunWith(Parameterized.class)
@@ -293,9 +297,7 @@ public class WorkspaceTester {
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		final TokenProvider tp = new TokenProvider(t);
-		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"),
-				shockUrl, tp);
+		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"), shockUrl, t);
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
 	
@@ -441,7 +443,8 @@ public class WorkspaceTester {
 	}
 	
 	protected static ObjectIDNoWSNoVer getRandomName() {
-		lastRandomName = UUID.randomUUID().toString().replace("-", "");
+		//since UUIDs can be all #s
+		lastRandomName = "a" + UUID.randomUUID().toString().replace("-", "");
 		return new ObjectIDNoWSNoVer(lastRandomName);
 	}
 	
@@ -487,14 +490,23 @@ public class WorkspaceTester {
 		}
 	}
 
-	protected void checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
-			long objs, Permission perm, boolean globalread, long id, Date moddate,
-			String lockstate, Map<String, String> meta) throws Exception {
+	protected void checkWSInfo(
+			final WorkspaceIdentifier wsi,
+			final WorkspaceUser owner,
+			final String name,
+			final long objs,
+			final Permission perm,
+			final boolean globalread,
+			final long id,
+			final Instant moddate,
+			final String lockstate,
+			final Map<String, String> meta)
+			throws Exception {
 		checkWSInfo(ws.getWorkspaceInformation(owner, wsi), owner, name, objs,
 				perm, globalread, id, moddate, lockstate, meta);
 	}
 	
-	protected Date checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
+	protected Instant checkWSInfo(WorkspaceIdentifier wsi, WorkspaceUser owner, String name,
 			long objs, Permission perm, boolean globalread, long id,
 			String lockstate, Map<String, String> meta) throws Exception {
 		WorkspaceInformation info = ws.getWorkspaceInformation(owner, wsi);
@@ -503,9 +515,17 @@ public class WorkspaceTester {
 		return info.getModDate();
 	}
 	
-	protected void checkWSInfo(WorkspaceInformation info, WorkspaceUser owner, String name,
-			long objs, Permission perm, boolean globalread, long id, Date moddate,
-			String lockstate, Map<String, String> meta) {
+	protected void checkWSInfo(
+			final WorkspaceInformation info,
+			final WorkspaceUser owner,
+			final String name,
+			final long objs,
+			final Permission perm,
+			final boolean globalread,
+			final long id,
+			final Instant moddate,
+			final String lockstate,
+			final Map<String, String> meta) {
 		checkWSInfo(info, owner, name, objs, perm, globalread, lockstate, meta);
 		assertThat("ws id correct", info.getId(), is(id));
 		assertThat("ws mod date correct", info.getModDate(), is(moddate));
@@ -517,16 +537,16 @@ public class WorkspaceTester {
 		assertDateisRecent(info.getModDate());
 		assertThat("ws owner correct", info.getOwner(), is(owner));
 		assertThat("ws name correct", info.getName(), is(name));
-		assertThat("ws max obj correct", info.getApproximateObjects(), is(objs));
+		assertThat("ws max obj correct", info.getMaximumObjectID(), is(objs));
 		assertThat("ws permissions correct", info.getUserPermission(), is(perm));
 		assertThat("ws global read correct", info.isGloballyReadable(), is(globalread));
 		assertThat("ws lockstate correct", info.getLockState(), is(lockstate));
 		assertThat("ws meta correct", info.getUserMeta().getMetadata(), is(meta));
 	}
 	
-	protected void assertDatesAscending(Date... dates) {
+	protected void assertDatesAscending(final Instant... dates) {
 		for (int i = 1; i < dates.length; i++) {
-			assertTrue("dates are ascending", dates[i-1].before(dates[i]));
+			assertTrue("dates are ascending", dates[i-1].isBefore(dates[i]));
 		}
 	}
 	
@@ -551,7 +571,7 @@ public class WorkspaceTester {
 		failWSRemoveMeta(ws, user, wsi, key, e);
 		Map<String, String> meta = new HashMap<String, String>();
 		meta.put(key, value);
-		failWSSetMeta(ws, user, wsi, meta, e);
+		failWSSetMeta(ws, user, wsi, meta, Collections.emptyList(), e);
 	}
 
 	protected void failWSRemoveMeta(
@@ -569,7 +589,7 @@ public class WorkspaceTester {
 			final String key,
 			final Exception e) {
 		try {
-			ws.removeWorkspaceMetadata(user, wsi, key);
+			ws.setWorkspaceMetadata(user, wsi, null, Arrays.asList(key));
 			fail("expected remove ws meta to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -581,7 +601,7 @@ public class WorkspaceTester {
 			final WorkspaceIdentifier wsi,
 			final Map<String, String> meta,
 			final Exception e) {
-		failWSSetMeta(ws, user, wsi, meta, e);
+		failWSSetMeta(ws, user, wsi, meta, Collections.emptyList(), e);
 	}
 	
 	public static void failWSSetMeta(
@@ -589,9 +609,10 @@ public class WorkspaceTester {
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final Map<String, String> meta,
+			final List<String> remove,
 			final Exception e) {
 		try {
-			ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(meta));
+			ws.setWorkspaceMetadata(user, wsi, new WorkspaceUserMetadata(meta), remove);
 			fail("expected set ws meta to fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
@@ -658,6 +679,17 @@ public class WorkspaceTester {
 		}
 	}
 	
+	protected void failGetPermissionsAsAdmin(
+			final List<WorkspaceIdentifier> wsis,
+			final Exception e) {
+		try {
+			ws.getPermissionsAsAdmin(wsis);
+			fail("get perms as admin should fail");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, e);
+		}
+	}
+	
 	protected void checkObjInfo(
 			final ObjectInformation info,
 			final long id,
@@ -688,17 +720,24 @@ public class WorkspaceTester {
 		assertThat("Object refpath incorrect", info.getReferencePath(), is(refpath));
 	}
 	
-	protected void assertDateisRecent(Date orig) {
-		Date now = new Date();
-		int onemin = 1000 * 60;
-		assertTrue("date is recent", now.getTime() - orig.getTime() < onemin);
+	protected void assertDateisRecent(final Date orig) {
+		assertDateisRecent(orig.toInstant());
+	}
+	
+	protected void assertDateisRecent(final Instant orig) {
+		final Instant now = Instant.now();
+		assertThat("date is older than 1m", orig.until(now, ChronoUnit.SECONDS) < 60, is(true));
+		assertThat("date is in future", now.compareTo(orig) >= 0, is(true));
 	}
 
-	protected Date assertWorkspaceDateUpdated(WorkspaceUser user,
-			WorkspaceIdentifier wsi, Date lastDate, String assertion)
+	protected Instant assertWorkspaceDateUpdated(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Instant lastDate,
+			final String assertion)
 			throws Exception {
-		Date readCurrentDate = ws.getWorkspaceInformation(user, wsi).getModDate();
-		assertTrue(assertion, readCurrentDate.after(lastDate));
+		final Instant readCurrentDate = ws.getWorkspaceInformation(user, wsi).getModDate();
+		assertTrue(assertion, readCurrentDate.isAfter(lastDate));
 		return readCurrentDate;
 	}
 	
@@ -765,10 +804,9 @@ public class WorkspaceTester {
 	protected void checkObjectAndInfoWithNulls(WorkspaceUser user,
 			List<ObjectIdentifier> ids, List<ObjectInformation> expected,
 			List<Map<String, Object>> expdata) throws Exception {
-		List<WorkspaceObjectData> gotdata = ws.getObjects(user, ids, false, true);
+		List<WorkspaceObjectData> gotdata = ws.getObjects(user, ids, false, true, false);
 		try {
-			List<WorkspaceObjectData> gotprov =
-					ws.getObjects(user, ids, true, true);
+			List<WorkspaceObjectData> gotprov = ws.getObjects(user, ids, true, true, false);
 			List<ObjectInformation> gotinfo =
 					ws.getObjectInformation(user, ids, true, true);
 			Iterator<WorkspaceObjectData> gotdatai = gotdata.iterator();
@@ -1024,7 +1062,7 @@ public class WorkspaceTester {
 		List<ObjectInformation> infonulls = ws.getObjectInformation(user,
 				(List<ObjectIdentifier>)(List<?>) objs, true, true);
 		List<WorkspaceObjectData> datanulls = ws.getObjects(user,
-				(List<ObjectIdentifier>)(List<?>) objs, true, true);
+				(List<ObjectIdentifier>)(List<?>) objs, true, true, false);
 		for (int i = 0; i < infonulls.size(); i++) {
 			if (nulls.contains(i)) {
 				assertNull("objinfo is not null", infonulls.get(i));
@@ -1175,34 +1213,33 @@ public class WorkspaceTester {
 		}
 	}
 	
+	private static final ResolvedWorkspaceID RWSID =
+			new ResolvedWorkspaceID(1, "foo", false, false);
+	
 	protected void testObjectIdentifier(String goodId) {
 		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);
-		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
-		new ObjectIDResolvedWS(fakews, goodId);
+		new ObjectIDResolvedWS(RWSID, goodId);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	protected void testObjectIdentifier(String goodId, int version) {
 		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId, version);
-		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
-		new ObjectIDResolvedWS(fakews, goodId, version);
+		new ObjectIDResolvedWS(RWSID, goodId, version);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	protected void testObjectIdentifier(int goodId) {
 		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);
-		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
-		new ObjectIDResolvedWS(fakews, goodId);
+		new ObjectIDResolvedWS(RWSID, goodId);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	protected void testObjectIdentifier(int goodId, int version) {
 		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId, version);
-		FakeResolvedWSID fakews = new FakeResolvedWSID(1);
-		new ObjectIDResolvedWS(fakews, goodId, version);
+		new ObjectIDResolvedWS(RWSID, goodId, version);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
@@ -1215,9 +1252,9 @@ public class WorkspaceTester {
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
-		FakeResolvedWSID fakews = null;
+		ResolvedWorkspaceID fakews = null;
 		if (badWS != null) {
-			fakews = new FakeResolvedWSID(1);
+			fakews = RWSID;
 		} else {
 			exception = "r" + exception;
 		}
@@ -1245,9 +1282,9 @@ public class WorkspaceTester {
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
-		FakeResolvedWSID fakews = null;
+		ResolvedWorkspaceID fakews = null;
 		if (badWS != null) {
-			fakews = new FakeResolvedWSID(1);
+			fakews = RWSID;
 		} else {
 			exception = "r" + exception;
 		}
@@ -1267,9 +1304,9 @@ public class WorkspaceTester {
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
-		FakeResolvedWSID fakews = null;
+		ResolvedWorkspaceID fakews = null;
 		if (badWS != null) {
-			fakews = new FakeResolvedWSID(1);
+			fakews = RWSID;
 		} else {
 			exception = "r" + exception;
 		}
@@ -1303,9 +1340,9 @@ public class WorkspaceTester {
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
-		FakeResolvedWSID fakews = null;
+		ResolvedWorkspaceID fakews = null;
 		if (badWS != null) {
-			fakews = new FakeResolvedWSID(1);
+			fakews = RWSID;
 		} else {
 			exception = "r" + exception;
 		}
@@ -1670,7 +1707,7 @@ public class WorkspaceTester {
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final WorkspaceUser newuser,
-			final String name,
+			final Optional<String> name,
 			final boolean asAdmin,
 			final Exception expected)
 			throws Exception {
@@ -1682,7 +1719,7 @@ public class WorkspaceTester {
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final WorkspaceUser newuser,
-			final String name,
+			final Optional<String> name,
 			final boolean asAdmin,
 			final Exception expected)
 			throws Exception {
@@ -1713,6 +1750,17 @@ public class WorkspaceTester {
 			fail("got ws desc when should fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
+		}
+	}
+	
+	protected void failGetWorkspaceInfoAsAdmin(
+			final WorkspaceIdentifier wsi,
+			final Exception e) {
+		try {
+			ws.getWorkspaceInformationAsAdmin(wsi);
+			fail("expected exception");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, e);
 		}
 	}
 	
@@ -1808,7 +1856,7 @@ public class WorkspaceTester {
 		assertDateisRecent(got.getModDate());
 		assertThat("ws owner correct", got.getOwner(), is(expected.getOwner()));
 		assertThat("ws name correct", got.getName(), is(expected.getName()));
-		assertThat("ws max obj correct", got.getApproximateObjects(), is(expected.getApproximateObjects()));
+		assertThat("ws max obj correct", got.getMaximumObjectID(), is(expected.getMaximumObjectID()));
 		assertThat("ws permissions correct", got.getUserPermission(), is(expected.getUserPermission()));
 		assertThat("ws global read correct", got.isGloballyReadable(), is(expected.isGloballyReadable()));
 		assertThat("ws lockstate correct", got.getLockState(), is(expected.getLockState()));
@@ -1976,7 +2024,7 @@ public class WorkspaceTester {
 		wod.destroy(); // don't need the actual data
 		WorkspaceObjectData woi = ws.getObjects(user, o, true).get(0);
 		
-		assertThat("get objs correct ext ids", wod.getExtractedIds(), is(expected));
-		assertThat("get prov correct ext ids", woi.getExtractedIds(), is(expected));
+		assertThat("get objs correct ext ids", new HashMap<>(wod.getExtractedIds()), is(expected));
+		assertThat("get prov correct ext ids", new HashMap<>(woi.getExtractedIds()), is(expected));
 	}
 }

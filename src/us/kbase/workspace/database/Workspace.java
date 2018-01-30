@@ -1,8 +1,13 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.workspace.database.Util.nonNull;
+import static us.kbase.workspace.database.Util.noNulls;
+
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.google.common.base.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -43,11 +51,8 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
+import us.kbase.workspace.database.ObjectResolver.ObjectResolution;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.refsearch.ReferenceGraphSearch;
-import us.kbase.workspace.database.refsearch.ReferenceGraphTopologyProvider;
-import us.kbase.workspace.database.refsearch.ReferenceProviderException;
-import us.kbase.workspace.database.refsearch.ReferenceSearchFailedException;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
@@ -58,8 +63,7 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
-
-import com.fasterxml.jackson.core.JsonParseException;
+import us.kbase.workspace.listener.WorkspaceEventListener;
 
 public class Workspace {
 	
@@ -67,12 +71,11 @@ public class Workspace {
 	
 	//TODO TEST general unit tests
 	//TODO GC garbage collection - see WOR-45
-	//TODO SEARCH separate service - search interface, return changes since date, store most recent update to avoid queries
-	//TODO SEARCH separate service - get object changes since date (based on type collection and pointers collection
 	//TODO SEARCH index typespecs
 	//TODO CODE look into eliminating all the DB implementation specific classes, too much of a pain just to ensure not moving objects between implementations
+	//TODO CODE wrap event listeners in try/catch, catch everything & log & continue
 	
-	public static final User ALL_USERS = new AllUsers('*');
+	public static final AllUsers ALL_USERS = new AllUsers('*');
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
 	private final static int MAX_WS_COUNT = 1000;
@@ -87,12 +90,21 @@ public class Workspace {
 	private final WorkspaceDatabase db;
 	private ResourceUsageConfiguration rescfg;
 	private final TypedObjectValidator validator;
+	private final List<WorkspaceEventListener> listeners;
 	private int maximumObjectSearchCount;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
 			final TypedObjectValidator validator) {
+		this(db, cfg, validator, Collections.emptyList());
+	}
+	
+	public Workspace(
+			final WorkspaceDatabase db,
+			final ResourceUsageConfiguration cfg,
+			final TypedObjectValidator validator,
+			final List<WorkspaceEventListener> listeners) {
 		if (db == null) {
 			throw new NullPointerException("db cannot be null");
 		}
@@ -102,10 +114,13 @@ public class Workspace {
 		if (validator == null) {
 			throw new NullPointerException("validator cannot be null");
 		}
+		nonNull(listeners, "listeners");
+		noNulls(listeners, "null item in listeners");
 		this.db = db;
 		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
 		this.validator = validator;
 		rescfg = cfg;
+		this.listeners = Collections.unmodifiableList(listeners);
 		db.setResourceUsageConfiguration(rescfg);
 		this.maximumObjectSearchCount = MAX_OBJECT_SEARCH_COUNT_DEFAULT;
 	}
@@ -138,182 +153,6 @@ public class Workspace {
 		return db.getTempFilesManager();
 	}
 	
-	private void comparePermission(final WorkspaceUser user,
-			final Permission required, final Permission available,
-			final ObjectIdentifier oi, final String operation) throws
-			WorkspaceAuthorizationException {
-		final WorkspaceAuthorizationException wae =
-				comparePermission(user, required, available,
-						oi.getWorkspaceIdentifierString(), operation);
-		if (wae != null) {
-			wae.addDeniedCause(oi);
-			throw wae;
-		}
-	}
-	
-	private void comparePermission(final WorkspaceUser user,
-			final Permission required, final Permission available,
-			final WorkspaceIdentifier wsi, final String operation) throws
-			WorkspaceAuthorizationException {
-		final WorkspaceAuthorizationException wae =
-				comparePermission(user, required, available,
-						wsi.getIdentifierString(), operation);
-		if (wae != null) {
-			wae.addDeniedCause(wsi);
-			throw wae;
-		}
-	}
-	
-	private WorkspaceAuthorizationException comparePermission(
-			final WorkspaceUser user, final Permission required,
-			final Permission available, final String identifier,
-			final String operation) {
-		if(required.compareTo(available) > 0) {
-			final String err = user == null ?
-					"Anonymous users may not %s workspace %s" :
-					"User " + user.getUser() + " may not %s workspace %s";
-			final WorkspaceAuthorizationException wae = 
-					new WorkspaceAuthorizationException(String.format(
-					err, operation, identifier));
-			return wae;
-		}
-		return null;
-	}
-	
-	private void checkLocked(final Permission perm,
-			final ResolvedWorkspaceID rwsi)
-			throws WorkspaceAuthorizationException {
-		if (perm.compareTo(Permission.READ) > 0 && rwsi.isLocked()) {
-			throw new WorkspaceAuthorizationException("The workspace with id "
-					+ rwsi.getID() + ", name " + rwsi.getName() +
-					", is locked and may not be modified");
-		}
-	}
-	
-	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final Permission perm,
-			final String operation)
-			throws CorruptWorkspaceDBException, WorkspaceAuthorizationException,
-			NoSuchWorkspaceException, WorkspaceCommunicationException {
-		return checkPerms(user, wsi, perm, operation, false, false);
-	}
-	
-	private ResolvedWorkspaceID checkPerms(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final Permission perm,
-			final String operation, final boolean allowDeletedWorkspace,
-			final boolean ignoreLock)
-			throws CorruptWorkspaceDBException, WorkspaceAuthorizationException,
-			NoSuchWorkspaceException, WorkspaceCommunicationException {
-		if (wsi == null) {
-			throw new IllegalArgumentException(
-					"Workspace identifier cannot be null");
-		}
-		return checkPermsMass(user, Arrays.asList(wsi), perm, operation,
-				allowDeletedWorkspace, ignoreLock).get(wsi);
-	}
-	
-	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> checkPermsMass(
-			final WorkspaceUser user,
-			final List<WorkspaceIdentifier> wsis,
-			final Permission perm,
-			final String operation,
-			final boolean allowDeletedWorkspace,
-			final boolean ignoreLock)
-			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			WorkspaceAuthorizationException, CorruptWorkspaceDBException {
-		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wsis),
-						allowDeletedWorkspace, false);
-		final PermissionSet perms = db.getPermissions(user,
-				new HashSet<ResolvedWorkspaceID>(rwsis.values()));
-		for (final Entry<WorkspaceIdentifier, ResolvedWorkspaceID> e:
-				rwsis.entrySet()) {
-			if (!ignoreLock) {
-				checkLocked(perm, e.getValue());
-			}
-			comparePermission(
-					user, perm, perms.getPermission(e.getValue(), true),
-					e.getKey(), operation);
-		}
-		return rwsis;
-	}
-	
-	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
-			final WorkspaceUser user, final List<ObjectIdentifier> loi,
-			final Permission perm, final String operation)
-			throws WorkspaceCommunicationException, InaccessibleObjectException,
-			CorruptWorkspaceDBException {
-		return checkPerms(user, loi, perm, operation, false);
-	}
-	
-	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
-			final WorkspaceUser user, final List<ObjectIdentifier> loi,
-			final Permission perm, final String operation,
-			final boolean allowDeleted)
-			throws WorkspaceCommunicationException, InaccessibleObjectException,
-			CorruptWorkspaceDBException {
-		return checkPerms(user, loi, perm, operation, allowDeleted, false,
-				false);
-	}
-	
-	private Map<ObjectIdentifier, ObjectIDResolvedWS> checkPerms(
-			final WorkspaceUser user,
-			final List<ObjectIdentifier> loi,
-			final Permission perm,
-			final String operation,
-			final boolean allowDeleted,
-			final boolean allowMissing,
-			final boolean allowInaccessible)
-			throws WorkspaceCommunicationException, InaccessibleObjectException,
-			CorruptWorkspaceDBException {
-		if (loi.isEmpty()) {
-			throw new IllegalArgumentException("No object identifiers provided");
-		}
-		//map is for error purposes only - only stores the most recent object
-		//associated with a workspace
-		final Map<WorkspaceIdentifier, ObjectIdentifier> wsis =
-				new HashMap<WorkspaceIdentifier, ObjectIdentifier>();
-		for (final ObjectIdentifier o: loi) {
-			wsis.put(o.getWorkspaceIdentifier(), o);
-		}
-		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
-		try {
-			rwsis = db.resolveWorkspaces(wsis.keySet(), allowDeleted,
-					allowMissing);
-		} catch (NoSuchWorkspaceException nswe) {
-			final ObjectIdentifier obj = wsis.get(nswe.getMissingWorkspace());
-			throw new InaccessibleObjectException(String.format(
-					"Object %s cannot be accessed: %s",
-					obj.getIdentifierString(), nswe.getLocalizedMessage()),
-					obj, nswe);
-		}
-		final PermissionSet perms = db.getPermissions(user,
-						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ret =
-				new HashMap<ObjectIdentifier, ObjectIDResolvedWS>();
-		for (final ObjectIdentifier o: loi) {
-			if (!rwsis.containsKey(o.getWorkspaceIdentifier())) {
-				continue; //missing workspace
-			}
-			final ResolvedWorkspaceID r = rwsis.get(o.getWorkspaceIdentifier());
-			try {
-				checkLocked(perm, r);
-				comparePermission(user, perm, perms.getPermission(r, true), o, operation);
-			} catch (WorkspaceAuthorizationException wae) {
-				if (allowInaccessible) {
-					continue;
-				} else {
-					throw new InaccessibleObjectException(String.format(
-							"Object %s cannot be accessed: %s",
-							o.getIdentifierString(), wae.getLocalizedMessage()),
-							o, wae);
-				}
-			}
-			ret.put(o, o.resolveWorkspace(r));
-		}
-		return ret;
-	}
-	
 	public List<DependencyStatus> status() {
 		return db.status();
 	}
@@ -324,33 +163,60 @@ public class Workspace {
 			throws PreExistingWorkspaceException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		new WorkspaceIdentifier(wsname, user); //check for errors
-		return db.createWorkspace(user, wsname, globalread,
+		final WorkspaceInformation ret = db.createWorkspace(user, wsname, globalread,
 				pruneWorkspaceDescription(description),
 				meta == null ? new WorkspaceUserMetadata() : meta);
-	}
-	
-	//might be worthwhile to make this work on multiple values,
-	// but keep things simple for now. 
-	public void removeWorkspaceMetadata(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final String key)
-			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"alter metadata for");
-		db.removeWorkspaceMetaKey(wsid, key);
-	}
-	
-	public void setWorkspaceMetadata(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final WorkspaceUserMetadata meta)
-			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		if (meta == null || meta.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Metadata cannot be null or empty");
+		for (final WorkspaceEventListener l: listeners) {
+			l.createWorkspace(ret.getId(), ret.getModDate());
 		}
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"alter metadata for");
-		db.setWorkspaceMeta(wsid, meta);
+		return ret;
+	}
+	
+	/** Set and remove metadata for a workspace.
+	 * @param user the user altering the metadata.
+	 * @param wsi the workspace to alter.
+	 * @param meta updated metadata. Keys will overwrite any keys already set on the workspace.
+	 * Send null to make no changes.
+	 * @param keysToRemove metadata keys to remove from the workspace. Send null to make no
+	 * changes.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to alter the workspace.
+	 */
+	public void setWorkspaceMetadata(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final WorkspaceUserMetadata meta,
+			final List<String> keysToRemove)
+			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+				.getWorkspaceChecker(wsi, Permission.ADMIN)
+				.withOperation("alter metadata for").check();
+		boolean set = false;
+		Instant time = null;
+		// should merge this into one db call
+		try {
+			if (meta != null && !meta.isEmpty()) {
+				time = db.setWorkspaceMeta(wsid, meta);
+				set = true;
+			}
+			if (keysToRemove != null) {
+				noNulls(keysToRemove, "null metadata keys are not allowed");
+				for (final String key: keysToRemove) {
+					time = db.removeWorkspaceMetaKey(wsid, key);
+					set = true;
+				}
+			}
+		} finally {
+			if (set) {
+				for (final WorkspaceEventListener l: listeners) {
+					l.setWorkspaceMetadata(wsid.getID(), time);
+				}
+			}
+		}
 	}
 	
 	public WorkspaceInformation cloneWorkspace(
@@ -364,22 +230,43 @@ public class Workspace {
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException,
 			PreExistingWorkspaceException, NoSuchObjectException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.READ,
-				"read");
+		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+				.getWorkspaceChecker(wsi, Permission.READ).check();
 		new WorkspaceIdentifier(newname, user); //check for errors
-		return db.cloneWorkspace(user, wsid, newname, globalread,
+		final WorkspaceInformation info = db.cloneWorkspace(user, wsid, newname, globalread,
 				pruneWorkspaceDescription(description),
 				meta == null ? new WorkspaceUserMetadata() : meta,
 				exclude);
+		for (final WorkspaceEventListener l: listeners) {
+			l.cloneWorkspace(info.getId(), info.isGloballyReadable(), info.getModDate());
+		}
+		return info;
 	}
 	
-	public WorkspaceInformation lockWorkspace(final WorkspaceUser user,
+	/** Lock a workspace, preventing further changes other than making the workspace globally
+	 * readable.
+	 * @param user the user locking the workspace.
+	 * @param wsi the workspace.
+	 * @return information about the workspace.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to lock the workspace.
+	 */
+	public WorkspaceInformation lockWorkspace(
+			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"lock");
-		return db.lockWorkspace(user, wsid);
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+				.getWorkspaceChecker(wsi, Permission.ADMIN)
+				.withOperation("lock").check();
+		final Instant time = db.lockWorkspace(wsid);
+		for (final WorkspaceEventListener l: listeners) {
+			l.lockWorkspace(wsid.getID(), time);
+		}
+		return db.getWorkspaceInformation(user, wsid);
 	}
 
 	private String pruneWorkspaceDescription(final String description) {
@@ -389,82 +276,115 @@ public class Workspace {
 		return description;
 	}
 
-	public void setWorkspaceDescription(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final String description)
+	public void setWorkspaceDescription(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String description)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"set description on");
-		db.setWorkspaceDescription(wsid, pruneWorkspaceDescription(description));
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+				.getWorkspaceChecker(wsi, Permission.ADMIN)
+				.withOperation("set description on").check();
+		final Instant time = db.setWorkspaceDescription(
+				wsid, pruneWorkspaceDescription(description));
+		for (final WorkspaceEventListener l: listeners) {
+			l.setWorkspaceDescription(wsid.getID(), time);
+		}
 	}
 	
-	public String getWorkspaceDescription(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi) throws NoSuchWorkspaceException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException,
-			WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.READ,
-				"read");
+	public String getWorkspaceDescription(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+				.getWorkspaceChecker(wsi, Permission.READ).check();
 		return db.getWorkspaceDescription(wsid);
 	}
 	
+	/** Change the owner of a workspace.
+	 * @param owner the current owner.
+	 * @param wsi the workspace.
+	 * @param newUser the new owner.
+	 * @param newName the new name for the workspace, if any.
+	 * @param asAdmin run this command with admin privileges - e.g. the owner argument is ignored
+	 * and the command proceeds whether the owner provided actually owns the workspace ornot.
+	 * @return information about the workspace.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to set the workspace
+	 * owner.
+	 */
 	public WorkspaceInformation setWorkspaceOwner(
 			WorkspaceUser owner,
 			final WorkspaceIdentifier wsi,
 			final WorkspaceUser newUser,
-			String newName,
+			Optional<String> newName,
 			final boolean asAdmin)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
 		if (newUser == null) {
 			throw new NullPointerException("newUser cannot be null");
 		}
 		if (wsi == null) {
 			throw new NullPointerException("wsi cannot be null");
 		}
+		if (newName == null) {
+			throw new NullPointerException("newName");
+		}
 		final ResolvedWorkspaceID rwsi;
 		if (asAdmin) {
 			rwsi = db.resolveWorkspace(wsi);
 			owner = db.getWorkspaceOwner(rwsi);
 		} else {
-			rwsi = checkPerms(owner, wsi, Permission.OWNER,
-				"change the owner of");
+			rwsi = new PermissionsCheckerFactory(db, owner)
+					.getWorkspaceChecker(wsi, Permission.OWNER)
+					.withOperation("change the owner of").check();
 		}
 		final Permission p = db.getPermission(newUser, rwsi);
 		if (p.equals(Permission.OWNER)) {
 			throw new IllegalArgumentException(newUser.getUser() +
 					" already owns workspace " + rwsi.getName());
 		}
-		if (newName == null) {
-			final String[] oldWsName = WorkspaceIdentifier.splitUser(
-					rwsi.getName());
+		if (!newName.isPresent()) {
+			final String[] oldWsName = WorkspaceIdentifier.splitUser(rwsi.getName());
 			if (oldWsName[0] != null) { //includes user name
-				newName = newUser.getUser() +
-						WorkspaceIdentifier.WS_NAME_DELIMITER +
-						oldWsName[1];
+				newName = Optional.of(newUser.getUser() + WorkspaceIdentifier.WS_NAME_DELIMITER +
+						oldWsName[1]);
 			} // else don't change the name
 		} else {
-			if (newName.equals(rwsi.getName())) {
-				newName = null; // no need to change name
-			} else {
-				new WorkspaceIdentifier(newName, newUser); //checks for illegal names
+			new WorkspaceIdentifier(newName.get(), newUser); //checks for illegal names
+			if (newName.get().equals(rwsi.getName())) {
+				newName = Optional.absent(); // no need to change name
 			}
 		}
-		return db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+		final Instant time = db.setWorkspaceOwner(rwsi, owner, newUser, newName);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setWorkspaceOwner(rwsi.getID(), newUser, newName, time);
+		}
+		return db.getWorkspaceInformation(newUser, rwsi);
 	}
 			
 
-	public void setPermissions(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final List<WorkspaceUser> users,
+	public long setPermissions(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceUser> users,
 			final Permission permission)
 			throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
-		setPermissions(user, wsi, users, permission, false);
+		return setPermissions(user, wsi, users, permission, false);
 	}
 	
-	public void setPermissions(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final List<WorkspaceUser> users,
-			final Permission permission, final boolean asAdmin)
+	public long setPermissions(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceUser> users,
+			final Permission permission,
+			final boolean asAdmin)
 			throws CorruptWorkspaceDBException,
 			NoSuchWorkspaceException, WorkspaceAuthorizationException,
 			WorkspaceCommunicationException {
@@ -477,10 +397,11 @@ public class Workspace {
 		}
 		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
 		final Permission currentPerm = asAdmin ? Permission.ADMIN :
-				db.getPermissions(user, wsid).getUserPermission(wsid, true);
+				db.getPermissions(user, wsid).getUserPermission(wsid);
 		if (currentPerm.equals(Permission.NONE)) {
 			//always throw exception here
-			checkPerms(user, wsi, Permission.ADMIN, "set permissions on");
+			new PermissionsCheckerFactory(db, user).getWorkspaceChecker(wsi, Permission.ADMIN)
+					.withOperation("set permissions on").check();
 		}
 		if (Permission.ADMIN.compareTo(currentPerm) > 0) {
 			if (!users.equals(Arrays.asList(user))) {
@@ -494,79 +415,169 @@ public class Workspace {
 						user.getUser(), wsi.getIdentifierString()));
 			}
 		}
-		db.setPermissions(wsid, users, permission);
+		final Instant time = db.setPermissions(wsid, users, permission);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setPermissions(wsid.getID(), permission, users, time);
+		}
+		return wsid.getID();
 	}
 	
-	public void setGlobalPermission(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final Permission permission)
+	/** Set the global permission (e.g. readable or not) for a workspace.
+	 * @param user the user setting the permission.
+	 * @param wsi the workspace.
+	 * @param permission the new permission.
+	 * @return the ID of the modified workspace.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
+	 * workspace.
+	 */
+	public long setGlobalPermission(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final Permission permission)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceAuthorizationException, WorkspaceCommunicationException {
+				WorkspaceAuthorizationException, WorkspaceCommunicationException {
+		//manual check perms to avoid lock check
+		if (wsi == null) {
+			throw new IllegalArgumentException(
+					"Workspace identifier cannot be null");
+		}
 		if (Permission.READ.compareTo(permission) < 0) {
 			throw new IllegalArgumentException(
 					"Global permissions cannot be greater than read");
 		}
-		final boolean ignoreLock = permission.equals(Permission.READ);
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.ADMIN,
-				"set global permission on", false, ignoreLock);
-		db.setGlobalPermission(wsid, permission);
+		final ResolvedWorkspaceID rwsi = db.resolveWorkspace(wsi);
+		final Permission userperm = db.getPermission(user, rwsi);
+		PermissionsCheckerFactory.comparePermission(
+				user, Permission.ADMIN, userperm, wsi, "set global permission on");
+		if (Permission.NONE.equals(permission) && rwsi.isLocked()) {
+			throw new WorkspaceAuthorizationException("The workspace with id "
+					+ rwsi.getID() + ", name " + rwsi.getName() +
+					", is locked and may not be modified");
+		}
+		final Instant time = db.setGlobalPermission(rwsi, permission);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setGlobalPermission(rwsi.getID(), permission, time);
+		}
+		return rwsi.getID();
 	}
 
+	//TODO USERS make an anonymous user class instead of using null.
+	//TODO WORKSPACES consider a single method that returns all workspace info in a class. Probably performance difference is trivial compared to multiple methods.
+	
+	/** Get user permissions for a set of workspaces. If the user has at least write permission
+	 * to a particular workspace, all permissions for the workspace will be returned.
+	 * @param user the user for which permissions will be returned, or null for an anonymous user.
+	 * @param wslist the list of workspaces.
+	 * @return a list of workspace permissions ordered as the incoming list.
+	 * @throws NoSuchWorkspaceException if one or more of the workspaces does not exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurred when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the workspace.
+	 */
 	public List<Map<User, Permission>> getPermissions(
 			final WorkspaceUser user,
 			final List<WorkspaceIdentifier> wslist)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		if (wslist == null) {
+				CorruptWorkspaceDBException {
+		return getPermissions(user, wslist, false);
+	}
+	
+	/** Get user permissions for a set of workspaces as an administrator. Returns all permissions
+	 * for all workspaces.
+	 * @param wslist the list of workspaces.
+	 * @return a list of workspace permissions ordered as the incoming list.
+	 * @throws NoSuchWorkspaceException if one or more of the workspaces does not exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurred when contacting
+	 * the storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the workspace.
+	 */
+	public List<Map<User, Permission>> getPermissionsAsAdmin(
+			final List<WorkspaceIdentifier> wslist)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
+		return getPermissions(null, wslist, true);
+	}
+	
+	private List<Map<User, Permission>> getPermissions(
+			final WorkspaceUser user,
+			final List<WorkspaceIdentifier> wslist,
+			final boolean asAdmin)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
+		if (wslist == null) { //TODO CODE copy non null from auth2
 			throw new NullPointerException("wslist cannot be null");
 		}
 		if (wslist.size() > MAX_WS_COUNT) {
 			throw new IllegalArgumentException(
-					"Maximum number of workspaces allowed for input is " +
-							MAX_WS_COUNT);
+					"Maximum number of workspaces allowed for input is " + MAX_WS_COUNT);
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwslist =
 				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wslist));
 		final Map<ResolvedWorkspaceID, Map<User, Permission>> perms =
 				db.getAllPermissions(new HashSet<ResolvedWorkspaceID>(
 						rwslist.values()));
-		final List<Map<User, Permission>> ret =
-				new LinkedList<Map<User,Permission>>();
+		final List<Map<User, Permission>> ret = new LinkedList<Map<User,Permission>>();
 		for (final WorkspaceIdentifier wsi: wslist) {
 			final ResolvedWorkspaceID rwsi = rwslist.get(wsi);
 			final Map<User, Permission> wsperm = perms.get(rwsi);
-			final Permission p = wsperm.get(user); // will be null for null user
-			if (p == null || Permission.WRITE.compareTo(p) > 0) { //read or no perms
-				final Map<User, Permission> wsp =
-						new HashMap<User, Permission>();
+			// if user is null, got perm will be null
+			final Permission p = wsperm.get(user) == null ? Permission.NONE : wsperm.get(user);
+			if (asAdmin || Permission.WRITE.compareTo(p) <= 0) { //at least write perms
+				ret.add(wsperm);
+			} else {
+				final Map<User, Permission> wsp = new HashMap<User, Permission>();
 				if (wsperm.containsKey(ALL_USERS)) {
 					wsp.put(ALL_USERS, wsperm.get(ALL_USERS));
 				}
 				if (user != null) {
-					if (p == null) {
-						wsp.put(user, Permission.NONE);
-					} else {
-						wsp.put(user, p);
-					}
+					wsp.put(user, p);
 				}
 				ret.add(wsp);
-			} else {
-				ret.add(wsperm);
 			}
 		}
 		return ret;
 	}
 
+	/** Get information about a workspace.
+	 * @param user the user that is attempting to access the information.
+	 * @param wsi the workspace.
+	 * @return the workspace information.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
+	 * workspace.
+	 */
 	public WorkspaceInformation getWorkspaceInformation(
-			final WorkspaceUser user, final WorkspaceIdentifier wsi)
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.READ,
-				"read");
+				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+				.getWorkspaceChecker(wsi, Permission.READ).check();
 		return db.getWorkspaceInformation(user, wsid);
 	}
 	
-	public String getBackendType() {
-		return db.getBackendType();
+	/** Get information about a workspace as an admin. The user permission returned will always
+	 * be NONE.
+	 * @param wsi the workspace.
+	 * @return the workspace information.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public WorkspaceInformation getWorkspaceInformationAsAdmin(final WorkspaceIdentifier wsi)
+			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
+		nonNull(wsi, "Workspace identifier cannot be null");
+		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi);
+		return db.getWorkspaceInformation(null, wsid);
 	}
 	
 	private static String getObjectErrorId(final WorkspaceSaveObject wo, final int objcount) {
@@ -631,8 +642,8 @@ public class Workspace {
 		if (objects.isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}
-		final ResolvedWorkspaceID rwsi = checkPerms(user, wsi, Permission.WRITE,
-				"write to");
+		final ResolvedWorkspaceID rwsi = new PermissionsCheckerFactory(db, user)
+				.getWorkspaceChecker(wsi, Permission.WRITE).check();
 		idHandlerFac.addFactory(getHandlerFactory(user));
 		final IdReferenceHandlerSet<IDAssociation> idhandler =
 				idHandlerFac.createHandlers(IDAssociation.class);
@@ -643,19 +654,16 @@ public class Workspace {
 		processIds(objects, idhandler, reports);
 		
 		//handle references and calculate size with new references
-		final List<ResolvedSaveObject> saveobjs =
-				new ArrayList<ResolvedSaveObject>();
+		final List<ResolvedSaveObject> saveobjs = new ArrayList<ResolvedSaveObject>();
 		long ttlObjSize = 0;
 		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
 			//maintain ordering
 			wo.getProvenance().setWorkspaceID(new Long(rwsi.getID()));
 			final List<Reference> provrefs = new LinkedList<Reference>();
-			for (final Provenance.ProvenanceAction action:
-					wo.getProvenance().getActions()) {
+			for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
 				for (final String ref: action.getWorkspaceObjects()) {
-					provrefs.add((Reference)
-							idhandler.getRemappedId(WS_ID_TYPE, ref));
+					provrefs.add((Reference) idhandler.getRemappedId(WS_ID_TYPE, ref));
 				}
 			}
 			final Map<IdReferenceType, Set<RemappedId>> extractedIDs =
@@ -691,9 +699,17 @@ public class Workspace {
 		objects = null;
 		reports.clear();
 		
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(user, rwsi);
+		
 		try {
 			sortObjects(saveobjs, ttlObjSize);
-			return db.saveObjects(user, rwsi, saveobjs);
+			final List<ObjectInformation> ret = db.saveObjects(user, rwsi, saveobjs);
+			for (final WorkspaceEventListener l: listeners) {
+				for (final ObjectInformation oi: ret) {
+					l.saveObject(oi, wsinfo.isGloballyReadable());
+				}
+			}
+			return ret;
 		} finally {
 			for (final ResolvedSaveObject wo: saveobjs) {
 				try {
@@ -718,7 +734,7 @@ public class Workspace {
 		}
 		final UTF8JsonSorterFactory fac = new UTF8JsonSorterFactory(
 				rescfg.getMaxRelabelAndSortMemoryUsage());
-		for (ResolvedSaveObject ro: saveobjs) {
+		for (final ResolvedSaveObject ro: saveobjs) {
 			try {
 				//modifies object in place
 				ro.getRep().sort(fac, tempTFM);
@@ -751,29 +767,24 @@ public class Workspace {
 		int objcount = 1;
 		for (final WorkspaceSaveObject wo: objects) {
 			idhandler.associateObject(new IDAssociation(objcount, false));
-			final ValidatedTypedObject rep = validate(wo, idhandler,
-					objcount);
+			final ValidatedTypedObject rep = validate(wo, idhandler, objcount);
 			reports.put(wo, rep);
 			idhandler.associateObject(new IDAssociation(objcount, true));
 			try {
-				for (final Provenance.ProvenanceAction action:
-						wo.getProvenance().getActions()) {
+				for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
 					for (final String pref: action.getWorkspaceObjects()) {
 						if (pref == null) {
-							throw new TypedObjectValidationException(
-									String.format(
+							throw new TypedObjectValidationException(String.format(
 									"Object %s has a null provenance reference",
 									getObjectErrorId(wo, objcount)));
 						}
-						idhandler.addStringId(new IdReference<String>(
-								WS_ID_TYPE, pref, null));
+						idhandler.addStringId(new IdReference<String>(WS_ID_TYPE, pref, null));
 					}
 				}
 			} catch (IdReferenceHandlerException ihre) {
 				throw new TypedObjectValidationException(String.format(
 						"Object %s has invalid provenance reference: ",
-						getObjectErrorId(wo, objcount)) + 
-						ihre.getMessage(), ihre);
+						getObjectErrorId(wo, objcount)) + ihre.getMessage(), ihre);
 			} catch (TooManyIdsException tmie) {
 				throw wrapTooManyIDsException(objcount, idhandler, tmie);
 			}
@@ -895,12 +906,16 @@ public class Workspace {
 				objcount, idhandler.getMaximumIdCount()), e);
 	}
 
-	//should probably make an options builder
+	//should definitely make an options builder
 	public List<WorkspaceInformation> listWorkspaces(
-			final WorkspaceUser user, Permission minPerm,
-			final List<WorkspaceUser> users, final WorkspaceUserMetadata meta,
-			final Date after, final Date before,
-			final boolean excludeGlobal, final boolean showDeleted,
+			final WorkspaceUser user,
+			Permission minPerm,
+			final List<WorkspaceUser> users,
+			final WorkspaceUserMetadata meta,
+			final Date after,
+			final Date before,
+			final boolean excludeGlobal,
+			final boolean showDeleted,
 			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException,
 			CorruptWorkspaceDBException {
@@ -910,27 +925,61 @@ public class Workspace {
 		if (meta != null && meta.size() > 1) {
 			throw new IllegalArgumentException("Only one metadata spec allowed");
 		}
-		final PermissionSet perms =
-				db.getPermissions(user, minPerm, excludeGlobal);
+		final PermissionSet perms = db.getPermissions(user, minPerm, excludeGlobal);
 		return db.getWorkspaceInformation(perms, users, meta, after, before,
 				showDeleted, showOnlyDeleted);
+	}
+	
+	/** List workspace IDs to which a user has access. Returns much less data than
+	 * {@link #listWorkspaces(WorkspaceUser, Permission, List, WorkspaceUserMetadata, Date, Date, boolean, boolean, boolean)}
+	 * and should be faster.
+	 * @param user the user for which workspace IDs will be listed. If the user is null, only
+	 * public workspace IDs will be returned.
+	 * @param minPerm the minimum permission of the workspaces. READ will be used if minPerm is
+	 * null or NONE. If the permission is greater than READ no public workspaces will be included.
+	 * @param excludeGlobal don't include public workspaces in the results.
+	 * @return the workspace IDs.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public UserWorkspaceIDs listWorkspaceIDs(
+			final WorkspaceUser user,
+			Permission minPerm,
+			final boolean excludeGlobal)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
+			minPerm = Permission.READ;
+		}
+		final PermissionSet perms = db.getPermissions(
+				user, null, minPerm, excludeGlobal, true, false);
+		final List<Long> workspaceIDs = new LinkedList<>();
+		final List<Long> publicIDs = new LinkedList<>();
+		for (final ResolvedWorkspaceID ws: perms.getWorkspaces()) {
+			if (perms.getUserPermission(ws).equals(Permission.NONE)) {
+				publicIDs.add(ws.getID());
+			} else {
+				workspaceIDs.add(ws.getID());
+			}
+		}
+		return new UserWorkspaceIDs(user, minPerm, workspaceIDs, publicIDs);
 	}
 	
 	public List<ObjectInformation> listObjects(
 			final ListObjectsParameters params)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				db.resolveWorkspaces(params.getWorkspaces());
-		final HashSet<ResolvedWorkspaceID> rw =
-				new HashSet<ResolvedWorkspaceID>(rwsis.values());
+		final HashSet<ResolvedWorkspaceID> rw = new HashSet<ResolvedWorkspaceID>(rwsis.values());
 		final PermissionSet pset = db.getPermissions(params.getUser(), rw,
-				params.getMinimumPermission(), params.isExcludeGlobal(), true);
-		if (!params.getWorkspaces().isEmpty()) {
+				params.getMinimumPermission(), params.isExcludeGlobal(), true, params.asAdmin());
+		rw.clear();
+		if (!params.asAdmin()) {
 			for (final WorkspaceIdentifier wsi: params.getWorkspaces()) {
-				comparePermission(params.getUser(), Permission.READ,
-						pset.getPermission(rwsis.get(wsi), true), wsi, "read");
+				PermissionsCheckerFactory.comparePermission(params.getUser(), Permission.READ,
+						pset.getPermission(rwsis.get(wsi)), wsi, "read");
 			}
 		}
 		return db.getObjectInformation(params.generateParameters(pset));
@@ -955,25 +1004,33 @@ public class Workspace {
 				WorkspaceCommunicationException, InaccessibleObjectException,
 				NoSuchReferenceException, TypedObjectExtractionException,
 				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
-		return getObjects(user, loi, noData, false);
+		return getObjects(user, loi, noData, false, false);
 	}
 	
 	public List<WorkspaceObjectData> getObjects(
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> loi,
 			final boolean noData,
-			boolean nullIfInaccessible)
+			final boolean nullIfInaccessible,
+			final boolean asAdmin)
 			throws CorruptWorkspaceDBException,
 				WorkspaceCommunicationException, InaccessibleObjectException,
 				NoSuchReferenceException, TypedObjectExtractionException,
 				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
 		
-		final ResolvedRefPaths res = resolveObjects(user, loi, nullIfInaccessible);
+		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
+				.withIgnoreInaccessible(nullIfInaccessible)
+				.withAsAdmin(asAdmin)
+				.withMaximumObjectsSearched(maximumObjectSearchCount);
+		for (final ObjectIdentifier oi: loi) {
+			orb.withObject(oi);
+		}
+		ObjectResolver res = orb.resolve();
 		
 		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> refpaths =
-				setupObjectPaths(res.withpath);
+				setupObjectPaths(res.getObjects(true), res);
 		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> stdpaths =
-				setupObjectPaths(res.nopath);
+				setupObjectPaths(res.getObjects(false), res);
 		
 		//TODO CODE make an overall resource manager that takes the config as an arg and handles returned data as well as mem & file limits 
 		final ByteArrayFileCacheManager dataMan = getDataManager(noData);
@@ -1000,20 +1057,26 @@ public class Workspace {
 					ss = SubsetSelection.EMPTY;
 				}
 				final WorkspaceObjectData wod;
-				// works if res.nochain.get(o) is null or stddata doesn't have key
-				if (stddata.containsKey(res.nopath.get(o))) {
-					wod = stddata.get(res.nopath.get(o)).get(ss);
-				} else if (refdata.containsKey(res.withpath.get(o))) {
-					final WorkspaceObjectData prewod = refdata.get(res.withpath.get(o)).get(ss);
-					wod = prewod.updateObjectReferencePath(res.withpathRefPath.get(o));
-				} else {
+				final ObjectResolution objres = res.getObjectResolution(o);
+				if (objres.equals(ObjectResolution.INACCESSIBLE)) {
 					wod = null;
+				} else {
+					final ObjectIDResolvedWS resobj = res.getResolvedObject(o);
+					if (objres.equals(ObjectResolution.NO_PATH)) {
+						if (stddata.containsKey(resobj)) {
+							wod = stddata.get(resobj).get(ss);
+						} else {
+							wod = null; //object was deleted or missing
+						}
+					} else {
+						// since was resolved by path, object must exist
+						final WorkspaceObjectData prewod = refdata.get(resobj).get(ss);
+						wod = prewod.updateObjectReferencePath(res.getReferencePath(o));
+					}
 				}
 				ret.add(wod);
 			}
-			res.nopath.clear();
-			res.withpath.clear();
-			res.withpathRefPath.clear();
+			res = null;
 			refdata.clear();
 			stddata.clear();
 			removeInaccessibleDataCopyReferences(user, ret);
@@ -1078,11 +1141,12 @@ public class Workspace {
 	}
 
 	private Map<ObjectIDResolvedWS, Set<SubsetSelection>> setupObjectPaths(
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> objs) {
+			final Set<ObjectIdentifier> objects,
+			final ObjectResolver res) {
 		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
 				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
-		for (final ObjectIdentifier o: objs.keySet()) {
-			final ObjectIDResolvedWS roi = objs.get(o);
+		for (final ObjectIdentifier o: objects) {
+			final ObjectIDResolvedWS roi = res.getResolvedObject(o);
 			if (!paths.containsKey(roi)) {
 				paths.put(roi, new HashSet<SubsetSelection>());
 			}
@@ -1093,133 +1157,6 @@ public class Workspace {
 			}
 		}
 		return paths;
-	}
-	
-	private ResolvedRefPaths resolveReferencePaths(
-			final WorkspaceUser user,
-			final List<ObjectIDWithRefPath> objsWithRefpaths,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads,
-			final boolean ignoreErrors)
-			throws WorkspaceCommunicationException,
-				InaccessibleObjectException, CorruptWorkspaceDBException,
-				NoSuchReferenceException {
-		
-		if (!hasItems(objsWithRefpaths)) {
-			return new ResolvedRefPaths(null, null);
-		}
-		
-		final List<ObjectIdentifier> allRefPathEntries = new LinkedList<>();
-		for (final ObjectIDWithRefPath oc: objsWithRefpaths) {
-			if (oc != null) {
-				/* allow nulls in list to maintain object count in the case
-				 * calling method input includes objectIDs with and without
-				 * chains
-				 */
-				allRefPathEntries.addAll(oc.getRefPath());
-			}
-		}
-		final Map<ObjectIDResolvedWS, ObjectReferenceSet> headrefs =
-				getObjectOutgoingReferences(heads, ignoreErrors, false);
-		/* ignore all errors when getting chain objects until actually getting
-		 * to the point where we need the data. Otherwise an attacker can
-		 * explore what objects exist in arbitrary workspaces.
-		 */
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedRefPathObjs =
-				checkPerms(user, allRefPathEntries, Permission.NONE,
-						"somthinsbroke", true, true, true);
-		final Map<ObjectIDResolvedWS, ObjectReferenceSet> outrefs =
-				getObjectOutgoingReferences(resolvedRefPathObjs, true, true);
-		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resolvedObjects = new HashMap<>();
-		final Map<ObjectIdentifier, List<Reference>> refpaths = new HashMap<>();
-		int chnum = 1;
-		for (final ObjectIDWithRefPath owrp: objsWithRefpaths) {
-			if (owrp != null) {
-				final ObjectReferenceSet refs = headrefs.get(heads.get(owrp));
-				if (refs != null) {
-					final List<Reference> resRefPath = getResolvedRefPath(owrp, refs,
-							resolvedRefPathObjs, outrefs, ignoreErrors, chnum);
-					if (resRefPath != null) {
-						final Reference ref = resRefPath.get(resRefPath.size() - 1);
-						final ObjectIDResolvedWS end = resolvedRefPathObjs.get(owrp.getLast());
-						final ObjectIDResolvedWS res = new ObjectIDResolvedWS(
-								end.getWorkspaceIdentifier(), ref.getObjectID(), ref.getVersion());
-						resolvedObjects.put(owrp, res);
-						refpaths.put(owrp, resRefPath);
-					}
-				}
-			}
-			chnum++;
-		}
-		return new ResolvedRefPaths(resolvedObjects, refpaths);
-	}
-
-	private Map<ObjectIDResolvedWS, ObjectReferenceSet> getObjectOutgoingReferences(
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> objs,
-			final boolean ignoreErrors,
-			final boolean includeDeleted)
-			throws WorkspaceCommunicationException, InaccessibleObjectException {
-		try {
-			return db.getObjectOutgoingReferences(new HashSet<ObjectIDResolvedWS>(objs.values()),
-					!ignoreErrors, includeDeleted, !ignoreErrors);
-		} catch (NoSuchObjectException nsoe) {
-			for (final Entry<ObjectIdentifier, ObjectIDResolvedWS> e: objs.entrySet()) {
-				if (e.getValue().equals(nsoe.getResolvedInaccessibleObject())) {
-					throw new InaccessibleObjectException(nsoe.getMessage(), e.getKey(), nsoe);
-				}
-			}
-			throw new RuntimeException("Programming error - couldn't translate resolved " +
-					"object ID to object ID", nsoe);
-		}
-	}
-	
-	private List<Reference> getResolvedRefPath(
-			final ObjectIDWithRefPath refpath,
-			final ObjectReferenceSet headrefs,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> resRefPathObjs,
-			final Map<ObjectIDResolvedWS, ObjectReferenceSet> outgoingRefs,
-			final boolean ignoreErrors,
-			final int chainNumber)
-			throws NoSuchReferenceException {
-		final List<Reference> resolvedRefPath = new LinkedList<>();
-		ObjectIdentifier pos = refpath;
-		ObjectReferenceSet refs = headrefs;
-		resolvedRefPath.add(refs.getObjectReference());
-		int posnum = 1;
-		for (final ObjectIdentifier oi: refpath.getRefPath()) {
-			/* refs are guaranteed to exist, so if the db didn't find
-			 * it the user specified it incorrectly
-			 */
-			/* only throw the exception from one
-			 * place, otherwise an attacker can tell if the object in the
-			 * ref chain is in the DB or not
-			 */
-			final ObjectIDResolvedWS oir = resRefPathObjs.get(oi);
-			final ObjectReferenceSet current = oir == null ? null : outgoingRefs.get(oir);
-			if (current == null || !refs.contains(current.getObjectReference())) {
-				if (ignoreErrors) {
-					return null;
-				}
-				throw new NoSuchReferenceException(null, chainNumber, posnum, refpath, pos, oi);
-			}
-			resolvedRefPath.add(current.getObjectReference());
-			pos = oi;
-			refs = current;
-			posnum++;
-		}
-		return resolvedRefPath;
-	}
-
-	private boolean hasItems(final List<?> l) {
-		if (l == null || l.isEmpty()) {
-			return false;
-		}
-		for (final Object item: l) {
-			if (item != null) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private void removeInaccessibleDataCopyReferences(
@@ -1241,7 +1178,7 @@ public class Workspace {
 		}
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis;
 		try {
-			rwsis = db.resolveWorkspaces(wsis, true, true);
+			rwsis = db.resolveWorkspaces(wsis, true);
 		} catch (NoSuchWorkspaceException nswe) {
 			throw new RuntimeException(
 					"Threw exception when explicitly told not to", nswe);
@@ -1269,8 +1206,7 @@ public class Workspace {
 		for (final WorkspaceObjectData d: data) {
 			if (d != null && d.getCopyReference() != null) {
 				final Reference cref = d.getCopyReference();
-				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(
-						cref.getWorkspaceID());
+				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(cref.getWorkspaceID());
 				if (!rwsis.containsKey(wsi)) {
 					d.setCopySourceInaccessible();
 				} else {
@@ -1297,10 +1233,10 @@ public class Workspace {
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException, NoSuchObjectException {
 		//could combine these next two lines, but probably doesn't matter
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read");
-		final PermissionSet perms =
-				db.getPermissions(user, Permission.READ, false);
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws =
+				new PermissionsCheckerFactory(db, user).getObjectChecker(loi, Permission.READ)
+						.check();
+		final PermissionSet perms = db.getPermissions(user, Permission.READ, false);
 		final Map<ObjectIDResolvedWS, Set<ObjectInformation>> refs = 
 				db.getReferencingObjects(perms,
 						new HashSet<ObjectIDResolvedWS>(ws.values()));
@@ -1318,8 +1254,9 @@ public class Workspace {
 			final WorkspaceUser user, final List<ObjectIdentifier> loi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
 			CorruptWorkspaceDBException, NoSuchObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.READ, "read");
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws =
+				new PermissionsCheckerFactory(db, user).getObjectChecker(loi, Permission.READ)
+					.check();
 		final Map<ObjectIDResolvedWS, Integer> counts =
 				db.getReferencingObjectCounts(
 						new HashSet<ObjectIDResolvedWS>(ws.values()));
@@ -1331,50 +1268,44 @@ public class Workspace {
 		return ret;
 	}
 	
-	public List<ObjectInformation> getObjectHistory(final WorkspaceUser user,
-			final ObjectIdentifier oi) throws WorkspaceCommunicationException,
-			InaccessibleObjectException, CorruptWorkspaceDBException, NoSuchObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, Arrays.asList(oi), Permission.READ, "read");
-		return db.getObjectHistory(ws.get(oi));
+	/** Get all versions of an object.
+	 * @param user the user making the request.
+	 * @param oi the object to query.
+	 * @return the versions of the object.
+	 * @throws InaccessibleObjectException if the object is inaccessible.
+	 * @throws NoSuchObjectException if there is no such object.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public List<ObjectInformation> getObjectHistory(
+			final WorkspaceUser user,
+			final ObjectIdentifier oi)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+			CorruptWorkspaceDBException, NoSuchObjectException {
+		return getObjectHistory(user, oi, false);
 	}
 	
-	private static class ResolvedRefPaths {
-		public Map<ObjectIdentifier, ObjectIDResolvedWS> nopath;
-		public Map<ObjectIdentifier, ObjectIDResolvedWS> withpath;
-		public Map<ObjectIdentifier, List<Reference>> withpathRefPath;
-
-		private ResolvedRefPaths(
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> withpath,
-				final Map<ObjectIdentifier, List<Reference>> withpathRefPath) {
-			super();
-			this.withpath = withpath;
-			if (withpath == null) {
-				this.withpath = new HashMap<>();
-			}
-			this.withpathRefPath = withpathRefPath;
-			if (withpathRefPath == null) {
-				this.withpathRefPath = new HashMap<>();
-			}
-		}
-		
-		public ResolvedRefPaths withStandardObjects(
-				final Map<ObjectIdentifier, ObjectIDResolvedWS> std) {
-			if (std == null) {
-				nopath = new HashMap<>();
-			} else {
-				nopath = std;
-			}
-			return this;
-		}
-
-		public ResolvedRefPaths merge(final ResolvedRefPaths merge) {
-			nopath.putAll(merge.nopath);
-			withpath.putAll(merge.withpath);
-			withpathRefPath.putAll(merge.withpathRefPath);
-			return this;
-		}
-		
+	/** Get all versions of an object.
+	 * @param user the user making the request.
+	 * @param oi the object to query.
+	 * @param asAdmin true if the user is acting as an administrator.
+	 * @return the versions of the object.
+	 * @throws InaccessibleObjectException if the object is inaccessible.
+	 * @throws NoSuchObjectException if there is no such object.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
+	public List<ObjectInformation> getObjectHistory(
+			final WorkspaceUser user,
+			final ObjectIdentifier oi,
+			final boolean asAdmin)
+			throws WorkspaceCommunicationException, InaccessibleObjectException,
+					CorruptWorkspaceDBException, NoSuchObjectException {
+		final ObjectIDResolvedWS o = new PermissionsCheckerFactory(db, user)
+						.getObjectChecker(oi, asAdmin ? Permission.NONE : Permission.READ).check();
+		return db.getObjectHistory(o);
 	}
 	
 	public List<ObjectInformation> getObjectInformation(
@@ -1386,319 +1317,57 @@ public class Workspace {
 				CorruptWorkspaceDBException, InaccessibleObjectException,
 				NoSuchReferenceException, ReferenceSearchMaximumSizeExceededException,
 				NoSuchObjectException {
+		return getObjectInformation(user, loi, includeMetadata, nullIfInaccessible, false);
+	}
 	
-		final ResolvedRefPaths res = resolveObjects(user, loi, nullIfInaccessible);
+	public List<ObjectInformation> getObjectInformation(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final boolean includeMetadata,
+			final boolean nullIfInaccessible,
+			final boolean asAdmin)
+			throws WorkspaceCommunicationException,
+				CorruptWorkspaceDBException, InaccessibleObjectException,
+				NoSuchReferenceException, ReferenceSearchMaximumSizeExceededException,
+				NoSuchObjectException {
+	
+		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
+				.withIgnoreInaccessible(nullIfInaccessible)
+				.withAsAdmin(asAdmin)
+				.withMaximumObjectsSearched(maximumObjectSearchCount);
+		for (final ObjectIdentifier oi: loi) {
+			orb.withObject(oi);
+		}
+		final ObjectResolver res = orb.resolve();
 		
 		final Map<ObjectIDResolvedWS, ObjectInformation> stdmeta = db.getObjectInformation(
-				new HashSet<ObjectIDResolvedWS>(res.nopath.values()),
+				res.getResolvedObjects(false),
 				includeMetadata, !nullIfInaccessible, false, !nullIfInaccessible);
 		
 		final Map<ObjectIDResolvedWS, ObjectInformation> resmeta = db.getObjectInformation(
-				new HashSet<ObjectIDResolvedWS>(res.withpath.values()),
-				includeMetadata, false, true, true);
+				res.getResolvedObjects(true), includeMetadata, false, true, true);
 				// at this point the object at the chain end must exist
 		
 		final List<ObjectInformation> ret = new ArrayList<>();
 		for (final ObjectIdentifier o: loi) {
-			if (res.nopath.containsKey(o) && stdmeta.containsKey(res.nopath.get(o))) {
-				ret.add(stdmeta.get(res.nopath.get(o)));
-			} else if (res.withpath.containsKey(o) && resmeta.containsKey(res.withpath.get(o))) {
-				ret.add(resmeta.get(res.withpath.get(o))
-						.updateReferencePath(res.withpathRefPath.get(o)));
-			} else {
+			final ObjectResolution objres = res.getObjectResolution(o);
+			if (objres.equals(ObjectResolution.INACCESSIBLE)) {
 				ret.add(null);
+			} else {
+				final ObjectIDResolvedWS idres = res.getResolvedObject(o);
+				if (objres.equals(ObjectResolution.NO_PATH)) {
+					if (stdmeta.containsKey(idres)) {
+						ret.add(stdmeta.get(idres));
+					} else {
+						ret.add(null); // object was deleted  or didn't exist
+					}
+				} else {
+					// resolution was with a path, which guarantees that the object exists
+					ret.add(resmeta.get(idres).updateReferencePath(res.getReferencePath(o)));
+				}
 			}
 		}
 		return ret;
-	}
-
-	/* used to resolve object IDs that might contain reference chains */
-	private ResolvedRefPaths resolveObjects(
-			final WorkspaceUser user,
-			final List<ObjectIdentifier> loi,
-			final boolean nullIfInaccessible)
-			throws WorkspaceCommunicationException,
-				InaccessibleObjectException, CorruptWorkspaceDBException,
-				NoSuchReferenceException, ReferenceSearchMaximumSizeExceededException {
-		if (loi.isEmpty()) {
-			throw new IllegalArgumentException("No object identifiers provided");
-		}
-		Set<ObjectIdentifier> lookup = new HashSet<>();
-		List<ObjectIdentifier> nolookup = new LinkedList<>();
-		for (final ObjectIdentifier o: loi) {
-			if (o instanceof ObjectIDWithRefPath && ((ObjectIDWithRefPath) o).isLookupRequired()) {
-				lookup.add(o);
-			} else {
-				nolookup.add(o);
-			}
-		}
-
-		//handle the faster cases first, fail before the searches
-		Map<ObjectIdentifier, ObjectIDResolvedWS> ws = new HashMap<>();
-		if (!nolookup.isEmpty()) {
-			ws = checkPerms(user, nolookup, Permission.READ, "read",
-						nullIfInaccessible, nullIfInaccessible, nullIfInaccessible);
-		}
-		nolookup = null; //gc
-		
-		final List<ObjectIDWithRefPath> refpaths = new LinkedList<>();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads = new HashMap<>();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> std = new HashMap<>();
-		for (final ObjectIdentifier o: loi) {
-			if (lookup.contains(o)) { // need to do a lookup on this one, skip
-				refpaths.add(null); //maintain count for error reporting
-			} else if (ws.get(o) == null) { // skip, workspace wasn't resolved
-				// error reporting is off, so no need to keep track of location in list
-			} else if (o instanceof ObjectIDWithRefPath &&
-					((ObjectIDWithRefPath) o).hasRefPath()) {
-				refpaths.add((ObjectIDWithRefPath) o);
-				heads.put(o, ws.get(o));
-			} else {
-				refpaths.add(null); // maintain count for error reporting
-				std.put(o, ws.get(o));
-			}
-		}
-		ws = null; //GC
-
-		// this should exclude any heads that are deleted, even if nullIfInaccessible is true
-		// do this before starting the search, fail early before the expensive part
-		final ResolvedRefPaths resolvedPaths = resolveReferencePaths(
-				user, refpaths, heads, nullIfInaccessible).withStandardObjects(std);
-		
-		return resolvedPaths.merge(searchObjectDAG(user, lookup, nullIfInaccessible));
-	}
-	
-	//TODO REF LOOKUP positive and negative caches (?)
-
-	/* Modifies lookup in place to remove objects that don't need lookup.
-	 * Note the reference path returned for looked up objects is currently incorrect. 
-	 */
-	private ResolvedRefPaths searchObjectDAG(
-			final WorkspaceUser user,
-			final Set<ObjectIdentifier> lookup,
-			final boolean nullIfInaccessible)
-			throws WorkspaceCommunicationException, InaccessibleObjectException,
-				CorruptWorkspaceDBException, ReferenceSearchMaximumSizeExceededException {
-		if (lookup.isEmpty()) {
-			return new ResolvedRefPaths(null, null).withStandardObjects(null);
-		}
-		//could make a method to just get IDs of workspace with specific permission to save mem
-		PermissionSet pset = db.getPermissions(user, Permission.READ, false);
-		Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				searchObjectDAGResolveWorkspaces(lookup);
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs = new HashMap<>();
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> nolookup = new HashMap<>();
-		final Iterator<ObjectIdentifier> oiter = lookup.iterator();
-		while (oiter.hasNext()) {
-			final ObjectIdentifier o = oiter.next();
-			final ResolvedWorkspaceID rwsi = rwsis.get(o.getWorkspaceIdentifier());
-			if (rwsi != null) {
-				final ObjectIDResolvedWS oid = o.resolveWorkspace(rwsi);
-				if (pset.hasWorkspace(rwsi) && !rwsi.isDeleted()) { // workspace has read perm
-					nolookup.put(o, oid);
-					oiter.remove();
-				} else {
-					resobjs.put(o, oid);
-				}
-			}
-		}
-		if (lookup.isEmpty()) {
-			return new ResolvedRefPaths(null, null).withStandardObjects(nolookup);
-		}
-		final Set<Long> wsIDs = searchObjectDAGGetWorkspaceIDs(pset);
-		pset = null;
-		rwsis = null;
-		if (wsIDs.isEmpty()) {
-			if (nullIfInaccessible) {
-				return new ResolvedRefPaths(null, null).withStandardObjects(nolookup);
-			} else {
-				throw generateInaccessibleObjectException(user, lookup.iterator().next());
-			}
-		}
-		return searchObjectDAG(user, wsIDs, lookup, resobjs, nullIfInaccessible)
-				.withStandardObjects(nolookup);
-	}
-
-	private ResolvedRefPaths searchObjectDAG(
-			final WorkspaceUser user,
-			final Set<Long> wsIDs,
-			final Set<ObjectIdentifier> lookup,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
-			final boolean nullIfInaccessible)
-			throws WorkspaceCommunicationException, ReferenceSearchMaximumSizeExceededException,
-				InaccessibleObjectException {
-		
-		final Map<ObjectIDResolvedWS, Reference> objrefs = db.getObjectReference(
-				new HashSet<>(resobjs.values()));
-		try {
-			// will throw an exception if can't find a ref for any object in lookup
-			final Set<Reference> startingRefs = searchObjectDAGGetStartingRefs(
-					lookup, resobjs, objrefs, nullIfInaccessible);
-			//so starting refs can't be empty unless nullIfInaccessible is true
-			if (nullIfInaccessible && startingRefs.isEmpty()) {
-				return new ResolvedRefPaths(null, null);
-			}
-			final ReferenceGraphTopologyProvider refProvider = new ReferenceGraphTopologyProvider() {
-				
-				@Override
-				public Map<Reference, Map<Reference, Boolean>> getAssociatedReferences(
-						final Set<Reference> sourceRefs)
-						throws ReferenceProviderException {
-					try {
-						final Map<Reference, ObjectReferenceSet> refs =
-								db.getObjectIncomingReferences(sourceRefs);
-						final Set<Reference> readable = new HashSet<>();
-						for (final ObjectReferenceSet refset: refs.values()) {
-							for (final Reference r: refset.getReferenceSet()) {
-								if (wsIDs.contains(r.getWorkspaceID())) {
-									readable.add(r);
-								}
-							}
-						}
-						final Map<Reference, Boolean> exists = db.getObjectExistsRef(readable);
-						final Map<Reference, Map<Reference, Boolean>> refToRefs = new HashMap<>();
-						for (final Reference r: refs.keySet()) {
-							final Map<Reference, Boolean> termCritera = new HashMap<>();
-							refToRefs.put(r, termCritera);
-							for (final Reference inc: refs.get(r).getReferenceSet()) {
-								termCritera.put(inc, exists.containsKey(inc) && exists.get(inc));
-							}
-							
-						}
-						return refToRefs;
-					} catch (WorkspaceCommunicationException e) {
-						throw new ReferenceProviderException("foo", e);
-					}
-				}
-			};
-			final ReferenceGraphSearch search = new ReferenceGraphSearch(startingRefs,
-					refProvider, maximumObjectSearchCount, !nullIfInaccessible);
-			return searchObjectDAGBuildResolvedObjectPaths(resobjs, objrefs, search);
-		} catch (final ReferenceSearchFailedException |
-				ObjectDAGSearchFromObjectIDFailedException e) {
-			final ObjectIdentifier failedOn = searchObjectDAGGetSearchFailedTarget(
-					e, objrefs, resobjs);
-			// ensure exceptions are thrown from the same place so users can't probe arbitrary
-			// workspaces. Returning the stack trace for errors just might have been a bad idea.
-			throw generateInaccessibleObjectException(user, failedOn);
-		} catch (final ReferenceProviderException e) {
-			throw (WorkspaceCommunicationException) e.getCause();
-		}
-	}
-
-	private Set<Reference> searchObjectDAGGetStartingRefs(
-			final Set<ObjectIdentifier> lookup,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
-			final Map<ObjectIDResolvedWS, Reference> objrefs,
-			final boolean nullIfInaccessible)
-			throws ObjectDAGSearchFromObjectIDFailedException {
-
-		final Set<Reference> startingRefs = new HashSet<>();
-		for (final ObjectIdentifier o: lookup) {
-			final ObjectIDResolvedWS res = resobjs.get(o);
-			final Reference ref = objrefs.get(res);
-			if (ref == null) { // invalid objectidentifier
-				if (!nullIfInaccessible) {
-					throw new ObjectDAGSearchFromObjectIDFailedException(o);
-				}
-			} else {
-				startingRefs.add(ref);
-			}
-		}
-		return startingRefs;
-	}
-
-	private ResolvedRefPaths searchObjectDAGBuildResolvedObjectPaths(
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs,
-			final Map<ObjectIDResolvedWS, Reference> objrefs,
-			final ReferenceGraphSearch paths) {
-		
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> absObjectIDs = new HashMap<>();
-		final Map<ObjectIdentifier, List<Reference>> oiPaths = new HashMap<>();
-		
-		for (final Entry<ObjectIdentifier, ObjectIDResolvedWS> e: resobjs.entrySet()) {
-			final Reference r = objrefs.get(e.getValue());
-			if (paths.isPathFound(r)) { // objid was valid and path was found
-				//absolutize the ObjectIDResolvedWS
-				absObjectIDs.put(e.getKey(), new ObjectIDResolvedWS(
-						e.getValue().getWorkspaceIdentifier(), r.getObjectID(), r.getVersion()));
-				oiPaths.put(e.getKey(), paths.getPath(r));
-			}
-		}
-		return new ResolvedRefPaths(absObjectIDs, oiPaths);
-	}
-	
-	// this is a little filthy
-	private ObjectIdentifier searchObjectDAGGetSearchFailedTarget(
-			final Exception e,
-			final Map<ObjectIDResolvedWS, Reference> objrefs,
-			final Map<ObjectIdentifier, ObjectIDResolvedWS> resobjs) {
-
-		if (e instanceof ObjectDAGSearchFromObjectIDFailedException) {
-			return ((ObjectDAGSearchFromObjectIDFailedException) e).getSearchTarget();
-		} else if (e instanceof ReferenceSearchFailedException) {
-			final Reference failedOn = ((ReferenceSearchFailedException) e).getFailedReference();
-			for (final Entry<ObjectIdentifier, ObjectIDResolvedWS> es: resobjs.entrySet()) {
-				if (failedOn.equals(objrefs.get(es.getValue()))) {
-					return es.getKey();
-				}
-				
-			}
-			throw new RuntimeException("Something is extremely wrong, couldn't find target objid");
-		} else {
-			throw new RuntimeException("Unexpected exception type");
-		}
-	}
-	
-	private InaccessibleObjectException generateInaccessibleObjectException(
-			final WorkspaceUser user,
-			final ObjectIdentifier o)
-			throws InaccessibleObjectException {
-		final String verString = o.getVersion() == null ? "The latest version of " :
-				String.format("Version %s of ", o.getVersion());
-		final String userStr = user == null ? "anonymous users" : "user " + user.getUser();
-		return new InaccessibleObjectException(String.format(
-				"%sobject %s in workspace %s is not accessible to %s",
-				verString, o.getIdentifierString(), o.getWorkspaceIdentifierString(), userStr), o);
-	}
-
-	@SuppressWarnings("serial")
-	private static class ObjectDAGSearchFromObjectIDFailedException extends Exception {
-		
-		private final ObjectIdentifier objtarget;
-		
-		public ObjectDAGSearchFromObjectIDFailedException(final ObjectIdentifier searchTarget) {
-			super();
-			objtarget = searchTarget;
-		}
-		
-		public ObjectIdentifier getSearchTarget() {
-			return objtarget;
-		}
-	}
-	
-	private Set<Long> searchObjectDAGGetWorkspaceIDs(final PermissionSet pset) {
-		final Set<Long> wsids = new HashSet<>();
-		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
-			if (!rwsi.isDeleted()) {
-				wsids.add(rwsi.getID());
-			}
-		}
-		return wsids;
-	}
-
-	private Map<WorkspaceIdentifier, ResolvedWorkspaceID> searchObjectDAGResolveWorkspaces(
-			final Set<ObjectIdentifier> lookup)
-			throws WorkspaceCommunicationException {
-		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
-		for (final ObjectIdentifier o: lookup) {
-			wsis.add(o.getWorkspaceIdentifier());
-		}
-		try {
-			return db.resolveWorkspaces(wsis, true, true);
-		} catch (NoSuchWorkspaceException e) {
-			throw new RuntimeException("Threw exception when explicitly told not to", e);
-		}
 	}
 
 	/** Get object names based on a provided prefix. Returns at most 1000
@@ -1742,10 +1411,13 @@ public class Workspace {
 			throw new IllegalArgumentException(
 					"limit cannot be greater than " + NAME_LIMIT);
 		}
+		if (wsis.isEmpty()) {
+			return new LinkedList<>();
+		}
 		
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
-				checkPermsMass(user, wsis, Permission.READ, "read", false,
-						false);
+				new PermissionsCheckerFactory(db, user).getWorkspaceChecker(wsis, Permission.READ)
+					.check();
 		final Map<ResolvedWorkspaceID, List<String>> names =
 				db.getNamesByPrefix(
 						new HashSet<ResolvedWorkspaceID>(rwsis.values()),
@@ -1762,53 +1434,103 @@ public class Workspace {
 		return ret;
 	}
 	
-	public WorkspaceInformation renameWorkspace(final WorkspaceUser user,
-			final WorkspaceIdentifier wsi, final String newname)
+	/** Rename a workspace.
+	 * @param user the user performing the rename.
+	 * @param wsi the workspace.
+	 * @param newname the new name for the workspace.
+	 * @return information about the workspace.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to rename the
+	 * workspace.
+	 */
+	public WorkspaceInformation renameWorkspace(
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final String newname)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = checkPerms(user, wsi, Permission.OWNER,
-				"rename");
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
+				.getWorkspaceChecker(wsi, Permission.OWNER).withOperation("rename").check();
 		new WorkspaceIdentifier(newname, user); //check for errors
-		return db.renameWorkspace(user, wsid, newname);
+		final Instant time = db.renameWorkspace(wsid, newname);
+		for (final WorkspaceEventListener l: listeners) {
+			l.renameWorkspace(wsid.getID(), newname, time);
+		}
+		return db.getWorkspaceInformation(user, wsid);
 	}
 	
-	public ObjectInformation renameObject(final WorkspaceUser user,
-			final ObjectIdentifier oi, final String newname)
+	public ObjectInformation renameObject(
+			final WorkspaceUser user,
+			final ObjectIdentifier oi,
+			final String newname)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
-			CorruptWorkspaceDBException, NoSuchObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = checkPerms(user,
-				Arrays.asList(oi), Permission.WRITE, "rename objects in");
+				CorruptWorkspaceDBException, NoSuchObjectException {
 		ObjectIDNoWSNoVer.checkObjectName(newname);
-		return db.renameObject(ws.get(oi), newname);
+		final ObjectIDResolvedWS obj = new PermissionsCheckerFactory(db, user)
+				.getObjectChecker(oi, Permission.WRITE)
+				.withOperation("rename objects in").check();
+		final ObjectInfoWithModDate objdate = db.renameObject(obj, newname);
+		final ObjectInformation objinfo = objdate.getObjectInfo();
+		for (final WorkspaceEventListener l: listeners) {
+			l.renameObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), newname,
+					objdate.getModificationDate());
+		}
+		return objinfo;
 	}
 	
-	public ObjectInformation copyObject(final WorkspaceUser user,
-			final ObjectIdentifier from, final ObjectIdentifier to)
+	public ObjectInformation copyObject(
+			final WorkspaceUser user,
+			final ObjectIdentifier from,
+			final ObjectIdentifier to)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
-			CorruptWorkspaceDBException, NoSuchObjectException {
-		final ObjectIDResolvedWS f = checkPerms(user,
-				Arrays.asList(from), Permission.READ, "read").get(from);
-		final ObjectIDResolvedWS t = checkPerms(user,
-				Arrays.asList(to), Permission.WRITE, "write to").get(to);
-		return db.copyObject(user, f, t);
+				CorruptWorkspaceDBException, NoSuchObjectException {
+		final ObjectIDResolvedWS f = new PermissionsCheckerFactory(db, user)
+				.getObjectChecker(from, Permission.READ).check();
+		final ObjectIDResolvedWS t = new PermissionsCheckerFactory(db, user)
+				.getObjectChecker(to, Permission.WRITE).check();
+		final CopyResult cr = db.copyObject(user, f, t);
+		final ObjectInformation oi = cr.getObjectInformation();
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
+				user, t.getWorkspaceIdentifier());
+		for (final WorkspaceEventListener l: listeners) {
+			if (cr.isAllVersionsCopied()) {
+				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+						oi.getSavedDate().toInstant(), wsinfo.isGloballyReadable());
+			} else {
+				l.copyObject(oi, wsinfo.isGloballyReadable());
+			}
+		}
+		return oi;
 	}
 	
-	public ObjectInformation revertObject(WorkspaceUser user,
-			ObjectIdentifier oi)
+	public ObjectInformation revertObject(final WorkspaceUser user, final ObjectIdentifier oi)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
-			CorruptWorkspaceDBException, NoSuchObjectException {
-		final ObjectIDResolvedWS target = checkPerms(user,
-				Arrays.asList(oi), Permission.WRITE, "write to").get(oi);
-		return db.revertObject(user, target);
+				CorruptWorkspaceDBException, NoSuchObjectException {
+		final ObjectIDResolvedWS target = new PermissionsCheckerFactory(db, user)
+				.getObjectChecker(oi, Permission.WRITE).check();
+		final ObjectInformation objinfo = db.revertObject(user, target);
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(
+				user, target.getWorkspaceIdentifier());
+		for (final WorkspaceEventListener l: listeners) {
+			l.revertObject(objinfo, wsinfo.isGloballyReadable());
+		}
+		return objinfo;
 	}
 	
-	public void setObjectsHidden(final WorkspaceUser user,
-			final List<ObjectIdentifier> loi, final boolean hide)
+	public void setObjectsHidden(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> loi,
+			final boolean hide)
 			throws WorkspaceCommunicationException, InaccessibleObjectException,
-			CorruptWorkspaceDBException, NoSuchObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.WRITE,
-						(hide ? "" : "un") + "hide objects from");
+				CorruptWorkspaceDBException, NoSuchObjectException {
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws =
+				new PermissionsCheckerFactory(db, user)
+						.getObjectChecker(loi, Permission.WRITE)
+						.withOperation((hide ? "" : "un") + "hide objects from")
+						.check();
 		db.setObjectsHidden(new HashSet<ObjectIDResolvedWS>(ws.values()),
 				hide);
 	}
@@ -1817,37 +1539,82 @@ public class Workspace {
 			final List<ObjectIdentifier> loi, final boolean delete)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException,
 			InaccessibleObjectException, NoSuchObjectException {
-		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws = 
-				checkPerms(user, loi, Permission.WRITE,
-						(delete ? "" : "un") + "delete objects from");
-		db.setObjectsDeleted(new HashSet<ObjectIDResolvedWS>(ws.values()),
-				delete);
+		final Map<ObjectIdentifier, ObjectIDResolvedWS> ws =
+				new PermissionsCheckerFactory(db, user)
+						.getObjectChecker(loi, Permission.WRITE)
+						.withOperation((delete ? "" : "un") + "delete objects from")
+						.check();
+		final Map<ResolvedObjectIDNoVer, Instant> objs = db.setObjectsDeleted(
+				new HashSet<ObjectIDResolvedWS>(ws.values()), delete);
+		for (final WorkspaceEventListener l: listeners) {
+			for (final ResolvedObjectIDNoVer o: objs.keySet()) {
+				l.setObjectDeleted(o.getWorkspaceIdentifier().getID(), o.getId(), delete,
+						objs.get(o));
+			}
+		}
 	}
 	
-	public void setWorkspaceDeleted(
+	/** Set the deletion state of a workspace.
+	 * @param user the user requesting deletion or undeletion.
+	 * @param wsi the workspace.
+	 * @param delete true to delete, false to undelete.
+	 * @return the ID of the workspace.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is already
+	 * deleted when trying to delete.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
+	 * workspace.
+	 */
+	public long setWorkspaceDeleted(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final boolean delete)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		setWorkspaceDeleted(user, wsi, delete, false);
+		return setWorkspaceDeleted(user, wsi, delete, false);
 	}
 
-	public void setWorkspaceDeleted(
+	/** Set the deletion state of a workspace.
+	 * @param user the user requesting deletion or undeletion.
+	 * @param wsi the workspace.
+	 * @param delete true to delete, false to undelete.
+	 * @param asAdmin run the command as an admin, ignoring workspace permissions.
+	 * @return the ID of the the workspace.
+	 * @throws NoSuchWorkspaceException if there is no such workspace or the workspace is already
+	 * deleted when trying to delete.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to access the
+	 * workspace.
+	 */
+	public long setWorkspaceDeleted(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
 			final boolean delete,
 			final boolean asAdmin)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
-			WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid;
-		if (asAdmin) {
-			wsid = db.resolveWorkspace(wsi, !delete);
-		} else {
-			wsid = checkPerms(user, wsi, Permission.OWNER,
-				(delete ? "" : "un") + "delete", !delete, false);
+				WorkspaceCommunicationException, WorkspaceAuthorizationException {
+		if (wsi == null) {
+			throw new IllegalArgumentException("Workspace identifier cannot be null");
 		}
-		db.setWorkspaceDeleted(wsid, delete);
+		final ResolvedWorkspaceID wsid = db.resolveWorkspace(wsi, !delete);
+		if (!asAdmin) {
+			// skip deletion checking for std checkPerms methods.
+			final Permission perm = db.getPermission(user, wsid);
+			PermissionsCheckerFactory.comparePermission(
+					user, Permission.OWNER, perm, wsi, (delete ? "" : "un") + "delete");
+		}
+		// once a workpace is locked, it's locked. Period.
+		PermissionsCheckerFactory.checkLocked(Permission.ADMIN, wsid);
+		final Instant time = db.setWorkspaceDeleted(wsid, delete);
+		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(user, wsid);
+		for (final WorkspaceEventListener l: listeners) {
+			l.setWorkspaceDeleted(wsid.getID(), delete, wsinfo.getMaximumObjectID(), time);
+		}
+		return wsid.getID();
 	}
 
 	/* admin method only, should not be exposed in public API
@@ -1965,7 +1732,7 @@ public class Workspace {
 					idset.add(parseIDString(id, assObj));
 				}
 			}
-			final ResolvedRefPaths wsresolvedids = resolveIDs(idset);
+			final ObjectResolver wsresolvedids = resolveIDs(idset);
 			
 			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes =
 					getObjectTypes(wsresolvedids);
@@ -1973,12 +1740,7 @@ public class Workspace {
 			for (final T assObj: ids.keySet()) {
 				for (final String id: ids.get(assObj).keySet()) {
 					final ObjectIdentifier oi = parseIDString(id, assObj);
-					final ObjectIDResolvedWS roi;
-					if (wsresolvedids.nopath.containsKey(oi)) {
-						roi = wsresolvedids.nopath.get(oi);
-					} else {
-						roi = wsresolvedids.withpath.get(oi);
-					}
+					final ObjectIDResolvedWS roi = wsresolvedids.getResolvedObject(oi);
 					final TypeAndReference tnr = objtypes.get(roi);
 					typeCheckReference(id, tnr.getType(), assObj);
 					remapped.put(id, tnr.getReference());
@@ -2058,18 +1820,18 @@ public class Workspace {
 		}
 
 		private Map<ObjectIDResolvedWS, TypeAndReference> getObjectTypes(
-				final ResolvedRefPaths wsresolvedids)
+				final ObjectResolver wsresolvedids)
 				throws IdReferenceHandlerException {
 			final Map<ObjectIDResolvedWS, TypeAndReference> objtypes = new HashMap<>();
-			if (!wsresolvedids.nopath.isEmpty()) {
+			if (!wsresolvedids.getObjects(false).isEmpty()) {
 				try {
 					objtypes.putAll(db.getObjectType(
-							new HashSet<>(wsresolvedids.nopath.values()), false));
+							wsresolvedids.getResolvedObjects(false), false));
 				} catch (NoSuchObjectException nsoe) {
 					final ObjectIDResolvedWS cause = nsoe.getResolvedInaccessibleObject();
 					ObjectIdentifier oi = null;
-					for (final ObjectIdentifier o: wsresolvedids.nopath.keySet()) {
-						if (wsresolvedids.nopath.get(o).equals(cause)) {
+					for (final ObjectIdentifier o: wsresolvedids.getObjects(false)) {
+						if (wsresolvedids.getResolvedObject(o).equals(cause)) {
 							oi = o;
 							break;
 						}
@@ -2080,11 +1842,11 @@ public class Workspace {
 							"Workspace communication exception", getIdType(), e);
 				}
 			}
-			if (!wsresolvedids.withpath.isEmpty()) {
+			if (!wsresolvedids.getObjects(true).isEmpty()) {
 				// these object must be available since they're at the end of a ref path
 				try {
 					objtypes.putAll(db.getObjectType(
-							new HashSet<>(wsresolvedids.withpath.values()), true));
+							wsresolvedids.getResolvedObjects(true), true));
 				} catch (NoSuchObjectException nsoe) {
 					throw new RuntimeException("Threw exception when explicitly told not to");
 				} catch (WorkspaceCommunicationException e) {
@@ -2095,12 +1857,17 @@ public class Workspace {
 			return objtypes;
 		}
 
-		private ResolvedRefPaths resolveIDs(
+		private ObjectResolver resolveIDs(
 				final Set<ObjectIdentifier> idset)
 				throws IdReferenceHandlerException {
+			final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
+					.withMaximumObjectsSearched(maximumObjectSearchCount);
 			if (!idset.isEmpty()) {
 				try {
-					return resolveObjects(user, new LinkedList<>(idset), false);
+					for (final ObjectIdentifier oi: idset) {
+						orb.withObject(oi);
+					}
+					return orb.resolve();
 				} catch (InaccessibleObjectException ioe) {
 					throw generateIDReferenceException(ioe);
 				} catch (NoSuchReferenceException e) {
@@ -2115,7 +1882,7 @@ public class Workspace {
 					throw new RuntimeException("No search requested, yet got search error", e);
 				}
 			} else {
-				return new ResolvedRefPaths(null, null).withStandardObjects(null);
+				return orb.buildEmpty();
 			}
 		}
 

@@ -1,0 +1,76 @@
+# Copy this file to deploy.cfg and fill in as instructed.
+
+[Workspace]
+# NOTE: the credentials below must work not only for the main workspace
+# database, but also for the type database that is configured with the 
+# initialize.py script.
+# host where mongo lives, e.g. localhost:27017
+mongodb-host = localhost
+# name of the workspace mongo database
+mongodb-database = workspace
+# the user name for an account with readWrite access to the database
+#mongodb-user = add username here
+# password for the account
+#mongodb-pwd = add password here
+
+# the KBase authorization server url.
+auth-service-url = https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login
+
+# the Globus v1 authorization API url.
+globus-url = https://kbase.us/services/auth/api/legacy/globus/
+
+# the urls for the Handle Service and Handle Manager.
+handle-service-url =
+handle-manager-url =
+# The token used to access the handle manager.
+handle-manager-token = 
+
+# the user name for a workspace administrator. This name is not permanently
+# stored in the database and thus the administrator will change if this name
+# is changed and the server restarted.
+ws-admin = workspaceadmin
+
+# token for the backend account (e.g. shock if used).
+backend-token =
+
+# port for the service.
+port = 7058
+
+# server thread count - this determines the number of requests that can be
+# processed simultaneously.
+server-threads = 20
+
+# minimum memory size in MB. This must be 500Mb * server-threads.
+min-memory = 10000
+
+# maximum memory size in MB.
+max-memory = 15000
+
+# directory for temporary files. Maximum usage is 10GB * server-threads.
+# Ideally, this will be on an SSD drive for speed.
+temp-dir = ws_temp_dir
+
+# active listeners - a comma separated list, by name, of event listeners that will be registered.
+# Add or remove a name from the list in order to activate or deactivate a listener.
+# listeners=X
+
+# any listener factory implementations and their configurations, grouped by the names in the
+# listeners configuration parameter. The listener configuration will be provided to the listener
+# as a key-value map. Example:
+# listener-X-class=us.kbase.workspace.test.listener.NullListenerFactory
+# listener-X-config-key1=value1
+# listener-X-config-key2=value2
+# listener-X-config-printEvents=true
+# listener-X-config-throwException=false
+
+# document server name. Used for logging.
+doc-server-name = WorkspaceDocServ
+# Document server document location relative to the classpath. If this
+# variable is changed it must also be changed in build.xml
+doc-server-docs-location = /server_docs
+
+# mongoDB reconnect retry count. The workspace will try to reconnect 1/s until
+# this limit has been reached. This is useful for starting the Workspace
+# automatically after a server restart, as MongoDB can take quite a while to
+# get from start to accepting connections.
+mongodb-retry = 0

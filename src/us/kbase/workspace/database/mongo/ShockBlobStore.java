@@ -8,7 +8,6 @@ import java.util.List;
 
 import org.slf4j.LoggerFactory;
 
-import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
@@ -25,7 +24,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
-import us.kbase.workspace.kbase.TokenProvider;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mongodb.BasicDBObject;
@@ -38,14 +36,13 @@ public class ShockBlobStore implements BlobStore {
 	
 	private final BasicShockClient client;
 	private final DBCollection mongoCol;
-	private final TokenProvider token;
 	
 	private static final String IDX_UNIQ = "unique";
 	
 	public ShockBlobStore(
 			final DBCollection mongoCollection,
 			final URL url,
-			final TokenProvider token)
+			final AuthToken token)
 			throws BlobStoreAuthorizationException, BlobStoreException {
 		if (mongoCollection == null || url == null || token == null) {
 			throw new NullPointerException("Arguments cannot be null");
@@ -56,9 +53,8 @@ public class ShockBlobStore implements BlobStore {
 		final DBObject opts = new BasicDBObject();
 		opts.put(IDX_UNIQ, 1);
 		mongoCol.createIndex(dbo, opts);
-		this.token = token;
 		try {
-			client = new BasicShockClient(url, getToken());
+			client = new BasicShockClient(url, token);
 		} catch (InvalidShockUrlException isue) {
 			throw new BlobStoreException(
 					"The shock url " + url + " is invalid", isue);
@@ -99,21 +95,6 @@ public class ShockBlobStore implements BlobStore {
 				true, "OK", "Shock", version));
 	}
 	
-	private AuthToken getToken()
-			throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException {
-		try {
-			return token.getToken();
-		} catch (AuthException ae) {
-			throw new BlobStoreAuthorizationException(
-					"Could not authenticate backend user", ae);
-		} catch (IOException ioe) {
-			throw new BlobStoreCommunicationException(
-					"Could not connect to the shock backend auth provider: " +
-							ioe.getLocalizedMessage(), ioe);
-		}
-	}
-	
 	@Override
 	public void saveBlob(final MD5 md5, final InputStream data,
 			final boolean sorted)
@@ -128,7 +109,6 @@ public class ShockBlobStore implements BlobStore {
 		} catch (NoSuchBlobException nb) {
 			//go ahead, need to save
 		}
-		client.updateToken(getToken());
 		final ShockNode sn;
 		try {
 			sn = client.addNode(data, "workspace_" + md5.getMD5(), "JSON");
@@ -191,7 +171,6 @@ public class ShockBlobStore implements BlobStore {
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException, NoSuchBlobException,
 			FileCacheLimitExceededException, FileCacheIOException {
-		client.updateToken(getToken());
 		final DBObject entry = getBlobEntry(md5);
 		final String node = (String)entry.get(Fields.SHOCK_NODE);
 		final boolean sorted;
@@ -224,7 +203,6 @@ public class ShockBlobStore implements BlobStore {
 	public void removeBlob(final MD5 md5)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
-		client.updateToken(getToken());
 		final String node;
 		try {
 			node = getNode(md5);
@@ -269,10 +247,5 @@ public class ShockBlobStore implements BlobStore {
 	public String getExternalIdentifier(final MD5 md5) throws
 			BlobStoreCommunicationException, NoSuchBlobException {
 		return getNode(md5);
-	}
-
-	@Override
-	public String getStoreType() {
-		return "Shock";
 	}
 }

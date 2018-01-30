@@ -20,21 +20,6 @@
   <property name="clientjar.file" value="WorkspaceClient.jar"/>
   <property name="war.dir" value="war"/>
 
-  <!--
-   set user, pwd, token for the 3 users to nothing so ommitted properties
-   won't be set as ${test.user3} or whatever. Properties are immutable so
-   this won't overwrite already set properties
-   -->
-  <property name="test.user1" value="" />
-  <property name="test.user2" value="" />
-  <property name="test.user3" value="" />
-  <property name="test.pwd1" value="" />
-  <property name="test.pwd2" value="" />
-  <property name="test.pwd3" value="" />
-  <property name="test.token1" value="" />
-  <property name="test.token2" value="" />
-  <property name="test.token3" value="" />
-
   <property environment="env"/>
   <condition property="jardir" value="../jars/lib/jars/">
     <or>
@@ -72,7 +57,8 @@
   </fileset>
 
   <fileset dir="${jardir}" id="clientserverlib">
-    <include name="junit/junit-4.9.jar"/>
+    <include name="junit/junit-4.12.jar"/>
+    <include name="hamcrest/hamcrest-core-1.3.jar"/>
     <include name="kbase/auth/kbase-auth-0.4.4.jar"/>
     <include name="jackson/jackson-annotations-2.2.3.jar"/>
     <include name="jackson/jackson-core-2.2.3.jar"/>
@@ -110,6 +96,12 @@
     <include name="apache_commons/commons-collections-3.2.1.jar"/>
     <include name="mysql/mysql-connector-java-5.1.22-bin.jar"/>
     <include name="jsemver/java-semver-0.9.0.jar"/>
+    <include name="equalsverifier/equalsverifier-2.2.2.jar"/>
+    <!-- mockito and dependencies -->
+    <include name="mockito/mockito-core-2.7.10.jar"/>
+    <include name="bytebuddy/byte-buddy-1.6.8.jar"/>
+    <include name="bytebuddy/byte-buddy-agent-1.6.8.jar"/>
+    <include name="objenesis/objenesis-2.5.1.jar"/>
   </fileset>
 	
   <union id="serverside">
@@ -189,7 +181,7 @@
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
     <javac destdir="${classes}" includeantruntime="false"
-      target="1.7" source="1.7"
+      target="1.8" source="1.8"
       debug="true" classpathref="compile.classpath">
       <src path="${src}"/>
     </javac>
@@ -242,7 +234,7 @@
       destdir="${doc}" nodeprecated="false" nodeprecatedlist="false"
       noindex="false" nonavbar="false" notree="false"
       source="1.7" splitindex="true" use="true" version="true">
-      <link href="http://download.oracle.com/javase/7/docs/api/"/>
+      <link href="http://download.oracle.com/javase/8/docs/api/"/>
       <link href="http://fasterxml.github.io/jackson-core/javadoc/2.2.0/"/>
       <link href="http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/"/>
       <fileset refid="client-jdoc-files"/>
@@ -257,47 +249,12 @@
   </target>
 
   <target name="test" depends="compile, preparejunitreportdir" description="run tests">
-    <fail unless="test.auth.url" message="property test.auth.url not set."/>
-    <fail unless="test.globus.url" message="property test.globus.url not set."/>
-    <fail unless="test.shock.exe" message="property test.shock.exe not set."/>
-    <fail unless="test.shock.version" message="property test.shock.version not set."/>
-    <fail unless="test.mongo.exe" message="property test.mongo.exe not set."/>
-    <fail unless="test.mongo.useWiredTiger" message="property test.mongo.useWiredTiger not set."/>
-    <fail unless="test.mysql.exe" message="property test.mysql.exe not set."/>
-    <fail unless="test.mysql.install.exe" message="property test.mysql.install.exe not set."/>
-    <fail unless="test.plackup.exe" message="property test.plackup.exe not set.}"/>
-    <fail unless="test.handle.service.psgi" message="property test.handle.service.psgi not set.}"/>
-    <fail unless="test.handle.manager.psgi" message="property test.handle.manager.psgi not set.}"/>
-    <fail unless="test.handle.PERL5LIB" message="property test.handle.PERL5LIB not set.}"/>
-    <fail unless="test.temp.dir" message="property test.temp.dir not set."/>
     <echo message="starting ${package} tests"/>
     <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
       <formatter type="xml" usefile="true" if="env.JENKINS_REPORT_DIR"/>
-      <sysproperty key="test.auth.url" value="${test.auth.url}" />
-      <sysproperty key="test.globus.url" value="${test.globus.url}" />
-      <sysproperty key="test.shock.exe" value="${test.shock.exe}"/>
-      <sysproperty key="test.shock.version" value="${test.shock.version}"/>
-      <sysproperty key="test.mongo.exe" value="${test.mongo.exe}"/>
-      <sysproperty key="test.mongo.useWiredTiger" value="${test.mongo.useWiredTiger}"/>
-      <sysproperty key="test.mysql.exe" value="${test.mysql.exe}"/>
-      <sysproperty key="test.mysql.install.exe" value="${test.mysql.install.exe}"/>
-      <sysproperty key="test.plackup.exe" value="${test.plackup.exe}"/>
-      <sysproperty key="test.handle.service.psgi" value="${test.handle.service.psgi}"/>
-      <sysproperty key="test.handle.manager.psgi" value="${test.handle.manager.psgi}"/>
-      <sysproperty key="test.handle.PERL5LIB" value="${test.handle.PERL5LIB}"/>
-      <sysproperty key="test.temp.dir" value="${test.temp.dir}"/>
-      <sysproperty key="test.temp.dir.keep" value="${test.temp.dir.keep}"/>
-      <sysproperty key="test.user1" value="${test.user1}"/>
-      <sysproperty key="test.pwd1" value="${test.pwd1}"/>
-      <sysproperty key="test.token1" value="${test.token1}"/>
-      <sysproperty key="test.user2" value="${test.user2}"/>
-      <sysproperty key="test.pwd2" value="${test.pwd2}"/>
-      <sysproperty key="test.token2" value="${test.token2}"/>
-      <sysproperty key="test.user3" value="${test.user3}"/>
-      <sysproperty key="test.pwd3" value="${test.pwd3}"/>
-      <sysproperty key="test.token3" value="${test.token3}"/>
+      <sysproperty key="test.cfg" value="./test.cfg"/>
       <batchtest todir="${env.JENKINS_REPORT_DIR}">
         <fileset dir="${src}">
           <include name="**/test/**/**Test.java"/>
@@ -306,54 +263,25 @@
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
-
-  <target name="test-scripts" depends="compile" description="run tests of scripts">
-    <fail unless="test.auth.url" message="property test.auth.url not set."/>
-    <fail unless="test.globus.url" message="property test.globus.url not set."/>
-    <fail unless="test.shock.exe" message="property test.shock.exe not set."/>
-    <fail unless="test.shock.version" message="property test.shock.version not set."/>
-    <fail unless="test.mongo.exe" message="property test.mongo.exe not set."/>
-    <fail unless="test.mongo.useWiredTiger" message="property test.mongo.useWiredTiger not set."/>
-    <fail unless="test.mysql.exe" message="property test.mysql.exe not set."/>
-    <fail unless="test.mysql.install.exe" message="property test.mysql.install.exe not set."/>
-    <fail unless="test.plackup.exe" message="property test.plackup.exe not set.}"/>
-    <fail unless="test.handle.service.psgi" message="property test.handle.service.psgi not set.}"/>
-    <fail unless="test.handle.manager.psgi" message="property test.handle.manager.psgi not set.}"/>
-    <fail unless="test.handle.PERL5LIB" message="property test.handle.PERL5LIB not set.}"/>
-    <fail unless="test.temp.dir" message="property test.temp.dir not set."/>
+	
+  <target name="test_quick"
+      depends="compile, preparejunitreportdir"
+      description="run tests other than the *LongTest.java tests">
     <echo message="starting ${package} tests"/>
     <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
       <classpath refid="test.classpath"/>
       <formatter type="plain" usefile="false" />
-      <sysproperty key="test.auth.url" value="${test.auth.url}" />
-      <sysproperty key="test.globus.url" value="${test.globus.url}" />
-      <sysproperty key="test.shock.exe" value="${test.shock.exe}"/>
-      <sysproperty key="test.shock.version" value="${test.shock.version}"/>
-      <sysproperty key="test.mongo.exe" value="${test.mongo.exe}"/>
-      <sysproperty key="test.mongo.useWiredTiger" value="${test.mongo.useWiredTiger}"/>
-      <sysproperty key="test.mysql.exe" value="${test.mysql.exe}"/>
-      <sysproperty key="test.mysql.install.exe" value="${test.mysql.install.exe}"/>
-      <sysproperty key="test.plackup.exe" value="${test.plackup.exe}"/>
-      <sysproperty key="test.handle.service.psgi" value="${test.handle.service.psgi}"/>
-      <sysproperty key="test.handle.manager.psgi" value="${test.handle.manager.psgi}"/>
-      <sysproperty key="test.handle.PERL5LIB" value="${test.handle.PERL5LIB}"/>
-      <sysproperty key="test.temp.dir" value="${test.temp.dir}"/>
-      <sysproperty key="test.temp.dir.keep" value="${test.temp.dir.keep}"/>
-      <sysproperty key="test.user1" value="${test.user1}"/>
-      <sysproperty key="test.pwd1" value="${test.pwd1}"/>
-      <sysproperty key="test.token1" value="${test.token1}"/>
-      <sysproperty key="test.user2" value="${test.user2}"/>
-      <sysproperty key="test.pwd2" value="${test.pwd2}"/>
-      <sysproperty key="test.token2" value="${test.token2}"/>
-      <sysproperty key="test.user3" value="${test.user3}"/>
-      <sysproperty key="test.pwd3" value="${test.pwd3}"/>
-      <sysproperty key="test.token3" value="${test.token3}"/>
-      <test name="us.kbase.workspace.test.scripts.ScriptTestRunner"/>
+      <formatter type="xml" usefile="true" if="env.JENKINS_REPORT_DIR"/>
+      <sysproperty key="test.cfg" value="./test.cfg"/>
+      <batchtest todir="${env.JENKINS_REPORT_DIR}">
+        <fileset dir="${src}">
+          <include name="**/test/**/**Test.java"/>
+          <exclude name="**/test/**/**LongTest.java"/>
+        </fileset>
+      </batchtest>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
-
-
 
   <target name="test_client_import" depends="compile" description="make sure the client jar contains all files">
     <javac destdir="${test}" srcdir="${test}" includeantruntime="false" target="1.6" source="1.6"
@@ -361,6 +289,7 @@
       <src path="${test}"/>
       <exclude name="performance/**"/>
       <exclude name="debugging/**"/>
+      <exclude name="sorting/**"/>
     </javac>
     <junit fork="yes" failureproperty="test.failed">
       <classpath refid="test.client.import.classpath"/>

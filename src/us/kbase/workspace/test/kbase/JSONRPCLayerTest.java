@@ -1,6 +1,8 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -11,6 +13,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -20,11 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import junit.framework.Assert;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
-import org.junit.matchers.JUnitMatchers;
 
 import us.kbase.auth.AuthUser;
 import us.kbase.common.service.JsonTokenStream;
@@ -46,11 +46,14 @@ import us.kbase.workspace.GetNamesByPrefixResults;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GetObjects2Params;
+import us.kbase.workspace.GetObjects2Results;
 import us.kbase.workspace.GetPermissionsMassParams;
 import us.kbase.workspace.ListAllTypesParams;
 import us.kbase.workspace.ListModuleVersionsParams;
 import us.kbase.workspace.ListModulesParams;
 import us.kbase.workspace.ListObjectsParams;
+import us.kbase.workspace.ListWorkspaceIDsParams;
+import us.kbase.workspace.ListWorkspaceIDsResults;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ModuleVersions;
 import us.kbase.workspace.ObjectData;
@@ -75,6 +78,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.zafarkhaja.semver.Version;
+import com.google.common.collect.ImmutableMap;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -88,7 +92,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.7.1"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.8.0"));
 	}
 	
 	public void status() throws Exception {
@@ -828,7 +832,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		for (ObjectData obj : ret) {
 			String largeString2 = (String)obj.getData().asClassInstance(Map.class).get("thing");
 			if (!largeString2.equals(largeString))
-				Assert.fail("Observed large string is: " + largeString2);
+				fail("Observed large string is: " + largeString2);
 		}
 	}
 	
@@ -1736,46 +1740,34 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void deleteUndelete() throws Exception {
-		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("delundel")
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("del")
 				.withDescription("foo"));
-		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("delundel");
+		WorkspaceIdentity wsi = new WorkspaceIdentity().withWorkspace("del");
 		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> moredata = new HashMap<String, Object>();
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
-		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("delundel")
+		SaveObjectsParams soc = new SaveObjectsParams().withWorkspace("del")
 				.withObjects(objects);
 		objects.add(new ObjectSaveData().withData(new UObject(data))
 				.withType(SAFE_TYPE).withName("myname"));
 		CLIENT1.saveObjects(soc);
 		List<ObjectIdentity> loi = Arrays.asList(new ObjectIdentity()
-				.withRef("delundel/myname"));
+				.withRef("del/myname"));
 		checkData(loi, data);
 		CLIENT1.deleteObjects(loi);
 		
-		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name delundel) " +
+		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name del) " +
 				"has been deleted");
 
 		CLIENT1.undeleteObjects(loi);
 		checkData(loi, data);
 		CLIENT1.deleteWorkspace(wsi);
 		
-		failGetObjects(loi, "Object myname cannot be accessed: Workspace delundel is deleted");
+		failGetObjects(loi, "Object myname cannot be accessed: Workspace del is deleted");
 
-		failGetWSDesc(wsi, "Workspace delundel is deleted");
-
-		CLIENT1.undeleteWorkspace(wsi);
-		checkData(loi, data);
-		assertThat("can get description", CLIENT1.getWorkspaceDescription(wsi),
-				is("foo"));
-		CLIENT1.deleteObjects(loi);
-		
-		failGetObjects(loi, "Object 1 (name myname) in workspace 1 (name delundel) " +
-				"has been deleted");
-
-		CLIENT1.saveObjects(soc);
-		checkData(loi, data);
+		failGetWSDesc(wsi, "Workspace del is deleted");
 	}
 	
 	@Test
@@ -2306,6 +2298,71 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		}
 	}
 	
+	@Test
+	public void listWorkspaceIDs() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("own"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("admin"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("write"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("read"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("pub")
+				.withGlobalread("r"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("none"));
+
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("admin")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("a"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("write")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("w"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("read")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("r"));
+
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()),
+				Arrays.asList(1L, 2L, 3L, 4L), Arrays.asList());
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withPerm("r")),
+				Arrays.asList(1L, 2L, 3L, 4L), Arrays.asList());
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withExcludeGlobal(0L)),
+				Arrays.asList(1L, 2L, 3L, 4L), Arrays.asList(5L));
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withOnlyGlobal(1L)),
+				Arrays.asList(), Arrays.asList(5L));
+		
+		checkListWSIDs(CLIENT_NO_AUTH.listWorkspaceIds(new ListWorkspaceIDsParams()),
+				Arrays.asList(), Arrays.asList());
+		
+		checkListWSIDs(CLIENT_NO_AUTH.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withExcludeGlobal(0L)),
+				Arrays.asList(), Arrays.asList(5L));
+		
+		checkListWSIDs(CLIENT1.listWorkspaceIds(new ListWorkspaceIDsParams()
+				.withPerm("a")),
+				Arrays.asList(1L, 2L), Arrays.asList());
+	}
+	
+	@Test
+	public void failListWorkspaceIDs() throws Exception {
+		final ListWorkspaceIDsParams p = new ListWorkspaceIDsParams();
+		p.setAdditionalProperties("foo", "bar");
+		try {
+			CLIENT1.listWorkspaceIds(p);
+			fail("expected exception");
+		} catch (ServerException se) {
+			assertThat("incorrect message", se.getMessage(), is(
+					"Unexpected arguments in ListWorkspaceIDsParams: foo"));
+		}
+	}
+	
+	private void checkListWSIDs(
+			final ListWorkspaceIDsResults ids,
+			final List<Long> workspaces,
+			final List<Long> pub) {
+		assertThat("incorrect workspace ids", ids.getWorkspaces(), is(workspaces));
+		assertThat("incorrect pub ids", ids.getPub(), is(pub));
+	}
+
 	@Test
 	public void listObjectsAndHistory() throws Exception {
 		CLIENT1.requestModuleOwnership("AnotherModule");
@@ -2865,11 +2922,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new us.kbase.workspace.SubObjectIdentity().withRef("subdata/2").withStrictArrays(0L)
 				.withIncluded(Arrays.asList("/features/2", "/features/3")))).get(0);
 		Map<String, Object> od2map = od2.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
-		Assert.assertEquals(1, od2map.size());
+		assertThat(od2map.size(), is(1));
 		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> features = (List<Map<String, Object>>)od2map.get("features");
-		Assert.assertEquals(1, features.size());
-		Assert.assertEquals("foo3", features.get(0).get("thing"));
+		assertThat(features.size(), is(1));
+		assertThat(features.get(0).get("thing"), is("foo3"));
 		
 		ObjectData od2n = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(
@@ -2879,11 +2936,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 								"/features/2", "/features/3", "/bar")))))
 				.getData().get(0);
 		Map<String, Object> od2nmap = od2n.getData().asClassInstance(new TypeReference<Map<String, Object>>() {});
-		Assert.assertEquals(1, od2nmap.size());
+		assertThat(od2nmap.size(), is(1));
 		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> featuresN = (List<Map<String, Object>>)od2nmap.get("features");
-		Assert.assertEquals(1, featuresN.size());
-		Assert.assertEquals("foo3", featuresN.get(0).get("thing"));
+		assertThat(featuresN.size(), is(1));
+		assertThat(featuresN.get(0).get("thing"), is("foo3"));
 	}
 	
 	@Test
@@ -3239,7 +3296,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("compiled spec without valid module");
 		} catch (ServerException se) {
 			assertThat("correct excep message", se.getLocalizedMessage(),
-					JUnitMatchers.containsString("Module SomeMod2 was not initialized"));
+					containsString("Module SomeMod2 was not initialized"));
 		}
 	}
 
@@ -3366,21 +3423,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
 		
 		Map<String, Object> adminParams = new HashMap<String, Object>();
-		adminParams.put("command", "getPermissions");
-		adminParams.put("user", USER1);
-		adminParams.put("params", ws);
-		@SuppressWarnings("unchecked")
-		Map<String, String> res = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
-		assertThat("admin gets correct params", res, is(CLIENT1.getPermissionsMass(gPM(ws)).getPerms().get(0)));
-		
-		adminParams.put("user", USER2);
-		@SuppressWarnings("unchecked")
-		Map<String, String> res2 = CLIENT2.administer(new UObject(adminParams)).asClassInstance(Map.class);
-		assertThat("admin gets correct params", res2, is(CLIENT2.getPermissionsMass(gPM(ws)).getPerms().get(0)));
-		
-		adminParams.put("user", "thisisacrazykbaseuserthatdoesntexistforsure");
-		failAdmin(CLIENT2, adminParams, "User thisisacrazykbaseuserthatdoesntexistforsure is not a valid user");
-		failAdmin(CLIENT1, adminParams, "User " + USER1 + " is not an admin");
 		
 		String wsstr = USER1 + ":admintest";
 		
@@ -3440,6 +3482,326 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void adminGetPermissionsWithUser() throws Exception {
+		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		
+		Map<String, Object> adminParams = new HashMap<String, Object>();
+		adminParams.put("command", "getPermissions");
+		adminParams.put("user", USER1);
+		adminParams.put("params", ws);
+		@SuppressWarnings("unchecked")
+		Map<String, String> res = CLIENT2.administer(new UObject(adminParams))
+				.asClassInstance(Map.class);
+		assertThat("admin gets correct params", res,
+				is((Map<String, String>) ImmutableMap.of(USER1, "a")));
+		
+		adminParams.put("user", USER2);
+		@SuppressWarnings("unchecked")
+		Map<String, String> res2 = CLIENT2.administer(new UObject(adminParams))
+				.asClassInstance(Map.class);
+		assertThat("admin gets correct params", res2,
+				is((Map<String, String>) ImmutableMap.of(USER2, "n")));
+		
+		adminParams.put("user", "thisisacrazykbaseuserthatdoesntexistforsure");
+		failAdmin(CLIENT2, adminParams,
+				"User thisisacrazykbaseuserthatdoesntexistforsure is not a valid user");
+	}
+	
+	@Test
+	public void adminGetPermissionsNoUser() throws Exception {
+		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		
+		Map<String, Object> adminParams = new HashMap<String, Object>();
+		adminParams.put("command", "getPermissions");
+		adminParams.put("params", ws);
+		@SuppressWarnings("unchecked")
+		Map<String, String> res = CLIENT2.administer(new UObject(adminParams))
+				.asClassInstance(Map.class);
+		assertThat("admin gets correct params", res,
+				is((Map<String, String>) ImmutableMap.of(USER1, "a")));
+	}
+	
+	@Test
+	public void adminGetPermissionsMass() throws Exception {
+		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		WorkspaceIdentity ws2 = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest2");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws2.getWorkspace()));
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(ws2.getWorkspace())
+				.withNewPermission("r").withUsers(Arrays.asList(USER2)));
+		
+		Map<String, Object> adminParams = ImmutableMap.of(
+				"command", "getPermissionsMass",
+				"params", new GetPermissionsMassParams()
+					.withWorkspaces(Arrays.asList(ws, ws2)));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> res = CLIENT2.administer(new UObject(adminParams))
+				.asClassInstance(Map.class);
+		assertThat("admin gets correct params", res,
+				is((Map<String, Object>) ImmutableMap.of("perms", (Object) Arrays.asList(
+						ImmutableMap.of(USER1, "a"),
+						ImmutableMap.of(USER1, "a", USER2, "r")))));
+	}
+	
+	@Test
+	public void adminGetWorkspaceInfo() throws Exception {
+		WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace(ws.getWorkspace())
+				.withDescription("whee")
+				.withMeta(ImmutableMap.of("foo", "bar")));
+		
+		Tuple9<Long, String, String, String, Long, String, String, String,
+				Map<String, String>> wsinfo = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "getWorkspaceInfo",
+						"params", new WorkspaceIdentity().withWorkspace(ws.getWorkspace()))))
+				.asClassInstance(new TypeReference<Tuple9<Long, String, String, String,
+						Long, String, String, String, Map<String, String>>>() {});
+		
+		checkWS(wsinfo, 1, wsinfo.getE4(), ws.getWorkspace(), USER1, 0, "n", "n", "unlocked",
+				"whee", ImmutableMap.of("foo", "bar"));
+		
+		wsinfo = CLIENT2.administer(new UObject(ImmutableMap.of(
+				"command", "getWorkspaceInfo",
+				"params", new WorkspaceIdentity().withId(1L))))
+				.asClassInstance(new TypeReference<Tuple9<Long, String, String, String,
+						Long, String, String, String, Map<String, String>>>() {});
+
+		checkWS(wsinfo, 1, wsinfo.getE4(), ws.getWorkspace(), USER1, 0, "n", "n", "unlocked",
+				"whee", ImmutableMap.of("foo", "bar"));
+	}
+	
+	@Test
+	public void adminGetObjectAndInfo() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		final GetObjectInfo3Results ob = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "getObjectInfo",
+						"params", new GetObjectInfo3Params().withObjects(Arrays.asList(
+								new ObjectSpecification().withRef("1/1")))
+				))).asClassInstance(GetObjectInfo3Results.class);
+
+		assertThat("incorrect object count", ob.getInfos().size(), is(1));
+		checkInfo(ob.getInfos().get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
+		assertThat("incorrect ref path", ob.getPaths().get(0), is(Arrays.asList("1/1/1")));
+		
+		final GetObjects2Results ob2 = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "getObjects",
+						"params", new GetObjects2Params().withObjects(Arrays.asList(
+								new ObjectSpecification().withRef("1/1")))
+				))).asClassInstance(GetObjects2Results.class);
+		
+		assertThat("incorrect object count", ob2.getData().size(), is(1));
+		checkData(ob2.getData().get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, new HashMap<>(),
+				ImmutableMap.of("foo", "bar"));
+		assertThat("correct path", ob2.getData().get(0).getPath(), is(Arrays.asList("1/1/1")));
+	}
+	
+	@Test
+	public void adminGetObjectAndInfoFail() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withWsid(1L).withObjid(1L)));
+		
+		// mostly tests that the actual admin username is used in the error
+		failAdmin(CLIENT2, ImmutableMap.of(
+				"command", "getObjectInfo",
+				"params", new GetObjectInfo3Params().withObjects(Arrays.asList(
+						new ObjectSpecification().withRef("1/1").withFindReferencePath(1L)))
+				), "The latest version of object 1 in workspace 1 is not accessible to user " +
+						USER2);
+		
+		failAdmin(CLIENT2, ImmutableMap.of(
+				"command", "getObjects",
+				"params", new GetObjects2Params().withObjects(Arrays.asList(
+						new ObjectSpecification().withRef("1/1").withFindReferencePath(1L)))
+				), "The latest version of object 1 in workspace 1 is not accessible to user " +
+						USER2);
+	}
+	
+	@Test
+	public void adminListWorkspaceIDs() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("own"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("read"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("read")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("r"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("write"));
+		CLIENT2.setPermissions(new SetPermissionsParams().withWorkspace("write")
+				.withUsers(Arrays.asList(USER1)).withNewPermission("w"));
+
+		final ListWorkspaceIDsResults res = CLIENT2.administer(new UObject(ImmutableMap.of(
+				"command", "listWorkspaceIDs",
+				"params", new ListWorkspaceIDsParams().withPerm("w"),
+				"user", USER1)))
+				.asClassInstance(ListWorkspaceIDsResults.class);
+		assertThat("incorrect workspaces", res.getWorkspaces(), is(Arrays.asList(1L, 3L)));
+		assertThat("incorrect pub workspaces", res.getPub(), is(Arrays.asList()));
+		
+		final Map<String, Object> cmd = new HashMap<>();
+		cmd.put("command", "listWorkspaceIDs");
+		cmd.put("params", null);
+		cmd.put("user", USER1);
+		failAdmin(CLIENT2, cmd, "Method parameters ListWorkspaceIDsParams may not be null");
+
+		cmd.put("params", new ListWorkspaceIDsParams());
+		cmd.put("user", null);
+		failAdmin(CLIENT2, cmd, "User may not be null");
+	}
+	
+	@Test
+	public void adminListObjectsWithUser() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace(ws.getWorkspace()));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> ob = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "listObjects",
+						"user", USER1,
+						"params", new ListObjectsParams().withWorkspaces(
+								Arrays.asList(ws.getWorkspace()))
+				))).asClassInstance(new TypeReference<List<Tuple11<Long, String, String, String,
+						Long, String, Long, String, String, Long, Map<String, String>>>>() {});
+		
+		assertThat("incorrect object count", ob.size(), is(1));
+		checkInfo(ob.get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
+	}
+	
+	final TypeReference<List<Tuple11<Long, String, String, String,
+			Long, String, Long, String, String, Long, Map<String, String>>>> OBJ_TYPEREF =
+					new TypeReference<List<Tuple11<Long, String, String, String,
+						Long, String, Long, String, String, Long, Map<String, String>>>>() {};
+	
+	@Test
+	public void adminlistObjectsWithoutUser() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest");
+		final WorkspaceIdentity ws2 = new WorkspaceIdentity().withWorkspace(USER1 + ":admintest2");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace()));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws2.getWorkspace()));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws2.getWorkspace())
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withName("whee2")
+						.withType(SAFE_TYPE1))));
+		
+		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> ob = CLIENT2.administer(new UObject(ImmutableMap.of(
+						"command", "listObjects",
+						"params", new ListObjectsParams().withWorkspaces(
+								Arrays.asList(ws.getWorkspace()))
+				))).asClassInstance(OBJ_TYPEREF);
+		
+		assertThat("incorrect object count", ob.size(), is(1));
+		checkInfo(ob.get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, ws.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
+		
+		ob = CLIENT2.administer(new UObject(ImmutableMap.of(
+				"command", "listObjects",
+				"params", new ListObjectsParams().withWorkspaces(
+						Arrays.asList(ws.getWorkspace(), ws2.getWorkspace()))
+						.withType(SAFE_TYPE1)
+		))).asClassInstance(new TypeReference<List<Tuple11<Long, String, String, String,
+				Long, String, Long, String, String, Long, Map<String, String>>>>() {});
+
+		assertThat("incorrect object count", ob.size(), is(1));
+		checkInfo(ob.get(0), 1, "whee2", SAFE_TYPE1, 1, USER1, 2L, ws2.getWorkspace(),
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, null);
+	}
+	
+	@Test
+	public void adminListObjectsWithoutUserFail() throws Exception {
+		try {
+			CLIENT2.administer(new UObject(ImmutableMap.of(
+					"command", "listObjects",
+					"params", new ListObjectsParams().withType(SAFE_TYPE))));
+			fail("expected exception");
+		} catch (ServerException e) {
+			assertThat("incorrect exception", e.getMessage(), is("When listing objects as an " +
+					"admin at least one target workspace must be provided"));
+		}
+	}
+	
+	@Test
+	public void adminListObjectHistory() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("foo"));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("foo")
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withMeta(ImmutableMap.of("foo", "bar1"))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("foo")
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withData(new UObject(ImmutableMap.of("foo", "bar")))
+						.withMeta(ImmutableMap.of("foo", "bar2"))
+						.withName("whee")
+						.withType(SAFE_TYPE))));
+		
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> res = CLIENT2.administer(new UObject(ImmutableMap.of(
+				"command", "getObjectHistory",
+				"params", new ObjectIdentity().withWorkspace("foo").withName("whee"))))
+				.asClassInstance(OBJ_TYPEREF);
+		
+		checkInfo(res.get(0), 1, "whee", SAFE_TYPE, 1, USER1, 1L, "foo",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, ImmutableMap.of("foo", "bar1"));
+		checkInfo(res.get(1), 1, "whee", SAFE_TYPE, 2, USER1, 1L, "foo",
+				"9bb58f26192e4ba00f01e2e7b136bbd8", 13, ImmutableMap.of("foo", "bar2"));
+		
+		final Map<String, Object> cmd = new HashMap<>();
+		cmd.put("command", "getObjectHistory");
+		cmd.put("params", null);
+		failAdmin(CLIENT2, cmd, "Method parameters ObjectIdentity may not be null");
+	}
+	
+	@Test
+	public void adminFailUserNotAdmin() throws Exception {
+		failAdmin(CLIENT1, Collections.<String, Object>emptyMap(),
+				"User " + USER1 + " is not an admin");
+	}
+	
+	@Test
 	public void adminDeleteWorkspace() throws Exception {
 		final WorkspaceIdentity delws = new WorkspaceIdentity().withWorkspace("delws");
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(delws.getWorkspace())
@@ -3467,8 +3829,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void getAllWorkspaceOwners() throws Exception {
-		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("getAllWorkspaceOwners1"));
-		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("getAllWorkspaceOwners2"));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("getAllWorkspaceOwners1"));
+		CLIENT2.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("getAllWorkspaceOwners2"));
 		String cmd = "{\"command\":\"listWorkspaceOwners\"}";
 		List<String> owners = CLIENT2.administer(new UObject(
 				new JsonTokenStream(cmd))).asInstance();
@@ -3573,10 +3937,10 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		String typeDefName = "SomeModule.AType";
 		Map<String,String> type2md5 = CLIENT1.translateToMD5Types(Arrays.asList(typeDefName));
 		String md5TypeDef = type2md5.get(typeDefName);
-		Assert.assertNotNull(md5TypeDef);
+		assertThat(md5TypeDef, is(notNullValue()));
 		Map<String, List<String>> md52semantic = CLIENT1.translateFromMD5Types(Arrays.asList(md5TypeDef));
-		Assert.assertEquals(1, md52semantic.size());
-		Assert.assertTrue(md52semantic.get(md5TypeDef).contains("SomeModule.AType-1.0"));
+		assertThat(md52semantic.size(), is(1));
+		assertThat(md52semantic.get(md5TypeDef).contains("SomeModule.AType-1.0"), is(true));
 	}
 	
 	@Test
@@ -3586,31 +3950,38 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		String module = "UnreleasedModule";
 		try {
 			cl.getModuleInfo(new GetModuleInfoParams().withMod(module));
-			Assert.fail();
+			fail();
 		} catch (Exception ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Module wasn't uploaded: UnreleasedModule"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Module wasn't uploaded: UnreleasedModule"), is(true));
 		}
-		Assert.assertEquals(1, cl.listModuleVersions(new ListModuleVersionsParams().withType("UnreleasedModule.AType-0.1")).getVers().size());
-		Assert.assertTrue(cl.getJsonschema("UnreleasedModule.AType-0.1").length() > 0);
+		assertThat(cl.listModuleVersions(new ListModuleVersionsParams()
+				.withType("UnreleasedModule.AType-0.1")).getVers().size(), is(1));
+		assertThat(cl.getJsonschema("UnreleasedModule.AType-0.1").length() > 0, is(true));
 		cl = CLIENT_FOR_SRV2;
-		Assert.assertTrue(new HashSet<String>(cl.listModules(new ListModulesParams().withOwner(USER2))).contains("UnreleasedModule"));
-		Assert.assertEquals(0L, (long)cl.getModuleInfo(new GetModuleInfoParams().withMod(module)).getIsReleased());
-		Assert.assertEquals(1, cl.listModuleVersions(new ListModuleVersionsParams().withMod(module)).getVers().size());
-		Assert.assertEquals(1, cl.getTypeInfo("UnreleasedModule.AType").getTypeVers().size());
-		Assert.assertEquals(1, cl.getTypeInfo("UnreleasedModule.AType-0.1").getTypeVers().size());
-		Assert.assertTrue(cl.getJsonschema("UnreleasedModule.AType").length() > 0);
-		Assert.assertEquals(1, cl.getFuncInfo("UnreleasedModule.aFunc").getFuncVers().size());
+		assertThat(new HashSet<String>(cl.listModules(
+				new ListModulesParams().withOwner(USER2))).contains("UnreleasedModule"), is(true));
+		assertThat(cl.getModuleInfo(new GetModuleInfoParams().withMod(module))
+				.getIsReleased(), is(0L));
+		assertThat(cl.listModuleVersions(new ListModuleVersionsParams().withMod(module))
+				.getVers().size(), is(1));
+		assertThat(cl.getTypeInfo("UnreleasedModule.AType").getTypeVers().size(), is(1));
+		assertThat(cl.getTypeInfo("UnreleasedModule.AType-0.1").getTypeVers().size(), is(1));
+		assertThat(cl.getJsonschema("UnreleasedModule.AType").length() > 0, is(true));
+		assertThat(cl.getFuncInfo("UnreleasedModule.aFunc").getFuncVers().size(), is(1));
 		try {
 			cl.getTypeInfo("UnreleasedModule.AType-0.2");
-			Assert.fail();
+			fail();
 		} catch (Exception ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Unable to locate type: UnreleasedModule.AType-0.2"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Unable to locate type: UnreleasedModule.AType-0.2"), is(true));
 		}
 		try {
 			cl.getJsonschema("UnreleasedModule.AType-0.2");
-			Assert.fail();
+			fail();
 		} catch (Exception ex) {
-			Assert.assertTrue(ex.getMessage(), ex.getMessage().contains("Unable to locate type: UnreleasedModule.AType-0.2"));
+			assertThat(ex.getMessage(), ex.getMessage().contains(
+					"Unable to locate type: UnreleasedModule.AType-0.2"), is(true));
 		}
 	}
 	
@@ -3686,28 +4057,28 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		for(String mod: CLIENT1.listModules(new ListModulesParams())) {
 			moduleNamesInList.put(mod, "");
 		}
-		Assert.assertTrue(moduleNamesInList.containsKey("TestModule"));
+		assertThat(moduleNamesInList.containsKey("TestModule"), is(true));
 		
 		// make sure that we can list the versions of this module, there should be just 2 visible to client1...
-		Assert.assertEquals(
-				2,
-				CLIENT1.listModuleVersions(new ListModuleVersionsParams().withMod("TestModule")).getVers().size());
+		assertThat(CLIENT1.listModuleVersions(new ListModuleVersionsParams().withMod("TestModule"))
+				.getVers().size(), is(2));
 		
 		// make sure we can retrieve module info
-		Assert.assertEquals(
-				2,
-				CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod("TestModule")).getTypes().size());
+		assertThat(CLIENT1.getModuleInfo(new GetModuleInfoParams().withMod("TestModule"))
+				.getTypes().size(), is(2));
 		
 		// make sure we can get a json schema and parse it as a json document
 		ObjectMapper map = new ObjectMapper();
 		JsonNode schema = map.readTree(CLIENT1.getJsonschema("TestModule.Feature"));
-		Assert.assertEquals("Feature", schema.get("id").asText());
+		assertThat(schema.get("id").asText(), is("Feature"));
 		
 		// make sure we can get type info
-		Assert.assertEquals("TestModule.Feature-1.0",CLIENT1.getTypeInfo("TestModule.Feature-1").getTypeDef());
+		assertThat(CLIENT1.getTypeInfo("TestModule.Feature-1").getTypeDef(),
+				is("TestModule.Feature-1.0"));
 		
 		// make sure we can get func info
-		Assert.assertEquals("TestModule.getFeature-1.0",CLIENT1.getFuncInfo("TestModule.getFeature").getFuncDef());
+		assertThat(CLIENT1.getFuncInfo("TestModule.getFeature").getFuncDef(),
+				is("TestModule.getFeature-1.0"));
 	}
 	
 	@Test
@@ -3755,17 +4126,18 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void testListAllTypes() throws Exception {
-		Assert.assertTrue(CLIENT1.listAllTypes(new ListAllTypesParams().withWithEmptyModules(1L)).containsKey("RefSpec"));
+		assertThat(CLIENT1.listAllTypes(new ListAllTypesParams().withWithEmptyModules(1L))
+				.containsKey("RefSpec"), is(true));
 		Map<String, Map<String, String>> types = CLIENT1.listAllTypes(new ListAllTypesParams());
-		Assert.assertFalse(types.containsKey("RefSpec"));
-		Assert.assertTrue(types.containsKey("SomeModule"));
-		Assert.assertEquals("1.0", types.get("SomeModule").get("AType"));
+		assertThat(types.containsKey("RefSpec"), is(false));
+		assertThat(types.containsKey("SomeModule"), is(true));
+		assertThat(types.get("SomeModule").get("AType"), is("1.0"));
 	}
 	
 	@Test
 	public void testGetAllTypeAndFuncInfo() throws Exception {
-		Assert.assertEquals(1, CLIENT1.getAllTypeInfo("RefSpec").size());
-		Assert.assertEquals(1, CLIENT_FOR_SRV2.getAllFuncInfo("UnreleasedModule").size());
+		assertThat(CLIENT1.getAllTypeInfo("RefSpec").size(), is(1));
+		assertThat(CLIENT_FOR_SRV2.getAllFuncInfo("UnreleasedModule").size(), is(1));
 	}
 	
 	@Test
@@ -3829,11 +4201,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					" " + modC + ".cType valC; " +
 					"} aType; " +
 					"};"));
-			Assert.fail("Diamond dependency could not be allowed");
+			fail("Diamond dependency could not be allowed");
 		} catch (ServerException ex) {
 			String expectedError = "Incompatible module dependecies: TestModuleD(" + dVer1 + ")<-TestModuleB(" + 
 					bVer + ")<-RootModule and TestModuleD(" + dVer2 + ")<-TestModuleC(" + cVer + ")<-RootModule";
-			Assert.assertEquals(expectedError, ex.getMessage());
+			assertThat(ex.getMessage(), is(expectedError));
 		}
 	}
 }

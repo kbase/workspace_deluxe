@@ -6,9 +6,13 @@ import static us.kbase.workspace.database.Util.xorNameId;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.base.Optional;
+
+/** An object identifier that specifies neither the workspace nor the version of the object.
+ * @author gaprice@lbl.gov
+ *
+ */
 public class ObjectIDNoWSNoVer {
-	
-	//TODO TEST unit tests
 	
 	private final static Pattern OBJ_NAME_INVALID = Pattern.compile("[^\\w\\|._-]");
 	private final static Pattern OBJ_NAME_INTEGER = Pattern.compile("^-?\\d+$");
@@ -17,13 +21,19 @@ public class ObjectIDNoWSNoVer {
 	private final String name;
 	private final Long id;
 	
-	public ObjectIDNoWSNoVer(String name) {
+	/** Create an object id with a name.
+	 * @param name the name of the object.
+	 */
+	public ObjectIDNoWSNoVer(final String name) {
 		checkObjectName(name);
 		this.name = name;
 		this.id = null;
 	}
 	
-	public ObjectIDNoWSNoVer(long id) {
+	/** Create and object id with an id.
+	 * @param id the id of the object.
+	 */
+	public ObjectIDNoWSNoVer(final long id) {
 		if (id < 1) {
 			throw new IllegalArgumentException("Object id must be > 0");
 		}
@@ -31,23 +41,38 @@ public class ObjectIDNoWSNoVer {
 		this.id = id;
 	}
 	
-	public String getName() {
-		return name;
+	/** Get the name of the object or absent if an id is specified.
+	 * @return the name of the object.
+	 */
+	public Optional<String> getName() {
+		return Optional.fromNullable(name);
 	}
 
-	public Long getId() {
-		return id;
+	/** Get the id of the object or absent if a name is specified.
+	 * @return the id.
+	 */
+	public Optional<Long> getId() {
+		return Optional.fromNullable(id);
 	}
 	
+	/** Get a string representation of the object identifier - either the name or the id as a
+	 * string.
+	 * @return a string representing the object identifier.
+	 */
 	public String getIdentifierString() {
-		if (getId() == null) {
-			return getName();
+		if (id == null) {
+			return name;
 		}
-		return "" + getId();
+		return "" + id;
 	}
 	
-	public static ObjectIDNoWSNoVer create(final String name, 
-			final Long id) {
+	/** Create an object identifier from a name or an id. One of the arguments is expected to be
+	 * null.
+	 * @param name the name of the object.
+	 * @param id the id of the object.
+	 * @return a new object identifier.
+	 */
+	public static ObjectIDNoWSNoVer create(final String name, final Long id) {
 		xorNameId(name, id, "object");
 		if (name != null) {
 			return new ObjectIDNoWSNoVer(name);
@@ -55,6 +80,14 @@ public class ObjectIDNoWSNoVer {
 		return new ObjectIDNoWSNoVer(id);
 	}
 	
+	/** Check that an object name is valid. Requirements are:
+	 * <ul>
+	 * <li>&lt; 256 characters</li>
+	 * <li>is not an integer</li>
+	 * <li>contains only a-z, A-Z, 0-9, and the characters |_.-</li>
+	 * <ul>
+	 * @param name the name of the object.
+	 */
 	public static void checkObjectName(final String name) {
 		checkString(name, "Object name", MAX_NAME_LENGTH);
 		
@@ -91,7 +124,7 @@ public class ObjectIDNoWSNoVer {
 		if (obj == null) {
 			return false;
 		}
-		if (!(obj instanceof ObjectIDNoWSNoVer)) {
+		if (getClass() != obj.getClass()) {
 			return false;
 		}
 		ObjectIDNoWSNoVer other = (ObjectIDNoWSNoVer) obj;

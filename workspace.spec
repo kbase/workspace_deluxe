@@ -1238,6 +1238,45 @@ module Workspace {
 	funcdef list_workspace_info(ListWorkspaceInfoParams params)
 		returns(list<workspace_info> wsinfo) authentication optional;
 	
+	/* 
+		Input parameters for the "list_workspace_ids" function.
+		
+		Optional parameters:
+		permission perm - filter workspaces by minimum permission level. 'None'
+			and 'readable' are ignored.
+		boolean onlyGlobal - if onlyGlobal is true only include world readable
+			workspaces. Defaults to false. If true, excludeGlobal is ignored.
+		boolean excludeGlobal - if excludeGlobal is true exclude world
+			readable workspaces. Defaults to true.
+	*/
+	typedef structure { 
+		permission perm;
+		boolean excludeGlobal;
+		boolean onlyGlobal;
+	} ListWorkspaceIDsParams;
+	
+	/* 
+		Results of the "list_workspace_ids" function.
+		
+		list<int> workspaces - the workspaces to which the user has explicit
+			access.
+		list<int> pub - the workspaces to which the user has access because
+			they're globally readable.
+	*/
+	typedef structure {
+		list<int> workspaces;
+		list<int> pub;
+	} ListWorkspaceIDsResults;
+	
+	/*
+		List workspace IDs to which the user has access.
+		
+		This function returns a subset of the information in the
+		list_workspace_info method and should be substantially faster.
+	*/
+	funcdef list_workspace_ids(ListWorkspaceIDsParams params)
+		returns(ListWorkspaceIDsResults results) authentication optional;
+	
 	/* Input parameters for the "list_workspace_objects" function. Provided
 		for backwards compatibility.
 		
@@ -1600,14 +1639,6 @@ module Workspace {
 		Delete a workspace. All objects contained in the workspace are deleted.
 	*/
 	funcdef delete_workspace(WorkspaceIdentity wsi) returns()
-		authentication required;
-	
-	/* 
-		Undelete a workspace. All objects contained in the workspace are
-		undeleted, regardless of their state at the time the workspace was
-		deleted.
-	*/
-	funcdef undelete_workspace(WorkspaceIdentity wsi) returns()
 		authentication required;
 	
 	/* **************** Type registering functions ******************** */

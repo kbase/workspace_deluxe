@@ -46,7 +46,6 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.TokenProvider;
 
 public class GetObjectsLibSpeedTest {
 	
@@ -58,8 +57,7 @@ public class GetObjectsLibSpeedTest {
 	};
 	
 	public static void main(String[] args) throws Exception {
-		String shockuser = args[0];
-		String shockpwd = args[1];
+		String shocktoken = args[0];
 		Op op = Op.XLATEOPS;
 		int reps = 500;
 		String mongohost = "localhost";
@@ -89,9 +87,7 @@ public class GetObjectsLibSpeedTest {
 				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
 				new ShockBlobStore(db.getCollection("shock_map"),
-						new URL(shockurl), new TokenProvider(
-								AuthService.login(shockuser, shockpwd)
-								.getToken())),
+						new URL(shockurl), AuthService.validateToken(shocktoken)),
 				tfm);
 		Workspace ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 		Types types = new Types(typeDefDB);

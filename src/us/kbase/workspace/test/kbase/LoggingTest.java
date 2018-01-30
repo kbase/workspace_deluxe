@@ -42,6 +42,9 @@ import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjects2Params;
+import us.kbase.workspace.GetPermissionsMassParams;
+import us.kbase.workspace.ListObjectsParams;
+import us.kbase.workspace.ListWorkspaceIDsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -108,8 +111,6 @@ public class LoggingTest {
 			throw new TestException("All the test users must be unique: " + 
 					StringUtils.join(Arrays.asList(USER1, USER2), " "));
 		}
-		String p1 = TestCommon.getPwdNullIfToken(1);
-		
 //		WorkspaceTestCommon.stfuLoggers();
 		mongo = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
@@ -119,9 +120,7 @@ public class LoggingTest {
 		final String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 		
-		SERVER = startupWorkspaceServer(mongohost,
-				mongoClient.getDB(DB_WS_NAME), 
-				DB_TYPE_NAME, p1, t1);
+		SERVER = startupWorkspaceServer(mongohost, mongoClient.getDB(DB_WS_NAME), DB_TYPE_NAME);
 		SERVER.changeSyslogOutput(logout);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
@@ -182,9 +181,7 @@ public class LoggingTest {
 	private static WorkspaceServer startupWorkspaceServer(
 			final String mongohost,
 			final DB db,
-			final String typedb,
-			final String pwd,
-			final AuthToken t)
+			final String typedb)
 			throws Exception {
 		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
 		
@@ -204,12 +201,6 @@ public class LoggingTest {
 		ws.add("globus-url", TestCommon.getGlobusUrl());
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
-		if (pwd == null || pwd.isEmpty()) {
-			ws.add("kbase-admin-token", t.getToken());
-		} else {
-			ws.add("kbase-admin-user", USER1);
-			ws.add("kbase-admin-pwd", pwd);
-		}
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForLoggingTest"));
 		ws.add("ignore-handle-service", "true");
@@ -741,7 +732,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("setPermissions null myws w " + USER1 + " " +
+				new AdminExp("setPermissions 1 w " + USER1 + " " +
 						USER2, ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
@@ -752,7 +743,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("setPermissions 1 null a " + USER2, ADMIN),
+				new AdminExp("setPermissions 1 a " + USER2, ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
@@ -768,10 +759,23 @@ public class LoggingTest {
 		logout.reset();
 		
 		ac.put("params", new WorkspaceIdentity().withId(1L));
+		ac.remove("user"); // test w/o user param
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("getPermissions 1 null " + USER1, ADMIN),
+				new AdminExp("getPermissions 1 null", ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		// get perms mass
+		ac.put("command", "getPermissionsMass");
+		ac.put("user", USER1);
+		ac.put("params", new GetPermissionsMassParams().withWorkspaces(Arrays.asList(
+				new WorkspaceIdentity().withWorkspace(ws))));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getPermissionsMass 1 workspaces in input", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
@@ -783,7 +787,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("setGlobalPermission null myws r " + USER1,
+				new AdminExp("setGlobalPermission 1 r " + USER1,
 						ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
@@ -793,7 +797,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("setGlobalPermission 1 null n " + USER1, ADMIN),
+				new AdminExp("setGlobalPermission 1 n " + USER1, ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
@@ -813,6 +817,42 @@ public class LoggingTest {
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
+		// get obj info
+		ac.put("command", "getObjectInfo");
+		ac.remove("user");
+		ac.put("params", new GetObjectInfo3Params()
+				.withObjects(Arrays.asList(new ObjectSpecification().withRef("1/1/1"))));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getObjectInfo", ADMIN),
+				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		//get obj history
+		ac.put("command", "getObjectHistory");
+		ac.put("params", new ObjectIdentity().withRef("1/1"));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getObjectHistory", ADMIN),
+				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		// get objects
+		ac.put("command", "getObjects");
+		ac.put("params", new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification().withRef("1/1/1"))));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getObjects", ADMIN),
+				new AdminExp("Object 1/1/1 SomeModule.AType-1.0", ARGUTILS),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
 		// list ws
 		ac.put("command", "listWorkspaces");
 		ac.put("user", USER1);
@@ -824,6 +864,49 @@ public class LoggingTest {
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
+		// list ws ids
+		ac.put("command", "listWorkspaceIDs");
+		ac.put("user", USER1);
+		ac.put("params", new ListWorkspaceIDsParams());
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("listWorkspaceIDs " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		// list objects
+		ac.put("command", "listObjects");
+		ac.put("user", USER1);
+		ac.put("params", new ListObjectsParams().withWorkspaces(Arrays.asList(ws)));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("listObjects user: " + USER1, ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		// list objects asadmin
+		ac.put("command", "listObjects");
+		ac.remove("user");
+		ac.put("params", new ListObjectsParams().withWorkspaces(Arrays.asList(ws)));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("listObjects adminuser", ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		// get ws
+		ac.put("command", "getWorkspaceInfo");
+		ac.remove("user");
+		ac.put("params", new WorkspaceIdentity().withWorkspace(ws));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getWorkspaceInfo 1", ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
 		
 		// del ws
 		ac.put("command", "deleteWorkspace");
@@ -831,7 +914,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("deleteWorkspace null myws", ADMIN),
+				new AdminExp("deleteWorkspace 1", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
@@ -840,7 +923,7 @@ public class LoggingTest {
 		CLIENT2.administer(new UObject(ac));
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
-				new AdminExp("undeleteWorkspace 1 null", ADMIN),
+				new AdminExp("undeleteWorkspace 1", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 	}

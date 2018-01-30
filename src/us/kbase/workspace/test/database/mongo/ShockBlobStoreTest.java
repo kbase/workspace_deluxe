@@ -41,7 +41,6 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
-import us.kbase.workspace.kbase.TokenProvider;
 
 public class ShockBlobStoreTest {
 	
@@ -51,7 +50,7 @@ public class ShockBlobStoreTest {
 	private static ShockController shock;
 	private static MongoController mongoCon;
 	private static TempFilesManager tfm;
-	private static TokenProvider tp;
+	private static AuthToken token;
 	
 	private static final Pattern UUID =
 			Pattern.compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}");
@@ -63,7 +62,7 @@ public class ShockBlobStoreTest {
 		final ConfigurableAuthService auth = new ConfigurableAuthService(
 				new AuthConfig().withKBaseAuthServerURL(
 						TestCommon.getAuthUrl()));
-		final AuthToken t = TestCommon.getToken(1, auth);
+		token = TestCommon.getToken(1, auth);
 		
 		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		TestCommon.stfuLoggers();
@@ -88,16 +87,14 @@ public class ShockBlobStoreTest {
 				TestCommon.getGlobusUrl());
 		System.out.println("Shock controller version: " + shock.getVersion());
 		if (shock.getVersion() == null) {
-			System.out.println(
-					"Unregistered version - Shock may not start correctly");
+			System.out.println("Unregistered version - Shock may not start correctly");
 		}
 		System.out.println("Using Shock temp dir " + shock.getTempDir());
 		URL url = new URL("http://localhost:" + shock.getServerPort());
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		System.out.println("Logging in with auth service " + auth);
-		tp = new TokenProvider(t);
-		sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, tp);
-		client = new BasicShockClient(url, tp.getToken());
+		sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, token);
+		client = new BasicShockClient(url, token);
 	}
 	
 	@AfterClass
@@ -108,11 +105,6 @@ public class ShockBlobStoreTest {
 		if (mongoCon != null) {
 			mongoCon.destroy(TestCommon.getDeleteTempFiles());
 		}
-	}
-	
-	@Test
-	public void storetype() throws Exception {
-		assertThat("correct store type", sb.getStoreType(), is("Shock"));
 	}
 	
 	@Test
@@ -135,15 +127,15 @@ public class ShockBlobStoreTest {
 	@Test
 	public void badInit() throws Exception {
 		DBCollection col = mongo.getCollection(COLLECTION);
-		failInit(null, new URL("http://foo.com"),tp);
-		failInit(col, null, tp);
+		failInit(null, new URL("http://foo.com"), token);
+		failInit(col, null, token);
 		failInit(col, new URL("http://foo.com"), null);
 	}
 	
 	private void failInit(
 			final DBCollection collection,
 			final URL url,
-			final TokenProvider tp)
+			final AuthToken tp)
 			throws Exception {
 		try {
 			new ShockBlobStore(collection, url, tp);
