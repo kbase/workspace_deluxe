@@ -243,55 +243,58 @@ public class TestCommon {
 		return new HashSet<T>(Arrays.asList(objects));
 	}
 	
-    public static void createAuthUser(
-            final URL authURL,
-            final String userName,
-            final String displayName)
-            throws Exception {
-        final URL target = new URL(authURL.toString() + "/api/V2/testmodeonly/user");
-        final HttpURLConnection conn = (HttpURLConnection) target.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("content-type", "application/json");
-        conn.setRequestProperty("accept", "application/json");
-        conn.setDoOutput(true);
-        
-        final DataOutputStream writer = new DataOutputStream(conn.getOutputStream());
-        writer.writeBytes(new ObjectMapper().writeValueAsString(ImmutableMap.of(
-                "user", userName,
-                "display", displayName)));
-        writer.flush();
-        writer.close();
-        
-        if (conn.getResponseCode() != 200) {
-            final String err = IOUtils.toString(conn.getErrorStream()); 
-            System.out.println(err);
-            throw new TestException(err.substring(1, 200));
-        }
-    }
+	public static void createAuthUser(
+			final URL authURL,
+			final String userName,
+			final String displayName)
+					throws Exception {
+		final URL target = new URL(authURL.toString() + "/api/V2/testmodeonly/user");
+		final HttpURLConnection conn = (HttpURLConnection) target.openConnection();
+		conn.setRequestMethod("POST");
+		conn.setRequestProperty("content-type", "application/json");
+		conn.setRequestProperty("accept", "application/json");
+		conn.setDoOutput(true);
 
-    public static String createLoginToken(final URL authURL, String user) throws Exception {
-        final URL target = new URL(authURL.toString() + "/api/V2/testmodeonly/token");
-        final HttpURLConnection conn = (HttpURLConnection) target.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("content-type", "application/json");
-        conn.setRequestProperty("accept", "application/json");
-        conn.setDoOutput(true);
-        
-        final DataOutputStream writer = new DataOutputStream(conn.getOutputStream());
-        writer.writeBytes(new ObjectMapper().writeValueAsString(ImmutableMap.of(
-                "user", user,
-                "type", "Login")));
-        writer.flush();
-        writer.close();
-        
-        if (conn.getResponseCode() != 200) {
-            final String err = IOUtils.toString(conn.getErrorStream()); 
-            System.out.println(err);
-            throw new TestException(err.substring(1, 200));
-        }
-        final String out = IOUtils.toString(conn.getInputStream());
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> resp = new ObjectMapper().readValue(out, Map.class);
-        return (String) resp.get("token");
-    }
+		final DataOutputStream writer = new DataOutputStream(conn.getOutputStream());
+		writer.writeBytes(new ObjectMapper().writeValueAsString(ImmutableMap.of(
+				"user", userName,
+				"display", displayName)));
+		writer.flush();
+		writer.close();
+
+		checkForError(conn);
+	}
+
+	private static void checkForError(final HttpURLConnection conn) throws IOException {
+		if (conn.getResponseCode() != 200) {
+			String err = IOUtils.toString(conn.getErrorStream()); 
+			System.out.println(err);
+			if (err.length() > 200) {
+				err = err.substring(0, 200);
+			}
+			throw new TestException(err);
+		}
+	}
+
+	public static String createLoginToken(final URL authURL, String user) throws Exception {
+		final URL target = new URL(authURL.toString() + "/api/V2/testmodeonly/token");
+		final HttpURLConnection conn = (HttpURLConnection) target.openConnection();
+		conn.setRequestMethod("POST");
+		conn.setRequestProperty("content-type", "application/json");
+		conn.setRequestProperty("accept", "application/json");
+		conn.setDoOutput(true);
+
+		final DataOutputStream writer = new DataOutputStream(conn.getOutputStream());
+		writer.writeBytes(new ObjectMapper().writeValueAsString(ImmutableMap.of(
+				"user", user,
+				"type", "Login")));
+		writer.flush();
+		writer.close();
+
+		checkForError(conn);
+		final String out = IOUtils.toString(conn.getInputStream());
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> resp = new ObjectMapper().readValue(out, Map.class);
+		return (String) resp.get("token");
+	}
 }
