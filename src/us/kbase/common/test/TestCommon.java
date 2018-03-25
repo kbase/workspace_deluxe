@@ -4,8 +4,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -16,9 +18,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.ini4j.Ini;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 
@@ -39,6 +44,8 @@ public class TestCommon {
 	public static final String MONGO_USE_WIRED_TIGER = "test.mongo.useWiredTiger";
 	public static final String MYSQLEXE = "test.mysql.exe";
 	public static final String MYSQL_INSTALL_EXE = "test.mysql.install.exe";
+	
+	public static final String JARS_PATH = "test.jars.dir";
 	
 	public static final String TEST_TEMP_DIR = "test.temp.dir";
 	public static final String KEEP_TEMP_DIR = "test.temp.dir.keep";
@@ -160,6 +167,10 @@ public class TestCommon {
 		return getTestProperty(MYSQL_INSTALL_EXE);
 	}
 	
+	public static Path getJarsDir() {
+		return Paths.get(getTestProperty(JARS_PATH));
+	}
+	
 	public static boolean getDeleteTempFiles() {
 		return !"true".equals(getTestProperty(KEEP_TEMP_DIR));
 	}
@@ -231,4 +242,56 @@ public class TestCommon {
 	public static <T> Set<T> set(T... objects) {
 		return new HashSet<T>(Arrays.asList(objects));
 	}
+	
+    public static void createAuthUser(
+            final URL authURL,
+            final String userName,
+            final String displayName)
+            throws Exception {
+        final URL target = new URL(authURL.toString() + "/api/V2/testmodeonly/user");
+        final HttpURLConnection conn = (HttpURLConnection) target.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("content-type", "application/json");
+        conn.setRequestProperty("accept", "application/json");
+        conn.setDoOutput(true);
+        
+        final DataOutputStream writer = new DataOutputStream(conn.getOutputStream());
+        writer.writeBytes(new ObjectMapper().writeValueAsString(ImmutableMap.of(
+                "user", userName,
+                "display", displayName)));
+        writer.flush();
+        writer.close();
+        
+        if (conn.getResponseCode() != 200) {
+            final String err = IOUtils.toString(conn.getErrorStream()); 
+            System.out.println(err);
+            throw new TestException(err.substring(1, 200));
+        }
+    }
+
+    public static String createLoginToken(final URL authURL, String user) throws Exception {
+        final URL target = new URL(authURL.toString() + "/api/V2/testmodeonly/token");
+        final HttpURLConnection conn = (HttpURLConnection) target.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("content-type", "application/json");
+        conn.setRequestProperty("accept", "application/json");
+        conn.setDoOutput(true);
+        
+        final DataOutputStream writer = new DataOutputStream(conn.getOutputStream());
+        writer.writeBytes(new ObjectMapper().writeValueAsString(ImmutableMap.of(
+                "user", user,
+                "type", "Login")));
+        writer.flush();
+        writer.close();
+        
+        if (conn.getResponseCode() != 200) {
+            final String err = IOUtils.toString(conn.getErrorStream()); 
+            System.out.println(err);
+            throw new TestException(err.substring(1, 200));
+        }
+        final String out = IOUtils.toString(conn.getInputStream());
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> resp = new ObjectMapper().readValue(out, Map.class);
+        return (String) resp.get("token");
+    }
 }
