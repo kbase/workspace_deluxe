@@ -2,17 +2,6 @@
 
 [Workspacetest]
 
-# Three tokens for *different* KBase user accounts.
-test.token1 =
-test.token2 =
-test.token3 =
-
-# The KBase authorization server url.
-test.auth.url = https://ci.kbase.us/services/auth/api/legacy/KBase
-
-# The Globus v1 authorization API url.
-test.globus.url = https://ci.kbase.us/services/auth/api/legacy/globus
-
 # The path to the jars dir inside the jars repo, e.g.
 # [path to jars repo]/lib/jars
 test.jars.dir =
