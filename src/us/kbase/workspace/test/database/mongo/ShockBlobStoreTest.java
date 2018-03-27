@@ -24,15 +24,14 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
-import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
+import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
@@ -50,6 +49,7 @@ public class ShockBlobStoreTest {
 	private static ShockController shock;
 	private static MongoController mongoCon;
 	private static TempFilesManager tfm;
+	private static AuthController authc;
 	private static AuthToken token;
 	
 	private static final Pattern UUID =
@@ -59,22 +59,32 @@ public class ShockBlobStoreTest {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		final ConfigurableAuthService auth = new ConfigurableAuthService(
-				new AuthConfig().withKBaseAuthServerURL(
-						TestCommon.getAuthUrl()));
-		token = TestCommon.getToken(1, auth);
-		
 		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		TestCommon.stfuLoggers();
 		mongoCon = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
 				TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + mongoCon.getTempDir());
+		System.out.println("Started mongo server at localhost:" + mongoCon.getServerPort());
 		
+		// set up auth
+		final String dbname = ShockBlobStoreTest.class.getSimpleName() + "Auth";
+		authc = new AuthController(
+				TestCommon.getJarsDir(),
+				"localhost:" + mongoCon.getServerPort(),
+				dbname,
+				Paths.get(TestCommon.getTempDir()));
+		final URL authURL = new URL("http://localhost:" + authc.getServerPort() + "/testmode");
+		System.out.println("started auth server at " + authURL);
+		TestCommon.createAuthUser(authURL, "user1", "display1");
+		final String token1 = TestCommon.createLoginToken(authURL, "user1");
+		token = new AuthToken(token1, "user1");
+
 		String mongohost = "localhost:" + mongoCon.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 		mongo = mongoClient.getDB("ShockBackendTest");
-		
+
+		final URL globusURL = new URL(authURL.toString() + "/api/legacy/globus");
 		shock = new ShockController(
 				TestCommon.getShockExe(),
 				TestCommon.getShockVersion(),
@@ -84,7 +94,7 @@ public class ShockBlobStoreTest {
 				"ShockBackendTest_ShockDB",
 				"foo",
 				"foo",
-				TestCommon.getGlobusUrl());
+				globusURL);
 		System.out.println("Shock controller version: " + shock.getVersion());
 		if (shock.getVersion() == null) {
 			System.out.println("Unregistered version - Shock may not start correctly");
@@ -92,7 +102,7 @@ public class ShockBlobStoreTest {
 		System.out.println("Using Shock temp dir " + shock.getTempDir());
 		URL url = new URL("http://localhost:" + shock.getServerPort());
 		System.out.println("Testing workspace shock backend pointed at: " + url);
-		System.out.println("Logging in with auth service " + auth);
+		System.out.println("Using auth url: " + globusURL);
 		sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, token);
 		client = new BasicShockClient(url, token);
 	}
@@ -101,6 +111,9 @@ public class ShockBlobStoreTest {
 	public static void tearDownClass() throws Exception {
 		if (shock != null) {
 			shock.destroy(TestCommon.getDeleteTempFiles());
+		}
+		if (authc != null) {
+			authc.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (mongoCon != null) {
 			mongoCon.destroy(TestCommon.getDeleteTempFiles());

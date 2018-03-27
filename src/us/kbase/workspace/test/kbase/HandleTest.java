@@ -19,7 +19,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.AfterClass;
@@ -32,9 +31,7 @@ import com.mongodb.MongoClient;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.abstracthandle.Handle;
-import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
@@ -50,6 +47,7 @@ import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.ShockUserId;
+import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
@@ -76,10 +74,11 @@ public class HandleTest {
 	private static MongoController MONGO;
 	private static ShockController SHOCK;
 	private static HandleServiceController HANDLE;
+	private static AuthController AUTH;
 	private static WorkspaceServer SERVER;
 	
-	private static String USER1;
-	private static String USER2;
+	private static final String USER1 = "user1";
+	private static final String USER2 = "user2";
 	private static ShockUserId SHOCK_USER1;
 	private static ShockUserId SHOCK_USER2;
 	
@@ -96,27 +95,6 @@ public class HandleTest {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		final ConfigurableAuthService auth = new ConfigurableAuthService(
-				new AuthConfig().withKBaseAuthServerURL(
-						TestCommon.getAuthUrl()));
-		final AuthToken t1 = TestCommon.getToken(1, auth);
-		final AuthToken t2 = TestCommon.getToken(2, auth);
-		final AuthToken t3 = TestCommon.getToken(3, auth);
-		USER1 = t1.getUserName();
-		USER2 = t2.getUserName();
-		String u3 = t3.getUserName();
-		if (USER1.equals(USER2)) {
-			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
-		}
-		if (USER1.equals(u3)) {
-			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
-		}
-		if (USER2.equals(u3)) {
-			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2, u3), " "));
-		}
 		TestCommon.stfuLoggers();
 		
 		MONGO = new MongoController(TestCommon.getMongoExe(),
@@ -126,17 +104,35 @@ public class HandleTest {
 		final String mongohost = "localhost:" + MONGO.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
 
+		// set up auth
+		final String dbname = HandleTest.class.getSimpleName() + "Auth";
+		AUTH = new AuthController(
+				TestCommon.getJarsDir(),
+				"localhost:" + MONGO.getServerPort(),
+				dbname,
+				Paths.get(TestCommon.getTempDir()));
+		final URL authURL = new URL("http://localhost:" + AUTH.getServerPort() + "/testmode");
+		System.out.println("started auth server at " + authURL);
+		TestCommon.createAuthUser(authURL, USER1, "display1");
+		final String token1 = TestCommon.createLoginToken(authURL, USER1);
+		TestCommon.createAuthUser(authURL, USER2, "display2");
+		final String token2 = TestCommon.createLoginToken(authURL, USER2);
+		TestCommon.createAuthUser(authURL, "user3", "display3");
+		final String token3 = TestCommon.createLoginToken(authURL, "user3");
+		final AuthToken t1 = new AuthToken(token1, USER1);
+		final AuthToken t2 = new AuthToken(token2, USER2);
+		final AuthToken t3 = new AuthToken(token3, "user3");
+		
 		SHOCK = new ShockController(
 				TestCommon.getShockExe(),
 				TestCommon.getShockVersion(),
 				Paths.get(TestCommon.getTempDir()),
-				u3,
+				"user3",
 				mongohost,
 				"JSONRPCLayerHandleTest_ShockDB",
 				"foo",
 				"foo",
-				TestCommon.getGlobusUrl());
-		System.out.println("Using globus url " + TestCommon.getGlobusUrl());
+				new URL(authURL.toString() + "/api/legacy/globus"));
 		System.out.println("Shock controller version: " + SHOCK.getVersion());
 		if (SHOCK.getVersion() == null) {
 			System.out.println(
@@ -154,14 +150,13 @@ public class HandleTest {
 				WorkspaceTestCommon.getPlackupExe(),
 				WorkspaceTestCommon.getHandleServicePSGI(),
 				WorkspaceTestCommon.getHandleManagerPSGI(),
-				u3,
+				"user3",
 				MYSQL,
 				"http://localhost:" + SHOCK.getServerPort(),
 				t3,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(TestCommon.getTempDir()),
-				TestCommon.getAuthUrl());
-		System.out.println("Using auth url " + TestCommon.getAuthUrl());
+				new URL(authURL.toString() + "/api/legacy/KBase"));
 		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
 		
 		
@@ -248,8 +243,11 @@ public class HandleTest {
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
 		ws.add("backend-secret", "foo");
-		ws.add("auth-service-url", TestCommon.getAuthUrl());
-		ws.add("globus-url", TestCommon.getGlobusUrl());
+		ws.add("auth-service-url-allow-insecure", "true");
+		ws.add("auth-service-url", new URL("http://localhost:" + AUTH.getServerPort() +
+				"/testmode/api/legacy/KBase"));
+		ws.add("globus-url", new URL("http://localhost:" + AUTH.getServerPort() +
+				"/testmode/api/legacy/globus"));
 		ws.add("handle-service-url", "http://localhost:" +
 				HANDLE.getHandleServerPort());
 		ws.add("handle-manager-url", "http://localhost:" +
@@ -288,6 +286,9 @@ public class HandleTest {
 		}
 		if (SHOCK != null) {
 			SHOCK.destroy(TestCommon.getDeleteTempFiles());
+		}
+		if (AUTH != null) {
+			AUTH.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (MONGO != null) {
 			MONGO.destroy(TestCommon.getDeleteTempFiles());
