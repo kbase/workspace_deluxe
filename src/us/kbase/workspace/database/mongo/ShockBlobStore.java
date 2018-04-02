@@ -97,10 +97,8 @@ public class ShockBlobStore implements BlobStore {
 	}
 	
 	@Override
-	public void saveBlob(final MD5 md5, final Restreamable data,
-			final boolean sorted)
-			throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException {
+	public void saveBlob(final MD5 md5, final Restreamable data, final boolean sorted)
+			throws BlobStoreAuthorizationException, BlobStoreCommunicationException {
 		if (md5 == null || data == null) {
 			throw new NullPointerException("Arguments cannot be null");
 		}
