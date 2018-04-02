@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -105,7 +106,7 @@ public class ShockBlobStoreTest {
 		URL url = new URL("http://localhost:" + shock.getServerPort());
 		System.out.println("Testing workspace shock backend pointed at: " + url);
 		System.out.println("Using auth url: " + globusURL);
-		sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, token);
+		sb = new ShockBlobStore(mongo.getCollection(COLLECTION), new BasicShockClient(url, token));
 		client = new BasicShockClient(url, token);
 	}
 	
@@ -141,19 +142,19 @@ public class ShockBlobStoreTest {
 	
 	@Test
 	public void badInit() throws Exception {
-		DBCollection col = mongo.getCollection(COLLECTION);
-		failInit(null, new URL("http://foo.com"), token);
-		failInit(col, null, token);
-		failInit(col, new URL("http://foo.com"), null);
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		
+		failInit(null, client);
+		failInit(col, null);
 	}
 	
 	private void failInit(
 			final DBCollection collection,
-			final URL url,
-			final AuthToken tp)
+			final BasicShockClient client)
 			throws Exception {
 		try {
-			new ShockBlobStore(collection, url, tp);
+			new ShockBlobStore(collection, client);
 		} catch (NullPointerException npe) {
 			assertThat("correct exception message", npe.getLocalizedMessage(),
 					is("Arguments cannot be null"));
