@@ -43,6 +43,7 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
+import us.kbase.shock.client.BasicShockClient;
 import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -310,7 +311,8 @@ public class WorkspaceTester {
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"), shockUrl, t);
+		BlobStore bs = new ShockBlobStore(
+				wsdb.getCollection("shock_nodes"), new BasicShockClient(shockUrl, t));
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
 	

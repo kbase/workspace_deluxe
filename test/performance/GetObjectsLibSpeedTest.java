@@ -26,6 +26,7 @@ import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.test.TestCommon;
+import us.kbase.shock.client.BasicShockClient;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -87,7 +88,8 @@ public class GetObjectsLibSpeedTest {
 				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
 				new ShockBlobStore(db.getCollection("shock_map"),
-						new URL(shockurl), AuthService.validateToken(shocktoken)),
+						new BasicShockClient(
+								new URL(shockurl), AuthService.validateToken(shocktoken))),
 				tfm);
 		Workspace ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 		Types types = new Types(typeDefDB);

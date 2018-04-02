@@ -2,13 +2,11 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.LoggerFactory;
 
-import us.kbase.auth.AuthToken;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
@@ -23,7 +21,6 @@ import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
-import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -40,34 +37,17 @@ public class ShockBlobStore implements BlobStore {
 	
 	private static final String IDX_UNIQ = "unique";
 	
-	public ShockBlobStore(
-			final DBCollection mongoCollection,
-			final URL url,
-			final AuthToken token)
-			throws BlobStoreAuthorizationException, BlobStoreException {
-		if (mongoCollection == null || url == null || token == null) {
+	public ShockBlobStore(final DBCollection mongoCollection, final BasicShockClient client) {
+		if (mongoCollection == null || client == null) {
 			throw new NullPointerException("Arguments cannot be null");
 		}
 		this.mongoCol = mongoCollection;
+		this.client = client;
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.SHOCK_CHKSUM, 1);
 		final DBObject opts = new BasicDBObject();
 		opts.put(IDX_UNIQ, 1);
 		mongoCol.createIndex(dbo, opts);
-		try {
-			client = new BasicShockClient(url, token);
-		} catch (InvalidShockUrlException isue) {
-			throw new BlobStoreException(
-					"The shock url " + url + " is invalid", isue);
-		} catch (ShockHttpException she) {
-			throw new BlobStoreException(
-					"Shock appears to be misconfigured - the client could not initialize. Shock said: "
-					+ she.getLocalizedMessage(), she);
-		} catch (IOException ioe) {
-			throw new BlobStoreCommunicationException(
-					"Could not connect to the shock backend: " +
-					ioe.getLocalizedMessage(), ioe);
-		}
 		//TODO DBCONSIST check that a few nodes exist to ensure we're pointing at the right Shock instance
 	}
 	
