@@ -44,7 +44,7 @@ import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
-public class ShockBlobStoreTest {
+public class ShockBlobStoreIntegrationTest {
 	
 	private static ShockBlobStore sb;
 	private static DB mongo;
@@ -71,7 +71,7 @@ public class ShockBlobStoreTest {
 		System.out.println("Started mongo server at localhost:" + mongoCon.getServerPort());
 		
 		// set up auth
-		final String dbname = ShockBlobStoreTest.class.getSimpleName() + "Auth";
+		final String dbname = ShockBlobStoreIntegrationTest.class.getSimpleName() + "Auth";
 		authc = new AuthController(
 				TestCommon.getJarsDir(),
 				"localhost:" + mongoCon.getServerPort(),
