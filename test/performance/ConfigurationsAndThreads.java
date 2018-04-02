@@ -35,6 +35,7 @@ import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.Restreamable;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
@@ -296,9 +297,15 @@ public class ConfigurationsAndThreads {
 		return new Perf(writeNanoSec, readNanoSec, errors);
 	}
 	
-	private static InputStream treeToWritable(final JsonNode value) {
+	private static Restreamable treeToWritable(final JsonNode value) {
 		//NOTE no idea if this was a good change or not, just made it compile
-		return IOUtils.toInputStream(value.toString());
+		return new Restreamable() {
+			
+			@Override
+			public InputStream getInputStream() {
+				return IOUtils.toInputStream(value.toString());
+			}
+		};
 	}
 
 	public static class WorkspaceJsonRPCShock extends AbstractReadWriteTest {

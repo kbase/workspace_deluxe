@@ -1,9 +1,9 @@
 package us.kbase.workspace.database.mongo;
 
-import java.io.InputStream;
 import java.util.List;
 
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.Restreamable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
@@ -26,7 +26,7 @@ public interface BlobStore {
 	 * @throws BlobStoreCommunicationException if a communication error with
 	 * the blob store backend occurs.
 	 */
-	public void saveBlob(MD5 md5, InputStream data, boolean sorted)
+	public void saveBlob(MD5 md5, Restreamable data, boolean sorted)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException;
 	

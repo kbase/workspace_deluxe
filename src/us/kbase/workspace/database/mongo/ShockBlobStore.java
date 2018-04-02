@@ -15,6 +15,7 @@ import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.Restreamable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
@@ -96,7 +97,7 @@ public class ShockBlobStore implements BlobStore {
 	}
 	
 	@Override
-	public void saveBlob(final MD5 md5, final InputStream data,
+	public void saveBlob(final MD5 md5, final Restreamable data,
 			final boolean sorted)
 			throws BlobStoreAuthorizationException,
 			BlobStoreCommunicationException {
@@ -110,8 +111,8 @@ public class ShockBlobStore implements BlobStore {
 			//go ahead, need to save
 		}
 		final ShockNode sn;
-		try {
-			sn = client.addNode(data, "workspace_" + md5.getMD5(), "JSON");
+		try (final InputStream is = data.getInputStream()) {
+			sn = client.addNode(is, "workspace_" + md5.getMD5(), "JSON");
 		} catch (JsonProcessingException jpe) {
 			//this should be impossible
 			throw new RuntimeException("Attribute serialization failed: "
