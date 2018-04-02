@@ -43,7 +43,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @author rsutormin
  * @author gaprice@lbl.gov
  */
-public class ValidatedTypedObject {
+public class ValidatedTypedObject implements Restreamable {
 
 	/**
 	 * The list of errors found during validation.  If the object is not valid, this must be non-empty, (although
@@ -153,6 +153,7 @@ public class ValidatedTypedObject {
 	 * The caller of this method is responsible for closing the stream.
 	 * @return an object input stream.
 	 */
+	@Override
 	public InputStream getInputStream() {
 		if (byteCache == null && fileCache == null) {
 			throw new IllegalStateException(

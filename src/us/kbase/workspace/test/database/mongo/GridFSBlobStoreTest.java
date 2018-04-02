@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -23,6 +24,7 @@ import com.mongodb.gridfs.GridFSInputFile;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.Restreamable;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
@@ -73,7 +75,7 @@ public class GridFSBlobStoreTest {
 		}
 		
 		try {
-			gfsb.saveBlob(null, IOUtils.toInputStream("foo"), true);
+			gfsb.saveBlob(null, new StringRestreamable("foo"), true);
 		} catch (NullPointerException npe) {
 			assertThat("correct excepction message", npe.getLocalizedMessage(),
 					is("Arguments cannot be null"));
@@ -97,11 +99,24 @@ public class GridFSBlobStoreTest {
 		gfsb.removeBlob(md5);
 	}
 	
+	private static class StringRestreamable implements Restreamable {
+
+		private final String data;
+		
+		public StringRestreamable(final String data) {
+			this.data = data;
+		}
+		@Override
+		public InputStream getInputStream() {
+			return IOUtils.toInputStream(data);
+		}
+	}
+	
 	@Test
 	public void saveAndGetBlob() throws Exception {
 		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
 		String data = "this is a blob yo";
-		gfsb.saveBlob(md1, IOUtils.toInputStream(data), true);
+		gfsb.saveBlob(md1, new StringRestreamable(data), true);
 		MD5 md1copy = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
 		ByteArrayFileCache d = gfsb.getBlob(md1copy, 
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
@@ -109,16 +124,16 @@ public class GridFSBlobStoreTest {
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
 		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(md1copy) == null);
-		gfsb.saveBlob(md1, IOUtils.toInputStream(data), true); //should be able to save the same thing twice with no error
+		gfsb.saveBlob(md1, new StringRestreamable(data), true); //should be able to save the same thing twice with no error
 		
-		gfsb.saveBlob(md1, IOUtils.toInputStream(data), false); //this should do nothing
+		gfsb.saveBlob(md1, new StringRestreamable(data), false); //this should do nothing
 		assertThat("sorted still true", gfsb.getBlob(md1copy,
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm))
 					.isSorted(), is(true));
 		
 		MD5 md2 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2");
 		String data2 = "this is also a blob yo";
-		gfsb.saveBlob(md2, IOUtils.toInputStream(data2), false);
+		gfsb.saveBlob(md2, new StringRestreamable(data2), false);
 		d = gfsb.getBlob(md2,
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
