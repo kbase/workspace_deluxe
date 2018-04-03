@@ -4,7 +4,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -22,7 +21,6 @@ import org.junit.Test;
 import com.github.zafarkhaja.semver.Version;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
@@ -124,44 +122,6 @@ public class ShockBlobStoreIntegrationTest {
 	}
 	
 	@Test
-	public void badInput() throws Exception {
-		try {
-			sb.saveBlob(new MD5(A32), null, true);
-		} catch (NullPointerException npe) {
-			assertThat("correct excepction message", npe.getLocalizedMessage(),
-					is("Arguments cannot be null"));
-		}
-		
-		try {
-			sb.saveBlob(null, new StringRestreamable("foo"), true);
-		} catch (NullPointerException npe) {
-			assertThat("correct excepction message", npe.getLocalizedMessage(),
-					is("Arguments cannot be null"));
-		}
-	}
-	
-	@Test
-	public void badInit() throws Exception {
-		final DBCollection col = mock(DBCollection.class);
-		final BasicShockClient client = mock(BasicShockClient.class);
-		
-		failInit(null, client);
-		failInit(col, null);
-	}
-	
-	private void failInit(
-			final DBCollection collection,
-			final BasicShockClient client)
-			throws Exception {
-		try {
-			new ShockBlobStore(collection, client);
-		} catch (NullPointerException npe) {
-			assertThat("correct exception message", npe.getLocalizedMessage(),
-					is("Arguments cannot be null"));
-		}
-	}
-	
-	@Test
 	public void dataWithoutSortMarker() throws Exception {
 		String s = "pootypoot";
 		ShockNode sn = client.addNode(new ByteArrayInputStream(s.getBytes("UTF-8")), A32, "JSON");
@@ -178,7 +138,7 @@ public class ShockBlobStoreIntegrationTest {
 		sb.removeBlob(md5);
 	}
 	
-	private static class StringRestreamable implements Restreamable {
+	static class StringRestreamable implements Restreamable {
 
 		private final String data;
 		
@@ -193,7 +153,7 @@ public class ShockBlobStoreIntegrationTest {
 	
 	@Test
 	public void saveAndGetBlob() throws Exception {
-		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
+		MD5 md1 = new MD5("5e498cecc4017dad15313bb009b0ef49");
 		String data = "this is a blob yo";
 		sb.saveBlob(md1, new StringRestreamable(data), true);
 		ShockNodeId id = new ShockNodeId(sb.getExternalIdentifier(md1));
@@ -201,7 +161,7 @@ public class ShockBlobStoreIntegrationTest {
 				UUID.matcher(id.getId()).matches());
 		assertThat("Ext id is the shock node", id.getId(),
 				is(sb.getExternalIdentifier(md1)));
-		MD5 md1copy = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
+		MD5 md1copy = new MD5("5e498cecc4017dad15313bb009b0ef49");
 		ByteArrayFileCache d = sb.getBlob(md1copy, 
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 		assertThat("data returned marked as sorted", d.isSorted(), is(true));
@@ -214,7 +174,7 @@ public class ShockBlobStoreIntegrationTest {
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm))
 				.isSorted(), is(true));
 		
-		MD5 md2 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2");
+		MD5 md2 = new MD5("78afe93c486269db5b49d9017e850103");
 		String data2 = "this is also a blob yo";
 		sb.saveBlob(md2, new StringRestreamable(data2), false);
 		d = sb.getBlob(md2,
@@ -246,7 +206,7 @@ public class ShockBlobStoreIntegrationTest {
 	@Test
 	public void removeNonExistantBlob() throws Exception {
 		sb.removeBlob(new MD5(A32)); //should silently not remove anything
-		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
+		MD5 md1 = new MD5("5e498cecc4017dad15313bb009b0ef49");
 		String data = "this is a blob yo";
 		sb.saveBlob(md1, new StringRestreamable(data), true);
 		sb.removeAllBlobs();
@@ -255,7 +215,7 @@ public class ShockBlobStoreIntegrationTest {
 	
 	@Test
 	public void removeAllBlobs() throws Exception {
-		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
+		MD5 md1 = new MD5("5e498cecc4017dad15313bb009b0ef49");
 		String data = "this is a blob yo";
 		sb.saveBlob(md1, new StringRestreamable(data), true);
 		sb.removeAllBlobs();
