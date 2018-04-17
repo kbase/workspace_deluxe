@@ -16,7 +16,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.AfterClass;
@@ -25,9 +24,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.productivity.java.syslog4j.SyslogIF;
 
-import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.JsonServerSyslog;
@@ -38,6 +35,7 @@ import us.kbase.common.service.Tuple11;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.workspace.CopyObjectParams;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
@@ -87,9 +85,10 @@ public class LoggingTest {
 	private static final String BTYPE = "SomeModule.BType";
 	private static final String REFTYPE = "SomeModule.RefType";
 	
-	private static String USER1;
-	private static String USER2;
+	private static final String USER1 = "user1";
+	private static final String USER2 = "user2";
 	private static MongoController mongo;
+	private static AuthController authc;
 	private static WorkspaceServer SERVER;
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
@@ -99,23 +98,27 @@ public class LoggingTest {
 	public static void setUpClass() throws Exception {
 		logout = new SysLogOutputMock();
 		
-		final ConfigurableAuthService auth = new ConfigurableAuthService(
-				new AuthConfig().withKBaseAuthServerURL(
-						TestCommon.getAuthUrl()));
-		final AuthToken t1 = TestCommon.getToken(1, auth);
-		final AuthToken t2 = TestCommon.getToken(2, auth);
-		
-		USER1 = t1.getUserName();
-		USER2 = t2.getUserName();
-		if (USER1.equals(USER2)) {
-			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2), " "));
-		}
 //		WorkspaceTestCommon.stfuLoggers();
 		mongo = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
 				TestCommon.useWiredTigerEngine());
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
+		
+		// set up auth
+		final String dbname = LoggingTest.class.getSimpleName() + "Auth";
+		authc = new AuthController(
+				TestCommon.getJarsDir(),
+				"localhost:" + mongo.getServerPort(),
+				dbname,
+				Paths.get(TestCommon.getTempDir()));
+		final URL authURL = new URL("http://localhost:" + authc.getServerPort() + "/testmode");
+		System.out.println("started auth server at " + authURL);
+		TestCommon.createAuthUser(authURL, USER1, "display1");
+		final String token1 = TestCommon.createLoginToken(authURL, USER1);
+		TestCommon.createAuthUser(authURL, USER2, "display2");
+		final String token2 = TestCommon.createLoginToken(authURL, USER2);
+		final AuthToken t1 = new AuthToken(token1, USER1);
+		final AuthToken t2 = new AuthToken(token2, USER2);
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
@@ -197,8 +200,11 @@ public class LoggingTest {
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
-		ws.add("auth-service-url", TestCommon.getAuthUrl());
-		ws.add("globus-url", TestCommon.getGlobusUrl());
+		ws.add("auth-service-url-allow-insecure", "true");
+		ws.add("auth-service-url", new URL("http://localhost:" + authc.getServerPort() +
+				"/testmode/api/legacy/KBase"));
+		ws.add("globus-url", new URL("http://localhost:" + authc.getServerPort() +
+				"/testmode/api/legacy/globus"));
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
@@ -228,6 +234,9 @@ public class LoggingTest {
 			System.out.print("Killing server... ");
 			SERVER.stopServer();
 			System.out.println("Done");
+		}
+		if (authc != null) {
+			authc.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");

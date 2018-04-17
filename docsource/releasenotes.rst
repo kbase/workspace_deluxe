@@ -1,6 +1,16 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.8.1 (Released TBD)
+-----------------------------
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+
+* Added a workaround for a bug where, when using Shock as a file backend, MIME headers would
+  very rarely (~1/100,000 saves) be appended to the data, corrupting it. The current workaround
+  checks that the Workspace MD5 and the Shock MD5 are equal, and if not, deletes the newly created
+  Shock node and starts over. The root cause of the data corruption is as yet unknown.
+
 VERSION: 0.8.0 (Released 1/30/18)
 ---------------------------------
 

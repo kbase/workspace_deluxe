@@ -30,6 +30,9 @@ import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.service.ServerException;
 import us.kbase.handlemngr.HandleMngrClient;
+import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.exceptions.InvalidShockUrlException;
+import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidator;
@@ -46,8 +49,6 @@ import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
-import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
@@ -343,15 +344,19 @@ public class InitWorkspaceServer {
 			}
 			final AuthToken token = getBackendToken(shockUserFromSettings, cfg, auth);
 			try {
-				return new ShockBlobStore(db.getCollection(COL_SHOCK_NODES), shockurl, token);
-			} catch (BlobStoreAuthorizationException e) {
+				return new ShockBlobStore(
+						db.getCollection(COL_SHOCK_NODES), new BasicShockClient(shockurl, token));
+			} catch (InvalidShockUrlException isue) {
 				throw new WorkspaceInitException(
-						"Not authorized to access the blob store backend database: "
-						+ e.getLocalizedMessage(), e);
-			} catch (BlobStoreException e) {
+						"The shock url " + shockurl + " is invalid", isue);
+			} catch (ShockHttpException she) {
 				throw new WorkspaceInitException(
-						"The blob store backend database could not be initialized: " +
-						e.getLocalizedMessage(), e);
+						"Shock appears to be misconfigured - the client could not initialize. " +
+						"Shock said: " + she.getLocalizedMessage(), she);
+			} catch (IOException ioe) {
+				throw new WorkspaceInitException(
+						"Could not connect to the shock backend: " +
+						ioe.getLocalizedMessage(), ioe);
 			}
 		}
 		throw new WorkspaceInitException("Unknown backend type: " + blobStoreType);

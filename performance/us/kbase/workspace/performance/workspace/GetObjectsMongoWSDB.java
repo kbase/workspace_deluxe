@@ -14,6 +14,7 @@ import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
 import us.kbase.auth.AuthService;
+import us.kbase.shock.client.BasicShockClient;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
@@ -49,7 +50,7 @@ public class GetObjectsMongoWSDB {
 		
 		final BlobStore blob = new ShockBlobStore(
 				db.getCollection(InitWorkspaceServer.COL_SHOCK_NODES),
-				new URL(SHOCK_URL), AuthService.validateToken(token));
+				new BasicShockClient(new URL(SHOCK_URL), AuthService.validateToken(token)));
 		final TempFilesManager tfm = new TempFilesManager(new File("temp_getobjmongoWS"));
 		final MongoWorkspaceDB mws = new MongoWorkspaceDB(db, blob, tfm);
 		

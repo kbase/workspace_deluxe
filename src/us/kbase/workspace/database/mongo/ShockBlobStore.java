@@ -2,19 +2,18 @@ package us.kbase.workspace.database.mongo;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.LoggerFactory;
 
-import us.kbase.auth.AuthToken;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.Restreamable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
@@ -22,7 +21,6 @@ import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
-import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,34 +37,17 @@ public class ShockBlobStore implements BlobStore {
 	
 	private static final String IDX_UNIQ = "unique";
 	
-	public ShockBlobStore(
-			final DBCollection mongoCollection,
-			final URL url,
-			final AuthToken token)
-			throws BlobStoreAuthorizationException, BlobStoreException {
-		if (mongoCollection == null || url == null || token == null) {
+	public ShockBlobStore(final DBCollection mongoCollection, final BasicShockClient client) {
+		if (mongoCollection == null || client == null) {
 			throw new NullPointerException("Arguments cannot be null");
 		}
 		this.mongoCol = mongoCollection;
+		this.client = client;
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.SHOCK_CHKSUM, 1);
 		final DBObject opts = new BasicDBObject();
 		opts.put(IDX_UNIQ, 1);
 		mongoCol.createIndex(dbo, opts);
-		try {
-			client = new BasicShockClient(url, token);
-		} catch (InvalidShockUrlException isue) {
-			throw new BlobStoreException(
-					"The shock url " + url + " is invalid", isue);
-		} catch (ShockHttpException she) {
-			throw new BlobStoreException(
-					"Shock appears to be misconfigured - the client could not initialize. Shock said: "
-					+ she.getLocalizedMessage(), she);
-		} catch (IOException ioe) {
-			throw new BlobStoreCommunicationException(
-					"Could not connect to the shock backend: " +
-					ioe.getLocalizedMessage(), ioe);
-		}
 		//TODO DBCONSIST check that a few nodes exist to ensure we're pointing at the right Shock instance
 	}
 	
@@ -79,14 +60,12 @@ public class ShockBlobStore implements BlobStore {
 		try {
 			version = client.getRemoteVersion();
 		} catch (IOException e) {
-			LoggerFactory.getLogger(getClass())
-				.error("Failed to connect to Shock", e);
+			LoggerFactory.getLogger(getClass()).error("Failed to connect to Shock", e);
 			return Arrays.asList(new DependencyStatus(
 					false, "Cannot connect to Shock: " +
 					e.getMessage(), "Shock", "Unknown"));
 		} catch (InvalidShockUrlException e) {
-			LoggerFactory.getLogger(getClass())
-				.error("Invalid Shock URL", e);
+			LoggerFactory.getLogger(getClass()).error("Invalid Shock URL", e);
 			return Arrays.asList(new DependencyStatus(
 					false, "Invalid Shock URL: " +
 					e.getMessage(), "Shock", "Unknown"));
@@ -96,10 +75,8 @@ public class ShockBlobStore implements BlobStore {
 	}
 	
 	@Override
-	public void saveBlob(final MD5 md5, final InputStream data,
-			final boolean sorted)
-			throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException {
+	public void saveBlob(final MD5 md5, final Restreamable data, final boolean sorted)
+			throws BlobStoreAuthorizationException, BlobStoreCommunicationException {
 		if (md5 == null || data == null) {
 			throw new NullPointerException("Arguments cannot be null");
 		}
@@ -109,21 +86,26 @@ public class ShockBlobStore implements BlobStore {
 		} catch (NoSuchBlobException nb) {
 			//go ahead, need to save
 		}
-		final ShockNode sn;
-		try {
-			sn = client.addNode(data, "workspace_" + md5.getMD5(), "JSON");
-		} catch (JsonProcessingException jpe) {
-			//this should be impossible
-			throw new RuntimeException("Attribute serialization failed: "
-					+ jpe.getLocalizedMessage(), jpe);
-		} catch (IOException ioe) {
-			throw new BlobStoreCommunicationException(
-					"Could not connect to the shock backend: " +
-							ioe.getLocalizedMessage(), ioe);
-		} catch (ShockHttpException she) {
-			throw new BlobStoreCommunicationException(
-					"Failed to create shock node: " +
-							she.getLocalizedMessage(), she);
+		ShockNode sn = saveNode(md5, data);
+		int count = 1; // already saved once ^^^
+		while (!md5.getMD5().equals(sn.getFileInformation().getChecksum("md5"))) {
+			/* As of 18/4/2 there's a bug somewhere in the workspace or Shock such that
+			 * the data in shock is very rarely (~1/100000) appended with a MIME header, which
+			 * corrupts the data. This is a hack to fix that.
+			 */
+			LoggerFactory.getLogger(getClass()).error(String.format(
+					"Blob save failed with non-matching " +
+					"md5. Workspace: %s, Shock: %s",
+					md5.getMD5(), sn.getFileInformation().getChecksum("md5")));
+			deleteNode(sn.getId());
+			if (count >= 5) {
+				throw new BlobStoreCommunicationException(String.format(
+						"Blob save failed with non-matching " +
+						"md5 five times. Workspace: %s, Shock: %s",
+						md5.getMD5(), sn.getFileInformation().getChecksum("md5")));
+			}
+			sn = saveNode(md5, data);
+			count++;
 		}
 		final DBObject dbo = new BasicDBObject();
 		dbo.put(Fields.SHOCK_CHKSUM, md5.getMD5());
@@ -139,6 +121,25 @@ public class ShockBlobStore implements BlobStore {
 		} catch (MongoException me) {
 			throw new BlobStoreCommunicationException(
 					"Could not write to the mongo database", me);
+		}
+	}
+
+	private ShockNode saveNode(final MD5 md5, final Restreamable data)
+			throws BlobStoreCommunicationException {
+		try (final InputStream is = data.getInputStream()) {
+			return client.addNode(is, "workspace_" + md5.getMD5(), "JSON");
+		} catch (JsonProcessingException jpe) {
+			//this should be impossible
+			throw new RuntimeException("Attribute serialization failed: "
+					+ jpe.getLocalizedMessage(), jpe);
+		} catch (IOException ioe) {
+			throw new BlobStoreCommunicationException(
+					"Could not connect to the shock backend: " +
+							ioe.getLocalizedMessage(), ioe);
+		} catch (ShockHttpException she) {
+			throw new BlobStoreCommunicationException(
+					"Failed to create shock node: " +
+							she.getLocalizedMessage(), she);
 		}
 	}
 	
@@ -201,8 +202,7 @@ public class ShockBlobStore implements BlobStore {
 
 	@Override
 	public void removeBlob(final MD5 md5)
-			throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException {
+			throws BlobStoreAuthorizationException, BlobStoreCommunicationException {
 		final String node;
 		try {
 			node = getNode(md5);
@@ -210,20 +210,24 @@ public class ShockBlobStore implements BlobStore {
 			return; //already gone
 		}
 		
-		try {
-			client.deleteNode(new ShockNodeId(node));
-		} catch (IOException ioe) {
-			throw new BlobStoreCommunicationException(
-					"Could not connect to the shock backend: " +
-					ioe.getLocalizedMessage(), ioe);
-		} catch (ShockHttpException she) {
-			throw new BlobStoreCommunicationException(
-					"Failed to delete shock node: " +
-					she.getLocalizedMessage(), she);
-		}
 		final DBObject query = new BasicDBObject();
 		query.put(Fields.SHOCK_CHKSUM, md5.getMD5());
 		mongoCol.remove(query);
+		deleteNode(new ShockNodeId(node));
+	}
+
+	private void deleteNode(final ShockNodeId node) throws BlobStoreCommunicationException {
+		try {
+			client.deleteNode(node);
+		} catch (IOException ioe) {
+			throw new BlobStoreCommunicationException(
+					"Could not connect to the Shock backend: " +
+					ioe.getLocalizedMessage(), ioe);
+		} catch (ShockHttpException she) {
+			throw new BlobStoreCommunicationException(
+					"Failed to delete Shock node: " +
+					she.getLocalizedMessage(), she);
+		}
 	}
 	
 	/**

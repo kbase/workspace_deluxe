@@ -37,14 +37,14 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
-import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthToken;
-import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
+import us.kbase.shock.client.BasicShockClient;
+import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -140,6 +140,7 @@ public class WorkspaceTester {
 	
 	private static MongoController mongo = null;
 	private static ShockController shock = null;
+	private static AuthController auth = null;
 	protected static TempFilesManager tfm;
 	
 	protected static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
@@ -196,6 +197,9 @@ public class WorkspaceTester {
 		if (shock != null) {
 			shock.destroy(TestCommon.getDeleteTempFiles());
 		}
+		if (auth != null) {
+			auth.destroy(TestCommon.getDeleteTempFiles());
+		}
 		if (mongo != null) {
 			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
@@ -221,8 +225,10 @@ public class WorkspaceTester {
 	protected final Workspace ws;
 	protected final Types types;
 	
-	public WorkspaceTester(String config, String backend,
-			Integer maxMemoryUsePerCall)
+	public WorkspaceTester(
+			final String config,
+			final String backend,
+			final Integer maxMemoryUsePerCall)
 			throws Exception {
 		if (mongo == null) {
 			mongo = new MongoController(TestCommon.getMongoExe(),
@@ -231,6 +237,16 @@ public class WorkspaceTester {
 			System.out.println("Using Mongo temp dir " + mongo.getTempDir());
 			System.out.println("Started test mongo instance at localhost:" +
 					mongo.getServerPort());
+		}
+		if (auth == null) {
+			final String dbname = WorkspaceTester.class.getSimpleName() + "Auth";
+			auth = new AuthController(
+					TestCommon.getJarsDir(),
+					"localhost:" + mongo.getServerPort(),
+					dbname,
+					Paths.get(TestCommon.getTempDir()));
+			final URL authURL = new URL("http://localhost:" + auth.getServerPort() + "/testmode");
+			System.out.println("started auth server at " + authURL);
 		}
 		if (!CONFIGS.containsKey(config)) {
 			DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
@@ -271,12 +287,10 @@ public class WorkspaceTester {
 	
 	private WSandTypes setUpShock(DB wsdb, Integer maxMemoryUsePerCall)
 			throws Exception {
-		final ConfigurableAuthService auth = new ConfigurableAuthService(
-				new AuthConfig().withKBaseAuthServerURL(
-						TestCommon.getAuthUrl()));
-		System.out.println(String.format("Logging in shock user at %s",
-				TestCommon.getAuthUrl()));
-		final AuthToken t = TestCommon.getToken(1, auth);
+		final URL authURL = new URL("http://localhost:" + auth.getServerPort() + "/testmode");
+		TestCommon.createAuthUser(authURL, "user1", "display1");
+		final String token1 = TestCommon.createLoginToken(authURL, "user1");
+		final AuthToken t = new AuthToken(token1, "user1");
 		if (shock == null) {
 			shock = new ShockController(
 					TestCommon.getShockExe(),
@@ -287,7 +301,7 @@ public class WorkspaceTester {
 					"WorkspaceTester_ShockDB",
 					"foo",
 					"foo",
-					TestCommon.getGlobusUrl());
+					new URL(authURL.toString() + "/api/legacy/globus"));
 			System.out.println("Shock controller version: " +
 					shock.getVersion());
 			if (shock.getVersion() == null) {
@@ -297,7 +311,8 @@ public class WorkspaceTester {
 			System.out.println("Using Shock temp dir " + shock.getTempDir());
 		}
 		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		BlobStore bs = new ShockBlobStore(wsdb.getCollection("shock_nodes"), shockUrl, t);
+		BlobStore bs = new ShockBlobStore(
+				wsdb.getCollection("shock_nodes"), new BasicShockClient(shockUrl, t));
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
 	
