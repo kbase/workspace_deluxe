@@ -1,8 +1,8 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.8.1 (Released TBD)
------------------------------
+VERSION: 0.8.1 (Released 4/24/18)
+---------------------------------
 
 UPDATED FEATURES / MAJOR BUG FIXES:
 
