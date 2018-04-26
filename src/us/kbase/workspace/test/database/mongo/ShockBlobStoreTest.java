@@ -1,144 +1,61 @@
 package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.net.URL;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.regex.Pattern;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
 
-import org.apache.commons.io.IOUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.github.zafarkhaja.semver.Version;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
+import com.mongodb.MongoException;
 
-import us.kbase.auth.AuthConfig;
-import us.kbase.auth.AuthToken;
-import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.test.TestCommon;
-import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.ShockFileInformation;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
+import us.kbase.shock.client.ShockVersionStamp;
+import us.kbase.shock.client.exceptions.InvalidShockUrlException;
+import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.typedobj.core.MD5;
-import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.workspace.database.ByteArrayFileCacheManager;
+import us.kbase.typedobj.core.Restreamable;
 import us.kbase.workspace.database.DependencyStatus;
-import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
-import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
+import us.kbase.workspace.test.database.mongo.ShockBlobStoreIntegrationTest.StringRestreamable;
 
 public class ShockBlobStoreTest {
-	
-	private static ShockBlobStore sb;
-	private static DB mongo;
-	private static BasicShockClient client;
-	private static ShockController shock;
-	private static MongoController mongoCon;
-	private static TempFilesManager tfm;
-	private static AuthToken token;
-	
-	private static final Pattern UUID =
-			Pattern.compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}");
-	private static final String A32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-	private static final String COLLECTION = "shock_nodeMap";
 
-	@BeforeClass
-	public static void setUpClass() throws Exception {
-		final ConfigurableAuthService auth = new ConfigurableAuthService(
-				new AuthConfig().withKBaseAuthServerURL(
-						TestCommon.getAuthUrl()));
-		token = TestCommon.getToken(1, auth);
-		
-		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
-		TestCommon.stfuLoggers();
-		mongoCon = new MongoController(TestCommon.getMongoExe(),
-				Paths.get(TestCommon.getTempDir()),
-				TestCommon.useWiredTigerEngine());
-		System.out.println("Using Mongo temp dir " + mongoCon.getTempDir());
-		
-		String mongohost = "localhost:" + mongoCon.getServerPort();
-		MongoClient mongoClient = new MongoClient(mongohost);
-		mongo = mongoClient.getDB("ShockBackendTest");
-		
-		shock = new ShockController(
-				TestCommon.getShockExe(),
-				TestCommon.getShockVersion(),
-				Paths.get(TestCommon.getTempDir()),
-				"***---fakeuser---***",
-				mongohost,
-				"ShockBackendTest_ShockDB",
-				"foo",
-				"foo",
-				TestCommon.getGlobusUrl());
-		System.out.println("Shock controller version: " + shock.getVersion());
-		if (shock.getVersion() == null) {
-			System.out.println("Unregistered version - Shock may not start correctly");
-		}
-		System.out.println("Using Shock temp dir " + shock.getTempDir());
-		URL url = new URL("http://localhost:" + shock.getServerPort());
-		System.out.println("Testing workspace shock backend pointed at: " + url);
-		System.out.println("Logging in with auth service " + auth);
-		sb = new ShockBlobStore(mongo.getCollection(COLLECTION), url, token);
-		client = new BasicShockClient(url, token);
-	}
-	
-	@AfterClass
-	public static void tearDownClass() throws Exception {
-		if (shock != null) {
-			shock.destroy(TestCommon.getDeleteTempFiles());
-		}
-		if (mongoCon != null) {
-			mongoCon.destroy(TestCommon.getDeleteTempFiles());
-		}
-	}
+	/* This is strictly for unit tests. */
 	
 	@Test
-	public void badInput() throws Exception {
-		try {
-			sb.saveBlob(new MD5(A32), null, true);
-		} catch (NullPointerException npe) {
-			assertThat("correct excepction message", npe.getLocalizedMessage(),
-					is("Arguments cannot be null"));
-		}
+	public void constructFail() {
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
 		
-		try {
-			sb.saveBlob(null, IOUtils.toInputStream("foo"), true);
-		} catch (NullPointerException npe) {
-			assertThat("correct excepction message", npe.getLocalizedMessage(),
-					is("Arguments cannot be null"));
-		}
+		failConstruct(null, client);
+		failConstruct(col, null);
 	}
 	
-	@Test
-	public void badInit() throws Exception {
-		DBCollection col = mongo.getCollection(COLLECTION);
-		failInit(null, new URL("http://foo.com"), token);
-		failInit(col, null, token);
-		failInit(col, new URL("http://foo.com"), null);
-	}
-	
-	private void failInit(
+	private void failConstruct(
 			final DBCollection collection,
-			final URL url,
-			final AuthToken tp)
-			throws Exception {
+			final BasicShockClient client) {
 		try {
-			new ShockBlobStore(collection, url, tp);
+			new ShockBlobStore(collection, client);
 		} catch (NullPointerException npe) {
 			assertThat("correct exception message", npe.getLocalizedMessage(),
 					is("Arguments cannot be null"));
@@ -146,102 +63,479 @@ public class ShockBlobStoreTest {
 	}
 	
 	@Test
-	public void dataWithoutSortMarker() throws Exception {
-		String s = "pootypoot";
-		ShockNode sn = client.addNode(new ByteArrayInputStream(s.getBytes("UTF-8")), A32, "JSON");
-		DBObject rec = new BasicDBObject(Fields.SHOCK_CHKSUM, A32);
-		rec.put(Fields.SHOCK_NODE, sn.getId().getId());
-		rec.put(Fields.SHOCK_VER, sn.getVersion().getVersion());
-		mongo.getCollection(COLLECTION).save(rec);
-		MD5 md5 = new MD5(A32);
-		ByteArrayFileCache d = sb.getBlob(md5, 
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
-		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
-		String returned = IOUtils.toString(d.getJSON());
-		assertThat("Didn't get same data back from store", returned, is(s));
-		sb.removeBlob(md5);
-	}
-	
-	@Test
-	public void saveAndGetBlob() throws Exception {
-		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
-		String data = "this is a blob yo";
-		sb.saveBlob(md1, IOUtils.toInputStream(data), true);
-		ShockNodeId id = new ShockNodeId(sb.getExternalIdentifier(md1));
-		assertTrue("Got a valid shock id",
-				UUID.matcher(id.getId()).matches());
-		assertThat("Ext id is the shock node", id.getId(),
-				is(sb.getExternalIdentifier(md1)));
-		MD5 md1copy = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
-		ByteArrayFileCache d = sb.getBlob(md1copy, 
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
-		assertThat("data returned marked as sorted", d.isSorted(), is(true));
-		String returned = IOUtils.toString(d.getJSON());
-		assertThat("Didn't get same data back from store", returned, is(data));
-		sb.saveBlob(md1, IOUtils.toInputStream(data), true); //should be able to save the same thing twice with no error
+	public void constructVerify() throws Exception {
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
 		
-		sb.saveBlob(md1, IOUtils.toInputStream(data), false); //this should do nothing
-		assertThat("sorted still true", sb.getBlob(md1copy,
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm))
-				.isSorted(), is(true));
+		new ShockBlobStore(col, client);
 		
-		MD5 md2 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2");
-		String data2 = "this is also a blob yo";
-		sb.saveBlob(md2, IOUtils.toInputStream(data2), false);
-		d = sb.getBlob(md2,
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
-		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
+		final DBObject dbo = new BasicDBObject();
+		dbo.put("chksum", 1);
+		final DBObject opts = new BasicDBObject();
+		opts.put("unique", 1);
 		
-		sb.removeBlob(md1);
-		sb.removeBlob(md2);
-		failGetBlob(md1);
-	}
-	
-	@Test
-	public void getNonExistantBlob() throws Exception {
-		failGetBlob(new MD5(A32));
-	}
-
-	private void failGetBlob(MD5 md5) throws Exception {
-		try {
-			sb.getBlob(md5,
-					new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
-			fail("getblob should throw exception");
-		} catch (NoSuchBlobException wbe) {
-			assertThat("wrong exception message from failed getblob",
-					wbe.getLocalizedMessage(), is("No blob saved with chksum "
-					+ md5.getMD5()));
-		}
-	}
-	
-	@Test
-	public void removeNonExistantBlob() throws Exception {
-		sb.removeBlob(new MD5(A32)); //should silently not remove anything
-		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
-		String data = "this is a blob yo";
-		sb.saveBlob(md1, IOUtils.toInputStream(data), true);
-		sb.removeAllBlobs();
-		
-	}
-	
-	@Test
-	public void removeAllBlobs() throws Exception {
-		MD5 md1 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
-		String data = "this is a blob yo";
-		sb.saveBlob(md1, IOUtils.toInputStream(data), true);
-		sb.removeAllBlobs();
-		failGetBlob(md1);
+		verify(col).createIndex(dbo, opts);
 	}
 	
 	@Test
 	public void status() throws Exception {
-		List<DependencyStatus> deps = sb.status();
-		assertThat("incorrect number of deps", deps.size(), is(1));
-		DependencyStatus dep = deps.get(0);
-		assertThat("incorrect fail", dep.isOk(), is(true));
-		assertThat("incorrect name", dep.getName(), is("Shock"));
-		assertThat("incorrect status", dep.getStatus(), is("OK"));
-		//should throw an error if not a semantic version
-		Version.valueOf(dep.getVersion());
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(client.getRemoteVersion()).thenReturn("my version");
+		
+		assertThat("incorrect status", sbs.status(),
+				is(Arrays.asList(new DependencyStatus(true, "OK", "Shock", "my version"))));
 	}
+	
+	@Test
+	public void statusFailIOException() throws Exception {
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(client.getRemoteVersion()).thenThrow(new IOException("foo"));
+		
+		assertThat("incorrect status", sbs.status(),
+				is(Arrays.asList(new DependencyStatus(
+						false, "Cannot connect to Shock: foo", "Shock", "Unknown"))));
+	}
+	
+	@Test
+	public void statusFailURLException() throws Exception {
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(client.getRemoteVersion()).thenThrow(new InvalidShockUrlException("url"));
+		
+		assertThat("incorrect status", sbs.status(),
+				is(Arrays.asList(new DependencyStatus(
+						false, "Invalid Shock URL: url", "Shock", "Unknown"))));
+	}
+	
+	@Test
+	public void saveBlobFailInput() throws Exception {
+		failSaveBlob(null, new StringRestreamable("foo"),
+				new NullPointerException("Arguments cannot be null"));
+		failSaveBlob(new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"), null,
+				new NullPointerException("Arguments cannot be null"));
+	}
+	
+	private void failSaveBlob(final MD5 md5, final Restreamable stream, final Exception expected) {
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		try {
+			new ShockBlobStore(col, client).saveBlob(md5, stream, true);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	@Test
+	public void saveBlobNoop() throws Exception {
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1")))
+				.thenReturn(new BasicDBObject("node", "foo"));
+		
+		sbs.saveBlob(
+				new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"), new StringRestreamable("foo"), true);
+		
+		verifyZeroInteractions(client);
+	}
+	
+	@Test
+	public void saveBlob() throws Exception {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		final Restreamable res = mock(Restreamable.class);
+		// normally you shouldn't mock value classes but these can't be instantiated
+		// because I'm a dummy
+		final ShockNode sn = mock(ShockNode.class);
+		final ShockFileInformation sfi = mock(ShockFileInformation.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenReturn(null);
+		
+		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
+		
+		when(res.getInputStream()).thenReturn(stream);
+		
+		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+				.thenReturn(sn);
+		
+		when(sn.getId()).thenReturn(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		when(sn.getVersion()).thenReturn(
+				new ShockVersionStamp("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2"));
+		when(sn.getFileInformation()).thenReturn(sfi);
+		when(sfi.getChecksum("md5")).thenReturn(md5);
+		
+		sbs.saveBlob(new MD5(md5), res, true);
+		
+		verify(col).update(new BasicDBObject("chksum", md5),
+				new BasicDBObject("chksum", md5)
+					.append("node", "ca4a4b5a-b676-4090-9a7d-9690189e29be")
+					.append("ver", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2")
+					.append("sorted", true),
+				true, false);
+	}
+	
+	@Test
+	public void saveBlob4AttemptsAndSortedFalse() throws Exception {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		final Restreamable res = mock(Restreamable.class);
+		// normally you shouldn't mock value classes but these can't be instantiated
+		// because I'm a dummy
+		final ShockNode sn1 = mock(ShockNode.class);
+		final ShockNode sn2 = mock(ShockNode.class);
+		final ShockNode sn3 = mock(ShockNode.class);
+		final ShockNode sn4 = mock(ShockNode.class);
+		final ShockNode sn5 = mock(ShockNode.class);
+		final ShockFileInformation sfi1 = mock(ShockFileInformation.class);
+		final ShockFileInformation sfi2 = mock(ShockFileInformation.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenReturn(null);
+		
+		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
+		
+		when(res.getInputStream()).thenReturn(stream);
+		
+		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+				.thenReturn(sn1, sn2, sn3, sn4, sn5);
+		
+		when(sfi1.getChecksum("md5")).thenReturn("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3");
+		when(sfi2.getChecksum("md5")).thenReturn(md5);
+		
+		when(sn1.getId()).thenReturn(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		when(sn1.getFileInformation()).thenReturn(sfi1);
+		when(sn2.getId()).thenReturn(new ShockNodeId("5da17b70-bfc1-41d3-8180-a0f2610d9609"));
+		when(sn2.getFileInformation()).thenReturn(sfi1);
+		when(sn3.getId()).thenReturn(new ShockNodeId("d73e0326-900f-44db-a359-4f297e6270a8"));
+		when(sn3.getFileInformation()).thenReturn(sfi1);
+		when(sn4.getId()).thenReturn(new ShockNodeId("3d82bbee-1c4b-44f6-982f-d4e5db8533b4"));
+		when(sn4.getFileInformation()).thenReturn(sfi1);
+		
+		when(sn5.getId()).thenReturn(new ShockNodeId("b6ce18d4-fc39-45c0-9918-d4d5800a8f43"));
+		when(sn5.getFileInformation()).thenReturn(sfi2);
+		when(sn5.getVersion()).thenReturn(
+				new ShockVersionStamp("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2"));
+		
+		sbs.saveBlob(new MD5(md5), res, false);
+		
+		verify(client).deleteNode(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		verify(client).deleteNode(new ShockNodeId("5da17b70-bfc1-41d3-8180-a0f2610d9609"));
+		verify(client).deleteNode(new ShockNodeId("d73e0326-900f-44db-a359-4f297e6270a8"));
+		verify(client).deleteNode(new ShockNodeId("3d82bbee-1c4b-44f6-982f-d4e5db8533b4"));
+		
+		verify(col).update(new BasicDBObject("chksum", md5),
+				new BasicDBObject("chksum", md5)
+					.append("node", "b6ce18d4-fc39-45c0-9918-d4d5800a8f43")
+					.append("ver", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2")
+					.append("sorted", false),
+				true, false);
+	}
+	
+	@Test
+	public void saveBlobFailOn5Attempts() throws Exception {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		final Restreamable res = mock(Restreamable.class);
+		// normally you shouldn't mock value classes but these can't be instantiated
+		// because I'm a dummy
+		final ShockNode sn1 = mock(ShockNode.class);
+		final ShockNode sn2 = mock(ShockNode.class);
+		final ShockNode sn3 = mock(ShockNode.class);
+		final ShockNode sn4 = mock(ShockNode.class);
+		final ShockNode sn5 = mock(ShockNode.class);
+		final ShockFileInformation sfi1 = mock(ShockFileInformation.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenReturn(null);
+		
+		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
+		
+		when(res.getInputStream()).thenReturn(stream);
+		
+		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+				.thenReturn(sn1, sn2, sn3, sn4, sn5);
+		
+		when(sfi1.getChecksum("md5")).thenReturn("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3");
+		
+		when(sn1.getId()).thenReturn(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		when(sn1.getFileInformation()).thenReturn(sfi1);
+		when(sn2.getId()).thenReturn(new ShockNodeId("5da17b70-bfc1-41d3-8180-a0f2610d9609"));
+		when(sn2.getFileInformation()).thenReturn(sfi1);
+		when(sn3.getId()).thenReturn(new ShockNodeId("d73e0326-900f-44db-a359-4f297e6270a8"));
+		when(sn3.getFileInformation()).thenReturn(sfi1);
+		when(sn4.getId()).thenReturn(new ShockNodeId("3d82bbee-1c4b-44f6-982f-d4e5db8533b4"));
+		when(sn4.getFileInformation()).thenReturn(sfi1);
+		when(sn5.getId()).thenReturn(new ShockNodeId("b6ce18d4-fc39-45c0-9918-d4d5800a8f43"));
+		when(sn5.getFileInformation()).thenReturn(sfi1);
+		
+		failSaveBlob(sbs, new MD5(md5), res, false,
+				new BlobStoreCommunicationException(
+						"Blob save failed with non-matching md5 five times. " +
+						"Workspace: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1, " +
+						"Shock: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3"));
+		
+		verify(client).deleteNode(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		verify(client).deleteNode(new ShockNodeId("5da17b70-bfc1-41d3-8180-a0f2610d9609"));
+		verify(client).deleteNode(new ShockNodeId("d73e0326-900f-44db-a359-4f297e6270a8"));
+		verify(client).deleteNode(new ShockNodeId("3d82bbee-1c4b-44f6-982f-d4e5db8533b4"));
+		verify(client).deleteNode(new ShockNodeId("b6ce18d4-fc39-45c0-9918-d4d5800a8f43"));
+	}
+
+	private void failSaveBlob(
+			final ShockBlobStore sbs,
+			final MD5 md5,
+			final Restreamable res,
+			final boolean sorted,
+			final Exception expected) {
+		try {
+			sbs.saveBlob(md5, res, sorted);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	@Test
+	public void saveBlobFailMongoOnGet() {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		final Restreamable res = mock(Restreamable.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenThrow(new MongoException("foo"));
+		
+		failSaveBlob(sbs, new MD5(md5), res, true, new BlobStoreCommunicationException(
+				"Could not read from the mongo database"));
+	}
+	
+	@Test
+	public void saveBlobFailOnSaveNode() throws Exception {
+		saveBlobFailOnSaveNode(new JsonMappingException("foo"),
+				new RuntimeException("Attribute serialization failed: foo"));
+		saveBlobFailOnSaveNode(new IOException("bar"), new BlobStoreCommunicationException(
+				"Could not connect to the shock backend: bar"));
+		saveBlobFailOnSaveNode(new ShockHttpException(1, "baz"),
+				new BlobStoreCommunicationException("Failed to create shock node: baz"));
+	}
+
+	private void saveBlobFailOnSaveNode(final Exception thrown, final Exception expected)
+			throws Exception {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		final Restreamable res = mock(Restreamable.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenReturn(null);
+		
+		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
+		
+		when(res.getInputStream()).thenReturn(stream);
+		
+		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+				.thenThrow(thrown);
+		
+		failSaveBlob(sbs, new MD5(md5), res, true, expected);
+	}
+	
+	@Test
+	public void saveBlobFailOnMongoWrite() throws Exception {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		final Restreamable res = mock(Restreamable.class);
+		// normally you shouldn't mock value classes but these can't be instantiated
+		// because I'm a dummy
+		final ShockNode sn = mock(ShockNode.class);
+		final ShockFileInformation sfi = mock(ShockFileInformation.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenReturn(null);
+		
+		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
+		
+		when(res.getInputStream()).thenReturn(stream);
+		
+		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+				.thenReturn(sn);
+		
+		when(sn.getId()).thenReturn(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		when(sn.getVersion()).thenReturn(
+				new ShockVersionStamp("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2"));
+		when(sn.getFileInformation()).thenReturn(sfi);
+		when(sfi.getChecksum("md5")).thenReturn(md5);
+		
+		when(col.update(new BasicDBObject("chksum", md5),
+				new BasicDBObject("chksum", md5)
+					.append("node", "ca4a4b5a-b676-4090-9a7d-9690189e29be")
+					.append("ver", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2")
+					.append("sorted", true),
+				true, false))
+				.thenThrow(new MongoException("baz"));
+		
+		failSaveBlob(sbs, new MD5(md5), res, true, new BlobStoreCommunicationException(
+				"Could not write to the mongo database"));
+	}
+	
+	@Test
+	public void saveBlobFailOnDeleteNode() throws Exception {
+		saveBlobFailOnDeleteNode(new IOException("foo"), new BlobStoreCommunicationException(
+				"Could not connect to the Shock backend: foo"));
+		saveBlobFailOnDeleteNode(new ShockHttpException(1, "bar"),
+				new BlobStoreCommunicationException("Failed to delete Shock node: bar"));
+	}
+
+	private void saveBlobFailOnDeleteNode(final Exception thrown, final Exception expected)
+			throws Exception {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		final Restreamable res = mock(Restreamable.class);
+		// normally you shouldn't mock value classes but these can't be instantiated
+		// because I'm a dummy
+		final ShockNode sn1 = mock(ShockNode.class);
+		final ShockFileInformation sfi1 = mock(ShockFileInformation.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenReturn(null);
+		
+		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
+		
+		when(res.getInputStream()).thenReturn(stream);
+		
+		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+				.thenReturn(sn1);
+		
+		when(sfi1.getChecksum("md5")).thenReturn("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3");
+		
+		when(sn1.getId()).thenReturn(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		when(sn1.getFileInformation()).thenReturn(sfi1);
+		
+		doThrow(thrown)
+				.when(client).deleteNode(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		
+		failSaveBlob(sbs, new MD5(md5), res, true, expected);
+	}
+	
+	@Test
+	public void removeBlobNoop() throws Exception {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		final DBObject dbo = new BasicDBObject();
+		dbo.put("chksum", 1);
+		final DBObject opts = new BasicDBObject();
+		opts.put("unique", 1);
+		// need to verify so verifyNoMoreInteractions() works
+		verify(col).createIndex(dbo, opts);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenReturn(null);
+		
+		sbs.removeBlob(new MD5(md5));
+		// same as the when() above
+		verify(col).findOne(new BasicDBObject("chksum", md5));
+		
+		verifyZeroInteractions(client);
+		verifyNoMoreInteractions(col);
+	}
+	
+	@Test
+	public void removeBlob() throws Exception {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenReturn(
+				new BasicDBObject("node", "ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		
+		sbs.removeBlob(new MD5(md5));
+		
+		verify(col).remove(new BasicDBObject("chksum", md5));
+		verify(client).deleteNode(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+	}
+	
+	@Test
+	public void removeBlobFailReadMongo() throws Exception {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenThrow(new MongoException("foo"));
+		
+		failRemoveBlob(sbs, new MD5(md5), new BlobStoreCommunicationException(
+				"Could not read from the mongo database"));
+	}
+
+	private void failRemoveBlob(
+			final ShockBlobStore sbs,
+			final MD5 md5,
+			final Exception expected) {
+		try {
+			sbs.removeBlob(md5);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	@Test
+	public void removeBlobFailOnDeleteNode() throws Exception {
+		removeBlobFailOnDeleteNode(new IOException("foo"), new BlobStoreCommunicationException(
+				"Could not connect to the Shock backend: foo"));
+		removeBlobFailOnDeleteNode(new ShockHttpException(1, "bar"),
+				new BlobStoreCommunicationException("Failed to delete Shock node: bar"));
+	}
+
+	private void removeBlobFailOnDeleteNode(final Exception thrown, final Exception expected)
+			throws Exception {
+		final String md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+		final DBCollection col = mock(DBCollection.class);
+		final BasicShockClient client = mock(BasicShockClient.class);
+		
+		final ShockBlobStore sbs = new ShockBlobStore(col, client);
+		
+		when(col.findOne(new BasicDBObject("chksum", md5))).thenReturn(
+				new BasicDBObject("node", "ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		
+		doThrow(thrown)
+				.when(client).deleteNode(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
+		
+		failRemoveBlob(sbs, new MD5(md5), expected);
+	}
+	
+	// TODO TEST getBlob, removeAllBlobs, getExternalIdentifier tests
 }
+

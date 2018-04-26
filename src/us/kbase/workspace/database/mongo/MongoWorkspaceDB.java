@@ -4,7 +4,6 @@ import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayTo
 import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -2046,8 +2045,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		try {
 			for (ObjectSavePackage p: data) {
 				final String md5 = p.wo.getRep().getMD5().getMD5();
-				try (final InputStream is = p.wo.getRep().getInputStream()) {
-					blob.saveBlob(new MD5(md5), is, true); //always sorted in 0.2.0+
+				try {
+					blob.saveBlob(new MD5(md5), p.wo.getRep(), true); //always sorted in 0.2.0+
 				} catch (BlobStoreCommunicationException e) {
 					throw new WorkspaceCommunicationException(
 							e.getLocalizedMessage(), e);
@@ -2055,11 +2054,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					throw new WorkspaceCommunicationException(
 							"Authorization error communicating with the backend storage system",
 							e);
-				} catch (IOException ioe) {
-					// closing the input stream failed - nothing can be done.
-					// CAUTION - if you change this method, make sure you
-					// don't add any actions that throw IOEs or they'll be
-					// ignored here.
 				}
 			}
 		} finally {

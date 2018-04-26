@@ -8,6 +8,7 @@ import java.util.List;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.typedobj.core.MD5;
+import us.kbase.typedobj.core.Restreamable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
@@ -30,13 +31,12 @@ public class GridFSBlobStore implements BlobStore {
 	
 	private final GridFS gfs;
 	
-	public GridFSBlobStore(DB mongodb) {
+	public GridFSBlobStore(final DB mongodb) {
 		gfs = new GridFS(mongodb);
 	}
 
 	@Override
-	public void saveBlob(final MD5 md5, final InputStream data,
-			final boolean sorted)
+	public void saveBlob(final MD5 md5, final Restreamable data, final boolean sorted)
 			throws BlobStoreCommunicationException {
 		if(data == null || md5 == null) {
 			throw new NullPointerException("Arguments cannot be null");
@@ -44,7 +44,7 @@ public class GridFSBlobStore implements BlobStore {
 		if (getFile(md5) != null) {
 			return; //already exists
 		}
-		final GridFSInputFile gif = gfs.createFile(data, true);
+		final GridFSInputFile gif = gfs.createFile(data.getInputStream(), true);
 		gif.setId(md5.getMD5());
 		gif.setFilename(md5.getMD5());
 		gif.put(Fields.GFS_SORTED, sorted);

@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
@@ -50,6 +49,7 @@ import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.ExternalDataUnit;
@@ -107,9 +107,9 @@ public class JSONRPCLayerTester {
 	protected static WorkspaceClient CLIENT1 = null;
 	protected static WorkspaceClient CLIENT2 = null;  // This client connects to SERVER1 as well
 	protected static WorkspaceClient CLIENT3 = null;  // This client connects to SERVER1 as well
-	protected static String USER1 = null;
-	protected static String USER2 = null;
-	protected static String USER3 = null;
+	protected static final String USER1 = "user1";
+	protected static final String USER2 = "user2";
+	protected static final String USER3 = "user3";
 	protected static String STARUSER = "*";
 	protected static AuthUser AUTH_USER1 = null;
 	protected static AuthUser AUTH_USER2 = null;
@@ -121,6 +121,7 @@ public class JSONRPCLayerTester {
 	protected final static int MAX_UNIQUE_IDS_PER_CALL = 4;
 	
 	private static MongoController mongo;
+	private static AuthController authc;
 	
 	protected static SimpleDateFormat DATE_FORMAT =
 			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
@@ -179,22 +180,6 @@ public class JSONRPCLayerTester {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		System.out.println("Using auth url " + TestCommon.getAuthUrl());
-		final ConfigurableAuthService auth = new ConfigurableAuthService(
-				new AuthConfig().withKBaseAuthServerURL(
-						TestCommon.getAuthUrl())
-				.withAllowInsecureURLs(true));
-		final AuthToken t1 = TestCommon.getToken(1, auth);
-		final AuthToken t2 = TestCommon.getToken(2, auth);
-		final AuthToken t3 = TestCommon.getToken(3, auth);
-		USER1 = t1.getUserName();
-		USER2 = t2.getUserName();
-		USER3 = t3.getUserName();
-		if (USER1.equals(USER2) || USER2.equals(USER3) || USER1.equals(USER3)) {
-			throw new TestException("All the test users must be unique: " + 
-					StringUtils.join(Arrays.asList(USER1, USER2, USER3), " "));
-		}
-		
 		TestCommon.stfuLoggers();
 		mongo = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
@@ -203,6 +188,25 @@ public class JSONRPCLayerTester {
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
 		MongoClient mongoClient = new MongoClient(mongohost);
+		
+		// set up auth
+		final String dbname = JSONRPCLayerTester.class.getSimpleName() + "Auth";
+		authc = new AuthController(
+				TestCommon.getJarsDir(),
+				"localhost:" + mongo.getServerPort(),
+				dbname,
+				Paths.get(TestCommon.getTempDir()));
+		final URL authURL = new URL("http://localhost:" + authc.getServerPort() + "/testmode");
+		System.out.println("started auth server at " + authURL);
+		TestCommon.createAuthUser(authURL, USER1, "display1");
+		final String token1 = TestCommon.createLoginToken(authURL, USER1);
+		TestCommon.createAuthUser(authURL, USER2, "display2");
+		final String token2 = TestCommon.createLoginToken(authURL, USER2);
+		TestCommon.createAuthUser(authURL, USER3, "display3");
+		final String token3 = TestCommon.createLoginToken(authURL, USER3);
+		final AuthToken t1 = new AuthToken(token1, USER1);
+		final AuthToken t2 = new AuthToken(token2, USER2);
+		final AuthToken t3 = new AuthToken(token3, USER3);
 		
 		SERVER1 = startupWorkspaceServer(
 				mongohost, mongoClient.getDB(DB_WS_NAME_1), DB_TYPE_NAME_1);
@@ -226,6 +230,10 @@ public class JSONRPCLayerTester {
 			throw new TestException("Unable to login with test.user3: " + USER3 +
 					"\nPlease check the credentials in the test configuration.", ue);
 		}
+		final ConfigurableAuthService auth = new ConfigurableAuthService(
+				new AuthConfig().withKBaseAuthServerURL(new URL("http://localhost:" +
+						authc.getServerPort() + "/testmode/api/legacy/KBase"))
+				.withAllowInsecureURLs(true));
 		AUTH_USER1 = auth.getUserFromToken(t1);
 		AUTH_USER2 = auth.getUserFromToken(t2);
 
@@ -358,9 +366,11 @@ public class JSONRPCLayerTester {
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db.getName());
-		ws.add("auth-service-url", TestCommon.getAuthUrl());
 		ws.add("auth-service-url-allow-insecure", "true");
-		ws.add("globus-url", TestCommon.getGlobusUrl());
+		ws.add("auth-service-url", new URL("http://localhost:" + authc.getServerPort() +
+				"/testmode/api/legacy/KBase"));
+		ws.add("globus-url", new URL("http://localhost:" + authc.getServerPort() +
+				"/testmode/api/legacy/globus"));
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
@@ -404,6 +414,9 @@ public class JSONRPCLayerTester {
 			System.out.print("Killing server 2... ");
 			SERVER2.stopServer();
 			System.out.println("Done");
+		}
+		if (authc != null) {
+			authc.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (mongo != null) {
 			System.out.println("destroying mongo temp files");
