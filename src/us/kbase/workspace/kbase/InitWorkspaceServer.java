@@ -520,9 +520,10 @@ public class InitWorkspaceServer {
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
 		final AuthConfig c = new AuthConfig();
-		if (cfg.getGlobusURL().getProtocol().equals("http")) {
+		if (cfg.getAuth2URL().getProtocol().equals("http")) {
 			c.withAllowInsecureURLs(true);
-			rep.reportInfo("Warning - the Globus url uses insecure http. https is recommended.");
+			rep.reportInfo("Warning - the Auth Service MKII url uses insecure http. " +
+					"https is recommended.");
 		}
 		if (cfg.getAuthURL().getProtocol().equals("http")) {
 			c.withAllowInsecureURLs(true);
@@ -530,18 +531,20 @@ public class InitWorkspaceServer {
 					"Warning - the Auth Service url uses insecure http. https is recommended.");
 		}
 		try {
-			c.withGlobusAuthURL(cfg.getGlobusURL())
+			final URL auth2url = cfg.getAuth2URL().toURI().resolve("api/legacy/globus").toURL();
+			c.withGlobusAuthURL(auth2url)
 				.withKBaseAuthServerURL(cfg.getAuthURL());
-		} catch (URISyntaxException e) {
-			throw new RuntimeException("this should be impossible", e);
+		} catch (URISyntaxException | MalformedURLException e) {
+			rep.reportFail("Invalid Auth Service url: " + cfg.getAuth2URL());
+			return null;
 		}
 		try {
 			return new ConfigurableAuthService(c);
 		} catch (IOException e) {
 			rep.reportFail("Couldn't connect to authorization service at " +
 					c.getAuthServerURL() + " : " + e.getLocalizedMessage());
+			return null;
 		}
-		return null;
 	}
 
 	

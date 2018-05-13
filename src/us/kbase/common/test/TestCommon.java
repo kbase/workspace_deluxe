@@ -31,9 +31,6 @@ import us.kbase.typedobj.core.TempFilesManager;
 
 public class TestCommon {
 	
-	public static final String AUTHSERV = "test.auth.url";
-	public static final String GLOBUS = "test.globus.url";
-	
 	public static final String SHOCKEXE = "test.shock.exe";
 	public static final String SHOCKVER = "test.shock.version";
 	public static final String MONGOEXE = "test.mongo.exe";

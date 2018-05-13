@@ -96,7 +96,7 @@ import com.mongodb.DB;
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
 	
-	//true if no net access since shock requires access to globus to work
+	//true if no net access since shock requires access to auth to work
 	private static final boolean SKIP_SHOCK = false;
 
 	protected static final ObjectMapper MAPPER = new ObjectMapper();

@@ -120,8 +120,8 @@ MongoDB database itself and is set once by the configuration script (see
 .. warning::
    ``deploy.cfg`` contains several sets of credentials, and thus should be
    protected like any other file containing unencryted passwords or tokens.
-   It is especially important to protect the password / token that the WSS uses
-   to talk to Shock (``backend-secret`` or ``backend-token``) as if
+   It is especially important to protect the token that the WSS uses
+   to talk to Shock (``backend-token``) as if
    access to that account is lost, the new account owner has access to all
    the workspace object data, and recovery will be extremely time consuming
    (use shock admin account to change all the acls for every WSS owned object
@@ -166,13 +166,13 @@ auth-service-url
 """"""""""""""""
 **Required**: Yes
 
-**Description**: URL of the KBase authentication service
+**Description**: URL of the KBase legacy API for the KBase authentication service MKII
 
-globus-url
-""""""""""
+auth2-service-url
+"""""""""""""""""
 **Required**: Yes
 
-**Description**: URL of the Globus Nexus v1 authentication API
+**Description**: URL of the KBase authentication service MKII
 
 ignore-handle-service
 """""""""""""""""""""
@@ -292,7 +292,7 @@ user through the process::
     handle-manager-url=
     handle-manager-token=
     auth-service-url=https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
-    globus-url=https://kbase.us/services/auth/api/legacy/KBase
+    auth2-service-url=https://kbase.us/services/auth/
     ws-admin=workspaceadmin
     backend-token=
     port=7058
@@ -327,7 +327,7 @@ user through the process::
     handle-manager-url=
     handle-manager-token=
     auth-service-url=https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
-    globus-url=https://kbase.us/services/auth/api/legacy/KBase
+    auth2-service-url=https://kbase.us/services/auth/
     ws-admin=workspaceadmin
     backend-token=[redacted]
     port=7058
@@ -582,7 +582,7 @@ Start Tomcat with Workspace service::
     18-Jan-2018 19:55:12.664 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployWAR Deploying web application archive /kb/deployment/services/workspace/tomcat/webapps/ROOT.war
     18-Jan-2018 19:55:14.312 INFO [localhost-startStop-1] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
     MongoDB reconnect value is 0
-    Warning - the Globus url uses insecure http. https is recommended.
+    Warning - the Auth Service MKII url uses insecure http. https is recommended.
     Warning - the Auth Service url uses insecure http. https is recommended.
     Warning - the Handle Service url uses insecure http. https is recommended.
     Warning - the Handle Manager url uses insecure http. https is recommended.
@@ -590,7 +590,7 @@ Start Tomcat with Workspace service::
     mongodb-host=ci-mongo
     mongodb-database=workspace
     mongodb-user=
-    globus-url=http://auth:8080/api/legacy/globus
+    auth2-service-url=http://auth:8080/
     auth-service-url=http://auth:8080/api/legacy/KBase
     handle-service-url=http://handle_service:8080/
     handle-manager-url=http://handle_manager:8080/

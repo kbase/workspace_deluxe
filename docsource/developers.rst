@@ -119,7 +119,7 @@ Make the following changes -
 .. code-block:: cfg
 
     auth-service-url = https://ci.kbase.us/services/auth/api/legacy/KBase/Sessions/Login
-    globus-url = https://ci.kbase.us/services/auth/api/legacy/globus/
+    auth2-service-url = https://ci.kbase.us/services/auth/
     ws-admin = [YOUR_NAME]
     # Note: ignore-handle-service does not exist and needs to be added
     ignore-handle-service = true
