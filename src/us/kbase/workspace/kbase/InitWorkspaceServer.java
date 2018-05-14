@@ -43,6 +43,7 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
+import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.BlobStore;
@@ -50,6 +51,7 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
+import us.kbase.workspace.kbase.admin.DefaultAdminHandler;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
@@ -188,8 +190,10 @@ public class InitWorkspaceServer {
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
 				ws, types, cfg.getHandleServiceURL(), cfg.getHandleManagerURL(),
 				handleMgrToken, maxUniqueIdCountPerCall, auth);
+		final String a = cfg.getWorkspaceAdmin();
+		final WorkspaceUser admin = a == null || a.trim().isEmpty() ? null : new WorkspaceUser(a);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				ws, wsmeth, types, cfg.getWorkspaceAdmin());
+				ws, wsmeth, types, new DefaultAdminHandler(ws, admin));
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),

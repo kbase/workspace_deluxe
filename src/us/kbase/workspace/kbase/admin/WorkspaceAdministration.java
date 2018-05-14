@@ -6,7 +6,6 @@ import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifie
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -87,19 +86,17 @@ public class WorkspaceAdministration {
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final Types types;
-	private final Set<String> internaladmins = new HashSet<String>(); 
+	private final AdministratorHandler admin;
 	
 	public WorkspaceAdministration(
 			final Workspace ws, 
 			final WorkspaceServerMethods wsmeth,
 			final Types types,
-			final String admin) {
+			final AdministratorHandler admin) {
 		this.ws = ws;
 		this.types = types;
 		this.wsmeth = wsmeth;
-		if (admin != null && !admin.isEmpty()) {
-			internaladmins.add(admin);
-		}
+		this.admin = admin;
 	}
 	
 	private static Logger getLogger() {
@@ -111,9 +108,10 @@ public class WorkspaceAdministration {
 			final UObject command,
 			final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
 			throws Exception {
+		final AdminRole role = admin.getAdminRole(token);
+		//TODO NOW check read only role
 		final String putativeAdmin = token.getUserName();
-		if (!(internaladmins.contains(putativeAdmin) ||
-				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
+		if (AdminRole.NONE.equals(role)) {
 			throw new IllegalArgumentException("User " + putativeAdmin + " is not an admin");
 		}
 		final AdminCommand cmd;
@@ -147,21 +145,18 @@ public class WorkspaceAdministration {
 		}
 		if (LIST_ADMINS.equals(fn)) {
 			getLogger().info(LIST_ADMINS);
-			final Set<String> strAdm = new HashSet<String>();
-			strAdm.addAll(usersToStrings(ws.getAdmins()));
-			strAdm.addAll(internaladmins);
-			return strAdm;
+			return usersToStrings(admin.getAdmins());
 		}
 		if (ADD_ADMIN.equals(fn)) {
 			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(ADD_ADMIN + " " + user.getUser());
-			ws.addAdmin(user);
+			admin.addAdmin(user);
 			return null;
 		}
 		if (REMOVE_ADMIN.equals(fn)) {
 			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(REMOVE_ADMIN + " " + user.getUser());
-			ws.removeAdmin(user);
+			admin.removeAdmin(user);
 			return null;
 		}
 		if (SET_WORKSPACE_OWNER.equals(fn)) {

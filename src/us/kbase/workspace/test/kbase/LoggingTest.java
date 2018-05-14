@@ -73,7 +73,7 @@ public class LoggingTest {
 	private static final String SERV =
 			"us.kbase.workspace.WorkspaceServer";
 	private static final String ADMIN =
-			"us.kbase.workspace.kbase.WorkspaceAdministration";
+			"us.kbase.workspace.kbase.admin.WorkspaceAdministration";
 	
 	private static final String DB_WS_NAME = "LoggingTest";
 	private static final String DB_TYPE_NAME = "LoggingTest_Types";
