@@ -1,4 +1,4 @@
-package us.kbase.workspace.kbase;
+package us.kbase.workspace.kbase.admin;
 
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
@@ -45,6 +45,7 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.kbase.WorkspaceServerMethods;
 
 public class WorkspaceAdministration {
 	
