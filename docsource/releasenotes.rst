@@ -1,6 +1,14 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.9.0 (Released TBD)
+-----------------------------
+
+BACKWARDS INCOMPATIBILITIES:
+
+* The ``globus-url`` configuration parameter has been replaced by the ``auth2-service-url``
+  parameter.
+
 VERSION: 0.8.1 (Released 4/24/18)
 ---------------------------------
 

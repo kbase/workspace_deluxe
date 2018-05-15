@@ -203,8 +203,8 @@ public class LoggingTest {
 		ws.add("auth-service-url-allow-insecure", "true");
 		ws.add("auth-service-url", new URL("http://localhost:" + authc.getServerPort() +
 				"/testmode/api/legacy/KBase"));
-		ws.add("globus-url", new URL("http://localhost:" + authc.getServerPort() +
-				"/testmode/api/legacy/globus"));
+		ws.add("auth2-service-url", new URL("http://localhost:" + authc.getServerPort() +
+				"/testmode/"));
 		ws.add("backend-secret", "foo");
 		ws.add("ws-admin", USER2);
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())

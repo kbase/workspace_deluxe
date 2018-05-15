@@ -31,7 +31,7 @@ public class KBaseWorkspaceConfig {
 	
 	//auth servers
 	private static final String KBASE_AUTH_URL = "auth-service-url";
-	private static final String GLOBUS_AUTH_URL = "globus-url";
+	private static final String KBASE_AUTH2_URL = "auth2-service-url";
 	
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
@@ -49,7 +49,7 @@ public class KBaseWorkspaceConfig {
 	private static final String TEMP_DIR = "temp-dir";
 	
 	private static final List<String> REQUIRED_PARAMS = Arrays.asList(
-			HOST, DB, TEMP_DIR, GLOBUS_AUTH_URL, KBASE_AUTH_URL);
+			HOST, DB, TEMP_DIR, KBASE_AUTH_URL, KBASE_AUTH2_URL);
 	
 	private final String host;
 	private final String db;
@@ -59,7 +59,7 @@ public class KBaseWorkspaceConfig {
 	private final String mongoUser;
 	private final String mongoPassword;
 	private final URL authURL;
-	private final URL globusURL;
+	private final URL auth2URL;
 	private final int mongoReconnectAttempts;
 	private final boolean ignoreHandleService;
 	private final URL handleServiceURL;
@@ -109,7 +109,7 @@ public class KBaseWorkspaceConfig {
 		tempDir = config.get(TEMP_DIR);
 		
 		authURL = getUrl(config, KBASE_AUTH_URL, paramErrors);
-		globusURL = getUrl(config, GLOBUS_AUTH_URL, paramErrors);
+		auth2URL = getUrl(config, KBASE_AUTH2_URL, paramErrors);
 		
 		final String beToken = config.get(BACKEND_TOKEN);
 		if (beToken == null || beToken.trim().isEmpty()) {
@@ -220,8 +220,7 @@ public class KBaseWorkspaceConfig {
 	private String generateParamReport(final Map<String, String> cfg) {
 		String params = "";
 		final List<String> paramSet = new LinkedList<String>(
-				Arrays.asList(HOST, DB, MONGO_USER, GLOBUS_AUTH_URL,
-						KBASE_AUTH_URL));
+				Arrays.asList(HOST, DB, MONGO_USER, KBASE_AUTH_URL, KBASE_AUTH2_URL));
 		if (!ignoreHandleService) {
 			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL, HANDLE_MANAGER_URL));
 		}
@@ -246,7 +245,7 @@ public class KBaseWorkspaceConfig {
 			final String configKey,
 			final List<String> errors) {
 		final String urlStr = wsConfig.get(configKey);
-		if (urlStr == null || urlStr.isEmpty()) {
+		if (urlStr == null || urlStr.trim().isEmpty()) {
 			errors.add("Must provide param " + configKey + " in config file");
 			return null;
 		}
@@ -294,8 +293,8 @@ public class KBaseWorkspaceConfig {
 		return authURL;
 	}
 	
-	public URL getGlobusURL() {
-		return globusURL;
+	public URL getAuth2URL() {
+		return auth2URL;
 	}
 	
 	public String getBackendToken() {
