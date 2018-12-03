@@ -854,7 +854,7 @@ public class MongoInternalsTest {
 						objname, rwsi.getID(), rwsi.getName()));
 		
 		assertNull("can't get object mid save", mwdb.getObjectInformation(
-				oidsetver, false, false, false, false).get(0));
+				oidsetver, false, false, false, false).get(oidrwWithVer));
 		try {
 			mwdb.getObjectInformation(oidsetver, false, true, false, true);
 			fail("got object with no version");
