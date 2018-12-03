@@ -1,6 +1,12 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.8.2 (Released TBD)
+-----------------------------
+
+* Workspace descriptions are now measured in Unicode code points rather than Java characters.
+* Added the setWorkspaceDescription administration command.
+
 VERSION: 0.8.1 (Released 4/24/18)
 ---------------------------------
 

@@ -1,6 +1,7 @@
 package us.kbase.workspace.database;
 
 import static us.kbase.workspace.database.Util.nonNull;
+import static java.util.Objects.requireNonNull;
 import static us.kbase.workspace.database.Util.noNulls;
 
 import java.io.IOException;
@@ -269,27 +270,51 @@ public class Workspace {
 		return db.getWorkspaceInformation(user, wsid);
 	}
 
-	private String pruneWorkspaceDescription(final String description) {
-		if(description != null && description.length() > MAX_WS_DESCRIPTION) {
-			return description.substring(0, MAX_WS_DESCRIPTION);
+	private String pruneWorkspaceDescription(final String d) {
+		if (d != null && d.codePointCount(0, d.length()) > MAX_WS_DESCRIPTION) {
+			return d.substring(0, d.offsetByCodePoints(0, MAX_WS_DESCRIPTION));
 		}
-		return description;
+		return d;
 	}
 
-	public void setWorkspaceDescription(
+	/** Set the description for a workspace. The description size is automatically pruned to
+	 * 1000 Unicode code points.
+	 * @param user the user changing the description.
+	 * @param wsi the workspace to alter.
+	 * @param description the new description.
+	 * @param asAdmin true to run the command as an admin, ignoring the user and doing no
+	 * permission checking.
+	 * @return the ID of the altered workspace.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to alter the workspace.
+	 */
+	public long setWorkspaceDescription(
 			final WorkspaceUser user,
 			final WorkspaceIdentifier wsi,
-			final String description)
+			final String description,
+			final boolean asAdmin)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 				WorkspaceCommunicationException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
-				.getWorkspaceChecker(wsi, Permission.ADMIN)
-				.withOperation("set description on").check();
+		requireNonNull(wsi, "wsi");
+		final ResolvedWorkspaceID wsid;
+		if (asAdmin) {
+			wsid = db.resolveWorkspace(wsi);
+			PermissionsCheckerFactory.checkLocked(Permission.WRITE, wsid);
+		} else {
+			wsid = new PermissionsCheckerFactory(db, user)
+					.getWorkspaceChecker(wsi, Permission.ADMIN)
+					.withOperation("set description on").check();
+		}
+		// ugh, should be setting the time rather than getting it from the db impl.
 		final Instant time = db.setWorkspaceDescription(
 				wsid, pruneWorkspaceDescription(description));
 		for (final WorkspaceEventListener l: listeners) {
 			l.setWorkspaceDescription(wsid.getID(), time);
 		}
+		return wsid.getID();
 	}
 	
 	public String getWorkspaceDescription(

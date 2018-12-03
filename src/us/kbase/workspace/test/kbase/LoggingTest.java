@@ -53,6 +53,7 @@ import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
+import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
@@ -753,6 +754,17 @@ public class LoggingTest {
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
 				new AdminExp("setPermissions 1 a " + USER2, ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		// set description
+		ac.put("command", "setWorkspaceDescription");
+		ac.put("params", new SetWorkspaceDescriptionParams().withWorkspace(ws)
+				.withDescription("foo"));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("setWorkspaceDescription 1", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		

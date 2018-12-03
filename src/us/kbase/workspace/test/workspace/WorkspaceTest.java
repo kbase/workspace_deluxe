@@ -178,9 +178,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"));
 		assertNull("Workspace description incorrect", desc);
 		
-		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"), LONG_TEXT_PART);
-		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"), null);
-		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"), LONG_TEXT);
+		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"), LONG_TEXT_PART, false);
+		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"), null, false);
+		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"), LONG_TEXT, false);
 		
 		WorkspaceInformation ltinfo2 = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("lt"));
 		WorkspaceInformation ltpinfo2 = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("ltp"));
@@ -206,7 +206,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failSetWSDesc(AUSER, wsi, "foo", new WorkspaceAuthorizationException(
 				"User a may not set description on workspace lt"));
 		ws.setPermissions(SOMEUSER, wsi, Arrays.asList(AUSER), Permission.ADMIN);
-		ws.setWorkspaceDescription(AUSER, wsi, "wooga");
+		ws.setWorkspaceDescription(AUSER, wsi, "wooga", false);
 		assertThat("ws desc ok", ws.getWorkspaceDescription(SOMEUSER, wsi), is("wooga"));
 		
 		ws.setWorkspaceDeleted(SOMEUSER, wsi, true);
@@ -5317,7 +5317,7 @@ public class WorkspaceTest extends WorkspaceTester {
 							", name lock, is locked and may not be modified"));
 		}
 		try {
-			ws.setWorkspaceDescription(user, wsi, "wugga");
+			ws.setWorkspaceDescription(user, wsi, "wugga", false);
 			fail("set desc on locked ws");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("correct exception", e.getLocalizedMessage(),

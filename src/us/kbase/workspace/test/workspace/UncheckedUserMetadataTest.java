@@ -80,6 +80,7 @@ public class UncheckedUserMetadataTest {
 		assertThat("hashcode correct", uum.hashCode(), is(61684));
 	}
 	
+	@SuppressWarnings("unlikely-arg-type")
 	@Test
 	public void equalsCheck() throws Exception {
 		Map<String, String> m = new HashMap<String, String>();

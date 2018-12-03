@@ -498,7 +498,7 @@ public class WorkspaceTester {
 			final Exception e)
 			throws Exception {
 		try {
-			ws.setWorkspaceDescription(user, wsi, description);
+			ws.setWorkspaceDescription(user, wsi, description, false);
 			fail("set ws desc when should fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);
