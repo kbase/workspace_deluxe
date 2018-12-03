@@ -493,8 +493,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		ws.setWorkspaceDescription(wsmeth.getUser(authPart), wsi,
-				params.getDescription());
+		ws.setWorkspaceDescription(wsmeth.getUser(authPart), wsi, params.getDescription(), false);
         //END set_workspace_description
     }
 

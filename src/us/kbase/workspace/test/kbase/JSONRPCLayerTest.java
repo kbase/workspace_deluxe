@@ -3828,6 +3828,32 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void adminSetWorkspaceDescription() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace("descws");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace())
+				.withDescription("foo"));
+		final WorkspaceIdentity wsid = new WorkspaceIdentity().withId(1L);
+
+		// update with name
+		final Map<String, Object> params = new HashMap<>();
+		params.put("command", "setWorkspaceDescription");
+		params.put("params", new SetWorkspaceDescriptionParams()
+				.withDescription("new desc")
+				.withWorkspace("descws"));
+		
+		CLIENT2.administer(new UObject(params));
+		assertThat("incorrect desc", CLIENT1.getWorkspaceDescription(wsid), is("new desc"));
+		
+		// update with id
+		params.put("params", new SetWorkspaceDescriptionParams()
+				.withDescription("new desc2")
+				.withId(1L));
+		
+		CLIENT2.administer(new UObject(params));
+		assertThat("incorrect desc", CLIENT1.getWorkspaceDescription(wsid), is("new desc2"));
+	}
+	
+	@Test
 	public void getAllWorkspaceOwners() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
 				.withWorkspace("getAllWorkspaceOwners1"));
