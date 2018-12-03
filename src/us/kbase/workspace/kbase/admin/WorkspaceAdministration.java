@@ -37,6 +37,7 @@ import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
+import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
@@ -49,7 +50,7 @@ import us.kbase.workspace.kbase.WorkspaceServerMethods;
 public class WorkspaceAdministration {
 	
 	//TODO JAVADOC
-	//TODO TEST
+	//TODO TEST unit tests
 	
 	private static final String DENY_MOD_REQUEST = "denyModRequest";
 	private static final String APPROVE_MOD_REQUEST = "approveModRequest";
@@ -66,6 +67,8 @@ public class WorkspaceAdministration {
 	private static final String GRANT_MODULE_OWNERSHIP = "grantModuleOwnership";
 	private static final String LIST_WORKSPACES = "listWorkspaces";
 	private static final String LIST_WORKSPACE_IDS = "listWorkspaceIDs";
+	private static final String GET_WORKSPACE_DESCRIPTION = "getWorkspaceDescription";
+	private static final String SET_WORKSPACE_DESCRIPTION = "setWorkspaceDescription";
 	private static final String LIST_OBJECTS = "listObjects";
 	private static final String SAVE_OBJECTS = "saveObjects";
 	private static final String GET_OBJECT_INFO = "getObjectInfo";
@@ -183,6 +186,24 @@ public class WorkspaceAdministration {
 			getLogger().info(SET_PERMISSIONS + " " + id + " " + params.getNewPermission() + " " +
 					StringUtils.join(params.getUsers(), " "));
 			return null;
+		}
+		if (SET_WORKSPACE_DESCRIPTION.equals(fn)) {
+			final SetWorkspaceDescriptionParams params = getParams(
+					cmd, SetWorkspaceDescriptionParams.class);
+			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
+					params.getWorkspace(), params.getId());
+			final long id = ws.setWorkspaceDescription(null, wsi, params.getDescription(), true);
+			getLogger().info(SET_WORKSPACE_DESCRIPTION + " " + id);
+			return null;
+		}
+		if (GET_WORKSPACE_DESCRIPTION.equals(fn)) {
+			final WorkspaceIdentity wsi = getParams(cmd, WorkspaceIdentity.class);
+			final WorkspaceIdentifier wsid = processWorkspaceIdentifier(wsi);
+			final String desc = ws.getWorkspaceDescription(null, wsid, true);
+			// TODO FEATURE would be better if could always provide ID vs. name
+			getLogger().info(GET_WORKSPACE_DESCRIPTION + " " + wsi.getId() + " " +
+					wsi.getWorkspace());
+			return desc;
 		}
 		if (GET_PERMISSIONS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);

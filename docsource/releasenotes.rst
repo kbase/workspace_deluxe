@@ -9,6 +9,13 @@ BACKWARDS INCOMPATIBILITIES:
 * The ``globus-url`` configuration parameter has been replaced by the ``auth2-service-url``
   parameter.
 
+VERSION: 0.8.2 (Released 12/3/18)
+---------------------------------
+
+* Workspace descriptions are now measured in Unicode code points rather than Java characters.
+* Added the setWorkspaceDescription administration command.
+* Added the getWorkspaceDescription administration command.
+
 VERSION: 0.8.1 (Released 4/24/18)
 ---------------------------------
 

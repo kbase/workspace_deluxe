@@ -171,16 +171,16 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceInformation ltinfo = ws.createWorkspace(SOMEUSER, "lt", false, LONG_TEXT, null);
 		WorkspaceInformation ltpinfo = ws.createWorkspace(SOMEUSER, "ltp", false, LONG_TEXT_PART, null);
 		WorkspaceInformation ltninfo = ws.createWorkspace(SOMEUSER, "ltn", false, null, null);
-		String desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"));
+		String desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"), false);
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT.substring(0, 1000)));
-		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"));
+		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"), false);
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT_PART));
-		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"));
+		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"), false);
 		assertNull("Workspace description incorrect", desc);
 		
-		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"), LONG_TEXT_PART);
-		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"), null);
-		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"), LONG_TEXT);
+		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"), LONG_TEXT_PART, false);
+		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"), null, false);
+		ws.setWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"), LONG_TEXT, false);
 		
 		WorkspaceInformation ltinfo2 = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("lt"));
 		WorkspaceInformation ltpinfo2 = ws.getWorkspaceInformation(SOMEUSER, new WorkspaceIdentifier("ltp"));
@@ -190,11 +190,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertTrue("date updated on set ws desc", ltpinfo2.getModDate().isAfter(ltpinfo.getModDate()));
 		assertTrue("date updated on set ws desc", ltninfo2.getModDate().isAfter(ltninfo.getModDate()));
 		
-		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"));
+		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("lt"), false);
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT_PART));
-		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"));
+		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltp"), false);
 		assertNull("Workspace description incorrect", desc);
-		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"));
+		desc = ws.getWorkspaceDescription(SOMEUSER, new WorkspaceIdentifier("ltn"), false);
 		assertThat("Workspace description incorrect", desc, is(LONG_TEXT.substring(0, 1000)));
 		
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("lt");
@@ -206,8 +206,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		failSetWSDesc(AUSER, wsi, "foo", new WorkspaceAuthorizationException(
 				"User a may not set description on workspace lt"));
 		ws.setPermissions(SOMEUSER, wsi, Arrays.asList(AUSER), Permission.ADMIN);
-		ws.setWorkspaceDescription(AUSER, wsi, "wooga");
-		assertThat("ws desc ok", ws.getWorkspaceDescription(SOMEUSER, wsi), is("wooga"));
+		ws.setWorkspaceDescription(AUSER, wsi, "wooga", false);
+		assertThat("ws desc ok", ws.getWorkspaceDescription(SOMEUSER, wsi, false), is("wooga"));
 		
 		ws.setWorkspaceDeleted(SOMEUSER, wsi, true);
 		failSetWSDesc(SOMEUSER, wsi, "foo", new NoSuchWorkspaceException(
@@ -217,7 +217,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				"No workspace with name ltfake exists", wsi));
 		
 		try {
-			ws.getWorkspaceDescription(BUSER, wsi);
+			ws.getWorkspaceDescription(BUSER, wsi, false);
 			fail("Got ws desc w/o read perms");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("exception message ok", e.getLocalizedMessage(),
@@ -228,7 +228,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				continue;
 			}
 			ws.setPermissions(SOMEUSER, wsi, Arrays.asList(BUSER), p);
-			ws.getWorkspaceDescription(BUSER, wsi); //will fail if perms are wrong
+			ws.getWorkspaceDescription(BUSER, wsi, false); //will fail if perms are wrong
 		}
 		
 		ws.lockWorkspace(SOMEUSER, wsi);
@@ -1213,7 +1213,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//try some illegal ops
 		try {
-			ws.getWorkspaceDescription(null, wsiNG);
+			ws.getWorkspaceDescription(null, wsiNG, false);
 			fail("Able to get private workspace description with no user name");
 		} catch (Exception e) {
 			assertThat("Correct exception message", e.getLocalizedMessage(),
@@ -1252,8 +1252,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("ws has correct perms for random user", ws.getPermissions(
 				BUSER, Arrays.asList(wsiGL)).get(0), is(expect));
 		//test read permissions
-		assertThat("can read public workspace description", ws.getWorkspaceDescription(null, wsiGL),
-				is("globaldesc"));
+		assertThat("can read public workspace description",
+				ws.getWorkspaceDescription(null, wsiGL, false), is("globaldesc"));
 		WorkspaceInformation info = ws.getWorkspaceInformation(null, wsiGL);
 		checkWSInfo(info, AUSER, "perms_global", 0, Permission.NONE, true, "unlocked", MT_MAP);
 		final long id = ws.setPermissions(AUSER, wsiNG, Arrays.asList(AUSER, BUSER, CUSER),
@@ -4088,7 +4088,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		objs = new ArrayList<ObjectIdentifier>(idToData.keySet());
 		
 		checkNonDeletedObjs(user, idToData);
-		assertThat("can get ws description", ws.getWorkspaceDescription(user, read),
+		assertThat("can get ws description", ws.getWorkspaceDescription(user, read, false),
 				is("descrip"));
 		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1, Permission.OWNER, false, "unlocked", MT_MAP);
 		WorkspaceUser bar = new WorkspaceUser("bar");
@@ -4114,7 +4114,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceInformation read2 = ws.listWorkspaces(user, null, null, null,
 				null, null, true, true, false).get(0);
 		try {
-			ws.getWorkspaceDescription(user, read);
+			ws.getWorkspaceDescription(user, read, false);
 			fail("got description from deleted workspace");
 		} catch (NoSuchWorkspaceException e) {
 			assertThat("correct exception msg", e.getLocalizedMessage(),
@@ -4169,7 +4169,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("incorrect ws id", id2, is(1L));
 		WorkspaceInformation read3 = ws.getWorkspaceInformation(user, read);
 		checkNonDeletedObjs(user, idToData);
-		assertThat("can get ws description", ws.getWorkspaceDescription(user, read),
+		assertThat("can get ws description", ws.getWorkspaceDescription(user, read, false),
 				is("descrip"));
 		checkWSInfo(ws.getWorkspaceInformation(user, read), user, "deleteundelete", 1,
 				Permission.OWNER, false, "unlocked", MT_MAP);
@@ -4205,7 +4205,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failDeleteWorkspaceAsAdmin(u2, nows, false, true,
 				new NoSuchWorkspaceException("No workspace with name nows exists", delws));
 		ws.setWorkspaceDeleted(u2, delwsid, false, true);
-		assertThat("incorrect ws desc", ws.getWorkspaceDescription(u1, delws), is("whee"));
+		assertThat("incorrect ws desc", ws.getWorkspaceDescription(u1, delws, false), is("whee"));
 		
 		//test delete
 		failDeleteWorkspace(u2, delwsid, true, new WorkspaceAuthorizationException(
@@ -4986,7 +4986,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkWSInfo(target, user, target.getName(), 0L, Permission.OWNER,
 				false, 2, i.getModDate(), "unlocked", mt);
 		assertThat("incorrect description",
-				ws.getWorkspaceDescription(user, target), is((String) null));
+				ws.getWorkspaceDescription(user, target, false), is((String) null));
 		
 		//test excluding and deleted objects
 		List<WorkspaceSaveObject> objects = Arrays.asList(
@@ -5006,7 +5006,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		checkWSInfo(target2, user, target2.getName(), 0L, Permission.OWNER,
 				true, 3, i2.getModDate(), "unlocked", mt);
 		assertThat("incorrect description",
-				ws.getWorkspaceDescription(user, target2), is((String) null));
+				ws.getWorkspaceDescription(user, target2, false), is((String) null));
 	}
 	
 	@Test
@@ -5072,7 +5072,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		checkWSInfo(clone1, user1, "newclone", 3, Permission.OWNER, false, info1.getId(),
 				info1.getModDate(), "unlocked", premeta);
-		assertNull("desc ok", ws.getWorkspaceDescription(user1, clone1));
+		assertNull("desc ok", ws.getWorkspaceDescription(user1, clone1, false));
 		
 		List<ObjectInformation> objs = ws.getObjectHistory(user1, new ObjectIdentifier(cp1, "hide"));
 		ObjectInformation save11 = objs.get(0);
@@ -5113,7 +5113,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		checkWSInfo(clone2, user1, "newclone2", 3, Permission.OWNER, true, info2.getId(),
 				info2.getModDate(), "unlocked", MT_MAP);
-		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone2), is("my desc"));
+		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone2, false), is("my desc"));
 		
 		origobjs = ws.getObjectHistory(user1, new ObjectIdentifier(clone2, "orig"));
 		id = origobjs.get(0).getObjectId();
@@ -5161,7 +5161,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		checkWSInfo(clone3, user1, "newclone3", 3, Permission.OWNER, false, info3.getId(),
 				info3.getModDate(), "unlocked", premeta);
-		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone3), is("my desc2"));
+		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone3, false), is("my desc2"));
 		
 		origobjs = ws.getObjectHistory(user1, new ObjectIdentifier(clone3, "orig"));
 		id = origobjs.get(0).getObjectId();
@@ -5177,7 +5177,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceIdentifier clone4 = new WorkspaceIdentifier("newclone4");
 		ws.cloneWorkspace(
 				user1, cp1, clone4.getName(), true, LONG_TEXT, null, null);
-		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone4), is(LONG_TEXT.subSequence(0, 1000)));
+		assertThat("desc ok", ws.getWorkspaceDescription(user1, clone4, false),
+				is(LONG_TEXT.subSequence(0, 1000)));
 		
 		ws.setGlobalPermission(user1, clone2, Permission.NONE);
 		ws.setGlobalPermission(user1, clone4, Permission.NONE);
@@ -5205,7 +5206,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.WRITE);
 		ws.setPermissions(user, wsi, Arrays.asList(user2), Permission.NONE);
 		ws.getPermissions(user, Arrays.asList(wsi));
-		ws.getWorkspaceDescription(user, wsi);
+		ws.getWorkspaceDescription(user, wsi, false);
 		ws.getWorkspaceInformation(user, wsi);
 		ws.listObjects(new ListObjectsParameters(user, Arrays.asList(wsi)));
 		
@@ -5317,7 +5318,7 @@ public class WorkspaceTest extends WorkspaceTester {
 							", name lock, is locked and may not be modified"));
 		}
 		try {
-			ws.setWorkspaceDescription(user, wsi, "wugga");
+			ws.setWorkspaceDescription(user, wsi, "wugga", false);
 			fail("set desc on locked ws");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("correct exception", e.getLocalizedMessage(),
@@ -5326,7 +5327,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		
 		try {
-			ws.getWorkspaceDescription(user2, wsi);
+			ws.getWorkspaceDescription(user2, wsi, false);
 			fail("bad access to locked workspace");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("correct exception", e.getLocalizedMessage(),
@@ -5342,7 +5343,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				user, "lock", 1, Permission.OWNER, true, "published", meta);
 		checkWSInfo(ws.getWorkspaceInformation(user2, wsi),
 				user, "lock", 1, Permission.NONE, true, "published", meta);
-		ws.getWorkspaceDescription(user2, wsi);
+		ws.getWorkspaceDescription(user2, wsi, false);
 		
 		//shouldn't
 		try {
@@ -5496,7 +5497,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("read set correctly", ws.getPermissions(user,
 				Arrays.asList(wsi)).get(0).get(new AllUsers('*')),
 				is(Permission.READ));
-		ws.getWorkspaceDescription(user2, wsi);
+		ws.getWorkspaceDescription(user2, wsi, false);
 		failSetGlobalPerm(user, null, Permission.READ, new IllegalArgumentException(
 				"Workspace identifier cannot be null"));
 		failSetGlobalPerm(user, wsi, Permission.WRITE, new IllegalArgumentException(

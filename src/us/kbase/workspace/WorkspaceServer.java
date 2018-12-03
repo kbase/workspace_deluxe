@@ -107,7 +107,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.8.1";
+	private static final String VER = "0.8.2";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
@@ -447,7 +447,7 @@ public class WorkspaceServer extends JsonServerServlet {
         String returnVal = null;
         //BEGIN get_workspace_description
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		returnVal = ws.getWorkspaceDescription(wsmeth.getUser(authPart), wksp);
+		returnVal = ws.getWorkspaceDescription(wsmeth.getUser(authPart), wksp, false);
         //END get_workspace_description
         return returnVal;
     }
@@ -493,8 +493,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		ws.setWorkspaceDescription(wsmeth.getUser(authPart), wsi,
-				params.getDescription());
+		ws.setWorkspaceDescription(wsmeth.getUser(authPart), wsi, params.getDescription(), false);
         //END set_workspace_description
     }
 
