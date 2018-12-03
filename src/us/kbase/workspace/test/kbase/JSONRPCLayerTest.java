@@ -92,7 +92,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.8.1"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.8.2"));
 	}
 	
 	public void status() throws Exception {
@@ -3826,6 +3826,54 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		params.put("params", new WorkspaceIdentity().withId(2L));
 		failAdmin(CLIENT2, params, "No workspace with id 2 exists");
 	}
+	
+	@Test
+	public void adminSetWorkspaceDescription() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace("setdescws");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace())
+				.withDescription("foo"));
+		final WorkspaceIdentity wsid = new WorkspaceIdentity().withId(1L);
+
+		// update with name
+		final Map<String, Object> params = new HashMap<>();
+		params.put("command", "setWorkspaceDescription");
+		params.put("params", new SetWorkspaceDescriptionParams()
+				.withDescription("new desc")
+				.withWorkspace("setdescws"));
+		
+		CLIENT2.administer(new UObject(params));
+		assertThat("incorrect desc", CLIENT1.getWorkspaceDescription(wsid), is("new desc"));
+		
+		// update with id
+		params.put("params", new SetWorkspaceDescriptionParams()
+				.withDescription("new desc2")
+				.withId(1L));
+		
+		CLIENT2.administer(new UObject(params));
+		assertThat("incorrect desc", CLIENT1.getWorkspaceDescription(wsid), is("new desc2"));
+	}
+	
+	@Test
+	public void adminGetWorkspaceDescription() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace("getdescws");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace())
+				.withDescription("my desc"));
+
+		// get by name
+		final Map<String, Object> params = new HashMap<>();
+		params.put("command", "getWorkspaceDescription");
+		params.put("params", new WorkspaceIdentity().withWorkspace("getdescws"));
+		
+		assertThat("incorrect description", CLIENT2.administer(new UObject(params)).asScalar(),
+				is("my desc"));
+		
+		// get by id
+		params.put("params", new WorkspaceIdentity().withId(1L));
+		
+		assertThat("incorrect description", CLIENT2.administer(new UObject(params)).asScalar(),
+				is("my desc"));
+	}
+	
 	
 	@Test
 	public void getAllWorkspaceOwners() throws Exception {

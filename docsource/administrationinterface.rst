@@ -126,15 +126,17 @@ createWorkspace                 yes
 setPermissions                  no
 getPermissions (DEPRECATED)     optional (1)
 getPermissionsMass              no
-getWorkspaceInfo                no
-getObjectInfo                   no (2)
+setWorkspaceDescription         no
+getWorkspaceDescription         no
+getWorkspaceInfo                no (2)
+getObjectInfo                   no (3)
 getObjectHistory                no
-getObjects                      no (3)
+getObjects                      no (4)
 setGlobalPermission             yes
 saveObjects                     yes
 listWorkspaces                  yes
 listWorkspaceIDs                yes
-listObjects                     optional (4)
+listObjects                     optional (5)
 deleteWorkspace                 no
 undeleteWorkspace               no
 grantModuleOwnership            no
@@ -142,6 +144,7 @@ removeModuleOwnership           no
 ==============================  =================
 
 #. If omitted, returns the permissions as if the user is an administrator of the workspace.
+#. The user permission is always returned as 'none'.
 #. Parameters are as get_object_info3.
 #. Parameters are as get_objects2.
 #. If omitted, returns all objects requested, but at least one and no more than 1000 workspaces

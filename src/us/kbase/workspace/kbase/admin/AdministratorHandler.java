@@ -35,7 +35,7 @@ public interface AdministratorHandler {
 	
 	/** Remove an admin.
 	 * @param user the user to remove from the admin list.
-	 * @throws AdministratorHandlerException the the operation failed.
+	 * @throws AdministratorHandlerException if the operation failed.
 	 */
 	void removeAdmin(WorkspaceUser user) throws AdministratorHandlerException;
 	
