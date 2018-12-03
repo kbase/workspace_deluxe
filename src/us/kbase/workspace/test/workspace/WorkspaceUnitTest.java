@@ -136,6 +136,20 @@ public class WorkspaceUnitTest {
 	}
 	
 	@Test
+	public void getDescriptionAsAdmin() throws Exception {
+		final TestMocks mocks = initMocks();
+		
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ws", false, false);
+		when(mocks.db.resolveWorkspace(new WorkspaceIdentifier("ws"))).thenReturn(rwsi);
+		
+		when(mocks.db.getWorkspaceDescription(rwsi)).thenReturn("my desc");
+		
+		assertThat("incorrect desc", mocks.ws.getWorkspaceDescription(
+				null, new WorkspaceIdentifier("ws"), true),
+				is("my desc"));
+	}
+	
+	@Test
 	public void setWorkspaceDescriptionFailNulls() throws Exception {
 		setWorkspaceDescriptionFail(initMocks().ws, null, false, new NullPointerException("wsi"));
 	}
@@ -259,7 +273,5 @@ public class WorkspaceUnitTest {
 				"new", false, input, new WorkspaceUserMetadata(), set());
 		
 		assertThat("incorrect wsinfo", wsinforet, is(wsinfo));
-		
 	}
-	
 }
