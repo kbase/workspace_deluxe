@@ -20,6 +20,7 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.AllUsers;
@@ -135,13 +136,35 @@ public class WorkspaceUnitTest {
 	}
 	
 	@Test
-	public void setWorkspaceDescriptionFail() throws Exception {
+	public void setWorkspaceDescriptionFailNulls() throws Exception {
+		setWorkspaceDescriptionFail(initMocks().ws, null, false, new NullPointerException("wsi"));
+	}
+	
+	@Test
+	public void setWorkspaceDescriptionAsAdminFailLocked() throws Exception {
+		// lock w/o admin is tested in the integration tests.
+		final TestMocks mocks = initMocks();
+		
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ws", true, false);
+		when(mocks.db.resolveWorkspace(new WorkspaceIdentifier("ws"))).thenReturn(rwsi);
+		
+		setWorkspaceDescriptionFail(mocks.ws, new WorkspaceIdentifier("ws"), true,
+				new WorkspaceAuthorizationException(
+						"The workspace with id 24, name ws, is locked and may not be modified"));
+	}
+	
+	private void setWorkspaceDescriptionFail(
+			final Workspace ws,
+			final WorkspaceIdentifier wsi,
+			final boolean asAdmin,
+			final Exception expected)
+			throws Exception {
 		// TODO TEST there are other ways to fail, but they're already tested in the int tests
 		try {
-			initMocks().ws.setWorkspaceDescription(null, null, null, false);
+			ws.setWorkspaceDescription(null, wsi, null, asAdmin);
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, new NullPointerException("wsi"));
+			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
 	

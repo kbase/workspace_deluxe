@@ -5317,7 +5317,7 @@ public class WorkspaceTest extends WorkspaceTester {
 							", name lock, is locked and may not be modified"));
 		}
 		try {
-			ws.setWorkspaceDescription(user, wsi, "wugga", true);
+			ws.setWorkspaceDescription(user, wsi, "wugga", false);
 			fail("set desc on locked ws");
 		} catch (WorkspaceAuthorizationException e) {
 			assertThat("correct exception", e.getLocalizedMessage(),
