@@ -317,13 +317,31 @@ public class Workspace {
 		return wsid.getID();
 	}
 	
+	/** Get the free text description of a workspace.
+	 * @param user the user that is fetching the data.
+	 * @param wsi the workspace to fetch from.
+	 * @param asAdmin true to run the command as an admin, ignoring the user and doing no
+	 * permission checking.
+	 * @return the description.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the database.
+	 * @throws NoSuchWorkspaceException if the workspace does not exist or is deleted.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws WorkspaceAuthorizationException if the user is not authorized to read the workspace.
+	 */
 	public String getWorkspaceDescription(
 			final WorkspaceUser user,
-			final WorkspaceIdentifier wsi)
+			final WorkspaceIdentifier wsi,
+			final boolean asAdmin)
 			throws NoSuchWorkspaceException, WorkspaceCommunicationException,
 				CorruptWorkspaceDBException, WorkspaceAuthorizationException {
-		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
-				.getWorkspaceChecker(wsi, Permission.READ).check();
+		final ResolvedWorkspaceID wsid;
+		if (asAdmin) {
+			wsid = db.resolveWorkspace(wsi);
+		} else {
+			wsid = new PermissionsCheckerFactory(db, user)
+					.getWorkspaceChecker(wsi, Permission.READ).check();
+		}
 		return db.getWorkspaceDescription(wsid);
 	}
 	

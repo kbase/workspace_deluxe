@@ -447,7 +447,7 @@ public class WorkspaceServer extends JsonServerServlet {
         String returnVal = null;
         //BEGIN get_workspace_description
 		final WorkspaceIdentifier wksp = processWorkspaceIdentifier(wsi);
-		returnVal = ws.getWorkspaceDescription(wsmeth.getUser(authPart), wksp);
+		returnVal = ws.getWorkspaceDescription(wsmeth.getUser(authPart), wksp, false);
         //END get_workspace_description
         return returnVal;
     }

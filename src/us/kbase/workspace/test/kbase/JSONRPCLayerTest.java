@@ -3829,7 +3829,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void adminSetWorkspaceDescription() throws Exception {
-		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace("descws");
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace("setdescws");
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace())
 				.withDescription("foo"));
 		final WorkspaceIdentity wsid = new WorkspaceIdentity().withId(1L);
@@ -3839,7 +3839,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		params.put("command", "setWorkspaceDescription");
 		params.put("params", new SetWorkspaceDescriptionParams()
 				.withDescription("new desc")
-				.withWorkspace("descws"));
+				.withWorkspace("setdescws"));
 		
 		CLIENT2.administer(new UObject(params));
 		assertThat("incorrect desc", CLIENT1.getWorkspaceDescription(wsid), is("new desc"));
@@ -3852,6 +3852,28 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT2.administer(new UObject(params));
 		assertThat("incorrect desc", CLIENT1.getWorkspaceDescription(wsid), is("new desc2"));
 	}
+	
+	@Test
+	public void adminGetWorkspaceDescription() throws Exception {
+		final WorkspaceIdentity ws = new WorkspaceIdentity().withWorkspace("getdescws");
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws.getWorkspace())
+				.withDescription("my desc"));
+
+		// get by name
+		final Map<String, Object> params = new HashMap<>();
+		params.put("command", "getWorkspaceDescription");
+		params.put("params", new WorkspaceIdentity().withWorkspace("getdescws"));
+		
+		assertThat("incorrect description", CLIENT2.administer(new UObject(params)).asScalar(),
+				is("my desc"));
+		
+		// get by id
+		params.put("params", new WorkspaceIdentity().withId(1L));
+		
+		assertThat("incorrect description", CLIENT2.administer(new UObject(params)).asScalar(),
+				is("my desc"));
+	}
+	
 	
 	@Test
 	public void getAllWorkspaceOwners() throws Exception {

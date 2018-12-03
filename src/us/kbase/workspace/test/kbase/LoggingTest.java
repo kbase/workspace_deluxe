@@ -70,6 +70,8 @@ import com.mongodb.MongoClient;
  */
 public class LoggingTest {
 	
+	// TODO TEST convert these to unit tests
+	
 	private static final String ARGUTILS = "us.kbase.workspace.kbase.ArgUtils";
 	private static final String SERV =
 			"us.kbase.workspace.WorkspaceServer";
@@ -765,6 +767,25 @@ public class LoggingTest {
 		checkLogging(convertAdminExp(Arrays.asList(
 				new AdminExp("start method", SERV),
 				new AdminExp("setWorkspaceDescription 1", ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		// get description
+		ac.put("command", "getWorkspaceDescription");
+		ac.put("params", new WorkspaceIdentity().withWorkspace(ws));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getWorkspaceDescription null myws", ADMIN),
+				new AdminExp("end method", SERV))));
+		logout.reset();
+		
+		ac.put("command", "getWorkspaceDescription");
+		ac.put("params", new WorkspaceIdentity().withId(1L));
+		CLIENT2.administer(new UObject(ac));
+		checkLogging(convertAdminExp(Arrays.asList(
+				new AdminExp("start method", SERV),
+				new AdminExp("getWorkspaceDescription 1 null", ADMIN),
 				new AdminExp("end method", SERV))));
 		logout.reset();
 		
