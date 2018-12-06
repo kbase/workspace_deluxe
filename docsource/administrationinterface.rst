@@ -126,6 +126,8 @@ createWorkspace                 yes
 setPermissions                  no
 getPermissions (DEPRECATED)     optional (1)
 getPermissionsMass              no
+setWorkspaceDescription         no
+getWorkspaceDescription         no
 getWorkspaceInfo                no
 getObjectInfo                   no (2)
 getObjectHistory                no

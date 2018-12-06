@@ -219,6 +219,7 @@ public class WorkspaceUserMetadataTest {
 		assertThat("correct hashcode", wum.hashCode(), is(2051265365));
 	}
 	
+	@SuppressWarnings("unlikely-arg-type")
 	@Test
 	public void equalsCheck() throws Exception {
 		Map<String, String> m = new HashMap<String, String>();
