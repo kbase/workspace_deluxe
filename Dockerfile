@@ -5,7 +5,7 @@ RUN pip install configobj && \
     cd /tmp && \
     git clone https://github.com/kbase/jars && \
     cd workspace_deluxe && \
-    make compile deploy-service-libs
+    make docker_deps
 
 FROM kbase/kb_jre
 
