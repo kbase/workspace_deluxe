@@ -220,6 +220,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 
 		@Override
 		public void copyObject(
+				final WorkspaceUser user,
 				final long workspaceId,
 				final long objectId,
 				final int latestVersion,

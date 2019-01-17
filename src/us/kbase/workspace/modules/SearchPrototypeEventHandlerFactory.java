@@ -218,6 +218,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 
 		@Override
 		public void copyObject(
+				final WorkspaceUser user,
 				final long workspaceId,
 				final long objectId,
 				final int latestVersion,

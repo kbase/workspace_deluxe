@@ -86,6 +86,7 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 		
 		@Override
 		public void copyObject(
+				final WorkspaceUser user,
 				long workspaceId,
 				long objectId,
 				int latestVersion,

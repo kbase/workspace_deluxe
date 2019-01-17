@@ -114,7 +114,8 @@ public interface WorkspaceEventListener {
 	 */
 	void copyObject(ObjectInformation object, boolean isPublic);
 
-	/** Notification that all the versions of an object was copied.
+	/** Notification that all the versions of an object were copied.
+	 * @param user the user that copied the object.
 	 * @param workspaceId the workspace id of the new object.
 	 * @param objectId the object id of the new object.
 	 * @param latestVersion the latest version of the new object.
@@ -122,6 +123,7 @@ public interface WorkspaceEventListener {
 	 * @param isPublic true if the new object is in a public workspace, false otherwise.
 	 */
 	void copyObject(
+			WorkspaceUser user,
 			long workspaceId,
 			long objectId,
 			int latestVersion,
