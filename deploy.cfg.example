@@ -63,6 +63,11 @@ temp-dir = ws_temp_dir
 # listener-X-config-printEvents=true
 # listener-X-config-throwException=false
 
+# an example configuration for the Kafka listener
+#listener-Kafka-class=us.kbase.workspace.modules.KafkaNotifierFactory
+#listener-Kafka-config-topic=ws
+#listener-Kafka-config-bootstrap.servers=localhost:9092
+
 # document server name. Used for logging.
 doc-server-name = WorkspaceDocServ
 # Document server document location relative to the classpath. If this

@@ -180,7 +180,11 @@ public class KBaseWorkspaceConfig {
 		}
 		final List<ListenerConfig> ret = new LinkedList<>();
 		final List<String> listeners = Arrays.asList(listenersStr.split(","));
-		for (final String name: listeners) {
+		for (String name: listeners) {
+			name = name.trim();
+			if (name.isEmpty()) {
+				continue;
+			}
 			final String listenerStart = LISTENER_PREFIX + name;
 			final String classStr = config.get(listenerStart + LISTENER_CLASS);
 			if (nullOrEmpty(classStr)) {

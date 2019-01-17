@@ -51,6 +51,22 @@ public class TestCommon {
 	public static final String TEST_CONFIG_FILE_PROP_NAME = "test.cfg";
 	public static final String TEST_CONFIG_FILE_SECTION = "Workspacetest";
 	
+	public static final String LONG101;
+	public static final String LONG1001;
+	static {
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < 100; i++) {
+			sb.append("a");
+		}
+		final String s100 = sb.toString();
+		final StringBuilder sb2 = new StringBuilder();
+		for (int i = 0; i < 10; i++) {
+			sb2.append(s100);
+		}
+		LONG101 = s100 + "a";
+		LONG1001 = sb2.toString() + "a";
+	}
+	
 	private static Map<String, String> testConfig = null;
 			
 	public static void stfuLoggers() {
@@ -153,8 +169,8 @@ public class TestCommon {
 	}
 	
 	public static void assertExceptionCorrect(
-			final Exception got,
-			final Exception expected) {
+			final Throwable got,
+			final Throwable expected) {
 		assertThat("incorrect exception. trace:\n" +
 				ExceptionUtils.getStackTrace(got),
 				got.getLocalizedMessage(),

@@ -138,7 +138,7 @@ listWorkspaces                  yes
 listWorkspaceIDs                yes
 listObjects                     optional (4)
 deleteWorkspace                 no
-undeleteWorkspace               no
+undeleteWorkspace               no (6)
 grantModuleOwnership            no
 removeModuleOwnership           no
 ==============================  =================
@@ -148,6 +148,7 @@ removeModuleOwnership           no
 #. Parameters are as get_objects2.
 #. If omitted, returns all objects requested, but at least one and no more than 1000 workspaces
    must be specified.
+#. Parameters are as delete_workspace.
 
 Example usage:
 
