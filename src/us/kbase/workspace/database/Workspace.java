@@ -1591,7 +1591,7 @@ public class Workspace {
 				new HashSet<ObjectIDResolvedWS>(ws.values()), delete);
 		for (final WorkspaceEventListener l: listeners) {
 			for (final ResolvedObjectIDNoVer o: objs.keySet()) {
-				l.setObjectDeleted(o.getWorkspaceIdentifier().getID(), o.getId(), delete,
+				l.setObjectDeleted(user, o.getWorkspaceIdentifier().getID(), o.getId(), delete,
 						objs.get(o));
 			}
 		}

@@ -867,8 +867,8 @@ public class WorkspaceListenerTest {
 
 		ws.setObjectsDeleted(user, Arrays.asList(oi1, oi2), true);
 
-		verify(l).setObjectDeleted(24, 16, true, Instant.ofEpochMilli(20000));
-		verify(l).setObjectDeleted(24, 75, true, Instant.ofEpochMilli(30000));
+		verify(l).setObjectDeleted(user, 24, 16, true, Instant.ofEpochMilli(20000));
+		verify(l).setObjectDeleted(user, 24, 75, true, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -901,10 +901,10 @@ public class WorkspaceListenerTest {
 
 		ws.setObjectsDeleted(user, Arrays.asList(oi1, oi2), false);
 
-		verify(l1).setObjectDeleted(24, 16, false, Instant.ofEpochMilli(20000));
-		verify(l1).setObjectDeleted(24, 75, false, Instant.ofEpochMilli(30000));
-		verify(l2).setObjectDeleted(24, 16, false, Instant.ofEpochMilli(20000));
-		verify(l2).setObjectDeleted(24, 75, false, Instant.ofEpochMilli(30000));
+		verify(l1).setObjectDeleted(user, 24, 16, false, Instant.ofEpochMilli(20000));
+		verify(l1).setObjectDeleted(user, 24, 75, false, Instant.ofEpochMilli(30000));
+		verify(l2).setObjectDeleted(user, 24, 16, false, Instant.ofEpochMilli(20000));
+		verify(l2).setObjectDeleted(user, 24, 75, false, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test

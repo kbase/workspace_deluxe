@@ -114,6 +114,7 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 
 		@Override
 		public void setObjectDeleted(
+				WorkspaceUser user,
 				long workspaceId,
 				long objectId,
 				boolean delete,
