@@ -154,6 +154,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 
 		@Override
 		public void setPermissions(
+				final WorkspaceUser user,
 				final long id,
 				final Permission permission,
 				final List<WorkspaceUser> users,

@@ -520,7 +520,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setPermissions(user, wsi, users, Permission.WRITE);
 		
-		verify(l).setPermissions(24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
+		verify(l).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
 	}
 	
 	@Test
@@ -547,8 +547,8 @@ public class WorkspaceListenerTest {
 		
 		ws.setPermissions(user, wsi, users, Permission.WRITE);
 		
-		verify(l1).setPermissions(24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
-		verify(l2).setPermissions(24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
+		verify(l1).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
+		verify(l2).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
 	}
 	
 	@Test

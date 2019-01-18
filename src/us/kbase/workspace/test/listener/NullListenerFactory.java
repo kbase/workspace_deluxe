@@ -75,6 +75,7 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 
 		@Override
 		public void setPermissions(
+				WorkspaceUser user,
 				long id,
 				Permission permission,
 				List<WorkspaceUser> users,

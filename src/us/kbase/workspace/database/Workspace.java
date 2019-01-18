@@ -460,7 +460,7 @@ public class Workspace {
 		}
 		final Instant time = db.setPermissions(wsid, users, permission);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setPermissions(wsid.getID(), permission, users, time);
+			l.setPermissions(user, wsid.getID(), permission, users, time);
 		}
 		return wsid.getID();
 	}
