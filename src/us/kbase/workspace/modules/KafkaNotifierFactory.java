@@ -71,7 +71,6 @@ import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
  */
 public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 
-		// TODO DOCS
 		// TODO TEST integration tests w/ just client & also full group server
 		
 		/* This implementation does things that slow down the send operation but improve

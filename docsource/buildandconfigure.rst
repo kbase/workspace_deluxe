@@ -117,6 +117,9 @@ invocation of the workspace service. The second is contained in the workspace
 MongoDB database itself and is set once by the configuration script (see
 :ref:`configurationscript`).
 
+.. note::
+   See :ref:`configlistener` for configuration parameters for event listeners.
+
 .. warning::
    ``deploy.cfg`` contains several sets of credentials, and thus should be
    protected like any other file containing unencryted passwords or tokens.
