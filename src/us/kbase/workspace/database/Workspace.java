@@ -1518,7 +1518,7 @@ public class Workspace {
 		final ObjectInfoWithModDate objdate = db.renameObject(obj, newname);
 		final ObjectInformation objinfo = objdate.getObjectInfo();
 		for (final WorkspaceEventListener l: listeners) {
-			l.renameObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), newname,
+			l.renameObject(user, objinfo.getWorkspaceId(), objinfo.getObjectId(), newname,
 					objdate.getModificationDate());
 		}
 		return objinfo;

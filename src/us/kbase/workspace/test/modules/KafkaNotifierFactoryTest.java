@@ -3,7 +3,9 @@ package us.kbase.workspace.test.modules;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +27,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.junit.Test;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.test.MapBuilder;
@@ -72,6 +75,61 @@ public class KafkaNotifierFactoryTest {
 			this.client = client;
 			this.notis = notis;
 		}
+	}
+	
+	@Test
+	public void createWorkspace() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
+		
+		mocks.notis.createWorkspace(1L, Instant.ofEpochMilli(10000));
+		
+		verify(mocks.client, never()).send(any());
+	}
+	
+	@Test
+	public void setWSMetadata() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
+		
+		mocks.notis.setWorkspaceMetadata(1L, Instant.ofEpochMilli(10000));
+		
+		verify(mocks.client, never()).send(any());
+	}
+	
+	@Test
+	public void lockWorkspace() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
+		
+		mocks.notis.lockWorkspace(1L, Instant.ofEpochMilli(10000));
+		
+		verify(mocks.client, never()).send(any());
+	}
+	
+	@Test
+	public void renameWorkspace() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
+		
+		mocks.notis.renameWorkspace(1L, "foo", Instant.ofEpochMilli(10000));
+		
+		verify(mocks.client, never()).send(any());
+	}
+	
+	@Test
+	public void setWorkspaceDescription() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
+		
+		mocks.notis.setWorkspaceDescription(1L, Instant.ofEpochMilli(10000));
+		
+		verify(mocks.client, never()).send(any());
+	}
+	
+	@Test
+	public void setWorkspaceOwner() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
+		
+		mocks.notis.setWorkspaceOwner(
+				1L, new WorkspaceUser("foo"), Optional.of("bar"), Instant.ofEpochMilli(10000));
+		
+		verify(mocks.client, never()).send(any());
 	}
 	
 	@Test
@@ -201,6 +259,72 @@ public class KafkaNotifierFactoryTest {
 				64L,
 				29L,
 				true,
+				Instant.ofEpochMilli(30000));
+		
+		verify(mocks.client).partitionsFor("mytopic");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
+	}
+	
+	@Test
+	public void revertObject() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
+		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "user1")
+						.with("wsid", 22L)
+						.with("objid", 6L)
+						.with("ver", 7)
+						.with("evtype", "NEW_VERSION")
+						.with("objtype", "Foo.Bar-2.1")
+						.with("time", 10000L)
+						.build())))
+				.thenReturn(fut);
+
+		mocks.notis.revertObject(new ObjectInformation(
+				6L,
+				"foo",
+				"Foo.Bar-2.1",
+				new Date(10000),
+				7,
+				new WorkspaceUser("user1"),
+				new ResolvedWorkspaceID(22L, "bar", false, false),
+				"chksum",
+				30L,
+				new UncheckedUserMetadata((WorkspaceUserMetadata) null)),
+				true);
+		
+		verify(mocks.client).partitionsFor("mytopic");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
+	}
+	
+	@Test
+	public void renameObject() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
+		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "ruser")
+						.with("wsid", 64L)
+						.with("objid", 29L)
+						.with("ver", null)
+						.with("evtype", "RENAME_OBJECT")
+						.with("objtype", null)
+						.with("time", 30000L)
+						.build())))
+				.thenReturn(fut);
+
+		mocks.notis.renameObject(
+				new WorkspaceUser("ruser"),
+				64L,
+				29L,
+				"ignored",
 				Instant.ofEpochMilli(30000));
 		
 		verify(mocks.client).partitionsFor("mytopic");

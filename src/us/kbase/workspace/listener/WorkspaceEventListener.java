@@ -87,12 +87,18 @@ public interface WorkspaceEventListener {
 	void setWorkspaceDeleted(long id, boolean delete, long maxObjectID, Instant time);
 
 	/** Notification that an object has been renamed.
+	 * @param user the user that renamed the object.
 	 * @param workspaceId the id of the workspace containing the object.
 	 * @param objectId the id of the object.
 	 * @param newName the object's new name.
 	 * @param time the time the rename event occurred.
 	 */
-	void renameObject(long workspaceId, long objectId, String newName, Instant time);
+	void renameObject(
+			final WorkspaceUser user,
+			final long workspaceId,
+			final long objectId,
+			final String newName,
+			final Instant time);
 
 	/** Notification that an object has been reverted.
 	 * @param object information about the reverted object.
