@@ -35,8 +35,26 @@ import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
-// TODO NOW add example string once all fields are done
-/** A workspace listener that sends workspace events to Kafka as JSON strings.
+/** A workspace listener that sends workspace events to Kafka as JSON strings:
+ * 
+ * <pre>
+ * {
+ *   "user": &lt;the user that triggered the event.
+ *        May be null if the user is an administrator&gt;,
+ *   "wsid": &lt;the workspace id of the workspace involved in the event&gt;,
+ *   "objid": &lt;the object id of the object involved in the event. May be null&gt;
+ *   "ver": &lt;the version of the object involved in the event. May be null&gt;
+ *   "time": &lt;the time the event took place in epoch milliseconds&gt;
+ *   "evtype": &lt;the event type. See the class constants for types&gt;
+ *   "objtype": &lt;the type of the object involved in the event. May be null&gt;
+ *   "perm": &lt;the permission set for one or more users. May be null&gt;
+ *   "permusers": &lt;the list of users for whom permissions were altered. May be empty&gt;
+ * } 
+ * </pre>
+ * 
+ * Null values are present for events where providing the value doesn't make sense; for example
+ * {@link WorkspaceEventListener#copyObject(WorkspaceUser, long, long, int, Instant, boolean)}
+ * will not provide a version, object type, permission, or user list.
  * 
  * The listener requires two configuration arguments:
  * topic - the topic to which the listener will submit events. The listener requires the topic
@@ -73,16 +91,49 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		private static final String TOPIC = "topic";
 		private static final String KAFKA_WS_TOPIC = KAFKA + " " + TOPIC;
 		
-		//TODO NOW make these public
-		private static final String NEW_VERSION = "NEW_VERSION";
-		private static final String COPY_OBJECT = "COPY_OBJECT";
-		private static final String CLONE_WORKSPACE = "CLONE_WORKSPACE";
-		private static final String RENAME_OBJECT = "RENAME_OBJECT";
-		private static final String OBJECT_DELETE_STATE_CHANGE = "OBJECT_DELETE_STATE_CHANGE";
-		private static final String WORKSPACE_DELETE_STATE_CHANGE =
+		/** The event type sent by the
+		 * {@link WorkspaceEventListener#saveObject(ObjectInformation, boolean)},
+		 * {@link WorkspaceEventListener#copyObject(ObjectInformation, boolean)}, and
+		 * {@link WorkspaceEventListener#revertObject(ObjectInformation, boolean)}
+		 * methods.
+		 */
+		public static final String NEW_VERSION = "NEW_VERSION";
+		/** The event type sent by the
+		 * {@link WorkspaceEventListener#copyObject(WorkspaceUser, long, long, int, Instant, boolean)}
+		 * method.
+		 */
+		public static final String COPY_OBJECT = "COPY_OBJECT";
+		/** The event type sent by the
+		 * {@link WorkspaceEventListener#cloneWorkspace(WorkspaceUser, long, boolean, Instant)}
+		 * method.
+		 */
+		public static final String CLONE_WORKSPACE = "CLONE_WORKSPACE";
+		/** The event type sent by the
+		 * {@link WorkspaceEventListener#renameObject(WorkspaceUser, long, long, String, Instant)}
+		 * method.
+		 */
+		public static final String RENAME_OBJECT = "RENAME_OBJECT";
+		/** The event type sent by the
+		 * {@link WorkspaceEventListener#setObjectDeleted(WorkspaceUser, long, long, boolean, Instant)}
+		 * method.
+		 */
+		public static final String OBJECT_DELETE_STATE_CHANGE = "OBJECT_DELETE_STATE_CHANGE";
+		/** The event type sent by the
+		 * {@link WorkspaceEventListener#setWorkspaceDeleted(WorkspaceUser, long, boolean, long, Instant)}
+		 * method.
+		 */
+		public static final String WORKSPACE_DELETE_STATE_CHANGE =
 				"WORKSPACE_DELETE_STATE_CHANGE";
-		private static final String SET_PERMISSION = "SET_PERMISSION";
-		private static final String SET_GLOBAL_PERMISSION = "SET_GLOBAL_PERMISSION";
+		/** The event type sent by the
+		 * {@link WorkspaceEventListener#setPermissions(WorkspaceUser, long, Permission, List, Instant)}
+		 * method.
+		 */
+		public static final String SET_PERMISSION = "SET_PERMISSION";
+		/** The event type sent by the
+		 * {@link WorkspaceEventListener#setGlobalPermission(WorkspaceUser, long, Permission, Instant)}
+		 * method.
+		 */
+		public static final String SET_GLOBAL_PERMISSION = "SET_GLOBAL_PERMISSION";
 		
 		
 		// https://stackoverflow.com/questions/37062904/what-are-apache-kafka-topic-name-limitations
