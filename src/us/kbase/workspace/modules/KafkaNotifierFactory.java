@@ -74,7 +74,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		private static final String COPY_OBJECT = "COPY_OBJECT";
 //		private static final String CLONED_WORKSPACE = "CLONE_WORKSPACE";
 //		private static final String RENAME_OBJECT = "RENAME_ALL_VERSIONS";
-//		private static final String DELETE_OBJECT = "DELETE_ALL_VERSIONS";
+		private static final String OBJECT_DELETE_STATE = "OBJECT_DELETE_STATE_CHANGE";
 //		private static final String UNDELETE_OBJECT = "UNDELETE_ALL_VERSIONS";
 //		private static final String DELETE_WS = "DELETE_ACCESS_GROUP";
 //		private static final String SET_GLOBAL_READ = "PUBLISH_ACCESS_GROUP";
@@ -249,9 +249,13 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setObjectDeleted(long workspaceId, long objectId, boolean delete, Instant time) {
-			// TODO Auto-generated method stub
-			
+		public void setObjectDeleted(
+				final WorkspaceUser user,
+				final long workspaceId,
+				final long objectId,
+				final boolean delete,
+				final Instant time) {
+			newEvent(user, workspaceId, objectId, null, null, OBJECT_DELETE_STATE, time);
 		}
 
 		@Override

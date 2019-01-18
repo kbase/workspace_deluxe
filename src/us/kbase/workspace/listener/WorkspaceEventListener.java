@@ -101,12 +101,18 @@ public interface WorkspaceEventListener {
 	void revertObject(ObjectInformation object, boolean isPublic);
 
 	/** Notification that an object was deleted or undeleted.
+	 * @param user the user that changed the deletion state of the object.
 	 * @param workspaceId the workspace id.
 	 * @param objectId the object id.
 	 * @param delete true if the object was deleted, false if it was undeleted.
 	 * @param time the time the delete event occurred.
 	 */
-	void setObjectDeleted(long workspaceId, long objectId, boolean delete, Instant time);
+	void setObjectDeleted(
+			WorkspaceUser user,
+			long workspaceId,
+			long objectId,
+			boolean delete,
+			Instant time);
 
 	/** Notification that a single version of an object was copied.
 	 * @param object information about the new object version.
