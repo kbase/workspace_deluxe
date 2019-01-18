@@ -168,7 +168,7 @@ public class Workspace {
 				pruneWorkspaceDescription(description),
 				meta == null ? new WorkspaceUserMetadata() : meta);
 		for (final WorkspaceEventListener l: listeners) {
-			l.createWorkspace(ret.getId(), ret.getModDate());
+			l.createWorkspace(user, ret.getId(), ret.getModDate());
 		}
 		return ret;
 	}
@@ -214,7 +214,7 @@ public class Workspace {
 		} finally {
 			if (set) {
 				for (final WorkspaceEventListener l: listeners) {
-					l.setWorkspaceMetadata(wsid.getID(), time);
+					l.setWorkspaceMetadata(user, wsid.getID(), time);
 				}
 			}
 		}
@@ -265,7 +265,7 @@ public class Workspace {
 				.withOperation("lock").check();
 		final Instant time = db.lockWorkspace(wsid);
 		for (final WorkspaceEventListener l: listeners) {
-			l.lockWorkspace(wsid.getID(), time);
+			l.lockWorkspace(user, wsid.getID(), time);
 		}
 		return db.getWorkspaceInformation(user, wsid);
 	}
@@ -312,7 +312,7 @@ public class Workspace {
 		final Instant time = db.setWorkspaceDescription(
 				wsid, pruneWorkspaceDescription(description));
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceDescription(wsid.getID(), time);
+			l.setWorkspaceDescription(user, wsid.getID(), time);
 		}
 		return wsid.getID();
 	}
@@ -405,7 +405,7 @@ public class Workspace {
 		}
 		final Instant time = db.setWorkspaceOwner(rwsi, owner, newUser, newName);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceOwner(rwsi.getID(), newUser, newName, time);
+			l.setWorkspaceOwner(asAdmin ? null : owner, rwsi.getID(), newUser, newName, time);
 		}
 		return db.getWorkspaceInformation(newUser, rwsi);
 	}
@@ -1500,7 +1500,7 @@ public class Workspace {
 		new WorkspaceIdentifier(newname, user); //check for errors
 		final Instant time = db.renameWorkspace(wsid, newname);
 		for (final WorkspaceEventListener l: listeners) {
-			l.renameWorkspace(wsid.getID(), newname, time);
+			l.renameWorkspace(user, wsid.getID(), newname, time);
 		}
 		return db.getWorkspaceInformation(user, wsid);
 	}

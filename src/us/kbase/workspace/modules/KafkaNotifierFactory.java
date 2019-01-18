@@ -188,7 +188,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void createWorkspace(long id, Instant time) {
+		public void createWorkspace(WorkspaceUser user, long id, Instant time) {
 			// no action
 		}
 
@@ -202,17 +202,17 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setWorkspaceMetadata(long id, Instant time) {
+		public void setWorkspaceMetadata(WorkspaceUser user, long id, Instant time) {
 			// no action
 		}
 
 		@Override
-		public void lockWorkspace(long id, Instant time) {
+		public void lockWorkspace(WorkspaceUser user, long id, Instant time) {
 			// no action
 		}
 
 		@Override
-		public void renameWorkspace(long id, String newname, Instant time) {
+		public void renameWorkspace(WorkspaceUser user, long id, String newname, Instant time) {
 			// no action
 		}
 
@@ -237,12 +237,13 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setWorkspaceDescription(long id, Instant time) {
+		public void setWorkspaceDescription(WorkspaceUser user, long id, Instant time) {
 			// no action
 		}
 
 		@Override
 		public void setWorkspaceOwner(
+				WorkspaceUser user,
 				long id,
 				WorkspaceUser newUser,
 				Optional<String> newName,

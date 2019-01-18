@@ -98,7 +98,7 @@ public class WorkspaceListenerTest {
 		
 		ws.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, null);
 		
-		verify(l).createWorkspace(42L, Instant.ofEpochMilli(20000));
+		verify(l).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -117,8 +117,8 @@ public class WorkspaceListenerTest {
 		
 		ws.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, null);
 		
-		verify(l1).createWorkspace(42L, Instant.ofEpochMilli(20000));
-		verify(l2).createWorkspace(42L, Instant.ofEpochMilli(20000));
+		verify(l1).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
+		verify(l2).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -195,7 +195,8 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l, never()).setWorkspaceMetadata(anyLong(), any(Instant.class));
+		verify(l, never()).setWorkspaceMetadata(
+				any(WorkspaceUser.class), anyLong(), any(Instant.class));
 	}
 	
 	@Test
@@ -222,7 +223,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
+		verify(l).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -250,8 +251,8 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l1).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
-		verify(l2).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
+		verify(l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
+		verify(l2).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -282,7 +283,8 @@ public class WorkspaceListenerTest {
 			//fine
 		}
 		
-		verify(l, never()).setWorkspaceMetadata(anyLong(), any(Instant.class));
+		verify(l, never()).setWorkspaceMetadata(
+				any(WorkspaceUser.class), anyLong(), any(Instant.class));
 	}
 	
 	@Test
@@ -314,7 +316,7 @@ public class WorkspaceListenerTest {
 			//fine
 		}
 		
-		verify(l).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
+		verify(l).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -346,7 +348,7 @@ public class WorkspaceListenerTest {
 			//fine
 		}
 		
-		verify(l).setWorkspaceMetadata(24L, Instant.ofEpochMilli(30000));
+		verify(l).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -370,7 +372,7 @@ public class WorkspaceListenerTest {
 		
 		ws.lockWorkspace(user, wsi);
 		
-		verify(l).lockWorkspace(24L, Instant.ofEpochMilli(20000));
+		verify(l).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -395,8 +397,8 @@ public class WorkspaceListenerTest {
 		
 		ws.lockWorkspace(user, wsi);
 		
-		verify(l1).lockWorkspace(24L, Instant.ofEpochMilli(20000));
-		verify(l2).lockWorkspace(24L, Instant.ofEpochMilli(20000));
+		verify(l1).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
+		verify(l2).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -420,7 +422,7 @@ public class WorkspaceListenerTest {
 		
 		ws.renameWorkspace(user, wsi, "foobar");
 		
-		verify(l).renameWorkspace(24L, "foobar", Instant.ofEpochMilli(10000));
+		verify(l).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
 	}
 	
 	@Test
@@ -445,8 +447,8 @@ public class WorkspaceListenerTest {
 		
 		ws.renameWorkspace(user, wsi, "foobar");
 		
-		verify(l1).renameWorkspace(24L, "foobar", Instant.ofEpochMilli(10000));
-		verify(l2).renameWorkspace(24L, "foobar", Instant.ofEpochMilli(10000));
+		verify(l1).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
+		verify(l2).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
 	}
 	
 	@Test
@@ -572,7 +574,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceDescription(user, wsi, "foo", false);
 		
-		verify(l).setWorkspaceDescription(24L, Instant.ofEpochMilli(30000));
+		verify(l).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -597,8 +599,8 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceDescription(user, wsi, "foo", false);
 		
-		verify(l1).setWorkspaceDescription(24L, Instant.ofEpochMilli(30000));
-		verify(l2).setWorkspaceDescription(24L, Instant.ofEpochMilli(30000));
+		verify(l1).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
+		verify(l2).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -625,7 +627,33 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceOwner(user, wsi, newUser, Optional.absent(), false);
 
-		verify(l).setWorkspaceOwner(24L, newUser, Optional.absent(),
+		verify(l).setWorkspaceOwner(user, 24L, newUser, Optional.absent(),
+				Instant.ofEpochMilli(30000));
+	}
+	
+	@Test
+	public void setWorkspaceOwner1AsAdmin() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceUser newUser = new WorkspaceUser("bar");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "foobar", false, false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(db.getWorkspaceOwner(rwsi)).thenReturn(user);
+		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
+		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.absent()))
+				.thenReturn(Instant.ofEpochMilli(30000));
+		
+		ws.setWorkspaceOwner(null, wsi, newUser, Optional.absent(), true);
+
+		verify(l).setWorkspaceOwner(null, 24L, newUser, Optional.absent(),
 				Instant.ofEpochMilli(30000));
 	}
 	
@@ -655,9 +683,9 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceOwner(user, wsi, newUser, Optional.absent(), false);
 
-		verify(l1).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"),
+		verify(l1).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
-		verify(l2).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"),
+		verify(l2).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
 	}
 	
