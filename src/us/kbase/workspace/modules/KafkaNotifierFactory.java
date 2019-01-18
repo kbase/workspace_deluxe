@@ -76,7 +76,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		//TODO NOW make these public
 		private static final String NEW_VERSION = "NEW_VERSION";
 		private static final String COPY_OBJECT = "COPY_OBJECT";
-//		private static final String CLONE_WORKSPACE = "CLONE_WORKSPACE";
+		private static final String CLONE_WORKSPACE = "CLONE_WORKSPACE";
 		private static final String RENAME_OBJECT = "RENAME_OBJECT";
 		private static final String OBJECT_DELETE_STATE_CHANGE = "OBJECT_DELETE_STATE_CHANGE";
 		private static final String WORKSPACE_DELETE_STATE_CHANGE =
@@ -193,8 +193,12 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void cloneWorkspace(long id, boolean isPublic, Instant time) {
-			// TODO Auto-generated method stub
+		public void cloneWorkspace(
+				final WorkspaceUser user,
+				final long id,
+				final boolean isPublic,
+				final Instant time) {
+			newEvent(user.getUser(), id, null, null, null, CLONE_WORKSPACE, time);
 		}
 
 		@Override
