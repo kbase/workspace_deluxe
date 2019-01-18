@@ -1655,7 +1655,7 @@ public class Workspace {
 		final Instant time = db.setWorkspaceDeleted(wsid, delete);
 		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(user, wsid);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceDeleted(wsid.getID(), delete, wsinfo.getMaximumObjectID(), time);
+			l.setWorkspaceDeleted(user, wsid.getID(), delete, wsinfo.getMaximumObjectID(), time);
 		}
 		return wsid.getID();
 	}

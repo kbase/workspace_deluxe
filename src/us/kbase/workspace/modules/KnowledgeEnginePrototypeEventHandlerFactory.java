@@ -177,6 +177,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 
 		@Override
 		public void setWorkspaceDeleted(
+				final WorkspaceUser user,
 				final long id,
 				final boolean delete,
 				final long maxObjectID,
