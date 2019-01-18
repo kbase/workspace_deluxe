@@ -168,7 +168,7 @@ public class Workspace {
 				pruneWorkspaceDescription(description),
 				meta == null ? new WorkspaceUserMetadata() : meta);
 		for (final WorkspaceEventListener l: listeners) {
-			l.createWorkspace(ret.getId(), ret.getModDate());
+			l.createWorkspace(user, ret.getId(), ret.getModDate());
 		}
 		return ret;
 	}
@@ -214,7 +214,7 @@ public class Workspace {
 		} finally {
 			if (set) {
 				for (final WorkspaceEventListener l: listeners) {
-					l.setWorkspaceMetadata(wsid.getID(), time);
+					l.setWorkspaceMetadata(user, wsid.getID(), time);
 				}
 			}
 		}
@@ -233,13 +233,13 @@ public class Workspace {
 			PreExistingWorkspaceException, NoSuchObjectException {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.READ).check();
-		new WorkspaceIdentifier(newname, user); //check for errors
+		new WorkspaceIdentifier(newname, user); //check for errors, ensures user != null
 		final WorkspaceInformation info = db.cloneWorkspace(user, wsid, newname, globalread,
 				pruneWorkspaceDescription(description),
 				meta == null ? new WorkspaceUserMetadata() : meta,
 				exclude);
 		for (final WorkspaceEventListener l: listeners) {
-			l.cloneWorkspace(info.getId(), info.isGloballyReadable(), info.getModDate());
+			l.cloneWorkspace(user, info.getId(), info.isGloballyReadable(), info.getModDate());
 		}
 		return info;
 	}
@@ -265,7 +265,7 @@ public class Workspace {
 				.withOperation("lock").check();
 		final Instant time = db.lockWorkspace(wsid);
 		for (final WorkspaceEventListener l: listeners) {
-			l.lockWorkspace(wsid.getID(), time);
+			l.lockWorkspace(user, wsid.getID(), time);
 		}
 		return db.getWorkspaceInformation(user, wsid);
 	}
@@ -312,7 +312,7 @@ public class Workspace {
 		final Instant time = db.setWorkspaceDescription(
 				wsid, pruneWorkspaceDescription(description));
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceDescription(wsid.getID(), time);
+			l.setWorkspaceDescription(user, wsid.getID(), time);
 		}
 		return wsid.getID();
 	}
@@ -405,7 +405,7 @@ public class Workspace {
 		}
 		final Instant time = db.setWorkspaceOwner(rwsi, owner, newUser, newName);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceOwner(rwsi.getID(), newUser, newName, time);
+			l.setWorkspaceOwner(asAdmin ? null : owner, rwsi.getID(), newUser, newName, time);
 		}
 		return db.getWorkspaceInformation(newUser, rwsi);
 	}
@@ -460,7 +460,7 @@ public class Workspace {
 		}
 		final Instant time = db.setPermissions(wsid, users, permission);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setPermissions(wsid.getID(), permission, users, time);
+			l.setPermissions(user, wsid.getID(), permission, users, time);
 		}
 		return wsid.getID();
 	}
@@ -503,7 +503,7 @@ public class Workspace {
 		}
 		final Instant time = db.setGlobalPermission(rwsi, permission);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setGlobalPermission(rwsi.getID(), permission, time);
+			l.setGlobalPermission(user, rwsi.getID(), permission, time);
 		}
 		return rwsi.getID();
 	}
@@ -1500,7 +1500,7 @@ public class Workspace {
 		new WorkspaceIdentifier(newname, user); //check for errors
 		final Instant time = db.renameWorkspace(wsid, newname);
 		for (final WorkspaceEventListener l: listeners) {
-			l.renameWorkspace(wsid.getID(), newname, time);
+			l.renameWorkspace(user, wsid.getID(), newname, time);
 		}
 		return db.getWorkspaceInformation(user, wsid);
 	}
@@ -1518,7 +1518,7 @@ public class Workspace {
 		final ObjectInfoWithModDate objdate = db.renameObject(obj, newname);
 		final ObjectInformation objinfo = objdate.getObjectInfo();
 		for (final WorkspaceEventListener l: listeners) {
-			l.renameObject(objinfo.getWorkspaceId(), objinfo.getObjectId(), newname,
+			l.renameObject(user, objinfo.getWorkspaceId(), objinfo.getObjectId(), newname,
 					objdate.getModificationDate());
 		}
 		return objinfo;
@@ -1540,7 +1540,7 @@ public class Workspace {
 				user, t.getWorkspaceIdentifier());
 		for (final WorkspaceEventListener l: listeners) {
 			if (cr.isAllVersionsCopied()) {
-				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+				l.copyObject(user, oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
 						oi.getSavedDate().toInstant(), wsinfo.isGloballyReadable());
 			} else {
 				l.copyObject(oi, wsinfo.isGloballyReadable());
@@ -1591,7 +1591,7 @@ public class Workspace {
 				new HashSet<ObjectIDResolvedWS>(ws.values()), delete);
 		for (final WorkspaceEventListener l: listeners) {
 			for (final ResolvedObjectIDNoVer o: objs.keySet()) {
-				l.setObjectDeleted(o.getWorkspaceIdentifier().getID(), o.getId(), delete,
+				l.setObjectDeleted(user, o.getWorkspaceIdentifier().getID(), o.getId(), delete,
 						objs.get(o));
 			}
 		}
@@ -1655,7 +1655,7 @@ public class Workspace {
 		final Instant time = db.setWorkspaceDeleted(wsid, delete);
 		final WorkspaceInformation wsinfo = db.getWorkspaceInformation(user, wsid);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setWorkspaceDeleted(wsid.getID(), delete, wsinfo.getMaximumObjectID(), time);
+			l.setWorkspaceDeleted(user, wsid.getID(), delete, wsinfo.getMaximumObjectID(), time);
 		}
 		return wsid.getID();
 	}

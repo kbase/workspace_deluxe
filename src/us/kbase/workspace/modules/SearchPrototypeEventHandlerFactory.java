@@ -116,38 +116,54 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 		}
 
 		@Override
-		public void createWorkspace(final long id, final Instant time) {
+		public void createWorkspace(final WorkspaceUser user, final long id, final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void cloneWorkspace(final long id, final boolean isPublic, final Instant time) {
+		public void cloneWorkspace(
+				final WorkspaceUser user,
+				final long id,
+				final boolean isPublic,
+				final Instant time) {
 			newWorkspaceEvent(id, CLONED_WORKSPACE, isPublic, time);
 		}
 
 		@Override
-		public void setWorkspaceMetadata(final long id, final Instant time) {
+		public void setWorkspaceMetadata(
+				final WorkspaceUser user,
+				final long id,
+				final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void lockWorkspace(final long id, final Instant time) {
+		public void lockWorkspace(final WorkspaceUser user, final long id, final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void renameWorkspace(final long id, final String newname, final Instant time) {
+		public void renameWorkspace(
+				final WorkspaceUser user,
+				final long id,
+				final String newname,
+				final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void setGlobalPermission(final long id, final Permission perm, final Instant time) {
+		public void setGlobalPermission(
+				final WorkspaceUser user,
+				final long id,
+				final Permission perm,
+				final Instant time) {
 			newWorkspaceEvent(id, Permission.READ.equals(perm) ?
 					SET_GLOBAL_READ : REMOVE_GLOBAL_READ, null, time);
 		}
 
 		@Override
 		public void setPermissions(
+				final WorkspaceUser user,
 				final long id,
 				final Permission permission,
 				final List<WorkspaceUser> users,
@@ -156,12 +172,16 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 		}
 
 		@Override
-		public void setWorkspaceDescription(final long id, final Instant time) {
+		public void setWorkspaceDescription(
+				final WorkspaceUser user,
+				final long id,
+				final Instant time) {
 			// no action
 		}
 
 		@Override
 		public void setWorkspaceOwner(
+				final WorkspaceUser user,
 				final long id,
 				final WorkspaceUser newUser,
 				final Optional<String> newName,
@@ -171,6 +191,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 
 		@Override
 		public void setWorkspaceDeleted(
+				final WorkspaceUser user,
 				final long id,
 				final boolean delete,
 				final long maxObjectID,
@@ -187,6 +208,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 
 		@Override
 		public void renameObject(
+				final WorkspaceUser user,
 				final long workspaceId,
 				final long objectId,
 				final String newName,
@@ -202,6 +224,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 
 		@Override
 		public void setObjectDeleted(
+				final WorkspaceUser user,
 				final long workspaceId,
 				final long objectId,
 				final boolean delete,
@@ -218,6 +241,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 
 		@Override
 		public void copyObject(
+				final WorkspaceUser user,
 				final long workspaceId,
 				final long objectId,
 				final int latestVersion,

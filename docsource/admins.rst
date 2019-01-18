@@ -6,6 +6,7 @@ Server Administrator Documentation
    
    buildandconfigure
    test
+   events
    resourcereqs
    administrationinterface
    knownadminbugs

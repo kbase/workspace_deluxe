@@ -18,6 +18,8 @@ public class UncheckedUserMetadata {
 	
 	private Map<String, String> metadata;
 	
+	//TODO CODE empty constructor -> empty metadata
+	
 	/** Create a new unchecked metadata container
 	 * @param meta a map containing metadata. If null, an empty metadata map is
 	 * created.

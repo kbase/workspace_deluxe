@@ -9,6 +9,14 @@ BACKWARDS INCOMPATIBILITIES:
 * The ``globus-url`` configuration parameter has been replaced by the ``auth2-service-url``
   parameter.
 
+UPDATES:
+
+* Added a Kafka events listener. See the administration documentation for configuration
+  instructions.
+* Event listeners are now send the user name of the user that triggered the event. In the
+  case of an administrator impersonating another user, the impersonated name is sent. If
+  the administrator is not required to impersonate another user, null is sent.
+
 VERSION: 0.8.2 (Released 12/3/18)
 ---------------------------------
 
