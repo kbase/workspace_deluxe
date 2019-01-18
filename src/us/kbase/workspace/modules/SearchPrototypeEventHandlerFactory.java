@@ -187,6 +187,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 
 		@Override
 		public void renameObject(
+				final WorkspaceUser user,
 				final long workspaceId,
 				final long objectId,
 				final String newName,

@@ -731,7 +731,7 @@ public class WorkspaceListenerTest {
 		
 		ws.renameObject(user, oi, "bollocks");
 
-		verify(l).renameObject(24, 42, "bollocks", Instant.ofEpochMilli(20000));
+		verify(l).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -759,8 +759,8 @@ public class WorkspaceListenerTest {
 		
 		ws.renameObject(user, oi, "bollocks");
 
-		verify(l1).renameObject(24, 42, "bollocks", Instant.ofEpochMilli(20000));
-		verify(l2).renameObject(24, 42, "bollocks", Instant.ofEpochMilli(20000));
+		verify(l1).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
+		verify(l2).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
 	}
 	
 	@Test

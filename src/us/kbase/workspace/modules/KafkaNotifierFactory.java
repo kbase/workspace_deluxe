@@ -70,12 +70,12 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		private static final String TOPIC = "topic";
 		private static final String KAFKA_WS_TOPIC = KAFKA + " " + TOPIC;
 		
-		private static final String NEW_OBJECT_VER = "NEW_VERSION";
+		//TODO NOW make these public
+		private static final String NEW_VERSION = "NEW_VERSION";
 		private static final String COPY_OBJECT = "COPY_OBJECT";
 //		private static final String CLONED_WORKSPACE = "CLONE_WORKSPACE";
-//		private static final String RENAME_OBJECT = "RENAME_ALL_VERSIONS";
-		private static final String OBJECT_DELETE_STATE = "OBJECT_DELETE_STATE_CHANGE";
-//		private static final String UNDELETE_OBJECT = "UNDELETE_ALL_VERSIONS";
+		private static final String RENAME_OBJECT = "RENAME_OBJECT";
+		private static final String OBJECT_DELETE_STATE_CHANGE = "OBJECT_DELETE_STATE_CHANGE";
 //		private static final String DELETE_WS = "DELETE_ACCESS_GROUP";
 //		private static final String SET_GLOBAL_READ = "PUBLISH_ACCESS_GROUP";
 //		private static final String REMOVE_GLOBAL_READ = "UNPUBLISH_ACCESS_GROUP";
@@ -226,7 +226,11 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName, Instant time) {
+		public void setWorkspaceOwner(
+				long id,
+				WorkspaceUser newUser,
+				Optional<String> newName,
+				Instant time) {
 			// no action
 		}
 
@@ -237,14 +241,19 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void renameObject(long workspaceId, long objectId, String newName, Instant time) {
-			// TODO Auto-generated method stub
-			
+		public void renameObject(
+				final WorkspaceUser user,
+				final long workspaceId,
+				final long objectId,
+				final String newName,
+				final Instant time) {
+			newEvent(user, workspaceId, objectId, null, null, RENAME_OBJECT, time);
 		}
 
 		@Override
-		public void revertObject(ObjectInformation object, boolean isPublic) {
-			// TODO Auto-generated method stub
+		public void revertObject(final ObjectInformation oi, final boolean isPublic) {
+			newEvent(oi.getSavedBy(), oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+					oi.getTypeString(), NEW_VERSION, oi.getSavedDate().toInstant());
 			
 		}
 
@@ -255,13 +264,13 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 				final long objectId,
 				final boolean delete,
 				final Instant time) {
-			newEvent(user, workspaceId, objectId, null, null, OBJECT_DELETE_STATE, time);
+			newEvent(user, workspaceId, objectId, null, null, OBJECT_DELETE_STATE_CHANGE, time);
 		}
 
 		@Override
 		public void copyObject(final ObjectInformation oi, final boolean isPublic) {
 			newEvent(oi.getSavedBy(), oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-					oi.getTypeString(), NEW_OBJECT_VER, oi.getSavedDate().toInstant());
+					oi.getTypeString(), NEW_VERSION, oi.getSavedDate().toInstant());
 		}
 
 		@Override
@@ -278,7 +287,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		@Override
 		public void saveObject(final ObjectInformation oi, final boolean isPublic) {
 			newEvent(oi.getSavedBy(), oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-					oi.getTypeString(), NEW_OBJECT_VER, oi.getSavedDate().toInstant());
+					oi.getTypeString(), NEW_VERSION, oi.getSavedDate().toInstant());
 		}
 		
 		private void newEvent(
