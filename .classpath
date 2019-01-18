@@ -68,5 +68,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/objenesis/objenesis-2.5.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.0.24.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth2/kbase-auth2test-0.2.4.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/kafka/kafka-clients-2.1.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
