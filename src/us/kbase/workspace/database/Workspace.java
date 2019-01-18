@@ -1540,7 +1540,7 @@ public class Workspace {
 				user, t.getWorkspaceIdentifier());
 		for (final WorkspaceEventListener l: listeners) {
 			if (cr.isAllVersionsCopied()) {
-				l.copyObject(oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+				l.copyObject(user, oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
 						oi.getSavedDate().toInstant(), wsinfo.isGloballyReadable());
 			} else {
 				l.copyObject(oi, wsinfo.isGloballyReadable());

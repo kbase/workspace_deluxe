@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -109,12 +110,77 @@ public class KafkaNotifierFactoryTest {
 		verify(fut).get(35000, TimeUnit.MILLISECONDS);
 	}
 	
+	@Test
+	public void copyVersion() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
+		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "user1")
+						.with("wsid", 22L)
+						.with("objid", 6L)
+						.with("ver", 3)
+						.with("evtype", "NEW_VERSION")
+						.with("objtype", "Foo.Bar-2.1")
+						.with("time", 10000L)
+						.build())))
+				.thenReturn(fut);
+
+		mocks.notis.copyObject(new ObjectInformation(
+				6L,
+				"foo",
+				"Foo.Bar-2.1",
+				new Date(10000),
+				3,
+				new WorkspaceUser("user1"),
+				new ResolvedWorkspaceID(22L, "bar", false, false),
+				"chksum",
+				30L,
+				new UncheckedUserMetadata((WorkspaceUserMetadata) null)),
+				true);
+		
+		verify(mocks.client).partitionsFor("mytopic");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
+	}
+	
+	@Test
+	public void copyObject() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
+		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "user1")
+						.with("wsid", 22L)
+						.with("objid", 6L)
+						.with("ver", null)
+						.with("evtype", "COPY_OBJECT")
+						.with("objtype", null)
+						.with("time", 20000L)
+						.build())))
+				.thenReturn(fut);
+
+		mocks.notis.copyObject(
+				new WorkspaceUser("user1"),
+				22L,
+				6L,
+				780,
+				Instant.ofEpochMilli(20000),
+				false);
+		
+		verify(mocks.client).partitionsFor("mytopic");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
+	}
+	
 	/* The post method is the same for all the notification calls, so we don't repeat each
 	 * post failure test for each call.
 	 * We do test with different methods for each failure mode though.
 	 */
-	
-	//TODO NOW use different calls to test post fails
 	
 	@Test
 	public void postFailInterrupted() throws Exception {
@@ -137,7 +203,7 @@ public class KafkaNotifierFactoryTest {
 		when(fut.get(35000, TimeUnit.MILLISECONDS)).thenThrow(new InterruptedException("oopsie"));
 		
 		try {
-			mocks.notis.saveObject(new ObjectInformation(
+			mocks.notis.copyObject(new ObjectInformation(
 					6L,
 					"foo",
 					"Foo.Bar-2.1",
@@ -167,28 +233,23 @@ public class KafkaNotifierFactoryTest {
 						.with("user", "user1")
 						.with("wsid", 22L)
 						.with("objid", 6L)
-						.with("ver", 3)
-						.with("evtype", "NEW_VERSION")
-						.with("objtype", "Foo.Bar-2.1")
-						.with("time", 10000L)
+						.with("ver", null)
+						.with("evtype", "COPY_OBJECT")
+						.with("objtype", null)
+						.with("time", 20000L)
 						.build())))
 				.thenReturn(fut);
 			
 		when(fut.get(35000, TimeUnit.MILLISECONDS)).thenThrow(new TimeoutException("time up"));
 		
 		try {
-			mocks.notis.saveObject(new ObjectInformation(
-					6L,
-					"foo",
-					"Foo.Bar-2.1",
-					new Date(10000),
-					3,
+			mocks.notis.copyObject(
 					new WorkspaceUser("user1"),
-					new ResolvedWorkspaceID(22L, "bar", false, false),
-					"chksum",
-					30L,
-					new UncheckedUserMetadata((WorkspaceUserMetadata) null)),
-					true);
+					22L,
+					6L,
+					780,
+					Instant.ofEpochMilli(20000),
+					false);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got,

@@ -982,8 +982,8 @@ public class WorkspaceListenerTest {
 
 		ws.copyObject(user, from, to);
 		
-		verify(l1).copyObject(24, 42, 45, Instant.ofEpochMilli(40000), false);
-		verify(l2).copyObject(24, 42, 45, Instant.ofEpochMilli(40000), false);
+		verify(l1).copyObject(user, 24, 42, 45, Instant.ofEpochMilli(40000), false);
+		verify(l2).copyObject(user, 24, 42, 45, Instant.ofEpochMilli(40000), false);
 	}
 	
 	public static class SaveObjectsAnswerMatcher implements

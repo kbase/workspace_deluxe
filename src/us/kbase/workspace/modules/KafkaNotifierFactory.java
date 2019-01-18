@@ -71,7 +71,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		private static final String KAFKA_WS_TOPIC = KAFKA + " " + TOPIC;
 		
 		private static final String NEW_OBJECT_VER = "NEW_VERSION";
-//		private static final String COPY_OBJECT = "COPY_ALL_VERSIONS";
+		private static final String COPY_OBJECT = "COPY_OBJECT";
 //		private static final String CLONED_WORKSPACE = "CLONE_WORKSPACE";
 //		private static final String RENAME_OBJECT = "RENAME_ALL_VERSIONS";
 //		private static final String DELETE_OBJECT = "DELETE_ALL_VERSIONS";
@@ -255,15 +255,20 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void copyObject(ObjectInformation object, boolean isPublic) {
-			// TODO Auto-generated method stub
-			
+		public void copyObject(final ObjectInformation oi, final boolean isPublic) {
+			newEvent(oi.getSavedBy(), oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
+					oi.getTypeString(), NEW_OBJECT_VER, oi.getSavedDate().toInstant());
 		}
 
 		@Override
-		public void copyObject(long workspaceId, long objectId, int latestVersion, Instant time, boolean isPublic) {
-			// TODO Auto-generated method stub
-			
+		public void copyObject(
+				final WorkspaceUser user,
+				final long workspaceId,
+				final long objectId,
+				final int latestVersion,
+				final Instant time,
+				final boolean isPublic) {
+			newEvent(user, workspaceId, objectId, null, null, COPY_OBJECT, time);
 		}
 
 		@Override
