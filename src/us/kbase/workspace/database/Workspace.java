@@ -503,7 +503,7 @@ public class Workspace {
 		}
 		final Instant time = db.setGlobalPermission(rwsi, permission);
 		for (final WorkspaceEventListener l: listeners) {
-			l.setGlobalPermission(rwsi.getID(), permission, time);
+			l.setGlobalPermission(user, rwsi.getID(), permission, time);
 		}
 		return rwsi.getID();
 	}

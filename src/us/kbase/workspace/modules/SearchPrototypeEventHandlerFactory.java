@@ -141,7 +141,11 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 		}
 
 		@Override
-		public void setGlobalPermission(final long id, final Permission perm, final Instant time) {
+		public void setGlobalPermission(
+				final WorkspaceUser user,
+				final long id,
+				final Permission perm,
+				final Instant time) {
 			newWorkspaceEvent(id, Permission.READ.equals(perm) ?
 					SET_GLOBAL_READ : REMOVE_GLOBAL_READ, null, time);
 		}

@@ -50,11 +50,12 @@ public interface WorkspaceEventListener {
 	void renameWorkspace(long id, final String newname, Instant time);
 
 	/** Notification that the global permission for a workspace has been altered.
+	 * @param user the user that altered the workspace.
 	 * @param id the id of the workspace.
 	 * @param permission the new global permission.
 	 * @param time the time the permission event occurred.
 	 */
-	void setGlobalPermission(long id, Permission permission, Instant time);
+	void setGlobalPermission(WorkspaceUser user, long id, Permission permission, Instant time);
 
 	/** Notification that the permissions for a workspace have been altered.
 	 * @param user the user that altered the workspace. May be null if the user is an admin.

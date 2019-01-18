@@ -76,14 +76,13 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		//TODO NOW make these public
 		private static final String NEW_VERSION = "NEW_VERSION";
 		private static final String COPY_OBJECT = "COPY_OBJECT";
-//		private static final String CLONED_WORKSPACE = "CLONE_WORKSPACE";
+//		private static final String CLONE_WORKSPACE = "CLONE_WORKSPACE";
 		private static final String RENAME_OBJECT = "RENAME_OBJECT";
 		private static final String OBJECT_DELETE_STATE_CHANGE = "OBJECT_DELETE_STATE_CHANGE";
 		private static final String WORKSPACE_DELETE_STATE_CHANGE =
 				"WORKSPACE_DELETE_STATE_CHANGE";
 		private static final String SET_PERMISSION = "SET_PERMISSION";
-//		private static final String SET_GLOBAL_READ = "PUBLISH_ACCESS_GROUP";
-//		private static final String REMOVE_GLOBAL_READ = "UNPUBLISH_ACCESS_GROUP";
+		private static final String SET_GLOBAL_PERMISSION = "SET_GLOBAL_PERMISSION";
 		
 		
 		// https://stackoverflow.com/questions/37062904/what-are-apache-kafka-topic-name-limitations
@@ -214,9 +213,12 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setGlobalPermission(long id, Permission permission, Instant time) {
-			// TODO Auto-generated method stub
-			
+		public void setGlobalPermission(
+				final WorkspaceUser user,
+				final long id,
+				final Permission permission,
+				final Instant time) {
+			newEvent(user.getUser(), id, null, null, null, SET_GLOBAL_PERMISSION, time);
 		}
 
 		@Override
