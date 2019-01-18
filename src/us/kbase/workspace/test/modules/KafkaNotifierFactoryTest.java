@@ -70,13 +70,13 @@ public class KafkaNotifierFactoryTest {
 	
 	private static final class TestMocks {
 		private KafkaProducer<String, Map<String, Object>> client;
-		private WorkspaceEventListener notis;
+		private WorkspaceEventListener listener;
 
 		private TestMocks(
 				final KafkaProducer<String, Map<String, Object>> client,
 				final WorkspaceEventListener notis) {
 			this.client = client;
-			this.notis = notis;
+			this.listener = notis;
 		}
 	}
 	
@@ -84,7 +84,7 @@ public class KafkaNotifierFactoryTest {
 	public void createWorkspace() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.notis.createWorkspace(1L, Instant.ofEpochMilli(10000));
+		mocks.listener.createWorkspace(1L, Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}
@@ -93,7 +93,7 @@ public class KafkaNotifierFactoryTest {
 	public void setWSMetadata() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.notis.setWorkspaceMetadata(1L, Instant.ofEpochMilli(10000));
+		mocks.listener.setWorkspaceMetadata(1L, Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}
@@ -102,7 +102,7 @@ public class KafkaNotifierFactoryTest {
 	public void lockWorkspace() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.notis.lockWorkspace(1L, Instant.ofEpochMilli(10000));
+		mocks.listener.lockWorkspace(1L, Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}
@@ -111,7 +111,7 @@ public class KafkaNotifierFactoryTest {
 	public void renameWorkspace() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.notis.renameWorkspace(1L, "foo", Instant.ofEpochMilli(10000));
+		mocks.listener.renameWorkspace(1L, "foo", Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}
@@ -120,7 +120,7 @@ public class KafkaNotifierFactoryTest {
 	public void setWorkspaceDescription() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.notis.setWorkspaceDescription(1L, Instant.ofEpochMilli(10000));
+		mocks.listener.setWorkspaceDescription(1L, Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}
@@ -129,7 +129,7 @@ public class KafkaNotifierFactoryTest {
 	public void setWorkspaceOwner() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.notis.setWorkspaceOwner(
+		mocks.listener.setWorkspaceOwner(
 				1L, new WorkspaceUser("foo"), Optional.of("bar"), Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
@@ -156,7 +156,7 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.notis.saveObject(new ObjectInformation(
+		mocks.listener.saveObject(new ObjectInformation(
 				6L,
 				"foo",
 				"Foo.Bar-2.1",
@@ -194,7 +194,7 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.notis.copyObject(new ObjectInformation(
+		mocks.listener.copyObject(new ObjectInformation(
 				6L,
 				"foo",
 				"Foo.Bar-2.1",
@@ -232,7 +232,7 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.notis.copyObject(
+		mocks.listener.copyObject(
 				new WorkspaceUser("user1"),
 				22L,
 				6L,
@@ -265,7 +265,7 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.notis.setObjectDeleted(
+		mocks.listener.setObjectDeleted(
 				new WorkspaceUser("deluser"),
 				64L,
 				29L,
@@ -297,7 +297,7 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.notis.revertObject(new ObjectInformation(
+		mocks.listener.revertObject(new ObjectInformation(
 				6L,
 				"foo",
 				"Foo.Bar-2.1",
@@ -335,7 +335,7 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.notis.renameObject(
+		mocks.listener.renameObject(
 				new WorkspaceUser("ruser"),
 				64L,
 				29L,
@@ -377,7 +377,7 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.notis.setWorkspaceDeleted(
+		mocks.listener.setWorkspaceDeleted(
 				user,
 				34L,
 				false,
@@ -433,12 +433,43 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.notis.setPermissions(
+		mocks.listener.setPermissions(
 				user,
 				76L,
 				permission,
 				Arrays.asList(new WorkspaceUser("u1"), new WorkspaceUser("u2")),
 				Instant.ofEpochMilli(45000));
+		
+		verify(mocks.client).partitionsFor("mytopic");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
+	}
+	
+	@Test
+	public void setGlobalPermission() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
+		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "ws")
+						.with("wsid", 42L)
+						.with("objid", null)
+						.with("ver", null)
+						.with("evtype", "SET_GLOBAL_PERMISSION")
+						.with("objtype", null)
+						.with("time", 35000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
+						.build())))
+				.thenReturn(fut);
+		
+		mocks.listener.setGlobalPermission(
+				new WorkspaceUser("ws"),
+				42,
+				Permission.READ,
+				Instant.ofEpochMilli(35000));
 		
 		verify(mocks.client).partitionsFor("mytopic");
 		verify(fut).get(35000, TimeUnit.MILLISECONDS);
@@ -472,7 +503,7 @@ public class KafkaNotifierFactoryTest {
 		when(fut.get(35000, TimeUnit.MILLISECONDS)).thenThrow(new InterruptedException("oopsie"));
 		
 		try {
-			mocks.notis.copyObject(new ObjectInformation(
+			mocks.listener.copyObject(new ObjectInformation(
 					6L,
 					"foo",
 					"Foo.Bar-2.1",
@@ -514,7 +545,7 @@ public class KafkaNotifierFactoryTest {
 		when(fut.get(35000, TimeUnit.MILLISECONDS)).thenThrow(new TimeoutException("time up"));
 		
 		try {
-			mocks.notis.copyObject(
+			mocks.listener.copyObject(
 					new WorkspaceUser("user1"),
 					22L,
 					6L,
@@ -553,7 +584,7 @@ public class KafkaNotifierFactoryTest {
 				new ExecutionException("not this one", new IllegalStateException("this one")));
 		
 		try {
-			mocks.notis.saveObject(new ObjectInformation(
+			mocks.listener.saveObject(new ObjectInformation(
 					6L,
 					"foo",
 					"Foo.Bar-2.1",

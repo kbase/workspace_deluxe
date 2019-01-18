@@ -469,7 +469,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setGlobalPermission(user, wsi, Permission.READ);
 		
-		verify(l).setGlobalPermission(24L, Permission.READ, Instant.ofEpochMilli(50000));
+		verify(l).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
 	}
 	
 	@Test
@@ -493,8 +493,8 @@ public class WorkspaceListenerTest {
 		
 		ws.setGlobalPermission(user, wsi, Permission.READ);
 		
-		verify(l1).setGlobalPermission(24L, Permission.READ, Instant.ofEpochMilli(50000));
-		verify(l2).setGlobalPermission(24L, Permission.READ, Instant.ofEpochMilli(50000));
+		verify(l1).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
+		verify(l2).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
 	}
 	
 	@Test
