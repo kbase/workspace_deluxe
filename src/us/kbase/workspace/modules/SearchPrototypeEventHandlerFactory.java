@@ -148,6 +148,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 
 		@Override
 		public void setPermissions(
+				final WorkspaceUser user,
 				final long id,
 				final Permission permission,
 				final List<WorkspaceUser> users,

@@ -57,12 +57,18 @@ public interface WorkspaceEventListener {
 	void setGlobalPermission(long id, Permission permission, Instant time);
 
 	/** Notification that the permissions for a workspace have been altered.
+	 * @param user the user that altered the workspace. May be null if the user is an admin.
 	 * @param id the id of the workspace.
 	 * @param permission the new permission.
 	 * @param users the users that have been assigned the new permission.
 	 * @param time the time the permissions event occurred.
 	 */
-	void setPermissions(long id, Permission permission, List<WorkspaceUser> users, Instant time);
+	void setPermissions(
+			WorkspaceUser user,
+			long id,
+			Permission permission,
+			List<WorkspaceUser> users,
+			Instant time);
 
 	/** Notification that the workspace description has been set or altered.
 	 * @param id the id of the workspace.

@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 import static us.kbase.workspace.database.Util.checkString;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -28,6 +30,7 @@ import com.google.common.base.Optional;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.kbase.KBasePermissions;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
@@ -78,6 +81,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		private static final String OBJECT_DELETE_STATE_CHANGE = "OBJECT_DELETE_STATE_CHANGE";
 		private static final String WORKSPACE_DELETE_STATE_CHANGE =
 				"WORKSPACE_DELETE_STATE_CHANGE";
+		private static final String SET_PERMISSION = "SET_PERMISSION";
 //		private static final String SET_GLOBAL_READ = "PUBLISH_ACCESS_GROUP";
 //		private static final String REMOVE_GLOBAL_READ = "UNPUBLISH_ACCESS_GROUP";
 		
@@ -216,9 +220,14 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setPermissions(long id, Permission permission, List<WorkspaceUser> users, Instant time) {
-			// TODO Auto-generated method stub
-			
+		public void setPermissions(
+				final WorkspaceUser user,
+				final long id,
+				final Permission permission,
+				final List<WorkspaceUser> users,
+				final Instant time) {
+			newEvent(user == null ? null : user.getUser(), id, null, null, null, SET_PERMISSION,
+					time, permission, users);
 		}
 
 		@Override
@@ -308,6 +317,20 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 				final String type,
 				final String eventType,
 				final Instant time) {
+			newEvent(user, workspaceId, objectId, version, type, eventType, time, null,
+					Collections.emptyList());
+		}
+		
+		private void newEvent(
+				final String user,
+				final long workspaceId,
+				final Long objectId,
+				final Integer version,
+				final String type,
+				final String eventType,
+				final Instant time,
+				final Permission permission,
+				final List<WorkspaceUser> usersWithNewPermission) {
 			
 			final Map<String, Object> dobj = new HashMap<>();
 			dobj.put("user", user);
@@ -317,6 +340,10 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 			dobj.put("time", time.toEpochMilli());
 			dobj.put("evtype", eventType);
 			dobj.put("objtype", type);
+			dobj.put("perm", permission == null ? null :
+				KBasePermissions.translatePermission(permission));
+			dobj.put("permusers", usersWithNewPermission.stream().map(u -> u.getUser())
+					.collect(Collectors.toList()));
 			post(dobj);
 		}
 		

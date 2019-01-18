@@ -13,6 +13,8 @@ import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +35,7 @@ import com.google.common.collect.ImmutableMap;
 import us.kbase.common.test.MapBuilder;
 import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.database.ObjectInformation;
+import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -148,6 +151,8 @@ public class KafkaNotifierFactoryTest {
 						.with("evtype", "NEW_VERSION")
 						.with("objtype", "Foo.Bar-2.1")
 						.with("time", 10000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
 						.build())))
 				.thenReturn(fut);
 
@@ -184,6 +189,8 @@ public class KafkaNotifierFactoryTest {
 						.with("evtype", "NEW_VERSION")
 						.with("objtype", "Foo.Bar-2.1")
 						.with("time", 10000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
 						.build())))
 				.thenReturn(fut);
 
@@ -220,6 +227,8 @@ public class KafkaNotifierFactoryTest {
 						.with("evtype", "COPY_OBJECT")
 						.with("objtype", null)
 						.with("time", 20000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
 						.build())))
 				.thenReturn(fut);
 
@@ -251,6 +260,8 @@ public class KafkaNotifierFactoryTest {
 						.with("evtype", "OBJECT_DELETE_STATE_CHANGE")
 						.with("objtype", null)
 						.with("time", 30000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
 						.build())))
 				.thenReturn(fut);
 
@@ -281,6 +292,8 @@ public class KafkaNotifierFactoryTest {
 						.with("evtype", "NEW_VERSION")
 						.with("objtype", "Foo.Bar-2.1")
 						.with("time", 10000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
 						.build())))
 				.thenReturn(fut);
 
@@ -317,6 +330,8 @@ public class KafkaNotifierFactoryTest {
 						.with("evtype", "RENAME_OBJECT")
 						.with("objtype", null)
 						.with("time", 30000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
 						.build())))
 				.thenReturn(fut);
 
@@ -357,6 +372,8 @@ public class KafkaNotifierFactoryTest {
 						.with("evtype", "WORKSPACE_DELETE_STATE_CHANGE")
 						.with("objtype", null)
 						.with("time", 40000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
 						.build())))
 				.thenReturn(fut);
 
@@ -366,6 +383,62 @@ public class KafkaNotifierFactoryTest {
 				false,
 				89,
 				Instant.ofEpochMilli(40000));
+		
+		verify(mocks.client).partitionsFor("mytopic");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
+	}
+	
+	@Test
+	public void setPermissionAdmin() throws Exception {
+		setPermission(new WorkspaceUser("wsuser"), "wsuser", Permission.ADMIN, "a");
+	}
+	
+	@Test
+	public void setPermissionWrite() throws Exception {
+		setPermission(new WorkspaceUser("wsuser"), "wsuser", Permission.WRITE, "w");
+	}
+	
+	@Test
+	public void setPermissionNullUserRead() throws Exception {
+		setPermission(null, null, Permission.READ, "r");
+	}
+	
+	@Test
+	public void setPermissionNone() throws Exception {
+		setPermission(new WorkspaceUser("wsuser"), "wsuser", Permission.NONE, "n");
+	}
+	
+	private void setPermission(
+			final WorkspaceUser user,
+			final String expectedUser,
+			final Permission permission,
+			final String expectedPermission)
+			throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
+		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", expectedUser)
+						.with("wsid", 76L)
+						.with("objid", null)
+						.with("ver", null)
+						.with("evtype", "SET_PERMISSION")
+						.with("objtype", null)
+						.with("time", 45000L)
+						.with("perm", expectedPermission)
+						.with("permusers", Arrays.asList("u1", "u2"))
+						.build())))
+				.thenReturn(fut);
+
+		mocks.notis.setPermissions(
+				user,
+				76L,
+				permission,
+				Arrays.asList(new WorkspaceUser("u1"), new WorkspaceUser("u2")),
+				Instant.ofEpochMilli(45000));
 		
 		verify(mocks.client).partitionsFor("mytopic");
 		verify(fut).get(35000, TimeUnit.MILLISECONDS);
@@ -391,6 +464,8 @@ public class KafkaNotifierFactoryTest {
 						.with("evtype", "NEW_VERSION")
 						.with("objtype", "Foo.Bar-2.1")
 						.with("time", 10000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
 						.build())))
 				.thenReturn(fut);
 			
@@ -431,6 +506,8 @@ public class KafkaNotifierFactoryTest {
 						.with("evtype", "COPY_OBJECT")
 						.with("objtype", null)
 						.with("time", 20000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
 						.build())))
 				.thenReturn(fut);
 			
@@ -467,6 +544,8 @@ public class KafkaNotifierFactoryTest {
 						.with("evtype", "NEW_VERSION")
 						.with("objtype", "Foo.Bar-2.1")
 						.with("time", 10000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
 						.build())))
 				.thenReturn(fut);
 
