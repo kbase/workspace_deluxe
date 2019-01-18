@@ -84,7 +84,7 @@ public class KafkaNotifierFactoryTest {
 	public void createWorkspace() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.listener.createWorkspace(1L, Instant.ofEpochMilli(10000));
+		mocks.listener.createWorkspace(new WorkspaceUser("u"), 1L, Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}
@@ -93,7 +93,8 @@ public class KafkaNotifierFactoryTest {
 	public void setWSMetadata() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.listener.setWorkspaceMetadata(1L, Instant.ofEpochMilli(10000));
+		mocks.listener.setWorkspaceMetadata(
+				new WorkspaceUser("u"), 1L, Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}
@@ -102,7 +103,7 @@ public class KafkaNotifierFactoryTest {
 	public void lockWorkspace() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.listener.lockWorkspace(1L, Instant.ofEpochMilli(10000));
+		mocks.listener.lockWorkspace(new WorkspaceUser("u"), 1L, Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}
@@ -111,7 +112,8 @@ public class KafkaNotifierFactoryTest {
 	public void renameWorkspace() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.listener.renameWorkspace(1L, "foo", Instant.ofEpochMilli(10000));
+		mocks.listener.renameWorkspace(
+				new WorkspaceUser("u"), 1L, "foo", Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}
@@ -120,7 +122,8 @@ public class KafkaNotifierFactoryTest {
 	public void setWorkspaceDescription() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.listener.setWorkspaceDescription(1L, Instant.ofEpochMilli(10000));
+		mocks.listener.setWorkspaceDescription(
+				new WorkspaceUser("u"), 1L, Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}
@@ -130,7 +133,11 @@ public class KafkaNotifierFactoryTest {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
 		mocks.listener.setWorkspaceOwner(
-				1L, new WorkspaceUser("foo"), Optional.of("bar"), Instant.ofEpochMilli(10000));
+				new WorkspaceUser("bar"),
+				1L,
+				new WorkspaceUser("foo"),
+				Optional.of("bar"),
+				Instant.ofEpochMilli(10000));
 		
 		verify(mocks.client, never()).send(any());
 	}

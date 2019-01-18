@@ -122,7 +122,7 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void createWorkspace(final long id, final Instant time) {
+		public void createWorkspace(final WorkspaceUser user, final long id, final Instant time) {
 			// no action
 		}
 
@@ -136,17 +136,24 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void setWorkspaceMetadata(final long id, final Instant time) {
+		public void setWorkspaceMetadata(
+				final WorkspaceUser user,
+				final long id,
+				final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void lockWorkspace(final long id, final Instant time) {
+		public void lockWorkspace(final WorkspaceUser user, final long id, final Instant time) {
 			// no action
 		}
 
 		@Override
-		public void renameWorkspace(final long id, final String newname, final Instant time) {
+		public void renameWorkspace(
+				final WorkspaceUser user,
+				final long id,
+				final String newname,
+				final Instant time) {
 			// no action
 		}
 
@@ -171,12 +178,16 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 		}
 
 		@Override
-		public void setWorkspaceDescription(final long id, final Instant time) {
+		public void setWorkspaceDescription(
+				final WorkspaceUser user,
+				final long id,
+				final Instant time) {
 			// no action
 		}
 
 		@Override
 		public void setWorkspaceOwner(
+				final WorkspaceUser user,
 				final long id,
 				final WorkspaceUser newUser,
 				final Optional<String> newName,

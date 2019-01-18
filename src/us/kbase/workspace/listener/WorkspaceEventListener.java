@@ -18,10 +18,11 @@ import us.kbase.workspace.database.WorkspaceUser;
 public interface WorkspaceEventListener {
 	
 	/** Notification that a workspace was created.
+	 * @param user the user that created the workspace.
 	 * @param id the workspace ID.
 	 * @param time the time the create event occurred.
 	 */
-	void createWorkspace(long id, Instant time);
+	void createWorkspace(WorkspaceUser user, long id, Instant time);
 	
 	/** Notification that a workspace was cloned.
 	 * @param user the user that cloned the workspace.
@@ -32,23 +33,26 @@ public interface WorkspaceEventListener {
 	void cloneWorkspace(WorkspaceUser user, long id, boolean isPublic, Instant time);
 
 	/** Notification that a workspace's meta data was altered.
+	 * @param user the user that altered the workspace.
 	 * @param id the id of the workspace.
 	 * @param time the time the metadata event occurred.
 	 */
-	void setWorkspaceMetadata(long id, Instant time);
+	void setWorkspaceMetadata(WorkspaceUser user, long id, Instant time);
 	
 	/** Notification that a workspace has been locked.
+	 * @param user the user that locked the workspace.
 	 * @param id the id of the workspace.
 	 * @param time the time the lock event occurred.
 	 */
-	void lockWorkspace(long id, Instant time);
+	void lockWorkspace(WorkspaceUser user, long id, Instant time);
 
 	/** Notification that a workspace has been renamed.
+	 * @param user the user that renamed the workspace.
 	 * @param id the id of the workspace.
 	 * @param newname the new name of the workspace.
 	 * @param time the time the rename event occurred.
 	 */
-	void renameWorkspace(long id, final String newname, Instant time);
+	void renameWorkspace(WorkspaceUser user, long id, final String newname, Instant time);
 
 	/** Notification that the global permission for a workspace has been altered.
 	 * @param user the user that altered the workspace.
@@ -73,18 +77,25 @@ public interface WorkspaceEventListener {
 			Instant time);
 
 	/** Notification that the workspace description has been set or altered.
+	 * @param user the user that altered the workspace. May be null if the user is an admin.
 	 * @param id the id of the workspace.
 	 * @param time the time the description change event occurred.
 	 */
-	void setWorkspaceDescription(long id, Instant time);
+	void setWorkspaceDescription(WorkspaceUser user, long id, Instant time);
 
 	/** Notification that the owner of a workspace has been changed.
+	 * @param user the user that changed the owner. Will be null if the user is an admin.
 	 * @param id the id of the workspace.
 	 * @param newUser the new owner of the workspace.
 	 * @param newName the new name for the workspace, if any.
 	 * @param time the time the owner change event occurred.
 	 */
-	void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName, Instant time);
+	void setWorkspaceOwner(
+			WorkspaceUser user,
+			long id,
+			WorkspaceUser newUser,
+			Optional<String> newName,
+			Instant time);
 
 	/** Notification that a workspace has been deleted or undeleted.
 	 * @param user the user that altered the workspace. May be null if the user is an admin.

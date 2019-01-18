@@ -44,7 +44,7 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void createWorkspace(long id, Instant time) {
+		public void createWorkspace(WorkspaceUser user, long id, Instant time) {
 			print(String.format("createWorkspace %s %s", id, time));
 		}
 
@@ -54,17 +54,17 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setWorkspaceMetadata(long id, Instant time) {
+		public void setWorkspaceMetadata(WorkspaceUser user, long id, Instant time) {
 			print(String.format("setWorkspaceMetadata %s %s", id, time));
 		}
 
 		@Override
-		public void lockWorkspace(long id, Instant time) {
+		public void lockWorkspace(WorkspaceUser user, long id, Instant time) {
 			print(String.format("lockWorkspace %s %s", id, time));
 		}
 
 		@Override
-		public void renameWorkspace(long id, String newName, Instant time) {
+		public void renameWorkspace(WorkspaceUser user, long id, String newName, Instant time) {
 			print(String.format("renameWorkspace %s %s %s", id, newName, time));
 		}
 
@@ -88,12 +88,13 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setWorkspaceDescription(long id, Instant time) {
+		public void setWorkspaceDescription(WorkspaceUser user, long id, Instant time) {
 			print(String.format("setWorkspaceDescription %s %s", id, time));
 		}
 
 		@Override
 		public void setWorkspaceOwner(
+				WorkspaceUser user, 
 				long id,
 				WorkspaceUser newUser,
 				Optional<String> newName,

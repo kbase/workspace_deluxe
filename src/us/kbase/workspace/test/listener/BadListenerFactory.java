@@ -30,19 +30,19 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 	public class BadListener implements WorkspaceEventListener {
 
 		@Override
-		public void createWorkspace(long id, Instant time) {}
+		public void createWorkspace(WorkspaceUser user, long id, Instant time) {}
 
 		@Override
 		public void cloneWorkspace(WorkspaceUser user,long id, boolean isPublic, Instant time) {}
 
 		@Override
-		public void setWorkspaceMetadata(long id, Instant time) {}
+		public void setWorkspaceMetadata(WorkspaceUser user, long id, Instant time) {}
 
 		@Override
-		public void lockWorkspace(long id, Instant time) {}
+		public void lockWorkspace(WorkspaceUser user, long id, Instant time) {}
 
 		@Override
-		public void renameWorkspace(long id, String newName, Instant time) {}
+		public void renameWorkspace(WorkspaceUser user, long id, String newName, Instant time) {}
 
 		@Override
 		public void setGlobalPermission(
@@ -60,13 +60,13 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 				Instant time) {}
 
 		@Override
-		public void setWorkspaceDescription(long id, Instant time) {}
+		public void setWorkspaceDescription(WorkspaceUser user, long id, Instant time) {}
 
 		@Override
 		public void setWorkspaceOwner(
+				WorkspaceUser user, 
 				long id,
-				WorkspaceUser
-				newUser,
+				WorkspaceUser newUser,
 				Optional<String> newName,
 				Instant time) {}
 
