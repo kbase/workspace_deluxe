@@ -66,7 +66,12 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 				Instant time) {}
 
 		@Override
-		public void setWorkspaceDeleted(long id, boolean delete, long maxObjectID, Instant time) {}
+		public void setWorkspaceDeleted(
+				WorkspaceUser user,
+				long id,
+				boolean delete,
+				long maxObjectID,
+				Instant time) {}
 
 		@Override
 		public void renameObject(

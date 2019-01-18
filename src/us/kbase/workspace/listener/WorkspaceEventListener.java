@@ -79,12 +79,18 @@ public interface WorkspaceEventListener {
 	void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName, Instant time);
 
 	/** Notification that a workspace has been deleted or undeleted.
+	 * @param user the user that altered the workspace. May be null if the user is an admin.
 	 * @param id the id of the workspace.
 	 * @param delete true for a delete event, false for an undelete event.
 	 * @param maxObjectID the maximum ID for any object in the workspace.
 	 * @param time the time the deletion event occurred.
 	 */
-	void setWorkspaceDeleted(long id, boolean delete, long maxObjectID, Instant time);
+	void setWorkspaceDeleted(
+			WorkspaceUser user,
+			long id,
+			boolean delete,
+			long maxObjectID,
+			Instant time);
 
 	/** Notification that an object has been renamed.
 	 * @param user the user that renamed the object.

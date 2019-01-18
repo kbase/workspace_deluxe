@@ -76,7 +76,8 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 //		private static final String CLONED_WORKSPACE = "CLONE_WORKSPACE";
 		private static final String RENAME_OBJECT = "RENAME_OBJECT";
 		private static final String OBJECT_DELETE_STATE_CHANGE = "OBJECT_DELETE_STATE_CHANGE";
-//		private static final String DELETE_WS = "DELETE_ACCESS_GROUP";
+		private static final String WORKSPACE_DELETE_STATE_CHANGE =
+				"WORKSPACE_DELETE_STATE_CHANGE";
 //		private static final String SET_GLOBAL_READ = "PUBLISH_ACCESS_GROUP";
 //		private static final String REMOVE_GLOBAL_READ = "UNPUBLISH_ACCESS_GROUP";
 		
@@ -235,9 +236,14 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setWorkspaceDeleted(long id, boolean delete, long maxObjectID, Instant time) {
-			// TODO Auto-generated method stub
-			
+		public void setWorkspaceDeleted(
+				final WorkspaceUser user,
+				final long id,
+				final boolean delete,
+				final long maxObjectID,
+				final Instant time) {
+			newEvent(user == null ? null : user.getUser(), id, null, null, null,
+					WORKSPACE_DELETE_STATE_CHANGE, time);
 		}
 
 		@Override
@@ -247,13 +253,14 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 				final long objectId,
 				final String newName,
 				final Instant time) {
-			newEvent(user, workspaceId, objectId, null, null, RENAME_OBJECT, time);
+			newEvent(user.getUser(), workspaceId, objectId, null, null, RENAME_OBJECT, time);
 		}
 
 		@Override
 		public void revertObject(final ObjectInformation oi, final boolean isPublic) {
-			newEvent(oi.getSavedBy(), oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-					oi.getTypeString(), NEW_VERSION, oi.getSavedDate().toInstant());
+			newEvent(oi.getSavedBy().getUser(), oi.getWorkspaceId(), oi.getObjectId(),
+					oi.getVersion(), oi.getTypeString(), NEW_VERSION,
+					oi.getSavedDate().toInstant());
 			
 		}
 
@@ -264,13 +271,15 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 				final long objectId,
 				final boolean delete,
 				final Instant time) {
-			newEvent(user, workspaceId, objectId, null, null, OBJECT_DELETE_STATE_CHANGE, time);
+			newEvent(user.getUser(), workspaceId, objectId, null, null, OBJECT_DELETE_STATE_CHANGE,
+					time);
 		}
 
 		@Override
 		public void copyObject(final ObjectInformation oi, final boolean isPublic) {
-			newEvent(oi.getSavedBy(), oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-					oi.getTypeString(), NEW_VERSION, oi.getSavedDate().toInstant());
+			newEvent(oi.getSavedBy().getUser(), oi.getWorkspaceId(), oi.getObjectId(),
+					oi.getVersion(), oi.getTypeString(), NEW_VERSION,
+					oi.getSavedDate().toInstant());
 		}
 
 		@Override
@@ -281,17 +290,18 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 				final int latestVersion,
 				final Instant time,
 				final boolean isPublic) {
-			newEvent(user, workspaceId, objectId, null, null, COPY_OBJECT, time);
+			newEvent(user.getUser(), workspaceId, objectId, null, null, COPY_OBJECT, time);
 		}
 
 		@Override
 		public void saveObject(final ObjectInformation oi, final boolean isPublic) {
-			newEvent(oi.getSavedBy(), oi.getWorkspaceId(), oi.getObjectId(), oi.getVersion(),
-					oi.getTypeString(), NEW_VERSION, oi.getSavedDate().toInstant());
+			newEvent(oi.getSavedBy().getUser(), oi.getWorkspaceId(), oi.getObjectId(),
+					oi.getVersion(), oi.getTypeString(), NEW_VERSION,
+					oi.getSavedDate().toInstant());
 		}
 		
 		private void newEvent(
-				final WorkspaceUser user,
+				final String user,
 				final long workspaceId,
 				final Long objectId,
 				final Integer version,
@@ -300,7 +310,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 				final Instant time) {
 			
 			final Map<String, Object> dobj = new HashMap<>();
-			dobj.put("user", user.getUser());
+			dobj.put("user", user);
 			dobj.put("wsid", workspaceId);
 			dobj.put("objid", objectId);
 			dobj.put("ver", version);

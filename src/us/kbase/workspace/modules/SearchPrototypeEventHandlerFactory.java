@@ -171,6 +171,7 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 
 		@Override
 		public void setWorkspaceDeleted(
+				final WorkspaceUser user,
 				final long id,
 				final boolean delete,
 				final long maxObjectID,

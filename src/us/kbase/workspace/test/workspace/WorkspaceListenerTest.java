@@ -680,7 +680,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceDeleted(user, wsi, true, true);
 
-		verify(l).setWorkspaceDeleted(24, true, 302, Instant.ofEpochMilli(20000));
+		verify(l).setWorkspaceDeleted(user, 24, true, 302, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -703,8 +703,8 @@ public class WorkspaceListenerTest {
 
 		ws.setWorkspaceDeleted(user, wsi, false, true);
 
-		verify(l1).setWorkspaceDeleted(24, false, 300, Instant.ofEpochMilli(20000));
-		verify(l2).setWorkspaceDeleted(24, false, 300, Instant.ofEpochMilli(20000));
+		verify(l1).setWorkspaceDeleted(user, 24, false, 300, Instant.ofEpochMilli(20000));
+		verify(l2).setWorkspaceDeleted(user, 24, false, 300, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test

@@ -331,6 +331,46 @@ public class KafkaNotifierFactoryTest {
 		verify(fut).get(35000, TimeUnit.MILLISECONDS);
 	}
 	
+	@Test
+	public void setWorkspaceDeleted() throws Exception {
+		setWorkspaceDeleted(new WorkspaceUser("wsuser"), "wsuser");
+	}
+	
+	@Test
+	public void setWorkspaceDeletedNullUser() throws Exception {
+		setWorkspaceDeleted(null, null);
+	}
+	
+	private void setWorkspaceDeleted(final WorkspaceUser user, final String expectedUser)
+			throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
+		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", expectedUser)
+						.with("wsid", 34L)
+						.with("objid", null)
+						.with("ver", null)
+						.with("evtype", "WORKSPACE_DELETE_STATE_CHANGE")
+						.with("objtype", null)
+						.with("time", 40000L)
+						.build())))
+				.thenReturn(fut);
+
+		mocks.notis.setWorkspaceDeleted(
+				user,
+				34L,
+				false,
+				89,
+				Instant.ofEpochMilli(40000));
+		
+		verify(mocks.client).partitionsFor("mytopic");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
+	}
+	
 	/* The post method is the same for all the notification calls, so we don't repeat each
 	 * post failure test for each call.
 	 * We do test with different methods for each failure mode though.
