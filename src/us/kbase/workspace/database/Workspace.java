@@ -233,13 +233,13 @@ public class Workspace {
 			PreExistingWorkspaceException, NoSuchObjectException {
 		final ResolvedWorkspaceID wsid = new PermissionsCheckerFactory(db, user)
 				.getWorkspaceChecker(wsi, Permission.READ).check();
-		new WorkspaceIdentifier(newname, user); //check for errors
+		new WorkspaceIdentifier(newname, user); //check for errors, ensures user != null
 		final WorkspaceInformation info = db.cloneWorkspace(user, wsid, newname, globalread,
 				pruneWorkspaceDescription(description),
 				meta == null ? new WorkspaceUserMetadata() : meta,
 				exclude);
 		for (final WorkspaceEventListener l: listeners) {
-			l.cloneWorkspace(info.getId(), info.isGloballyReadable(), info.getModDate());
+			l.cloneWorkspace(user, info.getId(), info.isGloballyReadable(), info.getModDate());
 		}
 		return info;
 	}

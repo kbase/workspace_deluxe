@@ -475,6 +475,37 @@ public class KafkaNotifierFactoryTest {
 		verify(fut).get(35000, TimeUnit.MILLISECONDS);
 	}
 	
+	@Test
+	public void cloneWorkspace() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
+		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "ws")
+						.with("wsid", 42L)
+						.with("objid", null)
+						.with("ver", null)
+						.with("evtype", "CLONE_WORKSPACE")
+						.with("objtype", null)
+						.with("time", 35000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
+						.build())))
+				.thenReturn(fut);
+		
+		mocks.listener.cloneWorkspace(
+				new WorkspaceUser("ws"),
+				42L,
+				false,
+				Instant.ofEpochMilli(35000));
+		
+		verify(mocks.client).partitionsFor("mytopic");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
+	}
+	
 	/* The post method is the same for all the notification calls, so we don't repeat each
 	 * post failure test for each call.
 	 * We do test with different methods for each failure mode though.

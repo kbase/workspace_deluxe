@@ -121,7 +121,11 @@ public class SearchPrototypeEventHandlerFactory implements WorkspaceEventListene
 		}
 
 		@Override
-		public void cloneWorkspace(final long id, final boolean isPublic, final Instant time) {
+		public void cloneWorkspace(
+				final WorkspaceUser user,
+				final long id,
+				final boolean isPublic,
+				final Instant time) {
 			newWorkspaceEvent(id, CLONED_WORKSPACE, isPublic, time);
 		}
 

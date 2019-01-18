@@ -143,7 +143,7 @@ public class WorkspaceListenerTest {
 		
 		ws.cloneWorkspace(user, wsi, "whee", false, null, null, null);
 		
-		verify(l).cloneWorkspace(42L, false, Instant.ofEpochMilli(20000));
+		verify(l).cloneWorkspace(user, 42L, false, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -170,8 +170,8 @@ public class WorkspaceListenerTest {
 		
 		ws.cloneWorkspace(user, wsi, "whee", true, null, null, null);
 		
-		verify(l1).cloneWorkspace(42L, true, Instant.ofEpochMilli(30000));
-		verify(l2).cloneWorkspace(42L, true, Instant.ofEpochMilli(30000));
+		verify(l1).cloneWorkspace(user, 42L, true, Instant.ofEpochMilli(30000));
+		verify(l2).cloneWorkspace(user, 42L, true, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
