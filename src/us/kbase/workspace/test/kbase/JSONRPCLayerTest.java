@@ -95,6 +95,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.8.3-dev1"));
 	}
 	
+	@Test
 	public void status() throws Exception {
 		final Map<String, Object> st = CLIENT1.status();
 		System.out.println(st);
