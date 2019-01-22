@@ -31,7 +31,7 @@ script:
   - export SHOCKEXE=`pwd`/shock_builds/kbase_fork/160815_e9f0e1618e265042bf5cb96429995b5e6ec0a06a/shock-server
   - cd -
   - cp -n test.cfg.example test.cfg
-  - sed -i "s#^test.temp.dir.*#test.temp.dir=temp_test_dir#" test.cfg
+  - sed -i "s#^test.temp.dir =.*#test.temp.dir=temp_test_dir#" test.cfg
   - sed -i "s#^test.mongo.exe.*#test.mongo.exe=$MONGOD#" test.cfg
   - sed -i "s#^test.mongo.wired_tiger.*#test.mongo.wired_tiger=$WIRED_TIGER#" test.cfg
   - sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
