@@ -38,9 +38,6 @@ script:
   - sed -i "s#^test.shock.version=.*#test.shock.version=0.9.6#" test.cfg
   - sed -i "s#^test.shock.exe=.*#test.shock.exe=$SHOCKEXE#" test.cfg
   - cat test.cfg
+  - ant javadoc
   - ant $ANT_TEST
 
-script:
-  - ant javadoc
-  - ant compile
-  
