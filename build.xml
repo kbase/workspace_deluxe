@@ -285,6 +285,26 @@
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
 
+  <target name="test_quick_no_handle"
+      depends="compile, preparejunitreportdir"
+      description="run tests other than the *LongTest.java and HandleTest tests">
+    <echo message="starting ${package} tests"/>
+    <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
+      <classpath refid="test.classpath"/>
+      <formatter type="plain" usefile="false" />
+      <formatter type="xml" usefile="true" if="env.JENKINS_REPORT_DIR"/>
+      <sysproperty key="test.cfg" value="./test.cfg"/>
+      <batchtest todir="${env.JENKINS_REPORT_DIR}">
+        <fileset dir="${src}">
+          <include name="**/test/**/**Test.java"/>
+          <exclude name="**/test/**/**LongTest.java"/>
+          <exclude name="**/test/**/HandleTest.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+    <fail message="Test failure detected, check test results." if="test.failed" />
+  </target>
+
   <target name="test_client_import" depends="compile" description="make sure the client jar contains all files">
     <javac destdir="${test}" srcdir="${test}" includeantruntime="false" target="1.6" source="1.6"
           debug="true" classpathref="test.client.import.classpath">
