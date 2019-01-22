@@ -28,8 +28,8 @@ script:
   - wget http://fastdl.mongodb.org/linux/$MONGODB_VER.tgz
   - tar xfz $MONGODB_VER.tgz
   - export MONGOD=`pwd`/$MONGODB_VER/bin/mongod
-  - export SHOCKEXE=`pwd`/shock_builds/kbase_fork/160815_e9f0e1618e265042bf5cb96429995b5e6ec0a06a/shock-server
   - cd -
+  - export SHOCKEXE=`pwd`/shock_builds/kbase_fork/160815_e9f0e1618e265042bf5cb96429995b5e6ec0a06a/shock-server
   - cp -n test.cfg.example test.cfg
   - sed -i "s#^test.temp.dir =.*#test.temp.dir=temp_test_dir#" test.cfg
   - sed -i "s#^test.mongo.exe.*#test.mongo.exe=$MONGOD#" test.cfg
