@@ -56,6 +56,7 @@ public class KBaseAuth2AdminHandler implements AdministratorHandler {
 	private final URI me;
 	
 	/** Create the administrator handler.
+	 * @param client the Apache HTTP client to use with the handler.
 	 * @param rootAuthURL the root URL of the KBase authentication service.
 	 * @param readOnlyRoles the set of KBase authentication service roles that should grant
 	 * read only administrator privileges if a user possesses at least one of the roles.
@@ -63,7 +64,6 @@ public class KBaseAuth2AdminHandler implements AdministratorHandler {
 	 * administrator privileges.
 	 * @throws URISyntaxException if the URL is not a valid URI.
 	 * @throws AdministratorHandlerException If the auth server response is invalid.
-	 * @throws IOException if an IOException occurs.
 	 */
 	public KBaseAuth2AdminHandler(
 			final CloseableHttpClient client,
