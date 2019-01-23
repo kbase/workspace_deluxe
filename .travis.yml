@@ -3,16 +3,42 @@ sudo: required
 language: java
 jdk:
   - openjdk8
+  
+# TODO split tests into mongo related & non mongo related. Run the former once.
+env:
+  - MONGODB_VER=mongodb-linux-x86_64-2.6.12 ANT_TEST=test_quick_no_handle WIRED_TIGER=false
+# TODO it seems there's something broken about sorting with mongo 3. Fix when we update mongo client.
+#  - MONGODB_VER=mongodb-linux-x86_64-3.0.15 ANT_TEST=test_quick_no_handle WIRED_TIGER=false
+#  - MONGODB_VER=mongodb-linux-x86_64-3.0.15 ANT_TEST=test_quick_no_handle WIRED_TIGER=true
+#  - MONGODB_VER=mongodb-linux-x86_64-3.2.22 ANT_TEST=test_quick_no_handle WIRED_TIGER=false
+#  - MONGODB_VER=mongodb-linux-x86_64-3.2.22 ANT_TEST=test_quick_no_handle WIRED_TIGER=true
+  
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y ant-optional
   - sudo pip install sphinx
+  
 install:
   - cd ..
   - git clone https://github.com/kbase/jars
+  - export JARSDIR=`pwd`/jars/lib/jars/
   - cd -
 
 script:
+  - cd ..
+  - wget http://fastdl.mongodb.org/linux/$MONGODB_VER.tgz
+  - tar xfz $MONGODB_VER.tgz
+  - export MONGOD=`pwd`/$MONGODB_VER/bin/mongod
+  - cd -
+  - export SHOCKEXE=`pwd`/shock_builds/kbase_fork/160815_e9f0e1618e265042bf5cb96429995b5e6ec0a06a/shock-server
+  - cp -n test.cfg.example test.cfg
+  - sed -i "s#^test.temp.dir =.*#test.temp.dir=temp_test_dir#" test.cfg
+  - sed -i "s#^test.mongo.exe.*#test.mongo.exe=$MONGOD#" test.cfg
+  - sed -i "s#^test.mongo.wired_tiger.*#test.mongo.wired_tiger=$WIRED_TIGER#" test.cfg
+  - sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
+  - sed -i "s#^test.shock.version.*#test.shock.version=0.9.6#" test.cfg
+  - sed -i "s#^test.shock.exe.*#test.shock.exe=$SHOCKEXE#" test.cfg
+  - cat test.cfg
   - ant javadoc
-  - ant compile
-  
+  - ant $ANT_TEST
+
