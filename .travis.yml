@@ -41,6 +41,7 @@ script:
   - cat test.cfg
   - ant javadoc
   - ant $ANT_TEST
+  - docker build .
 
 after_success:
   - ls test-reports
