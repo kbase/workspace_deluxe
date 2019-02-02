@@ -756,16 +756,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		q.put(Fields.OBJ_ID, new BasicDBObject("$nin", excludeids));
 	}
 	
-	private final static String M_LOCK_WS_WTH = String.format("{$set: {%s: #}}",
-			Fields.WS_LOCKED);
-	
 	@Override
 	public Instant lockWorkspace(final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
-			wsjongo.getCollection(COL_WORKSPACES)
-				.update(M_WS_ID_QRY, rwsi.getID())
-				.with(M_LOCK_WS_WTH, true);
+			wsmongo.getCollection(COL_WORKSPACES).update(
+					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
+					new BasicDBObject("$set", new BasicDBObject(Fields.WS_LOCKED, true)));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -862,9 +859,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return new CopyResult(oi, copyAll);
 	}
 	
-	final private static String M_RENAME_WS_WTH = String.format(
-			"{$set: {%s: #, %s: #}}", Fields.WS_NAME, Fields.WS_MODDATE);
-	
 	@Override
 	public Instant renameWorkspace(final ResolvedWorkspaceID rwsi, final String newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
@@ -874,9 +868,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Instant now = Instant.now();
 		try {
-			wsjongo.getCollection(COL_WORKSPACES)
-					.update(M_WS_ID_QRY, rwsi.getID())
-					.with(M_RENAME_WS_WTH, newname, Date.from(now));
+			wsmongo.getCollection(COL_WORKSPACES).update(
+					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
+					new BasicDBObject("$set", new BasicDBObject(Fields.WS_NAME, newname)
+							.append(Fields.WS_MODDATE, Date.from(now))));
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already a workspace named " + newname);
@@ -886,11 +881,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		return now;
 	}
-	
-	final private static String M_RENAME_OBJ_QRY = String.format(
-			"{%s: #, %s: #}", Fields.OBJ_WS_ID, Fields.OBJ_ID);
-	final private static String M_RENAME_OBJ_WTH = String.format(
-			"{$set: {%s: #, %s: #}}", Fields.OBJ_NAME, Fields.OBJ_MODDATE);
 	
 	@Override
 	public ObjectInfoWithModDate renameObject(
@@ -906,10 +896,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Instant time = Instant.now();
 		try {
-			wsjongo.getCollection(COL_WORKSPACE_OBJS)
-					.update(M_RENAME_OBJ_QRY,
-							roi.getWorkspaceIdentifier().getID(), roi.getId())
-					.with(M_RENAME_OBJ_WTH, newname, Date.from(time));
+			wsmongo.getCollection(COL_WORKSPACE_OBJS).update(
+					new BasicDBObject(Fields.OBJ_WS_ID, roi.getWorkspaceIdentifier().getID())
+							.append(Fields.OBJ_ID, roi.getId()),
+					new BasicDBObject("$set", new BasicDBObject(Fields.OBJ_NAME, newname)
+							.append(Fields.OBJ_MODDATE, Date.from(time))));
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already an object in the workspace named " +
@@ -950,18 +941,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private final static String M_WS_ID_QRY = String.format("{%s: #}",
 			Fields.WS_ID);
-	private final static String M_DESC_WTH = String.format(
-			"{$set: {%s: #, %s: #}}", Fields.WS_DESC, Fields.WS_MODDATE);
-	
+
 	@Override
 	public Instant setWorkspaceDescription(final ResolvedWorkspaceID rwsi,
 			final String description) throws WorkspaceCommunicationException {
 		//TODO CODE generalized method for setting fields?
 		final Instant now = Instant.now();
 		try {
-			wsjongo.getCollection(COL_WORKSPACES)
-				.update(M_WS_ID_QRY, rwsi.getID())
-				.with(M_DESC_WTH, description, Date.from(now));
+			wsmongo.getCollection(COL_WORKSPACES).update(
+					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
+					new BasicDBObject("$set", new BasicDBObject(Fields.WS_DESC, description)
+							.append(Fields.WS_MODDATE, Date.from(now))));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
