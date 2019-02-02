@@ -502,21 +502,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private static final Set<String> FLDS_WS_META = newHashSet(Fields.WS_META);
 	
-	private final static String M_WS_META_QRY = String.format(
-			"{%s: #, \"%s.%s\": #}", Fields.WS_ID, Fields.WS_META,
-			Fields.META_KEY);
-	private final static String M_SET_WS_META_WTH = String.format(
-			"{$set: {\"%s.$.%s\": #, %s: #}}",
-			Fields.WS_META, Fields.META_VALUE, Fields.WS_MODDATE); 
-	
-	private final static String M_SET_WS_META_NOT_QRY = String.format(
-			"{%s: #, \"%s.%s\": {$nin: [#]}}", Fields.WS_ID, Fields.WS_META,
-			Fields.META_KEY);
-	private final static String M_SET_WS_META_NOT_WTH = String.format(
-			"{$push: {%s: {%s: #, %s: #}}, $set: {%s: #}}",
-			Fields.WS_META, Fields.META_KEY, Fields.META_VALUE,
-			Fields.WS_MODDATE); 
-	
 	@Override
 	public Instant setWorkspaceMeta(final ResolvedWorkspaceID rwsi,
 			final WorkspaceUserMetadata newMeta)
@@ -545,6 +530,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		 * repercussions whatsoever, so meh.
 		 */
 		Instant time = null;
+		final String mkey = Fields.WS_META + Fields.FIELD_SEP + Fields.META_KEY;
+		final String mval = Fields.WS_META + Fields.FIELD_SEP + "$" + Fields.FIELD_SEP +
+				Fields.META_VALUE;
 		for (final Entry<String, String> e: newMeta.getMetadata().entrySet()) {
 			final String key = e.getKey();
 			final String value = e.getValue();
@@ -554,9 +542,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				WriteResult wr;
 				try {
 					time = Instant.now();
-					wr = wsjongo.getCollection(COL_WORKSPACES)
-							.update(M_WS_META_QRY, rwsi.getID(), key)
-							.with(M_SET_WS_META_WTH, value, Date.from(time));
+					wr = wsmongo.getCollection(COL_WORKSPACES).update(
+							new BasicDBObject(Fields.WS_ID, rwsi.getID()).append(mkey, key),
+							new BasicDBObject("$set", new BasicDBObject(mval, value)
+									.append(Fields.WS_MODDATE, Date.from(time))));
 				} catch (MongoException me) {
 					throw new WorkspaceCommunicationException(
 							"There was a problem communicating with the database",
@@ -569,9 +558,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				//add the key/value pair to the array
 				time = Instant.now();
 				try {
-					wr = wsjongo.getCollection(COL_WORKSPACES)
-							.update(M_SET_WS_META_NOT_QRY, rwsi.getID(), key)
-							.with(M_SET_WS_META_NOT_WTH, key, value, Date.from(time));
+					wr = wsmongo.getCollection(COL_WORKSPACES).update(
+							new BasicDBObject(Fields.WS_ID, rwsi.getID())
+									.append(mkey, new BasicDBObject("$nin", Arrays.asList(key))),
+							new BasicDBObject(
+									"$push", new BasicDBObject(Fields.WS_META,
+											new BasicDBObject(Fields.META_KEY, key)
+													.append(Fields.META_VALUE, value)))
+									.append("$set", new BasicDBObject(
+											Fields.WS_MODDATE, Date.from(time))));
+					
 				} catch (MongoException me) {
 					throw new WorkspaceCommunicationException(
 							"There was a problem communicating with the database",
@@ -590,19 +586,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return time;
 	}
 	
-	
-	private static final String M_REM_META_WTH = String.format(
-			"{$pull: {%s: {%s: #}}, $set: {%s: #}}",
-			Fields.WS_META, Fields.META_KEY, Fields.WS_MODDATE);
-	
 	@Override
 	public Instant removeWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
 			final String key) throws WorkspaceCommunicationException {
 		final Instant time = Instant.now();
+		final String mkey = Fields.WS_META + Fields.FIELD_SEP + Fields.META_KEY;
 		try {
-			wsjongo.getCollection(COL_WORKSPACES)
-					.update(M_WS_META_QRY, rwsi.getID(), key)
-					.with(M_REM_META_WTH, key, Date.from(time));
+			wsmongo.getCollection(COL_WORKSPACES).update(
+					new BasicDBObject(Fields.WS_ID, rwsi.getID()).append(mkey, key),
+					new BasicDBObject(
+							"$pull", new BasicDBObject(Fields.WS_META,
+									new BasicDBObject(Fields.META_KEY, key)))
+							.append("$set", new BasicDBObject(
+									Fields.WS_MODDATE, Date.from(time))));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
