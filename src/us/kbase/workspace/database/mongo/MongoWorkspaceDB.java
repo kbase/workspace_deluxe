@@ -1215,11 +1215,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		
 	}
 	
-	private static final String M_PERMS_QRY = String.format("{%s: #, %s: #}",
-			Fields.ACL_WSID, Fields.ACL_USER);
-	private static final String M_PERMS_UPD = String.format("{$set: {%s: #}}",
-			Fields.ACL_PERM);
-	
 	private Instant setPermissions(
 			final ResolvedWorkspaceID wsid,
 			final List<User> users,
@@ -1240,18 +1235,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} else {
 			owner = null;
 		}
-		for (User user: users) {
+		for (final User user: users) {
 			if (owner != null && owner.getUser().equals(user.getUser())) {
 				continue; // can't change owner permissions
 			}
+			final BasicDBObject query = new BasicDBObject(Fields.ACL_WSID, wsid.getID())
+					.append(Fields.ACL_USER, user.getUser());
 			try {
 				if (perm.equals(Permission.NONE)) {
-					wsjongo.getCollection(COL_WS_ACLS).remove(
-							M_PERMS_QRY, wsid.getID(), user.getUser());
+					wsmongo.getCollection(COL_WS_ACLS).remove(query);
 				} else {
-					wsjongo.getCollection(COL_WS_ACLS).update(
-							M_PERMS_QRY, wsid.getID(), user.getUser())
-							.upsert().with(M_PERMS_UPD, perm.getPermission());
+					wsmongo.getCollection(COL_WS_ACLS).update(
+							query,
+							new BasicDBObject("$set",
+									new BasicDBObject(Fields.ACL_PERM, perm.getPermission())),
+							true,
+							false);
 				}
 			} catch (MongoException me) {
 				throw new WorkspaceCommunicationException(
