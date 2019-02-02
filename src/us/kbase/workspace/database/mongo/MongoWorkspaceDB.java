@@ -118,7 +118,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private final BlobStore blob;
 	private final QueryMethods query;
 	private final ObjectInfoUtils objutils;
-	private final FindAndModify updateWScounter;
 	
 	private final TempFilesManager tfm;
 	
@@ -218,7 +217,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		objutils = new ObjectInfoUtils(query);
 		blob = blobStore;
-		updateWScounter = buildCounterQuery(wsjongo);
 		//TODO DBCONSIST check a few random types and make sure they exist
 		ensureIndexes();
 		checkConfig();
@@ -360,25 +358,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private static FindAndModify buildCounterQuery(final Jongo j) {
-		return j.getCollection(COL_WS_CNT)
-				.findAndModify(String.format("{%s: #}",
-						Fields.CNT_ID), Fields.CNT_ID_VAL)
-				.upsert().returnNew()
-				.with("{$inc: {" + Fields.CNT_NUM + ": #}}", 1L)
-				.projection(String.format("{%s: 1, %s: 0}",
-						Fields.CNT_NUM, Fields.MONGO_ID));
-	}
-
-	private final static String M_WS_DATE_WTH = String.format(
-			"{$set: {%s: #}}", Fields.WS_MODDATE);
-	
 	private void updateWorkspaceModifiedDate(final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException {
 		try {
-			wsjongo.getCollection(COL_WORKSPACES)
-				.update(M_WS_ID_QRY, rwsi.getID())
-				.with(M_WS_DATE_WTH, new Date());
+			wsmongo.getCollection(COL_WORKSPACES).update(
+					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
+					new BasicDBObject("$set", new BasicDBObject(Fields.WS_MODDATE, new Date())));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -437,14 +422,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		final long count; 
-		try {
-			count = ((Number) updateWScounter.as(DBObject.class)
-					.get(Fields.CNT_NUM)).longValue();
-		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
-		}
+		final long count = updateWorkspaceCounter();
 		final DBObject ws = new BasicDBObject();
 		ws.put(Fields.WS_OWNER, user.getUser());
 		ws.put(Fields.WS_ID, count);
@@ -488,6 +466,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				.withLocked(false)
 				.withUserMetadata(new UncheckedUserMetadata(meta))
 				.build();
+	}
+
+	private long updateWorkspaceCounter() throws WorkspaceCommunicationException {
+		try {
+			final DBObject updated = wsmongo.getCollection(COL_WS_CNT)
+					.findAndModify(
+							new BasicDBObject(Fields.CNT_ID, Fields.CNT_ID_VAL),
+							new BasicDBObject(Fields.CNT_NUM, 1).append(Fields.MONGO_ID, 0),
+							null,
+							false,
+							new BasicDBObject("$inc", new BasicDBObject(Fields.CNT_NUM, 1)),
+							true,
+							true);
+			return ((Number) updated.get(Fields.CNT_NUM)).longValue();
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
 	}
 
 	private void setCreatedWorkspacePermissions(

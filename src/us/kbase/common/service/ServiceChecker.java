@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class ServiceChecker {
 	
-	public static final String PY_MSG = "No JSON object could be decoded";
+	public static final String PY_MSG = "Expecting value: line 1 column 1 (char 0)";
 	public static final int PY_CODE = -32700;
 	public static final String JV_PL_MSG = "HTTP GET not allowed.";
 	public static final int JV_PL_CODE = -32300;
