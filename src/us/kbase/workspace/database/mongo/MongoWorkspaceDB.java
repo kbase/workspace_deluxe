@@ -1156,13 +1156,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return "id " + wsi.getId();
 	}
 	
-	final private static String M_CHOWN_WS_NEWNAME_WTH = String.format(
-			"{$set: {%s: #, %s: #, %s: #}}",
-			Fields.WS_OWNER, Fields.WS_NAME, Fields.WS_MODDATE);
-	final private static String M_CHOWN_WS_WTH = String.format(
-			"{$set: {%s: #, %s: #}}",
-			Fields.WS_OWNER, Fields.WS_MODDATE);
-
 	@Override
 	public Instant setWorkspaceOwner(
 			final ResolvedWorkspaceID rwsi,
@@ -1171,17 +1164,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Optional<String> newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final Instant now = Instant.now();
+		final BasicDBObject query = new BasicDBObject(Fields.WS_ID, rwsi.getID());
+		final BasicDBObject set = new BasicDBObject(Fields.WS_OWNER, newUser.getUser())
+				.append(Fields.WS_MODDATE, Date.from(now));
+		if (newname.isPresent()) {
+			set.append(Fields.WS_NAME, newname.get());
+		}
 		try {
-			if (!newname.isPresent()) {
-				wsjongo.getCollection(COL_WORKSPACES)
-						.update(M_WS_ID_QRY, rwsi.getID())
-						.with(M_CHOWN_WS_WTH, newUser.getUser(), Date.from(now));
-			} else {
-				wsjongo.getCollection(COL_WORKSPACES)
-					.update(M_WS_ID_QRY, rwsi.getID())
-					.with(M_CHOWN_WS_NEWNAME_WTH,
-							newUser.getUser(), newname.get(), Date.from(now));
-			}
+			wsmongo.getCollection(COL_WORKSPACES).update(query, new BasicDBObject("$set", set));
 		} catch (DuplicateKeyException medk) {
 			throw new IllegalArgumentException(
 					"There is already a workspace named " + newname.get());
