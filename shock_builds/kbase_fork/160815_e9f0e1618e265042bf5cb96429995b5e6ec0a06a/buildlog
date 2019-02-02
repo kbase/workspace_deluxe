@@ -1,0 +1,25 @@
+$ gvm use go1.5.4
+Now using version go1.5.4
+$ export GOPATH=/tmp/goroot
+$ mkdir -p $GOPATH/src/github.com/MG-RAST
+$ go get github.com/pborman/uuid
+$ go get github.com/MG-RAST/golib
+package github.com/MG-RAST/golib: no buildable Go source files in /tmp/goroot/src/github.com/MG-RAST/golib
+$ go get github.com/MG-RAST/go-dockerclient
+$ cd $GOPATH/src/github.com/MG-RAST
+$ git clone --recursive https://github.com/kbase/Shock -b auth2
+Cloning into 'Shock'...
+remote: Counting objects: 6742, done.
+remote: Total 6742 (delta 0), reused 0 (delta 0), pack-reused 6742
+Receiving objects: 100% (6742/6742), 3.08 MiB | 0 bytes/s, done.
+Resolving deltas: 100% (3373/3373), done.
+Checking connectivity... done.
+$ cp Shock/Makefile $GOPATH
+$ cd $GOPATH
+$ make version
+for i in `cat src/github.com/MG-RAST/Shock/VERSION`; do sed "s/\[% VERSION %\]/$i/" < src/github.com/MG-RAST/Shock/shock-server/main.go > src/github.com/MG-RAST/Shock/shock-server/main.version.go ; done
+mv src/github.com/MG-RAST/Shock/shock-server/main.version.go src/github.com/MG-RAST/Shock/shock-server/main.go
+$ cd $GOPATH/src/github.com/MG-RAST/Shock/shock-server
+$ go build
+$ cp shock-server ~/shockinfo/kbase_fork/160815_e9f0e1618e265042bf5cb96429995b5e6ec0a06a/
+
