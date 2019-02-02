@@ -21,7 +21,6 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
-import org.jongo.FindAndModify;
 import org.jongo.Jongo;
 import org.slf4j.LoggerFactory;
 
@@ -1471,22 +1470,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
-
-	
-
-	private static final String M_SAVEINS_QRY = String.format("{%s: #, %s: #}",
-			Fields.OBJ_WS_ID, Fields.OBJ_ID);
-	private static final String M_SAVEINS_PROJ = String.format("{%s: 1, %s: 0}",
-			Fields.OBJ_VCNT, Fields.MONGO_ID);
-	private static final String M_SAVEINS_WTH = String.format(
-			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null, %s: #}, $push: {%s: {$each: #}}}",
-			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
-			Fields.OBJ_LATEST, Fields.OBJ_HIDE, Fields.OBJ_REFCOUNTS);
-	private static final String M_SAVEINS_NO_HIDE_WTH = String.format(
-			"{$inc: {%s: #}, $set: {%s: false, %s: #, %s: null}, $push: {%s: {$each: #}}}",
-			Fields.OBJ_VCNT, Fields.OBJ_DEL, Fields.OBJ_MODDATE,
-			Fields.OBJ_LATEST, Fields.OBJ_REFCOUNTS);
-	
 	private void saveObjectVersions(final WorkspaceUser user,
 			final ResolvedWorkspaceID wsid, final long objectid,
 			final List<Map<String, Object>> versions, final Boolean hidden)
@@ -1510,21 +1493,29 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			zeros.add(0);
 		}
 		final Date saved = new Date();
+		final BasicDBObject set = new BasicDBObject(Fields.OBJ_DEL, false)
+				.append(Fields.OBJ_MODDATE, saved)
+				.append(Fields.OBJ_LATEST, null);
+		final DBObject update = new BasicDBObject(
+				"$inc", new BasicDBObject(Fields.OBJ_VCNT, versions.size()))
+				.append("$set", set)
+				.append("$push", new BasicDBObject(Fields.OBJ_REFCOUNTS,
+						new BasicDBObject("$each", zeros)));
+		if (hidden != null) {
+			set.append(Fields.OBJ_HIDE, hidden);
+		}
 		try {
-			final FindAndModify q = wsjongo.getCollection(COL_WORKSPACE_OBJS)
-					.findAndModify(M_SAVEINS_QRY, wsid.getID(), objectid)
-					.returnNew();
-			if (hidden == null) {
-				q.with(M_SAVEINS_NO_HIDE_WTH, versions.size(),
-						saved, zeros);
-			} else {
-				q.with(M_SAVEINS_WTH, versions.size(), saved,
-						hidden, zeros);
-			}
-			ver = (Integer) q
-					.projection(M_SAVEINS_PROJ).as(DBObject.class)
-					.get(Fields.OBJ_VCNT)
-					- versions.size() + 1;
+			final DBObject res = wsmongo.getCollection(COL_WORKSPACE_OBJS).findAndModify(
+					new BasicDBObject(Fields.OBJ_WS_ID, wsid.getID())
+							.append(Fields.OBJ_ID, objectid),
+					new BasicDBObject(Fields.OBJ_VCNT, 1).append(Fields.MONGO_ID, 0),
+					null,
+					false,
+					update,
+					true,
+					false);
+			
+			ver = (Integer) res.get(Fields.OBJ_VCNT) - versions.size() + 1;
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
