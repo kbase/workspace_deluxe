@@ -2908,11 +2908,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private static final String M_HIDOBJ_WTH = String.format(
-			"{$set: {%s: #}}", Fields.OBJ_HIDE);
-	private static final String M_HIDOBJ_QRY = String.format(
-			"{%s: #, %s: {$in: #}}", Fields.OBJ_WS_ID, Fields.OBJ_ID);
-	
 	private void setObjectsHidden(final ResolvedWorkspaceID ws,
 			final List<Long> objectIDs, final boolean hide)
 			throws WorkspaceCommunicationException {
@@ -2921,9 +2916,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new IllegalArgumentException("Object IDs cannot be empty");
 		}
 		try {
-			wsjongo.getCollection(COL_WORKSPACE_OBJS)
-					.update(M_HIDOBJ_QRY, ws.getID(), objectIDs).multi()
-					.with(M_HIDOBJ_WTH, hide);
+			wsmongo.getCollection(COL_WORKSPACE_OBJS).update(
+					new BasicDBObject(Fields.OBJ_WS_ID, ws.getID())
+							.append(Fields.OBJ_ID, new BasicDBObject("$in", objectIDs)),
+					new BasicDBObject("$set", new BasicDBObject(Fields.OBJ_HIDE, hide)),
+					false,
+					true);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
