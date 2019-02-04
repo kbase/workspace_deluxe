@@ -938,9 +938,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return (String) query.queryWorkspace(rwsi, FLDS_WS_DESC).get(Fields.WS_DESC);
 	}
 	
-	private final static String M_WS_ID_QRY = String.format("{%s: #}",
-			Fields.WS_ID);
-
 	@Override
 	public Instant setWorkspaceDescription(final ResolvedWorkspaceID rwsi,
 			final String description) throws WorkspaceCommunicationException {
@@ -1689,11 +1686,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private static final String M_SAVE_WTH = String.format("{$inc: {%s: #}}",
-					Fields.WS_NUMOBJ);
-	private static final String M_SAVE_PROJ = String.format("{%s: 1, %s: 0}",
-			Fields.WS_NUMOBJ, Fields.MONGO_ID);
-			
 	//at this point the objects are expected to be validated and references rewritten
 	@Override
 	public List<ObjectInformation> saveObjects(final WorkspaceUser user, 
@@ -1795,11 +1787,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final long newobjects) throws WorkspaceCommunicationException {
 		final long lastid;
 		try {
-			lastid = ((Number) wsjongo.getCollection(COL_WORKSPACES)
-					.findAndModify(M_WS_ID_QRY, wsidmongo.getID())
-					.returnNew().with(M_SAVE_WTH, newobjects)
-					.projection(M_SAVE_PROJ)
-					.as(DBObject.class).get(Fields.WS_NUMOBJ)).longValue();
+			
+			lastid = ((Number) wsmongo.getCollection(COL_WORKSPACES)
+					.findAndModify(
+							new BasicDBObject(Fields.WS_ID, wsidmongo.getID()),
+							new BasicDBObject(Fields.WS_NUMOBJ, 1).append(Fields.MONGO_ID, 0),
+							null,
+							false,
+							new BasicDBObject("$inc",
+									new BasicDBObject(Fields.WS_NUMOBJ, newobjects)),
+							true,
+							false).get(Fields.WS_NUMOBJ)).longValue();
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
