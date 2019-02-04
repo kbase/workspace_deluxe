@@ -3033,15 +3033,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
-	private static final String M_ADMIN_QRY = String.format(
-			"{%s: #}", Fields.ADMIN_NAME);
-	
 	@Override
 	public boolean isAdmin(WorkspaceUser putativeAdmin)
 			throws WorkspaceCommunicationException {
 		try {
-			return wsjongo.getCollection(COL_ADMINS).count(M_ADMIN_QRY,
-					putativeAdmin.getUser()) > 0;
+			return wsmongo.getCollection(COL_ADMINS).count(
+					new BasicDBObject(Fields.ADMIN_NAME, putativeAdmin.getUser())) > 0;
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -3070,8 +3067,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public void removeAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException {
 		try {
-			wsjongo.getCollection(COL_ADMINS).remove(M_ADMIN_QRY,
-					user.getUser());
+			wsmongo.getCollection(COL_ADMINS).remove(
+					new BasicDBObject(Fields.ADMIN_NAME, user.getUser()));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -3082,8 +3079,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public void addAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException {
 		try {
-			wsjongo.getCollection(COL_ADMINS).update(M_ADMIN_QRY,
-					user.getUser()).upsert().with(M_ADMIN_QRY, user.getUser());
+			wsmongo.getCollection(COL_ADMINS).update(
+					new BasicDBObject(Fields.ADMIN_NAME, user.getUser()),
+					new BasicDBObject("$set",
+							new BasicDBObject(Fields.ADMIN_NAME, user.getUser())),
+					true,
+					false);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
