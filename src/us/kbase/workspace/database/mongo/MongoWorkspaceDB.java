@@ -2986,11 +2986,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return time;
 	}
 	
-	private static final String M_DELWS_UPD = String.format("{%s: #}",
-						Fields.WS_ID);
-	private static final String M_DELWS_WTH = String.format(
-			"{$set: {%s: #, %s: #}}", Fields.WS_DEL, Fields.WS_MODDATE);
-	
 	public Instant setWorkspaceDeleted(final ResolvedWorkspaceID rwsi,
 			final boolean delete) throws WorkspaceCommunicationException {
 		//there's a possibility of a race condition here if a workspace is
@@ -3003,8 +2998,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Instant now = Instant.now();
 		try {
-			wsjongo.getCollection(COL_WORKSPACES).update(M_DELWS_UPD, rwsi.getID())
-					.with(M_DELWS_WTH, delete, Date.from(now));
+			wsmongo.getCollection(COL_WORKSPACES).update(
+					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
+					new BasicDBObject("$set", new BasicDBObject(Fields.WS_DEL, delete)
+							.append(Fields.WS_MODDATE, Date.from(now))));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
