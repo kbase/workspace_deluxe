@@ -19,7 +19,6 @@ import java.util.Map.Entry;
 import java.util.regex.Pattern;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 import org.jongo.Jongo;
 import org.slf4j.LoggerFactory;
@@ -2961,29 +2960,25 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private static final String M_DELOBJ_WTH = String.format(
-			"{$set: {%s: #, %s: #}}", Fields.OBJ_DEL, Fields.OBJ_MODDATE);
-	
 	private Instant setObjectsDeleted(
 			final ResolvedWorkspaceID ws,
 			final List<Long> objectIDs,
 			final boolean delete)
 			throws WorkspaceCommunicationException {
-		final String query;
-		if (objectIDs.isEmpty()) {
-			query = String.format(
-					"{%s: %s, %s: %s}", Fields.OBJ_WS_ID, ws.getID(), Fields.OBJ_DEL, !delete);
-		} else {
-			query = String.format(
-					"{%s: %s, %s: {$in: [%s]}, %s: %s}",
-					Fields.OBJ_WS_ID, ws.getID(), Fields.OBJ_ID,
-					StringUtils.join(objectIDs, ", "), Fields.OBJ_DEL, !delete);
+		final BasicDBObject query = new BasicDBObject(Fields.OBJ_WS_ID, ws.getID())
+				.append(Fields.OBJ_DEL, !delete);
+		if (!objectIDs.isEmpty()) {
+			query.append(Fields.OBJ_ID, new BasicDBObject("$in", objectIDs));
 		}
 		final Instant time;
 		try {
 			time = Instant.now();
-			wsjongo.getCollection(COL_WORKSPACE_OBJS).update(query).multi()
-					.with(M_DELOBJ_WTH, delete, Date.from(time));
+			wsmongo.getCollection(COL_WORKSPACE_OBJS).update(
+					query,
+					new BasicDBObject("$set", new BasicDBObject(Fields.OBJ_DEL, delete)
+							.append(Fields.OBJ_MODDATE, Date.from(time))),
+					false,
+					true);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
