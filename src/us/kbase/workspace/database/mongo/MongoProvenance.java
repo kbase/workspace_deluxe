@@ -70,7 +70,7 @@ public class MongoProvenance extends Provenance {
 		@JsonIgnore
 		private List<String> resolvedObjs = new LinkedList<String>();
 		
-		MongoProvenanceAction withResolvedObjects(
+		private MongoProvenanceAction withResolvedObjects(
 				final List<String> objRefs) {
 			if (objRefs != null) {
 				resolvedObjs = objRefs;

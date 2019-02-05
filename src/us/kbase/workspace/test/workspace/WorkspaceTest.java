@@ -3531,7 +3531,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new HashMap<String, String>());
 	}
 	
-	@Test 
+	@Test
 	public void saveLargeProvenance() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier prov = new WorkspaceIdentifier("bigprov");
