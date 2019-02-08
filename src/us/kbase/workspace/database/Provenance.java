@@ -16,6 +16,9 @@ import us.kbase.common.exceptions.UnimplementedException;
 //TODO JAVADOC
 //TODO MEM this should keep track of its size & punt if it gets too large
 //TODO consider checking the syntax of urls
+//TODO CODE make this immutable and use builders.
+//TODO NOW don't allow nulls for lists - do after removing MongoProvenance
+//TODO NOW remove sets, use with instead
 
 public class Provenance {
 	
@@ -208,11 +211,11 @@ public class Provenance {
 	}
 	
 	public static class SubAction {
-		private String  name;
-		private String  ver;
-		private String  codeUrl;
-		private String  commit;
-		private String  endpointUrl;
+		private String name;
+		private String ver;
+		private String codeUrl;
+		private String commit;
+		private String endpointUrl;
 		
 		public SubAction() {}
 
@@ -415,8 +418,7 @@ public class Provenance {
 			this.methodParameters = methodParameters;
 		}
 		
-		public ProvenanceAction withMethodParameters(
-				final List<Object> methodParameters) {
+		public ProvenanceAction withMethodParameters(final List<Object> methodParameters) {
 			this.methodParameters = methodParameters;
 			return this;
 		}
@@ -466,16 +468,13 @@ public class Provenance {
 		
 		public void setWorkspaceObjects(final List<String> wsobjs) {
 			if (wsobjs != null) {
-				this.wsobjs = new LinkedList<String>(
-						new HashSet<String>(wsobjs));
+				this.wsobjs = new LinkedList<String>(new HashSet<String>(wsobjs));
 			}
 		}
 
-		public ProvenanceAction withWorkspaceObjects(
-				final List<String> wsobjs) {
+		public ProvenanceAction withWorkspaceObjects(final List<String> wsobjs) {
 			if (wsobjs != null) {
-				this.wsobjs = new LinkedList<String>(
-						new HashSet<String>(wsobjs));
+				this.wsobjs = new LinkedList<String>(new HashSet<String>(wsobjs));
 			}
 			return this;
 		}
@@ -488,8 +487,7 @@ public class Provenance {
 			this.incomingArgs = incomingArgs;
 		}
 
-		public ProvenanceAction withIncomingArgs(
-				final List<String> incomingArgs) {
+		public ProvenanceAction withIncomingArgs(final List<String> incomingArgs) {
 			this.incomingArgs = incomingArgs;
 			return this;
 		}
@@ -502,8 +500,7 @@ public class Provenance {
 			this.outgoingArgs = outgoingArgs;
 		}
 		
-		public ProvenanceAction withOutgoingArgs(
-				final List<String> outgoingArgs) {
+		public ProvenanceAction withOutgoingArgs(final List<String> outgoingArgs) {
 			this.outgoingArgs = outgoingArgs;
 			return this;
 		}
@@ -529,8 +526,7 @@ public class Provenance {
 			this.externalData = externalData;
 		}
 		
-		public ProvenanceAction withExternalData(
-				final List<ExternalData> externalData) {
+		public ProvenanceAction withExternalData(final List<ExternalData> externalData) {
 			this.externalData = externalData;
 			return this;
 		}
@@ -543,8 +539,7 @@ public class Provenance {
 			this.subActions = subActions;
 		}
 		
-		public ProvenanceAction withSubActions(
-				final List<SubAction> subActions) {
+		public ProvenanceAction withSubActions(final List<SubAction> subActions) {
 			this.subActions = subActions;
 			return this;
 		}
@@ -554,12 +549,15 @@ public class Provenance {
 		}
 
 		public void setCustom(final Map<String, String> custom) {
-			this.custom = custom;
+			if (custom != null) {
+				this.custom = custom;
+			}
 		}
 		
-		public ProvenanceAction withCustom(
-				final Map<String, String> custom) {
-			this.custom = custom;
+		public ProvenanceAction withCustom(final Map<String, String> custom) {
+			if (custom != null) {
+				this.custom = custom;
+			}
 			return this;
 		}
 

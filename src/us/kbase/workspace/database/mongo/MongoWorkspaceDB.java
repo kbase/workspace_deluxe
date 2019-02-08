@@ -50,6 +50,10 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.PermissionSet.Builder;
+import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.Provenance.ExternalData;
+import us.kbase.workspace.database.Provenance.ProvenanceAction;
+import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
@@ -109,6 +113,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//TODO CONFIG this should really be configurable
 	private static final long MAX_PROV_SIZE = 1000000;
 	private static final int SCHEMA_VERSION = 1;
+	
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private ResourceUsageConfiguration rescfg;
 	private final DB wsmongo;
@@ -1429,7 +1435,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				pkg.wo.getUserMeta().getMetadata()));
 		version.put(Fields.VER_REF, pkg.refs);
 		version.put(Fields.VER_PROVREF, pkg.provrefs);
-		version.put(Fields.VER_PROV, pkg.mprov.getMongoId());
+		version.put(Fields.VER_PROV, pkg.provid);
 		version.put(Fields.VER_TYPE, pkg.wo.getRep().getValidationTypeDefId()
 				.getTypeString());
 		version.put(Fields.VER_SIZE, pkg.wo.getRep().getRelabeledSize());
@@ -1584,8 +1590,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		return new IDName(objectid, name);
 	}
-	
-	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private static String getObjectErrorId(final ObjectIDNoWSNoVer oi, final int objcount) {
 		return "#" + objcount + ", " + oi.getIdentifierString();
@@ -1805,22 +1809,76 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return newid;
 	}
 	
+	// has a side effect of setting the provid field on each package
 	private void saveProvenance(final List<ObjectSavePackage> packages)
 			throws WorkspaceCommunicationException {
-		final List<MongoProvenance> prov = new LinkedList<MongoProvenance>();
+		final Map<ObjectSavePackage, DBObject> provmap = new HashMap<>();
 		for (final ObjectSavePackage p: packages) {
-			final MongoProvenance mp = new MongoProvenance(
-					p.wo.getProvenance());
-			prov.add(mp);
-			p.mprov = mp;
+			provmap.put(p, new BasicDBObject(toDocument(p.wo.getProvenance())));
 		}
 		try {
-			wsjongo.getCollection(COL_PROVENANCE).insert((Object[])
-					prov.toArray(new MongoProvenance[prov.size()]));
+			wsmongo.getCollection(COL_PROVENANCE).insert(new LinkedList<>(provmap.values()));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		for (final ObjectSavePackage p: packages) {
+			p.provid = (ObjectId) provmap.get(p).get(Fields.MONGO_ID); // ew, side effect
+		}
+	}
+
+	private Map<String, Object> toDocument(final Provenance p) {
+		final Map<String, Object> ret = new HashMap<>();
+		ret.put(Fields.PROV_USER, p.getUser().getUser());
+		ret.put(Fields.PROV_DATE, p.getDate());
+		ret.put(Fields.PROV_WS_ID, p.getWorkspaceID());
+		final List<Map<String, Object>> actions = new LinkedList<>();
+		ret.put(Fields.PROV_ACTIONS, actions);
+		for (final ProvenanceAction pa: p.getActions()) {
+			final Map<String, Object> paret = new HashMap<>();
+			actions.add(paret);
+			paret.put(Fields.PROV_ACTION_CALLER, pa.getCaller());
+			paret.put(Fields.PROV_ACTION_COMMAND_LINE, pa.getCommandLine());
+			paret.put(Fields.PROV_ACTION_CUSTOM, pa.getCustom());
+			paret.put(Fields.PROV_ACTION_DESCRIPTION, pa.getDescription());
+			paret.put(Fields.PROV_ACTION_INCOMING_ARGS, pa.getIncomingArgs());
+			paret.put(Fields.PROV_ACTION_METHOD, pa.getMethod());
+			paret.put(Fields.PROV_ACTION_METHOD_PARAMS, pa.getMethodParameters());
+			paret.put(Fields.PROV_ACTION_OUTGOING_ARGS, pa.getOutgoingArgs());
+			paret.put(Fields.PROV_ACTION_SCRIPT, pa.getScript());
+			paret.put(Fields.PROV_ACTION_SCRIPT_VER, pa.getScriptVersion());
+			paret.put(Fields.PROV_ACTION_SERVICE, pa.getServiceName());
+			paret.put(Fields.PROV_ACTION_SERVICE_VER, pa.getServiceVersion());
+			paret.put(Fields.PROV_ACTION_TIME, pa.getTime());
+			paret.put(Fields.PROV_ACTION_WS_OBJS, pa.getWorkspaceObjects());
+			
+			final List<Map<String, Object>> extdata = new LinkedList<>();
+			paret.put(Fields.PROV_ACTION_EXTERNAL_DATA, extdata);
+			for (final ExternalData d: pa.getExternalData()) {
+				final Map<String, Object> dret = new HashMap<>();
+				extdata.add(dret);
+				dret.put(Fields.PROV_EXTDATA_DATA_ID, d.getDataId());
+				dret.put(Fields.PROV_EXTDATA_DATA_URL, d.getDataUrl());
+				dret.put(Fields.PROV_EXTDATA_DESCRIPTION, d.getDescription());
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_DATE, d.getResourceReleaseDate());
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_NAME, d.getResourceName());
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_URL, d.getResourceUrl());
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_VER, d.getResourceVersion());
+			}
+			
+			final List<Map<String, Object>> subactions = new LinkedList<>();
+			paret.put(Fields.PROV_ACTION_SUB_ACTIONS, subactions);
+			for (final SubAction a: pa.getSubActions()) {
+				final Map<String, Object> aret = new HashMap<>();
+				subactions.add(aret);
+				aret.put(Fields.PROV_SUBACTION_CODE_URL, a.getCodeUrl());
+				aret.put(Fields.PROV_SUBACTION_COMMIT, a.getCommit());
+				aret.put(Fields.PROV_SUBACTION_ENDPOINT_URL, a.getEndpointUrl());
+				aret.put(Fields.PROV_SUBACTION_NAME, a.getName());
+				aret.put(Fields.PROV_SUBACTION_VER, a.getVer());
+			}
+		}
+		return ret;
 	}
 
 	private static class VerCount {
