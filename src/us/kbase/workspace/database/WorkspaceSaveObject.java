@@ -67,6 +67,7 @@ public class WorkspaceSaveObject {
 		return hidden;
 	}
 
+	// provrefs *must* be in the same ordering as they are in the provenance actions
 	public ResolvedSaveObject resolve(
 			final ValidatedTypedObject rep,
 			final Set<Reference> references,

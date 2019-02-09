@@ -3482,9 +3482,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		try {
 			new Provenance(null);
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("user cannot be null"));
+		} catch (NullPointerException e) {
+			assertThat("correct exception", e.getMessage(), is("user"));
 		}
 		try {
 			Provenance pv = new Provenance(foo);
@@ -3559,7 +3558,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is(String.format("Object #1, %s provenance size 1000348 exceeds limit of " +
+					is(String.format("Object #1, %s provenance size 1000318 exceeds limit of " +
 							"1000000", getLastRandomName())));
 		}
 	}

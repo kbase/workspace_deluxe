@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 import java.util.Set;
 
 import org.bson.types.ObjectId;
-import org.jongo.Jongo;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.common.utils.Counter;
@@ -84,6 +83,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.mongodb.BasicDBObject;
@@ -118,7 +118,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	private ResourceUsageConfiguration rescfg;
 	private final DB wsmongo;
-	private final Jongo wsjongo;
 	private final BlobStore blob;
 	private final QueryMethods query;
 	private final ObjectInfoUtils objutils;
@@ -216,7 +215,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
 		wsmongo = workspaceDB;
-		wsjongo = new Jongo(wsmongo);
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		objutils = new ObjectInfoUtils(query);
@@ -1610,9 +1608,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//cannot do by combining in one set since a non-MongoReference
 			//could be overwritten by a MongoReference if they have the same
 			//hash
+			// 19/2/4: I don't think MongoReferences even exist any more, so I dunno what this is
+			// talking about.
+			// That being said, these need to stay separate so the prov refs can be split
+			// up into the provenance actions correctly (which is a really bad idea, but too
+			// late to fix easily now. Would need retroactive DB schema changes
 			pkg.provrefs = refsToString(o.getProvRefs());
 			pkg.wo = o;
-			checkObjectLength(o.getProvenance(), MAX_PROV_SIZE,
+			checkObjectLength(toDocument(o.getProvenance()), MAX_PROV_SIZE,
 					o.getObjectIdentifier(), objnum, "provenance");
 			
 			try {
@@ -1699,16 +1702,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//TODO CODE break this up
 		//this method must maintain the order of the objects
 		
-		final List<ObjectSavePackage> packages = saveObjectsBuildPackages(
-				objects);
-		final Map<ObjectIDNoWSNoVer, List<ObjectSavePackage>> idToPkg =
-				new HashMap<ObjectIDNoWSNoVer, List<ObjectSavePackage>>();
+		final List<ObjectSavePackage> packages = saveObjectsBuildPackages(objects);
+		final Map<ObjectIDNoWSNoVer, List<ObjectSavePackage>> idToPkg = new HashMap<>();
 		
 		//list all the save packages by object id/name
 		for (final ObjectSavePackage p: packages) {
 			final ObjectIDNoWSNoVer o = p.wo.getObjectIdentifier();
 			if (idToPkg.get(o) == null) {
-				idToPkg.put(o, new ArrayList<ObjectSavePackage>());
+				idToPkg.put(o, new ArrayList<>());
 			}
 			idToPkg.get(o).add(p);
 		}
@@ -2113,7 +2114,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (dataMan != null) {
 			checkTotalFileSize(usedDataAllocation, objs, resobjs, vers);
 		}
-		final Map<ObjectId, MongoProvenance> provs = getProvenance(vers);
+		final Map<ObjectId, Provenance> provs = getProvenance(vers);
 		final Map<String, ByteArrayFileCache> chksumToData =
 				new HashMap<String, ByteArrayFileCache>();
 		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> ret =
@@ -2123,8 +2124,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			if (!vers.containsKey(roi)) {
 				continue; // works if roi is null or vers doesn't have the key
 			}
-			final MongoProvenance prov = provs.get((ObjectId) vers.get(roi)
-					.get(Fields.VER_PROV));
+			final Provenance prov = provs.get((ObjectId) vers.get(roi).get(Fields.VER_PROV));
 			final String copyref =
 					(String) vers.get(roi).get(Fields.VER_COPIED);
 			final Reference copied = copyref == null ? null : new Reference(copyref);
@@ -2220,7 +2220,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private void buildReturnedObjectData(
 			final ObjectIDResolvedWS o,
 			final SubsetSelection op,
-			final MongoProvenance prov,
+			final Provenance prov,
 			final List<String> refs,
 			final Reference copied,
 			final Map<String, List<String>> extIDs,
@@ -2528,28 +2528,26 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
-	private Map<ObjectId, MongoProvenance> getProvenance(
+	private Map<ObjectId, Provenance> getProvenance(
 			final Map<ResolvedObjectID, Map<String, Object>> vers)
 			throws WorkspaceCommunicationException {
-		final Map<ObjectId, Map<String, Object>> provIDs =
-				new HashMap<ObjectId, Map<String,Object>>();
+		final Map<ObjectId, Map<String, Object>> provIDs = new HashMap<>();
 		for (final ResolvedObjectID id: vers.keySet()) {
-			provIDs.put((ObjectId) vers.get(id).get(Fields.VER_PROV),
-					vers.get(id));
+			provIDs.put((ObjectId) vers.get(id).get(Fields.VER_PROV), vers.get(id));
 		}
-		final Map<ObjectId, MongoProvenance> ret =
-				new HashMap<ObjectId, MongoProvenance>();
+		final Map<ObjectId, Provenance> ret = new HashMap<>();
 		try {
-			final Iterable<MongoProvenance> provs =
-					wsjongo.getCollection(COL_PROVENANCE)
-					.find("{_id: {$in: #}}", provIDs.keySet())
-					.as(MongoProvenance.class);
-			for (MongoProvenance p: provs) {
+			final DBCursor provs = wsmongo.getCollection(COL_PROVENANCE).find(
+					new BasicDBObject(Fields.MONGO_ID,
+							new BasicDBObject("$in", provIDs.keySet())));
+			for (final DBObject dbo: provs) {
+				final ObjectId oid = (ObjectId) dbo.get(Fields.MONGO_ID);
+				// this list is expected to be ordered in the same order as in the incoming
+				// provenance actions
 				@SuppressWarnings("unchecked")
-				final List<String> resolvedRefs = (List<String>) provIDs
-						.get(p.getMongoId()).get(Fields.VER_PROVREF);
-				ret.put(p.getMongoId(), p);
-				p.resolveReferences(resolvedRefs); //this is a gross hack. I'm rather proud of it actually
+				final List<String> resolvedRefs = (List<String>) provIDs.get(oid)
+						.get(Fields.VER_PROVREF);
+				ret.put(oid, toProvenance(dbo, resolvedRefs));
 			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -2558,6 +2556,114 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 	
+	private Provenance toProvenance(
+			final DBObject p,
+			// this list is expected to be ordered in the same order as in the incoming
+			// provenance actions
+			final List<String> resolvedRefs) {
+		// also turns a lazybsonlist into a regularlist
+		final List<String> rrcopy = new LinkedList<>(resolvedRefs);
+		final Provenance ret = new Provenance(
+				new WorkspaceUser((String) p.get(Fields.PROV_USER)),
+				(Date) p.get(Fields.PROV_DATE));
+		// may be null for old workspaces
+		ret.setWorkspaceID((Long) p.get(Fields.PROV_WS_ID));
+		
+		@SuppressWarnings("unchecked")
+		final List<Map<String, Object>> actions =
+				(List<Map<String, Object>>) p.get(Fields.PROV_ACTIONS);
+		for (final Map<String, Object> pa: actions) {
+			@SuppressWarnings("unchecked")
+			final List<Map<String, Object>> extdata = 
+					(List<Map<String, Object>>) pa.get(Fields.PROV_ACTION_EXTERNAL_DATA);
+			@SuppressWarnings("unchecked")
+			final List<Map<String, Object>> subdata = 
+					(List<Map<String, Object>>) pa.get(Fields.PROV_ACTION_SUB_ACTIONS);
+			@SuppressWarnings("unchecked")
+			final Map<String, String> precustom =
+					(Map<String, String>) pa.get(Fields.PROV_ACTION_CUSTOM);
+			// for some reason mongo maps are not equal  to regular maps
+			final Map<String, String> custom = precustom == null ? null : new HashMap<>(precustom);
+			
+			// adds the correct references to each prov action based on the ordering of the 
+			// incoming reference list
+			final List<String> wsobjs = toList(pa, Fields.PROV_ACTION_WS_OBJS);
+			final int refcnt = wsobjs == null ? 0 : wsobjs.size();
+			final List<String> actionRefs = new LinkedList<String>(rrcopy.subList(0, refcnt));
+			rrcopy.subList(0, refcnt).clear();
+			
+			ret.addAction(new ProvenanceAction()
+					.withExternalData(toExternalData(extdata))
+					.withSubActions(toSubAction(subdata))
+					.withCaller((String) pa.get(Fields.PROV_ACTION_CALLER))
+					.withCommandLine((String) pa.get(Fields.PROV_ACTION_COMMAND_LINE))
+					.withCustom(custom)
+					.withDescription((String) pa.get(Fields.PROV_ACTION_DESCRIPTION))
+					.withIncomingArgs(toList(pa, Fields.PROV_ACTION_INCOMING_ARGS))
+					.withMethod((String) pa.get(Fields.PROV_ACTION_METHOD))
+					.withMethodParameters(toParamList(pa, Fields.PROV_ACTION_METHOD_PARAMS))
+					.withOutgoingArgs(toList(pa, Fields.PROV_ACTION_OUTGOING_ARGS))
+					.withScript((String) pa.get(Fields.PROV_ACTION_SCRIPT))
+					.withScriptVersion((String) pa.get(Fields.PROV_ACTION_SCRIPT_VER))
+					.withServiceName((String) pa.get(Fields.PROV_ACTION_SERVICE))
+					.withServiceVersion((String) pa.get(Fields.PROV_ACTION_SERVICE_VER))
+					.withTime((Date) pa.get(Fields.PROV_ACTION_TIME))
+					.withWorkspaceObjects(wsobjs)
+					.withResolvedObjects(actionRefs)
+					);
+		}
+		return ret;
+	}
+
+	private List<Object> toParamList(final Map<String, Object> container, final String field) {
+		// the param list is BasicDB* classes which for some reason aren't equal to
+		// the HashMaps and ArrayList they descend from
+		final List<Object> l = toList(container, field);
+		return MAPPER.convertValue(l, new TypeReference<List<Object>>() {});
+	}
+
+	private <T> List<T> toList(final Map<String, Object> container, final String field) {
+		@SuppressWarnings("unchecked")
+		final List<T> s = (List<T>) container.get(field);
+		return s;
+	}
+
+	private List<SubAction> toSubAction(final List<Map<String, Object>> subdata) {
+		final List<SubAction> subs = new LinkedList<>();
+		if (subdata != null) {
+			for (final Map<String, Object> s: subdata) {
+				subs.add(new SubAction()
+						.withCodeUrl((String) s.get(Fields.PROV_SUBACTION_CODE_URL))
+						.withCommit((String) s.get(Fields.PROV_SUBACTION_COMMIT))
+						.withEndpointUrl((String) s.get(Fields.PROV_SUBACTION_ENDPOINT_URL))
+						.withName((String) s.get(Fields.PROV_SUBACTION_NAME))
+						.withVer((String) s.get(Fields.PROV_SUBACTION_VER))
+						);
+			}
+		}
+		return subs;
+	}
+
+	private List<ExternalData> toExternalData(final List<Map<String, Object>> extdata) {
+		final List<ExternalData> eds = new LinkedList<>();
+		if (extdata != null) {
+			for (final Map<String, Object> ed: extdata) {
+					eds.add(new ExternalData()
+							.withDataId((String) ed.get(Fields.PROV_EXTDATA_DATA_ID))
+							.withDataUrl((String) ed.get(Fields.PROV_EXTDATA_DATA_URL))
+							.withDescription((String) ed.get(Fields.PROV_EXTDATA_DESCRIPTION))
+							.withResourceName((String) ed.get(Fields.PROV_EXTDATA_RESOURCE_NAME))
+							.withResourceReleaseDate(
+									(Date) ed.get(Fields.PROV_EXTDATA_RESOURCE_DATE))
+							.withResourceUrl((String) ed.get(Fields.PROV_EXTDATA_RESOURCE_URL))
+							.withResourceVersion(
+									(String) ed.get(Fields.PROV_EXTDATA_RESOURCE_VER))
+							);
+			}
+		}
+		return eds;
+	}
+
 	private static final Set<String> FLDS_VER_TYPE = newHashSet(
 			Fields.VER_TYPE, Fields.VER_VER);
 	
