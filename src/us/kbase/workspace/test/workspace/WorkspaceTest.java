@@ -3520,7 +3520,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		Provenance p4 = new Provenance(foo);
 		ProvenanceAction pa = new ProvenanceAction();
-		pa.setWorkspaceObjects(null);
+		pa.withWorkspaceObjects(null);
 		p4.addAction(pa);
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
 		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
