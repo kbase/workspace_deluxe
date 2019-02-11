@@ -2,6 +2,7 @@ package us.kbase.typedobj.db;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +24,7 @@ import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
 public class MongoTypeStorage implements TypeStorage {
@@ -208,8 +210,10 @@ public class MongoTypeStorage implements TypeStorage {
 	@Override
 	public Set<String> getAllRegisteredModules(boolean withUnsupported) throws TypeStorageException {
 		try {
-			MongoCollection infos = jdb.getCollection(TABLE_MODULE_VERSION);
-			Map<String, Boolean> map = getProjection(infos, "{}", "moduleName", String.class, "supported", Boolean.class);
+			final DBCollection infos = db.getCollection(TABLE_MODULE_VERSION);
+			final Map<String, Boolean> map = getProjection(
+					infos, new BasicDBObject(), "moduleName", String.class, "supported",
+					Boolean.class);
 			Set<String> ret = new TreeSet<String>();
 			if (withUnsupported) {
 				ret.addAll(map.keySet());
@@ -316,6 +320,36 @@ public class MongoTypeStorage implements TypeStorage {
 		}
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	protected <KT, VT> Map<KT, VT> getProjection(
+			final DBCollection infos,
+			final DBObject whereCondition, 
+			final String keySelectField,
+			final Class<KT> keyType,
+			final String valueSelectField,
+			final Class<VT> valueType)
+			throws TypeStorageException {
+		final DBCursor find = infos.find(whereCondition,
+						new BasicDBObject(keySelectField, 1).append(valueSelectField, 1));
+		final List<Map> data = new LinkedList<>();
+		while (find.hasNext()) {
+			data.add(toObj(find.next(), Map.class));
+		}
+//		List<Map> data = Lists.newArrayList(infos.find(whereCondition, params).projection(
+//				"{'" + keySelectField + "':1,'" + valueSelectField + "':1}").as(Map.class));
+		Map<KT, VT> ret = new LinkedHashMap<KT, VT>();
+		for (Map<?,?> item : data) {
+			Object key = getMongoProp(item, keySelectField);
+			if (key == null || !(keyType.isInstance(key)))
+				throw new TypeStorageException("Key is wrong: " + key);
+			Object value = getMongoProp(item, valueSelectField);
+			if (value == null || !(valueType.isInstance(value)))
+				throw new TypeStorageException("Value is wrong: " + value);
+			ret.put((KT)key, (VT)value);
+		}
+		return ret;
+	}
+	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected <KT, VT> Map<KT, VT> getProjection(MongoCollection infos, String whereCondition, 
 			String keySelectField, Class<KT> keyType, String valueSelectField, Class<VT> valueType, 
