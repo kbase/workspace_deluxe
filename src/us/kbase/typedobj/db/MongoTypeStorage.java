@@ -1,6 +1,7 @@
 package us.kbase.typedobj.db;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,8 +9,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
+import org.bson.BSONObject;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
 
@@ -95,12 +96,28 @@ public class MongoTypeStorage implements TypeStorage {
 		if (dbo == null) {
 			return null;
 		}
-		// Unimplemented error for dbo.toMap()
-		// dbo is read only
-		// can't call convertValue() on dbo since it has a 'size' field outside of the internal map
-		final Map<String, Object> m = dbo.keySet().stream().filter(s -> !s.equals("_id"))
-				.collect(Collectors.toMap(k -> k, k -> dbo.get(k)));
-		return MAPPER.convertValue(m, clazz);
+		return MAPPER.convertValue(toMapRec(dbo), clazz);
+	}
+	
+	// Unimplemented error for dbo.toMap()
+	// dbo is read only
+	// can't call convertValue() on dbo since it has a 'size' field outside of the internal map
+	// and just weird shit happens when you do anyway
+	private Map<String, Object> toMapRec(final BSONObject dbo) {
+		final Map<String, Object> ret = new HashMap<>();
+		for (final String k: dbo.keySet()) {
+			if (k.equals("_id")) {
+				continue;
+			}
+			final Object o = dbo.get(k);
+			if (o instanceof BSONObject) {
+				ret.put(k, toMapRec((BSONObject) o));
+			// may need lists too?
+			} else {
+				ret.put(k, o);
+			}
+		}
+		return ret;
 	}
 	
 	@Override
@@ -164,9 +181,9 @@ public class MongoTypeStorage implements TypeStorage {
 
 	private ModuleInfo getModuleInfoOrNull(String moduleName, long version) throws TypeStorageException {
 		try {
-			MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			ModuleInfo info = infos.findOne("{moduleName:#, versionTime:#}", moduleName, 
-					version).as(ModuleInfo.class);
+			final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			final ModuleInfo info = toObj(infos.findOne(new BasicDBObject("moduleName", moduleName)
+					.append("versionTime", version)), ModuleInfo.class);
 			return info;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -175,8 +192,9 @@ public class MongoTypeStorage implements TypeStorage {
 
 	private String getModuleSpecOrNull(String moduleName, long version) throws TypeStorageException {
 		try {
-			MongoCollection specs = jdb.getCollection(TABLE_MODULE_SPEC_HISTORY);
-			ModuleSpec spec = specs.findOne("{moduleName:#, versionTime:#}", moduleName, version).as(ModuleSpec.class);
+			final DBCollection specs = db.getCollection(TABLE_MODULE_SPEC_HISTORY);
+			final ModuleSpec spec = toObj(specs.findOne(new BasicDBObject("moduleName", moduleName)
+					.append("versionTime", version)), ModuleSpec.class);
 			return spec == null ? null : spec.document;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
