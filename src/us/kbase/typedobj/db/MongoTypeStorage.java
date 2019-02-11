@@ -196,9 +196,10 @@ public class MongoTypeStorage implements TypeStorage {
 	public boolean checkTypeSchemaRecordExists(String moduleName,
 			String typeName, String version) throws TypeStorageException {
 		try {
-			MongoCollection docs = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-			return docs.findOne("{moduleName:#,typeName:#,version:#}", 
-					moduleName, typeName, version).as(Map.class) != null;
+			final DBCollection docs = db.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+			return null != docs.findOne(new BasicDBObject("moduleName", moduleName)
+					.append("typeName", typeName)
+					.append("version", version));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
