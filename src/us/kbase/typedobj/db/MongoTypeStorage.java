@@ -54,36 +54,45 @@ public class MongoTypeStorage implements TypeStorage {
 		ensureIndeces();
 	}
 	
+	private static final DBObject UNIQ = new BasicDBObject("unique", true);
+	
 	private void ensureIndeces() {
-		MongoCollection reqs = jdb.getCollection(TABLE_MODULE_REQUEST);
-		reqs.ensureIndex("{moduleName:1,ownerUserId:1}", "{unique:true}");
-		reqs.ensureIndex("{ownerUserId:1}", "{unique:false}");
-		MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-		vers.ensureIndex("{moduleName:1}", "{unique:true}");
-		MongoCollection owns = jdb.getCollection(TABLE_MODULE_OWNER);
-		owns.ensureIndex("{moduleName:1,ownerUserId:1}", "{unique:true}");
-		owns.ensureIndex("{ownerUserId:1}", "{unique:false}");
-		MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-		infos.ensureIndex("{moduleName:1,versionTime:1}", "{unique:true}");
-		MongoCollection specs = jdb.getCollection(TABLE_MODULE_SPEC_HISTORY);
-		specs.ensureIndex("{moduleName:1,versionTime:1}", "{unique:true}");
-		MongoCollection tschs = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-		tschs.ensureIndex("{moduleName:1,typeName:1,version:1}", "{unique:true}");
-		tschs.ensureIndex("{moduleName:1,moduleVersion:1}", "{unique:false}");
-		MongoCollection tprs = jdb.getCollection(TABLE_MODULE_TYPE_PARSE);
-		tprs.ensureIndex("{moduleName:1,typeName:1,version:1}", "{unique:true}");
-		tprs.ensureIndex("{moduleName:1,moduleVersion:1}", "{unique:false}");
-		MongoCollection fprs = jdb.getCollection(TABLE_MODULE_FUNC_PARSE);
-		fprs.ensureIndex("{moduleName:1,funcName:1,version:1}", "{unique:true}");
-		fprs.ensureIndex("{moduleName:1,moduleVersion:1}", "{unique:false}");
-		MongoCollection frefs = jdb.getCollection(TABLE_FUNC_REFS);
-		frefs.ensureIndex("{depModule:1,depName:1,depVersion:1}", "{unique:false}");
-		frefs.ensureIndex("{refModule:1,refName:1,refVersion:1}", "{unique:false}");
-		frefs.ensureIndex("{depModule:1,depModuleVersion:1}", "{unique:false}");
-		MongoCollection trefs = jdb.getCollection(TABLE_TYPE_REFS);
-		trefs.ensureIndex("{depModule:1,depName:1,depVersion:1}", "{unique:false}");
-		trefs.ensureIndex("{refModule:1,refName:1,refVersion:1}", "{unique:false}");
-		trefs.ensureIndex("{depModule:1,depModuleVersion:1}", "{unique:false}");
+		final DBCollection reqs = db.getCollection(TABLE_MODULE_REQUEST);
+		reqs.createIndex(new BasicDBObject("moduleName", 1).append("ownerUserId", 1), UNIQ);
+		reqs.createIndex(new BasicDBObject("ownerUserId", 1));
+		final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+		vers.createIndex(new BasicDBObject("moduleName", 1), UNIQ);
+		final DBCollection owns = db.getCollection(TABLE_MODULE_OWNER);
+		owns.createIndex(new BasicDBObject("moduleName", 1).append("ownerUserId", 1), UNIQ);
+		owns.createIndex(new BasicDBObject("ownerUserId", 1));
+		final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+		infos.createIndex(new BasicDBObject("moduleName", 1).append("versionTime", 1), UNIQ);
+		final DBCollection specs = db.getCollection(TABLE_MODULE_SPEC_HISTORY);
+		specs.createIndex(new BasicDBObject("moduleName", 1).append("versionTime", 1), UNIQ);
+		final DBCollection tschs = db.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+		tschs.createIndex(new BasicDBObject("moduleName", 1).append("typeName", 1)
+				.append("version", 1), UNIQ);
+		tschs.createIndex(new BasicDBObject("moduleName", 1).append("moduleVersion", 1));
+		final DBCollection tprs = db.getCollection(TABLE_MODULE_TYPE_PARSE);
+		tprs.createIndex(new BasicDBObject("moduleName", 1).append("typeName", 1)
+				.append("version", 1), UNIQ);
+		tschs.createIndex(new BasicDBObject("moduleName", 1).append("moduleVersion", 1));
+		final DBCollection fprs = db.getCollection(TABLE_MODULE_FUNC_PARSE);
+		fprs.createIndex(new BasicDBObject("moduleName", 1).append("funcName", 1)
+				.append("version", 1), UNIQ);
+		fprs.createIndex(new BasicDBObject("moduleName", 1).append("moduleVersion", 1));
+		final DBCollection frefs = db.getCollection(TABLE_FUNC_REFS);
+		frefs.createIndex(new BasicDBObject("depModule", 1).append("depName", 1)
+				.append("depVersion", 1));
+		frefs.createIndex(new BasicDBObject("refModule", 1).append("refName", 1)
+				.append("refVersion", 1));
+		frefs.createIndex(new BasicDBObject("depModule", 1).append("depModuleVersion", 1));
+		final DBCollection trefs = db.getCollection(TABLE_TYPE_REFS);
+		trefs.createIndex(new BasicDBObject("depModule", 1).append("depName", 1)
+				.append("depVersion", 1));
+		trefs.createIndex(new BasicDBObject("refModule", 1).append("refName", 1)
+				.append("refVersion", 1));
+		trefs.createIndex(new BasicDBObject("depModule", 1).append("depModuleVersion", 1));
 	}
 	
 	private Map<String, Object> toMap(final Object obj) {
