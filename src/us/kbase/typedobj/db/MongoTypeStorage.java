@@ -307,9 +307,10 @@ public class MongoTypeStorage implements TypeStorage {
 	@Override
 	public TreeMap<Long, Boolean> getAllModuleVersions(String moduleName) throws TypeStorageException {
 		try {
-			MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			Map<Long, Boolean> map = getProjection(infos, "{moduleName:#}", "versionTime", Long.class, 
-					"released", Boolean.class, moduleName);
+			final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			Map<Long, Boolean> map = getProjection(
+					infos, new BasicDBObject("moduleName", moduleName), "versionTime", Long.class, 
+					"released", Boolean.class);
 			long releaseVer = getLastReleasedModuleVersion(moduleName);
 			TreeMap<Long, Boolean> ret = new TreeMap<Long, Boolean>();
 			for (long ver : map.keySet())
@@ -335,27 +336,6 @@ public class MongoTypeStorage implements TypeStorage {
 		while (find.hasNext()) {
 			data.add(toObj(find.next(), Map.class));
 		}
-//		List<Map> data = Lists.newArrayList(infos.find(whereCondition, params).projection(
-//				"{'" + keySelectField + "':1,'" + valueSelectField + "':1}").as(Map.class));
-		Map<KT, VT> ret = new LinkedHashMap<KT, VT>();
-		for (Map<?,?> item : data) {
-			Object key = getMongoProp(item, keySelectField);
-			if (key == null || !(keyType.isInstance(key)))
-				throw new TypeStorageException("Key is wrong: " + key);
-			Object value = getMongoProp(item, valueSelectField);
-			if (value == null || !(valueType.isInstance(value)))
-				throw new TypeStorageException("Value is wrong: " + value);
-			ret.put((KT)key, (VT)value);
-		}
-		return ret;
-	}
-	
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	protected <KT, VT> Map<KT, VT> getProjection(MongoCollection infos, String whereCondition, 
-			String keySelectField, Class<KT> keyType, String valueSelectField, Class<VT> valueType, 
-			Object... params) throws TypeStorageException {
-		List<Map> data = Lists.newArrayList(infos.find(whereCondition, params).projection(
-				"{'" + keySelectField + "':1,'" + valueSelectField + "':1}").as(Map.class));
 		Map<KT, VT> ret = new LinkedHashMap<KT, VT>();
 		for (Map<?,?> item : data) {
 			Object key = getMongoProp(item, keySelectField);
@@ -386,10 +366,12 @@ public class MongoTypeStorage implements TypeStorage {
 		if (typeName.contains("'"))
 			throw new TypeStorageException("Type names with symbol ['] are not supperted");
 		try {
-			MongoCollection schemas = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			Map<Long, String> typeMap = getProjection(schemas, "{moduleName:#,'types." + typeName + ".typeName':#}", 
-					"versionTime", Long.class, "types." + typeName + ".typeVersion", String.class, 
-					moduleName, typeName);
+			final DBCollection schemas = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			Map<Long, String> typeMap = getProjection(
+					schemas,
+					new BasicDBObject("moduleName", moduleName)
+							.append("types." + typeName + ".typeName", typeName),
+					"versionTime", Long.class, "types." + typeName + ".typeVersion", String.class);
 			Map<Long, Boolean> moduleMap = getAllModuleVersions(moduleName);
 			Map<String, Boolean> ret = new LinkedHashMap<String, Boolean>();
 			for (Map.Entry<Long, String> entry : typeMap.entrySet()) {
@@ -410,10 +392,12 @@ public class MongoTypeStorage implements TypeStorage {
 		if (funcName.contains("'"))
 			throw new TypeStorageException("Function names with symbol ['] are not supperted");
 		try {
-			MongoCollection schemas = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			Map<Long, String> funcMap = getProjection(schemas, "{moduleName:#,'funcs." + funcName + ".funcName':#}", 
-					"versionTime", Long.class, "funcs." + funcName + ".funcVersion", String.class, 
-					moduleName, funcName);
+			final DBCollection schemas = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			Map<Long, String> funcMap = getProjection(
+					schemas,
+					new BasicDBObject("moduleName", moduleName)
+							.append("funcs." + funcName + ".funcName", funcName),
+					"versionTime", Long.class, "funcs." + funcName + ".funcVersion", String.class);
 			Map<Long, Boolean> moduleMap = getAllModuleVersions(moduleName);
 			Map<String, Boolean> ret = new LinkedHashMap<String, Boolean>();
 			for (Map.Entry<Long, String> entry : funcMap.entrySet()) {
@@ -645,10 +629,13 @@ public class MongoTypeStorage implements TypeStorage {
 		if (typeName.contains("'"))
 			throw new TypeStorageException("Type names with symbol ['] are not supperted");
 		try {
-			MongoCollection infoCol = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			return getProjection(infoCol, "{moduleName:#,'types." + typeName + ".typeVersion':#," +
-					"'types." + typeName + ".supported':#}", "versionTime", Long.class, 
-					"released", Boolean.class, moduleName, typeVersion, true);
+			final DBCollection infoCol = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			return getProjection(
+					infoCol,
+					new BasicDBObject("moduleName", moduleName)
+							.append("types." + typeName + ".typeVersion", typeVersion)
+							.append("types." + typeName + ".supported", true),
+					"versionTime", Long.class, "released", Boolean.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -660,10 +647,12 @@ public class MongoTypeStorage implements TypeStorage {
 		if (funcName.contains("'"))
 			throw new TypeStorageException("Function names with symbol ['] are not supperted");
 		try {
-			MongoCollection infoCol = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			return getProjection(infoCol, "{moduleName:#,'funcs." + funcName + ".funcVersion':#}", 
-					"versionTime", Long.class, "released", Boolean.class, 
-					moduleName, funcVersion);
+			final DBCollection infoCol = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			return getProjection(
+					infoCol,
+					new BasicDBObject("moduleName", moduleName)
+							.append("funcs." + funcName + ".funcVersion", funcVersion),
+					"versionTime", Long.class, "released", Boolean.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
