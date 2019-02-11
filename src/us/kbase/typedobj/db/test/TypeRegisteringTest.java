@@ -45,7 +45,6 @@ import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.FuncDetailedInfo;
 import us.kbase.typedobj.db.ModuleDefId;
-import us.kbase.typedobj.db.ModuleInfo;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.typedobj.db.RefInfo;
@@ -436,8 +435,12 @@ public class TypeRegisteringTest {
 	
 	/**
 	 * It's not Unit test. It measures execution time (with indexes and without).
-	 * @throws Exception
 	 */
+	// this will no longer work, since the copyModuleVersion method was removed during
+	// the upgrade from the 2.x mongo client to the 3.x mongo client, as it had no unit tests
+	// and was therefore too much work to convert safely. If it's needed again, restore and
+	// convert the missing method from commit 3ad9e2d.
+	/*
 	public void testIndexes() throws Exception {
 		long time = System.currentTimeMillis();
 		String regulationSpec = loadSpec("backward", "Regulation");
@@ -477,6 +480,7 @@ public class TypeRegisteringTest {
 		}
 		System.out.println("Search time: " + (System.currentTimeMillis() - time));
 	}
+	*/
 	
 	@Test
 	public void testMD5() throws Exception {

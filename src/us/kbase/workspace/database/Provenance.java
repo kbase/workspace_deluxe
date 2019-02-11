@@ -13,10 +13,10 @@ import java.util.Map;
 //TODO TEST unit tests
 //TODO JAVADOC
 //TODO MEM this should keep track of its size & punt if it gets too large
-//TODO consider checking the syntax of urls
+//TODO CODE consider checking the syntax of urls
 //TODO CODE make this immutable and use builders.
-//TODO NOW don't allow nulls for lists/maps
-//TODO NOW this whole class needs a massive refactor
+//TODO CODE don't allow nulls for lists/maps
+//TODO CODE this whole class needs a massive refactor
 
 public class Provenance {
 	
