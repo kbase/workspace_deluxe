@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
@@ -90,6 +91,18 @@ public class MongoTypeStorage implements TypeStorage {
 		return new BasicDBObject(toMap(obj));
 	}
 	
+	private <T> T toObj(final DBObject dbo, final Class<T> clazz) {
+		if (dbo == null) {
+			return null;
+		}
+		// Unimplemented error for dbo.toMap()
+		// dbo is read only
+		// can't call convertValue() on dbo since it has a 'size' field outside of the internal map
+		final Map<String, Object> m = dbo.keySet().stream().filter(s -> !s.equals("_id"))
+				.collect(Collectors.toMap(k -> k, k -> dbo.get(k)));
+		return MAPPER.convertValue(m, clazz);
+	}
+	
 	@Override
 	public void addRefs(Set<RefInfo> typeRefs, Set<RefInfo> funcRefs)
 			throws TypeStorageException {
@@ -130,8 +143,9 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private Long getLastModuleVersionOrNull(String moduleName) throws TypeStorageException {
 		try {
-			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-			ModuleVersion ret = vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class);
+			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			final ModuleVersion ret = toObj(vers.findOne(
+					new BasicDBObject("moduleName", moduleName)), ModuleVersion.class);
 			return ret == null ? null : ret.releasedVersionTime;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
