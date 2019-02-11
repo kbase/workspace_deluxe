@@ -1,7 +1,6 @@
 package us.kbase.typedobj.db;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +8,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.bson.BSONObject;
 import org.jongo.Jongo;
@@ -104,20 +104,11 @@ public class MongoTypeStorage implements TypeStorage {
 	// can't call convertValue() on dbo since it has a 'size' field outside of the internal map
 	// and just weird shit happens when you do anyway
 	private Map<String, Object> toMapRec(final BSONObject dbo) {
-		final Map<String, Object> ret = new HashMap<>();
-		for (final String k: dbo.keySet()) {
-			if (k.equals("_id")) {
-				continue;
-			}
-			final Object o = dbo.get(k);
-			if (o instanceof BSONObject) {
-				ret.put(k, toMapRec((BSONObject) o));
-			// may need lists too?
-			} else {
-				ret.put(k, o);
-			}
-		}
-		return ret;
+		return dbo.keySet().stream().filter(k -> !k.equals("_id")).collect(Collectors.toMap(
+				k -> k,
+				// may need lists too?
+				k -> dbo.get(k) instanceof BSONObject ?
+						toMapRec((BSONObject) dbo.get(k)) : dbo.get(k)));
 	}
 	
 	@Override
