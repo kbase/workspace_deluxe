@@ -14,12 +14,19 @@ import org.jongo.MongoCollection;
 
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
 
 public class MongoTypeStorage implements TypeStorage {
+	
 	private Jongo jdb;
+	private final DB db;
 	
 	public static final String TABLE_MODULE_REQUEST = "module_request";
 	public static final String TABLE_MODULE_VERSION = "module_version";
@@ -33,10 +40,12 @@ public class MongoTypeStorage implements TypeStorage {
 	public static final String TABLE_TYPE_REFS = "type_refs";
 
 	public static final int MAX_REQUESTS_BY_USER = 30;
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private static final Pattern dotSep = Pattern.compile(Pattern.quote("."));
 	
 	public MongoTypeStorage(DB db) {
+		this.db = db;
 		jdb = new Jongo(db);
 		ensureIndeces();
 	}
@@ -73,24 +82,32 @@ public class MongoTypeStorage implements TypeStorage {
 		trefs.ensureIndex("{depModule:1,depModuleVersion:1}", "{unique:false}");
 	}
 	
+	private Map<String, Object> toMap(final Object obj) {
+		return MAPPER.convertValue(obj, new TypeReference<Map<String, Object>>() {});
+	}
+	
+	private DBObject toDBObj(final Object obj) {
+		return new BasicDBObject(toMap(obj));
+	}
+	
 	@Override
 	public void addRefs(Set<RefInfo> typeRefs, Set<RefInfo> funcRefs)
 			throws TypeStorageException {
 		try {
 			if (typeRefs.size() > 0) {
-				MongoCollection refs = jdb.getCollection(TABLE_TYPE_REFS);
+				DBCollection refs = db.getCollection(TABLE_TYPE_REFS);
 				for (RefInfo ref : typeRefs) {
 					if (ref.getDepModuleVersion() == 0)
 						throw new TypeStorageException("Dependent type's module version was not initialized");
-					refs.insert(ref);
+					refs.insert(toDBObj(ref));
 				}
 			}
 			if (funcRefs.size() > 0) {
-				MongoCollection refs = jdb.getCollection(TABLE_FUNC_REFS);
+				DBCollection refs = db.getCollection(TABLE_FUNC_REFS);
 				for (RefInfo ref : funcRefs) {
 					if (ref.getDepModuleVersion() == 0)
 						throw new TypeStorageException("Dependent function's module version was not initialized");
-					refs.insert(ref);
+					refs.insert(toDBObj(ref));
 				}
 			}
 		} catch (Exception e) {
