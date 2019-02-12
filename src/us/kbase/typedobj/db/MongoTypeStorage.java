@@ -823,8 +823,7 @@ public class MongoTypeStorage implements TypeStorage {
 	public List<OwnerInfo> getNewModuleRegistrationRequests()
 			throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
-			return Lists.newArrayList(recs.find().as(OwnerInfo.class));
+			return find(TABLE_MODULE_REQUEST, new BasicDBObject(), OwnerInfo.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -834,8 +833,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public Map<String, OwnerInfo> getOwnersForModule(String moduleName)
 			throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
-			List<OwnerInfo> owners = Lists.newArrayList(recs.find("{moduleName:#}", moduleName).as(OwnerInfo.class));
+			final List<OwnerInfo> owners = find(TABLE_MODULE_OWNER,
+					new BasicDBObject("moduleName", moduleName), OwnerInfo.class);
 			Map<String, OwnerInfo> ret = new TreeMap<String, OwnerInfo>();
 			for (OwnerInfo oi : owners)
 				ret.put(oi.getOwnerUserId(), oi);
@@ -849,8 +848,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public Map<String, OwnerInfo> getModulesForOwner(String userId)
 			throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
-			List<OwnerInfo> owners = Lists.newArrayList(recs.find("{ownerUserId:#}", userId).as(OwnerInfo.class));
+			final List<OwnerInfo> owners = find(
+					TABLE_MODULE_OWNER, new BasicDBObject("ownerUserId", userId), OwnerInfo.class);
 			Map<String, OwnerInfo> ret = new TreeMap<String, OwnerInfo>();
 			for (OwnerInfo oi : owners)
 				ret.put(oi.getModuleName(), oi);
@@ -864,8 +863,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public void removeNewModuleRegistrationRequest(String moduleName,
 			String userId) throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
-			recs.remove("{moduleName:#,ownerUserId:#}", moduleName, userId);
+			final DBCollection recs = db.getCollection(TABLE_MODULE_REQUEST);
+			recs.remove(new BasicDBObject("moduleName", moduleName).append("ownerUserId", userId));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -875,8 +874,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public void removeOwnerFromModule(String moduleName, String userId)
 			throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
-			recs.remove("{moduleName:#,ownerUserId:#}", moduleName, userId);
+			final DBCollection recs = db.getCollection(TABLE_MODULE_OWNER);
+			recs.remove(new BasicDBObject("moduleName", moduleName).append("ownerUserId", userId));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
