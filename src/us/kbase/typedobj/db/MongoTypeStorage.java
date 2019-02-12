@@ -791,8 +791,9 @@ public class MongoTypeStorage implements TypeStorage {
 			throws TypeStorageException {
 		OwnerInfo ret;
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
-			ret = recs.findOne("{moduleName:#}", moduleName).as(OwnerInfo.class);
+			final DBCollection recs = db.getCollection(TABLE_MODULE_REQUEST);
+			ret = toObj(recs.findOne(new BasicDBObject("moduleName", moduleName)),
+					OwnerInfo.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -805,13 +806,14 @@ public class MongoTypeStorage implements TypeStorage {
 	public void addOwnerToModule(String moduleName, String userId,
 			boolean withChangeOwnersPrivilege) throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
-			recs.remove("{moduleName:#,ownerUserId:#}", moduleName, userId);
+			final DBCollection recs = db.getCollection(TABLE_MODULE_OWNER);
+			// race condition
+			recs.remove(new BasicDBObject("moduleName", moduleName).append("ownerUserId", userId));
 			OwnerInfo rec = new OwnerInfo();
 			rec.setOwnerUserId(userId);
 			rec.setWithChangeOwnersPrivilege(withChangeOwnersPrivilege);
 			rec.setModuleName(moduleName);
-			recs.insert(rec);
+			recs.insert(toDBObj(rec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
