@@ -383,6 +383,34 @@ public class MongoTypeStorage implements TypeStorage {
 		return data;
 	}
 	
+	private <T> List<T> find(
+			final String collectionName,
+			final DBObject whereCondition,
+			final TypeReference<T> tr) {
+		return find(collectionName, whereCondition, new BasicDBObject(), tr);
+	}
+	
+	private <T> List<T> find(
+			final String collectionName,
+			final DBObject whereCondition,
+			final BasicDBObject projection,
+			final TypeReference<T> tr) {
+		return find(db.getCollection(collectionName), whereCondition, projection, tr);
+	}
+	
+	private <T> List<T> find(
+			final DBCollection col,
+			final DBObject whereCondition,
+			final BasicDBObject projection,
+			final TypeReference<T> tr) {
+		final DBCursor find = col.find(whereCondition, projection);
+		final List<T> data = new LinkedList<>();
+		for (final DBObject dbo: find) {
+			data.add(toObj(dbo, tr));
+		}
+		return data;
+	}
+	
 	private static Object getMongoProp(Map<?,?> data, String propWithDots) {
 		String[] parts = dotSep.split(propWithDots);
 		Object value = null;
@@ -538,14 +566,15 @@ public class MongoTypeStorage implements TypeStorage {
 		return findTypeRecord(moduleName, typeName, version).get("md5hash").toString();
 	}
 
-	@SuppressWarnings("rawtypes")
 	@Override
 	public List<String> getTypeVersionsByMd5(String moduleName, String typeName,
 			String md5) throws TypeStorageException {
 		try {
-			String query = "{moduleName:#,typeName:#,md5hash:#}";
-			MongoCollection docs = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-			List<Map> list = Lists.newArrayList(docs.find(query, moduleName, typeName, md5).as(Map.class));
+			final List<Map<String, Object>> list = find(TABLE_MODULE_TYPE_SCHEMA,
+					new BasicDBObject("moduleName", moduleName)
+							.append("typeName", typeName)
+							.append("md5hash", md5),
+							new TypeReference<Map<String, Object>>() {});
 			List<String> ret = new ArrayList<String>();
 			for (Map<?,?> map : list)
 				ret.add(map.get("version").toString());
@@ -555,18 +584,20 @@ public class MongoTypeStorage implements TypeStorage {
 		}
 	}
 	
+	private static final DBObject MT_DBO = new BasicDBObject();
+	
 	@Override
 	public void removeAllData() throws TypeStorageException {
-		jdb.getCollection(TABLE_TYPE_REFS).remove();
-		jdb.getCollection(TABLE_FUNC_REFS).remove();
-		jdb.getCollection(TABLE_MODULE_TYPE_PARSE).remove();
-		jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove();
-		jdb.getCollection(TABLE_MODULE_FUNC_PARSE).remove();
-		jdb.getCollection(TABLE_MODULE_REQUEST).remove();
-		jdb.getCollection(TABLE_MODULE_OWNER).remove();
-		jdb.getCollection(TABLE_MODULE_SPEC_HISTORY).remove();
-		jdb.getCollection(TABLE_MODULE_INFO_HISTORY).remove();
-		jdb.getCollection(TABLE_MODULE_VERSION).remove();
+		db.getCollection(TABLE_TYPE_REFS).remove(MT_DBO);
+		db.getCollection(TABLE_FUNC_REFS).remove(MT_DBO);
+		db.getCollection(TABLE_MODULE_TYPE_PARSE).remove(MT_DBO);
+		db.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove(MT_DBO);
+		db.getCollection(TABLE_MODULE_FUNC_PARSE).remove(MT_DBO);
+		db.getCollection(TABLE_MODULE_REQUEST).remove(MT_DBO);
+		db.getCollection(TABLE_MODULE_OWNER).remove(MT_DBO);
+		db.getCollection(TABLE_MODULE_SPEC_HISTORY).remove(MT_DBO);
+		db.getCollection(TABLE_MODULE_INFO_HISTORY).remove(MT_DBO);
+		db.getCollection(TABLE_MODULE_VERSION).remove(MT_DBO);
 	}
 	
 	// removed removeModule method after 3ad9e2d. Untested, unused.
