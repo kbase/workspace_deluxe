@@ -104,10 +104,11 @@ public class MongoTypeStorage implements TypeStorage {
 	}
 	
 	private <T> T toObj(final DBObject dbo, final Class<T> clazz) {
-		if (dbo == null) {
-			return null;
-		}
-		return MAPPER.convertValue(toMapRec(dbo), clazz);
+		return dbo == null ? null : MAPPER.convertValue(toMapRec(dbo), clazz);
+	}
+	
+	private <T> T toObj(final DBObject dbo, final TypeReference<T> tr) {
+		return dbo == null ? null :  MAPPER.convertValue(toMapRec(dbo), tr);
 	}
 	
 	// Unimplemented error for dbo.toMap()
@@ -490,50 +491,51 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getTypeRefsByRef(String refModule, String refType,
 			String version) throws TypeStorageException {
 		try {
-			MongoCollection refs = jdb.getCollection(TABLE_TYPE_REFS);
-			return Sets.newTreeSet(refs.find("{refModule:#,refName:#,refVersion:#}",
-					refModule, refType, version).as(RefInfo.class));
+			return Sets.newTreeSet(find(TABLE_TYPE_REFS, new BasicDBObject("refModule", refModule)
+					.append("refName", refType).append("refVersion", version), RefInfo.class));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
 	}
 	
+	private <T> T findOne(
+			final String collectionName,
+			final DBObject query,
+			final TypeReference<T> tr)
+			throws TypeStorageException {
+		try {
+			return toObj(db.getCollection(collectionName).findOne(query), tr);
+		} catch (Exception e) {
+			throw new TypeStorageException(e);
+		}	
+	}
+	
 	@Override
 	public String getTypeSchemaRecord(String moduleName, String typeName,
 			String version) throws TypeStorageException {
-		String query = "{moduleName:#,typeName:#,version:#}";
-		Map<String, Object> ret = findTypeRecord(moduleName, typeName, version,
-				query, moduleName, typeName, version);
-		if (ret == null)
-			throw new TypeStorageException("Type schema record was not found " +
-					"for " + moduleName + "." + typeName + "." + version);
-		return ret.get("document").toString();
+		return findTypeRecord(moduleName, typeName, version).get("document").toString();
 	}
 
-	@SuppressWarnings("unchecked")
-	private Map<String, Object> findTypeRecord(String moduleName,
-			String typeName, String version, String query, Object... params)
+	private Map<String, Object> findTypeRecord(
+			final String moduleName,
+			final String typeName,
+			final String version)
 			throws TypeStorageException {
-		Map<String, Object> ret;
-		try {
-			MongoCollection docs = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-			ret = docs.findOne(query, params).as(Map.class);
-		} catch (Exception e) {
-			throw new TypeStorageException(e);
-		}
-		return ret;
+		final Map<String, Object> rec = findOne(TABLE_MODULE_TYPE_SCHEMA,
+						new BasicDBObject("moduleName", moduleName)
+								.append("typeName", typeName)
+								.append("version", version),
+								new TypeReference<Map<String, Object>>() {});
+		if (rec == null)
+			throw new TypeStorageException("Type schema record was not found " +
+					"for " + moduleName + "." + typeName + "." + version);
+		return rec;
 	}
 
 	@Override
 	public String getTypeMd5(String moduleName, String typeName,
 			String version) throws TypeStorageException {
-		String query = "{moduleName:#,typeName:#,version:#}";
-		Map<String, Object> ret = findTypeRecord(moduleName, typeName, version,
-				query, moduleName, typeName, version);
-		if (ret == null)
-			throw new TypeStorageException("Type schema record was not found " +
-					"for " + moduleName + "." + typeName + "." + version);
-		return ret.get("md5hash").toString();
+		return findTypeRecord(moduleName, typeName, version).get("md5hash").toString();
 	}
 
 	@SuppressWarnings("rawtypes")

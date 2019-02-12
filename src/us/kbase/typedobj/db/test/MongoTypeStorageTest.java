@@ -113,4 +113,40 @@ public class MongoTypeStorageTest {
 					"Type parse record was not found for typeMod.typeN.v2"));
 		}
 	}
+	
+	@Test
+	public void getTypeSchemaRecordFailNoRecord() throws Exception {
+		final MongoTypeStorage mts = new MongoTypeStorage(MONGO_DB);
+		
+		mts.writeTypeSchemaRecord("mN", "tN", "v", 123L, "doc", "md5");
+		
+		
+		assertThat("incorrect type parse", mts.getTypeSchemaRecord("mN", "tN", "v"), is("doc"));
+		
+		try {
+			mts.getTypeSchemaRecord("mN", "tN", "v2");
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new TypeStorageException(
+					"Type schema record was not found for mN.tN.v2"));
+		}
+	}
+	
+	@Test
+	public void getTypeMd5FailNoRecord() throws Exception {
+		final MongoTypeStorage mts = new MongoTypeStorage(MONGO_DB);
+		
+		mts.writeTypeSchemaRecord("mN", "tN", "v", 123L, "doc", "md5");
+		
+		
+		assertThat("incorrect type parse", mts.getTypeMd5("mN", "tN", "v"), is("md5"));
+		
+		try {
+			mts.getTypeMd5("mN", "tN", "v2");
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new TypeStorageException(
+					"Type schema record was not found for mN.tN.v2"));
+		}
+	}
 }
