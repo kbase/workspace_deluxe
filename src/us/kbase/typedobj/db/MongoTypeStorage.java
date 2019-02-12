@@ -19,7 +19,6 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -897,8 +896,7 @@ public class MongoTypeStorage implements TypeStorage {
 		};
 		Map<String, Long> ret = new TreeMap<String, Long>();
 		for (String table : tables) {
-			MongoCollection recs = jdb.getCollection(table);
-			List<Object> rows = Lists.newArrayList(recs.find().as(Object.class));
+			List<Object> rows = find(table, new BasicDBObject(), Object.class);
 			ret.put(table, (long)rows.size());
 		}
 		return ret;
@@ -908,14 +906,20 @@ public class MongoTypeStorage implements TypeStorage {
 	public void removeModuleVersionAndSwitchIfNotCurrent(String moduleName,
 			long versionToDelete, long versionToSwitchTo)
 			throws TypeStorageException {
+		final DBObject dep = new BasicDBObject("depModule", moduleName)
+				.append("depModuleVersion", versionToDelete);
+		final DBObject mod = new BasicDBObject("moduleName", moduleName)
+				.append("moduleVersion", versionToDelete);
+		final DBObject hist = new BasicDBObject("moduleName", moduleName)
+				.append("versionTime", versionToDelete);
 		try {
-			jdb.getCollection(TABLE_TYPE_REFS).remove("{depModule:#,depModuleVersion:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_FUNC_REFS).remove("{depModule:#,depModuleVersion:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove("{moduleName:#,moduleVersion:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_MODULE_TYPE_PARSE).remove("{moduleName:#,moduleVersion:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_MODULE_FUNC_PARSE).remove("{moduleName:#,moduleVersion:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_MODULE_SPEC_HISTORY).remove("{moduleName:#,versionTime:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_MODULE_INFO_HISTORY).remove("{moduleName:#,versionTime:#}", moduleName, versionToDelete);
+			db.getCollection(TABLE_TYPE_REFS).remove(dep);
+			db.getCollection(TABLE_FUNC_REFS).remove(dep);
+			db.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove(mod);
+			db.getCollection(TABLE_MODULE_TYPE_PARSE).remove(mod);
+			db.getCollection(TABLE_MODULE_FUNC_PARSE).remove(mod);
+			db.getCollection(TABLE_MODULE_SPEC_HISTORY).remove(hist);
+			db.getCollection(TABLE_MODULE_INFO_HISTORY).remove(hist);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
