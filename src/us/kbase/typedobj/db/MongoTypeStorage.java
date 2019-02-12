@@ -1,7 +1,6 @@
 package us.kbase.typedobj.db;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -278,14 +277,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc,
 			String version) throws TypeStorageException {
 		try {
-			final DBCollection refs = db.getCollection(TABLE_FUNC_REFS);
-			final DBCursor find = refs.find(new BasicDBObject("depModule", depModule)
-					.append("depName", depFunc).append("depVersion", version));
-			final Set<RefInfo> ret = new HashSet<>();
-			for (final DBObject dbo: find) {
-				ret.add(toObj(dbo, RefInfo.class));
-			}
-			return ret;
+			return Sets.newHashSet(find(TABLE_FUNC_REFS, new BasicDBObject("depModule", depModule)
+					.append("depName", depFunc).append("depVersion", version), RefInfo.class));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -295,14 +288,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getFuncRefsByRef(String refModule, String refType,
 			String version) throws TypeStorageException {
 		try {
-			final DBCollection refs = db.getCollection(TABLE_FUNC_REFS);
-			final DBCursor find = refs.find(new BasicDBObject("refModule", refModule)
-					.append("refName", refType).append("refVersion", version));
-			final Set<RefInfo> ret = new HashSet<>();
-			for (final DBObject dbo: find) {
-				ret.add(toObj(dbo, RefInfo.class));
-			}
-			return ret;
+			return Sets.newHashSet(find(TABLE_FUNC_REFS, new BasicDBObject("refModule", refModule)
+					.append("refName", refType).append("refVersion", version), RefInfo.class));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -352,12 +339,8 @@ public class MongoTypeStorage implements TypeStorage {
 			final String valueSelectField,
 			final Class<VT> valueType)
 			throws TypeStorageException {
-		final DBCursor find = infos.find(whereCondition,
-						new BasicDBObject(keySelectField, 1).append(valueSelectField, 1));
-		final List<Map> data = new LinkedList<>();
-		for (final DBObject dbo: find) {
-			data.add(toObj(dbo, Map.class));
-		}
+		final List<Map> data = find(infos, whereCondition,
+				new BasicDBObject(keySelectField, 1).append(valueSelectField, 1), Map.class);
 		Map<KT, VT> ret = new LinkedHashMap<KT, VT>();
 		for (Map<?,?> item : data) {
 			Object key = getMongoProp(item, keySelectField);
@@ -369,6 +352,34 @@ public class MongoTypeStorage implements TypeStorage {
 			ret.put((KT)key, (VT)value);
 		}
 		return ret;
+	}
+
+	private <T> List<T> find(
+			final String collectionName,
+			final DBObject whereCondition,
+			final Class<T> clazz) {
+		return find(collectionName, whereCondition, new BasicDBObject(), clazz);
+	}
+	
+	private <T> List<T> find(
+			final String collectionName,
+			final DBObject whereCondition,
+			final BasicDBObject projection,
+			final Class<T> clazz) {
+		return find(db.getCollection(collectionName), whereCondition, projection, clazz);
+	}
+	
+	private <T> List<T> find(
+			final DBCollection col,
+			final DBObject whereCondition,
+			final BasicDBObject projection,
+			final Class<T> clazz) {
+		final DBCursor find = col.find(whereCondition, projection);
+		final List<T> data = new LinkedList<>();
+		for (final DBObject dbo: find) {
+			data.add(toObj(dbo, clazz));
+		}
+		return data;
 	}
 	
 	private static Object getMongoProp(Map<?,?> data, String propWithDots) {
@@ -467,9 +478,9 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getTypeRefsByDep(String depModule, String depType,
 			String version) throws TypeStorageException {
 		try {
-			MongoCollection refs = jdb.getCollection(TABLE_TYPE_REFS);
-			return Sets.newTreeSet(refs.find("{depModule:#,depName:#,depVersion:#}",
-					depModule, depType, version).as(RefInfo.class));
+			return Sets.newTreeSet(find(TABLE_TYPE_REFS, new BasicDBObject("depModule", depModule)
+					.append("depName", depType)
+					.append("depVersion", version), RefInfo.class));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
