@@ -12,8 +12,6 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import org.bson.BSONObject;
-import org.jongo.Jongo;
-import org.jongo.MongoCollection;
 
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
@@ -28,7 +26,6 @@ import com.mongodb.DBObject;
 
 public class MongoTypeStorage implements TypeStorage {
 	
-	private Jongo jdb;
 	private final DB db;
 	
 	public static final String TABLE_MODULE_REQUEST = "module_request";
@@ -49,7 +46,6 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	public MongoTypeStorage(DB db) {
 		this.db = db;
-		jdb = new Jongo(db);
 		ensureIndeces();
 	}
 	
@@ -979,10 +975,13 @@ public class MongoTypeStorage implements TypeStorage {
 	public void changeModuleSupportedState(String moduleName, boolean supported)
 			throws TypeStorageException {
 		try {
-			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-			if (vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class) == null)
-				throw new TypeStorageException("Support information is unavailable for module: " + moduleName);
-			vers.update("{moduleName:#}", moduleName).with("{$set: {supported: #}}", supported);
+			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			if (vers.findOne(new BasicDBObject("moduleName", moduleName)) == null) {
+				throw new TypeStorageException("Support information is unavailable for module: " +
+						moduleName);
+			}
+			vers.update(new BasicDBObject("moduleName", moduleName),
+					new BasicDBObject("$set", new BasicDBObject("supported", supported)));
 		} catch (TypeStorageException e) {
 			throw e;
 		} catch (Exception e) {

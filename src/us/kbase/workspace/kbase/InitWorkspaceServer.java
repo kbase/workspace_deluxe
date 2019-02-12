@@ -12,11 +12,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.jongo.Jongo;
-import org.jongo.MongoCollection;
-import org.jongo.marshall.MarshallingException;
-
 import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.MongoTimeoutException;
 
@@ -404,29 +402,24 @@ public class InitWorkspaceServer {
 			throw new WorkspaceInitException(
 					"There is no settings collection in the workspace database");
 		}
-		MongoCollection settings = new Jongo(db).getCollection(COL_SETTINGS);
+		final DBCollection settings = db.getCollection(COL_SETTINGS);
 		if (settings.count() != 1) {
 			throw new WorkspaceInitException(
-					"More than one settings document exists in the workspace database settings collection");
+					"Zero or more than one settings document exists in the workspace " +
+					"database settings collection");
 		}
+		final DBObject set = settings.findOne();
 		final Settings wsSettings;
 		try {
-			wsSettings = settings.findOne().as(Settings.class);
-		} catch (MarshallingException me) {
-			Throwable ex = me.getCause();
-			if (ex == null) {
-				throw new WorkspaceInitException(
-						"Unable to unmarshal settings workspace database document: " +
-						me.getLocalizedMessage(), me);
-			}
-			ex = ex.getCause();
-			if (ex == null || !(ex instanceof CorruptWorkspaceDBException)) {
-				throw new WorkspaceInitException(
-						"Unable to unmarshal settings workspace database document", me);
-			}
+			wsSettings = new Settings(
+					(String) set.get(Settings.SET_SHOCK_LOC),
+					(String) set.get(Settings.SET_SHOCK_USER),
+					(String) set.get(Settings.SET_BACKEND),
+					(String) set.get(Settings.SET_TYPE_DB));
+		} catch (CorruptWorkspaceDBException e) {
 			throw new WorkspaceInitException(
 					"Unable to unmarshal settings workspace database document: " +
-							ex.getLocalizedMessage(), ex);
+							e.getMessage(), e);
 		}
 		if (db.getName().equals(wsSettings.getTypeDatabase())) {
 			throw new WorkspaceInitException(
