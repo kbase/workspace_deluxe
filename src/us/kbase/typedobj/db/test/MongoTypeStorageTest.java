@@ -95,4 +95,22 @@ public class MongoTypeStorageTest {
 					"Function parse record was not found for funcMod.funcN.ver2"));
 		}
 	}
+	
+	@Test
+	public void getTypeParseRecordFailNoRecord() throws Exception {
+		final MongoTypeStorage mts = new MongoTypeStorage(MONGO_DB);
+		
+		mts.writeTypeParseRecord("typeMod", "typeN", "v", 797, "typeDoc");
+		
+		assertThat("incorrect type parse", mts.getTypeParseRecord("typeMod", "typeN", "v"),
+				is("typeDoc"));
+		
+		try {
+			mts.getTypeParseRecord("typeMod", "typeN", "v2");
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new TypeStorageException(
+					"Type parse record was not found for typeMod.typeN.v2"));
+		}
+	}
 }

@@ -295,9 +295,14 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getFuncRefsByRef(String refModule, String refType,
 			String version) throws TypeStorageException {
 		try {
-			MongoCollection refs = jdb.getCollection(TABLE_FUNC_REFS);
-			return Sets.newTreeSet(refs.find("{refModule:#,refName:#,refVersion:#}",
-					refModule, refType, version).as(RefInfo.class));
+			final DBCollection refs = db.getCollection(TABLE_FUNC_REFS);
+			final DBCursor find = refs.find(new BasicDBObject("refModule", refModule)
+					.append("refName", refType).append("refVersion", version));
+			final Set<RefInfo> ret = new HashSet<>();
+			for (final DBObject dbo: find) {
+				ret.add(toObj(dbo, RefInfo.class));
+			}
+			return ret;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -445,9 +450,10 @@ public class MongoTypeStorage implements TypeStorage {
 			String version) throws TypeStorageException {
 		Map<String, Object> ret;
 		try {
-			MongoCollection docs = jdb.getCollection(TABLE_MODULE_TYPE_PARSE);
-			ret = docs.findOne("{moduleName:#,typeName:#,version:#}", 
-					moduleName, typeName, version).as(Map.class);
+			final DBCollection docs = db.getCollection(TABLE_MODULE_TYPE_PARSE);
+			ret = toObj(docs.findOne(new BasicDBObject("moduleName", moduleName)
+					.append("typeName", typeName)
+					.append("version", version)), Map.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
