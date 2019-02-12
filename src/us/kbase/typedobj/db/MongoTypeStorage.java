@@ -606,15 +606,17 @@ public class MongoTypeStorage implements TypeStorage {
 	public void writeFuncParseRecord(String moduleName, String funcName,
 			String version, long moduleVersion, String parseText) throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_FUNC_PARSE);
-			recs.remove("{moduleName:#,funcName:#,version:#}", moduleName, funcName, version);
-			FuncRecord rec = new FuncRecord();
+			final DBCollection recs = db.getCollection(TABLE_MODULE_FUNC_PARSE);
+			recs.remove(new BasicDBObject("moduleName", moduleName)
+					.append("funcName", funcName)
+					.append("version", version));
+			final FuncRecord rec = new FuncRecord();
 			rec.setModuleName(moduleName);
 			rec.setFuncName(funcName);
 			rec.setVersion(version);
 			rec.setModuleVersion(moduleVersion);
 			rec.setDocument(parseText);
-			recs.save(rec);
+			recs.save(toDBObj(rec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -622,16 +624,18 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private void writeModuleVersion(String moduleName, long version) throws TypeStorageException {
 		try {
-			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-			if (vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class) == null) {
+			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			// this is a race condition waiting to happen
+			if (vers.findOne(new BasicDBObject("moduleName", moduleName)) == null) {
 				ModuleVersion ver = new ModuleVersion();
 				ver.setModuleName(moduleName);
 				ver.setVersionTime(version);
 				ver.setReleasedVersionTime(version);
 				ver.setSupported(true);
-				vers.insert(ver);
+				vers.insert(toDBObj(ver));
 			} else {
-				vers.update("{moduleName:#}", moduleName).with("{$set: {versionTime: #}}", version);
+				vers.update(new BasicDBObject("moduleName", moduleName),
+						new BasicDBObject("$set", new BasicDBObject("versionTime", version)));
 			}
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
