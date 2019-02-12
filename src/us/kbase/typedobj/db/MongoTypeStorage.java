@@ -1,6 +1,7 @@
 package us.kbase.typedobj.db;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -9,7 +10,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.bson.BSONObject;
 import org.jongo.Jongo;
@@ -116,11 +116,16 @@ public class MongoTypeStorage implements TypeStorage {
 	// can't call convertValue() on dbo since it has a 'size' field outside of the internal map
 	// and just weird shit happens when you do anyway
 	private Map<String, Object> toMapRec(final BSONObject dbo) {
-		return dbo.keySet().stream().filter(k -> !k.equals("_id")).collect(Collectors.toMap(
-				k -> k,
+		// can't stream because streams don't like null values at HashMap.merge()
+		final Map<String, Object> ret = new HashMap<>();
+		for (final String k: dbo.keySet()) {
+			if (!k.equals("_id")) {
+				final Object v = dbo.get(k);
 				// may need lists too?
-				k -> dbo.get(k) instanceof BSONObject ?
-						toMapRec((BSONObject) dbo.get(k)) : dbo.get(k)));
+				ret.put(k, v instanceof BSONObject ? toMapRec((BSONObject) v) : v);
+			}
+		}
+		return ret;
 	}
 	
 	@Override
@@ -648,12 +653,12 @@ public class MongoTypeStorage implements TypeStorage {
 		writeModuleVersion(info.getModuleName(), version);
 		writeModuleInfo(info, version);
 		try {
-			MongoCollection specs = jdb.getCollection(TABLE_MODULE_SPEC_HISTORY);
+			final DBCollection specs = db.getCollection(TABLE_MODULE_SPEC_HISTORY);
 			ModuleSpec spec = new ModuleSpec();
 			spec.setModuleName(info.getModuleName());
 			spec.setDocument(specDocument);
 			spec.setVersionTime(version);
-			specs.insert(spec);
+			specs.insert(toDBObj(spec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -668,9 +673,9 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private void writeModuleInfo(ModuleInfo info, long version) throws TypeStorageException {
 		try {
-			MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
+			final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
 			info.setVersionTime(version);
-			infos.insert(info);
+			infos.insert(toDBObj(info));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -680,15 +685,17 @@ public class MongoTypeStorage implements TypeStorage {
 	public void writeTypeParseRecord(String moduleName, String typeName,
 			String version, long moduleVersion, String document) throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_TYPE_PARSE);
-			recs.remove("{moduleName:#,typeName:#,version:#}", moduleName, typeName, version);
+			final DBCollection recs = db.getCollection(TABLE_MODULE_TYPE_PARSE);
+			recs.remove(new BasicDBObject("moduleName", moduleName)
+					.append("typeName", typeName)
+					.append("version", version));
 			TypeRecord rec = new TypeRecord();
 			rec.setModuleName(moduleName);
 			rec.setTypeName(typeName);
 			rec.setVersion(version);
 			rec.setModuleVersion(moduleVersion);
 			rec.setDocument(document);
-			recs.save(rec);
+			recs.save(toDBObj(rec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
