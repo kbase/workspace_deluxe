@@ -740,8 +740,10 @@ public class MongoTypeStorage implements TypeStorage {
 	public void writeTypeSchemaRecord(String moduleName, String typeName,
 			String version, long moduleVersion, String document, String md5) throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-			recs.remove("{moduleName:#,typeName:#,version:#}", moduleName, typeName, version);
+			final DBCollection recs = db.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+			recs.remove(new BasicDBObject("moduleName", moduleName)
+					.append("typeName", typeName)
+					.append("version", version));
 			TypeRecord rec = new TypeRecord();
 			rec.setModuleName(moduleName);
 			rec.setTypeName(typeName);
@@ -749,7 +751,7 @@ public class MongoTypeStorage implements TypeStorage {
 			rec.setModuleVersion(moduleVersion);
 			rec.setDocument(document);
 			rec.setMd5hash(md5);
-			recs.insert(rec);
+			recs.insert(toDBObj(rec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -759,21 +761,24 @@ public class MongoTypeStorage implements TypeStorage {
 	public void addNewModuleRegistrationRequest(String moduleName, String userId)
 			throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
-			int prevCount = Lists.newArrayList(recs.find("{ownerUserId:#}", 
-					userId).as(OwnerInfo.class)).size();
-			if (prevCount >= MAX_REQUESTS_BY_USER)
+			final DBCollection recs = db.getCollection(TABLE_MODULE_REQUEST);
+			// lots of race conditions here
+			if (recs.count(new BasicDBObject("ownerUserId", userId)) >= MAX_REQUESTS_BY_USER) {
 				throw new TypeStorageException("User " + userId + " has maximal count " +
 						"of requests: " + MAX_REQUESTS_BY_USER);
-			if (recs.findOne("{moduleName:#}", moduleName).as(OwnerInfo.class) != null)
-				throw new TypeStorageException("Registration of module " + moduleName + " was already requested");
-			if (checkModuleExist(moduleName))
+			}
+			if (recs.findOne(new BasicDBObject("moduleName", moduleName)) != null) {
+				throw new TypeStorageException("Registration of module " + moduleName +
+						" was already requested");
+			}
+			if (checkModuleExist(moduleName)) {
 				throw new TypeStorageException("Module " + moduleName + " was already registered");
+			}
 			OwnerInfo rec = new OwnerInfo();
 			rec.setOwnerUserId(userId);
 			rec.setWithChangeOwnersPrivilege(true);
 			rec.setModuleName(moduleName);
-			recs.insert(rec);
+			recs.insert(toDBObj(rec));
 		} catch (TypeStorageException e) {
 			throw e;
 		} catch (Exception e) {
