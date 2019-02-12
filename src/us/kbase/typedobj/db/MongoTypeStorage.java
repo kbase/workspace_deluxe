@@ -241,8 +241,9 @@ public class MongoTypeStorage implements TypeStorage {
 	public boolean getModuleSupportedState(String moduleName)
 			throws TypeStorageException {
 		try {
-			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-			ModuleVersion ret = vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class);
+			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			final ModuleVersion ret = toObj(vers.findOne(
+					new BasicDBObject("moduleName", moduleName)), ModuleVersion.class);
 			if (ret == null)
 				throw new TypeStorageException("Support information is unavailable for module: " + moduleName);
 			return ret.isSupported();

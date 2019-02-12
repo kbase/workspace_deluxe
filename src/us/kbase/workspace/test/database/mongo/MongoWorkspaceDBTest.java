@@ -76,6 +76,7 @@ public class MongoWorkspaceDBTest {
 			MONGO.destroy(TestCommon.getDeleteTempFiles());
 		}
 	}
+	
 	@Before
 	public void clearDB() throws Exception {
 		TestCommon.destroyDB(MONGO_DB);
