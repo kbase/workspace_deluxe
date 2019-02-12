@@ -1,6 +1,7 @@
 package us.kbase.typedobj.db;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -260,9 +261,10 @@ public class MongoTypeStorage implements TypeStorage {
 			String version) throws TypeStorageException {
 		Map<String, Object> ret;
 		try {
-			MongoCollection docs = jdb.getCollection(TABLE_MODULE_FUNC_PARSE);
-			ret = docs.findOne("{moduleName:#,funcName:#,version:#}",
-					moduleName, funcName, version).as(Map.class);
+			final DBCollection docs = db.getCollection(TABLE_MODULE_FUNC_PARSE);
+			ret = toObj(docs.findOne(new BasicDBObject("moduleName", moduleName)
+					.append("funcName", funcName)
+					.append("version", version)), Map.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -276,9 +278,14 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc,
 			String version) throws TypeStorageException {
 		try {
-			MongoCollection refs = jdb.getCollection(TABLE_FUNC_REFS);
-			return Sets.newTreeSet(refs.find("{depModule:#,depName:#,depVersion:#}",
-					depModule, depFunc, version).as(RefInfo.class));
+			final DBCollection refs = db.getCollection(TABLE_FUNC_REFS);
+			final DBCursor find = refs.find(new BasicDBObject("depModule", depModule)
+					.append("depName", depFunc).append("depVersion", version));
+			final Set<RefInfo> ret = new HashSet<>();
+			for (final DBObject dbo: find) {
+				ret.add(toObj(dbo, RefInfo.class));
+			}
+			return ret;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -343,8 +350,8 @@ public class MongoTypeStorage implements TypeStorage {
 		final DBCursor find = infos.find(whereCondition,
 						new BasicDBObject(keySelectField, 1).append(valueSelectField, 1));
 		final List<Map> data = new LinkedList<>();
-		while (find.hasNext()) {
-			data.add(toObj(find.next(), Map.class));
+		for (final DBObject dbo: find) {
+			data.add(toObj(dbo, Map.class));
 		}
 		Map<KT, VT> ret = new LinkedHashMap<KT, VT>();
 		for (Map<?,?> item : data) {

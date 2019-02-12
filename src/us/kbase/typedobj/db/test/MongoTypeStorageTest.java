@@ -76,6 +76,23 @@ public class MongoTypeStorageTest {
 			TestCommon.assertExceptionCorrect(got, new TypeStorageException(
 					"Support information is unavailable for module: name2"));
 		}
+	}
+	
+	@Test
+	public void getFuncParseRecordFailNoRecord() throws Exception {
+		final MongoTypeStorage mts = new MongoTypeStorage(MONGO_DB);
 		
+		mts.writeFuncParseRecord("funcMod", "funcN", "ver", 567, "funchere");
+		
+		assertThat("incorrect func parse", mts.getFuncParseRecord("funcMod", "funcN", "ver"),
+				is("funchere"));
+		
+		try {
+			mts.getFuncParseRecord("funcMod", "funcN", "ver2");
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new TypeStorageException(
+					"Function parse record was not found for funcMod.funcN.ver2"));
+		}
 	}
 }
