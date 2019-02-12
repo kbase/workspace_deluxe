@@ -939,8 +939,9 @@ public class MongoTypeStorage implements TypeStorage {
 	private Long getLastModuleVersionWithUnreleasedOrNull(String moduleName)
 			throws TypeStorageException {
 		try {
-			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-			ModuleVersion ret = vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class);
+			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			final ModuleVersion ret = toObj(vers.findOne(
+					new BasicDBObject("moduleName", moduleName)), ModuleVersion.class);
 			if (ret == null)
 				return null;
 			return ret.versionTime;
@@ -953,13 +954,17 @@ public class MongoTypeStorage implements TypeStorage {
 	public void setModuleReleaseVersion(String moduleName, long version)
 			throws TypeStorageException {
 		try {
-			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-			if (vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class) == null) {
-				throw new TypeStorageException("Module" + moduleName + " was not registered");
+			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			if (vers.findOne(new BasicDBObject("moduleName", moduleName)) == null) {
+				throw new TypeStorageException("Module " + moduleName + " was not registered");
 			} else {
-				MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-				infos.update("{moduleName:#, versionTime:#}", moduleName, version).with("{$set: {released: #}}", true);
-				vers.update("{moduleName:#}", moduleName).with("{$set: {releasedVersionTime: #}}", version);
+				final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+				infos.update(new BasicDBObject("moduleName", moduleName)
+						.append("versionTime", version),
+						new BasicDBObject("$set", new BasicDBObject("released", true)));
+				vers.update(new BasicDBObject("moduleName", moduleName),
+						new BasicDBObject("$set",
+								new BasicDBObject("releasedVersionTime", version)));
 			}
 		} catch (TypeStorageException e) {
 			throw e;
