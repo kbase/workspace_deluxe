@@ -96,7 +96,6 @@ import com.mongodb.MongoClient;
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
 	
-	//true if no net access since shock requires access to globus to work
 	private static final boolean SKIP_SHOCK = false;
 
 	protected static final ObjectMapper MAPPER = new ObjectMapper();
@@ -210,8 +209,9 @@ public class WorkspaceTester {
 	
 	@Before
 	public void clearDB() throws Exception {
-		final DB wsdb = new MongoClient("localhost:" + mongo.getServerPort()).getDB(DB_WS_NAME);
-		TestCommon.destroyDB(wsdb);
+		final MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
+		TestCommon.destroyDB(mongoClient.getDatabase(DB_WS_NAME));
+		mongoClient.close();
 	}
 	
 	@After
