@@ -214,9 +214,8 @@ public class InitWorkspaceServer {
 			throws WorkspaceInitException {
 		
 		final WorkspaceDependencies deps = new WorkspaceDependencies();
-		final MongoClient mc = buildMongo(cfg);
 		//TODO CODE update to new mongo APIs
-		final DB db = mc.getDB(cfg.getDBname());
+		final DB db = buildMongo(cfg, cfg.getDBname()).getDB(cfg.getDBname());
 		
 		final Settings settings = getSettings(db);
 		deps.backendType = settings.isGridFSBackend() ? "GridFS" : "Shock";
@@ -224,7 +223,9 @@ public class InitWorkspaceServer {
 		final BlobStore bs = setupBlobStore(db, deps.backendType, settings.getShockUrl(),
 				settings.getShockUser(), cfg, auth);
 		
-		final DB typeDB = mc.getDB(settings.getTypeDatabase());
+		// see https://jira.mongodb.org/browse/JAVA-2656
+		final DB typeDB = buildMongo(cfg, settings.getTypeDatabase())
+				.getDB(settings.getTypeDatabase());
 		
 		try {
 			deps.typeDB = new TypeDefinitionDB(new MongoTypeStorage(typeDB));
@@ -245,13 +246,13 @@ public class InitWorkspaceServer {
 		return deps;
 	}
 	
-	private static MongoClient buildMongo(final KBaseWorkspaceConfig c)
+	private static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
 			throws WorkspaceInitException {
 		//TODO ZLATER MONGO handle shards & replica sets
 		try {
 			if (c.getMongoUser() != null) {
 				final MongoCredential creds = MongoCredential.createCredential(
-						c.getMongoUser(), c.getDBname(), c.getMongoPassword().toCharArray());
+						c.getMongoUser(), dbName, c.getMongoPassword().toCharArray());
 				// unclear if and when it's safe to clear the password
 				return new MongoClient(new ServerAddress(c.getHost()), creds,
 						MongoClientOptions.builder().build());
