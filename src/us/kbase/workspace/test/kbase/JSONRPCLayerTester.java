@@ -38,7 +38,6 @@ import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
 import us.kbase.auth.ConfigurableAuthService;
-import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
@@ -426,10 +425,10 @@ public class JSONRPCLayerTester {
 	}
 	@Before
 	public void clearDB() throws Exception {
-		DB wsdb1 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-				DB_WS_NAME_1);
-		DB wsdb2 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-				DB_WS_NAME_2);
+		final DB wsdb1 = new MongoClient("localhost:" + mongo.getServerPort())
+				.getDB(DB_WS_NAME_1);
+		final DB wsdb2 = new MongoClient("localhost:" + mongo.getServerPort())
+				.getDB(DB_WS_NAME_2);
 		TestCommon.destroyDB(wsdb1);
 		TestCommon.destroyDB(wsdb2);
 	}

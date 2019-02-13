@@ -122,7 +122,7 @@ public class MongoInternalsTest {
 		TempFilesManager tfm = new TempFilesManager(
 				new File(TestCommon.getTempDir()));
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
-				new MongoTypeStorage(GetMongoDB.getDB(mongohost, typedb)));
+				new MongoTypeStorage(mongoClient.getDB(typedb)));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
 		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);

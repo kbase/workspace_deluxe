@@ -33,6 +33,7 @@ public class MongoTypeStorageTest {
 	
 	@BeforeClass
 	public static void setUp() throws Exception {
+		TestCommon.stfuLoggers();
 		MONGO = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
 				TestCommon.useWiredTigerEngine());
