@@ -1018,9 +1018,8 @@ public class MongoInternalsTest {
 
 	private void checkRefCounts(long wsid, int[][] expected, int factor) {
 		for (int i = 1; i < 5; i++) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> obj = jdb.getCollection("workspaceObjects")
-					.findOne("{ws: #, id: #}", wsid, i).as(Map.class);
+			final DBObject obj = db.getCollection("workspaceObjects")
+					.findOne(new BasicDBObject("ws", wsid).append("id", i));
 			@SuppressWarnings("unchecked")
 			List<Integer> refcnts = (List<Integer>) obj.get("refcnt");
 			for (int j = 0; j < 4; j++) {
@@ -1144,9 +1143,8 @@ public class MongoInternalsTest {
 	}
 
 	private void checkRefCntInit(long wsid, int objid, int vers) {
-		@SuppressWarnings("rawtypes")
-		List<Map> objlist = iterToList(jdb.getCollection("workspaceObjects")
-				.find("{ws: #, id: #}", wsid, objid).as(Map.class));
+		List<DBObject> objlist = iterToList(db.getCollection("workspaceObjects")
+				.find(new BasicDBObject("ws", wsid).append("id", objid)));
 		assertThat("Only one object per id", objlist.size(), is(1));
 		@SuppressWarnings("unchecked")
 		List<Integer> refcnts = (List<Integer>) objlist.get(0).get("refcnt");
@@ -1205,9 +1203,8 @@ public class MongoInternalsTest {
 	}
 
 	private Date getDate(long wsid, int id) {
-		@SuppressWarnings("rawtypes")
-		Map obj = jdb.getCollection("workspaceObjects")
-				.findOne("{ws: #, id: #}", wsid, id).as(Map.class);
+		final DBObject obj = db.getCollection("workspaceObjects")
+				.findOne(new BasicDBObject("ws", wsid).append("id", id));
 		return (Date) obj.get("moddate");
 	}
 
