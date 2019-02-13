@@ -94,6 +94,7 @@ import com.mongodb.MongoClient;
 public class MongoInternalsTest {
 	
 	private static Jongo jdb;
+	private static DB db;
 	private static MongoWorkspaceDB mwdb;
 	private static Workspace ws;
 	private static Types types;
@@ -116,7 +117,7 @@ public class MongoInternalsTest {
 		TestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();
 		mongoClient = new MongoClient(mongohost);
-		final DB db = mongoClient.getDB("MongoInternalsTest");
+		db = mongoClient.getDB("MongoInternalsTest");
 		String typedb = "MongoInternalsTest_types";
 		WorkspaceTestCommon.destroyWSandTypeDBs(db, typedb);
 		jdb = new Jongo(db);
@@ -151,7 +152,7 @@ public class MongoInternalsTest {
 	
 	@Before
 	public void clearDB() throws Exception {
-		TestCommon.destroyDB(jdb.getDatabase());
+		TestCommon.destroyDB(db);
 	}
 	
 	private static ObjectIDNoWSNoVer getRandomName() {
@@ -269,7 +270,7 @@ public class MongoInternalsTest {
 		final DBObject update = new BasicDBObject(
 				"$set", new BasicDBObject("cloning", true));
 		update.put("$unset", cloneunset);
-		jdb.getDatabase().getCollection("workspaces").update(
+		db.getCollection("workspaces").update(
 				new BasicDBObject("ws", 2), update);
 		
 		final NoSuchWorkspaceException noWSExcp = new NoSuchWorkspaceException(
@@ -456,7 +457,6 @@ public class MongoInternalsTest {
 			final Map<String, String> meta,
 			final boolean globalRead,
 			final boolean complete) {
-		DB db = jdb.getDatabase();
 		DBObject ws = db.getCollection("workspaces").findOne(
 				new BasicDBObject("ws", id));
 		assertThat("name was set incorrectly", (String) ws.get("name"),
@@ -491,7 +491,6 @@ public class MongoInternalsTest {
 			final WorkspaceUser owner,
 			final boolean globalRead,
 			final boolean complete) {
-		final DB db = jdb.getDatabase();
 		final Set<Map<String, Object>> acls = new HashSet<>();
 		for (final DBObject acl: db.getCollection("workspaceACLs")
 				.find(new BasicDBObject("id", id))) {
@@ -811,9 +810,9 @@ public class MongoInternalsTest {
 		//set the version to 1 in the workspace object. This state can
 		//occur if a get happens between the increment and the save of the
 		//version, although it's really rare
-		jdb.getCollection("workspaceObjects")
-			.update("{id: 1, ws: #}", rwsi.getID())
-			.with("{$inc: {numver: 1}}");
+		db.getCollection("workspaceObjects").update(
+				new BasicDBObject("id", 1).append("ws", rwsi.getID()),
+				new BasicDBObject("$inc", new BasicDBObject("numver", 1)));
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null,
 				new WorkspaceUserMetadata(), null);
