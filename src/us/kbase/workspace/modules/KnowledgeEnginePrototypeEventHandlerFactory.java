@@ -1,7 +1,5 @@
 package us.kbase.workspace.modules;
 
-import java.io.IOException;
-import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -12,12 +10,12 @@ import com.google.common.base.Optional;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoCredential;
 import com.mongodb.MongoException;
-import com.mongodb.MongoTimeoutException;
+import com.mongodb.ServerAddress;
 
-import us.kbase.common.mongo.GetMongoDB;
-import us.kbase.common.mongo.exceptions.InvalidHostException;
-import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -87,37 +85,22 @@ public class KnowledgeEnginePrototypeEventHandlerFactory implements WorkspaceEve
 				mongoUser = null;
 			}
 			if (mongoCollection == null || mongoCollection.trim().isEmpty()) {
-			    mongoCollection = DEFAULT_COLLECTION_NAME;
+				mongoCollection = DEFAULT_COLLECTION_NAME;
 			}
 			this.mongoCollection = mongoCollection;
 			try {
-				if (mongoUser == null) {
-					db = GetMongoDB.getDB(mongoHost, mongoDatabase, 0, 10);
+				if (mongoUser != null) {
+					final MongoCredential creds = MongoCredential.createCredential(
+							mongoUser, mongoDatabase, mongoPwd.toCharArray());
+					// unclear if and when it's safe to clear the password
+					db = new MongoClient(new ServerAddress(mongoHost), creds,
+							MongoClientOptions.builder().build()).getDB(mongoDatabase);
 				} else {
-					db = GetMongoDB.getDB(mongoHost, mongoDatabase, mongoUser, mongoPwd, 0, 10);
+					db = new MongoClient(new ServerAddress(mongoHost)).getDB(mongoDatabase);
 				}
-			} catch (InterruptedException ie) {
-				throw new ListenerInitializationException(
-						"Connection to MongoDB was interrupted. This should never "
-								+ "happen and indicates a programming problem. Error: " +
-								ie.getLocalizedMessage(), ie);
-			} catch (UnknownHostException uhe) {
-				throw new ListenerInitializationException("Couldn't find mongo host "
-						+ mongoHost + ": " + uhe.getLocalizedMessage(), uhe);
-			} catch (IOException | MongoTimeoutException e) {
-				throw new ListenerInitializationException("Couldn't connect to mongo host " 
-						+ mongoHost + ": " + e.getLocalizedMessage(), e);
 			} catch (MongoException e) {
 				throw new ListenerInitializationException(
-						"There was an error connecting to the mongo database: " +
-								e.getLocalizedMessage());
-			} catch (MongoAuthException ae) {
-				throw new ListenerInitializationException("Not authorized for mongo database "
-						+ mongoHost + ": " + ae.getLocalizedMessage(), ae);
-			} catch (InvalidHostException ihe) {
-				throw new ListenerInitializationException(mongoHost +
-						" is an invalid mongo database host: "  +
-						ihe.getLocalizedMessage(), ihe);
+						"Failed to connect to MongoDB: " + e.getMessage(), e);
 			}
 		}
 
