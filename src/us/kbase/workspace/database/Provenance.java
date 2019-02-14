@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -8,35 +10,34 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import us.kbase.common.exceptions.UnimplementedException;
-
 //TODO TEST unit tests
 //TODO JAVADOC
 //TODO MEM this should keep track of its size & punt if it gets too large
 //TODO consider checking the syntax of urls
 //TODO CODE make this immutable and use builders.
 //TODO NOW don't allow nulls for lists - do after removing MongoProvenance
-//TODO NOW remove sets, use with instead
+//TODO NOW remove setters, use .with instead
+//TODO NOW this whole class needs a massive refactor
 
 public class Provenance {
 	
-	private String user;
-	private Date date;
+	private final WorkspaceUser user;
+	private final Date date;
 	private Long wsid = null;
 	protected List<ProvenanceAction> actions =
 			new ArrayList<ProvenanceAction>();
 	
-	public Provenance(WorkspaceUser user) {
-		if (user == null) {
-			throw new IllegalArgumentException("user cannot be null");
-		}
-		this.user = user.getUser();
+	public Provenance(final WorkspaceUser user) {
+		requireNonNull(user, "user");
+		this.user = user;
 		this.date = new Date();
 	}
 	
-	protected Provenance() {} //for subclasses using mongo
+	public Provenance(final WorkspaceUser user, final Date date) {
+		requireNonNull(user, "user");
+		this.user = user;
+		this.date = date;
+	}
 	
 	public Provenance addAction(ProvenanceAction action) {
 		if (action == null) {
@@ -47,14 +48,14 @@ public class Provenance {
 	}
 	
 	public WorkspaceUser getUser() {
-		return new WorkspaceUser(user);
+		return user;
 	}
 	
 	public Date getDate() {
 		return date;
 	}
 	
-	protected void setWorkspaceID(final Long wsid) {
+	public void setWorkspaceID(final Long wsid) {
 		if (wsid < 1) {
 			throw new IllegalArgumentException("wsid must be > 0");
 		}
@@ -314,14 +315,14 @@ public class Provenance {
 		protected String script;
 		protected String scriptVersion;
 		protected String commandLine;
-		protected List<String> wsobjs = new LinkedList<String>();
+		protected List<String> wsobjs = new LinkedList<>();
 		protected List<String> incomingArgs;
 		protected List<String> outgoingArgs;
-		protected List<ExternalData> externalData =
-				new LinkedList<ExternalData>();
-		protected List<SubAction> subActions = new LinkedList<SubAction>();
-		protected Map<String, String> custom = new HashMap<String, String>();
+		protected List<ExternalData> externalData = new LinkedList<>();
+		protected List<SubAction> subActions = new LinkedList<>();
+		protected Map<String, String> custom = new HashMap<>();
 		protected String description;
+		private List<String> resolvedObjects = new LinkedList<>();
 		
 		public ProvenanceAction() {}
 		
@@ -561,12 +562,15 @@ public class Provenance {
 			return this;
 		}
 
-		// would prefer to make this abstract but Jackson doesn't like it
-		// and want to keep this class as unaware of the backend implementation
-		// as possible
-		@JsonIgnore
 		public List<String> getResolvedObjects() {
-			throw new UnimplementedException();
+			return resolvedObjects;
+		}
+		
+		public ProvenanceAction withResolvedObjects(final List<String> resolvedObjects) {
+			if (resolvedObjects != null) {
+				this.resolvedObjects = resolvedObjects;
+			}
+			return this;
 		}
 
 		@Override
