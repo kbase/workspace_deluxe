@@ -2,24 +2,35 @@ package us.kbase.typedobj.db;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import org.bson.BSONObject;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
 
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 
 public class MongoTypeStorage implements TypeStorage {
+	
 	private Jongo jdb;
+	private final DB db;
 	
 	public static final String TABLE_MODULE_REQUEST = "module_request";
 	public static final String TABLE_MODULE_VERSION = "module_version";
@@ -33,10 +44,12 @@ public class MongoTypeStorage implements TypeStorage {
 	public static final String TABLE_TYPE_REFS = "type_refs";
 
 	public static final int MAX_REQUESTS_BY_USER = 30;
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private static final Pattern dotSep = Pattern.compile(Pattern.quote("."));
 	
 	public MongoTypeStorage(DB db) {
+		this.db = db;
 		jdb = new Jongo(db);
 		ensureIndeces();
 	}
@@ -73,24 +86,51 @@ public class MongoTypeStorage implements TypeStorage {
 		trefs.ensureIndex("{depModule:1,depModuleVersion:1}", "{unique:false}");
 	}
 	
+	private Map<String, Object> toMap(final Object obj) {
+		return MAPPER.convertValue(obj, new TypeReference<Map<String, Object>>() {});
+	}
+	
+	private DBObject toDBObj(final Object obj) {
+		return new BasicDBObject(toMap(obj));
+	}
+	
+	private <T> T toObj(final DBObject dbo, final Class<T> clazz) {
+		if (dbo == null) {
+			return null;
+		}
+		return MAPPER.convertValue(toMapRec(dbo), clazz);
+	}
+	
+	// Unimplemented error for dbo.toMap()
+	// dbo is read only
+	// can't call convertValue() on dbo since it has a 'size' field outside of the internal map
+	// and just weird shit happens when you do anyway
+	private Map<String, Object> toMapRec(final BSONObject dbo) {
+		return dbo.keySet().stream().filter(k -> !k.equals("_id")).collect(Collectors.toMap(
+				k -> k,
+				// may need lists too?
+				k -> dbo.get(k) instanceof BSONObject ?
+						toMapRec((BSONObject) dbo.get(k)) : dbo.get(k)));
+	}
+	
 	@Override
 	public void addRefs(Set<RefInfo> typeRefs, Set<RefInfo> funcRefs)
 			throws TypeStorageException {
 		try {
 			if (typeRefs.size() > 0) {
-				MongoCollection refs = jdb.getCollection(TABLE_TYPE_REFS);
+				DBCollection refs = db.getCollection(TABLE_TYPE_REFS);
 				for (RefInfo ref : typeRefs) {
 					if (ref.getDepModuleVersion() == 0)
 						throw new TypeStorageException("Dependent type's module version was not initialized");
-					refs.insert(ref);
+					refs.insert(toDBObj(ref));
 				}
 			}
 			if (funcRefs.size() > 0) {
-				MongoCollection refs = jdb.getCollection(TABLE_FUNC_REFS);
+				DBCollection refs = db.getCollection(TABLE_FUNC_REFS);
 				for (RefInfo ref : funcRefs) {
 					if (ref.getDepModuleVersion() == 0)
 						throw new TypeStorageException("Dependent function's module version was not initialized");
-					refs.insert(ref);
+					refs.insert(toDBObj(ref));
 				}
 			}
 		} catch (Exception e) {
@@ -113,8 +153,9 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private Long getLastModuleVersionOrNull(String moduleName) throws TypeStorageException {
 		try {
-			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-			ModuleVersion ret = vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class);
+			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			final ModuleVersion ret = toObj(vers.findOne(
+					new BasicDBObject("moduleName", moduleName)), ModuleVersion.class);
 			return ret == null ? null : ret.releasedVersionTime;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -133,9 +174,9 @@ public class MongoTypeStorage implements TypeStorage {
 
 	private ModuleInfo getModuleInfoOrNull(String moduleName, long version) throws TypeStorageException {
 		try {
-			MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			ModuleInfo info = infos.findOne("{moduleName:#, versionTime:#}", moduleName, 
-					version).as(ModuleInfo.class);
+			final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			final ModuleInfo info = toObj(infos.findOne(new BasicDBObject("moduleName", moduleName)
+					.append("versionTime", version)), ModuleInfo.class);
 			return info;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -144,8 +185,9 @@ public class MongoTypeStorage implements TypeStorage {
 
 	private String getModuleSpecOrNull(String moduleName, long version) throws TypeStorageException {
 		try {
-			MongoCollection specs = jdb.getCollection(TABLE_MODULE_SPEC_HISTORY);
-			ModuleSpec spec = specs.findOne("{moduleName:#, versionTime:#}", moduleName, version).as(ModuleSpec.class);
+			final DBCollection specs = db.getCollection(TABLE_MODULE_SPEC_HISTORY);
+			final ModuleSpec spec = toObj(specs.findOne(new BasicDBObject("moduleName", moduleName)
+					.append("versionTime", version)), ModuleSpec.class);
 			return spec == null ? null : spec.document;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -156,9 +198,10 @@ public class MongoTypeStorage implements TypeStorage {
 	public boolean checkTypeSchemaRecordExists(String moduleName,
 			String typeName, String version) throws TypeStorageException {
 		try {
-			MongoCollection docs = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-			return docs.findOne("{moduleName:#,typeName:#,version:#}", 
-					moduleName, typeName, version).as(Map.class) != null;
+			final DBCollection docs = db.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+			return null != docs.findOne(new BasicDBObject("moduleName", moduleName)
+					.append("typeName", typeName)
+					.append("version", version));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -167,8 +210,10 @@ public class MongoTypeStorage implements TypeStorage {
 	@Override
 	public Set<String> getAllRegisteredModules(boolean withUnsupported) throws TypeStorageException {
 		try {
-			MongoCollection infos = jdb.getCollection(TABLE_MODULE_VERSION);
-			Map<String, Boolean> map = getProjection(infos, "{}", "moduleName", String.class, "supported", Boolean.class);
+			final DBCollection infos = db.getCollection(TABLE_MODULE_VERSION);
+			final Map<String, Boolean> map = getProjection(
+					infos, new BasicDBObject(), "moduleName", String.class, "supported",
+					Boolean.class);
 			Set<String> ret = new TreeSet<String>();
 			if (withUnsupported) {
 				ret.addAll(map.keySet());
@@ -262,9 +307,10 @@ public class MongoTypeStorage implements TypeStorage {
 	@Override
 	public TreeMap<Long, Boolean> getAllModuleVersions(String moduleName) throws TypeStorageException {
 		try {
-			MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			Map<Long, Boolean> map = getProjection(infos, "{moduleName:#}", "versionTime", Long.class, 
-					"released", Boolean.class, moduleName);
+			final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			Map<Long, Boolean> map = getProjection(
+					infos, new BasicDBObject("moduleName", moduleName), "versionTime", Long.class, 
+					"released", Boolean.class);
 			long releaseVer = getLastReleasedModuleVersion(moduleName);
 			TreeMap<Long, Boolean> ret = new TreeMap<Long, Boolean>();
 			for (long ver : map.keySet())
@@ -276,11 +322,20 @@ public class MongoTypeStorage implements TypeStorage {
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	protected <KT, VT> Map<KT, VT> getProjection(MongoCollection infos, String whereCondition, 
-			String keySelectField, Class<KT> keyType, String valueSelectField, Class<VT> valueType, 
-			Object... params) throws TypeStorageException {
-		List<Map> data = Lists.newArrayList(infos.find(whereCondition, params).projection(
-				"{'" + keySelectField + "':1,'" + valueSelectField + "':1}").as(Map.class));
+	protected <KT, VT> Map<KT, VT> getProjection(
+			final DBCollection infos,
+			final DBObject whereCondition, 
+			final String keySelectField,
+			final Class<KT> keyType,
+			final String valueSelectField,
+			final Class<VT> valueType)
+			throws TypeStorageException {
+		final DBCursor find = infos.find(whereCondition,
+						new BasicDBObject(keySelectField, 1).append(valueSelectField, 1));
+		final List<Map> data = new LinkedList<>();
+		while (find.hasNext()) {
+			data.add(toObj(find.next(), Map.class));
+		}
 		Map<KT, VT> ret = new LinkedHashMap<KT, VT>();
 		for (Map<?,?> item : data) {
 			Object key = getMongoProp(item, keySelectField);
@@ -311,10 +366,12 @@ public class MongoTypeStorage implements TypeStorage {
 		if (typeName.contains("'"))
 			throw new TypeStorageException("Type names with symbol ['] are not supperted");
 		try {
-			MongoCollection schemas = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			Map<Long, String> typeMap = getProjection(schemas, "{moduleName:#,'types." + typeName + ".typeName':#}", 
-					"versionTime", Long.class, "types." + typeName + ".typeVersion", String.class, 
-					moduleName, typeName);
+			final DBCollection schemas = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			Map<Long, String> typeMap = getProjection(
+					schemas,
+					new BasicDBObject("moduleName", moduleName)
+							.append("types." + typeName + ".typeName", typeName),
+					"versionTime", Long.class, "types." + typeName + ".typeVersion", String.class);
 			Map<Long, Boolean> moduleMap = getAllModuleVersions(moduleName);
 			Map<String, Boolean> ret = new LinkedHashMap<String, Boolean>();
 			for (Map.Entry<Long, String> entry : typeMap.entrySet()) {
@@ -335,10 +392,12 @@ public class MongoTypeStorage implements TypeStorage {
 		if (funcName.contains("'"))
 			throw new TypeStorageException("Function names with symbol ['] are not supperted");
 		try {
-			MongoCollection schemas = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			Map<Long, String> funcMap = getProjection(schemas, "{moduleName:#,'funcs." + funcName + ".funcName':#}", 
-					"versionTime", Long.class, "funcs." + funcName + ".funcVersion", String.class, 
-					moduleName, funcName);
+			final DBCollection schemas = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			Map<Long, String> funcMap = getProjection(
+					schemas,
+					new BasicDBObject("moduleName", moduleName)
+							.append("funcs." + funcName + ".funcName", funcName),
+					"versionTime", Long.class, "funcs." + funcName + ".funcVersion", String.class);
 			Map<Long, Boolean> moduleMap = getAllModuleVersions(moduleName);
 			Map<String, Boolean> ret = new LinkedHashMap<String, Boolean>();
 			for (Map.Entry<Long, String> entry : funcMap.entrySet()) {
@@ -570,10 +629,13 @@ public class MongoTypeStorage implements TypeStorage {
 		if (typeName.contains("'"))
 			throw new TypeStorageException("Type names with symbol ['] are not supperted");
 		try {
-			MongoCollection infoCol = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			return getProjection(infoCol, "{moduleName:#,'types." + typeName + ".typeVersion':#," +
-					"'types." + typeName + ".supported':#}", "versionTime", Long.class, 
-					"released", Boolean.class, moduleName, typeVersion, true);
+			final DBCollection infoCol = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			return getProjection(
+					infoCol,
+					new BasicDBObject("moduleName", moduleName)
+							.append("types." + typeName + ".typeVersion", typeVersion)
+							.append("types." + typeName + ".supported", true),
+					"versionTime", Long.class, "released", Boolean.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -585,10 +647,12 @@ public class MongoTypeStorage implements TypeStorage {
 		if (funcName.contains("'"))
 			throw new TypeStorageException("Function names with symbol ['] are not supperted");
 		try {
-			MongoCollection infoCol = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-			return getProjection(infoCol, "{moduleName:#,'funcs." + funcName + ".funcVersion':#}", 
-					"versionTime", Long.class, "released", Boolean.class, 
-					moduleName, funcVersion);
+			final DBCollection infoCol = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			return getProjection(
+					infoCol,
+					new BasicDBObject("moduleName", moduleName)
+							.append("funcs." + funcName + ".funcVersion", funcVersion),
+					"versionTime", Long.class, "released", Boolean.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
