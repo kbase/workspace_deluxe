@@ -1,6 +1,5 @@
 package us.kbase.typedobj.db;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -277,22 +276,6 @@ public class MongoTypeStorage implements TypeStorage {
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	protected <T> List<T> getProjection(MongoCollection infos,
-			String whereCondition, String selectField, Class<T> type, Object... params)
-			throws TypeStorageException {
-		List<Map> data = Lists.newArrayList(infos.find(whereCondition, params).projection(
-				"{" + selectField + ":1}").as(Map.class));
-		List<T> ret = new ArrayList<T>();
-		for (Map<?,?> item : data) {
-			Object value = item.get(selectField);
-			if (value == null || !(type.isInstance(value)))
-				throw new TypeStorageException("Value is wrong: " + value);
-			ret.add((T)value);
-		}
-		return ret;
-	}
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected <KT, VT> Map<KT, VT> getProjection(MongoCollection infos, String whereCondition, 
 			String keySelectField, Class<KT> keyType, String valueSelectField, Class<VT> valueType, 
 			Object... params) throws TypeStorageException {
@@ -491,25 +474,7 @@ public class MongoTypeStorage implements TypeStorage {
 		jdb.getCollection(TABLE_MODULE_VERSION).remove();
 	}
 	
-	@Override
-	public void removeModule(String moduleName) throws TypeStorageException {
-		try {
-			jdb.getCollection(TABLE_TYPE_REFS).remove("{depModule:#}", moduleName);
-			jdb.getCollection(TABLE_TYPE_REFS).remove("{refModule:#}", moduleName);
-			jdb.getCollection(TABLE_FUNC_REFS).remove("{depModule:#}", moduleName);
-			jdb.getCollection(TABLE_FUNC_REFS).remove("{refModule:#}", moduleName);
-			jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove("{moduleName:#}", moduleName);
-			jdb.getCollection(TABLE_MODULE_TYPE_PARSE).remove("{moduleName:#}", moduleName);
-			jdb.getCollection(TABLE_MODULE_FUNC_PARSE).remove("{moduleName:#}", moduleName);
-			jdb.getCollection(TABLE_MODULE_REQUEST).remove("{moduleName:#}", moduleName);
-			jdb.getCollection(TABLE_MODULE_OWNER).remove("{moduleName:#}", moduleName);
-			jdb.getCollection(TABLE_MODULE_SPEC_HISTORY).remove("{moduleName:#}", moduleName);
-			jdb.getCollection(TABLE_MODULE_INFO_HISTORY).remove("{moduleName:#}", moduleName);
-			jdb.getCollection(TABLE_MODULE_VERSION).remove("{moduleName:#}", moduleName);
-		} catch (Exception e) {
-			throw new TypeStorageException(e);
-		}
-	}
+	// removed removeModule method after 3ad9e2d. Untested, unused.
 		
 	@Override
 	public void writeFuncParseRecord(String moduleName, String funcName,
@@ -851,72 +816,8 @@ public class MongoTypeStorage implements TypeStorage {
 		}
 	}
 	
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public void copyModuleVersion(String moduleName, long version, long versionCopy) throws TypeStorageException {
-		long versionCopyD = versionCopy - version;
-		Set<RefInfo> typeRefs = Sets.newTreeSet(jdb.getCollection(TABLE_TYPE_REFS).find("{depModule:#,depModuleVersion:#}",
-				moduleName, version).as(RefInfo.class));
-		for (RefInfo ri : typeRefs) {
-			ri.setDepModuleVersion(versionCopy);
-			ri.setDepVersion(versionCopyD + ri.getDepVersion());
-			if (ri.getRefModule().equals(moduleName))
-				ri.setRefVersion(versionCopyD + ri.getRefVersion());				
-		}
-		Set<RefInfo> funcRefs = Sets.newTreeSet(jdb.getCollection(TABLE_FUNC_REFS).find("{depModule:#,depModuleVersion:#}",
-				moduleName, version).as(RefInfo.class));
-		for (RefInfo ri : funcRefs) {
-			ri.setDepModuleVersion(versionCopy);
-			ri.setDepVersion(versionCopyD + ri.getDepVersion());
-			if (ri.getRefModule().equals(moduleName))
-				ri.setRefVersion(versionCopyD + ri.getRefVersion());				
-		}
-		addRefs(typeRefs, funcRefs);
-		////////////////////////////////////// Type schemas
-		MongoCollection schemas = jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-		Map[] schArr = load(schemas, "{moduleName:#,moduleVersion:#}", Map.class, moduleName, version);
-		for (Map tr : schArr) {
-			tr.put("moduleVersion", versionCopy);
-			tr.put("version", "" + versionCopyD + tr.get("version"));
-			tr.remove("_id");
-		}
-		schemas.insert((Object[])schArr);
-		////////////////////////////////////// Type schemas
-		MongoCollection typePrs = jdb.getCollection(TABLE_MODULE_TYPE_PARSE);
-		Map[] typePrsArr = load(typePrs, "{moduleName:#,moduleVersion:#}", Map.class, moduleName, version);
-		for (Map tr : typePrsArr) {
-			tr.put("moduleVersion", versionCopy);
-			tr.put("version", "" + versionCopyD + tr.get("version"));
-			tr.remove("_id");
-		}
-		typePrs.insert((Object[])typePrsArr);
-		////////////////////////////////////// Type schemas
-		MongoCollection funcPrs = jdb.getCollection(TABLE_MODULE_FUNC_PARSE);
-		Map[] funcPrsArr = load(funcPrs, "{moduleName:#,moduleVersion:#}", Map.class, moduleName, version);
-		for (Map tr : funcPrsArr) {
-			tr.put("moduleVersion", versionCopy);
-			tr.put("version", "" + versionCopyD + tr.get("version"));
-			tr.remove("_id");
-		}
-		funcPrs.insert((Object[])funcPrsArr);
-		String spec = getModuleSpecRecord(moduleName, version);
-		ModuleInfo info = getModuleInfoRecord(moduleName, version);
-		for (String type : info.getTypes().keySet()) {
-			info.getTypes().get(type).setTypeVersion(versionCopyD + info.getTypes().get(type).getTypeVersion());
-		}
-		for (String func : info.getFuncs().keySet()) {
-			info.getFuncs().get(func).setFuncVersion(versionCopyD + info.getFuncs().get(func).getFuncVersion());
-		}
-		info.setVersionTime(versionCopy);
-		writeModuleRecords(info, spec, versionCopy);
-	}
+	// used to be a method here called copyModuleVersion, removed after commit 3ad9e2d.
 
-	@SuppressWarnings("unchecked")
-	private <T> T[] load(MongoCollection col, String query, Class<T> type, Object... params) {
-		List<T> list = Lists.newArrayList(col.find(query, params).as(type));
-		T[] ret = (T[])Array.newInstance(type, list.size());
-		return list.toArray(ret);
-	}
-	
 	@Override
 	public void changeModuleSupportedState(String moduleName, boolean supported)
 			throws TypeStorageException {
