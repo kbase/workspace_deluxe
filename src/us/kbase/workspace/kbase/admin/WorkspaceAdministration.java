@@ -224,14 +224,16 @@ public class WorkspaceAdministration {
 		if (GET_PERMISSIONS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceUser user = getNullableUser(cmd, token);
+			final Map<String, String> perms;
+			if (user == null) {
+				perms = wsmeth.getPermissions(Arrays.asList(params), null, true).getPerms().get(0);
+			} else {
+				perms = wsmeth.getPermissions(params, user);
+			}
 			//TODO FEATURE would be better if could always provide ID vs. name
 			getLogger().info(GET_PERMISSIONS + " " + params.getId() + " " +
 					params.getWorkspace() + (user == null ? "" : " " + user.getUser()));
-			if (user == null) {
-				return wsmeth.getPermissions(Arrays.asList(params), null, true).getPerms().get(0);
-			} else {
-				return wsmeth.getPermissions(params, user);
-			}
+			return perms;
 		}
 		if (GET_PERMISSIONS_MASS.equals(fn)) {
 			final GetPermissionsMassParams params = getParams(cmd, GetPermissionsMassParams.class);

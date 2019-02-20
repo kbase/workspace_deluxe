@@ -41,6 +41,7 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestCommon.LogEvent;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
@@ -244,6 +245,9 @@ public class WorkspaceAdministrationTest {
 		final Map<String, String> commandToClass = new HashMap<>();
 		commandToClass.put("setWorkspaceOwner", "SetWorkspaceOwnerParams");
 		commandToClass.put("createWorkspace", "CreateWorkspaceParams");
+		commandToClass.put("setPermissions", "SetPermissionsParams");
+		commandToClass.put("setWorkspaceDescription", "SetWorkspaceDescriptionParams");
+		commandToClass.put("getWorkspaceDescription", "WorkspaceIdentity");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -278,6 +282,11 @@ public class WorkspaceAdministrationTest {
 		final Map<String, MapErr> commandToClass = new HashMap<>();
 		commandToClass.put("setWorkspaceOwner", new MapErr("SetWorkspaceOwnerParams", "wsi", 1));
 		commandToClass.put("createWorkspace", new MapErr("CreateWorkspaceParams", "meta", "foo"));
+		commandToClass.put("setPermissions", new MapErr("SetPermissionsParams", "id", "foo"));
+		commandToClass.put("setWorkspaceDescription",
+				new MapErr("SetWorkspaceDescriptionParams", "id", "foo"));
+		commandToClass.put("getWorkspaceDescription",
+				new MapErr("WorkspaceIdentity", "id", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -297,8 +306,7 @@ public class WorkspaceAdministrationTest {
 				final String err = "incorrect message for exception:\n" +
 						ExceptionUtils.getStackTrace(got);
 				assertThat(err, got.getMessage(), containsString(
-						"Unable to deserialize " + me.clazz + " out of params field: " +
-						"Can not instantiate value of type"));
+						"Unable to deserialize " + me.clazz + " out of params field: Can not"));
 			}
 		}
 	}
@@ -546,5 +554,76 @@ public class WorkspaceAdministrationTest {
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"createWorkspace 7 user1", WorkspaceAdministration.class));
 	}
+	
+	@Test
+	public void setPermissions() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "setPermissions",
+				"params", ImmutableMap.of(
+						"workspace", "ws1",
+						"new_permission", "a",
+						"users", Arrays.asList("u1", "u2"))));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		when(mocks.wsmeth.setPermissionsAsAdmin(
+				argThat(new ArgumentMatcher<SetPermissionsParams>() {
+
+						@Override
+						public boolean matches(final SetPermissionsParams spp) {
+							return "ws1".equals(spp.getWorkspace()) &&
+									spp.getId() == null &&
+									"a".equals(spp.getNewPermission()) &&
+									Arrays.asList("u1", "u2").equals(spp.getUsers());
+						}
+					}),
+				eq(new AuthToken("tok", "fake")))).thenReturn(24L);
+		
+		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"setPermissions 24 a u1 u2", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void setWorkspaceDescription() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "setWorkspaceDescription",
+				"params", ImmutableMap.of(
+						"workspace", "ws1",
+						"description", "desc")));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		when(mocks.ws.setWorkspaceDescription(null, new WorkspaceIdentifier("ws1"), "desc", true))
+				.thenReturn(8L);
+		
+		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"setWorkspaceDescription 8", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void getWorkspaceDescription() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getWorkspaceDescription",
+				"params", ImmutableMap.of(
+						"workspace", "ws1")));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.ws.getWorkspaceDescription(null, new WorkspaceIdentifier("ws1"), true))
+				.thenReturn("desc1");
+		
+		final String desc = (String) mocks.admin.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		
+		assertThat("incorrect description", desc, is("desc1"));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getWorkspaceDescription null ws1", WorkspaceAdministration.class));
+	}
+	
 
 }
