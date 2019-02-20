@@ -40,7 +40,6 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
-import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
@@ -67,6 +66,7 @@ import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.kbase.HandleIdHandlerFactory;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
+import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class HandleTest {
 
@@ -130,8 +130,8 @@ public class HandleTest {
 				"user3",
 				mongohost,
 				"JSONRPCLayerHandleTest_ShockDB",
-				"foo",
-				"foo",
+				null,
+				null,
 				new URL(authURL.toString() + "/api/legacy/globus"));
 		System.out.println("Shock controller version: " + SHOCK.getVersion());
 		if (SHOCK.getVersion() == null) {

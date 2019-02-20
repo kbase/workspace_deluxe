@@ -5,27 +5,28 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.LoggerFactory;
+
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoCredential;
 import com.mongodb.MongoException;
-import com.mongodb.MongoTimeoutException;
+import com.mongodb.ServerAddress;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
-import us.kbase.common.mongo.GetMongoDB;
-import us.kbase.common.mongo.exceptions.InvalidHostException;
-import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.service.ServerException;
 import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.shock.client.BasicShockClient;
@@ -213,10 +214,8 @@ public class InitWorkspaceServer {
 			throws WorkspaceInitException {
 		
 		final WorkspaceDependencies deps = new WorkspaceDependencies();
-		
-		final DB db = getMongoDBInstance(cfg.getHost(), cfg.getDBname(),
-				cfg.getMongoUser(), cfg.getMongoPassword(),
-				cfg.getMongoReconnectAttempts());
+		//TODO CODE update to new mongo APIs
+		final DB db = buildMongo(cfg, cfg.getDBname()).getDB(cfg.getDBname());
 		
 		final Settings settings = getSettings(db);
 		deps.backendType = settings.isGridFSBackend() ? "GridFS" : "Shock";
@@ -224,9 +223,9 @@ public class InitWorkspaceServer {
 		final BlobStore bs = setupBlobStore(db, deps.backendType, settings.getShockUrl(),
 				settings.getShockUser(), cfg, auth);
 		
-		final DB typeDB = getMongoDBInstance(cfg.getHost(),
-				settings.getTypeDatabase(), cfg.getMongoUser(),
-				cfg.getMongoPassword(), cfg.getMongoReconnectAttempts());
+		// see https://jira.mongodb.org/browse/JAVA-2656
+		final DB typeDB = buildMongo(cfg, settings.getTypeDatabase())
+				.getDB(settings.getTypeDatabase());
 		
 		try {
 			deps.typeDB = new TypeDefinitionDB(new MongoTypeStorage(typeDB));
@@ -245,6 +244,26 @@ public class InitWorkspaceServer {
 		}
 		deps.listeners = loadListeners(cfg);
 		return deps;
+	}
+	
+	private static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
+			throws WorkspaceInitException {
+		//TODO ZLATER MONGO handle shards & replica sets
+		try {
+			if (c.getMongoUser() != null) {
+				final MongoCredential creds = MongoCredential.createCredential(
+						c.getMongoUser(), dbName, c.getMongoPassword().toCharArray());
+				// unclear if and when it's safe to clear the password
+				return new MongoClient(new ServerAddress(c.getHost()), creds,
+						MongoClientOptions.builder().build());
+			} else {
+				return new MongoClient(new ServerAddress(c.getHost()));
+			}
+		} catch (MongoException e) {
+			LoggerFactory.getLogger(InitWorkspaceServer.class).error(
+					"Failed to connect to MongoDB: " + e.getMessage(), e);
+			throw new WorkspaceInitException("Failed to connect to MongoDB: " + e.getMessage(), e);
+		}
 	}
 	
 	private static List<WorkspaceEventListener> loadListeners(final KBaseWorkspaceConfig cfg)
@@ -360,40 +379,6 @@ public class InitWorkspaceServer {
 		throw new WorkspaceInitException("Unknown backend type: " + blobStoreType);
 	}
 
-	private static DB getMongoDBInstance(final String host, final String dbs,
-			final String user, final String pwd, final int mongoReconnectRetry)
-			throws WorkspaceInitException {
-		try {
-		if (user != null) {
-			return GetMongoDB.getDB(
-					host, dbs, user, pwd, mongoReconnectRetry, 10);
-		} else {
-			return GetMongoDB.getDB(host, dbs, mongoReconnectRetry, 10);
-		}
-		} catch (InterruptedException ie) {
-			throw new WorkspaceInitException(
-					"Connection to MongoDB was interrupted. This should never "
-					+ "happen and indicates a programming problem. Error: " +
-					ie.getLocalizedMessage(), ie);
-		} catch (UnknownHostException uhe) {
-			throw new WorkspaceInitException("Couldn't find mongo host "
-					+ host + ": " + uhe.getLocalizedMessage(), uhe);
-		} catch (IOException | MongoTimeoutException e) {
-			throw new WorkspaceInitException("Couldn't connect to mongo host " 
-					+ host + ": " + e.getLocalizedMessage(), e);
-		} catch (MongoException e) {
-			throw new WorkspaceInitException(
-					"There was an error connecting to the mongo database: " +
-					e.getLocalizedMessage());
-		} catch (MongoAuthException ae) {
-			throw new WorkspaceInitException("Not authorized for mongo database "
-					+ dbs + ": " + ae.getLocalizedMessage(), ae);
-		} catch (InvalidHostException ihe) {
-			throw new WorkspaceInitException(host +
-					" is an invalid mongo database host: "  +
-					ihe.getLocalizedMessage(), ihe);
-		}
-	}
 	
 	private static Settings getSettings(final DB db)
 			throws WorkspaceInitException {

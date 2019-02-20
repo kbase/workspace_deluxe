@@ -120,6 +120,7 @@ public class TypeRegisteringTest {
 	}
 
 	public TypeRegisteringTest(boolean useMongoParam) throws Exception {
+		TestCommon.stfuLoggers();
 		useMongo = useMongoParam;
 		Path d = Paths.get(TestCommon.getTempDir())
 				.resolve("TypeRegisteringTest");

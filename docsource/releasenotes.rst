@@ -9,7 +9,8 @@ VERSION: 0.8.3 (Released TBD)
 * Event listeners are now send the user name of the user that triggered the event. In the
   case of an administrator impersonating another user, the impersonated name is sent. If
   the administrator is not required to impersonate another user, null is sent.
-
+* Updated to the 3.x version of MongoDB Java driver. As such, the ``mongo-retry`` configuration
+  item has been removed as the driver now handles this internally.
 
 VERSION: 0.8.2 (Released 12/3/18)
 ---------------------------------

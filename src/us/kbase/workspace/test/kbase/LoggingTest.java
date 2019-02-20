@@ -25,7 +25,6 @@ import org.junit.Test;
 import org.productivity.java.syslog4j.SyslogIF;
 
 import us.kbase.auth.AuthToken;
-import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.JsonServerSyslog;
 import us.kbase.common.service.UObject;
@@ -250,8 +249,8 @@ public class LoggingTest {
 	@Before
 	public void clearDB() throws Exception {
 		logout.reset();
-		DB wsdb1 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-				DB_WS_NAME);
+		final DB wsdb1 = new MongoClient("localhost:" + mongo.getServerPort())
+				.getDB(DB_WS_NAME);
 		TestCommon.destroyDB(wsdb1);
 	}
 	

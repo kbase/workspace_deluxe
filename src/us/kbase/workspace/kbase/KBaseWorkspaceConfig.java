@@ -26,8 +26,6 @@ public class KBaseWorkspaceConfig {
 	//mongo db auth params:
 	private static final String MONGO_USER = "mongodb-user";
 	private static final String MONGO_PWD = "mongodb-pwd";
-	//mongo connection attempt limit
-	private static final String MONGO_RECONNECT = "mongodb-retry";
 	
 	//auth servers
 	private static final String KBASE_AUTH_URL = "auth-service-url";
@@ -60,7 +58,6 @@ public class KBaseWorkspaceConfig {
 	private final String mongoPassword;
 	private final URL authURL;
 	private final URL globusURL;
-	private final int mongoReconnectAttempts;
 	private final boolean ignoreHandleService;
 	private final URL handleServiceURL;
 	private final URL handleManagerURL;
@@ -164,7 +161,6 @@ public class KBaseWorkspaceConfig {
 			}
 		}
 		
-		mongoReconnectAttempts = getReconnectCount(config, infoMsgs);
 		listenerConfigs = getListenerConfigs(config, paramErrors);
 		errors = Collections.unmodifiableList(paramErrors);
 		infoMessages = Collections.unmodifiableList(infoMsgs);
@@ -262,30 +258,6 @@ public class KBaseWorkspaceConfig {
 		return null;
 	}
 	
-	private static int getReconnectCount(
-			final Map<String, String> wsConfig,
-			final List<String> infos) {
-		final String rec = wsConfig.get(MONGO_RECONNECT);
-		Integer recint = null;
-		try {
-			recint = Integer.parseInt(rec); 
-		} catch (NumberFormatException nfe) {
-			//do nothing
-		}
-		if (recint == null) {
-			infos.add("Couldn't parse MongoDB reconnect value to an integer: " +
-					rec + ", using 0");
-			recint = 0;
-		} else if (recint < 0) {
-			infos.add("MongoDB reconnect value is < 0 (" + recint +
-					"), using 0");
-			recint = 0;
-		} else {
-			infos.add("MongoDB reconnect value is " + recint);
-		}
-		return recint;
-	}
-
 	public String getHost() {
 		return host;
 	}
@@ -320,10 +292,6 @@ public class KBaseWorkspaceConfig {
 
 	public String getMongoPassword() {
 		return mongoPassword;
-	}
-
-	public int getMongoReconnectAttempts() {
-		return mongoReconnectAttempts;
 	}
 
 	public boolean ignoreHandleService() {

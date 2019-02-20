@@ -19,20 +19,19 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bson.Document;
 import org.ini4j.Ini;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.TempFilesManager;
 
 public class TestCommon {
-	
-	public static final String AUTHSERV = "test.auth.url";
-	public static final String GLOBUS = "test.globus.url";
 	
 	public static final String SHOCKEXE = "test.shock.exe";
 	public static final String SHOCKVER = "test.shock.version";
@@ -159,11 +158,20 @@ public class TestCommon {
 		return "true".equals(getTestProperty(MONGO_USE_WIRED_TIGER));
 	}
 	
-	public static void destroyDB(DB db) {
+	public static void destroyDB(final DB db) {
 		for (String name: db.getCollectionNames()) {
 			if (!name.startsWith("system.")) {
 				// dropping collection also drops indexes
 				db.getCollection(name).remove(new BasicDBObject());
+			}
+		}
+	}
+	
+	public static void destroyDB(final MongoDatabase db) {
+		for (String name: db.listCollectionNames()) {
+			if (!name.startsWith("system.")) {
+				// dropping collection also drops indexes
+				db.getCollection(name).deleteMany(new Document());
 			}
 		}
 	}
