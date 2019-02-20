@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
-import org.jongo.Jongo;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -93,7 +92,7 @@ import com.mongodb.MongoClient;
 
 public class MongoInternalsTest {
 	
-	private static Jongo jdb;
+	private static DB db;
 	private static MongoWorkspaceDB mwdb;
 	private static Workspace ws;
 	private static Types types;
@@ -116,10 +115,9 @@ public class MongoInternalsTest {
 		TestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();
 		mongoClient = new MongoClient(mongohost);
-		final DB db = mongoClient.getDB("MongoInternalsTest");
+		db = mongoClient.getDB("MongoInternalsTest");
 		String typedb = "MongoInternalsTest_types";
 		WorkspaceTestCommon.destroyWSandTypeDBs(db, typedb);
-		jdb = new Jongo(db);
 		
 		TempFilesManager tfm = new TempFilesManager(
 				new File(TestCommon.getTempDir()));
@@ -151,7 +149,7 @@ public class MongoInternalsTest {
 	
 	@Before
 	public void clearDB() throws Exception {
-		TestCommon.destroyDB(jdb.getDatabase());
+		TestCommon.destroyDB(db);
 	}
 	
 	private static ObjectIDNoWSNoVer getRandomName() {
@@ -269,7 +267,7 @@ public class MongoInternalsTest {
 		final DBObject update = new BasicDBObject(
 				"$set", new BasicDBObject("cloning", true));
 		update.put("$unset", cloneunset);
-		jdb.getDatabase().getCollection("workspaces").update(
+		db.getCollection("workspaces").update(
 				new BasicDBObject("ws", 2), update);
 		
 		final NoSuchWorkspaceException noWSExcp = new NoSuchWorkspaceException(
@@ -456,7 +454,6 @@ public class MongoInternalsTest {
 			final Map<String, String> meta,
 			final boolean globalRead,
 			final boolean complete) {
-		DB db = jdb.getDatabase();
 		DBObject ws = db.getCollection("workspaces").findOne(
 				new BasicDBObject("ws", id));
 		assertThat("name was set incorrectly", (String) ws.get("name"),
@@ -491,7 +488,6 @@ public class MongoInternalsTest {
 			final WorkspaceUser owner,
 			final boolean globalRead,
 			final boolean complete) {
-		final DB db = jdb.getDatabase();
 		final Set<Map<String, Object>> acls = new HashSet<>();
 		for (final DBObject acl: db.getCollection("workspaceACLs")
 				.find(new BasicDBObject("id", id))) {
@@ -811,9 +807,9 @@ public class MongoInternalsTest {
 		//set the version to 1 in the workspace object. This state can
 		//occur if a get happens between the increment and the save of the
 		//version, although it's really rare
-		jdb.getCollection("workspaceObjects")
-			.update("{id: 1, ws: #}", rwsi.getID())
-			.with("{$inc: {numver: 1}}");
+		db.getCollection("workspaceObjects").update(
+				new BasicDBObject("id", 1).append("ws", rwsi.getID()),
+				new BasicDBObject("$inc", new BasicDBObject("numver", 1)));
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null,
 				new WorkspaceUserMetadata(), null);
@@ -1019,9 +1015,8 @@ public class MongoInternalsTest {
 
 	private void checkRefCounts(long wsid, int[][] expected, int factor) {
 		for (int i = 1; i < 5; i++) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> obj = jdb.getCollection("workspaceObjects")
-					.findOne("{ws: #, id: #}", wsid, i).as(Map.class);
+			final DBObject obj = db.getCollection("workspaceObjects")
+					.findOne(new BasicDBObject("ws", wsid).append("id", i));
 			@SuppressWarnings("unchecked")
 			List<Integer> refcnts = (List<Integer>) obj.get("refcnt");
 			for (int j = 0; j < 4; j++) {
@@ -1076,17 +1071,14 @@ public class MongoInternalsTest {
 		checkRefCntInit(wsid, 3, 1);
 		checkRefCntInit(wsid, 4, 4);
 		
-		@SuppressWarnings("rawtypes")
-		List<Map> objverlist = iterToList(jdb.getCollection("workspaceObjVersions")
-				.find("{ws: #, id: #}", wsid, 3).as(Map.class));
+		List<DBObject> objverlist = iterToList(db.getCollection("workspaceObjVersions")
+				.find(new BasicDBObject("ws", wsid).append("id", 3)));
 		assertThat("Only copied version once", objverlist.size(), is(1));
-		@SuppressWarnings("unchecked")
-		Map<String, Object> objver = (Map<String, Object>) objverlist.get(0);
+		DBObject objver = (DBObject) objverlist.get(0);
 		assertThat("correct copy location", (String) objver.get("copied"), is(wsid + "/2/2"));
 		
-		@SuppressWarnings("rawtypes")
-		List<Map> objverlist2 = iterToList(jdb.getCollection("workspaceObjVersions")
-				.find("{ws: #, id: #}", wsid, 4).as(Map.class));
+		List<DBObject> objverlist2 = iterToList(db.getCollection("workspaceObjVersions")
+				.find(new BasicDBObject("ws", wsid).append("id", 4)));
 		assertThat("Correct version count", 4, is(objverlist2.size()));
 		Map<Integer, String> cpexpec = new HashMap<Integer, String>();
 		Map<Integer, Integer> revexpec = new HashMap<Integer, Integer>();
@@ -1098,12 +1090,10 @@ public class MongoInternalsTest {
 		revexpec.put(2, null);
 		revexpec.put(3, null);
 		revexpec.put(4, 2);
-		for (@SuppressWarnings("rawtypes") Map m: objverlist2) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> m2 = (Map<String, Object>) m;
-			int ver = (Integer) m2.get("ver");
-			assertThat("copy pointer ok", (String) m2.get("copied"), is(cpexpec.get(ver)));
-			assertThat("revert pointer ok", (Integer) m2.get("revert"), is(revexpec.get(ver)));
+		for (final DBObject m: objverlist2) {
+			int ver = (Integer) m.get("ver");
+			assertThat("copy pointer ok", (String) m.get("copied"), is(cpexpec.get(ver)));
+			assertThat("revert pointer ok", (Integer) m.get("revert"), is(revexpec.get(ver)));
 			
 		}
 		
@@ -1113,17 +1103,14 @@ public class MongoInternalsTest {
 		checkRefCntInit(wsid2, 3, 1);
 		checkRefCntInit(wsid2, 4, 4);
 		
-		@SuppressWarnings("rawtypes")
-		List<Map> objverlist3 = iterToList(jdb.getCollection("workspaceObjVersions")
-				.find("{ws: #, id: #}", wsid2, 3).as(Map.class));
+		List<DBObject> objverlist3 = iterToList(db.getCollection("workspaceObjVersions")
+				.find(new BasicDBObject("ws", wsid2).append("id", 3)));
 		assertThat("Only copied version once", objverlist.size(), is(1));
-		@SuppressWarnings("unchecked")
-		Map<String, Object> objver3 = (Map<String, Object>) objverlist3.get(0);
+		DBObject objver3 = (DBObject) objverlist3.get(0);
 		assertThat("correct copy location", (String) objver3.get("copied"), is(wsid + "/3/1"));
 		
-		@SuppressWarnings("rawtypes")
-		List<Map> objverlist4 = iterToList(jdb.getCollection("workspaceObjVersions")
-				.find("{ws: #, id: #}", wsid2, 4).as(Map.class));
+		List<DBObject> objverlist4 = iterToList(db.getCollection("workspaceObjVersions")
+				.find(new BasicDBObject("ws", wsid2).append("id", 4)));
 		assertThat("Correct version count", 4, is(objverlist4.size()));
 		Map<Integer, String> cpexpec2 = new HashMap<Integer, String>();
 		Map<Integer, Integer> revexpec2 = new HashMap<Integer, Integer>();
@@ -1135,19 +1122,16 @@ public class MongoInternalsTest {
 		revexpec2.put(2, null);
 		revexpec2.put(3, null);
 		revexpec2.put(4, null);
-		for (@SuppressWarnings("rawtypes") Map m: objverlist4) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> m2 = (Map<String, Object>) m;
-			int ver = (Integer) m2.get("ver");
-			assertThat("copy pointer ok", (String) m2.get("copied"), is(cpexpec2.get(ver)));
-			assertThat("revert pointer ok", (Integer) m2.get("revert"), is(revexpec2.get(ver)));
+		for (final DBObject m: objverlist4) {
+			int ver = (Integer) m.get("ver");
+			assertThat("copy pointer ok", (String) m.get("copied"), is(cpexpec2.get(ver)));
+			assertThat("revert pointer ok", (Integer) m.get("revert"), is(revexpec2.get(ver)));
 		}
 	}
 
 	private void checkRefCntInit(long wsid, int objid, int vers) {
-		@SuppressWarnings("rawtypes")
-		List<Map> objlist = iterToList(jdb.getCollection("workspaceObjects")
-				.find("{ws: #, id: #}", wsid, objid).as(Map.class));
+		List<DBObject> objlist = iterToList(db.getCollection("workspaceObjects")
+				.find(new BasicDBObject("ws", wsid).append("id", objid)));
 		assertThat("Only one object per id", objlist.size(), is(1));
 		@SuppressWarnings("unchecked")
 		List<Integer> refcnts = (List<Integer>) objlist.get(0).get("refcnt");
@@ -1206,9 +1190,8 @@ public class MongoInternalsTest {
 	}
 
 	private Date getDate(long wsid, int id) {
-		@SuppressWarnings("rawtypes")
-		Map obj = jdb.getCollection("workspaceObjects")
-				.findOne("{ws: #, id: #}", wsid, id).as(Map.class);
+		final DBObject obj = db.getCollection("workspaceObjects")
+				.findOne(new BasicDBObject("ws", wsid).append("id", id));
 		return (Date) obj.get("moddate");
 	}
 

@@ -21,7 +21,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/jackson/jackson-annotations-2.2.3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/jackson/jackson-core-2.2.3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/jackson/jackson-databind-2.2.3.jar" sourcepath="/jars/lib/jars/jackson/jackson-databind-2.2.3-sources.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/jongo/jongo-0.5-early-20130912-1506.jar" sourcepath="/home/crusherofheads/Downloads/jongo-0.5-early-20130912-1506/src/main/java"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpclient-4.3.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpcore-4.3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpmime-4.3.1.jar"/>
