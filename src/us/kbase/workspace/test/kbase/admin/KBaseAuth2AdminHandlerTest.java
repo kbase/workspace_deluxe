@@ -1,4 +1,4 @@
-package us.kbase.workspace.test.kbase;
+package us.kbase.workspace.test.kbase.admin;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.containsString;

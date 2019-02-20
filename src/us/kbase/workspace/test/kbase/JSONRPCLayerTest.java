@@ -3308,14 +3308,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				" \"user\": \"" + USER1 + "\"," +
 				" \"params\": [{\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"n\"," +
 				"			   \"description\": \"mydesc\"}]}",
-				"Unable to deserialize CreateWorkspaceParams out of params field.");
+				"Unable to deserialize CreateWorkspaceParams out of params field");
 		
 		failAdmin(CLIENT2,
 				"{\"command\": [\"createWorkspace\"]," +
 				" \"user\": \"" + USER1 + "\"," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"n\"," +
 				"			   \"description\": \"mydesc\"}}",
-				"Unable to deserialize a workspace admin command from the input.");
+				"Unable to deserialize a workspace admin command from the input");
 		
 		TypeReference<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> typeref
 				= new TypeReference<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>() {};
