@@ -12,14 +12,11 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import org.bson.BSONObject;
-import org.jongo.Jongo;
-import org.jongo.MongoCollection;
 
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -29,7 +26,6 @@ import com.mongodb.DBObject;
 
 public class MongoTypeStorage implements TypeStorage {
 	
-	private Jongo jdb;
 	private final DB db;
 	
 	public static final String TABLE_MODULE_REQUEST = "module_request";
@@ -50,7 +46,6 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	public MongoTypeStorage(DB db) {
 		this.db = db;
-		jdb = new Jongo(db);
 		ensureIndeces();
 	}
 	
@@ -791,8 +786,9 @@ public class MongoTypeStorage implements TypeStorage {
 			throws TypeStorageException {
 		OwnerInfo ret;
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
-			ret = recs.findOne("{moduleName:#}", moduleName).as(OwnerInfo.class);
+			final DBCollection recs = db.getCollection(TABLE_MODULE_REQUEST);
+			ret = toObj(recs.findOne(new BasicDBObject("moduleName", moduleName)),
+					OwnerInfo.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -805,13 +801,14 @@ public class MongoTypeStorage implements TypeStorage {
 	public void addOwnerToModule(String moduleName, String userId,
 			boolean withChangeOwnersPrivilege) throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
-			recs.remove("{moduleName:#,ownerUserId:#}", moduleName, userId);
+			final DBCollection recs = db.getCollection(TABLE_MODULE_OWNER);
+			// race condition
+			recs.remove(new BasicDBObject("moduleName", moduleName).append("ownerUserId", userId));
 			OwnerInfo rec = new OwnerInfo();
 			rec.setOwnerUserId(userId);
 			rec.setWithChangeOwnersPrivilege(withChangeOwnersPrivilege);
 			rec.setModuleName(moduleName);
-			recs.insert(rec);
+			recs.insert(toDBObj(rec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -821,8 +818,7 @@ public class MongoTypeStorage implements TypeStorage {
 	public List<OwnerInfo> getNewModuleRegistrationRequests()
 			throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
-			return Lists.newArrayList(recs.find().as(OwnerInfo.class));
+			return find(TABLE_MODULE_REQUEST, new BasicDBObject(), OwnerInfo.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -832,8 +828,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public Map<String, OwnerInfo> getOwnersForModule(String moduleName)
 			throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
-			List<OwnerInfo> owners = Lists.newArrayList(recs.find("{moduleName:#}", moduleName).as(OwnerInfo.class));
+			final List<OwnerInfo> owners = find(TABLE_MODULE_OWNER,
+					new BasicDBObject("moduleName", moduleName), OwnerInfo.class);
 			Map<String, OwnerInfo> ret = new TreeMap<String, OwnerInfo>();
 			for (OwnerInfo oi : owners)
 				ret.put(oi.getOwnerUserId(), oi);
@@ -847,8 +843,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public Map<String, OwnerInfo> getModulesForOwner(String userId)
 			throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
-			List<OwnerInfo> owners = Lists.newArrayList(recs.find("{ownerUserId:#}", userId).as(OwnerInfo.class));
+			final List<OwnerInfo> owners = find(
+					TABLE_MODULE_OWNER, new BasicDBObject("ownerUserId", userId), OwnerInfo.class);
 			Map<String, OwnerInfo> ret = new TreeMap<String, OwnerInfo>();
 			for (OwnerInfo oi : owners)
 				ret.put(oi.getModuleName(), oi);
@@ -862,8 +858,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public void removeNewModuleRegistrationRequest(String moduleName,
 			String userId) throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_REQUEST);
-			recs.remove("{moduleName:#,ownerUserId:#}", moduleName, userId);
+			final DBCollection recs = db.getCollection(TABLE_MODULE_REQUEST);
+			recs.remove(new BasicDBObject("moduleName", moduleName).append("ownerUserId", userId));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -873,8 +869,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public void removeOwnerFromModule(String moduleName, String userId)
 			throws TypeStorageException {
 		try {
-			MongoCollection recs = jdb.getCollection(TABLE_MODULE_OWNER);
-			recs.remove("{moduleName:#,ownerUserId:#}", moduleName, userId);
+			final DBCollection recs = db.getCollection(TABLE_MODULE_OWNER);
+			recs.remove(new BasicDBObject("moduleName", moduleName).append("ownerUserId", userId));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -896,8 +892,7 @@ public class MongoTypeStorage implements TypeStorage {
 		};
 		Map<String, Long> ret = new TreeMap<String, Long>();
 		for (String table : tables) {
-			MongoCollection recs = jdb.getCollection(table);
-			List<Object> rows = Lists.newArrayList(recs.find().as(Object.class));
+			List<Object> rows = find(table, new BasicDBObject(), Object.class);
 			ret.put(table, (long)rows.size());
 		}
 		return ret;
@@ -907,14 +902,20 @@ public class MongoTypeStorage implements TypeStorage {
 	public void removeModuleVersionAndSwitchIfNotCurrent(String moduleName,
 			long versionToDelete, long versionToSwitchTo)
 			throws TypeStorageException {
+		final DBObject dep = new BasicDBObject("depModule", moduleName)
+				.append("depModuleVersion", versionToDelete);
+		final DBObject mod = new BasicDBObject("moduleName", moduleName)
+				.append("moduleVersion", versionToDelete);
+		final DBObject hist = new BasicDBObject("moduleName", moduleName)
+				.append("versionTime", versionToDelete);
 		try {
-			jdb.getCollection(TABLE_TYPE_REFS).remove("{depModule:#,depModuleVersion:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_FUNC_REFS).remove("{depModule:#,depModuleVersion:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove("{moduleName:#,moduleVersion:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_MODULE_TYPE_PARSE).remove("{moduleName:#,moduleVersion:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_MODULE_FUNC_PARSE).remove("{moduleName:#,moduleVersion:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_MODULE_SPEC_HISTORY).remove("{moduleName:#,versionTime:#}", moduleName, versionToDelete);
-			jdb.getCollection(TABLE_MODULE_INFO_HISTORY).remove("{moduleName:#,versionTime:#}", moduleName, versionToDelete);
+			db.getCollection(TABLE_TYPE_REFS).remove(dep);
+			db.getCollection(TABLE_FUNC_REFS).remove(dep);
+			db.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove(mod);
+			db.getCollection(TABLE_MODULE_TYPE_PARSE).remove(mod);
+			db.getCollection(TABLE_MODULE_FUNC_PARSE).remove(mod);
+			db.getCollection(TABLE_MODULE_SPEC_HISTORY).remove(hist);
+			db.getCollection(TABLE_MODULE_INFO_HISTORY).remove(hist);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -934,8 +935,9 @@ public class MongoTypeStorage implements TypeStorage {
 	private Long getLastModuleVersionWithUnreleasedOrNull(String moduleName)
 			throws TypeStorageException {
 		try {
-			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-			ModuleVersion ret = vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class);
+			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			final ModuleVersion ret = toObj(vers.findOne(
+					new BasicDBObject("moduleName", moduleName)), ModuleVersion.class);
 			if (ret == null)
 				return null;
 			return ret.versionTime;
@@ -948,13 +950,17 @@ public class MongoTypeStorage implements TypeStorage {
 	public void setModuleReleaseVersion(String moduleName, long version)
 			throws TypeStorageException {
 		try {
-			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-			if (vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class) == null) {
-				throw new TypeStorageException("Module" + moduleName + " was not registered");
+			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			if (vers.findOne(new BasicDBObject("moduleName", moduleName)) == null) {
+				throw new TypeStorageException("Module " + moduleName + " was not registered");
 			} else {
-				MongoCollection infos = jdb.getCollection(TABLE_MODULE_INFO_HISTORY);
-				infos.update("{moduleName:#, versionTime:#}", moduleName, version).with("{$set: {released: #}}", true);
-				vers.update("{moduleName:#}", moduleName).with("{$set: {releasedVersionTime: #}}", version);
+				final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+				infos.update(new BasicDBObject("moduleName", moduleName)
+						.append("versionTime", version),
+						new BasicDBObject("$set", new BasicDBObject("released", true)));
+				vers.update(new BasicDBObject("moduleName", moduleName),
+						new BasicDBObject("$set",
+								new BasicDBObject("releasedVersionTime", version)));
 			}
 		} catch (TypeStorageException e) {
 			throw e;
@@ -969,10 +975,13 @@ public class MongoTypeStorage implements TypeStorage {
 	public void changeModuleSupportedState(String moduleName, boolean supported)
 			throws TypeStorageException {
 		try {
-			MongoCollection vers = jdb.getCollection(TABLE_MODULE_VERSION);
-			if (vers.findOne("{moduleName:#}", moduleName).as(ModuleVersion.class) == null)
-				throw new TypeStorageException("Support information is unavailable for module: " + moduleName);
-			vers.update("{moduleName:#}", moduleName).with("{$set: {supported: #}}", supported);
+			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			if (vers.findOne(new BasicDBObject("moduleName", moduleName)) == null) {
+				throw new TypeStorageException("Support information is unavailable for module: " +
+						moduleName);
+			}
+			vers.update(new BasicDBObject("moduleName", moduleName),
+					new BasicDBObject("$set", new BasicDBObject("supported", supported)));
 		} catch (TypeStorageException e) {
 			throw e;
 		} catch (Exception e) {

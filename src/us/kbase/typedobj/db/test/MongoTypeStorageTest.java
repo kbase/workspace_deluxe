@@ -207,7 +207,6 @@ public class MongoTypeStorageTest {
 	
 	@Test
 	public void addNewModuleRegistrationFailModuleExists() throws Exception {
-		// just a basic test to make sure it works.
 		final MongoTypeStorage mts = new MongoTypeStorage(MONGO_DB);
 		
 		final ModuleInfo mi = new ModuleInfo();
@@ -216,17 +215,50 @@ public class MongoTypeStorageTest {
 		mi.setUploadUserId("u");
 		mts.writeModuleRecords(mi, "{};", 10000L);
 		
-		final ModuleInfo mi2 = new ModuleInfo();
-		mi2.setModuleName("mod");
-		mi2.setReleased(true);
-		mi2.setUploadUserId("u2");
-		
 		try {
 			mts.addNewModuleRegistrationRequest("mod", "u2");
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new TypeStorageException(
 					"Module mod was already registered"));
+		}
+	}
+	
+	@Test
+	public void setModuleReleaseVersionFailNoModule() throws Exception {
+		final MongoTypeStorage mts = new MongoTypeStorage(MONGO_DB);
+		
+		final ModuleInfo mi = new ModuleInfo();
+		mi.setModuleName("mod");
+		mi.setReleased(true);
+		mi.setUploadUserId("u");
+		mts.writeModuleRecords(mi, "{};", 10000L);
+		
+		try {
+			mts.setModuleReleaseVersion("mod2", 20000L);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new TypeStorageException(
+					"Module mod2 was not registered"));
+		}
+	}
+	
+	@Test
+	public void changeModuleSupportedStateFailNoModule() throws Exception {
+		final MongoTypeStorage mts = new MongoTypeStorage(MONGO_DB);
+		
+		final ModuleInfo mi = new ModuleInfo();
+		mi.setModuleName("mod");
+		mi.setReleased(true);
+		mi.setUploadUserId("u");
+		mts.writeModuleRecords(mi, "{};", 10000L);
+		
+		try {
+			mts.changeModuleSupportedState("mod2", true);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new TypeStorageException(
+					"Support information is unavailable for module: mod2"));
 		}
 	}
 }
