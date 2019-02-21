@@ -42,6 +42,7 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestCommon.LogEvent;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
@@ -265,6 +266,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getPermissions", "WorkspaceIdentity");
 		commandToClass.put("getPermissionsMass", "GetPermissionsMassParams");
 		commandToClass.put("getWorkspaceInfo", "WorkspaceIdentity");
+		commandToClass.put("setGlobalPermission", "SetGlobalPermissionsParams");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -308,6 +310,8 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getPermissionsMass",
 				new MapErr("GetPermissionsMassParams", "workspaces", "foo"));
 		commandToClass.put("getWorkspaceInfo", new MapErr("WorkspaceIdentity", "id", "foo"));
+		commandToClass.put("setGlobalPermission",
+				new MapErr("SetGlobalPermissionsParams", "id", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -795,4 +799,34 @@ public class WorkspaceAdministrationTest {
 				"getWorkspaceInfo 10", WorkspaceAdministration.class));
 	}
 
+	@Test
+	public void setGlobalPermissions() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "setGlobalPermission",
+				"user", "auser",
+				"params", ImmutableMap.of("workspace", "foo", "new_permission", "r")));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		when(mocks.wsmeth.validateUsers(Arrays.asList("auser"), new AuthToken("tok", "fake")))
+				.thenReturn(Arrays.asList(new WorkspaceUser("auser")));
+		when(mocks.wsmeth.setGlobalPermission(
+				argThat(new ArgumentMatcher<SetGlobalPermissionsParams>() {
+
+						@Override
+						public boolean matches(final SetGlobalPermissionsParams sgpp) {
+							return sgpp.getId() == null &&
+									"foo".equals(sgpp.getWorkspace()) &&
+									"r".equals(sgpp.getNewPermission());
+						}
+				}),
+				eq(new WorkspaceUser("auser"))))
+				.thenReturn(65L);
+		
+		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"setGlobalPermission 65 r auser", WorkspaceAdministration.class));
+	}
+	
 }
