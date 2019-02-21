@@ -29,6 +29,8 @@ import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
@@ -36,12 +38,15 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonTokenStream;
+import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestCommon.LogEvent;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
@@ -267,6 +272,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getPermissionsMass", "GetPermissionsMassParams");
 		commandToClass.put("getWorkspaceInfo", "WorkspaceIdentity");
 		commandToClass.put("setGlobalPermission", "SetGlobalPermissionsParams");
+		commandToClass.put("saveObjects", "SaveObjectsParams");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -312,6 +318,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getWorkspaceInfo", new MapErr("WorkspaceIdentity", "id", "foo"));
 		commandToClass.put("setGlobalPermission",
 				new MapErr("SetGlobalPermissionsParams", "id", "foo"));
+		commandToClass.put("saveObjects", new MapErr("SaveObjectsParams", "id", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -827,6 +834,80 @@ public class WorkspaceAdministrationTest {
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"setGlobalPermission 65 r auser", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void saveObjects() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		// for some reason I don't understand, initializing the UObject with just the
+		// plain objects causes the test to fail due to the JsonTokenStream not being closed.
+		// Hence turning it into a char array first.
+		final UObject command = new UObject(new ObjectMapper().writeValueAsString(
+				ImmutableMap.of("command", "saveObjects",
+				"user", "auser",
+				"params", ImmutableMap.of("workspace", "foo",
+						"objects", Arrays.asList(ImmutableMap.of(
+								"type", "Foo.Bar-2.1",
+								"data", ImmutableMap.of("foo", "bar"),
+								"name", "foobar"
+								))))).toCharArray());
+		
+		final Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>> supergross = new Tuple11<Long, String, String, String, Long,
+				String, Long, String, String, Long, Map<String, String>>()
+						.withE1(24L)
+						.withE2("foobar")
+						.withE3("Foo.Bar-2.1")
+						.withE4("1970-01-01T00:02:00+0000")
+						.withE5(1L)
+						.withE6("auser")
+						.withE7(7L)
+						.withE8("foo")
+						.withE9("checksum")
+						.withE10(78L)
+						.withE11(Collections.emptyMap());
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		when(mocks.wsmeth.validateUsers(Arrays.asList("auser"), new AuthToken("tok", "fake")))
+				.thenReturn(Arrays.asList(new WorkspaceUser("auser")));
+		when(mocks.wsmeth.saveObjects(argThat(new ArgumentMatcher<SaveObjectsParams>() {
+
+					@Override
+					public boolean matches(final SaveObjectsParams sop) {
+						if (sop.getObjects().size() != 1) {
+							return false;
+						}
+						final ObjectSaveData osd = sop.getObjects().get(0);
+						final Map<String, Object> data = osd.getData().asClassInstance(
+								new TypeReference<Map<String, Object>>() {});
+						return sop.getId() == null &&
+								"foo".equals(sop.getWorkspace()) &&
+								ImmutableMap.of("foo", "bar").equals(data) &&
+								osd.getHidden() == null &&
+								osd.getMeta() == null &&
+								"foobar".equals(osd.getName()) &&
+								osd.getObjid() == null &&
+								osd.getProvenance() == null &&
+								"Foo.Bar-2.1".equals(osd.getType());
+					}
+				}),
+				eq(new WorkspaceUser("auser")),
+				eq(new AuthToken("tok", "fake"))))
+				.thenReturn(Arrays.asList(supergross));
+		
+		@SuppressWarnings({ "unchecked" })
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String,
+				Long, Map<String, String>>> l =
+				(List<Tuple11<Long, String, String, String, Long, String, Long, String, String,
+						Long, Map<String, String>>>) mocks.admin.runCommand(
+								new AuthToken("tok", "fake"), command, null);
+		
+		assertThat("incorrect size", l.size(), is(1));
+		assertThat("incorrect tuple", l.get(0), is(supergross)); // rely on identity
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"saveObjects auser", WorkspaceAdministration.class));
 	}
 	
 }
