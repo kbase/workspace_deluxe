@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -42,6 +43,8 @@ import us.kbase.common.test.TestCommon.LogEvent;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.SetPermissionsParams;
+import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.WorkspacePermissions;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
@@ -109,6 +112,11 @@ public class WorkspaceAdministrationTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
+	
+	/* ***********************************************
+	 * Non command specific error tests
+	 * ***********************************************
+	 */
 	
 	@Test
 	public void failNotAdmin() throws Exception {
@@ -198,6 +206,12 @@ public class WorkspaceAdministrationTest {
 		
 	}
 	
+	/* ***********************************************
+	 * Command error tests for error types that
+	 * affect all commands
+	 * ***********************************************
+	 */
+	
 	@Test
 	public void failNotFullAdmin() throws Exception {
 		final TestMocks mocks = initTestMocks();
@@ -248,6 +262,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("setPermissions", "SetPermissionsParams");
 		commandToClass.put("setWorkspaceDescription", "SetWorkspaceDescriptionParams");
 		commandToClass.put("getWorkspaceDescription", "WorkspaceIdentity");
+		commandToClass.put("getPermissions", "WorkspaceIdentity");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -287,6 +302,7 @@ public class WorkspaceAdministrationTest {
 				new MapErr("SetWorkspaceDescriptionParams", "id", "foo"));
 		commandToClass.put("getWorkspaceDescription",
 				new MapErr("WorkspaceIdentity", "id", "foo"));
+		commandToClass.put("getPermissions", new MapErr("WorkspaceIdentity", "id", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -310,6 +326,11 @@ public class WorkspaceAdministrationTest {
 			}
 		}
 	}
+	
+	/* ***********************************************
+	 * Command specific tests
+	 * ***********************************************
+	 */
 	
 	@Test
 	public void listModRequests() throws Exception {
@@ -625,5 +646,70 @@ public class WorkspaceAdministrationTest {
 				"getWorkspaceDescription null ws1", WorkspaceAdministration.class));
 	}
 	
+	@Test
+	public void getPermissionsNullUser() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getPermissions",
+				"params", ImmutableMap.of("id", 3)));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.wsmeth.getPermissions(argThat(new ArgumentMatcher<List<WorkspaceIdentity>>() {
+
+						@Override
+						public boolean matches(final List<WorkspaceIdentity> wsi) {
+							if (wsi.size() != 1) {
+								return false;
+							}
+							final WorkspaceIdentity ws = wsi.get(0);
+							return ws.getId() == 3 && ws.getWorkspace() == null;
+						}
+				}),
+				isNull(),
+				eq(true)))
+				.thenReturn(new WorkspacePermissions()
+						.withPerms(Arrays.asList(ImmutableMap.of("user", "a", "user2", "r"))));
+		
+		@SuppressWarnings("unchecked")
+		final Map<String, String> perms =  (Map<String, String>) mocks.admin.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		
+		assertThat("incorrect perms", perms, is(ImmutableMap.of("user", "a", "user2", "r")));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getPermissions 3 null", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void getPermissionsWithUser() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getPermissions",
+				"user", "auser",
+				"params", ImmutableMap.of("workspace", "foo")));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.wsmeth.validateUsers(Arrays.asList("auser"), new AuthToken("tok", "fake")))
+				.thenReturn(Arrays.asList(new WorkspaceUser("auser")));
+		when(mocks.wsmeth.getPermissions(argThat(new ArgumentMatcher<WorkspaceIdentity>() {
+
+						@Override
+						public boolean matches(final WorkspaceIdentity wsi) {
+							return wsi.getId() == null && "foo".equals(wsi.getWorkspace());
+						}
+				}),
+				eq(new WorkspaceUser("auser"))))
+				.thenReturn(ImmutableMap.of("user3", "w", "user10", "r"));
+		
+		@SuppressWarnings("unchecked")
+		final Map<String, String> perms =  (Map<String, String>) mocks.admin.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		
+		assertThat("incorrect perms", perms, is(ImmutableMap.of("user3", "w", "user10", "r")));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getPermissions null foo auser", WorkspaceAdministration.class));
+		
+	}
 
 }
