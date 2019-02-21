@@ -275,6 +275,7 @@ public class WorkspaceAdministration {
 			final GetObjectInfo3Params params = getParams(cmd, GetObjectInfo3Params.class);
 			// method has its own logging
 			getLogger().info(GET_OBJECT_INFO);
+			// is passing the admin user really necessary? Check at some point, maybe remove
 			return wsmeth.getObjectInformation(params, new WorkspaceUser(putativeAdmin), true);
 		}
 		if (GET_OBJECT_HIST.equals(fn)) {

@@ -45,7 +45,10 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestCommon.LogEvent;
 import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetObjectInfo3Params;
+import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
@@ -63,6 +66,10 @@ import us.kbase.workspace.kbase.admin.AdministratorHandler;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 
 public class WorkspaceAdministrationTest {
+	
+	// these tests are waaaay more complicated than then need to be because the SDK
+	// doesn't create equals & hashCode methods for its generated classes.
+	// that and tuples
 	
 	private static List<ILoggingEvent> logEvents;
 	
@@ -273,6 +280,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getWorkspaceInfo", "WorkspaceIdentity");
 		commandToClass.put("setGlobalPermission", "SetGlobalPermissionsParams");
 		commandToClass.put("saveObjects", "SaveObjectsParams");
+		commandToClass.put("getObjectInfo", "GetObjectInfo3Params");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -319,6 +327,8 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("setGlobalPermission",
 				new MapErr("SetGlobalPermissionsParams", "id", "foo"));
 		commandToClass.put("saveObjects", new MapErr("SaveObjectsParams", "id", "foo"));
+		commandToClass.put("getObjectInfo",
+				new MapErr("GetObjectInfo3Params", "objects", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -333,7 +343,7 @@ public class WorkspaceAdministrationTest {
 			
 			try {
 				mocks.admin.runCommand(new AuthToken("tok", "usah"), command, null);
-				fail("expected exception");
+				fail("expected exception for command " + commandStr);
 			} catch (IllegalArgumentException got) {
 				final String err = "incorrect message for exception:\n" +
 						ExceptionUtils.getStackTrace(got);
@@ -908,6 +918,123 @@ public class WorkspaceAdministrationTest {
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"saveObjects auser", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void getObjectInfo() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getObjectInfo",
+				"params", ImmutableMap.of(
+						"includeMetadata", 0,
+						"ignoreErrors", 1,
+						"objects", Arrays.asList(
+								ImmutableMap.of(
+										"workspace", "ws",
+										"name", "n",
+										"to_obj_ref_path", Arrays.asList("1/2/3", "4/5/6")
+								),
+								ImmutableMap.of(
+										"wsid", 25,
+										"objid", 3,
+										"ver", 22,
+										"strict_maps", 1
+								)
+								))));
+		
+		final Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>> sg1 = new Tuple11<Long, String, String, String, Long,
+				String, Long, String, String, Long, Map<String, String>>()
+						.withE1(24L)
+						.withE2("n")
+						.withE3("Far.Boo-2.1")
+						.withE4("1970-01-01T00:02:00+0000")
+						.withE5(1L)
+						.withE6("auser")
+						.withE7(7L)
+						.withE8("ws")
+						.withE9("checksum")
+						.withE10(78L)
+						.withE11(Collections.emptyMap());
+		
+		final Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>> sg2 = new Tuple11<Long, String, String, String, Long,
+				String, Long, String, String, Long, Map<String, String>>()
+						.withE1(3L)
+						.withE2("somename")
+						.withE3("Mod.Type-0.2")
+						.withE4("1970-01-01T00:01:00+0000")
+						.withE5(22L)
+						.withE6("buser")
+						.withE7(25L)
+						.withE8("somews")
+						.withE9("checksum2")
+						.withE10(79L)
+						.withE11(Collections.emptyMap());
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.wsmeth.getObjectInformation(
+				argThat(new ArgumentMatcher<GetObjectInfo3Params>() {
+
+						@Override
+						public boolean matches(final GetObjectInfo3Params goi) {
+							if (goi.getObjects().size() != 2) {
+								return false;
+							}
+							final ObjectSpecification os1 = goi.getObjects().get(0);
+							final ObjectSpecification os2 = goi.getObjects().get(1);
+							return goi.getIgnoreErrors() == 1 && goi.getIncludeMetadata() == 0 &&
+									
+									os1.getFindReferencePath() == null &&
+									os1.getIncluded() == null &&
+									"n".equals(os1.getName()) &&
+									os1.getObjid() == null &&
+									os1.getObjPath() == null &&
+									os1.getObjRefPath() == null &&
+									os1.getRef() == null &&
+									os1.getStrictArrays() == null &&
+									os1.getStrictMaps() == null &&
+									os1.getToObjPath() == null &&
+									Arrays.asList("1/2/3", "4/5/6").equals(os1.getToObjRefPath())
+									&& os1.getVer() == null &&
+									"ws".equals(os1.getWorkspace()) &&
+									os1.getWsid() == null &&
+									
+									os2.getFindReferencePath() == null &&
+									os2.getIncluded() == null &&
+									os2.getName() == null &&
+									os2.getObjid() == 3 &&
+									os2.getObjPath() == null &&
+									os2.getObjRefPath() == null &&
+									os2.getRef() == null &&
+									os2.getStrictArrays() == null &&
+									os2.getStrictMaps() == 1 &&
+									os2.getToObjPath() == null &&
+									os2.getToObjRefPath() == null &&
+									os2.getVer() == 22 &&
+									os2.getWorkspace() == null &&
+									os2.getWsid() == 25;
+						}
+				}),
+				// is it really necessary to pass a workspace user for an admin request?
+				eq(new WorkspaceUser("fake")), eq(true)))
+				.thenReturn(new GetObjectInfo3Results()
+						.withInfos(Arrays.asList(sg1, sg2))
+						.withPaths(Arrays.asList(
+								Arrays.asList("1/2/3", "4/5/6", "7/24/1"),
+								Arrays.asList("25/3/22"))));
+		
+		final GetObjectInfo3Results res = (GetObjectInfo3Results) mocks.admin.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		
+		// rely on identity
+		assertThat("incorrect tuples", res.getInfos(), is(Arrays.asList(sg1, sg2)));
+		assertThat("incorrect paths", res.getPaths(), is(Arrays.asList(
+								Arrays.asList("1/2/3", "4/5/6", "7/24/1"),
+								Arrays.asList("25/3/22"))));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getObjectInfo", WorkspaceAdministration.class));
 	}
 	
 }
