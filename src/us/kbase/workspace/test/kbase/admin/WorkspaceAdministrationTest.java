@@ -264,6 +264,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getWorkspaceDescription", "WorkspaceIdentity");
 		commandToClass.put("getPermissions", "WorkspaceIdentity");
 		commandToClass.put("getPermissionsMass", "GetPermissionsMassParams");
+		commandToClass.put("getWorkspaceInfo", "WorkspaceIdentity");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -306,6 +307,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getPermissions", new MapErr("WorkspaceIdentity", "id", "foo"));
 		commandToClass.put("getPermissionsMass",
 				new MapErr("GetPermissionsMassParams", "workspaces", "foo"));
+		commandToClass.put("getWorkspaceInfo", new MapErr("WorkspaceIdentity", "id", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -753,7 +755,44 @@ public class WorkspaceAdministrationTest {
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"getPermissionsMass 2 workspaces in input", WorkspaceAdministration.class));
-					
+	}
+	
+	@Test
+	public void getWorkspaceInfo() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getWorkspaceInfo",
+				"params", ImmutableMap.of("workspace", "ws1")));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.ws.getWorkspaceInformationAsAdmin(new WorkspaceIdentifier("ws1")))
+				.thenReturn(WorkspaceInformation.getBuilder()
+						.withID(10)
+						.withName("ws1")
+						.withOwner(new WorkspaceUser("usern"))
+						.withMaximumObjectID(22)
+						.withModificationDate(inst(120000))
+						.withUserPermission(Permission.NONE)
+						.build());
+
+		@SuppressWarnings("unchecked")
+		final Tuple9<Long, String, String, String, Long, String, String, String,
+				Map<String, String>> gross = (Tuple9<Long, String, String, String, Long, String,
+						String, String, Map<String, String>>) mocks.admin.runCommand(
+								new AuthToken("tok", "fake"), command, null);
+		
+		assertThat("ids correct", gross.getE1(), is(10L));
+		assertThat("ws name correct", gross.getE2(), is("ws1"));
+		assertThat("user name correct", gross.getE3(), is("usern"));
+		assertThat("moddates correct", gross.getE4(), is("1970-01-01T00:02:00+0000"));
+		assertThat("obj counts correct", gross.getE5(), is(22L));
+		assertThat("permission correct", gross.getE6(), is("n"));
+		assertThat("global read correct", gross.getE7(), is("n"));
+		assertThat("lockstate correct", gross.getE8(), is("unlocked"));
+		assertThat("meta correct", gross.getE9(), is(Collections.emptyMap()));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getWorkspaceInfo 10", WorkspaceAdministration.class));
 	}
 
 }
