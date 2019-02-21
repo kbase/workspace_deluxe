@@ -47,6 +47,7 @@ import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
+import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.SaveObjectsParams;
@@ -281,6 +282,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("setGlobalPermission", "SetGlobalPermissionsParams");
 		commandToClass.put("saveObjects", "SaveObjectsParams");
 		commandToClass.put("getObjectInfo", "GetObjectInfo3Params");
+		commandToClass.put("getObjectHistory", "ObjectIdentity");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -329,6 +331,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("saveObjects", new MapErr("SaveObjectsParams", "id", "foo"));
 		commandToClass.put("getObjectInfo",
 				new MapErr("GetObjectInfo3Params", "objects", "foo"));
+		commandToClass.put("getObjectHistory", new MapErr("ObjectIdentity", "wsid", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -1035,6 +1038,72 @@ public class WorkspaceAdministrationTest {
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"getObjectInfo", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void getObjectHistory() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getObjectHistory",
+				"params", ImmutableMap.of(
+						"wsid", 22,
+						"name", "objname",
+						"ver", 3)));
+		
+		final Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>> sg1 = new Tuple11<Long, String, String, String, Long,
+				String, Long, String, String, Long, Map<String, String>>()
+						.withE1(24L)
+						.withE2("objname")
+						.withE3("Far.Boo-2.1")
+						.withE4("1970-01-01T00:02:00+0000")
+						.withE5(1L)
+						.withE6("auser")
+						.withE7(22L)
+						.withE8("somews")
+						.withE9("checksum")
+						.withE10(78L)
+						.withE11(Collections.emptyMap());
+		
+		final Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>> sg2 = new Tuple11<Long, String, String, String, Long,
+				String, Long, String, String, Long, Map<String, String>>()
+						.withE1(24L)
+						.withE2("objname")
+						.withE3("Far.Boo-2.3")
+						.withE4("1970-01-01T00:04:00+0000")
+						.withE5(2L)
+						.withE6("auser")
+						.withE7(22L)
+						.withE8("somews")
+						.withE9("checksum2")
+						.withE10(79L)
+						.withE11(Collections.emptyMap());
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.wsmeth.getObjectHistory(argThat(new ArgumentMatcher<ObjectIdentity>() {
+		
+					@Override
+					public boolean matches(final ObjectIdentity oi) {
+						return "objname".equals(oi.getName()) &&
+								oi.getObjid() == null &&
+								oi.getRef() == null &&
+								oi.getVer() == 3 &&
+								oi.getWorkspace() == null &&
+								oi.getWsid() == 22;
+					}
+				}),
+				eq(new WorkspaceUser("fake")),
+				eq(true)))
+				.thenReturn(Arrays.asList(sg1, sg2));
+		
+		final Object res = mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		
+		// rely on identity
+		assertThat("incorrect return", res, is(Arrays.asList(sg1, sg2)));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getObjectHistory", WorkspaceAdministration.class));
 	}
 	
 }
