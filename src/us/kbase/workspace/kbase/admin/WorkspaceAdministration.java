@@ -14,7 +14,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
@@ -105,6 +105,13 @@ public class WorkspaceAdministration {
 	private static Logger getLogger() {
 		return LoggerFactory.getLogger(WorkspaceAdministration.class);
 	}
+	
+	private void requireWrite(final AdminRole role) {
+		if (!AdminRole.ADMIN.equals(role)) {
+			throw new IllegalArgumentException(
+					"Full administration rights required for this command");
+		}
+	}
 
 	public Object runCommand(
 			final AuthToken token,
@@ -122,9 +129,9 @@ public class WorkspaceAdministration {
 			cmd = command.asClassInstance(AdminCommand.class);
 		} catch (IllegalStateException ise) {
 			final IOException ioe = (IOException) ise.getCause();
-			if (ioe instanceof JsonMappingException) {
+			if (ioe instanceof JsonMappingException || ioe instanceof JsonParseException) {
 				throw new IllegalArgumentException("Unable to deserialize " +
-						"a workspace admin command from the input.", ioe);
+						"a workspace admin command from the input: " + ioe.getMessage(), ioe);
 			}
 			throw ioe;
 		}
@@ -135,12 +142,14 @@ public class WorkspaceAdministration {
 			return types.listModuleRegistrationRequests();
 		}
 		if (APPROVE_MOD_REQUEST.equals(fn)) {
+			requireWrite(role);
 			final String mod = cmd.getModule();
 			getLogger().info(APPROVE_MOD_REQUEST + " " + mod);
 			types.resolveModuleRegistration(mod, true);
 			return null;
 		}
 		if (DENY_MOD_REQUEST.equals(fn)) {
+			requireWrite(role);
 			final String mod = cmd.getModule();
 			getLogger().info(DENY_MOD_REQUEST + " " + mod);
 			types.resolveModuleRegistration(mod, false);
@@ -151,18 +160,21 @@ public class WorkspaceAdministration {
 			return usersToStrings(admin.getAdmins());
 		}
 		if (ADD_ADMIN.equals(fn)) {
+			requireWrite(role);
 			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(ADD_ADMIN + " " + user.getUser());
 			admin.addAdmin(user);
 			return null;
 		}
 		if (REMOVE_ADMIN.equals(fn)) {
+			requireWrite(role);
 			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(REMOVE_ADMIN + " " + user.getUser());
 			admin.removeAdmin(user);
 			return null;
 		}
 		if (SET_WORKSPACE_OWNER.equals(fn)) {
+			requireWrite(role);
 			final SetWorkspaceOwnerParams params = getParams(cmd, SetWorkspaceOwnerParams.class);
 			
 			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.wsi);
@@ -174,13 +186,16 @@ public class WorkspaceAdministration {
 			return wsInfoToTuple(info);
 		}
 		if (CREATE_WORKSPACE.equals(fn)) {
+			requireWrite(role);
+			final WorkspaceUser user = getUser(cmd, token);
 			final CreateWorkspaceParams params = getParams(cmd, CreateWorkspaceParams.class);
-			Tuple9<Long, String, String, String, Long, String, String, String,
-					Map<String, String>> ws =  wsmeth.createWorkspace(params, getUser(cmd, token));
+			final Tuple9<Long, String, String, String, Long, String, String, String,
+					Map<String, String>> ws =  wsmeth.createWorkspace(params, user);
 			getLogger().info(CREATE_WORKSPACE + " " + ws.getE1() + " " + ws.getE3());
 			return ws;
 		}
 		if (SET_PERMISSIONS.equals(fn)) {
+			requireWrite(role);
 			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
 			final long id = wsmeth.setPermissionsAsAdmin(params, token);
 			getLogger().info(SET_PERMISSIONS + " " + id + " " + params.getNewPermission() + " " +
@@ -188,6 +203,7 @@ public class WorkspaceAdministration {
 			return null;
 		}
 		if (SET_WORKSPACE_DESCRIPTION.equals(fn)) {
+			requireWrite(role);
 			final SetWorkspaceDescriptionParams params = getParams(
 					cmd, SetWorkspaceDescriptionParams.class);
 			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
@@ -233,17 +249,19 @@ public class WorkspaceAdministration {
 			return wsInfoToTuple(info);
 		}
 		if (SET_GLOBAL_PERMISSION.equals(fn)) {
+			requireWrite(role);
+			final WorkspaceUser user = getUser(cmd, token);
 			final SetGlobalPermissionsParams params = getParams(cmd,
 					SetGlobalPermissionsParams.class);
-			final WorkspaceUser user = getUser(cmd, token);
 			final long id = wsmeth.setGlobalPermission(params, user);
 			getLogger().info(SET_GLOBAL_PERMISSION + " " + id + " " +
 					params.getNewPermission() + " " + user.getUser());
 			return null;
 		}
 		if (SAVE_OBJECTS.equals(fn)) {
-			final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
+			requireWrite(role);
 			final WorkspaceUser user = getUser(cmd, token);
+			final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
 			//method has its own logging
 			getLogger().info(SAVE_OBJECTS + " " + user.getUser());
 			return wsmeth.saveObjects(params, user, token);
@@ -268,14 +286,14 @@ public class WorkspaceAdministration {
 					resourcesToDelete);
 		}
 		if (LIST_WORKSPACES.equals(fn)) {
-			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
 			final WorkspaceUser user = getUser(cmd, token);
+			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
 			getLogger().info(LIST_WORKSPACES + " " + user.getUser());
 			return wsmeth.listWorkspaceInfo(params, user);
 		}
 		if (LIST_WORKSPACE_IDS.equals(fn)) {
-			final ListWorkspaceIDsParams params = getParams(cmd, ListWorkspaceIDsParams.class);
 			final WorkspaceUser user = getUser(cmd, token);
+			final ListWorkspaceIDsParams params = getParams(cmd, ListWorkspaceIDsParams.class);
 			getLogger().info(LIST_WORKSPACE_IDS + " " + user.getUser());
 			return wsmeth.listWorkspaceIDs(params, user);
 		}
@@ -287,6 +305,7 @@ public class WorkspaceAdministration {
 			return wsmeth.listObjects(params, user, user == null);
 		}
 		if (DELETE_WS.equals(fn)) {
+			requireWrite(role);
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
 			final long id = ws.setWorkspaceDeleted(null, wksp, true, true);
@@ -294,6 +313,7 @@ public class WorkspaceAdministration {
 			return null;
 		}
 		if (UNDELETE_WS.equals(fn)) {
+			requireWrite(role);
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
 			final long id = ws.setWorkspaceDeleted(null, wksp, false, true);
@@ -305,6 +325,7 @@ public class WorkspaceAdministration {
 			return usersToStrings(ws.getAllWorkspaceOwners());
 		}
 		if (GRANT_MODULE_OWNERSHIP.equals(fn)) {
+			requireWrite(role);
 			final GrantModuleOwnershipParams params = getParams(cmd,
 					GrantModuleOwnershipParams.class);
 			getLogger().info(GRANT_MODULE_OWNERSHIP + " " + params.getMod() +
@@ -313,6 +334,7 @@ public class WorkspaceAdministration {
 			return null;
 		}
 		if (REMOVE_MODULE_OWNERSHIP.equals(fn)) {
+			requireWrite(role);
 			final RemoveModuleOwnershipParams params = getParams(cmd,
 					RemoveModuleOwnershipParams.class);
 			getLogger().info(REMOVE_MODULE_OWNERSHIP + " " + params.getMod() +
@@ -371,16 +393,16 @@ public class WorkspaceAdministration {
 		}
 		try {
 			return MAPPER.readValue(p.getPlacedStream(), clazz);
-		} catch (JsonMappingException jme) {
+		} catch (JsonMappingException e) { // parse exception can't happen here
 			throw new IllegalArgumentException("Unable to deserialize "
-					+ clazz.getSimpleName() + " out of params field.", jme);
+					+ clazz.getSimpleName() + " out of params field: " + e.getMessage(), e);
 		}
 	}
 
-	//why doesn't this work?
-	@SuppressWarnings("unused")
-	private <T> T getParams(final Map<String, Object> input) {
-		return UObject.transformObjectToObject(input.get("params"),
-				new TypeReference<T>() {});
-	}
+//	//why doesn't this work?
+//	@SuppressWarnings("unused")
+//	private <T> T getParams(final Map<String, Object> input) {
+//		return UObject.transformObjectToObject(input.get("params"),
+//				new TypeReference<T>() {});
+//	}
 }

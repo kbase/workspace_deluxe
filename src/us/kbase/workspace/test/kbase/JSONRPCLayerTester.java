@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -1742,7 +1743,7 @@ public class JSONRPCLayerTester {
 		assertThat("incorrect exception message. Client side:\n"
 				+ ExceptionUtils.getStackTrace(se) +
 				"\nServer side:\n" + se.getData(),
-				se.getLocalizedMessage(), is(exp));
+				se.getLocalizedMessage(), containsString(exp));
 		
 	}
 
