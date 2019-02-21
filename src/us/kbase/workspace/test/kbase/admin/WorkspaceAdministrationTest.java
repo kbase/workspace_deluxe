@@ -47,6 +47,9 @@ import us.kbase.typedobj.db.OwnerInfo;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
+import us.kbase.workspace.GetObjects2Params;
+import us.kbase.workspace.GetObjects2Results;
+import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ObjectSpecification;
@@ -60,6 +63,7 @@ import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.AdminRole;
@@ -283,6 +287,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("saveObjects", "SaveObjectsParams");
 		commandToClass.put("getObjectInfo", "GetObjectInfo3Params");
 		commandToClass.put("getObjectHistory", "ObjectIdentity");
+		commandToClass.put("getObjects", "GetObjects2Params");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -332,6 +337,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getObjectInfo",
 				new MapErr("GetObjectInfo3Params", "objects", "foo"));
 		commandToClass.put("getObjectHistory", new MapErr("ObjectIdentity", "wsid", "foo"));
+		commandToClass.put("getObjects", new MapErr("GetObjects2Params", "objects", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -1104,6 +1110,138 @@ public class WorkspaceAdministrationTest {
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"getObjectHistory", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void getObjects() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getObjects",
+				"params", ImmutableMap.of(
+						"no_data", 0,
+						"ignoreErrors", 1,
+						"objects", Arrays.asList(
+								ImmutableMap.of(
+										"workspace", "ws",
+										"name", "n",
+										"to_obj_ref_path", Arrays.asList("1/2/3", "4/5/6")
+								),
+								ImmutableMap.of(
+										"wsid", 25,
+										"objid", 3,
+										"ver", 22,
+										"strict_maps", 1
+								)
+								))));
+		
+		final Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>> sg1 = new Tuple11<Long, String, String, String, Long,
+				String, Long, String, String, Long, Map<String, String>>()
+						.withE1(24L)
+						.withE2("n")
+						.withE3("Far.Boo-2.1")
+						.withE4("1970-01-01T00:02:00+0000")
+						.withE5(1L)
+						.withE6("auser")
+						.withE7(7L)
+						.withE8("ws")
+						.withE9("checksum")
+						.withE10(78L)
+						.withE11(Collections.emptyMap());
+		
+		final Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>> sg2 = new Tuple11<Long, String, String, String, Long,
+				String, Long, String, String, Long, Map<String, String>>()
+						.withE1(3L)
+						.withE2("somename")
+						.withE3("Mod.Type-0.2")
+						.withE4("1970-01-01T00:01:00+0000")
+						.withE5(22L)
+						.withE6("buser")
+						.withE7(25L)
+						.withE8("somews")
+						.withE9("checksum2")
+						.withE10(79L)
+						.withE11(Collections.emptyMap());
+		final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete = new ThreadLocal<>();
+		
+		final ObjectData od1 = new ObjectData()
+				.withCopySourceInaccessible(1L)
+				.withCreated("1970-01-01T00:02:00+0000")
+				.withCreator("auser")
+				.withData(new UObject(ImmutableMap.of("foo", "bar")))
+				.withEpoch(7200000L)
+				.withInfo(sg1)
+				.withOrigWsid(7L)
+				.withPath(Arrays.asList("1/2/3", "4/5/6", "7/24/1"));
+		final ObjectData od2 = new ObjectData()
+				.withCopySourceInaccessible(1L)
+				.withCreated("1970-01-01T00:01:00+0000")
+				.withCreator("buser")
+				.withData(new UObject(ImmutableMap.of("foo", "bar")))
+				.withEpoch(3600000L)
+				.withInfo(sg2)
+				.withOrigWsid(25L)
+				.withPath(Arrays.asList("25/3/22"));
+
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.wsmeth.getObjects(argThat(new ArgumentMatcher<GetObjects2Params>() {
+		
+					@Override
+					public boolean matches(final GetObjects2Params gop) {
+						System.out.println(gop);
+						if (gop.getObjects().size() != 2) {
+							return false;
+						}
+						final ObjectSpecification os1 = gop.getObjects().get(0);
+						final ObjectSpecification os2 = gop.getObjects().get(1);
+						return gop.getIgnoreErrors() == 1 && gop.getNoData() == 0 &&
+								
+								os1.getFindReferencePath() == null &&
+								os1.getIncluded() == null &&
+								"n".equals(os1.getName()) &&
+								os1.getObjid() == null &&
+								os1.getObjPath() == null &&
+								os1.getObjRefPath() == null &&
+								os1.getRef() == null &&
+								os1.getStrictArrays() == null &&
+								os1.getStrictMaps() == null &&
+								os1.getToObjPath() == null &&
+								Arrays.asList("1/2/3", "4/5/6").equals(os1.getToObjRefPath())
+								&& os1.getVer() == null &&
+								"ws".equals(os1.getWorkspace()) &&
+								os1.getWsid() == null &&
+								
+								os2.getFindReferencePath() == null &&
+								os2.getIncluded() == null &&
+								os2.getName() == null &&
+								os2.getObjid() == 3 &&
+								os2.getObjPath() == null &&
+								os2.getObjRefPath() == null &&
+								os2.getRef() == null &&
+								os2.getStrictArrays() == null &&
+								os2.getStrictMaps() == 1 &&
+								os2.getToObjPath() == null &&
+								os2.getToObjRefPath() == null &&
+								os2.getVer() == 22 &&
+								os2.getWorkspace() == null &&
+								os2.getWsid() == 25;
+					}
+				}),
+				eq(new WorkspaceUser("fake")),
+				eq(true),
+				eq(resourcesToDelete)))
+				.thenReturn(new GetObjects2Results().withData(Arrays.asList(od1, od2)));
+		
+		final GetObjects2Results res = (GetObjects2Results) mocks.admin.runCommand(
+				new AuthToken("tok", "fake"), command, resourcesToDelete);
+	
+		// rely on identity
+		assertThat("incorrect dat", res.getData(), is(Arrays.asList(od1, od2)));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getObjects", WorkspaceAdministration.class));
+	
 	}
 	
 }
