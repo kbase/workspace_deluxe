@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bson.Document;
 import org.ini4j.Ini;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.client.MongoDatabase;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -166,11 +168,20 @@ public class TestCommon {
 		return "true".equals(getTestProperty(MONGO_USE_WIRED_TIGER));
 	}
 	
-	public static void destroyDB(DB db) {
+	public static void destroyDB(final DB db) {
 		for (String name: db.getCollectionNames()) {
 			if (!name.startsWith("system.")) {
 				// dropping collection also drops indexes
 				db.getCollection(name).remove(new BasicDBObject());
+			}
+		}
+	}
+	
+	public static void destroyDB(final MongoDatabase db) {
+		for (String name: db.listCollectionNames()) {
+			if (!name.startsWith("system.")) {
+				// dropping collection also drops indexes
+				db.getCollection(name).deleteMany(new Document());
 			}
 		}
 	}

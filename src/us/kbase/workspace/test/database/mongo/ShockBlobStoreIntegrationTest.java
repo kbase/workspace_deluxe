@@ -27,7 +27,6 @@ import com.mongodb.MongoClient;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
@@ -41,6 +40,7 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class ShockBlobStoreIntegrationTest {
 	
@@ -93,8 +93,8 @@ public class ShockBlobStoreIntegrationTest {
 				"***---fakeuser---***",
 				mongohost,
 				"ShockBackendTest_ShockDB",
-				"foo",
-				"foo",
+				null,
+				null,
 				globusURL);
 		System.out.println("Shock controller version: " + shock.getVersion());
 		if (shock.getVersion() == null) {
