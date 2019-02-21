@@ -1435,19 +1435,8 @@ public class TypeDefinitionDB {
 		fi.setSupported(false);
 	}
 	
-	public void removeModule(String moduleName, String userId, boolean isAdmin) 
-			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		requestWriteLock(moduleName);
-		try {
-			checkAdmin(userId, isAdmin);
-			checkModuleRegistered(moduleName);
-			storage.removeModule(moduleName);
-			removeModuleInfoFromCache(moduleName);
-		} finally {
-			releaseWriteLock(moduleName);
-		}
-	}
-	
+	// removed removeModule method after 3ad9e2d. Untested, unused.
+
 	/**
 	 * @return all names of registered modules
 	 */

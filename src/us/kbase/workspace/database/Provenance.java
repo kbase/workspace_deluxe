@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -8,32 +10,33 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import us.kbase.common.exceptions.UnimplementedException;
-
 //TODO TEST unit tests
 //TODO JAVADOC
 //TODO MEM this should keep track of its size & punt if it gets too large
-//TODO consider checking the syntax of urls
+//TODO CODE consider checking the syntax of urls
+//TODO CODE make this immutable and use builders.
+//TODO CODE don't allow nulls for lists/maps
+//TODO CODE this whole class needs a massive refactor
 
 public class Provenance {
 	
-	private String user;
-	private Date date;
+	private final WorkspaceUser user;
+	private final Date date;
 	private Long wsid = null;
 	protected List<ProvenanceAction> actions =
 			new ArrayList<ProvenanceAction>();
 	
-	public Provenance(WorkspaceUser user) {
-		if (user == null) {
-			throw new IllegalArgumentException("user cannot be null");
-		}
-		this.user = user.getUser();
+	public Provenance(final WorkspaceUser user) {
+		requireNonNull(user, "user");
+		this.user = user;
 		this.date = new Date();
 	}
 	
-	protected Provenance() {} //for subclasses using mongo
+	public Provenance(final WorkspaceUser user, final Date date) {
+		requireNonNull(user, "user");
+		this.user = user;
+		this.date = date;
+	}
 	
 	public Provenance addAction(ProvenanceAction action) {
 		if (action == null) {
@@ -44,14 +47,14 @@ public class Provenance {
 	}
 	
 	public WorkspaceUser getUser() {
-		return new WorkspaceUser(user);
+		return user;
 	}
 	
 	public Date getDate() {
 		return date;
 	}
 	
-	protected void setWorkspaceID(final Long wsid) {
+	public void setWorkspaceID(final Long wsid) {
 		if (wsid < 1) {
 			throw new IllegalArgumentException("wsid must be > 0");
 		}
@@ -66,21 +69,6 @@ public class Provenance {
 		return new ArrayList<ProvenanceAction>(actions);
 	}
 	
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("Provenance [user=");
-		builder.append(user);
-		builder.append(", date=");
-		builder.append(date);
-		builder.append(", wsid=");
-		builder.append(wsid);
-		builder.append(", actions=");
-		builder.append(actions);
-		builder.append("]");
-		return builder.toString();
-	}
-
 	public static class ExternalData {
 		
 		private String resourceName;
@@ -97,10 +85,6 @@ public class Provenance {
 			return resourceName;
 		}
 
-		public void setResourceName(String resourceName) {
-			this.resourceName = resourceName;
-		}
-		
 		public ExternalData withResourceName(String resourceName) {
 			this.resourceName = resourceName;
 			return this;
@@ -108,10 +92,6 @@ public class Provenance {
 
 		public String getResourceUrl() {
 			return resourceUrl;
-		}
-
-		public void setResourceUrl(String resourceUrl) {
-			this.resourceUrl = resourceUrl;
 		}
 
 		public ExternalData withResourceUrl(String resourceUrl) {
@@ -123,10 +103,6 @@ public class Provenance {
 			return resourceVersion;
 		}
 
-		public void setResourceVersion(String resourceVersion) {
-			this.resourceVersion = resourceVersion;
-		}
-		
 		public ExternalData withResourceVersion(String resourceVersion) {
 			this.resourceVersion = resourceVersion;
 			return this;
@@ -137,10 +113,6 @@ public class Provenance {
 		}
 		
 
-		public void setResourceReleaseDate(Date resourceReleaseDate) {
-			this.resourceReleaseDate = resourceReleaseDate;
-		}
-
 		public ExternalData withResourceReleaseDate(Date resourceReleaseDate) {
 			this.resourceReleaseDate = resourceReleaseDate;
 			return this;
@@ -148,10 +120,6 @@ public class Provenance {
 
 		public String getDataUrl() {
 			return dataUrl;
-		}
-
-		public void setDataUrl(String dataUrl) {
-			this.dataUrl = dataUrl;
 		}
 
 		public ExternalData withDataUrl(String dataUrl) {
@@ -163,10 +131,6 @@ public class Provenance {
 			return dataId;
 		}
 		
-		public void setDataId(String dataId) {
-			this.dataId = dataId;
-		}
-
 		public ExternalData withDataId(String dataId) {
 			this.dataId = dataId;
 			return this;
@@ -176,43 +140,19 @@ public class Provenance {
 			return description;
 		}
 		
-		public void setDescription(String description) {
-			this.description = description;
-		}
-
 		public ExternalData withDescription(String description) {
 			this.description = description;
 			return this;
 		}
 		
-		@Override
-		public String toString() {
-			StringBuilder builder = new StringBuilder();
-			builder.append("ExternalData [resourceName=");
-			builder.append(resourceName);
-			builder.append(", resourceUrl=");
-			builder.append(resourceUrl);
-			builder.append(", resourceVersion=");
-			builder.append(resourceVersion);
-			builder.append(", resourceReleaseDate=");
-			builder.append(resourceReleaseDate);
-			builder.append(", dataUrl=");
-			builder.append(dataUrl);
-			builder.append(", dataId=");
-			builder.append(dataId);
-			builder.append(", description=");
-			builder.append(description);
-			builder.append("]");
-			return builder.toString();
-		}
 	}
 	
 	public static class SubAction {
-		private String  name;
-		private String  ver;
-		private String  codeUrl;
-		private String  commit;
-		private String  endpointUrl;
+		private String name;
+		private String ver;
+		private String codeUrl;
+		private String commit;
+		private String endpointUrl;
 		
 		public SubAction() {}
 
@@ -220,42 +160,22 @@ public class Provenance {
 			return name;
 		}
 
-		public void setName(String name) {
-			this.name = name;
-		}
-
 		public String getVer() {
 			return ver;
-		}
-
-		public void setVer(String ver) {
-			this.ver = ver;
 		}
 
 		public String getCodeUrl() {
 			return codeUrl;
 		}
 
-		public void setCodeUrl(String codeUrl) {
-			this.codeUrl = codeUrl;
-		}
-
 		public String getCommit() {
 			return commit;
-		}
-
-		public void setCommit(String commit) {
-			this.commit = commit;
 		}
 
 		public String getEndpointUrl() {
 			return endpointUrl;
 		}
 
-		public void setEndpointUrl(String endpointUrl) {
-			this.endpointUrl = endpointUrl;
-		}
-		
 		public SubAction withName(String name) {
 			this.name = name;
 			return this;
@@ -281,23 +201,6 @@ public class Provenance {
 			return this;
 		}
 
-		@Override
-		public String toString() {
-			StringBuilder builder = new StringBuilder();
-			builder.append("SubAction [name=");
-			builder.append(name);
-			builder.append(", ver=");
-			builder.append(ver);
-			builder.append(", codeUrl=");
-			builder.append(codeUrl);
-			builder.append(", commit=");
-			builder.append(commit);
-			builder.append(", endpointUrl=");
-			builder.append(endpointUrl);
-			builder.append("]");
-			return builder.toString();
-		}
-		
 	}
 	
 	public static class ProvenanceAction {
@@ -311,14 +214,14 @@ public class Provenance {
 		protected String script;
 		protected String scriptVersion;
 		protected String commandLine;
-		protected List<String> wsobjs = new LinkedList<String>();
+		protected List<String> wsobjs = new LinkedList<>();
 		protected List<String> incomingArgs;
 		protected List<String> outgoingArgs;
-		protected List<ExternalData> externalData =
-				new LinkedList<ExternalData>();
-		protected List<SubAction> subActions = new LinkedList<SubAction>();
-		protected Map<String, String> custom = new HashMap<String, String>();
+		protected List<ExternalData> externalData = new LinkedList<>();
+		protected List<SubAction> subActions = new LinkedList<>();
+		protected Map<String, String> custom = new HashMap<>();
 		protected String description;
+		private List<String> resolvedObjects = new LinkedList<>();
 		
 		public ProvenanceAction() {}
 		
@@ -346,10 +249,6 @@ public class Provenance {
 			return time;
 		}
 
-		public void setTime(final Date time) {
-			this.time = time;
-		}
-
 		public ProvenanceAction withTime(final Date time) {
 			this.time = time;
 			return this;
@@ -359,10 +258,6 @@ public class Provenance {
 			return caller;
 		}
 
-		public void setCaller(final String caller) {
-			this.caller = caller;
-		}
-		
 		public ProvenanceAction withCaller(final String caller) {
 			this.caller = caller;
 			return this;
@@ -372,10 +267,6 @@ public class Provenance {
 			return service;
 		}
 
-		public void setServiceName(final String service) {
-			this.service = service;
-		}
-		
 		public ProvenanceAction withServiceName(final String service) {
 			this.service = service;
 			return this;
@@ -385,10 +276,6 @@ public class Provenance {
 			return serviceVersion;
 		}
 
-		public void setServiceVersion(final String serviceVersion) {
-			this.serviceVersion = serviceVersion;
-		}
-		
 		public ProvenanceAction withServiceVersion(final String serviceVersion) {
 			this.serviceVersion = serviceVersion;
 			return this;
@@ -398,10 +285,6 @@ public class Provenance {
 			return method;
 		}
 
-		public void setMethod(final String method) {
-			this.method = method;
-		}
-		
 		public ProvenanceAction withMethod(final String method) {
 			this.method = method;
 			return this;
@@ -411,12 +294,7 @@ public class Provenance {
 			return methodParameters;
 		}
 
-		public void setMethodParameters(final List<Object> methodParameters) {
-			this.methodParameters = methodParameters;
-		}
-		
-		public ProvenanceAction withMethodParameters(
-				final List<Object> methodParameters) {
+		public ProvenanceAction withMethodParameters(final List<Object> methodParameters) {
 			this.methodParameters = methodParameters;
 			return this;
 		}
@@ -425,10 +303,6 @@ public class Provenance {
 			return script;
 		}
 
-		public void setScript(final String script) {
-			this.script = script;
-		}
-		
 		public ProvenanceAction withScript(final String script) {
 			this.script = script;
 			return this;
@@ -436,10 +310,6 @@ public class Provenance {
 
 		public String getScriptVersion() {
 			return scriptVersion;
-		}
-
-		public void setScriptVersion(final String scriptVersion) {
-			this.scriptVersion = scriptVersion;
 		}
 
 		public ProvenanceAction withScriptVersion(final String scriptVersion) {
@@ -451,10 +321,6 @@ public class Provenance {
 			return commandLine;
 		}
 
-		public void setCommandLine(final String commandLine) {
-			this.commandLine = commandLine;
-		}
-
 		public ProvenanceAction withCommandLine(final String commandLine) {
 			this.commandLine = commandLine;
 			return this;
@@ -464,18 +330,9 @@ public class Provenance {
 			return wsobjs;
 		}
 		
-		public void setWorkspaceObjects(final List<String> wsobjs) {
+		public ProvenanceAction withWorkspaceObjects(final List<String> wsobjs) {
 			if (wsobjs != null) {
-				this.wsobjs = new LinkedList<String>(
-						new HashSet<String>(wsobjs));
-			}
-		}
-
-		public ProvenanceAction withWorkspaceObjects(
-				final List<String> wsobjs) {
-			if (wsobjs != null) {
-				this.wsobjs = new LinkedList<String>(
-						new HashSet<String>(wsobjs));
+				this.wsobjs = new LinkedList<String>(new HashSet<String>(wsobjs));
 			}
 			return this;
 		}
@@ -484,12 +341,7 @@ public class Provenance {
 			return incomingArgs;
 		}
 
-		public void setIncomingArgs(final List<String> incomingArgs) {
-			this.incomingArgs = incomingArgs;
-		}
-
-		public ProvenanceAction withIncomingArgs(
-				final List<String> incomingArgs) {
+		public ProvenanceAction withIncomingArgs(final List<String> incomingArgs) {
 			this.incomingArgs = incomingArgs;
 			return this;
 		}
@@ -498,12 +350,7 @@ public class Provenance {
 			return outgoingArgs;
 		}
 
-		public void setOutgoingArgs(final List<String> outgoingArgs) {
-			this.outgoingArgs = outgoingArgs;
-		}
-		
-		public ProvenanceAction withOutgoingArgs(
-				final List<String> outgoingArgs) {
+		public ProvenanceAction withOutgoingArgs(final List<String> outgoingArgs) {
 			this.outgoingArgs = outgoingArgs;
 			return this;
 		}
@@ -512,10 +359,6 @@ public class Provenance {
 			return description;
 		}
 
-		public void setDescription(final String description) {
-			this.description = description;
-		}
-		
 		public ProvenanceAction withDescription(final String description) {
 			this.description = description;
 			return this;
@@ -525,12 +368,7 @@ public class Provenance {
 			return externalData;
 		}
 
-		public void setExternalData(final List<ExternalData> externalData) {
-			this.externalData = externalData;
-		}
-		
-		public ProvenanceAction withExternalData(
-				final List<ExternalData> externalData) {
+		public ProvenanceAction withExternalData(final List<ExternalData> externalData) {
 			this.externalData = externalData;
 			return this;
 		}
@@ -539,12 +377,7 @@ public class Provenance {
 			return subActions;
 		}
 
-		public void setSubActions(final List<SubAction> subActions) {
-			this.subActions = subActions;
-		}
-		
-		public ProvenanceAction withSubActions(
-				final List<SubAction> subActions) {
+		public ProvenanceAction withSubActions(final List<SubAction> subActions) {
 			this.subActions = subActions;
 			return this;
 		}
@@ -553,61 +386,22 @@ public class Provenance {
 			return custom;
 		}
 
-		public void setCustom(final Map<String, String> custom) {
-			this.custom = custom;
-		}
-		
-		public ProvenanceAction withCustom(
-				final Map<String, String> custom) {
-			this.custom = custom;
+		public ProvenanceAction withCustom(final Map<String, String> custom) {
+			if (custom != null) {
+				this.custom = custom;
+			}
 			return this;
 		}
 
-		// would prefer to make this abstract but Jackson doesn't like it
-		// and want to keep this class as unaware of the backend implementation
-		// as possible
-		@JsonIgnore
 		public List<String> getResolvedObjects() {
-			throw new UnimplementedException();
+			return resolvedObjects;
 		}
-
-		@Override
-		public String toString() {
-			StringBuilder builder = new StringBuilder();
-			builder.append("ProvenanceAction [time=");
-			builder.append(time);
-			builder.append(", caller=");
-			builder.append(caller);
-			builder.append(", service=");
-			builder.append(service);
-			builder.append(", serviceVersion=");
-			builder.append(serviceVersion);
-			builder.append(", method=");
-			builder.append(method);
-			builder.append(", methodParameters=");
-			builder.append(methodParameters);
-			builder.append(", script=");
-			builder.append(script);
-			builder.append(", scriptVersion=");
-			builder.append(scriptVersion);
-			builder.append(", commandLine=");
-			builder.append(commandLine);
-			builder.append(", wsobjs=");
-			builder.append(wsobjs);
-			builder.append(", incomingArgs=");
-			builder.append(incomingArgs);
-			builder.append(", outgoingArgs=");
-			builder.append(outgoingArgs);
-			builder.append(", externalData=");
-			builder.append(externalData);
-			builder.append(", subActions=");
-			builder.append(subActions);
-			builder.append(", custom=");
-			builder.append(custom);
-			builder.append(", description=");
-			builder.append(description);
-			builder.append("]");
-			return builder.toString();
+		
+		public ProvenanceAction withResolvedObjects(final List<String> resolvedObjects) {
+			if (resolvedObjects != null) {
+				this.resolvedObjects = resolvedObjects;
+			}
+			return this;
 		}
 	}
 }

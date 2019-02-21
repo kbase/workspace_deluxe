@@ -38,11 +38,9 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.auth.AuthToken;
-import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.common.test.controllers.shock.ShockController;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.core.LocalTypeProvider;
@@ -84,6 +82,7 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.controllers.shock.ShockController;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 
@@ -92,11 +91,11 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
 	
-	//true if no net access since shock requires access to auth to work
 	private static final boolean SKIP_SHOCK = false;
 
 	protected static final ObjectMapper MAPPER = new ObjectMapper();
@@ -210,9 +209,9 @@ public class WorkspaceTester {
 	
 	@Before
 	public void clearDB() throws Exception {
-		DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-				DB_WS_NAME);
-		TestCommon.destroyDB(wsdb);
+		final MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
+		TestCommon.destroyDB(mongoClient.getDatabase(DB_WS_NAME));
+		mongoClient.close();
 	}
 	
 	@After
@@ -249,8 +248,8 @@ public class WorkspaceTester {
 			System.out.println("started auth server at " + authURL);
 		}
 		if (!CONFIGS.containsKey(config)) {
-			DB wsdb = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-					DB_WS_NAME);
+			final DB wsdb = new MongoClient("localhost:" + mongo.getServerPort())
+					.getDB(DB_WS_NAME);
 			WorkspaceTestCommon.destroyWSandTypeDBs(wsdb,
 					DB_TYPE_NAME);
 			System.out.println("Starting test suite with parameters:");
@@ -299,8 +298,8 @@ public class WorkspaceTester {
 					"***---fakeuser---***",
 					"localhost:" + mongo.getServerPort(),
 					"WorkspaceTester_ShockDB",
-					"foo",
-					"foo",
+					null,
+					null,
 					new URL(authURL.toString() + "/api/legacy/globus"));
 			System.out.println("Shock controller version: " +
 					shock.getVersion());
@@ -326,10 +325,9 @@ public class WorkspaceTester {
 				new File(TestCommon.getTempDir()));
 		tfm.cleanup();
 		
-		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
-				new MongoTypeStorage(GetMongoDB.getDB(
-						"localhost:" + mongo.getServerPort(),
-						DB_TYPE_NAME)));
+		final DB tdb = new MongoClient("localhost:" + mongo.getServerPort())
+				.getDB(DB_TYPE_NAME);
+		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, bs, tfm);

@@ -251,15 +251,6 @@ temp-dir
 
 **Description**: See :ref:`tempdir`
 
-mongodb-retry
-"""""""""""""
-**Required**: No
-
-**Description**: Startup MongoDB reconnect retry count. The workspace will try
-to reconnect 1/s until this limit has been reached. This is useful for starting
-the Workspace automatically after a server restart, as MongoDB can take quite a
-while to get from start to accepting connections. The default is no retries.
-
 dont-trust-x-ip-headers
 """""""""""""""""""""""
 **Required**: No
@@ -303,7 +294,6 @@ user through the process::
     min-memory=10000
     max-memory=15000
     temp-dir=ws_temp_dir
-    mongodb-retry=0
     
     Keep this configuration? [y - keep]/n - discard: n
     Discarding current local configuration.
@@ -338,7 +328,6 @@ user through the process::
     min-memory=10000
     max-memory=15000
     temp-dir=ws_temp_dir
-    mongodb-retry=0
     
     Configuration saved.
     
