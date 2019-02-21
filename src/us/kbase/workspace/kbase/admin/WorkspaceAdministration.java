@@ -39,6 +39,7 @@ import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.WorkspacePermissions;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -238,9 +239,11 @@ public class WorkspaceAdministration {
 		if (GET_PERMISSIONS_MASS.equals(fn)) {
 			final GetPermissionsMassParams params = getParams(cmd, GetPermissionsMassParams.class);
 			// not sure what to log here, could be 1K entries.
+			final WorkspacePermissions perms = wsmeth.getPermissions(
+					params.getWorkspaces(), null, true);
 			getLogger().info(GET_PERMISSIONS_MASS + " " + params.getWorkspaces().size() +
 					" workspaces in input");
-			return wsmeth.getPermissions(params.getWorkspaces(), null, true);
+			return perms;
 		}
 		if (GET_WORKSPACE_INFO.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);

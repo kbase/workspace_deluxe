@@ -263,6 +263,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("setWorkspaceDescription", "SetWorkspaceDescriptionParams");
 		commandToClass.put("getWorkspaceDescription", "WorkspaceIdentity");
 		commandToClass.put("getPermissions", "WorkspaceIdentity");
+		commandToClass.put("getPermissionsMass", "GetPermissionsMassParams");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -303,6 +304,8 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getWorkspaceDescription",
 				new MapErr("WorkspaceIdentity", "id", "foo"));
 		commandToClass.put("getPermissions", new MapErr("WorkspaceIdentity", "id", "foo"));
+		commandToClass.put("getPermissionsMass",
+				new MapErr("GetPermissionsMassParams", "workspaces", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -709,7 +712,48 @@ public class WorkspaceAdministrationTest {
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"getPermissions null foo auser", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void getPermissionsMass() throws Exception {
+		final TestMocks mocks = initTestMocks();
 		
+		final UObject command = new UObject(ImmutableMap.of("command", "getPermissionsMass",
+				"params", ImmutableMap.of("workspaces", Arrays.asList(
+						ImmutableMap.of("workspace", "ws"),
+						ImmutableMap.of("id", 2)))));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.wsmeth.getPermissions(argThat(new ArgumentMatcher<List<WorkspaceIdentity>>() {
+			
+						@Override
+						public boolean matches(final List<WorkspaceIdentity> wsi) {
+							if (wsi.size() != 2) {
+								return false;
+							}
+							final WorkspaceIdentity ws1 = wsi.get(0);
+							final WorkspaceIdentity ws2 = wsi.get(1);
+							return ws1.getId() == null && "ws".equals(ws1.getWorkspace()) &&
+									ws2.getId() == 2 && ws2.getWorkspace() == null;
+						}
+				}),
+				isNull(),
+				eq(true)))
+				.thenReturn(new WorkspacePermissions()
+						.withPerms(Arrays.asList(
+								ImmutableMap.of("user", "a", "user2", "r"),
+								ImmutableMap.of("user3", "w", "user10", "r"))));
+		
+		final WorkspacePermissions perms = (WorkspacePermissions) mocks.admin.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		
+		assertThat("incorrect perms", perms.getPerms(), is(Arrays.asList(
+				ImmutableMap.of("user", "a", "user2", "r"),
+				ImmutableMap.of("user3", "w", "user10", "r"))));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getPermissionsMass 2 workspaces in input", WorkspaceAdministration.class));
+					
 	}
 
 }
