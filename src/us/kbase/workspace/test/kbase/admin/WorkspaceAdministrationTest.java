@@ -50,6 +50,7 @@ import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetObjects2Results;
+import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceIDsParams;
 import us.kbase.workspace.ListWorkspaceIDsResults;
@@ -58,6 +59,7 @@ import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ObjectSpecification;
+import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
@@ -298,6 +300,8 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("listObjects", "ListObjectsParams");
 		commandToClass.put("deleteWorkspace", "WorkspaceIdentity");
 		commandToClass.put("undeleteWorkspace", "WorkspaceIdentity");
+		commandToClass.put("grantModuleOwnership", "GrantModuleOwnershipParams");
+		commandToClass.put("removeModuleOwnership", "RemoveModuleOwnershipParams");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -355,6 +359,10 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("listObjects", new MapErr("ListObjectsParams", "ids", "foo"));
 		commandToClass.put("deleteWorkspace", new MapErr("WorkspaceIdentity", "id", "foo"));
 		commandToClass.put("undeleteWorkspace", new MapErr("WorkspaceIdentity", "id", "foo"));
+		commandToClass.put("grantModuleOwnership",
+				new MapErr("GrantModuleOwnershipParams", "with_grant_option", "foo"));
+		commandToClass.put("removeModuleOwnership",
+				new MapErr("RemoveModuleOwnershipParams", "mod", set("foo", "bar")));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -1585,6 +1593,88 @@ public class WorkspaceAdministrationTest {
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"undeleteWorkspace 8", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void listWorkspaceOwners() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "listWorkspaceOwners"));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.ws.getAllWorkspaceOwners()).thenReturn(set(
+				new WorkspaceUser("u1"), new WorkspaceUser("u2")));
+		
+		@SuppressWarnings("unchecked")
+		final List<String> ret = (List<String>) mocks.admin.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		
+		assertThat("incorrect users", ret, is(Arrays.asList("u1", "u2")));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"listWorkspaceOwners", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void grantModuleOwnership() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "grantModuleOwnership",
+				"params", ImmutableMap.of(
+						"mod", "ModName",
+						"new_owner", "owner",
+						"with_grant_option", 0)));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+
+		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		
+		verify(mocks.wsmeth).grantModuleOwnership(
+				argThat(new ArgumentMatcher<GrantModuleOwnershipParams>() {
+		
+					@Override
+					public boolean matches(final GrantModuleOwnershipParams gmop) {
+						return "ModName".equals(gmop.getMod()) &&
+								"owner".equals(gmop.getNewOwner()) &&
+								gmop.getWithGrantOption() == 0;
+					}
+				}),
+				
+				isNull(),
+				eq(true));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"grantModuleOwnership ModName owner", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void removeModuleOwnership() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "removeModuleOwnership",
+				"params", ImmutableMap.of(
+						"mod", "ModName",
+						"old_owner", "owner")));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+
+		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		
+		verify(mocks.wsmeth).removeModuleOwnership(
+				argThat(new ArgumentMatcher<RemoveModuleOwnershipParams>() {
+		
+					@Override
+					public boolean matches(final RemoveModuleOwnershipParams gmop) {
+						return "ModName".equals(gmop.getMod()) &&
+								"owner".equals(gmop.getOldOwner());
+					}
+				}),
+				
+				isNull(),
+				eq(true));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"removeModuleOwnership ModName owner", WorkspaceAdministration.class));
 	}
 	
 }
