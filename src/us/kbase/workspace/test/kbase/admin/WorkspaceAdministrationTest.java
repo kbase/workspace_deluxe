@@ -296,6 +296,8 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("listWorkspaces", "ListWorkspaceInfoParams");
 		commandToClass.put("listWorkspaceIDs", "ListWorkspaceIDsParams");
 		commandToClass.put("listObjects", "ListObjectsParams");
+		commandToClass.put("deleteWorkspace", "WorkspaceIdentity");
+		commandToClass.put("undeleteWorkspace", "WorkspaceIdentity");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -351,6 +353,8 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("listWorkspaceIDs",
 				new MapErr("ListWorkspaceIDsParams", "onlyGlobal", "foo"));
 		commandToClass.put("listObjects", new MapErr("ListObjectsParams", "ids", "foo"));
+		commandToClass.put("deleteWorkspace", new MapErr("WorkspaceIdentity", "id", "foo"));
+		commandToClass.put("undeleteWorkspace", new MapErr("WorkspaceIdentity", "id", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -1425,7 +1429,6 @@ public class WorkspaceAdministrationTest {
 		
 					@Override
 					public boolean matches(final ListObjectsParams lop) {
-						System.out.println(lop);
 						return Arrays.asList(6L).equals(lop.getIds()) &&
 								Arrays.asList("ws2").equals(lop.getWorkspaces()) &&
 								"Foo.Bar-2".equals(lop.getType()) &&
@@ -1516,7 +1519,6 @@ public class WorkspaceAdministrationTest {
 		
 					@Override
 					public boolean matches(final ListObjectsParams lop) {
-						System.out.println(lop);
 						return Arrays.asList(6L).equals(lop.getIds()) &&
 								Arrays.asList("ws2").equals(lop.getWorkspaces()) &&
 								"Foo.Bar-2".equals(lop.getType()) &&
@@ -1549,6 +1551,40 @@ public class WorkspaceAdministrationTest {
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"listObjects adminuser", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void deleteWorkspace() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "deleteWorkspace",
+				"params", ImmutableMap.of("id", 7)));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		when(mocks.ws.setWorkspaceDeleted(null, new WorkspaceIdentifier(7), true, true))
+			.thenReturn(7L);
+		
+		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"deleteWorkspace 7", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void undeleteWorkspace() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "undeleteWorkspace",
+				"params", ImmutableMap.of("workspace", "ws1")));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		when(mocks.ws.setWorkspaceDeleted(null, new WorkspaceIdentifier("ws1"), false, true))
+			.thenReturn(8L);
+		
+		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"undeleteWorkspace 8", WorkspaceAdministration.class));
 	}
 	
 }
