@@ -41,6 +41,7 @@ import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
+import us.kbase.common.test.MapBuilder;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestCommon.LogEvent;
 import us.kbase.typedobj.db.OwnerInfo;
@@ -49,6 +50,7 @@ import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetObjects2Results;
+import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
@@ -288,6 +290,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getObjectInfo", "GetObjectInfo3Params");
 		commandToClass.put("getObjectHistory", "ObjectIdentity");
 		commandToClass.put("getObjects", "GetObjects2Params");
+		commandToClass.put("listWorkspaces", "ListWorkspaceInfoParams");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -338,6 +341,8 @@ public class WorkspaceAdministrationTest {
 				new MapErr("GetObjectInfo3Params", "objects", "foo"));
 		commandToClass.put("getObjectHistory", new MapErr("ObjectIdentity", "wsid", "foo"));
 		commandToClass.put("getObjects", new MapErr("GetObjects2Params", "objects", "foo"));
+		commandToClass.put("listWorkspaces",
+				new MapErr("ListWorkspaceInfoParams", "owners", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -1189,7 +1194,6 @@ public class WorkspaceAdministrationTest {
 		
 					@Override
 					public boolean matches(final GetObjects2Params gop) {
-						System.out.println(gop);
 						if (gop.getObjects().size() != 2) {
 							return false;
 						}
@@ -1241,7 +1245,81 @@ public class WorkspaceAdministrationTest {
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"getObjects", WorkspaceAdministration.class));
+	}
 	
+	@Test
+	public void listWorkspaces() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "listWorkspaces",
+				"user", "user1",
+				"params", MapBuilder.newHashMap()
+						.with("perm", "w")
+						.with("owners", Arrays.asList("u1", "u2"))
+						.with("meta", ImmutableMap.of("foo", "bar"))
+						.with("after", "1970-01-01T00:01:00+0000")
+						.with("before_epoch", 7200000)
+						.with("excludeGlobal", 1)
+						.build()
+						));
+		
+		final Tuple9<Long, String, String, String, Long, String, String, String,
+			Map<String, String>> g1 = new Tuple9<Long, String, String, String, Long, String,
+					String, String, Map<String, String>>()
+						.withE1(7L)
+						.withE2("ws1")
+						.withE3("u1")
+						.withE4("1970-01-01T00:02:00+0000")
+						.withE5(18L)
+						.withE6("w")
+						.withE7("n")
+						.withE8("unlocked")
+						.withE9(Collections.emptyMap());
+
+		
+		final Tuple9<Long, String, String, String, Long, String, String, String,
+			Map<String, String>> g2 = new Tuple9<Long, String, String, String, Long, String,
+					String, String, Map<String, String>>()
+						.withE1(8L)
+						.withE2("ws2")
+						.withE3("u2")
+						.withE4("1970-01-01T00:01:00+0000")
+						.withE5(9L)
+						.withE6("a")
+						.withE7("r")
+						.withE8("locked")
+						.withE9(Collections.emptyMap());
+
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		when(mocks.wsmeth.validateUsers(Arrays.asList("user1"), new AuthToken("tok", "fake")))
+				.thenReturn(Arrays.asList(new WorkspaceUser("user1")));
+		when(mocks.wsmeth.listWorkspaceInfo(
+				argThat(new ArgumentMatcher<ListWorkspaceInfoParams>() {
+		
+					@Override
+					public boolean matches(final ListWorkspaceInfoParams lwip) {
+						return "w".equals(lwip.getPerm()) &&
+								Arrays.asList("u1", "u2").equals(lwip.getOwners()) &&
+								ImmutableMap.of("foo", "bar").equals(lwip.getMeta()) &&
+								"1970-01-01T00:01:00+0000".equals(lwip.getAfter()) &&
+								lwip.getAfterEpoch() == null &&
+								lwip.getBefore() == null &&
+								lwip.getBeforeEpoch() == 7200000 &&
+								lwip.getExcludeGlobal() == 1 &&
+								lwip.getShowDeleted() == null &&
+								lwip.getShowOnlyDeleted() == null;
+					}
+				}),
+				eq(new WorkspaceUser("user1"))))
+				.thenReturn(Arrays.asList(g1, g2));
+		
+		final Object res = mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		
+		// rely on identity
+		assertThat("incorrect return", res, is(Arrays.asList(g1, g2)));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"listWorkspaces user1", WorkspaceAdministration.class));
 	}
 	
 }
