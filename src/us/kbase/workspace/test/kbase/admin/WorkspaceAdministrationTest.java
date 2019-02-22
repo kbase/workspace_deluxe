@@ -50,6 +50,8 @@ import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetObjects2Results;
+import us.kbase.workspace.ListWorkspaceIDsParams;
+import us.kbase.workspace.ListWorkspaceIDsResults;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -291,6 +293,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getObjectHistory", "ObjectIdentity");
 		commandToClass.put("getObjects", "GetObjects2Params");
 		commandToClass.put("listWorkspaces", "ListWorkspaceInfoParams");
+		commandToClass.put("listWorkspaceIDs", "ListWorkspaceIDsParams");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -343,6 +346,8 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("getObjects", new MapErr("GetObjects2Params", "objects", "foo"));
 		commandToClass.put("listWorkspaces",
 				new MapErr("ListWorkspaceInfoParams", "owners", "foo"));
+		commandToClass.put("listWorkspaceIDs",
+				new MapErr("ListWorkspaceIDsParams", "onlyGlobal", "foo"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -1290,7 +1295,7 @@ public class WorkspaceAdministrationTest {
 						.withE8("locked")
 						.withE9(Collections.emptyMap());
 
-		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
 		when(mocks.wsmeth.validateUsers(Arrays.asList("user1"), new AuthToken("tok", "fake")))
 				.thenReturn(Arrays.asList(new WorkspaceUser("user1")));
 		when(mocks.wsmeth.listWorkspaceInfo(
@@ -1320,6 +1325,42 @@ public class WorkspaceAdministrationTest {
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"listWorkspaces user1", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void listWorkspaceIDs() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "listWorkspaceIDs",
+				"user", "user1",
+				"params", ImmutableMap.of("perm", "w", "excludeGlobal", 0)));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.wsmeth.validateUsers(Arrays.asList("user1"), new AuthToken("tok", "fake")))
+				.thenReturn(Arrays.asList(new WorkspaceUser("user1")));
+		when(mocks.wsmeth.listWorkspaceIDs(argThat(new ArgumentMatcher<ListWorkspaceIDsParams>() {
+		
+					@Override
+					public boolean matches(final ListWorkspaceIDsParams lwip) {
+						return "w".equals(lwip.getPerm()) &&
+								lwip.getExcludeGlobal() == 0 &&
+								lwip.getOnlyGlobal() == null;
+					}
+				}),
+				eq(new WorkspaceUser("user1"))))
+				.thenReturn(new ListWorkspaceIDsResults()
+						.withPub(Arrays.asList(1L, 2L))
+						.withWorkspaces(Arrays.asList(3L, 4L)));
+		
+		final ListWorkspaceIDsResults res = (ListWorkspaceIDsResults) mocks.admin.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		
+		// rely on identity
+		assertThat("incorrect pub", res.getPub(), is(Arrays.asList(1L, 2L)));
+		assertThat("incorrect ws", res.getWorkspaces(), is(Arrays.asList(3L, 4L)));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"listWorkspaceIDs user1", WorkspaceAdministration.class));
 	}
 	
 }
