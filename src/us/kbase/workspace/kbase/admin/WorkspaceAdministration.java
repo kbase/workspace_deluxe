@@ -9,6 +9,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -18,6 +21,9 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
+import com.google.common.base.Ticker;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
@@ -48,6 +54,15 @@ import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 
+/** A workspace administration mediator. Administration calls should be routed to this class,
+ * which checks that the user is authorized, transforms the input parameters, and calls
+ * the correct method on the correct object.
+ * 
+ * The mediator caches each administrators's {@link AdminRole} for a specified amount of time to
+ * avoid excessive calls to the {@link AdministratorHandler}, which may make network calls.
+ * @author gaprice@lbl.gov
+ *
+ */
 public class WorkspaceAdministration {
 	
 	//TODO JAVADOC
@@ -91,16 +106,44 @@ public class WorkspaceAdministration {
 	private final WorkspaceServerMethods wsmeth;
 	private final Types types;
 	private final AdministratorHandler admin;
+	private final Cache<String, AdminRole> adminCache;
 	
+	/** Create the workspace administration instance.
+	 * @param ws a workspace instance.
+	 * @param wsmeth a workspace methods instance.
+	 * @param types a workspace types instance.
+	 * @param admin an administrator handler.
+	 * @param maxCacheSize the maximum number of {@link AdminRole}s to cache.
+	 * @param cacheTimeInMS the maximum time an {@link AdminRole} will be cached in milliseconds.
+	 */
 	public WorkspaceAdministration(
 			final Workspace ws, 
 			final WorkspaceServerMethods wsmeth,
 			final Types types,
-			final AdministratorHandler admin) {
+			final AdministratorHandler admin,
+			final int maxCacheSize,
+			final int cacheTimeInMS) {
+		this(ws, wsmeth, types, admin, maxCacheSize, cacheTimeInMS, Ticker.systemTicker());
+	}
+	
+	/** This constructor should only be used for tests. */
+	public WorkspaceAdministration(
+			final Workspace ws, 
+			final WorkspaceServerMethods wsmeth,
+			final Types types,
+			final AdministratorHandler admin,
+			final int maxCacheSize,
+			final int cacheTimeInMS,
+			final Ticker ticker) {
 		this.ws = ws;
 		this.types = types;
 		this.wsmeth = wsmeth;
 		this.admin = admin;
+		adminCache = CacheBuilder.newBuilder()
+				.maximumSize(maxCacheSize)
+				.expireAfterWrite(cacheTimeInMS, TimeUnit.MILLISECONDS)
+				.ticker(ticker)
+				.build();
 	}
 	
 	private static Logger getLogger() {
@@ -113,14 +156,27 @@ public class WorkspaceAdministration {
 					"Full administration rights required for this command");
 		}
 	}
+	
+	private AdminRole getAdminRole(final AuthToken token) throws AdministratorHandlerException {
+		try {
+			return adminCache.get(token.getUserName(), new Callable<AdminRole>() {
+				
+				@Override
+				public AdminRole call() throws AdministratorHandlerException {
+					return admin.getAdminRole(token);
+				}
+			});
+		} catch (ExecutionException e) {
+			throw (AdministratorHandlerException) e.getCause();
+		}
+	}
 
 	public Object runCommand(
 			final AuthToken token,
 			final UObject command,
 			final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
 			throws Exception {
-		final AdminRole role = admin.getAdminRole(token);
-		//TODO NOW check read only role
+		final AdminRole role = getAdminRole(token);
 		final String putativeAdmin = token.getUserName();
 		if (AdminRole.NONE.equals(role)) {
 			throw new IllegalArgumentException("User " + putativeAdmin + " is not an admin");
@@ -165,6 +221,7 @@ public class WorkspaceAdministration {
 			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(ADD_ADMIN + " " + user.getUser());
 			admin.addAdmin(user);
+			adminCache.invalidate(user.getUser());
 			return null;
 		}
 		if (REMOVE_ADMIN.equals(fn)) {
@@ -172,6 +229,7 @@ public class WorkspaceAdministration {
 			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(REMOVE_ADMIN + " " + user.getUser());
 			admin.removeAdmin(user);
+			adminCache.invalidate(user.getUser());
 			return null;
 		}
 		if (SET_WORKSPACE_OWNER.equals(fn)) {
