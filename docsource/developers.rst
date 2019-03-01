@@ -25,6 +25,20 @@ To compile, simply run ``make compile``. The
 `kb-sdk <https://github.com/kbase/kb_sdk>`_ executable must be in the system
 path.
 
+Release checklist
+-----------------
+
+* Update the version in ``docsource/conf.py``
+* Update the version in the generated server java file
+* Update release notes
+* Update documentation if necessary.
+* Ensure tests cover changes. Add new tests if necessary.
+* Run tests against supported versions of MongoDB and Shock.
+* Tag the release in git with the new version.
+* Merge ``dev-candidate`` to ``develop``.
+* When satisfied with CI testing (work with devops here), merge ``develop`` to
+  ``master``.
+
 Deploying the Workspace Service locally
 ----------------------------------------
 These instructions are known to work on Ubuntu 16.04 LTS.
@@ -161,18 +175,3 @@ Make the following changes -
     u'myws',
     ...
     ]
-
-
-Release checklist
------------------
-
-* Update the version in ``docsource/conf.py``
-* Update the version in the generated server java file
-* Update release notes
-* Update documentation if necessary.
-* Ensure tests cover changes. Add new tests if necessary.
-* Run tests against supported versions of MongoDB and Shock.
-* Tag the release in git with the new version.
-* Merge ``dev-candidate`` to ``develop``.
-* When satisfied with CI testing (work with devops here), merge ``develop`` to
-  ``master``.
