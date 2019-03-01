@@ -94,8 +94,8 @@ may optionally use:
   :ref:`shockintegration`).
   
 The WSS has been tested against the auth2 branch of the KBase fork of Shock version 0.9.6
-(e9f0e1618e265042bf5cb96429995b5e6ec0a06a), and against MongoDB versions 2.4.14, 2.6.11, 3.0.8,
-and 3.2.1. 3.0+ versions were tested with and without the WiredTiger storage engine.
+(e9f0e1618e265042bf5cb96429995b5e6ec0a06a), and against MongoDB versions 2.6.11 and 3.6.10.
+3.0+ versions were tested with and without the WiredTiger storage engine.
   
 Please see the respective service documentation to set up and run the services
 required.
@@ -177,6 +177,26 @@ auth2-service-url
 
 **Description**: URL of the KBase authentication service MKII
 
+auth2-ws-admin-read-only-roles
+""""""""""""""""""""""""""""""
+**Required**: No
+
+**Description**: KBase authentication server custom roles that designate that the user
+possessing the role has authority to run administration methods requiring only read access.
+If a role is entered in this field, workspace administrator management is delegated to the
+KBase authentication server, and administrators specified in the configuration or added to
+the workspace database are ignored. Multiple roles may be specified as a comma separated list.
+
+auth2-ws-admin-full-roles
+"""""""""""""""""""""""""
+**Required**: No
+
+**Description**: KBase authentication server custom roles that designate that the user
+possessing the role has authority to run all administration methods.
+If a role is entered in this field, workspace administrator management is delegated to the
+KBase authentication server, and administrators specified in the configuration or added to
+the workspace database are ignored. Multiple roles may be specified as a comma separated list.
+
 ignore-handle-service
 """""""""""""""""""""
 **Required**: If not using handles
@@ -211,7 +231,9 @@ ws-admin
 names added via the ``administer`` API call, is not permanently stored in the
 database and thus the administrator will change if this name is changed and the
 server restarted. This administrator cannot be removed by the ``administer``
-API call.
+API call. If either ``auth2-ws-admin-read-only-roles`` or ``auth2-ws-admin-full-roles``
+contain text, this parameter is ignored and workspace administrator management is
+delegated to the KBase authentication server.
 
 backend-token
 """""""""""""

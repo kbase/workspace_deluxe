@@ -20,21 +20,19 @@ auth-service-url={{ default .Env.auth_service "https://ci.kbase.us/services/auth
 auth-service-url-allow-insecure={{ default .Env.auth_service_url_allow_insecure "" }}
 # The KBase authorization server url.
 auth2-service-url = {{ default .Env.auth2_service "https://ci.kbase.us/services/auth/" }}
+auth2-ws-admin-read-only-roles = {{ default .Env.auth2_ws_admin_read_only_roles "" }}
+auth2-ws-admin-full-roles = {{ default .Env.auth2_ws_admin_full_roles "" }}
 #the credentials used for the handle manager.
 handle-manager-token={{ default .Env.handle_manager_token "" }}
 
 # configuration options for RESKE
-listeners={{ default .Env.listeners "Search,KnowledgeEngine" }}
+listeners={{ default .Env.listeners "Search" }}
 
 listener-Search-class={{ default .Env.listener_search_class "us.kbase.workspace.modules.SearchPrototypeEventHandlerFactory" }}
 listener-Search-config-mongohost={{ default .Env.listener_search_config_mongohost "" }}
 listener-Search-config-mongodatabase={{ default .Env.listener_search_config_mongodatabase "search" }}
 listener-Search-config-mongouser={{ default .Env.listener_search_config_mongouser "" }}
 listener-Search-config-mongopwd={{ default .Env.listener_search_config_mongopwd "" }}
-
-listener-KnowledgeEngine-class={{ default .Env.listener_KnowledgeEngine_class "us.kbase.workspace.modules.KnowledgeEnginePrototypeEventHandlerFactory" }}
-listener-KnowledgeEngine-config-mongohost={{ default .Env.listener_knowledgeengine_config_mongohost "" }}
-listener-KnowledgeEngine-config-mongodatabase={{ default .Env.listener_KnowledgeEngine_config_mongodatabase "KnowledgeEngine" }}
 
 listener-Kafka-class={{ default .Env.listener_Kafka_class "us.kbase.workspace.modules.KafkaNotifierFactory" }}
 listener-Kafka-config-topic={{ default .Env.listener_Kafka_config_topic "workspaceevents" }}

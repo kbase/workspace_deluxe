@@ -8,7 +8,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -18,8 +17,6 @@ import java.util.Set;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,7 +31,6 @@ import us.kbase.workspace.database.WorkspaceUser;
  */
 public class KBaseAuth2AdminHandler implements AdministratorHandler {
 	
-	//TODO NEWAUTH DOCS
 	//TODO CODE retries for gets (should handled to some extent by the http client)
 
 	private static final String UNSUPPORTED =
@@ -206,20 +202,4 @@ public class KBaseAuth2AdminHandler implements AdministratorHandler {
 		rolecopy.removeAll(customRoles);
 		return rolecopy.size() < roles.size();
 	}
-	
-	public static void main(String[] args) throws Exception {
-		final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
-		cm.setMaxTotal(1000); //perhaps these should be configurable
-		cm.setDefaultMaxPerRoute(1000);
-		//TODO set timeouts for the client for 1/2m for conn req timeout and std timeout
-		final CloseableHttpClient client = HttpClients.custom().setConnectionManager(cm).build();
-		final AdministratorHandler h = new KBaseAuth2AdminHandler(
-				client,
-				new URL("https://ci.kbase.us/services/auth"),
-				new HashSet<>(Arrays.asList("WS_READ_ADMIN_TEST", "OTHER_ROLE")),
-				new HashSet<>(Arrays.asList("WS_ADMIN_TEST", "OTHER_ROLE2")));
-		
-		System.out.println(h.getAdminRole(new AuthToken(args[0], "user")));
-	}
-
 }
