@@ -6,9 +6,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class KBaseWorkspaceConfig {
@@ -30,6 +32,12 @@ public class KBaseWorkspaceConfig {
 	//auth servers
 	private static final String KBASE_AUTH_URL = "auth-service-url";
 	private static final String KBASE_AUTH2_URL = "auth2-service-url";
+	
+	//admin roles
+	private static final String KBASE_AUTH_ADMIN_READ_ONLY_ROLES =
+			"auth2-ws-admin-read-only-roles";
+	private static final String KBASE_AUTH_ADMIN_FULL_ROLES =
+			"auth2-ws-admin-full-roles";
 	
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
@@ -58,6 +66,8 @@ public class KBaseWorkspaceConfig {
 	private final String mongoPassword;
 	private final URL authURL;
 	private final URL auth2URL;
+	private final Set<String> adminRoles;
+	private final Set<String> adminReadOnlyRoles;
 	private final boolean ignoreHandleService;
 	private final URL handleServiceURL;
 	private final URL handleManagerURL;
@@ -107,6 +117,9 @@ public class KBaseWorkspaceConfig {
 		
 		authURL = getUrl(config, KBASE_AUTH_URL, paramErrors);
 		auth2URL = getUrl(config, KBASE_AUTH2_URL, paramErrors);
+		
+		adminRoles = getStringSet(config, KBASE_AUTH_ADMIN_FULL_ROLES);
+		adminReadOnlyRoles = getStringSet(config, KBASE_AUTH_ADMIN_READ_ONLY_ROLES);
 		
 		final String beToken = config.get(BACKEND_TOKEN);
 		if (beToken == null || beToken.trim().isEmpty()) {
@@ -167,6 +180,20 @@ public class KBaseWorkspaceConfig {
 		paramReport = generateParamReport(config);
 	}
 	
+	private Set<String> getStringSet(final Map<String, String> config, final String configKey) {
+		final String set = config.get(configKey);
+		if (nullOrEmpty(set)) {
+			return Collections.emptySet();
+		}
+		final Set<String> ret = new HashSet<>();
+		for (final String s: set.split(",")) {
+			if (!s.trim().isEmpty()) {
+				ret.add(s.trim());
+			}
+		}
+		return Collections.unmodifiableSet(ret);
+	}
+
 	private List<ListenerConfig> getListenerConfigs(
 			final Map<String, String> config,
 			final List<String> paramErrors) {
@@ -220,7 +247,8 @@ public class KBaseWorkspaceConfig {
 	private String generateParamReport(final Map<String, String> cfg) {
 		String params = "";
 		final List<String> paramSet = new LinkedList<String>(
-				Arrays.asList(HOST, DB, MONGO_USER, KBASE_AUTH_URL, KBASE_AUTH2_URL));
+				Arrays.asList(HOST, DB, MONGO_USER, KBASE_AUTH_URL, KBASE_AUTH2_URL,
+						KBASE_AUTH_ADMIN_READ_ONLY_ROLES, KBASE_AUTH_ADMIN_FULL_ROLES));
 		if (!ignoreHandleService) {
 			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL, HANDLE_MANAGER_URL));
 		}
@@ -271,6 +299,14 @@ public class KBaseWorkspaceConfig {
 	
 	public URL getAuth2URL() {
 		return auth2URL;
+	}
+	
+	public Set<String> getAdminRoles() {
+		return adminRoles;
+	}
+	
+	public Set<String> getAdminReadOnlyRoles() {
+		return adminReadOnlyRoles;
 	}
 	
 	public String getBackendToken() {
