@@ -1,4 +1,4 @@
-package us.kbase.workspace.kbase;
+package us.kbase.workspace.kbase.admin;
 
 import us.kbase.common.service.UObject;
 

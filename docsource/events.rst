@@ -113,6 +113,6 @@ set global permission    SET_GLOBAL_PERMISSION                         No
 set workspace un/deleted WORKSPACE_DELETE_STATE_CHANGE                 Yes
 ======================== ============================= =============== ===============
 
-#. objid, ver, evtype, objtype
+#. objid, ver, objtype
 
 Regarding the ``user`` field, see the note under :ref:`customlisteners` above.

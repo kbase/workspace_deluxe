@@ -1,12 +1,21 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.8.3 (Released TBD)
----------------------------------
+VERSION: 0.9.0 (Released TBD)
+-----------------------------
 
+BACKWARDS INCOMPATIBILITIES:
+
+* The ``globus-url`` configuration parameter has been replaced by the ``auth2-service-url``
+  parameter.
+
+UPDATES:
+
+* The KBase Authentication server may now be used to specify workspace administrators,
+  and supports read only administrator access as well as full access.
 * Added a Kafka events listener. See the administration documentation for configuration
   instructions.
-* Event listeners are now send the user name of the user that triggered the event. In the
+* Event listeners now send the user name of the user that triggered the event. In the
   case of an administrator impersonating another user, the impersonated name is sent. If
   the administrator is not required to impersonate another user, null is sent.
 * Updated to the 3.x version of MongoDB Java driver. As such, the ``mongo-retry`` configuration

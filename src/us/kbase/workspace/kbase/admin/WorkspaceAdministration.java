@@ -1,4 +1,4 @@
-package us.kbase.workspace.kbase;
+package us.kbase.workspace.kbase.admin;
 
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
@@ -6,19 +6,24 @@ import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifie
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
+import com.google.common.base.Ticker;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
@@ -40,13 +45,24 @@ import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.WorkspaceIdentity;
+import us.kbase.workspace.WorkspacePermissions;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.kbase.WorkspaceServerMethods;
 
+/** A workspace administration mediator. Administration calls should be routed to this class,
+ * which checks that the user is authorized, transforms the input parameters, and calls
+ * the correct method on the correct object.
+ * 
+ * The mediator caches each administrators's {@link AdminRole} for a specified amount of time to
+ * avoid excessive calls to the {@link AdministratorHandler}, which may make network calls.
+ * @author gaprice@lbl.gov
+ *
+ */
 public class WorkspaceAdministration {
 	
 	//TODO JAVADOC
@@ -89,23 +105,70 @@ public class WorkspaceAdministration {
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final Types types;
-	private final Set<String> internaladmins = new HashSet<String>(); 
+	private final AdministratorHandler admin;
+	private final Cache<String, AdminRole> adminCache;
 	
+	/** Create the workspace administration instance.
+	 * @param ws a workspace instance.
+	 * @param wsmeth a workspace methods instance.
+	 * @param types a workspace types instance.
+	 * @param admin an administrator handler.
+	 * @param maxCacheSize the maximum number of {@link AdminRole}s to cache.
+	 * @param cacheTimeInMS the maximum time an {@link AdminRole} will be cached in milliseconds.
+	 */
 	public WorkspaceAdministration(
 			final Workspace ws, 
 			final WorkspaceServerMethods wsmeth,
 			final Types types,
-			final String admin) {
+			final AdministratorHandler admin,
+			final int maxCacheSize,
+			final int cacheTimeInMS) {
+		this(ws, wsmeth, types, admin, maxCacheSize, cacheTimeInMS, Ticker.systemTicker());
+	}
+	
+	/** This constructor should only be used for tests. */
+	public WorkspaceAdministration(
+			final Workspace ws, 
+			final WorkspaceServerMethods wsmeth,
+			final Types types,
+			final AdministratorHandler admin,
+			final int maxCacheSize,
+			final int cacheTimeInMS,
+			final Ticker ticker) {
 		this.ws = ws;
 		this.types = types;
 		this.wsmeth = wsmeth;
-		if (admin != null && !admin.isEmpty()) {
-			internaladmins.add(admin);
-		}
+		this.admin = admin;
+		adminCache = CacheBuilder.newBuilder()
+				.maximumSize(maxCacheSize)
+				.expireAfterWrite(cacheTimeInMS, TimeUnit.MILLISECONDS)
+				.ticker(ticker)
+				.build();
 	}
 	
 	private static Logger getLogger() {
 		return LoggerFactory.getLogger(WorkspaceAdministration.class);
+	}
+	
+	private void requireWrite(final AdminRole role) {
+		if (!AdminRole.ADMIN.equals(role)) {
+			throw new IllegalArgumentException(
+					"Full administration rights required for this command");
+		}
+	}
+	
+	private AdminRole getAdminRole(final AuthToken token) throws AdministratorHandlerException {
+		try {
+			return adminCache.get(token.getUserName(), new Callable<AdminRole>() {
+				
+				@Override
+				public AdminRole call() throws AdministratorHandlerException {
+					return admin.getAdminRole(token);
+				}
+			});
+		} catch (ExecutionException e) {
+			throw (AdministratorHandlerException) e.getCause();
+		}
 	}
 
 	public Object runCommand(
@@ -113,9 +176,9 @@ public class WorkspaceAdministration {
 			final UObject command,
 			final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
 			throws Exception {
+		final AdminRole role = getAdminRole(token);
 		final String putativeAdmin = token.getUserName();
-		if (!(internaladmins.contains(putativeAdmin) ||
-				ws.isAdmin(new WorkspaceUser(putativeAdmin)))) {
+		if (AdminRole.NONE.equals(role)) {
 			throw new IllegalArgumentException("User " + putativeAdmin + " is not an admin");
 		}
 		final AdminCommand cmd;
@@ -123,9 +186,9 @@ public class WorkspaceAdministration {
 			cmd = command.asClassInstance(AdminCommand.class);
 		} catch (IllegalStateException ise) {
 			final IOException ioe = (IOException) ise.getCause();
-			if (ioe instanceof JsonMappingException) {
+			if (ioe instanceof JsonMappingException || ioe instanceof JsonParseException) {
 				throw new IllegalArgumentException("Unable to deserialize " +
-						"a workspace admin command from the input.", ioe);
+						"a workspace admin command from the input: " + ioe.getMessage(), ioe);
 			}
 			throw ioe;
 		}
@@ -136,12 +199,14 @@ public class WorkspaceAdministration {
 			return types.listModuleRegistrationRequests();
 		}
 		if (APPROVE_MOD_REQUEST.equals(fn)) {
+			requireWrite(role);
 			final String mod = cmd.getModule();
 			getLogger().info(APPROVE_MOD_REQUEST + " " + mod);
 			types.resolveModuleRegistration(mod, true);
 			return null;
 		}
 		if (DENY_MOD_REQUEST.equals(fn)) {
+			requireWrite(role);
 			final String mod = cmd.getModule();
 			getLogger().info(DENY_MOD_REQUEST + " " + mod);
 			types.resolveModuleRegistration(mod, false);
@@ -149,24 +214,26 @@ public class WorkspaceAdministration {
 		}
 		if (LIST_ADMINS.equals(fn)) {
 			getLogger().info(LIST_ADMINS);
-			final Set<String> strAdm = new HashSet<String>();
-			strAdm.addAll(usersToStrings(ws.getAdmins()));
-			strAdm.addAll(internaladmins);
-			return strAdm;
+			return usersToStrings(admin.getAdmins());
 		}
 		if (ADD_ADMIN.equals(fn)) {
+			requireWrite(role);
 			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(ADD_ADMIN + " " + user.getUser());
-			ws.addAdmin(user);
+			admin.addAdmin(user);
+			adminCache.invalidate(user.getUser());
 			return null;
 		}
 		if (REMOVE_ADMIN.equals(fn)) {
+			requireWrite(role);
 			final WorkspaceUser user = getUser(cmd, token);
 			getLogger().info(REMOVE_ADMIN + " " + user.getUser());
-			ws.removeAdmin(user);
+			admin.removeAdmin(user);
+			adminCache.invalidate(user.getUser());
 			return null;
 		}
 		if (SET_WORKSPACE_OWNER.equals(fn)) {
+			requireWrite(role);
 			final SetWorkspaceOwnerParams params = getParams(cmd, SetWorkspaceOwnerParams.class);
 			
 			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.wsi);
@@ -178,13 +245,16 @@ public class WorkspaceAdministration {
 			return wsInfoToTuple(info);
 		}
 		if (CREATE_WORKSPACE.equals(fn)) {
+			requireWrite(role);
+			final WorkspaceUser user = getUser(cmd, token);
 			final CreateWorkspaceParams params = getParams(cmd, CreateWorkspaceParams.class);
-			Tuple9<Long, String, String, String, Long, String, String, String,
-					Map<String, String>> ws =  wsmeth.createWorkspace(params, getUser(cmd, token));
+			final Tuple9<Long, String, String, String, Long, String, String, String,
+					Map<String, String>> ws =  wsmeth.createWorkspace(params, user);
 			getLogger().info(CREATE_WORKSPACE + " " + ws.getE1() + " " + ws.getE3());
 			return ws;
 		}
 		if (SET_PERMISSIONS.equals(fn)) {
+			requireWrite(role);
 			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
 			final long id = wsmeth.setPermissionsAsAdmin(params, token);
 			getLogger().info(SET_PERMISSIONS + " " + id + " " + params.getNewPermission() + " " +
@@ -192,6 +262,7 @@ public class WorkspaceAdministration {
 			return null;
 		}
 		if (SET_WORKSPACE_DESCRIPTION.equals(fn)) {
+			requireWrite(role);
 			final SetWorkspaceDescriptionParams params = getParams(
 					cmd, SetWorkspaceDescriptionParams.class);
 			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
@@ -212,21 +283,25 @@ public class WorkspaceAdministration {
 		if (GET_PERMISSIONS.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceUser user = getNullableUser(cmd, token);
+			final Map<String, String> perms;
+			if (user == null) {
+				perms = wsmeth.getPermissions(Arrays.asList(params), null, true).getPerms().get(0);
+			} else {
+				perms = wsmeth.getPermissions(params, user);
+			}
 			//TODO FEATURE would be better if could always provide ID vs. name
 			getLogger().info(GET_PERMISSIONS + " " + params.getId() + " " +
 					params.getWorkspace() + (user == null ? "" : " " + user.getUser()));
-			if (user == null) {
-				return wsmeth.getPermissions(Arrays.asList(params), null, true).getPerms().get(0);
-			} else {
-				return wsmeth.getPermissions(params, user);
-			}
+			return perms;
 		}
 		if (GET_PERMISSIONS_MASS.equals(fn)) {
 			final GetPermissionsMassParams params = getParams(cmd, GetPermissionsMassParams.class);
 			// not sure what to log here, could be 1K entries.
+			final WorkspacePermissions perms = wsmeth.getPermissions(
+					params.getWorkspaces(), null, true);
 			getLogger().info(GET_PERMISSIONS_MASS + " " + params.getWorkspaces().size() +
 					" workspaces in input");
-			return wsmeth.getPermissions(params.getWorkspaces(), null, true);
+			return perms;
 		}
 		if (GET_WORKSPACE_INFO.equals(fn)) {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
@@ -237,17 +312,19 @@ public class WorkspaceAdministration {
 			return wsInfoToTuple(info);
 		}
 		if (SET_GLOBAL_PERMISSION.equals(fn)) {
+			requireWrite(role);
+			final WorkspaceUser user = getUser(cmd, token);
 			final SetGlobalPermissionsParams params = getParams(cmd,
 					SetGlobalPermissionsParams.class);
-			final WorkspaceUser user = getUser(cmd, token);
 			final long id = wsmeth.setGlobalPermission(params, user);
 			getLogger().info(SET_GLOBAL_PERMISSION + " " + id + " " +
 					params.getNewPermission() + " " + user.getUser());
 			return null;
 		}
 		if (SAVE_OBJECTS.equals(fn)) {
-			final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
+			requireWrite(role);
 			final WorkspaceUser user = getUser(cmd, token);
+			final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
 			//method has its own logging
 			getLogger().info(SAVE_OBJECTS + " " + user.getUser());
 			return wsmeth.saveObjects(params, user, token);
@@ -256,6 +333,7 @@ public class WorkspaceAdministration {
 			final GetObjectInfo3Params params = getParams(cmd, GetObjectInfo3Params.class);
 			// method has its own logging
 			getLogger().info(GET_OBJECT_INFO);
+			// is passing the admin user really necessary? Check at some point, maybe remove
 			return wsmeth.getObjectInformation(params, new WorkspaceUser(putativeAdmin), true);
 		}
 		if (GET_OBJECT_HIST.equals(fn)) {
@@ -272,14 +350,14 @@ public class WorkspaceAdministration {
 					resourcesToDelete);
 		}
 		if (LIST_WORKSPACES.equals(fn)) {
-			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
 			final WorkspaceUser user = getUser(cmd, token);
+			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
 			getLogger().info(LIST_WORKSPACES + " " + user.getUser());
 			return wsmeth.listWorkspaceInfo(params, user);
 		}
 		if (LIST_WORKSPACE_IDS.equals(fn)) {
-			final ListWorkspaceIDsParams params = getParams(cmd, ListWorkspaceIDsParams.class);
 			final WorkspaceUser user = getUser(cmd, token);
+			final ListWorkspaceIDsParams params = getParams(cmd, ListWorkspaceIDsParams.class);
 			getLogger().info(LIST_WORKSPACE_IDS + " " + user.getUser());
 			return wsmeth.listWorkspaceIDs(params, user);
 		}
@@ -291,6 +369,7 @@ public class WorkspaceAdministration {
 			return wsmeth.listObjects(params, user, user == null);
 		}
 		if (DELETE_WS.equals(fn)) {
+			requireWrite(role);
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
 			final long id = ws.setWorkspaceDeleted(null, wksp, true, true);
@@ -298,6 +377,7 @@ public class WorkspaceAdministration {
 			return null;
 		}
 		if (UNDELETE_WS.equals(fn)) {
+			requireWrite(role);
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
 			final long id = ws.setWorkspaceDeleted(null, wksp, false, true);
@@ -309,6 +389,7 @@ public class WorkspaceAdministration {
 			return usersToStrings(ws.getAllWorkspaceOwners());
 		}
 		if (GRANT_MODULE_OWNERSHIP.equals(fn)) {
+			requireWrite(role);
 			final GrantModuleOwnershipParams params = getParams(cmd,
 					GrantModuleOwnershipParams.class);
 			getLogger().info(GRANT_MODULE_OWNERSHIP + " " + params.getMod() +
@@ -317,6 +398,7 @@ public class WorkspaceAdministration {
 			return null;
 		}
 		if (REMOVE_MODULE_OWNERSHIP.equals(fn)) {
+			requireWrite(role);
 			final RemoveModuleOwnershipParams params = getParams(cmd,
 					RemoveModuleOwnershipParams.class);
 			getLogger().info(REMOVE_MODULE_OWNERSHIP + " " + params.getMod() +
@@ -375,16 +457,16 @@ public class WorkspaceAdministration {
 		}
 		try {
 			return MAPPER.readValue(p.getPlacedStream(), clazz);
-		} catch (JsonMappingException jme) {
+		} catch (JsonMappingException e) { // parse exception can't happen here
 			throw new IllegalArgumentException("Unable to deserialize "
-					+ clazz.getSimpleName() + " out of params field.", jme);
+					+ clazz.getSimpleName() + " out of params field: " + e.getMessage(), e);
 		}
 	}
 
-	//why doesn't this work?
-	@SuppressWarnings("unused")
-	private <T> T getParams(final Map<String, Object> input) {
-		return UObject.transformObjectToObject(input.get("params"),
-				new TypeReference<T>() {});
-	}
+//	//why doesn't this work?
+//	@SuppressWarnings("unused")
+//	private <T> T getParams(final Map<String, Object> input) {
+//		return UObject.transformObjectToObject(input.get("params"),
+//				new TypeReference<T>() {});
+//	}
 }

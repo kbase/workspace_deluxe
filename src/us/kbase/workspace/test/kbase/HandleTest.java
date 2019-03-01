@@ -246,8 +246,8 @@ public class HandleTest {
 		ws.add("auth-service-url-allow-insecure", "true");
 		ws.add("auth-service-url", new URL("http://localhost:" + AUTH.getServerPort() +
 				"/testmode/api/legacy/KBase"));
-		ws.add("globus-url", new URL("http://localhost:" + AUTH.getServerPort() +
-				"/testmode/api/legacy/globus"));
+		ws.add("auth2-service-url", new URL("http://localhost:" + AUTH.getServerPort() +
+				"/testmode/"));
 		ws.add("handle-service-url", "http://localhost:" +
 				HANDLE.getHandleServerPort());
 		ws.add("handle-manager-url", "http://localhost:" +

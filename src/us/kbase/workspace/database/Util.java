@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collection;
 
 public class Util {
@@ -87,6 +89,21 @@ public class Util {
 		for (final T item: col) {
 			if (item == null) {
 				throw new NullPointerException(message);
+			}
+		}
+	}
+	
+	/** Check that the provided collection is not null and contains no null or whitespace-only
+	 * strings.
+	 * @param strings the collection to check.
+	 * @param name the name of the collection to use in any error messages.
+	 */
+	public static void checkNoNullsOrEmpties(final Collection<String> strings, final String name) {
+		checkNotNull(strings, name);
+		for (final String s: strings) {
+			if (isNullOrEmpty(s)) {
+				throw new IllegalArgumentException(
+						"Null or whitespace only string in collection " + name);
 			}
 		}
 	}

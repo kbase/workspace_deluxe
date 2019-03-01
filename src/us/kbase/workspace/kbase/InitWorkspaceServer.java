@@ -11,6 +11,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.DB;
@@ -42,6 +45,7 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
+import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.BlobStore;
@@ -49,6 +53,11 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
+import us.kbase.workspace.kbase.admin.AdministratorHandler;
+import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
+import us.kbase.workspace.kbase.admin.DefaultAdminHandler;
+import us.kbase.workspace.kbase.admin.KBaseAuth2AdminHandler;
+import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
@@ -61,6 +70,8 @@ public class InitWorkspaceServer {
 	private static final String COL_SETTINGS = InitConstants.COL_SETTINGS;
 	public static final String COL_SHOCK_NODES = InitConstants.COL_SHOCK_NODES;
 	
+	private static final int ADMIN_CACHE_MAX_SIZE = 100; // seems like more than enough admins
+	private static final int ADMIN_CACHE_EXP_TIME_MS = 5 * 60 * 1000; // cache admin role for 5m
 	
 	private static int maxUniqueIdCountPerCall = 100000;
 
@@ -169,8 +180,16 @@ public class InitWorkspaceServer {
 		rep.reportInfo("Temporary file location: " + tfm.getTempDir());
 
 		final WorkspaceDependencies wsdeps;
+		final AdministratorHandler ah;
+		final Workspace ws;
 		try {
 			wsdeps = getDependencies(cfg, tfm, auth);
+			ws = new Workspace(
+					wsdeps.mongoWS,
+					new ResourceUsageConfigurationBuilder().build(),
+					wsdeps.validator,
+					wsdeps.listeners);
+			ah = getAdminHandler(cfg, ws);
 		} catch (WorkspaceInitException wie) {
 			rep.reportFail(wie.getLocalizedMessage());
 			rep.reportFail(
@@ -179,15 +198,13 @@ public class InitWorkspaceServer {
 		}
 		rep.reportInfo(String.format("Initialized %s backend",
 				wsdeps.backendType));
-		Workspace ws = new Workspace(
-				wsdeps.mongoWS, new ResourceUsageConfigurationBuilder().build(), wsdeps.validator,
-				wsdeps.listeners);
 		Types types = new Types(wsdeps.typeDB);
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
 				ws, types, cfg.getHandleServiceURL(), cfg.getHandleManagerURL(),
 				handleMgrToken, maxUniqueIdCountPerCall, auth);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				ws, wsmeth, types, cfg.getWorkspaceAdmin());
+				ws, wsmeth, types, ah,
+				ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),
@@ -199,6 +216,35 @@ public class InitWorkspaceServer {
 				handleMgrToken);
 	}
 	
+	private static AdministratorHandler getAdminHandler(
+			final KBaseWorkspaceConfig cfg,
+			final Workspace ws) throws WorkspaceInitException {
+		if (cfg.getAdminReadOnlyRoles().isEmpty() && cfg.getAdminRoles().isEmpty()) {
+			final String a = cfg.getWorkspaceAdmin();
+			final WorkspaceUser admin = a == null || a.trim().isEmpty() ?
+					null : new WorkspaceUser(a);
+			return new DefaultAdminHandler(ws, admin);
+		} else {
+			final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+			cm.setMaxTotal(1000); //perhaps these should be configurable
+			cm.setDefaultMaxPerRoute(1000);
+			//TODO set timeouts for the client for 1/2m for conn req timeout and std timeout
+			final CloseableHttpClient client = HttpClients.custom().setConnectionManager(cm)
+					.build();
+			try {
+				return new KBaseAuth2AdminHandler(
+						client,
+						cfg.getAuth2URL(),
+						cfg.getAdminReadOnlyRoles(),
+						cfg.getAdminRoles());
+			} catch (URISyntaxException | AdministratorHandlerException e) {
+				throw new WorkspaceInitException(
+						"Could not start the KBase auth2 adminstrator handler: " +
+						e.getMessage(), e);
+			}
+		}
+	}
+
 	private static class WorkspaceDependencies {
 		public TypeDefinitionDB typeDB;
 		public TypedObjectValidator validator;
@@ -498,9 +544,10 @@ public class InitWorkspaceServer {
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
 		final AuthConfig c = new AuthConfig();
-		if (cfg.getGlobusURL().getProtocol().equals("http")) {
+		if (cfg.getAuth2URL().getProtocol().equals("http")) {
 			c.withAllowInsecureURLs(true);
-			rep.reportInfo("Warning - the Globus url uses insecure http. https is recommended.");
+			rep.reportInfo("Warning - the Auth Service MKII url uses insecure http. " +
+					"https is recommended.");
 		}
 		if (cfg.getAuthURL().getProtocol().equals("http")) {
 			c.withAllowInsecureURLs(true);
@@ -508,18 +555,20 @@ public class InitWorkspaceServer {
 					"Warning - the Auth Service url uses insecure http. https is recommended.");
 		}
 		try {
-			c.withGlobusAuthURL(cfg.getGlobusURL())
+			final URL auth2url = cfg.getAuth2URL().toURI().resolve("api/legacy/globus").toURL();
+			c.withGlobusAuthURL(auth2url)
 				.withKBaseAuthServerURL(cfg.getAuthURL());
-		} catch (URISyntaxException e) {
-			throw new RuntimeException("this should be impossible", e);
+		} catch (URISyntaxException | MalformedURLException e) {
+			rep.reportFail("Invalid Auth Service url: " + cfg.getAuth2URL());
+			return null;
 		}
 		try {
 			return new ConfigurableAuthService(c);
 		} catch (IOException e) {
 			rep.reportFail("Couldn't connect to authorization service at " +
 					c.getAuthServerURL() + " : " + e.getLocalizedMessage());
+			return null;
 		}
-		return null;
 	}
 
 	
