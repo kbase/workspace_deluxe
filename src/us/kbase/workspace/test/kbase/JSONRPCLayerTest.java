@@ -84,8 +84,8 @@ import com.google.common.collect.ImmutableMap;
  * These tests are specifically for testing the JSON-RPC communications between
  * the client, up to the invocation of the {@link us.kbase.workspace.workspaces.Workspaces}
  * methods. As such they do not test the full functionality of the Workspaces methods;
- * {@link us.kbase.workspace.test.workspaces.TestWorkspaces} handles that. This means
- * that only one backend (the simplest gridFS backend) is tested here, while TestWorkspaces
+ * {@link us.kbase.workspace.test.workspaces.WorkspaceTest} handles that. This means
+ * that only one backend (the simplest gridFS backend) is tested here, while WorkspaceTest
  * tests all backends and {@link us.kbase.workspace.database.WorkspaceDatabase} implementations.
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
@@ -3255,6 +3255,26 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"{\"command\": \"removeAdmin\"," +
 				" \"user\": \"" + USER1 + "\"}")));
 		checkAdmins(CLIENT2, Arrays.asList(USER2));
+	}
+	
+	@Test
+	public void adminAuth2Roles() throws Exception {
+		final Map<String, Object> params = new HashMap<>();
+		params.put("command", "createWorkspace");
+		params.put("user", "user3");
+		params.put("params", new CreateWorkspaceParams().withWorkspace("ws"));
+		CLIENT_AA1.administer(new UObject(params)); // has full admin role
+		
+		// has read only role
+		failAdmin(CLIENT_AA3, params, "Full administration rights required for this command");
+		failAdmin(CLIENT_AA2, params, "user2 is not an admin"); // has no role
+		
+		params.put("command", "getWorkspaceInfo");
+		params.put("params", new WorkspaceIdentity().withId(1L));
+		final List<Object> wsinfo = CLIENT_AA3.administer(new UObject(params))
+				.asClassInstance(new TypeReference<List<Object>>() {});
+		assertThat("incorrect ws id", wsinfo.get(0), is(1));
+		assertThat("incorrect ws name", wsinfo.get(1), is("ws"));
 	}
 	
 	@Test

@@ -11,6 +11,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.DB;
@@ -50,7 +53,10 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
+import us.kbase.workspace.kbase.admin.AdministratorHandler;
+import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
 import us.kbase.workspace.kbase.admin.DefaultAdminHandler;
+import us.kbase.workspace.kbase.admin.KBaseAuth2AdminHandler;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
@@ -174,8 +180,16 @@ public class InitWorkspaceServer {
 		rep.reportInfo("Temporary file location: " + tfm.getTempDir());
 
 		final WorkspaceDependencies wsdeps;
+		final AdministratorHandler ah;
+		final Workspace ws;
 		try {
 			wsdeps = getDependencies(cfg, tfm, auth);
+			ws = new Workspace(
+					wsdeps.mongoWS,
+					new ResourceUsageConfigurationBuilder().build(),
+					wsdeps.validator,
+					wsdeps.listeners);
+			ah = getAdminHandler(cfg, ws);
 		} catch (WorkspaceInitException wie) {
 			rep.reportFail(wie.getLocalizedMessage());
 			rep.reportFail(
@@ -184,17 +198,12 @@ public class InitWorkspaceServer {
 		}
 		rep.reportInfo(String.format("Initialized %s backend",
 				wsdeps.backendType));
-		Workspace ws = new Workspace(
-				wsdeps.mongoWS, new ResourceUsageConfigurationBuilder().build(), wsdeps.validator,
-				wsdeps.listeners);
 		Types types = new Types(wsdeps.typeDB);
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
 				ws, types, cfg.getHandleServiceURL(), cfg.getHandleManagerURL(),
 				handleMgrToken, maxUniqueIdCountPerCall, auth);
-		final String a = cfg.getWorkspaceAdmin();
-		final WorkspaceUser admin = a == null || a.trim().isEmpty() ? null : new WorkspaceUser(a);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				ws, wsmeth, types, new DefaultAdminHandler(ws, admin),
+				ws, wsmeth, types, ah,
 				ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
@@ -207,6 +216,35 @@ public class InitWorkspaceServer {
 				handleMgrToken);
 	}
 	
+	private static AdministratorHandler getAdminHandler(
+			final KBaseWorkspaceConfig cfg,
+			final Workspace ws) throws WorkspaceInitException {
+		if (cfg.getAdminReadOnlyRoles().isEmpty() && cfg.getAdminRoles().isEmpty()) {
+			final String a = cfg.getWorkspaceAdmin();
+			final WorkspaceUser admin = a == null || a.trim().isEmpty() ?
+					null : new WorkspaceUser(a);
+			return new DefaultAdminHandler(ws, admin);
+		} else {
+			final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+			cm.setMaxTotal(1000); //perhaps these should be configurable
+			cm.setDefaultMaxPerRoute(1000);
+			//TODO set timeouts for the client for 1/2m for conn req timeout and std timeout
+			final CloseableHttpClient client = HttpClients.custom().setConnectionManager(cm)
+					.build();
+			try {
+				return new KBaseAuth2AdminHandler(
+						client,
+						cfg.getAuth2URL(),
+						cfg.getAdminReadOnlyRoles(),
+						cfg.getAdminRoles());
+			} catch (URISyntaxException | AdministratorHandlerException e) {
+				throw new WorkspaceInitException(
+						"Could not start the KBase auth2 adminstrator handler: " +
+						e.getMessage(), e);
+			}
+		}
+	}
+
 	private static class WorkspaceDependencies {
 		public TypeDefinitionDB typeDB;
 		public TypedObjectValidator validator;

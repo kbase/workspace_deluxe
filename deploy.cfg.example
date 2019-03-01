@@ -30,6 +30,15 @@ handle-manager-token =
 # is changed and the server restarted.
 ws-admin = workspaceadmin
 
+# To use the KBase authentication server to determine which users are workspace admins, provide
+# authentication server custom roles that designate a user is a read-only admin or a full
+# admin, respectively. Multiple roles may be specified as a comma separated list.
+# If any roles are provided here, the ws-admin field and any administrators currently
+# configured in the workspace database are ignored.
+auth2-ws-admin-read-only-roles =
+auth2-ws-admin-full-roles =
+	
+
 # token for the backend account (e.g. shock if used).
 backend-token =
 
