@@ -64,6 +64,8 @@ public class InitWorkspaceServer {
 	private static final String COL_SETTINGS = InitConstants.COL_SETTINGS;
 	public static final String COL_SHOCK_NODES = InitConstants.COL_SHOCK_NODES;
 	
+	private static final int ADMIN_CACHE_MAX_SIZE = 100; // seems like more than enough admins
+	private static final int ADMIN_CACHE_EXP_TIME_MS = 5 * 60 * 1000; // cache admin role for 5m
 	
 	private static int maxUniqueIdCountPerCall = 100000;
 
@@ -192,7 +194,8 @@ public class InitWorkspaceServer {
 		final String a = cfg.getWorkspaceAdmin();
 		final WorkspaceUser admin = a == null || a.trim().isEmpty() ? null : new WorkspaceUser(a);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				ws, wsmeth, types, new DefaultAdminHandler(ws, admin));
+				ws, wsmeth, types, new DefaultAdminHandler(ws, admin),
+				ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),

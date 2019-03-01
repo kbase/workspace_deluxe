@@ -6,8 +6,11 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.assertLogEventsCorrect;
@@ -21,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.Before;
@@ -32,6 +36,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
+import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableMap;
 
 import ch.qos.logback.classic.Level;
@@ -75,6 +80,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.AdminRole;
 import us.kbase.workspace.kbase.admin.AdministratorHandler;
+import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 
 public class WorkspaceAdministrationTest {
@@ -95,11 +101,27 @@ public class WorkspaceAdministrationTest {
 		logEvents.clear();
 	}
 	
+	private class FakeTicker extends Ticker {
+
+		private final AtomicLong nanos = new AtomicLong();
+
+		public FakeTicker advance(long nanoseconds) {
+			nanos.addAndGet(nanoseconds);
+			return this;
+		}
+
+		@Override
+		public long read() {
+			return nanos.get();
+		}
+	}
+	
 	private static class TestMocks {
 		private final Workspace ws;
 		private final WorkspaceServerMethods wsmeth;
 		private final Types types;
 		private final AdministratorHandler ah;
+		private final FakeTicker ticker;
 		private final WorkspaceAdministration admin;
 		
 		private TestMocks(
@@ -107,11 +129,13 @@ public class WorkspaceAdministrationTest {
 				final WorkspaceServerMethods wsmeth,
 				final Types types,
 				final AdministratorHandler ah,
+				final FakeTicker ticker,
 				final WorkspaceAdministration admin) {
 			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.types = types;
 			this.ah = ah;
+			this.ticker = ticker;
 			this.admin = admin;
 		}
 	}
@@ -121,8 +145,20 @@ public class WorkspaceAdministrationTest {
 		final WorkspaceServerMethods wsmeth = mock(WorkspaceServerMethods.class);
 		final Types types = mock(Types.class);
 		final AdministratorHandler ah = mock(AdministratorHandler.class);
-		final WorkspaceAdministration admin = new WorkspaceAdministration(ws, wsmeth, types, ah);
-		return new TestMocks(ws, wsmeth, types, ah, admin);
+		final WorkspaceAdministration admin = new WorkspaceAdministration(
+				ws, wsmeth, types, ah, 0, 0);
+		return new TestMocks(ws, wsmeth, types, ah, null, admin);
+	}
+	
+	private TestMocks initTestMocks(final int cacheSize, final int cacheTimeMS) {
+		final Workspace ws = mock(Workspace.class);
+		final WorkspaceServerMethods wsmeth = mock(WorkspaceServerMethods.class);
+		final Types types = mock(Types.class);
+		final AdministratorHandler ah = mock(AdministratorHandler.class);
+		final FakeTicker ticker = new FakeTicker();
+		final WorkspaceAdministration admin = new WorkspaceAdministration(
+				ws, wsmeth, types, ah, cacheSize, cacheTimeMS, ticker);
+		return new TestMocks(ws, wsmeth, types, ah, ticker, admin);
 	}
 	
 	private void runCommandFail(
@@ -1677,4 +1713,155 @@ public class WorkspaceAdministrationTest {
 				"removeModuleOwnership ModName owner", WorkspaceAdministration.class));
 	}
 	
+	/* *****************************************
+	 * Cache related tests
+	 * *****************************************
+	 */
+	
+	@Test
+	public void cacheFailHandlerException() throws Exception {
+		final TestMocks mocks = initTestMocks(1, 10000000);
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake")))
+				.thenThrow(new AdministratorHandlerException("oopsie"));
+		
+		try {
+			mocks.admin.runCommand(new AuthToken("tok", "fake"), new UObject(ImmutableMap.of(
+					"command", "whatever")), null);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new AdministratorHandlerException("oopsie"));
+		}
+	}
+	
+	@Test
+	public void cacheEvictOnTime() throws Exception {
+		final TestMocks mocks = initTestMocks(1, 5);
+		
+		final AuthToken token = new AuthToken("tok", "fake");
+		when(mocks.ah.getAdminRole(token))
+				.thenReturn(AdminRole.NONE, AdminRole.ADMIN, AdminRole.READ_ONLY, AdminRole.NONE);
+		
+		runCommandFail(mocks.admin, token, new UObject(ImmutableMap.of("command", "addAdmin")),
+				new IllegalArgumentException("User fake is not an admin"));
+		
+		mocks.ticker.advance(4999999);
+		runCommandFail(mocks.admin, token, new UObject(ImmutableMap.of("command", "addAdmin")),
+				new IllegalArgumentException("User fake is not an admin"));
+		
+		when(mocks.wsmeth.validateUsers(Arrays.asList("foo"), token))
+				.thenReturn(Arrays.asList(new WorkspaceUser("foo")));
+		
+		mocks.ticker.advance(1);
+		mocks.admin.runCommand(token, new UObject(ImmutableMap.of("command", "removeAdmin",
+				"user", "foo")), null);
+		
+		when(mocks.wsmeth.validateUsers(Arrays.asList("bar"), token))
+				.thenReturn(Arrays.asList(new WorkspaceUser("bar")));
+		
+		mocks.ticker.advance(4999999);
+		mocks.admin.runCommand(token, new UObject(ImmutableMap.of("command", "removeAdmin",
+				"user", "bar")), null);
+		
+		mocks.ticker.advance(1);
+		runCommandFail(mocks.admin, token, new UObject(ImmutableMap.of("command", "addAdmin")),
+				new IllegalArgumentException(
+						"Full administration rights required for this command"));
+		
+		mocks.admin.runCommand(token, new UObject(ImmutableMap.of("command", "listAdmins")), null);
+		
+		mocks.ticker.advance(4999999);
+		mocks.admin.runCommand(token, new UObject(ImmutableMap.of("command", "listAdmins")), null);
+		
+		mocks.ticker.advance(1);
+		runCommandFail(mocks.admin, token,
+				new UObject(ImmutableMap.of("command", "listModRequests")),
+				new IllegalArgumentException("User fake is not an admin"));
+		
+		
+		verify(mocks.ah, never()).addAdmin(any());
+		verify(mocks.types, never()).listModuleRegistrationRequests();
+		verify(mocks.ah).removeAdmin(new WorkspaceUser("foo"));
+		verify(mocks.ah).removeAdmin(new WorkspaceUser("bar"));
+		verify(mocks.ah, times(2)).getAdmins();
+	}
+	
+	@Test
+	public void cacheEvictOnSize() throws Exception {
+		final TestMocks mocks = initTestMocks(2, 1000000000);
+		
+		final AuthToken token1 = new AuthToken("tok1", "user1");
+		final AuthToken token2 = new AuthToken("tok2", "user2");
+		final AuthToken token3 = new AuthToken("tok3", "user3");
+		
+		when(mocks.ah.getAdminRole(token1)).thenReturn(AdminRole.ADMIN, AdminRole.READ_ONLY);
+		when(mocks.ah.getAdminRole(token2)).thenReturn(AdminRole.NONE);
+		when(mocks.ah.getAdminRole(token3)).thenReturn(AdminRole.ADMIN);
+		
+		when(mocks.wsmeth.validateUsers(Arrays.asList("foo"), token1))
+				.thenReturn(Arrays.asList(new WorkspaceUser("foo")));
+		
+		mocks.admin.runCommand(token1, new UObject(ImmutableMap.of("command", "removeAdmin",
+				"user", "foo")), null);
+		
+		runCommandFail(mocks.admin, token2, new UObject(ImmutableMap.of("command", "addAdmin")),
+				new IllegalArgumentException("User user2 is not an admin"));
+		
+		when(mocks.wsmeth.validateUsers(Arrays.asList("bar"), token3))
+				.thenReturn(Arrays.asList(new WorkspaceUser("bar")));
+		
+		mocks.admin.runCommand(token3, new UObject(ImmutableMap.of("command", "removeAdmin",
+				"user", "bar")), null);
+		
+		// user1 should now be evicted from the cache
+		runCommandFail(mocks.admin, token1, new UObject(ImmutableMap.of("command", "addAdmin")),
+				new IllegalArgumentException(
+						"Full administration rights required for this command"));
+		
+		verify(mocks.ah, never()).addAdmin(any());
+		verify(mocks.ah).removeAdmin(new WorkspaceUser("foo"));
+		verify(mocks.ah).removeAdmin(new WorkspaceUser("bar"));
+	}
+	
+	@Test
+	public void cacheEvictOnAdminChange() throws Exception {
+		// will never evict during the test
+		final TestMocks mocks = initTestMocks(100000, 1000000000);
+		
+		final AuthToken token1 = new AuthToken("tok1", "user1");
+		final AuthToken token2 = new AuthToken("tok2", "user2");
+		
+		when(mocks.ah.getAdminRole(token1)).thenReturn(AdminRole.ADMIN);
+		when(mocks.ah.getAdminRole(token2))
+				.thenReturn(AdminRole.NONE, AdminRole.ADMIN, AdminRole.NONE);
+		
+		when(mocks.wsmeth.validateUsers(Arrays.asList("user2"), token1))
+				.thenReturn(Arrays.asList(new WorkspaceUser("user2")));
+		
+		runCommandFail(mocks.admin, token2, new UObject(ImmutableMap.of("command", "listAdmins")),
+				new IllegalArgumentException("User user2 is not an admin"));
+		
+		// should evict user2 from cache
+		mocks.admin.runCommand(token1, new UObject(ImmutableMap.of("command", "addAdmin",
+				"user", "user2")), null);
+		
+		when(mocks.ah.getAdmins()).thenReturn(set(new WorkspaceUser("foo")));
+		
+		@SuppressWarnings("unchecked")
+		final List<String> admins = (List<String>) mocks.admin.runCommand(
+				token2, new UObject(ImmutableMap.of("command", "listAdmins")), null);
+		assertThat("incorrect admins", admins, is(Arrays.asList("foo")));
+		
+		// should evict user2 from cache
+		mocks.admin.runCommand(token1, new UObject(ImmutableMap.of("command", "removeAdmin",
+				"user", "user2")), null);
+		
+		runCommandFail(mocks.admin, token2, new UObject(ImmutableMap.of("command", "listAdmins")),
+				new IllegalArgumentException("User user2 is not an admin"));
+		
+		verify(mocks.ah, times(1)).getAdmins();
+		verify(mocks.ah).addAdmin(new WorkspaceUser("user2"));
+		verify(mocks.ah).removeAdmin(new WorkspaceUser("user2"));
+		
+	}
 }

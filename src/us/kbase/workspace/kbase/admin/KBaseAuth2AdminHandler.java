@@ -34,11 +34,8 @@ import us.kbase.workspace.database.WorkspaceUser;
  */
 public class KBaseAuth2AdminHandler implements AdministratorHandler {
 	
-	//TODO DOCS
-	//TODO NEWAUTH read only mode for admin
-	//TODO NEWAUTH unit tests for admin
+	//TODO NEWAUTH DOCS
 	//TODO NEWAUTH add to build - need 2 new config items
-	//TODO NEWAUTH add token cache in admin class (not in handler classes)
 	//TODO NEWAUTH integration tests
 	//TODO CODE retries for gets (should handled to some extent by the http client)
 
