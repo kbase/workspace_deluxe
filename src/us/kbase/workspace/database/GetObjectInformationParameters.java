@@ -179,6 +179,7 @@ public class GetObjectInformationParameters {
 	 * @return true if no filters other than the object ID filters are set.
 	 */
 	public boolean isObjectIDFiltersOnly() {
+		// be really careful about modifying this function. See notes in {@link ObjectInfoUtils}.
 		boolean oidFiltersOnly = after == null;
 		oidFiltersOnly = oidFiltersOnly && before == null;
 		oidFiltersOnly = oidFiltersOnly && meta.isEmpty();

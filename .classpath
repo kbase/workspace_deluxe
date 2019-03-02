@@ -21,7 +21,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/jackson/jackson-annotations-2.2.3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/jackson/jackson-core-2.2.3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/jackson/jackson-databind-2.2.3.jar" sourcepath="/jars/lib/jars/jackson/jackson-databind-2.2.3-sources.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/jongo/jongo-0.5-early-20130912-1506.jar" sourcepath="/home/crusherofheads/Downloads/jongo-0.5-early-20130912-1506/src/main/java"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpclient-4.3.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpcore-4.3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpmime-4.3.1.jar"/>
@@ -53,7 +52,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-lang-2.4.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/mysql/mysql-connector-java-5.1.22-bin.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/mongo/mongo-java-driver-2.13.3.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/jsemver/java-semver-0.9.0.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/shock/shock-client-0.0.14.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/HandleManagerClient-160803-08c8da3.jar"/>
@@ -69,5 +67,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.0.24.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth2/kbase-auth2test-0.2.4.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kafka/kafka-clients-2.1.0.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/mongo/mongo-java-driver-3.8.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

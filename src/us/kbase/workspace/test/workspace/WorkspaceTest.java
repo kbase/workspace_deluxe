@@ -3482,9 +3482,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		try {
 			new Provenance(null);
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("user cannot be null"));
+		} catch (NullPointerException e) {
+			assertThat("correct exception", e.getMessage(), is("user"));
 		}
 		try {
 			Provenance pv = new Provenance(foo);
@@ -3521,7 +3520,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		Provenance p4 = new Provenance(foo);
 		ProvenanceAction pa = new ProvenanceAction();
-		pa.setWorkspaceObjects(null);
+		pa.withWorkspaceObjects(null);
 		p4.addAction(pa);
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
 		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
@@ -3531,7 +3530,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new HashMap<String, String>());
 	}
 	
-	@Test 
+	@Test
 	public void saveLargeProvenance() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier prov = new WorkspaceIdentifier("bigprov");
@@ -3559,7 +3558,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is(String.format("Object #1, %s provenance size 1000348 exceeds limit of " +
+					is(String.format("Object #1, %s provenance size 1000318 exceeds limit of " +
 							"1000000", getLastRandomName())));
 		}
 	}
@@ -6852,21 +6851,28 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
 				.withMaxObjectID(6L).withMinObjectID(1L), true);
 		
+		/* 19/2/13: This is really difficult to test on mongo 3+. There will always be a list
+		 * of workspaces in an $in clause, and so the query optimizer is now good enough to always
+		 * use the ws/obj/ver index to sort, at least for smaller data sets. It's still potentially
+		 * dangerous to add the sort, since that forces the optimizer to use the ws/obj/ver index
+		 * (which could return a huge number of results and really slow down the query).
+		 */
+		
 		//unsorted (at least with descending versions)
 		// type filter
-		assertOrdered(new ListObjectsParameters(user, SAFE_TYPE1), false);
+//		assertOrdered(new ListObjectsParameters(user, SAFE_TYPE1), false);
 		// after date filter
-		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
-				.withAfter(Date.from(Instant.now().minusSeconds(100))), false);
+//		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+//				.withAfter(Date.from(Instant.now().minusSeconds(100))), false);
 		// before date filter
-		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
-				.withBefore(Date.from(Instant.now())), false);
+//		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+//				.withBefore(Date.from(Instant.now())), false);
 		// user filter
-		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
-				.withSavers(Arrays.asList(user)), false);
+//		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+//				.withSavers(Arrays.asList(user)), false);
 		// meta filter
-		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
-				.withMetadata(new WorkspaceUserMetadata(meta)), false);
+//		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+//				.withMetadata(new WorkspaceUserMetadata(meta)), false);
 	}
 
 	private void assertOrdered(final ListObjectsParameters params, final boolean expectOrdered)

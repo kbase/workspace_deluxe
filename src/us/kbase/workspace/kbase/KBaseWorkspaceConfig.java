@@ -6,9 +6,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class KBaseWorkspaceConfig {
@@ -26,12 +28,16 @@ public class KBaseWorkspaceConfig {
 	//mongo db auth params:
 	private static final String MONGO_USER = "mongodb-user";
 	private static final String MONGO_PWD = "mongodb-pwd";
-	//mongo connection attempt limit
-	private static final String MONGO_RECONNECT = "mongodb-retry";
 	
 	//auth servers
 	private static final String KBASE_AUTH_URL = "auth-service-url";
-	private static final String GLOBUS_AUTH_URL = "globus-url";
+	private static final String KBASE_AUTH2_URL = "auth2-service-url";
+	
+	//admin roles
+	private static final String KBASE_AUTH_ADMIN_READ_ONLY_ROLES =
+			"auth2-ws-admin-read-only-roles";
+	private static final String KBASE_AUTH_ADMIN_FULL_ROLES =
+			"auth2-ws-admin-full-roles";
 	
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
@@ -49,7 +55,7 @@ public class KBaseWorkspaceConfig {
 	private static final String TEMP_DIR = "temp-dir";
 	
 	private static final List<String> REQUIRED_PARAMS = Arrays.asList(
-			HOST, DB, TEMP_DIR, GLOBUS_AUTH_URL, KBASE_AUTH_URL);
+			HOST, DB, TEMP_DIR, KBASE_AUTH_URL, KBASE_AUTH2_URL);
 	
 	private final String host;
 	private final String db;
@@ -59,8 +65,9 @@ public class KBaseWorkspaceConfig {
 	private final String mongoUser;
 	private final String mongoPassword;
 	private final URL authURL;
-	private final URL globusURL;
-	private final int mongoReconnectAttempts;
+	private final URL auth2URL;
+	private final Set<String> adminRoles;
+	private final Set<String> adminReadOnlyRoles;
 	private final boolean ignoreHandleService;
 	private final URL handleServiceURL;
 	private final URL handleManagerURL;
@@ -109,7 +116,10 @@ public class KBaseWorkspaceConfig {
 		tempDir = config.get(TEMP_DIR);
 		
 		authURL = getUrl(config, KBASE_AUTH_URL, paramErrors);
-		globusURL = getUrl(config, GLOBUS_AUTH_URL, paramErrors);
+		auth2URL = getUrl(config, KBASE_AUTH2_URL, paramErrors);
+		
+		adminRoles = getStringSet(config, KBASE_AUTH_ADMIN_FULL_ROLES);
+		adminReadOnlyRoles = getStringSet(config, KBASE_AUTH_ADMIN_READ_ONLY_ROLES);
 		
 		final String beToken = config.get(BACKEND_TOKEN);
 		if (beToken == null || beToken.trim().isEmpty()) {
@@ -164,13 +174,26 @@ public class KBaseWorkspaceConfig {
 			}
 		}
 		
-		mongoReconnectAttempts = getReconnectCount(config, infoMsgs);
 		listenerConfigs = getListenerConfigs(config, paramErrors);
 		errors = Collections.unmodifiableList(paramErrors);
 		infoMessages = Collections.unmodifiableList(infoMsgs);
 		paramReport = generateParamReport(config);
 	}
 	
+	private Set<String> getStringSet(final Map<String, String> config, final String configKey) {
+		final String set = config.get(configKey);
+		if (nullOrEmpty(set)) {
+			return Collections.emptySet();
+		}
+		final Set<String> ret = new HashSet<>();
+		for (final String s: set.split(",")) {
+			if (!s.trim().isEmpty()) {
+				ret.add(s.trim());
+			}
+		}
+		return Collections.unmodifiableSet(ret);
+	}
+
 	private List<ListenerConfig> getListenerConfigs(
 			final Map<String, String> config,
 			final List<String> paramErrors) {
@@ -224,8 +247,8 @@ public class KBaseWorkspaceConfig {
 	private String generateParamReport(final Map<String, String> cfg) {
 		String params = "";
 		final List<String> paramSet = new LinkedList<String>(
-				Arrays.asList(HOST, DB, MONGO_USER, GLOBUS_AUTH_URL,
-						KBASE_AUTH_URL));
+				Arrays.asList(HOST, DB, MONGO_USER, KBASE_AUTH_URL, KBASE_AUTH2_URL,
+						KBASE_AUTH_ADMIN_READ_ONLY_ROLES, KBASE_AUTH_ADMIN_FULL_ROLES));
 		if (!ignoreHandleService) {
 			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL, HANDLE_MANAGER_URL));
 		}
@@ -250,7 +273,7 @@ public class KBaseWorkspaceConfig {
 			final String configKey,
 			final List<String> errors) {
 		final String urlStr = wsConfig.get(configKey);
-		if (urlStr == null || urlStr.isEmpty()) {
+		if (urlStr == null || urlStr.trim().isEmpty()) {
 			errors.add("Must provide param " + configKey + " in config file");
 			return null;
 		}
@@ -262,30 +285,6 @@ public class KBaseWorkspaceConfig {
 		return null;
 	}
 	
-	private static int getReconnectCount(
-			final Map<String, String> wsConfig,
-			final List<String> infos) {
-		final String rec = wsConfig.get(MONGO_RECONNECT);
-		Integer recint = null;
-		try {
-			recint = Integer.parseInt(rec); 
-		} catch (NumberFormatException nfe) {
-			//do nothing
-		}
-		if (recint == null) {
-			infos.add("Couldn't parse MongoDB reconnect value to an integer: " +
-					rec + ", using 0");
-			recint = 0;
-		} else if (recint < 0) {
-			infos.add("MongoDB reconnect value is < 0 (" + recint +
-					"), using 0");
-			recint = 0;
-		} else {
-			infos.add("MongoDB reconnect value is " + recint);
-		}
-		return recint;
-	}
-
 	public String getHost() {
 		return host;
 	}
@@ -298,8 +297,16 @@ public class KBaseWorkspaceConfig {
 		return authURL;
 	}
 	
-	public URL getGlobusURL() {
-		return globusURL;
+	public URL getAuth2URL() {
+		return auth2URL;
+	}
+	
+	public Set<String> getAdminRoles() {
+		return adminRoles;
+	}
+	
+	public Set<String> getAdminReadOnlyRoles() {
+		return adminReadOnlyRoles;
 	}
 	
 	public String getBackendToken() {
@@ -320,10 +327,6 @@ public class KBaseWorkspaceConfig {
 
 	public String getMongoPassword() {
 		return mongoPassword;
-	}
-
-	public int getMongoReconnectAttempts() {
-		return mongoReconnectAttempts;
 	}
 
 	public boolean ignoreHandleService() {

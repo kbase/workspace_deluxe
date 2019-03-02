@@ -21,7 +21,7 @@ public class Settings {
 	public static final String SET_SHOCK_LOC = "shock_location";
 
 	@JsonCreator
-	private Settings(@JsonProperty(SET_SHOCK_LOC) final String shockUrl,
+	public Settings(@JsonProperty(SET_SHOCK_LOC) final String shockUrl,
 			@JsonProperty(SET_SHOCK_USER) final String shockUser,
 			@JsonProperty(SET_BACKEND) final String backendType,
 			@JsonProperty(SET_TYPE_DB) final String typeDatabase) throws 

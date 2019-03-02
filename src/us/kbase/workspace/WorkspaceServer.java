@@ -75,8 +75,8 @@ import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.kbase.InitWorkspaceServer.InitReporter;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
+import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig;
-import us.kbase.workspace.kbase.WorkspaceAdministration;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 //END_HEADER
 
@@ -107,7 +107,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.8.3-dev1";
+	private static final String VER = "0.9.0-dev2";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;

@@ -94,8 +94,8 @@ may optionally use:
   :ref:`shockintegration`).
   
 The WSS has been tested against the auth2 branch of the KBase fork of Shock version 0.9.6
-(e9f0e1618e265042bf5cb96429995b5e6ec0a06a), and against MongoDB versions 2.4.14, 2.6.11, 3.0.8,
-and 3.2.1. 3.0+ versions were tested with and without the WiredTiger storage engine.
+(e9f0e1618e265042bf5cb96429995b5e6ec0a06a), and against MongoDB versions 2.6.11 and 3.6.10.
+3.0+ versions were tested with and without the WiredTiger storage engine.
   
 Please see the respective service documentation to set up and run the services
 required.
@@ -123,8 +123,8 @@ MongoDB database itself and is set once by the configuration script (see
 .. warning::
    ``deploy.cfg`` contains several sets of credentials, and thus should be
    protected like any other file containing unencryted passwords or tokens.
-   It is especially important to protect the password / token that the WSS uses
-   to talk to Shock (``backend-secret`` or ``backend-token``) as if
+   It is especially important to protect the token that the WSS uses
+   to talk to Shock (``backend-token``) as if
    access to that account is lost, the new account owner has access to all
    the workspace object data, and recovery will be extremely time consuming
    (use shock admin account to change all the acls for every WSS owned object
@@ -169,13 +169,33 @@ auth-service-url
 """"""""""""""""
 **Required**: Yes
 
-**Description**: URL of the KBase authentication service
+**Description**: URL of the KBase legacy API for the KBase authentication service MKII
 
-globus-url
-""""""""""
+auth2-service-url
+"""""""""""""""""
 **Required**: Yes
 
-**Description**: URL of the Globus Nexus v1 authentication API
+**Description**: URL of the KBase authentication service MKII
+
+auth2-ws-admin-read-only-roles
+""""""""""""""""""""""""""""""
+**Required**: No
+
+**Description**: KBase authentication server custom roles that designate that the user
+possessing the role has authority to run administration methods requiring only read access.
+If a role is entered in this field, workspace administrator management is delegated to the
+KBase authentication server, and administrators specified in the configuration or added to
+the workspace database are ignored. Multiple roles may be specified as a comma separated list.
+
+auth2-ws-admin-full-roles
+"""""""""""""""""""""""""
+**Required**: No
+
+**Description**: KBase authentication server custom roles that designate that the user
+possessing the role has authority to run all administration methods.
+If a role is entered in this field, workspace administrator management is delegated to the
+KBase authentication server, and administrators specified in the configuration or added to
+the workspace database are ignored. Multiple roles may be specified as a comma separated list.
 
 ignore-handle-service
 """""""""""""""""""""
@@ -211,7 +231,9 @@ ws-admin
 names added via the ``administer`` API call, is not permanently stored in the
 database and thus the administrator will change if this name is changed and the
 server restarted. This administrator cannot be removed by the ``administer``
-API call.
+API call. If either ``auth2-ws-admin-read-only-roles`` or ``auth2-ws-admin-full-roles``
+contain text, this parameter is ignored and workspace administrator management is
+delegated to the KBase authentication server.
 
 backend-token
 """""""""""""
@@ -251,15 +273,6 @@ temp-dir
 
 **Description**: See :ref:`tempdir`
 
-mongodb-retry
-"""""""""""""
-**Required**: No
-
-**Description**: Startup MongoDB reconnect retry count. The workspace will try
-to reconnect 1/s until this limit has been reached. This is useful for starting
-the Workspace automatically after a server restart, as MongoDB can take quite a
-while to get from start to accepting connections. The default is no retries.
-
 dont-trust-x-ip-headers
 """""""""""""""""""""""
 **Required**: No
@@ -295,7 +308,7 @@ user through the process::
     handle-manager-url=
     handle-manager-token=
     auth-service-url=https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
-    globus-url=https://kbase.us/services/auth/api/legacy/KBase
+    auth2-service-url=https://kbase.us/services/auth/
     ws-admin=workspaceadmin
     backend-token=
     port=7058
@@ -303,7 +316,6 @@ user through the process::
     min-memory=10000
     max-memory=15000
     temp-dir=ws_temp_dir
-    mongodb-retry=0
     
     Keep this configuration? [y - keep]/n - discard: n
     Discarding current local configuration.
@@ -330,7 +342,7 @@ user through the process::
     handle-manager-url=
     handle-manager-token=
     auth-service-url=https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
-    globus-url=https://kbase.us/services/auth/api/legacy/KBase
+    auth2-service-url=https://kbase.us/services/auth/
     ws-admin=workspaceadmin
     backend-token=[redacted]
     port=7058
@@ -338,7 +350,6 @@ user through the process::
     min-memory=10000
     max-memory=15000
     temp-dir=ws_temp_dir
-    mongodb-retry=0
     
     Configuration saved.
     
@@ -585,7 +596,7 @@ Start Tomcat with Workspace service::
     18-Jan-2018 19:55:12.664 INFO [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployWAR Deploying web application archive /kb/deployment/services/workspace/tomcat/webapps/ROOT.war
     18-Jan-2018 19:55:14.312 INFO [localhost-startStop-1] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
     MongoDB reconnect value is 0
-    Warning - the Globus url uses insecure http. https is recommended.
+    Warning - the Auth Service MKII url uses insecure http. https is recommended.
     Warning - the Auth Service url uses insecure http. https is recommended.
     Warning - the Handle Service url uses insecure http. https is recommended.
     Warning - the Handle Manager url uses insecure http. https is recommended.
@@ -593,7 +604,7 @@ Start Tomcat with Workspace service::
     mongodb-host=ci-mongo
     mongodb-database=workspace
     mongodb-user=
-    globus-url=http://auth:8080/api/legacy/globus
+    auth2-service-url=http://auth:8080/
     auth-service-url=http://auth:8080/api/legacy/KBase
     handle-service-url=http://handle_service:8080/
     handle-manager-url=http://handle_manager:8080/
