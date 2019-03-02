@@ -55,7 +55,8 @@ public class Provenance {
 	}
 	
 	public void setWorkspaceID(final Long wsid) {
-		if (wsid < 1) {
+		// objects saved before version 0.4.1 will have null workspace IDs
+		if (wsid != null && wsid < 1) {
 			throw new IllegalArgumentException("wsid must be > 0");
 		}
 		this.wsid = wsid;

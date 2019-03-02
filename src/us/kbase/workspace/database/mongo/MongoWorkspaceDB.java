@@ -2566,7 +2566,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final Provenance ret = new Provenance(
 				new WorkspaceUser((String) p.get(Fields.PROV_USER)),
 				(Date) p.get(Fields.PROV_DATE));
-		// may be null for old workspaces
+		// objects saved before version 0.4.1 will have null workspace IDs
 		ret.setWorkspaceID((Long) p.get(Fields.PROV_WS_ID));
 		
 		@SuppressWarnings("unchecked")

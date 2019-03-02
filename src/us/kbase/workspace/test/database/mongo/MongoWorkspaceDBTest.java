@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -126,6 +127,7 @@ public class MongoWorkspaceDBTest {
 		MONGO_DB.getCollection("provenance").update(
 				new BasicDBObject("_id", i),
 				new BasicDBObject("$set", new BasicDBObject("actions.0.externalData", null)
+						.append("wsid", null)
 						.append("actions.0.subActions", null)
 						.append("actions.0.custom", null)
 						.append("actions.0.wsobjs", null)));
@@ -146,7 +148,7 @@ public class MongoWorkspaceDBTest {
 		//TODO TEST add equals methods to provenance classes & test & use here
 		assertThat("incorrect user", pgot.getUser(), is(new WorkspaceUser("u")));
 		assertThat("incorrect date", pgot.getDate(), is(new Date(10000)));
-		assertThat("incorrect wsid", pgot.getWorkspaceID(), is(1L));
+		assertThat("incorrect wsid", pgot.getWorkspaceID(), nullValue());
 		assertThat("incorrect action count", pgot.getActions().size(), is(1));
 		final ProvenanceAction pagot = pgot.getActions().get(0);
 		
