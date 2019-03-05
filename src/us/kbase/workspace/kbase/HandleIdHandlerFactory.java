@@ -1,5 +1,7 @@
 package us.kbase.workspace.kbase;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
@@ -27,29 +29,23 @@ import us.kbase.typedobj.idref.RemappedId;
 public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
 	//TODO TEST unit tests
+	//TODO JAVADOC
 	
 	public static final IdReferenceType type = new IdReferenceType("handle");
 	private final URL handleService;
-	private final AuthToken userToken;
 	
 	/** pass in null for the handle service URL to cause an exception to be
 	 * thrown if a handle id is encountered
 	 */
-	public HandleIdHandlerFactory(
-			final URL handleServiceURL,
-			final AuthToken userToken) {
-		
-		if (userToken == null) {
-			throw new NullPointerException(
-					"userToken cannot be null");
-		}
+	public HandleIdHandlerFactory(final URL handleServiceURL) {
 		this.handleService = handleServiceURL;
-		this.userToken = userToken;
 	}
 	
 	@Override
-	public <T> IdReferenceHandler<T> createHandler(Class<T> clazz) {
-		return new HandleIdHandler<T>();
+	public <T> IdReferenceHandler<T> createHandler(
+			final Class<T> clazz,
+			final AuthToken userToken) {
+		return new HandleIdHandler<T>(requireNonNull(userToken, "userToken"));
 	}
 
 	@Override
@@ -58,11 +54,13 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	}
 	
 	public class HandleIdHandler<T> extends IdReferenceHandler<T> {
-		// seems like this might be a candidate for an abstract class, lock/processed/null checking common code
 
 		private final Map<T, Set<String>> ids = new HashMap<T, Set<String>>();
+		private final AuthToken userToken;
 		
-		private HandleIdHandler() {}
+		private HandleIdHandler(final AuthToken userToken) {
+			this.userToken = userToken;
+		}
 		
 		@Override
 		protected boolean addIdImpl(final T associatedObject, final String id,

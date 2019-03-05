@@ -11,7 +11,7 @@ import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.JsonTokenValidationSchema;
 import us.kbase.typedobj.core.ValidatedTypedObject;
-import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 
 /**
  * for testing, you can instantiate this report without running any validation code.
@@ -31,8 +31,8 @@ public class DummyValidatedTypedObject extends
 		super(data, type, Collections.<String>emptyList(), null,
 				JsonTokenValidationSchema.parseJsonSchema(
 						"{\"id\": \"foo\", \"type\": \"string\", \"original-type\": \"foo\"}"),
-				new IdReferenceHandlerSetFactory(6)
-					.createHandlers(String.class).processIDs());
+				IdReferenceHandlerSetFactoryBuilder.getBuilder(6).build().getFactory(null)
+						.createHandlers(String.class).processIDs());
 		this.data = data;
 	}
 	

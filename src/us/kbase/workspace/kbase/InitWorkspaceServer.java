@@ -41,6 +41,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
@@ -199,9 +200,13 @@ public class InitWorkspaceServer {
 		rep.reportInfo(String.format("Initialized %s backend",
 				wsdeps.backendType));
 		Types types = new Types(wsdeps.typeDB);
+		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(maxUniqueIdCountPerCall)
+				.withFactory(new HandleIdHandlerFactory(cfg.getHandleServiceURL()))
+				.build();
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
-				ws, types, cfg.getHandleServiceURL(), cfg.getHandleManagerURL(),
-				handleMgrToken, maxUniqueIdCountPerCall, auth);
+				ws, types, builder, cfg.getHandleServiceURL(), cfg.getHandleManagerURL(),
+				handleMgrToken, auth);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
 				ws, wsmeth, types, ah,
 				ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);

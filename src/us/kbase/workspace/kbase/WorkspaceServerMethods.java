@@ -44,6 +44,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
@@ -97,21 +98,21 @@ public class WorkspaceServerMethods {
 	final private URL handleServiceUrl;
 	final private URL handleManagerUrl;
 	final private AuthToken handleManagerToken;
-	final private int maximumIDCount;
 	final private ConfigurableAuthService auth;
+	private final IdReferenceHandlerSetFactoryBuilder idFacBuilder;
 	
 	public WorkspaceServerMethods(
 			final Workspace ws,
 			final Types types,
+			final IdReferenceHandlerSetFactoryBuilder idFacBuilder,
 			final URL handleServiceUrl,
 			final URL handleManagerUrl,
 			final AuthToken handleMgrToken,
-			final int maximumIDCount,
 			final ConfigurableAuthService auth) {
 		this.ws = ws;
 		this.types = types;
+		this.idFacBuilder = idFacBuilder;
 		this.handleServiceUrl = handleServiceUrl;
-		this.maximumIDCount = maximumIDCount;
 		this.auth = auth;
 		this.handleManagerUrl = handleManagerUrl;
 		this.handleManagerToken = handleMgrToken;
@@ -388,10 +389,7 @@ public class WorkspaceServerMethods {
 			count++;
 		}
 		params.setObjects(null); 
-		final IdReferenceHandlerSetFactory fac =
-				new IdReferenceHandlerSetFactory(maximumIDCount);
-		fac.addFactory(new HandleIdHandlerFactory(handleServiceUrl, token));
-		
+		final IdReferenceHandlerSetFactory fac = idFacBuilder.getFactory(token);
 		final List<ObjectInformation> meta = ws.saveObjects(user, wsi, woc, fac); 
 		return objInfoToTuple(meta, true);
 	}

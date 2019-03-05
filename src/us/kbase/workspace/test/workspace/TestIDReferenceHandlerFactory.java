@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import us.kbase.auth.AuthToken;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
@@ -27,7 +28,7 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 	}
 
 	@Override
-	public <T> IdReferenceHandler<T> createHandler(Class<T> clazz) {
+	public <T> IdReferenceHandler<T> createHandler(Class<T> clazz, final AuthToken userToken) {
 		return new TestIDReferenceHandler<T>();
 	}
 

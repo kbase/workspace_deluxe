@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import us.kbase.auth.AuthToken;
 import us.kbase.common.exceptions.UnimplementedException;
 import us.kbase.common.utils.Counter;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
@@ -106,7 +107,9 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 	}
 
 	@Override
-	public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz) {
+	public <T> IdReferenceHandler<T> createHandler(
+			final Class<T> clazz,
+			final AuthToken userToken) {
 		return new DummyIdHandler<T>(idMapping, foundIds);
 	}
 

@@ -24,6 +24,7 @@ import com.google.common.base.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 
+import us.kbase.auth.AuthToken;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
@@ -1696,8 +1697,7 @@ public class Workspace {
 		return new WorkspaceIDHandlerFactory(user);
 	}
 	
-	private class WorkspaceIDHandlerFactory
-			implements IdReferenceHandlerFactory {
+	private class WorkspaceIDHandlerFactory implements IdReferenceHandlerFactory {
 
 		private final WorkspaceUser user;
 		
@@ -1710,7 +1710,9 @@ public class Workspace {
 		}
 
 		@Override
-		public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz) {
+		public <T> IdReferenceHandler<T> createHandler(
+				final Class<T> clazz,
+				final AuthToken token) { // unused, really don't like even having to import it
 			return new WorkspaceIDHandler<T>(user);
 		}
 

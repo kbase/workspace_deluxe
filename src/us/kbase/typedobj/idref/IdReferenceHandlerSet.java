@@ -159,7 +159,8 @@ public class IdReferenceHandlerSet<T> {
 		public abstract IdReferenceType getIdType();
 	}
 
-	protected IdReferenceHandlerSet(final int maxUniqueIdCount,
+	protected IdReferenceHandlerSet(
+			final int maxUniqueIdCount,
 			final Map<IdReferenceType, IdReferenceHandler<T>> handlers) {
 		this.maxUniqueIdCount = maxUniqueIdCount;
 		this.handlers = new HashMap<IdReferenceType, IdReferenceHandler<T>>(
