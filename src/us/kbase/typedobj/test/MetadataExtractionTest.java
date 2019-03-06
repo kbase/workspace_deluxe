@@ -49,6 +49,7 @@ import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 
 /**
  * Tests that ensure the proper subset is extracted from a typed object instance
@@ -213,7 +214,8 @@ public class MetadataExtractionTest {
 		if(maxMetadataSize!=null)
 			maxMetadataSizeLong = maxMetadataSize.asLong();
 		
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(6);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(6).build().getFactory(null);
 		IdReferenceHandlerSet<String> han =
 				fac.createHandlers(String.class).associateObject("foo");
 		ValidatedTypedObject report = 

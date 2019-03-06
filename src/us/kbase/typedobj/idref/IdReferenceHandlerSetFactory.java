@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import us.kbase.auth.AuthToken;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 
 /** Builds a set of ID handlers for handling IDs found while validating a
@@ -23,9 +24,9 @@ public class IdReferenceHandlerSetFactory {
 	
 	//TODO TEST unit tests
 
-	private final Map<IdReferenceType,IdReferenceHandlerFactory> factories = 
-			new HashMap<IdReferenceType,IdReferenceHandlerFactory>();
+	private final Map<IdReferenceType, IdReferenceHandlerFactory> factories;
 	private final int maxUniqueIdCount;
+	private final AuthToken userToken;
 	
 	/** An interface for a factory that creates an ID handler.
 	 * @author gaprice@lbl.gov
@@ -34,9 +35,15 @@ public class IdReferenceHandlerSetFactory {
 		/** Create a empty, unlocked ID handler from this factory.
 		 * @param clazz the class of object to associate with IDs in the
 		 * produced ID handler.
+		 * @param userToken the token for the user requesting processing of the IDs. The token
+		 * may be used to lookup and/or process information in authenticated resources. The token
+		 * may be null in the case where all the registered {@link IdReferenceHandlerFactory}s
+		 * do not require a token.
 		 * @return an ID hander.
 		 */
-		public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz);
+		public <T> IdReferenceHandler<T> createHandler(
+				final Class<T> clazz,
+				final AuthToken userToken);
 		public IdReferenceType getIDType();
 	}
 	
@@ -45,16 +52,29 @@ public class IdReferenceHandlerSetFactory {
 	 * this handler. The handler implementation defines what non-unique means,
 	 * but generally the definition is that the IDs are associated with the
 	 * same object and are the same ID.
+	 * @param factories the set of factories for handling ID types.
+	 * @param userToken the token for the user requesting processing of the IDs. The token
+	 * may be used to lookup and/or process information in authenticated resources. The token
+	 * may be null in the case where all the registered {@link IdReferenceHandlerFactory}s
+	 * do not require a token.
 	 */
-	public IdReferenceHandlerSetFactory(final int maxUniqueIdCount) {
+	IdReferenceHandlerSetFactory(
+			final int maxUniqueIdCount,
+			final Map<IdReferenceType, IdReferenceHandlerFactory> factories,
+			final AuthToken userToken) {
 		if (maxUniqueIdCount < 0) {
 			throw new IllegalArgumentException(
 					"maxUniqueIdCount must be at least 0");
 		}
+		this.userToken = userToken;
 		this.maxUniqueIdCount = maxUniqueIdCount;
+		this.factories = new HashMap<>(factories);
 	}
 	
-	/** Add a factory to this factory set.
+	/** Add a factory to this factory set. If the type of the factory is the same as the type
+	 * of a previously added factory, it will overwrite the older factory, including factories
+	 * added via
+	 * {@link IdReferenceHandlerSetFactoryBuilder.Builder#withFactory(IdReferenceHandlerFactory)}.
 	 * @param factory the factory to add.
 	 * @return this.
 	 */
@@ -78,9 +98,8 @@ public class IdReferenceHandlerSetFactory {
 	public <T> IdReferenceHandlerSet<T> createHandlers(final Class<T> clazz) {
 		final Map<IdReferenceType, IdReferenceHandler<T>> handlers =
 				new HashMap<IdReferenceType, IdReferenceHandler<T>>();
-		for (final Entry<IdReferenceType, IdReferenceHandlerFactory> e:
-				factories.entrySet()) {
-			handlers.put(e.getKey(), e.getValue().createHandler(clazz));
+		for (final Entry<IdReferenceType, IdReferenceHandlerFactory> e: factories.entrySet()) {
+			handlers.put(e.getKey(), e.getValue().createHandler(clazz, userToken));
 		}
 		return new IdReferenceHandlerSet<T>(maxUniqueIdCount, handlers);
 	}

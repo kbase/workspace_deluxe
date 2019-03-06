@@ -491,6 +491,7 @@ public class ArgUtils {
 		
 	}
 
+	//TODO NOW refactor this into a class that gets passed into wsmethods, add to Idrefhandler
 	private static HandleError makeHandlesReadable(
 			final WorkspaceObjectData o,
 			final WorkspaceUser user,

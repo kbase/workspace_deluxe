@@ -51,6 +51,7 @@ import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjects2Params;
@@ -610,9 +611,10 @@ public class HandleTest {
 	@Test
 	public void idCount() throws Exception {
 		IdReferenceType type = HandleIdHandlerFactory.type;
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(4);
+		IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder.getBuilder(4)
+				.build().getFactory(CLIENT1.getToken());
 		fac.addFactory(new HandleIdHandlerFactory(new URL("http://localhost:"
-				+ HANDLE.getHandleServerPort()), CLIENT1.getToken()));
+				+ HANDLE.getHandleServerPort())));
 		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
 		handlers.associateObject("foo");
 		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
