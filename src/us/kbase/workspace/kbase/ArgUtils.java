@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.joda.time.DateTime;
@@ -35,6 +36,7 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.handlemngr.HandleMngrClient;
+import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.auth.AuthToken;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
@@ -407,13 +409,20 @@ public class ArgUtils {
 						o.getCopyReference().getId())
 					.withCopySourceInaccessible(
 							o.isCopySourceInaccessible() ? 1L: 0L)
-					.withExtractedIds(o.getExtractedIds())
+					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))
 					.withHandleError(error.error)
 					.withHandleStacktrace(error.stackTrace));
 		}
 		return ret;
 	}
 	
+	private static Map<String, List<String>> toRawExternalIDs(
+			final Map<IdReferenceType, List<String>> extractedIds) {
+		return extractedIds.keySet().stream().collect(Collectors.toMap(
+				k -> k.getType(),
+				k -> extractedIds.get(k)));
+	}
+
 	public static List<List<String>> toObjectPaths(final List<ObjectInformation> ois) {
 		final List<List<String>> ret = new LinkedList<>();
 		for (final ObjectInformation oi: ois) {
@@ -460,7 +469,7 @@ public class ArgUtils {
 						o.getCopyReference().getId())
 					.withCopySourceInaccessible(
 						o.isCopySourceInaccessible() ? 1L: 0L)
-					.withExtractedIds(o.getExtractedIds())
+					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))
 					.withHandleError(error.error)
 					.withHandleStacktrace(error.stackTrace));
 		}
@@ -498,7 +507,7 @@ public class ArgUtils {
 			final URL handleManagerURL,
 			final AuthToken handleManagertoken) {
 		final List<String> handles = o.getExtractedIds().get(
-				HandleIdHandlerFactory.type.getType());
+				HandleIdHandlerFactory.type);
 		if (handles == null || handles.isEmpty()) {
 			return new HandleError(null, null);
 		}

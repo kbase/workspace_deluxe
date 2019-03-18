@@ -52,6 +52,7 @@ import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
+import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
@@ -2033,14 +2034,14 @@ public class WorkspaceTester {
 	}
 
 	protected void checkExternalIds(WorkspaceUser user, ObjectIdentifier obj,
-			Map<String, List<String>> expected)
+			Map<IdReferenceType, List<String>> expected)
 			throws Exception {
 		List<ObjectIdentifier> o = Arrays.asList(obj);
 		WorkspaceObjectData wod = ws.getObjects(user, o).get(0);
 		wod.destroy(); // don't need the actual data
 		WorkspaceObjectData woi = ws.getObjects(user, o, true).get(0);
 		
-		assertThat("get objs correct ext ids", new HashMap<>(wod.getExtractedIds()), is(expected));
-		assertThat("get prov correct ext ids", new HashMap<>(woi.getExtractedIds()), is(expected));
+		assertThat("get objs correct ext ids", wod.getExtractedIds(), is(expected));
+		assertThat("get prov correct ext ids", woi.getExtractedIds(), is(expected));
 	}
 }

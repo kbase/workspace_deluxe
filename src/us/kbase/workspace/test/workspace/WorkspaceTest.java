@@ -2878,16 +2878,16 @@ public class WorkspaceTest extends WorkspaceTester {
 	@Test
 	public void genericIdExtraction() throws Exception {
 		
-		String idtype1 = "someid";
-		String idtype2 = "someid2";
+		final IdReferenceType idtype1 = new IdReferenceType("someid");
+		final IdReferenceType idtype2 = new IdReferenceType("someid2");
 //		String idtypeint = "someintid";
 		String mod = "TestIDExtraction";
 		String type = "IdType";
 		final String idSpec =
 				"module " + mod + " {\n" +
-					"/* @id " + idtype1 + " */\n" +
+					"/* @id " + idtype1.getType() + " */\n" +
 					"typedef string some_id;\n" +
-					"/* @id " + idtype2 + " */\n" +
+					"/* @id " + idtype2.getType() + " */\n" +
 					"typedef string some_id2;\n" +
 //					"/* @id " + idtypeint + " */" +
 //					"typedef int int_id;" +
@@ -2921,7 +2921,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 
 		IdReferenceHandlerSetFactory fac = getIdFactory().addFactory(
-				new TestIDReferenceHandlerFactory(new IdReferenceType(idtype1)));
+				new TestIDReferenceHandlerFactory(idtype1));
 
 		data.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto2"),
 				iddata, idtype, null, emptyprov, false));
@@ -2929,7 +2929,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		iddata.put("an_id2", "foo");
 //		iddata.put("an_int_id", 34);
 		ws.saveObjects(user, wsi, data, fac); //should work
-		Map<String, List<String>> expected = new HashMap<String, List<String>>();
+		Map<IdReferenceType, List<String>> expected = new HashMap<>();
 		ObjectIdentifier obj1 = new ObjectIdentifier(wsi, "auto1");
 		checkExternalIds(user, obj1, expected);
 		
@@ -2937,7 +2937,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ObjectIdentifier obj2 = new ObjectIdentifier(wsi, "auto2");
 		checkExternalIds(user, obj2, expected);
 		
-		fac.addFactory(new TestIDReferenceHandlerFactory(new IdReferenceType(idtype2)));
+		fac.addFactory(new TestIDReferenceHandlerFactory(idtype2));
 		data.set(0, renameWSO(data.get(0), "auto3"));
 		data.set(1, renameWSO(data.get(1), "auto4"));
 		ws.saveObjects(user, wsi, data, fac); //should work

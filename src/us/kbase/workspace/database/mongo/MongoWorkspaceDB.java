@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.Set;
 
 import org.bson.types.ObjectId;
@@ -2132,14 +2133,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Map<String, List<String>> extIDs =
 					(Map<String, List<String>>) vers.get(roi).get(Fields.VER_EXT_IDS);
 			@SuppressWarnings("unchecked")
-			final List<String> refs =
-					(List<String>) vers.get(roi).get(Fields.VER_REF);
+			final List<String> refs = (List<String>) vers.get(roi).get(Fields.VER_REF);
 			final ObjectInformation info = ObjectInfoUtils.generateObjectInfo(
 					roi, vers.get(roi));
 			if (dataMan == null) {
 				ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
 				ret.get(o).put(SubsetSelection.EMPTY, new WorkspaceObjectData(
-						info, prov, refs, copied, extIDs));
+						info, prov, refs, copied, toExternalIDs(extIDs)));
 			} else {
 				try {
 					if (objs.get(o).isEmpty()) {
@@ -2164,6 +2164,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 		}
 		return ret;
+	}
+
+	private Map<IdReferenceType, List<String>> toExternalIDs(
+			final Map<String, List<String>> extIDs) {
+		return extIDs.keySet().stream().collect(Collectors.toMap(
+				k -> new IdReferenceType(k),
+				k -> extIDs.get(k)));
 	}
 
 	private void checkTotalFileSize(
@@ -2241,7 +2248,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			 */
 			ret.get(o).put(op, new WorkspaceObjectData(getDataSubSet(
 					chksumToData.get(info.getCheckSum()), op, bafcMan),
-					info, prov, refs, copied, extIDs));
+					info, prov, refs, copied, toExternalIDs(extIDs)));
 		} else {
 			final ByteArrayFileCache data;
 			try {
@@ -2270,7 +2277,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			chksumToData.put(info.getCheckSum(), data);
 			ret.get(o).put(op, new WorkspaceObjectData(
 					getDataSubSet(data, op, bafcMan),
-					info, prov, refs, copied, extIDs));
+					info, prov, refs, copied, toExternalIDs(extIDs)));
 		}
 	}
 	
