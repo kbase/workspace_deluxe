@@ -125,6 +125,8 @@ public class WorkspaceServerMethods {
 	public URL getHandleServiceURL() {
 		return handleServiceUrl;
 	}
+	
+	// TODO CODE move this into the WorkspaceServer class and remove HS url 
 	public DependencyStatus checkHandleService() {
 		try {
 			ServiceChecker.checkService(handleServiceUrl);
