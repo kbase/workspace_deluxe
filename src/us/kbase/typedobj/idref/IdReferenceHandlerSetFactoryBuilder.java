@@ -1,5 +1,6 @@
 package us.kbase.typedobj.idref;
 
+import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -7,6 +8,7 @@ import java.util.Map;
 import us.kbase.auth.AuthToken;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 
 /** A builder for a factory for a set of {@link IdReferenceHandler}s.
  * 
@@ -52,6 +54,32 @@ public class IdReferenceHandlerSetFactoryBuilder {
 	 */
 	public IdReferenceHandlerSetFactory getFactory(final AuthToken userToken) {
 		return new IdReferenceHandlerSetFactory(maxUniqueIdCount, factories, userToken);
+	}
+	
+	/** Create a permission handler set that makes data associated with any
+	 * IDs publicly readable.
+	 * @return the new handler.
+	 */
+	public IdReferencePermissionHandlerSet createPermissionHandler() {
+		final Map<IdReferenceType, IdReferencePermissionHandler> handlers = new HashMap<>();
+		for (final IdReferenceType t: factories.keySet()) {
+			handlers.put(t, factories.get(t).createPermissionHandler());
+		}
+		return new IdReferencePermissionHandlerSet(handlers);
+	}
+	
+	/** Create a permission handler set.
+	 * @param userName the user that will be granted permissions to the data associated with
+	 * a set of IDs.
+	 * @return the new handler.
+	 */
+	public IdReferencePermissionHandlerSet createPermissionHandler(final String userName) {
+		requireNonNull(userName, "userName");
+		final Map<IdReferenceType, IdReferencePermissionHandler> handlers = new HashMap<>();
+		for (final IdReferenceType t: factories.keySet()) {
+			handlers.put(t, factories.get(t).createPermissionHandler(userName));
+		}
+		return new IdReferencePermissionHandlerSet(handlers);
 	}
 
 	/** Get a builder for a {@link IdReferenceHandlerSetFactoryBuilder}.

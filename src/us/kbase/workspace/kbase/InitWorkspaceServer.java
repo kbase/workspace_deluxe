@@ -162,13 +162,14 @@ public class InitWorkspaceServer {
 		} 
 		
 		AuthToken handleMgrToken = null;
+		HandleMngrClient hmc = null;
 		if (!cfg.ignoreHandleService()) {
 			handleMgrToken = getHandleToken(cfg, rep, auth);
 			if (!rep.isFailed()) {
 				checkHandleServiceConnection(cfg.getHandleServiceURL(), handleMgrToken, rep);
 			}
 			if (!rep.isFailed()) {
-				checkHandleManagerConnection(cfg.getHandleManagerURL(), handleMgrToken, rep);
+				hmc = getHandleManagerClient(cfg.getHandleManagerURL(), handleMgrToken, rep);
 			}
 		}
 		
@@ -202,11 +203,10 @@ public class InitWorkspaceServer {
 		Types types = new Types(wsdeps.typeDB);
 		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(maxUniqueIdCountPerCall)
-				.withFactory(new HandleIdHandlerFactory(cfg.getHandleServiceURL()))
+				.withFactory(new HandleIdHandlerFactory(cfg.getHandleServiceURL(), hmc))
 				.build();
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
-				ws, types, builder, cfg.getHandleServiceURL(), cfg.getHandleManagerURL(),
-				handleMgrToken, auth);
+				ws, types, builder, cfg.getHandleServiceURL(), auth);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
 				ws, wsmeth, types, ah,
 				ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
@@ -523,26 +523,35 @@ public class InitWorkspaceServer {
 		}
 	}
 	
-	private static void checkHandleManagerConnection(
+	private static HandleMngrClient getHandleManagerClient(
 			final URL handleManagerUrl,
 			final AuthToken handleMgrToken,
 			final InitReporter rep) {
+		final HandleMngrClient cli;
 		try {
-			final HandleMngrClient cli = new HandleMngrClient(
+			cli = new HandleMngrClient(
 					handleManagerUrl, handleMgrToken);
 			if (handleManagerUrl.getProtocol().equals("http")) {
 				rep.reportInfo("Warning - the Handle Manager url uses insecure http. " +
 						"https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
+		} catch (Exception e) {
+			rep.reportFail("Could not establish a connection to the Handle Manager Service at "
+					+ handleManagerUrl + ": " + e.getMessage());
+			return null;
+		}
+		try {
 			cli.setPublicRead(Arrays.asList("FAKEHANDLE_-100"));
 		} catch (Exception e) {
 			if (!(e instanceof ServerException) || !e.getMessage().contains(
 							"Unable to set acl(s) on handles FAKEHANDLE_-100")) {
 				rep.reportFail("Could not establish a connection to the Handle Manager Service at "
 						+ handleManagerUrl + ": " + e.getMessage());
+				return null;
 			}
 		}
+		return cli;
 	}
 	
 	private static ConfigurableAuthService setUpAuthClient(

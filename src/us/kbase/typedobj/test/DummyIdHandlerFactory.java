@@ -13,6 +13,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.DefaultRemappedId;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
@@ -116,6 +117,16 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 	@Override
 	public IdReferenceType getIDType() {
 		return type;
+	}
+
+	@Override
+	public IdReferencePermissionHandler createPermissionHandler() {
+		return null;
+	}
+
+	@Override
+	public IdReferencePermissionHandler createPermissionHandler(String userName) {
+		return null;
 	}
 
 }
