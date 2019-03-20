@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 
 import us.kbase.auth.AuthToken;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 
 /** Builds a set of ID handlers for handling IDs found while validating a
  * typed object. The handler could, for example, check the ID format, check
@@ -44,6 +45,23 @@ public class IdReferenceHandlerSetFactory {
 		public <T> IdReferenceHandler<T> createHandler(
 				final Class<T> clazz,
 				final AuthToken userToken);
+		
+		/** Create a permission handler for the ID type that makes data associated with any
+		 * IDs publicly readable.
+		 * @return the new handler.
+		 */
+		public IdReferencePermissionHandler createPermissionHandler();
+		
+		/** Create a permission handler for the ID type.
+		 * @param userName the user that will be granted permissions to the data associated with
+		 * a set of IDs.
+		 * @return the new handler.
+		 */
+		public IdReferencePermissionHandler createPermissionHandler(final String userName);
+		
+		/** Get the type of IDs this factory supports.
+		 * @return the ID type.
+		 */
 		public IdReferenceType getIDType();
 	}
 	

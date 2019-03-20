@@ -51,6 +51,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ObjectResolver.ObjectResolution;
@@ -1719,6 +1720,18 @@ public class Workspace {
 		@Override
 		public IdReferenceType getIDType() {
 			return WS_ID_TYPE;
+		}
+
+		@Override
+		public IdReferencePermissionHandler createPermissionHandler() {
+			// unused
+			return null;
+		}
+
+		@Override
+		public IdReferencePermissionHandler createPermissionHandler(String userName) {
+			// usused
+			return null;
 		}
 	}
 	

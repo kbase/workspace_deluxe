@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -14,7 +15,9 @@ import java.util.Set;
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientException;
+import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 //import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
@@ -24,6 +27,8 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.SimpleRemappedId;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
 import us.kbase.typedobj.idref.RemappedId;
 
 public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
@@ -33,12 +38,14 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	
 	public static final IdReferenceType type = new IdReferenceType("handle");
 	private final URL handleService;
+	private final HandleMngrClient client;
 	
 	/** pass in null for the handle service URL to cause an exception to be
-	 * thrown if a handle id is encountered
+	 * thrown if a handle id is encountered. Same for the client.
 	 */
-	public HandleIdHandlerFactory(final URL handleServiceURL) {
+	public HandleIdHandlerFactory(final URL handleServiceURL, final HandleMngrClient client) {
 		this.handleService = handleServiceURL;
+		this.client = client;
 	}
 	
 	@Override
@@ -49,8 +56,65 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	}
 
 	@Override
+	public IdReferencePermissionHandler createPermissionHandler() {
+		return new HandlePermissionsHandler(null);
+	}
+
+	@Override
+	public IdReferencePermissionHandler createPermissionHandler(final String userName) {
+		return new HandlePermissionsHandler(userName);
+	}
+
+	@Override
 	public IdReferenceType getIDType() {
 		return type;
+	}
+	
+	private class HandlePermissionsHandler implements IdReferencePermissionHandler {
+		
+		private final String user;
+
+		private HandlePermissionsHandler(final String userName) {
+			this.user = userName;
+		}
+
+		@Override
+		public void addReadPermission(final Collection<String> ids)
+				throws IdReferencePermissionHandlerException {
+			if (ids == null || ids.isEmpty()) {
+				return;
+			}
+			if (client == null) {
+				throw new IdReferencePermissionHandlerException(
+						"The workspace is not currently connected to the Handle Service " +
+						"and cannot process Handle ids.");
+			}
+			try {
+				if (user == null) {
+					client.setPublicRead(new LinkedList<>(ids));
+				} else {
+					client.addReadAcl(new LinkedList<>(ids), user);
+				}
+			} catch (IOException e) {
+				throw new IdReferencePermissionHandlerException(
+						"There was an IO problem while attempting to set " +
+								"Handle ACLs: " + e.getMessage(), e);
+			} catch (UnauthorizedException e) {
+				throw new IdReferencePermissionHandlerException(
+						"Unable to contact the Handle Manager - " +
+								"the Workspace credentials were rejected: " +
+								e.getMessage(), e);
+			} catch (ServerException e) {
+				throw new IdReferencePermissionHandlerException(
+						"The Handle Manager reported a problem while attempting " +
+								"to set Handle ACLs: " + e.getMessage(), e);
+			} catch (JsonClientException e) {
+				throw new IdReferencePermissionHandlerException(
+						"There was an unexpected problem while contacting the " +
+								"Handle Manager to set Handle ACLs: " +
+								e.getMessage(), e);
+			}
+		}
 	}
 	
 	public class HandleIdHandler<T> extends IdReferenceHandler<T> {

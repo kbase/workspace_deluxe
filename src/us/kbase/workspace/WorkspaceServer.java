@@ -23,8 +23,6 @@ import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToMetaTuple;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToMetaTuple;
-import static us.kbase.workspace.kbase.ArgUtils.translateObjectProvInfo;
-import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.translateObjectInfoList;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
@@ -121,7 +119,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private final URL handleManagerUrl;
-	private final AuthToken handleMgrToken;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
 			new ThreadLocal<List<WorkspaceObjectData>>();
@@ -228,7 +225,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		Types types = null;
 		WorkspaceAdministration wsadmin = null;
 		URL handleManagerUrl = null;
-		AuthToken handleMgrToken = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
 			logErr("Workspace server configuration has errors - all calls will fail");
@@ -236,7 +232,6 @@ public class WorkspaceServer extends JsonServerServlet {
 					"Workspace server configuration has errors - all calls will fail");
 			startupFailed();
 		} else {
-
 			final WorkspaceInitReporter rep = new WorkspaceInitReporter();
 			final WorkspaceInitResults res =
 					InitWorkspaceServer.initWorkspaceServer(cfg, rep);
@@ -247,7 +242,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				types = res.getTypes();
 				wsadmin = res.getWsAdmin();
 				handleManagerUrl = res.getHandleManagerUrl();
-				handleMgrToken = res.getHandleMgrToken();
 				setRpcDiskCacheTempDir(ws.getTempFilesManager().getTempDir());
 			}
 		}
@@ -256,7 +250,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		this.types = types;
 		this.wsadmin = wsadmin;
 		this.handleManagerUrl = handleManagerUrl;
-		this.handleMgrToken = handleMgrToken;
         //END_CONSTRUCTOR
     }
 
@@ -641,10 +634,9 @@ public class WorkspaceServer extends JsonServerServlet {
         List<ObjectProvenanceInfo> returnVal = null;
         //BEGIN get_object_provenance
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
-		returnVal = translateObjectProvInfo(
+		returnVal = wsmeth.translateObjectProvInfo(
 				ws.getObjects(wsmeth.getUser(authPart), loi, true),
-						wsmeth.getUser(authPart), handleManagerUrl,
-						handleMgrToken, true);
+				wsmeth.getUser(authPart), true);
         //END get_object_provenance
         return returnVal;
     }
@@ -667,8 +659,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<WorkspaceObjectData> objects =
 				ws.getObjects(wsmeth.getUser(authPart), loi);
 		resourcesToDelete.set(objects);
-		returnVal = translateObjectData(objects, wsmeth.getUser(authPart),
-					handleManagerUrl, handleMgrToken, true);
+		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
         //END get_objects
         return returnVal;
     }
@@ -720,8 +711,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<WorkspaceObjectData> objects =
 				ws.getObjects(wsmeth.getUser(authPart), loi);
 		resourcesToDelete.set(objects);
-		returnVal = translateObjectData(objects, wsmeth.getUser(authPart),
-				handleManagerUrl, handleMgrToken, true);
+		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
         //END get_object_subset
         return returnVal;
     }
@@ -845,8 +835,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<WorkspaceObjectData> objects = ws.getObjects(
 				wsmeth.getUser(authPart), chains);
 		resourcesToDelete.set(objects);
-		returnVal = translateObjectData(objects, wsmeth.getUser(authPart),
-					handleManagerUrl, handleMgrToken, true);
+		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
         //END get_referenced_objects
         return returnVal;
     }

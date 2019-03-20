@@ -22,6 +22,8 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferenceType;
 
 public class IdReferenceHandlerSetFactoryBuilderTest {
@@ -97,6 +99,82 @@ public class IdReferenceHandlerSetFactoryBuilderTest {
 	}
 	
 	@Test
+	public void buildWithPermissionFactories() throws Exception {
+		final IdReferenceHandlerFactory fac1 = mock(IdReferenceHandlerFactory.class);
+		final IdReferenceHandlerFactory fac2 = mock(IdReferenceHandlerFactory.class);
+		final IdReferenceHandlerFactory fac3 = mock(IdReferenceHandlerFactory.class);
+		
+		final IdReferencePermissionHandler h1 = mock(IdReferencePermissionHandler.class);
+		final IdReferencePermissionHandler h2 = mock(IdReferencePermissionHandler.class);
+		final IdReferencePermissionHandler h3 = mock(IdReferencePermissionHandler.class);
+		
+		when(fac1.getIDType()).thenReturn(new IdReferenceType("t1"));
+		when(fac2.getIDType()).thenReturn(new IdReferenceType("t2"));
+		when(fac3.getIDType()).thenReturn(new IdReferenceType("t2")); // test overwrite
+		
+		final IdReferenceHandlerSetFactoryBuilder b = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(8)
+				.withFactory(fac1)
+				.withFactory(fac2)
+				.withFactory(fac3)
+				.build();
+		
+		when(fac1.createPermissionHandler()).thenReturn(h1);
+		when(fac2.createPermissionHandler()).thenReturn(h2);
+		when(fac3.createPermissionHandler()).thenReturn(h3);
+		
+		final IdReferencePermissionHandlerSet s = b.createPermissionHandler();
+		
+		assertThat("incorrect types", s.getIDTypes(),
+				is(set(new IdReferenceType("t1"), new IdReferenceType("t2"))));
+		
+		s.addReadPermission(new IdReferenceType("t2"), set("whee"));
+		s.addReadPermission(new IdReferenceType("t1"), set("a1", "a2"));
+		
+		verifyNoMoreInteractions(h2); // overwritten
+		verify(h1).addReadPermission(set("a1", "a2"));
+		verify(h3).addReadPermission(set("whee"));
+	}
+	
+	@Test
+	public void buildWithPermissionFactoriesWithUser() throws Exception {
+		final IdReferenceHandlerFactory fac1 = mock(IdReferenceHandlerFactory.class);
+		final IdReferenceHandlerFactory fac2 = mock(IdReferenceHandlerFactory.class);
+		final IdReferenceHandlerFactory fac3 = mock(IdReferenceHandlerFactory.class);
+		
+		final IdReferencePermissionHandler h1 = mock(IdReferencePermissionHandler.class);
+		final IdReferencePermissionHandler h2 = mock(IdReferencePermissionHandler.class);
+		final IdReferencePermissionHandler h3 = mock(IdReferencePermissionHandler.class);
+		
+		when(fac1.getIDType()).thenReturn(new IdReferenceType("t1"));
+		when(fac2.getIDType()).thenReturn(new IdReferenceType("t2"));
+		when(fac3.getIDType()).thenReturn(new IdReferenceType("t2")); // test overwrite
+		
+		final IdReferenceHandlerSetFactoryBuilder b = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(8)
+				.withFactory(fac1)
+				.withFactory(fac2)
+				.withFactory(fac3)
+				.build();
+		
+		when(fac1.createPermissionHandler("user")).thenReturn(h1);
+		when(fac2.createPermissionHandler("user")).thenReturn(h2);
+		when(fac3.createPermissionHandler("user")).thenReturn(h3);
+		
+		final IdReferencePermissionHandlerSet s = b.createPermissionHandler("user");
+		
+		assertThat("incorrect types", s.getIDTypes(),
+				is(set(new IdReferenceType("t1"), new IdReferenceType("t2"))));
+		
+		s.addReadPermission(new IdReferenceType("t2"), set("whee"));
+		s.addReadPermission(new IdReferenceType("t1"), set("a1", "a2"));
+		
+		verifyNoMoreInteractions(h2); // overwritten
+		verify(h1).addReadPermission(set("a1", "a2"));
+		verify(h3).addReadPermission(set("whee"));
+	}
+	
+	@Test
 	public void getBuilderFail() throws Exception {
 		try {
 			IdReferenceHandlerSetFactoryBuilder.getBuilder(-1);
@@ -129,6 +207,25 @@ public class IdReferenceHandlerSetFactoryBuilderTest {
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	@Test
+	public void createPermissionHandlerFail() {
+		final IdReferenceHandlerFactory fac1 = mock(IdReferenceHandlerFactory.class);
+		
+		when(fac1.getIDType()).thenReturn(new IdReferenceType("t1"));
+		
+		final IdReferenceHandlerSetFactoryBuilder b = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(8)
+				.withFactory(fac1)
+				.build();
+		
+		try {
+			b.createPermissionHandler(null);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("userName"));
 		}
 	}
 

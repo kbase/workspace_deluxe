@@ -16,6 +16,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.idref.SimpleRemappedId;
 
@@ -136,6 +137,16 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 			return type;
 		}
 		
+	}
+
+	@Override
+	public IdReferencePermissionHandler createPermissionHandler() {
+		return null;
+	}
+
+	@Override
+	public IdReferencePermissionHandler createPermissionHandler(String userName) {
+		return null;
 	}
 
 }

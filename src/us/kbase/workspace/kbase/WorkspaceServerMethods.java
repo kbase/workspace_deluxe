@@ -7,7 +7,6 @@ import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.processProvenance;
 import static us.kbase.workspace.kbase.ArgUtils.toObjectPaths;
-import static us.kbase.workspace.kbase.ArgUtils.translateObjectData;
 import static us.kbase.workspace.kbase.ArgUtils.longToBoolean;
 import static us.kbase.workspace.kbase.ArgUtils.longToInt;
 import static us.kbase.workspace.kbase.ArgUtils.objInfoToTuple;
@@ -45,6 +44,7 @@ import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
 import us.kbase.typedobj.exceptions.TypedObjectValidationException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
@@ -55,6 +55,7 @@ import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceIDsParams;
 import us.kbase.workspace.ListWorkspaceIDsResults;
 import us.kbase.workspace.ListWorkspaceInfoParams;
+import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
@@ -96,8 +97,6 @@ public class WorkspaceServerMethods {
 	final private Workspace ws;
 	final private Types types;
 	final private URL handleServiceUrl;
-	final private URL handleManagerUrl;
-	final private AuthToken handleManagerToken;
 	final private ConfigurableAuthService auth;
 	private final IdReferenceHandlerSetFactoryBuilder idFacBuilder;
 	
@@ -106,16 +105,12 @@ public class WorkspaceServerMethods {
 			final Types types,
 			final IdReferenceHandlerSetFactoryBuilder idFacBuilder,
 			final URL handleServiceUrl,
-			final URL handleManagerUrl,
-			final AuthToken handleMgrToken,
 			final ConfigurableAuthService auth) {
 		this.ws = ws;
 		this.types = types;
 		this.idFacBuilder = idFacBuilder;
 		this.handleServiceUrl = handleServiceUrl;
 		this.auth = auth;
-		this.handleManagerUrl = handleManagerUrl;
-		this.handleManagerToken = handleMgrToken;
 	}
 	
 	public ConfigurableAuthService getAuth() {
@@ -429,7 +424,7 @@ public class WorkspaceServerMethods {
 	
 	/** Get objects.
 	 * @param params the object request parameters.
-	 * @param user the user making the request.
+	 * @param user the user making the request, or null for an anonymous user.
 	 * @param asAdmin whether the request should be run with administrator privileges.
 	 * @param resourcesToDelete a container into which resources that must be destroyed after
 	 * they're no longer needed can be placed.
@@ -466,8 +461,33 @@ public class WorkspaceServerMethods {
 		final List<WorkspaceObjectData> objects = ws.getObjects(
 				user, loi, noData, ignoreErrors, asAdmin);
 		resourcesToDelete.set(objects);
-		return new GetObjects2Results().withData(translateObjectData(
-				objects, user, handleManagerUrl, handleManagerToken, true));
+		return new GetObjects2Results().withData(translateObjectData(objects, user, true));
+	}
+
+	private IdReferencePermissionHandlerSet getPermissionsHandler(final WorkspaceUser user) {
+		final IdReferencePermissionHandlerSet h;
+		if (user == null) {
+			h = idFacBuilder.createPermissionHandler();
+		} else {
+			h = idFacBuilder.createPermissionHandler(user.getUser());
+		}
+		return h;
+	}
+	
+	public List<ObjectData> translateObjectData(
+			final List<WorkspaceObjectData> objects, 
+			final WorkspaceUser user,
+			final boolean logObjects)
+			throws JsonParseException, IOException {
+		return ArgUtils.translateObjectData(objects, getPermissionsHandler(user), logObjects);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public List<us.kbase.workspace.ObjectProvenanceInfo> translateObjectProvInfo(
+			final List<WorkspaceObjectData> objects,
+			final WorkspaceUser user,
+			final boolean logObjects) {
+		return ArgUtils.translateObjectProvInfo(objects, getPermissionsHandler(user), logObjects);
 	}
 	
 	public void grantModuleOwnership(final GrantModuleOwnershipParams params,

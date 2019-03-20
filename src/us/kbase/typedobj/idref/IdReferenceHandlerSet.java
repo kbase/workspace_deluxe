@@ -352,16 +352,6 @@ public class IdReferenceHandlerSet<T> {
 	}
 	
 	@SuppressWarnings("serial")
-	public static class NoSuchIdReferenceHandlerException
-			extends RuntimeException {
-
-		public NoSuchIdReferenceHandlerException(String message) {
-			super(message);
-		}
-		
-	}
-	
-	@SuppressWarnings("serial")
 	public static class NoSuchIdException extends RuntimeException {
 
 		public NoSuchIdException(String message) {

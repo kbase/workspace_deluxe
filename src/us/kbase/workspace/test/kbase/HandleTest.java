@@ -1,8 +1,8 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
 
@@ -40,6 +40,7 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
+import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
@@ -86,6 +87,8 @@ public class HandleTest {
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
 	private static WorkspaceClient CLIENT_NOAUTH;
+	
+	private static AuthToken HANDLE_MNGR_TOKEN;
 
 	private static AbstractHandleClient HANDLE_CLIENT;
 	
@@ -122,7 +125,7 @@ public class HandleTest {
 		final String token3 = TestCommon.createLoginToken(authURL, "user3");
 		final AuthToken t1 = new AuthToken(token1, USER1);
 		final AuthToken t2 = new AuthToken(token2, USER2);
-		final AuthToken t3 = new AuthToken(token3, "user3");
+		HANDLE_MNGR_TOKEN = new AuthToken(token3, "user3");
 		
 		SHOCK = new ShockController(
 				TestCommon.getShockExe(),
@@ -154,7 +157,7 @@ public class HandleTest {
 				"user3",
 				MYSQL,
 				"http://localhost:" + SHOCK.getServerPort(),
-				t3,
+				HANDLE_MNGR_TOKEN,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(TestCommon.getTempDir()),
 				new URL(authURL.toString() + "/api/legacy/KBase"));
@@ -163,7 +166,7 @@ public class HandleTest {
 		
 		SERVER = startupWorkspaceServer(mongohost,
 				mongoClient.getDB("JSONRPCLayerHandleTester"), 
-				"JSONRPCLayerHandleTester_types", t3);
+				"JSONRPCLayerHandleTester_types", HANDLE_MNGR_TOKEN);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
 		
@@ -484,8 +487,11 @@ public class HandleTest {
 		assertThat("got correct error message", wod.getHandleError(),
 				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
 						+ h1.getHid()));
-		assertTrue("got correct stacktrace", wod.getHandleStacktrace().startsWith(
-				"us.kbase.common.service.ServerException: Unable to set acl(s) on handles "
+		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
+				startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
+						"IdReferencePermissionHandlerException: " +
+						"The Handle Manager reported a problem while attempting to set Handle " +
+						"ACLs: Unable to set acl(s) on handles "
 						+ h1.getHid()));
 	}
 	
@@ -547,8 +553,11 @@ public class HandleTest {
 		assertThat("got correct error message", wod.getHandleError(),
 				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
 						+ h1.getHid()));
-		assertTrue("got correct stacktrace", wod.getHandleStacktrace().startsWith(
-				"us.kbase.common.service.ServerException: Unable to set acl(s) on handles "
+		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
+				startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
+						"IdReferencePermissionHandlerException: " +
+						"The Handle Manager reported a problem while attempting to set Handle " +
+						"ACLs: Unable to set acl(s) on handles "
 						+ h1.getHid()));
 		
 	}
@@ -613,8 +622,10 @@ public class HandleTest {
 		IdReferenceType type = HandleIdHandlerFactory.type;
 		IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder.getBuilder(4)
 				.build().getFactory(CLIENT1.getToken());
-		fac.addFactory(new HandleIdHandlerFactory(new URL("http://localhost:"
-				+ HANDLE.getHandleServerPort())));
+		final HandleMngrClient client = new HandleMngrClient(
+				new URL("http://localhost:" + HANDLE.getHandleManagerPort()), HANDLE_MNGR_TOKEN);
+		fac.addFactory(new HandleIdHandlerFactory(
+				new URL("http://localhost:" + HANDLE.getHandleServerPort()), client));
 		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
 		handlers.associateObject("foo");
 		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));

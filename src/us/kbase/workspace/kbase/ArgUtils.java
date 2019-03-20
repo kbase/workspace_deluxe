@@ -6,7 +6,6 @@ import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.IOException;
-import java.net.URL;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -27,17 +26,14 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
 
-import us.kbase.common.service.JsonClientException;
-import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
-import us.kbase.common.service.UnauthorizedException;
-import us.kbase.handlemngr.HandleMngrClient;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
 import us.kbase.typedobj.idref.IdReferenceType;
-import us.kbase.auth.AuthToken;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
@@ -379,9 +375,7 @@ public class ArgUtils {
 	
 	public static List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
-			final WorkspaceUser user,
-			final URL handleManagerURl,
-			final AuthToken handleManagertoken,
+			final IdReferencePermissionHandlerSet permHandler,
 			final boolean logObjects)
 			throws JsonParseException, IOException {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
@@ -390,8 +384,7 @@ public class ArgUtils {
 				ret.add(null);
 				continue;
 			}
-			final HandleError error = makeHandlesReadable(
-					o, user, handleManagerURl, handleManagertoken);
+			final PermError error = makeExternalIDsReadable(o, permHandler);
 			final ByteArrayFileCache resource = o.getSerializedData();
 			ret.add(new ObjectData()
 					.withData(resource == null ? null : resource.getUObject())
@@ -446,15 +439,12 @@ public class ArgUtils {
 	@SuppressWarnings("deprecation")
 	public static List<us.kbase.workspace.ObjectProvenanceInfo> translateObjectProvInfo(
 			final List<WorkspaceObjectData> objects,
-			final WorkspaceUser user,
-			final URL handleManagerURl,
-			final AuthToken handleManagertoken,
+			final IdReferencePermissionHandlerSet permHandler,
 			final boolean logObjects) {
 		final List<us.kbase.workspace.ObjectProvenanceInfo> ret =
 				new ArrayList<us.kbase.workspace.ObjectProvenanceInfo>();
 		for (final WorkspaceObjectData o: objects) {
-			final HandleError error = makeHandlesReadable(
-					o, user, handleManagerURl, handleManagertoken);
+			final PermError error = makeExternalIDsReadable(o, permHandler);
 			ret.add(new us.kbase.workspace.ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
@@ -476,12 +466,12 @@ public class ArgUtils {
 		return ret;
 	}
 	
-	private static class HandleError {
+	private static class PermError {
 		
 		public String error;
 		public String stackTrace;
 
-		public HandleError(String error, String stackTrace) {
+		public PermError(String error, String stackTrace) {
 			super();
 			this.error = error;
 			this.stackTrace = stackTrace;
@@ -500,66 +490,17 @@ public class ArgUtils {
 		
 	}
 
-	//TODO NOW refactor this into a class that gets passed into wsmethods, add to Idrefhandler
-	private static HandleError makeHandlesReadable(
+	private static PermError makeExternalIDsReadable(
 			final WorkspaceObjectData o,
-			final WorkspaceUser user,
-			final URL handleManagerURL,
-			final AuthToken handleManagertoken) {
-		final List<String> handles = o.getExtractedIds().get(
-				HandleIdHandlerFactory.type);
-		if (handles == null || handles.isEmpty()) {
-			return new HandleError(null, null);
-		}
-		final HandleMngrClient hmc;
-		try {
-			hmc = new HandleMngrClient(handleManagerURL, handleManagertoken);
-			if (handleManagerURL.getProtocol().equals("http")) {
-				hmc.setIsInsecureHttpConnectionAllowed(true);
+			final IdReferencePermissionHandlerSet permhandler) {
+		for (final IdReferenceType t: o.getExtractedIds().keySet()) {
+			try {
+				permhandler.addReadPermission(t, o.getExtractedIds().get(t));
+			} catch (IdReferencePermissionHandlerException e) {
+				return new PermError(e.getMessage(), ExceptionUtils.getStackTrace(e));
 			}
-		} catch (UnauthorizedException e) {
-			return new HandleError(
-					"Unable to contact the Handle Manager - " +
-							"the Workspace credentials were rejected: " +
-							e.getMessage(),
-					ExceptionUtils.getStackTrace(e));
-		} catch (IOException e) {
-			return new HandleError(
-					"Unable to contact the Handle Manager - IO exception " +
-							"attempting to validate credentials with the " +
-							"Auth Service: " + e.getMessage(),
-					ExceptionUtils.getStackTrace(e));
 		}
-		try {
-			if (user == null) {
-				hmc.setPublicRead(handles);
-			} else {
-				hmc.addReadAcl(handles, user.getUser());
-			}
-		} catch (IOException e) {
-			return new HandleError(
-					"There was an IO problem while attempting to set " +
-							"Handle ACLs: " + e.getMessage(),
-					ExceptionUtils.getStackTrace(e));
-		} catch (UnauthorizedException e) {
-			return new HandleError(
-					"Unable to contact the Handle Manager - " +
-							"the Workspace credentials were rejected: " +
-							e.getMessage(),
-					ExceptionUtils.getStackTrace(e));
-		} catch (ServerException e) {
-			return new HandleError(
-					"The Handle Manager reported a problem while attempting " +
-							"to set Handle ACLs: " + e.getMessage(),
-					ExceptionUtils.getStackTrace(e));
-		} catch (JsonClientException e) {
-			return new HandleError(
-					"There was an unexpected problem while contacting the " +
-							"Handle Manager to set Handle ACLs: " +
-							e.getMessage(),
-					ExceptionUtils.getStackTrace(e));
-		}
-		return new HandleError(null, null);
+		return new PermError(null, null);
 	}
 
 	private static List<ProvenanceAction> translateProvenanceActions(
