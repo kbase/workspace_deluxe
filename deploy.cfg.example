@@ -2,16 +2,24 @@
 
 [Workspace]
 # NOTE: the credentials below must work not only for the main workspace
-# database, but also for the type database that is configured with the 
-# initialize.py script.
+# database, but also for the type database.
+
 # host where mongo lives, e.g. localhost:27017
 mongodb-host = localhost
+
 # name of the workspace mongo database
 mongodb-database = workspace
+
 # the user name for an account with readWrite access to the database
 #mongodb-user = add username here
+
 # password for the account
 #mongodb-pwd = add password here
+
+# The name of the type database. This cannot be the same as the workspace database.
+# WARNING: Once any data has been saved by the workspace, changing the type database will
+# result in unspecified behavior, including data corruption.
+mongodb-type-database = types
 
 # the legacy KBase authorization server url.
 auth-service-url = https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login
@@ -37,10 +45,20 @@ ws-admin = workspaceadmin
 # configured in the workspace database are ignored.
 auth2-ws-admin-read-only-roles =
 auth2-ws-admin-full-roles =
-	
 
-# token for the backend account (e.g. shock if used).
+# The type of the backend that will store the workspace data. Either GridFS or Shock.
+backend-type = GridFS
+
+# token for the backend account. Not required for GridFS.
 backend-token =
+
+# username for the backend account. This name is checked against the token as a safety measure.
+# WARNING: Once any data has been saved by the workspace, changing the backend username
+# (except for the GridFS backend) will result in unspecified behavior, including data corruption.
+backend-user =
+
+# URL for the backend service. Not required for GridFS.
+backend-url = https://kbase.us/services/shock-api
 
 # port for the service.
 port = 7058

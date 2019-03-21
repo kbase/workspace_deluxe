@@ -26,8 +26,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.github.zafarkhaja.semver.Version;
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.abstracthandle.Handle;
@@ -71,6 +69,10 @@ import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class HandleTest {
+	
+	/* This test also performs an integration test on the Shock backend since we have to
+	 * use Shock here anyway.
+	 */
 
 	private static MySQLController MYSQL;
 	private static MongoController MONGO;
@@ -106,7 +108,6 @@ public class HandleTest {
 				TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
-		MongoClient mongoClient = new MongoClient(mongohost);
 
 		// set up auth
 		final String dbname = HandleTest.class.getSimpleName() + "Auth";
@@ -137,6 +138,7 @@ public class HandleTest {
 				null,
 				null,
 				new URL(authURL.toString() + "/api/legacy/globus"));
+		final URL shockURL = new URL("http://localhost:" + SHOCK.getServerPort());
 		System.out.println("Shock controller version: " + SHOCK.getVersion());
 		if (SHOCK.getVersion() == null) {
 			System.out.println(
@@ -156,7 +158,7 @@ public class HandleTest {
 				WorkspaceTestCommon.getHandleManagerPSGI(),
 				"user3",
 				MYSQL,
-				"http://localhost:" + SHOCK.getServerPort(),
+				shockURL.toString(),
 				HANDLE_MNGR_TOKEN,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(TestCommon.getTempDir()),
@@ -165,8 +167,11 @@ public class HandleTest {
 		
 		
 		SERVER = startupWorkspaceServer(mongohost,
-				mongoClient.getDB("JSONRPCLayerHandleTester"), 
-				"JSONRPCLayerHandleTester_types", HANDLE_MNGR_TOKEN);
+				"JSONRPCLayerHandleTester", 
+				"JSONRPCLayerHandleTester_types",
+				shockURL,
+				HANDLE_MNGR_TOKEN,
+				HANDLE_MNGR_TOKEN);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
 		
@@ -224,16 +229,16 @@ public class HandleTest {
 	}
 	
 	private static WorkspaceServer startupWorkspaceServer(
-			String mongohost,
-			DB db,
-			String typedb,
-			AuthToken handleToken)
+			final String mongohost,
+			final String db,
+			final String typedb,
+			final URL shockURL,
+			final AuthToken shockToken,
+			final AuthToken handleToken)
 			throws InvalidHostException, UnknownHostException, IOException,
-			NoSuchFieldException, IllegalAccessException, Exception,
-			InterruptedException {
+				NoSuchFieldException, IllegalAccessException, Exception,
+				InterruptedException {
 		
-		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
-
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
 				new File(TestCommon.getTempDir()));
@@ -245,18 +250,23 @@ public class HandleTest {
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
-		ws.add("mongodb-database", db.getName());
+		ws.add("mongodb-database", db);
+		ws.add("mongodb-type-database", typedb);
 		ws.add("backend-secret", "foo");
 		ws.add("auth-service-url-allow-insecure", "true");
 		ws.add("auth-service-url", new URL("http://localhost:" + AUTH.getServerPort() +
 				"/testmode/api/legacy/KBase"));
 		ws.add("auth2-service-url", new URL("http://localhost:" + AUTH.getServerPort() +
 				"/testmode/"));
+		ws.add("backend-type", "Shock");
+		ws.add("backend-url", shockURL.toString());
+		ws.add("backend-user", shockToken.getUserName());
+		ws.add("backend-token", shockToken.getToken());
+		ws.add("ws-admin", USER2);
 		ws.add("handle-service-url", "http://localhost:" +
 				HANDLE.getHandleServerPort());
 		ws.add("handle-manager-url", "http://localhost:" +
 				HANDLE.getHandleManagerPort());
-		ws.add("ws-admin", USER2);
 		ws.add("handle-manager-token", handleToken.getToken());
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForJSONRPCLayerTester"));
@@ -277,6 +287,8 @@ public class HandleTest {
 		}
 		return server;
 	}
+	
+	//TODO TEST should clear DBs between tests
 	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
@@ -325,7 +337,7 @@ public class HandleTest {
 		
 		final List<List<String>> exp = new ArrayList<List<String>>();
 		exp.add(Arrays.asList("MongoDB", "true"));
-		exp.add(Arrays.asList("GridFS", "true"));
+		exp.add(Arrays.asList("Shock", "true"));
 		exp.add(Arrays.asList("Handle service", "false"));
 		exp.add(Arrays.asList("Handle manager", "false"));
 		final Iterator<List<String>> expiter = exp.iterator();
