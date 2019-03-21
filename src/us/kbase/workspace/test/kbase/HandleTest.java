@@ -254,19 +254,16 @@ public class HandleTest {
 		ws.add("mongodb-type-database", typedb);
 		ws.add("backend-secret", "foo");
 		ws.add("auth-service-url-allow-insecure", "true");
-		ws.add("auth-service-url", new URL("http://localhost:" + AUTH.getServerPort() +
-				"/testmode/api/legacy/KBase"));
-		ws.add("auth2-service-url", new URL("http://localhost:" + AUTH.getServerPort() +
-				"/testmode/"));
+		ws.add("auth-service-url", "http://localhost:" + AUTH.getServerPort() +
+				"/testmode/api/legacy/KBase");
+		ws.add("auth2-service-url", "http://localhost:" + AUTH.getServerPort() + "/testmode/");
 		ws.add("backend-type", "Shock");
 		ws.add("backend-url", shockURL.toString());
 		ws.add("backend-user", shockToken.getUserName());
 		ws.add("backend-token", shockToken.getToken());
 		ws.add("ws-admin", USER2);
-		ws.add("handle-service-url", "http://localhost:" +
-				HANDLE.getHandleServerPort());
-		ws.add("handle-manager-url", "http://localhost:" +
-				HANDLE.getHandleManagerPort());
+		ws.add("handle-service-url", "http://localhost:" + HANDLE.getHandleServerPort());
+		ws.add("handle-manager-url", "http://localhost:" + HANDLE.getHandleManagerPort());
 		ws.add("handle-manager-token", handleToken.getToken());
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForJSONRPCLayerTester"));

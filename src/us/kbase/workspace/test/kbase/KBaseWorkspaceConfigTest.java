@@ -413,7 +413,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect ignore hs", kwc.ignoreHandleService(), is(false));
 	}
 	
-	//TODO NOW Manual init tests
 	//TODO NOW Documentation incl release notes (admin notes)
 	//TODO NOW deploy template
 	

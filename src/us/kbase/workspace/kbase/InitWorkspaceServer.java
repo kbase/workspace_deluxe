@@ -508,9 +508,8 @@ public class InitWorkspaceServer {
 					"Warning - the Auth Service url uses insecure http. https is recommended.");
 		}
 		try {
-			final URL auth2url = cfg.getAuth2URL().toURI().resolve("api/legacy/globus").toURL();
-			c.withGlobusAuthURL(auth2url)
-				.withKBaseAuthServerURL(cfg.getAuthURL());
+			final URL globusURL = cfg.getAuth2URL().toURI().resolve("api/legacy/globus").toURL();
+			c.withGlobusAuthURL(globusURL).withKBaseAuthServerURL(cfg.getAuthURL());
 		} catch (URISyntaxException | MalformedURLException e) {
 			rep.reportFail("Invalid Auth Service url: " + cfg.getAuth2URL());
 			return null;
