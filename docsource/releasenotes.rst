@@ -6,6 +6,18 @@ VERSION: 0.9.0 (Released TBD)
 
 BACKWARDS INCOMPATIBILITIES:
 
+* The configuration that was previously stored in the workspace MongoDB database has been moved
+  to the ``deploy.cfg`` file. The new configuration parameters are ``mongodb-type-database``,
+  ``backend-type``, ``backend-url``, and ``backend-user``. Correct values for these parameters
+  can be determined for existing installations by examining the contents of the ``settings``
+  collection in the MongoDB workspace database (although note that ``shock`` and ``gridFS`` are
+  now capitalized as ``Shock`` and ``GridFS``).
+  
+.. warning:: Setting these values incorrectly can cause unexpected and undesired behavior,
+   including data corruption.
+
+* Due to the configuration changes, the ``initialize.py`` script is no longer needed and has been
+  removed.
 * The ``globus-url`` configuration parameter has been replaced by the ``auth2-service-url``
   parameter.
 
@@ -13,7 +25,7 @@ UPDATES:
 
 * The KBase Authentication server may now be used to specify workspace administrators,
   and supports read only administrator access as well as full access.
-* Added a Kafka events listener. See the administration documentation for configuration
+* Added a Kafka event listener. See the administration documentation for configuration
   instructions.
 * Event listeners now send the user name of the user that triggered the event. In the
   case of an administrator impersonating another user, the impersonated name is sent. If

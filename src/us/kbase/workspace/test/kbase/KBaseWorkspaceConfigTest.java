@@ -413,8 +413,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect ignore hs", kwc.ignoreHandleService(), is(false));
 	}
 	
-	//TODO NOW Documentation incl release notes (admin notes)
-	//TODO NOW deploy template
+	//TODO NOW Documentation
 	
 	@Test
 	public void configFailWhitespaceRequiredEntries() throws Exception {

@@ -1,10 +1,14 @@
 [Workspace]
 mongodb-database={{ default .Env.mongodb_database "workspace" }}
+mongodb-type-database={{ default .Env.mongodb_type_database "workspace_type_db" }}
 mongodb-pwd={{ default .Env.mongodb_pwd "" }}
 ws-admin={{ default .Env.ws_admin "scanonadmin" }}
 # backend user is wstest globus user in ci
 # use that acct to generate token
+backend-type={{ default .Env.backend_type ""}}
+backend-url={{ default .Env.backend_url ""}}
 backend-token={{ default .Env.backend_token "" }}
+backend-user={{ default .Env.backend_user "" }}
 mongodb-host={{ default .Env.mongodb_host "ci-mongo" }}
 mongodb-user={{ default .Env.mongodb_user "wsserv" }}
 service-port={{ default .Env.service_port "7058" }}
