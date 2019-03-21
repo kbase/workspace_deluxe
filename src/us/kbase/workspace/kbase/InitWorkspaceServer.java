@@ -173,8 +173,7 @@ public class InitWorkspaceServer {
 			rep.reportFail("Server startup failed - all calls will error out.");
 			return null;
 		} 
-		rep.reportInfo("Starting server using connection parameters:\n" +
-				cfg.getParamReport());
+		rep.reportInfo("Starting server using connection parameters:\n" + cfg.getParamReport());
 		rep.reportInfo("Temporary file location: " + tfm.getTempDir());
 
 		final WorkspaceDependencies wsdeps;

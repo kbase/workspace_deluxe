@@ -656,15 +656,20 @@ public class KBaseWorkspaceConfigTest {
 	}
 	
 	@Test
-	public void configFailShockParamsNull() throws Exception {
+	public void configFailShockParamsMissing() throws Exception {
+		configFailShockParamsMissing(null);
+		configFailShockParamsMissing("    \t   ");
+	}
+
+	private void configFailShockParamsMissing(final String param) throws Exception {
 		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
 				.with("mongodb-type-database", "    typedb   ")
 				.with("backend-type", "Shock")
-				.with("backend-token", null)
-				.with("backend-user", null)
-				.with("backend-url", null)
+				.with("backend-token", param)
+				.with("backend-user", param)
+				.with("backend-url", param)
 				.with("temp-dir", "   temp   ")
 				.with("auth-service-url", AUTH_LEGACY_URL)
 				.with("auth2-service-url", CI_SERV + "auth")
