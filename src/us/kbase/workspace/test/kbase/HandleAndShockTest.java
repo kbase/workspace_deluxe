@@ -68,7 +68,7 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
 
-public class HandleTest {
+public class HandleAndShockTest {
 	
 	/* This test also performs an integration test on the Shock backend since we have to
 	 * use Shock here anyway.
@@ -110,7 +110,7 @@ public class HandleTest {
 		final String mongohost = "localhost:" + MONGO.getServerPort();
 
 		// set up auth
-		final String dbname = HandleTest.class.getSimpleName() + "Auth";
+		final String dbname = HandleAndShockTest.class.getSimpleName() + "Auth";
 		AUTH = new AuthController(
 				TestCommon.getJarsDir(),
 				"localhost:" + MONGO.getServerPort(),
