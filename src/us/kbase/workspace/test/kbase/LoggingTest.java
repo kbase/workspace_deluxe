@@ -48,7 +48,6 @@ import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.kbase.JSONRPCLayerTester.ServerThread;
 
 import com.mongodb.DB;
@@ -112,9 +111,8 @@ public class LoggingTest {
 		final AuthToken t2 = new AuthToken(token2, USER2);
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
-		MongoClient mongoClient = new MongoClient(mongohost);
 		
-		SERVER = startupWorkspaceServer(mongohost, mongoClient.getDB(DB_WS_NAME), DB_TYPE_NAME);
+		SERVER = startupWorkspaceServer(mongohost, DB_WS_NAME, DB_TYPE_NAME);
 		SERVER.changeSyslogOutput(logout);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
@@ -174,10 +172,9 @@ public class LoggingTest {
 	
 	private static WorkspaceServer startupWorkspaceServer(
 			final String mongohost,
-			final DB db,
+			final String db,
 			final String typedb)
 			throws Exception {
-		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
@@ -190,13 +187,14 @@ public class LoggingTest {
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
-		ws.add("mongodb-database", db.getName());
+		ws.add("mongodb-database", db);
+		ws.add("mongodb-type-database", typedb);
 		ws.add("auth-service-url-allow-insecure", "true");
 		ws.add("auth-service-url", new URL("http://localhost:" + authc.getServerPort() +
 				"/testmode/api/legacy/KBase"));
 		ws.add("auth2-service-url", new URL("http://localhost:" + authc.getServerPort() +
 				"/testmode/"));
-		ws.add("backend-secret", "foo");
+		ws.add("backend-type", "GridFS");
 		ws.add("ws-admin", USER2);
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForLoggingTest"));

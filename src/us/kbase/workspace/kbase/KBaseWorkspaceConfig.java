@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
+
 public class KBaseWorkspaceConfig {
 	
 	//TODO CODE How the config is created could use a rethink. Would be much simpler just throwing an exception rather than collecting errors.
@@ -28,13 +30,17 @@ public class KBaseWorkspaceConfig {
 	
 	//TODO JAVADOCS
 	
-	//required deploy parameters:
+	//required deploy parameters
 	private static final String HOST = "mongodb-host";
 	private static final String DB = "mongodb-database";
+	private static final String TYPE_DB = "mongodb-type-database";
 	//startup workspace admin user
 	private static final String WSADMIN = "ws-admin";
-	//required backend param:
+	// backend params
+	private static final String BACKEND_TYPE = "backend-type";
+	private static final String BACKEND_USER = "backend-user";
 	private static final String BACKEND_TOKEN = "backend-token";
+	private static final String BACKEND_URL = "backend-url";
 	//mongo db auth params:
 	private static final String MONGO_USER = "mongodb-user";
 	private static final String MONGO_PWD = "mongodb-pwd";
@@ -65,10 +71,19 @@ public class KBaseWorkspaceConfig {
 	private static final String TEMP_DIR = "temp-dir";
 	
 	// the auth2 urls are checked when getting the url
-	private static final List<String> REQUIRED_PARAMS = Arrays.asList(HOST, DB, TEMP_DIR);
+	private static final List<String> REQUIRED_PARAMS = Arrays.asList(
+			HOST, DB, TYPE_DB, TEMP_DIR, BACKEND_TYPE);
+	
+	private static final Map<String, List<String>> BACKEND_TYPES = ImmutableMap.of(
+			BackendType.Shock.name(), Arrays.asList(BACKEND_TOKEN, BACKEND_URL, BACKEND_USER),
+			BackendType.GridFS.name(), Collections.emptyList());
 	
 	private final String host;
 	private final String db;
+	private final String typedb;
+	private final BackendType backendType;
+	private final URL backendURL;
+	private final String backendUser;
 	private final String backendToken;
 	private final String tempDir;
 	private final String workspaceAdmin;
@@ -152,6 +167,7 @@ public class KBaseWorkspaceConfig {
 		final List<String> paramErrors = new ArrayList<String>();
 		final List<String> infoMsgs = new ArrayList<String>();
 		
+		// should just make a method for getting a String that ensures the string is there
 		for (final String param: REQUIRED_PARAMS) {
 			final String paramval = config.get(param);
 			if (nullOrEmpty(paramval)) {
@@ -160,15 +176,40 @@ public class KBaseWorkspaceConfig {
 		}
 		host = nullIfEmpty(config.get(HOST));
 		db = nullIfEmpty(config.get(DB));
+		typedb = nullIfEmpty(config.get(TYPE_DB));
+		if (db != null && db.equals(typedb)) {
+			paramErrors.add(String.format("The parameters %s and %s have the same value, %s",
+					DB, TYPE_DB, db));
+		}
 		tempDir = nullIfEmpty(config.get(TEMP_DIR));
 		
-		authURL = getUrl(config, KBASE_AUTH_URL, paramErrors);
-		auth2URL = getUrl(config, KBASE_AUTH2_URL, paramErrors);
+		authURL = getUrl(config, KBASE_AUTH_URL, paramErrors, true);
+		auth2URL = getUrl(config, KBASE_AUTH2_URL, paramErrors, true);
 		
 		adminRoles = getStringSet(config, KBASE_AUTH_ADMIN_FULL_ROLES);
 		adminReadOnlyRoles = getStringSet(config, KBASE_AUTH_ADMIN_READ_ONLY_ROLES);
 		
-		backendToken = nullIfEmpty(config.get(BACKEND_TOKEN));
+		final String bet = nullIfEmpty(config.get(BACKEND_TYPE));
+		if (!BACKEND_TYPES.containsKey(bet)) {
+			if (bet != null) {
+				paramErrors.add("Illegal backend type: " + bet);
+			}
+			backendType = null;
+			backendToken = null;
+			backendURL = null;
+			backendUser = null;
+		} else {
+			backendType = BackendType.valueOf(bet);
+			for (final String param: BACKEND_TYPES.get(backendType.name())) {
+				if (nullOrEmpty(config.get(param))) {
+					paramErrors.add(String.format(
+							"Must provide %s param %s in config file", backendType, param));
+				}
+			}
+			backendToken = nullIfEmpty(config.get(BACKEND_TOKEN));
+			backendURL = getUrl(config, BACKEND_URL, paramErrors, false);
+			backendUser = nullIfEmpty(config.get(BACKEND_USER));
+		}
 		
 		workspaceAdmin = nullIfEmpty(config.get(WSADMIN));
 		
@@ -196,8 +237,8 @@ public class KBaseWorkspaceConfig {
 			handleManagerToken = null;
 		} else {
 			final String token = nullIfEmpty(config.get(HANDLE_MANAGER_TOKEN));
-			final URL hsURL = getUrl(config, HANDLE_SERVICE_URL, paramErrors);
-			final URL hmURL = getUrl(config, HANDLE_MANAGER_URL, paramErrors);
+			final URL hsURL = getUrl(config, HANDLE_SERVICE_URL, paramErrors, true);
+			final URL hmURL = getUrl(config, HANDLE_MANAGER_URL, paramErrors, true);
 			if (token == null) {
 				handleManagerToken = null;
 				handleServiceURL = null;
@@ -295,8 +336,9 @@ public class KBaseWorkspaceConfig {
 	private String generateParamReport(final Map<String, String> cfg) {
 		String params = "";
 		final List<String> paramSet = new LinkedList<String>(
-				Arrays.asList(HOST, DB, MONGO_USER, KBASE_AUTH_URL, KBASE_AUTH2_URL,
-						KBASE_AUTH_ADMIN_READ_ONLY_ROLES, KBASE_AUTH_ADMIN_FULL_ROLES));
+				Arrays.asList(HOST, DB, TYPE_DB, MONGO_USER, KBASE_AUTH_URL, KBASE_AUTH2_URL,
+						KBASE_AUTH_ADMIN_READ_ONLY_ROLES, KBASE_AUTH_ADMIN_FULL_ROLES,
+						BACKEND_TYPE, BACKEND_URL, BACKEND_USER));
 		if (!ignoreHandleService) {
 			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL, HANDLE_MANAGER_URL));
 		}
@@ -305,7 +347,7 @@ public class KBaseWorkspaceConfig {
 				params += s + "=" + cfg.get(s).trim() + "\n";
 			}
 		}
-		if (!nullOrEmpty(mongoPassword)) {
+		if (mongoPassword != null) {
 			params += MONGO_PWD + "=[redacted for your safety and comfort]\n";
 		}
 		if (!listenerConfigs.isEmpty()) {
@@ -319,10 +361,13 @@ public class KBaseWorkspaceConfig {
 	private static URL getUrl(
 			final Map<String, String> wsConfig,
 			final String configKey,
-			final List<String> errors) {
+			final List<String> errors,
+			final boolean required) {
 		final String urlStr = wsConfig.get(configKey);
 		if (nullOrEmpty(urlStr)) {
-			errors.add("Must provide param " + configKey + " in config file");
+			if (required) {
+				errors.add("Must provide param " + configKey + " in config file");
+			}
 			return null;
 		}
 		try {
@@ -340,6 +385,10 @@ public class KBaseWorkspaceConfig {
 	public String getDBname() {
 		return db;
 	}
+	
+	public String getTypeDBName() {
+		return typedb;
+	}
 
 	public URL getAuthURL() {
 		return authURL;
@@ -355,6 +404,18 @@ public class KBaseWorkspaceConfig {
 	
 	public Set<String> getAdminReadOnlyRoles() {
 		return adminReadOnlyRoles;
+	}
+	
+	public BackendType getBackendType() {
+		return backendType;
+	}
+	
+	public URL getBackendURL() {
+		return backendURL;
+	}
+	
+	public String getBackendUser() {
+		return backendUser;
 	}
 	
 	public String getBackendToken() {
