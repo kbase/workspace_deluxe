@@ -413,8 +413,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect ignore hs", kwc.ignoreHandleService(), is(false));
 	}
 	
-	//TODO NOW Documentation
-	
 	@Test
 	public void configFailWhitespaceRequiredEntries() throws Exception {
 		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
