@@ -47,6 +47,8 @@ auth2-ws-admin-read-only-roles =
 auth2-ws-admin-full-roles =
 
 # The type of the backend that will store the workspace data. Either 'GridFS' or 'Shock'.
+# WARNING: Once any data has been saved by the workspace, changing the backend will result in
+# unspecified behavior, including data corruption.
 backend-type = GridFS
 
 # Token for the backend account. Not required for GridFS.

@@ -82,7 +82,7 @@ necessary::
 Service dependencies
 --------------------
 
-The WSS requires `MongoDB <https://mongodb.org>`_ 2.4+ to run. The WSS
+The WSS requires `MongoDB <https://mongodb.org>`_ 2.6+ to run. The WSS
 may optionally use:
 
 * `Shock <https://github.com/kbase/Shock>`_ as a file storage backend.
@@ -94,7 +94,7 @@ may optionally use:
   :ref:`shockintegration`).
   
 The WSS has been tested against the auth2 branch of the KBase fork of Shock version 0.9.6
-(e9f0e1618e265042bf5cb96429995b5e6ec0a06a), and against MongoDB versions 2.6.11 and 3.6.10.
+(e9f0e1618e265042bf5cb96429995b5e6ec0a06a), and against MongoDB versions 2.6.12 and 3.6.10.
 3.0+ versions were tested with and without the WiredTiger storage engine.
   
 Please see the respective service documentation to set up and run the services
@@ -109,13 +109,9 @@ required.
 Configuration
 -------------
 
-There are two sources of configuration data for the WSS. The first is contained
-in the ``deploy.cfg`` file in the repository root (see
+The workspace configuration is contained in the ``deploy.cfg`` file in the repository root (see
 :ref:`configurationparameters`). Copy the provided ``deploy.cfg.example`` file to ``deploy.cfg``
-to create the file. These parameters may change from invocation to
-invocation of the workspace service. The second is contained in the workspace
-MongoDB database itself and is set once by the configuration script (see
-:ref:`configurationscript`).
+to create the file.
 
 .. note::
    See :ref:`configlistener` for configuration parameters for event listeners.
@@ -150,6 +146,16 @@ mongodb-database
 **Required**: Yes
 
 **Description**: Name of the workspace MongoDB database
+
+mongodb-type-database
+""""""""""""""""
+**Required**: Yes
+
+**Description**: Name of the workspace MongoDB types database. This database name must not be
+the same as ``mongodb-database``.
+
+.. warning:: Once any data has been saved by the workspace, changing the type database will
+   result in unspecified behavior, including data corruption.
 
 mongodb-user
 """"""""""""
@@ -235,13 +241,43 @@ API call. If either ``auth2-ws-admin-read-only-roles`` or ``auth2-ws-admin-full-
 contain text, this parameter is ignored and workspace administrator management is
 delegated to the KBase authentication server.
 
+backend-type
+""""""""""""
+**Required**: Yes
+
+**Description**: Determines which backend will be used to store the workspace object data.
+Either ``GridFS`` or ``Shock``. Note all data other than the object data is stored in MongoDB.
+
+.. warning:: Once any data has been saved by the workspace, changing the backend type will
+   result in unspecified behavior, including data corruption.
+
+backend-url
+"""""""""""
+**Required**: If using Shock as the file backend.
+
+**Description**: The root url of the Shock server.
+
+.. warning:: Once any data has been saved by the workspace, changing the shock server instance will
+   result in unspecified behavior, including data corruption.
+
+backend-user
+""""""""""""
+**Required**: If using Shock as the file backend.
+
+**Description**: The KBase user account that will be used to interact with Shock. This is
+provided in the configuration as a safety feature, as the backend token may change, but the user
+should not. The user associated with the backend token is checked against ``backend-user``, and if
+the names differ, the server will not start.
+
+.. warning:: Once any data has been saved by the workspace, changing the backend user will
+   result in unspecified behavior, including data corruption.
+
 backend-token
 """""""""""""
 **Required**: If using Shock as the file backend
 
-**Description**: Token for the file backend user account used by
-the WSS to communicate with the backend. The user name is stored in the
-database after being determined by the configuration script.
+**Description**: Token for the file backend user account used by the WSS to communicate with
+the backend.
 
 port
 """"
@@ -283,85 +319,6 @@ for a request, in order of precedence, is 1) the first address in
 ``X-Forwarded-For``, 2) ``X-Real-IP``, and 3) the address of the client.
 
 .. _configurationscript:
-
-Configuration script
-^^^^^^^^^^^^^^^^^^^^
-
-Before starting the WSS for the first time, the database must be configured
-with information about the type database and file backend. This information
-travels with the MongoDB database because it is intrinsic to the overall
-data store - once a type database and file backend are chosen, they cannot be
-changed later without causing massive data inconsistency.
-
-Prior to configuring the database, MongoDB must be running. If using Shock
-as a backend, Shock must be running.
-
-To configure the database, run the initialization script, which will step the
-user through the process::
-
-    ~/kb/workspace_deluxe$ cd administration/
-    ~/kb/workspace_deluxe/administration$ ./initialize.py
-    Current configuration file:
-    mongodb-host=localhost
-    mongodb-database=workspace
-    handle-service-url=
-    handle-manager-url=
-    handle-manager-token=
-    auth-service-url=https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
-    auth2-service-url=https://kbase.us/services/auth/
-    ws-admin=workspaceadmin
-    backend-token=
-    port=7058
-    server-threads=20
-    min-memory=10000
-    max-memory=15000
-    temp-dir=ws_temp_dir
-    
-    Keep this configuration? [y - keep]/n - discard: n
-    Discarding current local configuration.
-    Please enter value for mongodb-host: localhost
-    Please enter value for mongodb-database: ws_db
-    Does mongodb require authentication? [y - yes]/n - no: n
-    Ok, commenting out authorization information.
-    Attempting to connect to mongodb database "ws_db" at localhost... Connected.
-    Please enter the name of the mongodb type database: ws_db_types
-    Choose a backend:  [s - shock]/g - gridFS: s
-    Please enter the url of the shock server: http://localhost:7044
-    Please enter an authentication token for the workspace shock user account: [redacted]
-    Validating token with auth server at https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
-    Successfully set DB configuration:
-    type_db=ws_db_types
-    backend=shock
-    shock_location=http://localhost:7044/
-    shock_user=gaprice
-    
-    Saving local configuration file:
-    mongodb-host=localhost
-    mongodb-database=ws_db
-    handle-service-url=
-    handle-manager-url=
-    handle-manager-token=
-    auth-service-url=https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login/
-    auth2-service-url=https://kbase.us/services/auth/
-    ws-admin=workspaceadmin
-    backend-token=[redacted]
-    port=7058
-    server-threads=20
-    min-memory=10000
-    max-memory=15000
-    temp-dir=ws_temp_dir
-    
-    Configuration saved.
-    
-Note that the configuration script will only alter the ``mongodb-*`` and
-``backend-secret`` parameters. Other parameters must be altered through
-manually editing ``deploy.cfg``.
-
-Also, do not, under any circumstances, use ``kbasetest`` as the account with
-which the WSS will communicate with Shock.
-
-Once the database is started and ``deploy.cfg`` is filled in to the user's
-satisfaction, the server may be deployed and started.
 
 Deploy and start the server
 ---------------------------
