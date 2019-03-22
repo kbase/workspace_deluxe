@@ -76,7 +76,6 @@ import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -193,7 +192,6 @@ public class JSONRPCLayerTester {
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
-		MongoClient mongoClient = new MongoClient(mongohost);
 		
 		// set up auth
 		final String dbname = JSONRPCLayerTester.class.getSimpleName() + "Auth";
@@ -219,8 +217,7 @@ public class JSONRPCLayerTester {
 		TestCommon.setUserRoles(authURL, USER1, Arrays.asList(AUTH_ROLE_FULL));
 		TestCommon.setUserRoles(authURL, USER3, Arrays.asList(AUTH_ROLE_READ2));
 		
-		SERVER1 = startupWorkspaceServer(
-				mongohost, mongoClient.getDB(DB_WS_NAME_1), DB_TYPE_NAME_1);
+		SERVER1 = startupWorkspaceServer(mongohost, DB_WS_NAME_1, DB_TYPE_NAME_1);
 		int port = SERVER1.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
 		final URL wsurl = new URL("http://localhost:" + port);
@@ -241,8 +238,7 @@ public class JSONRPCLayerTester {
 		AUTH_USER2 = auth.getUserFromToken(t2);
 
 		SERVER_AUTH_ADMINS = startupWorkspaceServer(
-				mongohost, mongoClient.getDB(DB_WS_NAME_AUTH2_ADMINS), DB_TYPE_NAME_AUTH2_ADMINS,
-				true);
+				mongohost, DB_WS_NAME_AUTH2_ADMINS, DB_TYPE_NAME_AUTH2_ADMINS, true);
 		int port2 = SERVER_AUTH_ADMINS.getServerPort();
 		System.out.println("Started auth roles test server on port " + port2);
 		final URL wsurl2 = new URL("http://localhost:" + port2);
@@ -254,8 +250,7 @@ public class JSONRPCLayerTester {
 		CLIENT_AA2.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT_AA3.setIsInsecureHttpConnectionAllowed(true);
 		
-		SERVER2 = startupWorkspaceServer(
-				mongohost, mongoClient.getDB(DB_WS_NAME_2), DB_TYPE_NAME_2);
+		SERVER2 = startupWorkspaceServer(mongohost, DB_WS_NAME_2, DB_TYPE_NAME_2);
 		CLIENT_FOR_SRV2 = new WorkspaceClient(new URL("http://localhost:" + 
 					SERVER2.getServerPort()), t2);
 		
@@ -359,7 +354,7 @@ public class JSONRPCLayerTester {
 
 	private static WorkspaceServer startupWorkspaceServer(
 			final String mongohost,
-			final DB db,
+			final String db,
 			final String typedb)
 			throws Exception {
 		return startupWorkspaceServer(mongohost, db, typedb, false);
@@ -367,11 +362,10 @@ public class JSONRPCLayerTester {
 	
 	private static WorkspaceServer startupWorkspaceServer(
 			final String mongohost,
-			final DB db,
+			final String db,
 			final String typedb,
 			final boolean authAdminRoles)
 			throws Exception {
-		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
@@ -383,13 +377,14 @@ public class JSONRPCLayerTester {
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
-		ws.add("mongodb-database", db.getName());
+		ws.add("mongodb-database", db);
+		ws.add("mongodb-type-database", typedb);
 		ws.add("auth-service-url-allow-insecure", "true");
 		ws.add("auth-service-url", new URL("http://localhost:" + authc.getServerPort() +
 				"/testmode/api/legacy/KBase"));
 		ws.add("auth2-service-url", new URL("http://localhost:" + authc.getServerPort() +
 				"/testmode/"));
-		ws.add("backend-secret", "foo");
+		ws.add("backend-type", "GridFS");
 		ws.add("ws-admin", USER2);
 		if (authAdminRoles) {
 			ws.add("auth2-ws-admin-read-only-roles", "  ,  " + AUTH_ROLE_READ1 + " ,   ,    " +

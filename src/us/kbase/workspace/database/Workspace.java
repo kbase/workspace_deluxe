@@ -24,6 +24,7 @@ import com.google.common.base.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 
+import us.kbase.auth.AuthToken;
 import us.kbase.common.utils.sortjson.KeyDuplicationException;
 import us.kbase.common.utils.sortjson.TooManyKeysException;
 import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
@@ -50,6 +51,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ObjectResolver.ObjectResolution;
@@ -1696,8 +1698,7 @@ public class Workspace {
 		return new WorkspaceIDHandlerFactory(user);
 	}
 	
-	private class WorkspaceIDHandlerFactory
-			implements IdReferenceHandlerFactory {
+	private class WorkspaceIDHandlerFactory implements IdReferenceHandlerFactory {
 
 		private final WorkspaceUser user;
 		
@@ -1710,13 +1711,27 @@ public class Workspace {
 		}
 
 		@Override
-		public <T> IdReferenceHandler<T> createHandler(final Class<T> clazz) {
+		public <T> IdReferenceHandler<T> createHandler(
+				final Class<T> clazz,
+				final AuthToken token) { // unused, really don't like even having to import it
 			return new WorkspaceIDHandler<T>(user);
 		}
 
 		@Override
 		public IdReferenceType getIDType() {
 			return WS_ID_TYPE;
+		}
+
+		@Override
+		public IdReferencePermissionHandler createPermissionHandler() {
+			// unused
+			return null;
+		}
+
+		@Override
+		public IdReferencePermissionHandler createPermissionHandler(String userName) {
+			// usused
+			return null;
 		}
 	}
 	

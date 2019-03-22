@@ -1,8 +1,8 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
 
@@ -26,8 +26,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.github.zafarkhaja.semver.Version;
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.abstracthandle.Handle;
@@ -40,6 +38,7 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.mysql.MySQLController;
+import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
@@ -51,6 +50,7 @@ import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjects2Params;
@@ -68,7 +68,11 @@ import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
 
-public class HandleTest {
+public class HandleAndShockTest {
+	
+	/* This test also performs an integration test on the Shock backend since we have to
+	 * use Shock here anyway.
+	 */
 
 	private static MySQLController MYSQL;
 	private static MongoController MONGO;
@@ -85,6 +89,8 @@ public class HandleTest {
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
 	private static WorkspaceClient CLIENT_NOAUTH;
+	
+	private static AuthToken HANDLE_MNGR_TOKEN;
 
 	private static AbstractHandleClient HANDLE_CLIENT;
 	
@@ -102,10 +108,9 @@ public class HandleTest {
 				TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
-		MongoClient mongoClient = new MongoClient(mongohost);
 
 		// set up auth
-		final String dbname = HandleTest.class.getSimpleName() + "Auth";
+		final String dbname = HandleAndShockTest.class.getSimpleName() + "Auth";
 		AUTH = new AuthController(
 				TestCommon.getJarsDir(),
 				"localhost:" + MONGO.getServerPort(),
@@ -121,7 +126,7 @@ public class HandleTest {
 		final String token3 = TestCommon.createLoginToken(authURL, "user3");
 		final AuthToken t1 = new AuthToken(token1, USER1);
 		final AuthToken t2 = new AuthToken(token2, USER2);
-		final AuthToken t3 = new AuthToken(token3, "user3");
+		HANDLE_MNGR_TOKEN = new AuthToken(token3, "user3");
 		
 		SHOCK = new ShockController(
 				TestCommon.getShockExe(),
@@ -133,6 +138,7 @@ public class HandleTest {
 				null,
 				null,
 				new URL(authURL.toString() + "/api/legacy/globus"));
+		final URL shockURL = new URL("http://localhost:" + SHOCK.getServerPort());
 		System.out.println("Shock controller version: " + SHOCK.getVersion());
 		if (SHOCK.getVersion() == null) {
 			System.out.println(
@@ -152,8 +158,8 @@ public class HandleTest {
 				WorkspaceTestCommon.getHandleManagerPSGI(),
 				"user3",
 				MYSQL,
-				"http://localhost:" + SHOCK.getServerPort(),
-				t3,
+				shockURL.toString(),
+				HANDLE_MNGR_TOKEN,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(TestCommon.getTempDir()),
 				new URL(authURL.toString() + "/api/legacy/KBase"));
@@ -161,8 +167,11 @@ public class HandleTest {
 		
 		
 		SERVER = startupWorkspaceServer(mongohost,
-				mongoClient.getDB("JSONRPCLayerHandleTester"), 
-				"JSONRPCLayerHandleTester_types", t3);
+				"JSONRPCLayerHandleTester", 
+				"JSONRPCLayerHandleTester_types",
+				shockURL,
+				HANDLE_MNGR_TOKEN,
+				HANDLE_MNGR_TOKEN);
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
 		
@@ -220,16 +229,16 @@ public class HandleTest {
 	}
 	
 	private static WorkspaceServer startupWorkspaceServer(
-			String mongohost,
-			DB db,
-			String typedb,
-			AuthToken handleToken)
+			final String mongohost,
+			final String db,
+			final String typedb,
+			final URL shockURL,
+			final AuthToken shockToken,
+			final AuthToken handleToken)
 			throws InvalidHostException, UnknownHostException, IOException,
-			NoSuchFieldException, IllegalAccessException, Exception,
-			InterruptedException {
+				NoSuchFieldException, IllegalAccessException, Exception,
+				InterruptedException {
 		
-		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
-
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
 				new File(TestCommon.getTempDir()));
@@ -241,18 +250,20 @@ public class HandleTest {
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
-		ws.add("mongodb-database", db.getName());
+		ws.add("mongodb-database", db);
+		ws.add("mongodb-type-database", typedb);
 		ws.add("backend-secret", "foo");
 		ws.add("auth-service-url-allow-insecure", "true");
-		ws.add("auth-service-url", new URL("http://localhost:" + AUTH.getServerPort() +
-				"/testmode/api/legacy/KBase"));
-		ws.add("auth2-service-url", new URL("http://localhost:" + AUTH.getServerPort() +
-				"/testmode/"));
-		ws.add("handle-service-url", "http://localhost:" +
-				HANDLE.getHandleServerPort());
-		ws.add("handle-manager-url", "http://localhost:" +
-				HANDLE.getHandleManagerPort());
+		ws.add("auth-service-url", "http://localhost:" + AUTH.getServerPort() +
+				"/testmode/api/legacy/KBase");
+		ws.add("auth2-service-url", "http://localhost:" + AUTH.getServerPort() + "/testmode/");
+		ws.add("backend-type", "Shock");
+		ws.add("backend-url", shockURL.toString());
+		ws.add("backend-user", shockToken.getUserName());
+		ws.add("backend-token", shockToken.getToken());
 		ws.add("ws-admin", USER2);
+		ws.add("handle-service-url", "http://localhost:" + HANDLE.getHandleServerPort());
+		ws.add("handle-manager-url", "http://localhost:" + HANDLE.getHandleManagerPort());
 		ws.add("handle-manager-token", handleToken.getToken());
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForJSONRPCLayerTester"));
@@ -273,6 +284,8 @@ public class HandleTest {
 		}
 		return server;
 	}
+	
+	//TODO TEST should clear DBs between tests
 	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
@@ -321,7 +334,7 @@ public class HandleTest {
 		
 		final List<List<String>> exp = new ArrayList<List<String>>();
 		exp.add(Arrays.asList("MongoDB", "true"));
-		exp.add(Arrays.asList("GridFS", "true"));
+		exp.add(Arrays.asList("Shock", "true"));
 		exp.add(Arrays.asList("Handle service", "false"));
 		exp.add(Arrays.asList("Handle manager", "false"));
 		final Iterator<List<String>> expiter = exp.iterator();
@@ -483,8 +496,11 @@ public class HandleTest {
 		assertThat("got correct error message", wod.getHandleError(),
 				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
 						+ h1.getHid()));
-		assertTrue("got correct stacktrace", wod.getHandleStacktrace().startsWith(
-				"us.kbase.common.service.ServerException: Unable to set acl(s) on handles "
+		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
+				startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
+						"IdReferencePermissionHandlerException: " +
+						"The Handle Manager reported a problem while attempting to set Handle " +
+						"ACLs: Unable to set acl(s) on handles "
 						+ h1.getHid()));
 	}
 	
@@ -546,8 +562,11 @@ public class HandleTest {
 		assertThat("got correct error message", wod.getHandleError(),
 				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
 						+ h1.getHid()));
-		assertTrue("got correct stacktrace", wod.getHandleStacktrace().startsWith(
-				"us.kbase.common.service.ServerException: Unable to set acl(s) on handles "
+		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
+				startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
+						"IdReferencePermissionHandlerException: " +
+						"The Handle Manager reported a problem while attempting to set Handle " +
+						"ACLs: Unable to set acl(s) on handles "
 						+ h1.getHid()));
 		
 	}
@@ -610,9 +629,12 @@ public class HandleTest {
 	@Test
 	public void idCount() throws Exception {
 		IdReferenceType type = HandleIdHandlerFactory.type;
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(4);
-		fac.addFactory(new HandleIdHandlerFactory(new URL("http://localhost:"
-				+ HANDLE.getHandleServerPort()), CLIENT1.getToken()));
+		IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder.getBuilder(4)
+				.build().getFactory(CLIENT1.getToken());
+		final HandleMngrClient client = new HandleMngrClient(
+				new URL("http://localhost:" + HANDLE.getHandleManagerPort()), HANDLE_MNGR_TOKEN);
+		fac.addFactory(new HandleIdHandlerFactory(
+				new URL("http://localhost:" + HANDLE.getHandleServerPort()), client));
 		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
 		handlers.associateObject("foo");
 		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));

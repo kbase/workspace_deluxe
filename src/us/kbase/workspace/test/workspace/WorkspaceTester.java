@@ -51,6 +51,8 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
+import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
@@ -472,7 +474,10 @@ public class WorkspaceTester {
 	}
 	
 	protected IdReferenceHandlerSetFactory getIdFactory() {
-		return new IdReferenceHandlerSetFactory(100000);
+		return getIdFactory(100000);
+	}
+	protected IdReferenceHandlerSetFactory getIdFactory(final int maxIDs) {
+		return IdReferenceHandlerSetFactoryBuilder.getBuilder(maxIDs).build().getFactory(null);
 	}
 	
 	protected Object getData(final WorkspaceObjectData wod) throws Exception {
@@ -1602,10 +1607,9 @@ public class WorkspaceTester {
 			Map<String, String> meta, Map<String, ? extends Object> data,
 			TypeDefId type, String name, Provenance prov, boolean hide)
 			throws Exception {
-		final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
 		return ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), data,
-						type, new WorkspaceUserMetadata(meta), prov, hide)), fac)
+						type, new WorkspaceUserMetadata(meta), prov, hide)), getIdFactory())
 				.get(0);
 	}
 
@@ -2030,14 +2034,14 @@ public class WorkspaceTester {
 	}
 
 	protected void checkExternalIds(WorkspaceUser user, ObjectIdentifier obj,
-			Map<String, List<String>> expected)
+			Map<IdReferenceType, List<String>> expected)
 			throws Exception {
 		List<ObjectIdentifier> o = Arrays.asList(obj);
 		WorkspaceObjectData wod = ws.getObjects(user, o).get(0);
 		wod.destroy(); // don't need the actual data
 		WorkspaceObjectData woi = ws.getObjects(user, o, true).get(0);
 		
-		assertThat("get objs correct ext ids", new HashMap<>(wod.getExtractedIds()), is(expected));
-		assertThat("get prov correct ext ids", new HashMap<>(woi.getExtractedIds()), is(expected));
+		assertThat("get objs correct ext ids", wod.getExtractedIds(), is(expected));
+		assertThat("get prov correct ext ids", woi.getExtractedIds(), is(expected));
 	}
 }

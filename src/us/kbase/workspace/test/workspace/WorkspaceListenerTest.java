@@ -31,6 +31,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.CopyResult;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -1051,7 +1052,8 @@ public class WorkspaceListenerTest {
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
-		final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(100000).build().getFactory(null);
 		final WorkspaceSaveObject wso1 = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("foo1"),
 				new HashMap<>(),
@@ -1123,7 +1125,8 @@ public class WorkspaceListenerTest {
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
-		final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(100000).build().getFactory(null);
 		final WorkspaceSaveObject wso1 = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("foo1"),
 				new HashMap<>(),

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import us.kbase.auth.AuthToken;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
@@ -15,6 +16,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.idref.SimpleRemappedId;
 
@@ -27,7 +29,7 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 	}
 
 	@Override
-	public <T> IdReferenceHandler<T> createHandler(Class<T> clazz) {
+	public <T> IdReferenceHandler<T> createHandler(Class<T> clazz, final AuthToken userToken) {
 		return new TestIDReferenceHandler<T>();
 	}
 
@@ -135,6 +137,16 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 			return type;
 		}
 		
+	}
+
+	@Override
+	public IdReferencePermissionHandler createPermissionHandler() {
+		return null;
+	}
+
+	@Override
+	public IdReferencePermissionHandler createPermissionHandler(String userName) {
+		return null;
 	}
 
 }
