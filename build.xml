@@ -328,7 +328,7 @@
 
   <target name="test_quick_no_handle"
       depends="compile, preparejunitreportdir"
-      description="run tests other than the *LongTest.java and HandleTest tests">
+      description="run tests other than the *LongTest.java and HandleAndShockTest tests">
     <echo message="starting ${package} tests"/>
     <delete file="${test.reports.dir}/ws.exec"/>
     <jacoco:coverage destfile="${test.reports.dir}/ws.exec"
@@ -342,7 +342,7 @@
           <fileset dir="${src}">
             <include name="**/test/**/**Test.java"/>
             <exclude name="**/test/**/**LongTest.java"/>
-            <exclude name="**/test/**/HandleTest.java"/>
+            <exclude name="**/test/**/HandleAndShockTest.java"/>
           </fileset>
         </batchtest>
       </junit>
