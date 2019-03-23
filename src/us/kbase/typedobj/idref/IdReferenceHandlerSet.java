@@ -44,10 +44,11 @@ public class IdReferenceHandlerSet<T> {
 		 * @throws IdReferenceHandlerException if the ID could not be added.
 		 * @throws HandlerLockedException if the handler is already locked.
 		 */
-		public boolean addId(T associatedObject, String id,
-				List<String> attributes)
-				throws IdReferenceHandlerException,
-				HandlerLockedException {
+		public boolean addId(
+				final T associatedObject,
+				final String id,
+				final List<String> attributes)
+				throws IdReferenceHandlerException, HandlerLockedException {
 			if (processed) {
 				throw new HandlerLockedException(
 						"This handler's ids have been processed and no more may be added");
@@ -56,7 +57,7 @@ public class IdReferenceHandlerSet<T> {
 				throw new NullPointerException(
 						"associatedObject cannot be null");
 			}
-			if (id == null || id.isEmpty()) {
+			if (id == null || id.trim().isEmpty()) {
 				throw new IdParseException(
 						"IDs may not be null or the empty string",
 						getIdType(), associatedObject, id, attributes, null);
@@ -67,8 +68,7 @@ public class IdReferenceHandlerSet<T> {
 		/** Implementation of the addId method */
 		protected abstract boolean addIdImpl(T associatedObject, String id,
 				List<String> attributes)
-				throws IdReferenceHandlerException,
-				HandlerLockedException;
+				throws IdReferenceHandlerException;
 		
 //		/** Add an id to the handler
 //		 * @param associatedObject an object associated with the ID.
@@ -397,7 +397,6 @@ public class IdReferenceHandlerSet<T> {
 		private final String id;
 		private final List<String> idAttributes;
 		private final Object associatedObject;
-		
 		
 		public IdReferenceException(
 				final String message,
