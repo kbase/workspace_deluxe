@@ -55,6 +55,11 @@ public class KBaseWorkspaceConfig {
 	private static final String KBASE_AUTH_ADMIN_FULL_ROLES =
 			"auth2-ws-admin-full-roles";
 	
+	// shock info 
+	private static final String SHOCK_USER = "shock-user";
+	private static final String SHOCK_TOKEN = "shock-token";
+	private static final String SHOCK_URL = "shock-url";
+	
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
 	private static final String HANDLE_SERVICE_URL = "handle-service-url";
@@ -86,6 +91,9 @@ public class KBaseWorkspaceConfig {
 	private final String backendUser;
 	private final String backendToken;
 	private final String tempDir;
+	private final URL shockURL;
+	private final String shockUser;
+	private final String shockToken;
 	private final String workspaceAdmin;
 	private final String mongoUser;
 	private final String mongoPassword;
@@ -210,7 +218,20 @@ public class KBaseWorkspaceConfig {
 			backendURL = getUrl(config, BACKEND_URL, paramErrors, false);
 			backendUser = nullIfEmpty(config.get(BACKEND_USER));
 		}
-		
+
+		shockURL = getUrl(config, SHOCK_URL, paramErrors, false);
+		if (shockURL == null) {
+			shockUser = null;
+			shockToken = null;
+		} else {
+			shockUser = nullIfEmpty(config.get(SHOCK_USER));
+			shockToken = nullIfEmpty(config.get(SHOCK_TOKEN));
+			if (shockUser == null || shockToken == null) {
+				paramErrors.add(String.format(
+						"Must provide %s and %s parameters in config file if %s is provided",
+						SHOCK_USER, SHOCK_TOKEN, SHOCK_URL));
+			}
+		}
 		workspaceAdmin = nullIfEmpty(config.get(WSADMIN));
 		
 		final String muser = nullIfEmpty(config.get(MONGO_USER));
@@ -342,6 +363,9 @@ public class KBaseWorkspaceConfig {
 		if (!ignoreHandleService) {
 			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL, HANDLE_MANAGER_URL));
 		}
+		if (shockURL != null) {
+			paramSet.addAll(Arrays.asList(SHOCK_URL, SHOCK_USER));
+		}
 		for (final String s: paramSet) {
 			if (!nullOrEmpty(cfg.get(s))) {
 				params += s + "=" + cfg.get(s).trim() + "\n";
@@ -426,6 +450,18 @@ public class KBaseWorkspaceConfig {
 		return tempDir;
 	}
 
+	public URL getShockURL() {
+		return shockURL;
+	}
+	
+	public String getShockUser() {
+		return shockUser;
+	}
+	
+	public String getShockToken() {
+		return shockToken;
+	}
+	
 	public String getWorkspaceAdmin() {
 		return workspaceAdmin;
 	}
