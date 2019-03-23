@@ -420,7 +420,8 @@ public class ShockIdHandlerFactoryTest {
 		processIDsFailOnGetACLs(
 				new ShockAuthorizationException(400, "booga booga booga"),
 				new IdReferenceException(
-						"User someuser cannot read node 51b68baa-ef40-4be1-a072-03814d61280e",
+						"User someuser cannot read Shock node " +
+						"51b68baa-ef40-4be1-a072-03814d61280e",
 						new IdReferenceType("shock"), "foo",
 						"51b68baa-ef40-4be1-a072-03814d61280e", null, null));
 	}
@@ -430,7 +431,7 @@ public class ShockIdHandlerFactoryTest {
 		processIDsFailOnGetACLs(
 				new ShockNoNodeException(400, "hey nonny nonny"),
 				new IdReferenceException(
-						"Node 51b68baa-ef40-4be1-a072-03814d61280e does not exist",
+						"Shock node 51b68baa-ef40-4be1-a072-03814d61280e does not exist",
 						new IdReferenceType("shock"), "foo",
 						"51b68baa-ef40-4be1-a072-03814d61280e", null, null));
 	}

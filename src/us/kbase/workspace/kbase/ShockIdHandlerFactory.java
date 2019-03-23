@@ -49,8 +49,7 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 	//TODO SHOCKID integration tests
 	//TODO SHOCKID documentation, compare vs. handle ID (shock int docs, type @id docs)
 
-	/** Given a Shock client and a token, provides a new Shock client with the same
-	 * Shock URL and the new token.
+	/** Given a Shock client, provides a new Shock client with no token.
 	 * @author gaprice@lbl.gov
 	 *
 	 */
@@ -71,11 +70,9 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 	private final BasicShockClient adminClient;
 	private final ShockClientCloner cloner;
 	
-	/** pass in nulls to cause an exception to be thrown if a shock id is encountered.
-	 */
 	/** Create the shock ID handler.
 	 * @param adminClient a Shock client with a Shock administrator token. Pass null to 
-	 * cause an exception to be throw if a shock id is encountered.
+	 * cause an exception to be thrown if a shock id is encountered.
 	 * @param cloner a Shock client cloner.
 	 */
 	public ShockIdHandlerFactory(
@@ -259,12 +256,13 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 						// checked id syntax on add
 						acls = client.getACLs(new ShockNodeId(node));
 					} catch (ShockAuthorizationException e) {
-						throw new IdReferenceException(String.format("User %s cannot read node %s",
+						throw new IdReferenceException(String.format(
+								"User %s cannot read Shock node %s",
 								userToken.getUserName(), node),
 								TYPE, assObj, node, null, null);
 					} catch (ShockNoNodeException e) {
 						throw new IdReferenceException(
-								String.format("Node %s does not exist", node),
+								String.format("Shock node %s does not exist", node),
 								TYPE, assObj, node, null, null);
 					} catch (IOException e) {
 						throw new IdReferenceHandlerException(
