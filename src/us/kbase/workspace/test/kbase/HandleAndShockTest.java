@@ -628,7 +628,7 @@ public class HandleAndShockTest {
 	
 	@Test
 	public void idCount() throws Exception {
-		IdReferenceType type = HandleIdHandlerFactory.type;
+		IdReferenceType type = HandleIdHandlerFactory.TYPE;
 		IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder.getBuilder(4)
 				.build().getFactory(CLIENT1.getToken());
 		final HandleMngrClient client = new HandleMngrClient(
