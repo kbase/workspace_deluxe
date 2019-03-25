@@ -1,10 +1,14 @@
 [Workspace]
 mongodb-database={{ default .Env.mongodb_database "workspace" }}
+mongodb-type-database={{ default .Env.mongodb_type_database "workspace_type_db" }}
 mongodb-pwd={{ default .Env.mongodb_pwd "" }}
 ws-admin={{ default .Env.ws_admin "scanonadmin" }}
 # backend user is wstest globus user in ci
 # use that acct to generate token
+backend-type={{ default .Env.backend_type ""}}
+backend-url={{ default .Env.backend_url ""}}
 backend-token={{ default .Env.backend_token "" }}
+backend-user={{ default .Env.backend_user "" }}
 mongodb-host={{ default .Env.mongodb_host "ci-mongo" }}
 mongodb-user={{ default .Env.mongodb_user "wsserv" }}
 service-port={{ default .Env.service_port "7058" }}
@@ -12,26 +16,28 @@ max-memory={{ default .Env.max_memory "15000" }}
 min-memory={{ default .Env.min_memory "10000" }}
 temp-dir={{ default .Env.temp_dir "ws_temp_dir" }}
 server-threads={{ default .Env.server_threads "20" }}
-mongodb-retry={{ default .Env.mongodb_retry "0" }}
 ignore-handle-service={{ default .Env.ignore_handle_service ""}}
 handle-service-url={{ default .Env.handle_service "https://ci.kbase.us/services/handleservice/" }}
 handle-manager-url={{ default .Env.handle_manager "https://ci.kbase.us/services/handlemngr/" }}
-# The KBase authorization server url.
+# The KBase authorization server url for the legacy KBase endpoint.
 auth-service-url={{ default .Env.auth_service "https://ci.kbase.us/services/auth/api/legacy/KBase" }}
 auth-service-url-allow-insecure={{ default .Env.auth_service_url_allow_insecure "" }}
-# The Globus v1 authorization API url.  auth2 supports this directly
-globus-url = {{ default .Env.globus_url "https://ci.kbase.us/services/auth/api/legacy/globus" }}
+# The KBase authorization server url.
+auth2-service-url = {{ default .Env.auth2_service "https://ci.kbase.us/services/auth/" }}
+auth2-ws-admin-read-only-roles = {{ default .Env.auth2_ws_admin_read_only_roles "" }}
+auth2-ws-admin-full-roles = {{ default .Env.auth2_ws_admin_full_roles "" }}
 #the credentials used for the handle manager.
 handle-manager-token={{ default .Env.handle_manager_token "" }}
 
 # configuration options for RESKE
-listeners={{ default .Env.listeners "Search,KnowledgeEngine" }}
+listeners={{ default .Env.listeners "Search" }}
+
 listener-Search-class={{ default .Env.listener_search_class "us.kbase.workspace.modules.SearchPrototypeEventHandlerFactory" }}
 listener-Search-config-mongohost={{ default .Env.listener_search_config_mongohost "" }}
 listener-Search-config-mongodatabase={{ default .Env.listener_search_config_mongodatabase "search" }}
 listener-Search-config-mongouser={{ default .Env.listener_search_config_mongouser "" }}
 listener-Search-config-mongopwd={{ default .Env.listener_search_config_mongopwd "" }}
-listener-KnowledgeEngine-class={{ default .Env.listener_KnowledgeEngine_class "us.kbase.workspace.modules.KnowledgeEnginePrototypeEventHandlerFactory" }}
-listener-KnowledgeEngine-config-mongohost={{ default .Env.listener_knowledgeengine_config_mongohost "" }}
-listener-KnowledgeEngine-config-mongodatabase={{ default .Env.listener_KnowledgeEngine_config_mongodatabase "KnowledgeEngine" }}
 
+listener-Kafka-class={{ default .Env.listener_Kafka_class "us.kbase.workspace.modules.KafkaNotifierFactory" }}
+listener-Kafka-config-topic={{ default .Env.listener_Kafka_config_topic "workspaceevents" }}
+listener-Kafka-config-bootstrap.servers={{ default .Env.listener_Kafka_config_servers "" }}

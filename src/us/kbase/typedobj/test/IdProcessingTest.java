@@ -52,6 +52,7 @@ import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.typedobj.idref.IdReferenceType;
 
 /**
@@ -242,7 +243,8 @@ public class IdProcessingTest {
 				idsRootNode.get("ids-found"), Map.class); 
 		
 		Map<String, Integer> foundIDs = new HashMap<String, Integer>();
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(100).build().getFactory(null);
 		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("ws"),
 				absoluteIdMapping, foundIDs));
 		fac.addFactory(new DummyIdHandlerFactory(new IdReferenceType("intid"),
@@ -271,7 +273,8 @@ public class IdProcessingTest {
 				.readTree(report.getInputStream());
 		
 		// now we revalidate the instance, and ensure that the labels have been renamed
-		IdReferenceHandlerSetFactory dummyfac = new IdReferenceHandlerSetFactory(0);
+		final IdReferenceHandlerSetFactory dummyfac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(0).build().getFactory(null);
 		ValidatedTypedObject report2 = validator.validate(relabeledInstance, new TypeDefId(new TypeDefName(instance.moduleName,instance.typeName)),
 				dummyfac.createHandlers(String.class).associateObject("foo"));
 		List <String> mssgs2 = report2.getErrorMessages();

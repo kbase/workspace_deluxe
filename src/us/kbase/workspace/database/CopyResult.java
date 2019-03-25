@@ -23,7 +23,7 @@ public class CopyResult {
 	}
 
 	/** Get the object information for the new object.
-	 * @return
+	 * @return the object information.
 	 */
 	public ObjectInformation getObjectInformation() {
 		return objInfo;
