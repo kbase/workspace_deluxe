@@ -44,7 +44,8 @@ import us.kbase.typedobj.idref.RemappedId;
  */
 public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 
-	//TODO SHOCKID integrate into startup & integration tests
+	//TODO SHOCKID config template
+	//TODO SHOCKID shock status
 	//TODO SHOCKID documentation, compare vs. handle ID (shock int docs, type @id docs)
 
 	/** Given a Shock client, provides a new Shock client with no token.
@@ -122,25 +123,28 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 						"and Shock IDs cannot be processed.");
 			}
 			// could check node id format up front, but for the general use case shouldn't happen
+			String lastid = null; // yuck. Improve this later.
 			try {
 				if (user == null) {
 					for (final String id: ids) {
+						lastid = id;
 						adminClient.setPubliclyReadable(getNodeID(id), true);
 					}
 				} else {
 					for (final String id: ids) {
+						lastid = id;
 						adminClient.addToNodeAcl(
 								getNodeID(id), Arrays.asList(user), ShockACLType.READ);
 					}
 				}
 			} catch (IOException e) {
 				throw new IdReferencePermissionHandlerException(
-						"There was an IO problem while attempting to set Shock ACLs: " +
-						e.getMessage(), e);
+						"There was an IO problem while attempting to set Shock ACLs on node " +
+						lastid + ": " + e.getMessage(), e);
 			} catch (ShockHttpException e) {
 				throw new IdReferencePermissionHandlerException(
-						"Shock reported a problem while attempting to set Shock ACLs: " +
-						e.getMessage(), e);
+						"Shock reported a problem while attempting to set Shock ACLs on node " +
+						lastid + ": " + e.getMessage(), e);
 			}
 		}
 
