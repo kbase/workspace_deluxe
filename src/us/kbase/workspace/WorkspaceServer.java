@@ -1,6 +1,7 @@
 package us.kbase.workspace;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,8 @@ import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
-
+import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 //BEGIN_HEADER
 import us.kbase.common.service.ServiceChecker;
 import us.kbase.common.service.ServiceChecker.ServiceException;
@@ -119,6 +121,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private final URL handleManagerUrl;
+	private final BasicShockClient linkedShockClient;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
 			new ThreadLocal<List<WorkspaceObjectData>>();
@@ -194,6 +197,18 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 	}
 	
+	public DependencyStatus checkShockLink() {
+		try {
+			return new DependencyStatus(true, "OK", "Linked Shock for IDs",
+					linkedShockClient.getRemoteVersion());
+		} catch (InvalidShockUrlException | IOException e) {
+			LoggerFactory.getLogger(getClass()).error("Failed to connect to Linked Shock", e);
+			return new DependencyStatus(
+					false, "Cannot connect to Shock: " + e.getMessage(),
+					"Linked Shock for IDs", "Unknown");
+		}
+	}
+	
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -225,6 +240,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		Types types = null;
 		WorkspaceAdministration wsadmin = null;
 		URL handleManagerUrl = null;
+		BasicShockClient linkedShockClient = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
 			logErr("Workspace server configuration has errors - all calls will fail");
@@ -242,6 +258,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				types = res.getTypes();
 				wsadmin = res.getWsAdmin();
 				handleManagerUrl = res.getHandleManagerUrl();
+				linkedShockClient = res.getLinkedShockClient();
 				setRpcDiskCacheTempDir(ws.getTempFilesManager().getTempDir());
 			}
 		}
@@ -250,6 +267,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		this.types = types;
 		this.wsadmin = wsadmin;
 		this.handleManagerUrl = handleManagerUrl;
+		this.linkedShockClient = linkedShockClient;
         //END_CONSTRUCTOR
     }
 
@@ -1720,6 +1738,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		if (handleManagerUrl != null) {
 			deps.add(checkHandleManager());
+		}
+		if (linkedShockClient != null) {
+			deps.add(checkShockLink());
 		}
 		boolean ok = true;
 		final List<Map<String, String>> dstate = new LinkedList<>();
