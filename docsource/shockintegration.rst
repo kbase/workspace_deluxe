@@ -18,30 +18,28 @@ many cases, bytestream and sequential data may be more efficiently stored in
 and retrieved from Shock, and in the cases of data > 1GB, cannot be stored in
 the WSS (see :ref:`limits`).
 
-This document describes how to use the
-`Handle Service <https://github.com/kbase/handle_service>`_ to link WSS
-objects to Shock nodes, such that when the object is shared via the Workspace
-API, the linked Shock nodes are shared (more specifically, made readable) as
-well.
+This document describes how link WSS objects to Shock nodes, either directly or via the
+`Handle Service <https://github.com/kbase/handle_service>`_, such that when the object is
+shared via the Workspace API, the linked Shock nodes are shared (more specifically, made readable)
+as well.
 If a data type developer merely stored a Shock node ID in a workspace object
 as a string, sharing the object would not share the underlying Shock node, and
 sharees would not be able to access the Shock data.
 
-.. warning::
-   Handles, by their nature, are not necessarily permanent. The owner of the
-   data referenced by a handle could remove or otherwise make it inaccessible
-   at any time.
-   
 .. warning::
    Shock nodes shared by the workspace are not unshared if the workspace object
    containing the Shock node handle is unshared. The Shock nodes can always be
    unshared via the Shock API.
 
 .. warning::
-   Sharing workspace objects containing handles to Shock nodes shares the
-   nodes as well. If a workspace object is copied into a user's workspace and
-   that workspace is made public, the Shock nodes are set to publically
-   readable.
+   Sharing workspace objects containing links to Shock nodes (either direct or via Handles)
+   shares the nodes as well. If a workspace object is copied into a user's workspace and
+   that workspace is made public, the Shock nodes are set to publicly readable.
+
+.. warning::
+   If using Handles rather than direct Shock links to link nodes to objects, be aware that Handles,
+   by their nature, are not necessarily permanent. The owner of the data referenced by a handle
+   could remove or otherwise make it inaccessible at any time.
 
 Resources
 ---------
@@ -49,6 +47,31 @@ Resources
 :ref:`typedobjects` describes how to create workspace types.
 
 `Shock API <https://github.com/MG-RAST/Shock/wiki/API>`_
+
+Direct Shock links vs. Handles
+------------------------------
+
+There are two ways to create links from WSS objects to Shock nodes - either by directly
+linking the node to an object with the ``@id shock`` annotation, or by linking the node
+indirectly via a Handle (the ``@id handle`` annotation).
+
+The differences are summarized in the table below.
+
+=====================================  ===========================  ===============================
+Stage                                  Handle links                 Direct links
+=====================================  ===========================  ===============================
+Before saving an object the user must  ensure a handle exists       do nothing special
+When saving an object the user must    own the linked node          be able to read the linked node
+During the saving process              the node is unchanged        the WSS makes a copy (1)
+After the object is saved              the user may alter the node  the user may not alter the node
+=====================================  ===========================  ===============================
+
+#. Unless the workspace already owns the node.
+
+Generally speaking, direct Shock links are much easier to work with, with the disadvantage
+(although a large advantage from a provenance and reproducibility standpoint) that the user
+will not own any nodes linked from the final version of the saved WSS object and therefore cannot
+modify them.
 
 Handles
 -------
@@ -81,14 +104,14 @@ remote_md5      the md5 of the shock data
 remote_sha1     unused
 ============    ======================================================
 
-The remainder of the document covers the procedure for linking a Workspace
+The remainder of this section covers the procedure for linking a Workspace
 object to a Shock node.
 
 Step 1 - save data to Shock with a Handle in the Handle Service
----------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Method 1 - use the Perl HandleService client
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""""""""""""""""""""
 The Perl HandleService client makes creating a handle to shock data simple - it
 uploads the file to Shock and creates a handle in one step::
 
@@ -106,9 +129,8 @@ hid field empty for this usage)::
 
 
 Method 2 - pre-existing Shock data without the HandleService client
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Save data to Shock
-""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+**A) Save data to Shock**
 
 Here it is assumed that you are familiar with the Shock API, but as an
 example::
@@ -120,8 +142,7 @@ example::
      *snip*
      "2014-08-01T13:12:47.091885252-07:00","type":"basic"},"error":null}
 
-Create one or more handles to Shock data
-""""""""""""""""""""""""""""""""""""""""
+**B) Create one or more handles to Shock data**
 
 If you’re working in a language other than Perl, you can use the AbstractHandle
 client to persist handles. Here’s a python example:
@@ -141,9 +162,8 @@ client to persist handles. Here’s a python example:
     Out[4]: u'KBH_8'
 
 Method 3 - new Shock data without the HandleService client
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Create one or more handles for your data
-""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+**A) Create one or more handles for your data**
 
 Use the Handle Service new_handle method to create handles:
 
@@ -161,8 +181,7 @@ Use the Handle Service new_handle method to create handles:
      u'type': u'shock',
      u'url': u'https://[shock url]'}
 
-Save data to the Shock node referenced by the handle
-""""""""""""""""""""""""""""""""""""""""""""""""""""
+**B) Save data to the Shock node referenced by the handle**
 
 Again, using the Shock API::
 
@@ -175,7 +194,7 @@ Again, using the Shock API::
 
 
 Step 2 - create a Workspace type for your data
-----------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If a type specification doesn’t already exist for your data, you will need to
 create one. The key point is that you must make the Workspace Service aware
@@ -219,7 +238,7 @@ At this point type creation proceeds along normal lines (see
 :ref:`typedobjects`).
 
 Step 3 - save data with embedded Handles to the Workspace
----------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Saving data with embedded handles is identical to saving any other WSS object.
 This example assumes the the type described in the previous section is present
@@ -272,12 +291,12 @@ During the save, the Workspace checks with the Handle Service to confirm the
 user owns the Shock data. If such is not the case, the save will fail.
 
 Step 4 - share data in the Workspace
-------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Sharing data works completely normally.
 
 Step 5 - retrieve the data from the Workspace
----------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Retrieving the data from the workspace also works normally, but there’s a
 couple of important points. When calling the ``get_objects``, ``get_objects2``,
@@ -334,7 +353,6 @@ Workspace object are shared as the object is shared.
 The Shock data can then be retrieved via the Shock API using the handle
 information embedded in the object.
 
-
 If a node has been deleted, the handle service is uncontactable, or some other
 error occurs, the workspace will still return the workspace object. However,
 the error will be embedded in the returned data structure. The handle_error
@@ -375,3 +393,39 @@ of some or all of the Shock nodes embedded in the object could not be updated.
       }
      ]
 
+Direct Shock links
+------------------
+
+Much of the Handle instructions above are applicable to direct Shock links as well. The user
+must create or have access to one or more readable (as opposed to owned for Handles) Shock nodes
+and a WSS type that allows linking WSS objects to Shock nodes. As might be expected, the user need
+not create a Handle for the node (although that is not prohibited). A type that allows direct
+Shock links can be as simple as::
+
+    /* @id shock */
+    typedef string shock_id;
+ 
+    typedef structure {
+        shock_id sid;
+    } StructWithShockID;
+
+.. note::
+   It is not advisable to make Shock IDs keys for maps, as that may prevent the future presorting
+   feature from working properly.
+
+An object typed as StructWithShockID may then be saved to the WSS. The WSS will ensure that
+the Shock ID in the ``sid`` field exists and is readable by the user, and then make a copy of
+the node if it is not already owned by the WSS. The node will be shared as the WSS object is
+shared, just like Handle based linked nodes.
+
+Retrieving objects works similarly as with Handle based nodes except that
+
+#. The Shock IDs extracted from the object will appear under the ``shock`` key in the
+   ``extracted_ids`` field as opposed to the ``handle`` field.
+#. The extracted IDs may not be the same as those in the original data sent to the WSS as
+   the WSS may make copies of the nodes as described above.
+#. The WSS contacts Shock directly instead of contacting the Handle Service to set node
+   permissions.
+#. To avoid duplicating fields, any errors relating to setting Shock permissions when retrieving
+   WSS objects will also appear in the ``handle_error`` and ``handle_stacktrace`` fields.
+   These fields should have been called ``external_id_error`` and ``external_id_stacktrace``.

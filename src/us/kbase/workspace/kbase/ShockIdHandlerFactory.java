@@ -44,7 +44,7 @@ import us.kbase.typedobj.idref.RemappedId;
  */
 public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 
-	//TODO SHOCKID documentation, compare vs. handle ID (shock int docs, type @id docs), rel notes
+	//TODO SHOCKID remove write & delete acls from owned nodes
 
 	/** Given a Shock client, provides a new Shock client with no token.
 	 * @author gaprice@lbl.gov
