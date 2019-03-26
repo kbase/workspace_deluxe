@@ -23,6 +23,9 @@ BACKWARDS INCOMPATIBILITIES:
 
 UPDATES:
 
+* Workspace objects may now contain Shock IDs (via the ``@id shock`` annotation) which will
+  ensure that the Shock nodes will be readable for any user that retrieves the object. This
+  feature is disabled by default.
 * The KBase Authentication server may now be used to specify workspace administrators,
   and supports read only administrator access as well as full access.
 * Added a Kafka event listener. See the administration documentation for configuration

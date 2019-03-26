@@ -1,7 +1,6 @@
 package us.kbase.workspace;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,8 +14,7 @@ import us.kbase.common.service.Tuple12;
 import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
-import us.kbase.shock.client.BasicShockClient;
-import us.kbase.shock.client.exceptions.InvalidShockUrlException;
+
 //BEGIN_HEADER
 import us.kbase.common.service.ServiceChecker;
 import us.kbase.common.service.ServiceChecker.ServiceException;
@@ -35,6 +33,7 @@ import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifie
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 
 import java.net.URL;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -50,6 +49,8 @@ import ch.qos.logback.classic.Logger;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -101,7 +102,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "69c528958723a8c279ade8302b6490d9f7aca763";
+    private static final String gitCommitHash = "620e037e2b4967914544bd538c11633ef98162bb";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
