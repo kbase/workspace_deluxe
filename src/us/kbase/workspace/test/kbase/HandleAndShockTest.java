@@ -540,7 +540,11 @@ public class HandleAndShockTest {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		final ShockNode n1 = WS_OWNED_SHOCK.addNode(ImmutableMap.of("foo", "bar"),
 				new ByteArrayInputStream("contents".getBytes()), "fname", "text");
-		n1.addToNodeAcl(Arrays.asList(USER1), ShockACLType.READ);
+		n1.addToNodeAcl(Arrays.asList(USER1), ShockACLType.ALL);
+		// test that user1's write & delete creds are removed from the ws-owned node
+		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		checkWriteAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		checkDeleteAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		final ShockNode n2 = SHOCK_CLIENT_1.addNode(ImmutableMap.of("foo", "bar2"),
 				new ByteArrayInputStream("contents2".getBytes()), "fname2", "text2");
 		try {
@@ -558,6 +562,8 @@ public class HandleAndShockTest {
 			throw se;
 		}
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		checkWriteAcl(n1, Arrays.asList(SHOCK_USER3));
+		checkDeleteAcl(n1, Arrays.asList(SHOCK_USER3));
 		checkReadAcl(n2, Arrays.asList(SHOCK_USER1));
 		checkPublicRead(n1, false);
 		checkPublicRead(n2, false);
@@ -828,11 +834,19 @@ public class HandleAndShockTest {
 		}
 	}
 	
-	private void checkReadAcl(ShockNode node, List<ShockUserId> uuids)
+	private void checkReadAcl(final ShockNode node, final List<ShockUserId> users)
 			throws Exception {
-		assertThat("correct shock acls", node.getACLs().getRead(),
-				is(uuids));
-		
+		assertThat("correct shock acls", node.getACLs().getRead(), is(users));
+	}
+	
+	private void checkWriteAcl(final ShockNode node, final List<ShockUserId> users)
+			throws Exception {
+		assertThat("correct shock acls", node.getACLs().getWrite(), is(users));
+	}
+	
+	private void checkDeleteAcl(final ShockNode node, final List<ShockUserId> users)
+			throws Exception {
+		assertThat("correct shock acls", node.getACLs().getDelete(), is(users));
 	}
 	
 	@Test

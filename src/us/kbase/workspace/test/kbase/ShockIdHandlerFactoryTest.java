@@ -3,7 +3,10 @@ package us.kbase.workspace.test.kbase;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -18,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -45,6 +49,13 @@ import us.kbase.workspace.kbase.ShockIdHandlerFactory;
 import us.kbase.workspace.kbase.ShockIdHandlerFactory.ShockClientCloner;
 
 public class ShockIdHandlerFactoryTest {
+	
+	private static final List<String> MTL = Collections.emptyList();
+	
+	@SafeVarargs
+	private static <T> List<T> list(T... objects) {
+		return Arrays.asList(objects);
+	}
 	
 	@Test
 	public void type() throws Exception {
@@ -276,9 +287,9 @@ public class ShockIdHandlerFactoryTest {
 		
 		when(adminCli.getToken()).thenReturn(new AuthToken("token", "admin"));
 
-		setUpShockACLResponse(cloned, id_foo_1, "admin");
-		setUpShockACLResponse(cloned, id_foo_2, "user");
-		setUpShockACLResponse(cloned, id_bar_1, "notadmin");
+		setUpShockACLResponse(cloned, id_foo_1, "admin", list("foo"), list("bar"));
+		setUpShockACLResponse(cloned, id_foo_2, "user", list("someu"), MTL);
+		setUpShockACLResponse(cloned, id_bar_1, "notadmin", MTL, list("whee"));
 		
 		final String id_foo_2_new = UUID.randomUUID().toString();
 		final String id_bar_1_new = UUID.randomUUID().toString();
@@ -293,6 +304,12 @@ public class ShockIdHandlerFactoryTest {
 		verify(cloned, times(1)).getACLs(new ShockNodeId(id_foo_1));
 		verify(cloned, times(1)).getACLs(new ShockNodeId(id_foo_2));
 		verify(cloned, times(1)).getACLs(new ShockNodeId(id_bar_1));
+		verify(adminCli, times(1)).removeFromNodeAcl(
+				new ShockNodeId(id_foo_1), Arrays.asList("foo"), ShockACLType.WRITE);
+		verify(adminCli, times(1)).removeFromNodeAcl(
+				new ShockNodeId(id_foo_1), Arrays.asList("bar"), ShockACLType.DELETE);
+		verify(adminCli, times(0)).removeFromNodeAcl(eq(new ShockNodeId(id_foo_2)), any(), any());
+		verify(adminCli, times(0)).removeFromNodeAcl(eq(new ShockNodeId(id_bar_1)), any(), any());
 		verify(adminCli, times(1)).copyNode(new ShockNodeId(id_foo_2), true);
 		verify(adminCli, times(1)).copyNode(new ShockNodeId(id_bar_1), true);
 		
@@ -306,6 +323,119 @@ public class ShockIdHandlerFactoryTest {
 		assertThat("incorrect ids", h.getRemappedIds("bar"),
 				is(set(toSRD(id_bar_1_new), toSRD(id_foo_2_new))));
 		assertThat("incorrect ids", h.getRemappedIds("baz"), is(set()));
+	}
+	
+	/* test a few more special cases for removing users from node ACLs
+	 * when the node is owned by the workspace.
+	 */
+	
+	@Test
+	public void processIDsOwnedNodeWithWSOwnerOnlyInACL() throws Exception {
+		// no acls should be modified since only the owner exists in the acls.
+		final BasicShockClient adminCli = mock(BasicShockClient.class);
+		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		
+		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+				.createHandler(String.class, new AuthToken("token", "user"));
+		
+		final String id = UUID.randomUUID().toString();
+		h.addId("foo", id, null);
+		
+		final BasicShockClient cloned = mock(BasicShockClient.class);
+		when(cloner.clone(adminCli)).thenReturn(cloned);
+		
+		when(adminCli.getToken()).thenReturn(new AuthToken("token", "admin"));
+
+		setUpShockACLResponse(cloned, id, "admin", list("admin"), list("admin"));
+		
+		h.processIds();
+		
+		verify(cloned).updateToken(new AuthToken("token", "user"));
+		verify(adminCli, times(0)).removeFromNodeAcl(any(), any(), any());
+		verify(adminCli, times(0)).copyNode(any(), anyBoolean());
+	}
+	
+	@Test
+	public void processIDsOwnedNodeWithWriteUsers() throws Exception {
+		final BasicShockClient adminCli = mock(BasicShockClient.class);
+		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		
+		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+				.createHandler(String.class, new AuthToken("token", "user"));
+		
+		final String id = UUID.randomUUID().toString();
+		h.addId("foo", id, null);
+		
+		final BasicShockClient cloned = mock(BasicShockClient.class);
+		when(cloner.clone(adminCli)).thenReturn(cloned);
+		
+		when(adminCli.getToken()).thenReturn(new AuthToken("token", "admin"));
+
+		setUpShockACLResponse(cloned, id, "admin", list("admin", "foo", "bar"), list("admin"));
+		
+		h.processIds();
+		
+		verify(cloned).updateToken(new AuthToken("token", "user"));
+		verify(adminCli, times(1)).removeFromNodeAcl(
+				new ShockNodeId(id), Arrays.asList("foo", "bar"), ShockACLType.WRITE);
+		verify(adminCli, times(0)).removeFromNodeAcl(any(), any(), eq(ShockACLType.DELETE));
+		verify(adminCli, times(0)).copyNode(any(), anyBoolean());
+	}
+	
+	@Test
+	public void processIDsOwnedNodeWithDeleteUsers() throws Exception {
+		final BasicShockClient adminCli = mock(BasicShockClient.class);
+		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		
+		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+				.createHandler(String.class, new AuthToken("token", "user"));
+		
+		final String id = UUID.randomUUID().toString();
+		h.addId("foo", id, null);
+		
+		final BasicShockClient cloned = mock(BasicShockClient.class);
+		when(cloner.clone(adminCli)).thenReturn(cloned);
+		
+		when(adminCli.getToken()).thenReturn(new AuthToken("token", "admin"));
+
+		setUpShockACLResponse(cloned, id, "admin", list("admin"), list("admin", "baz", "bat"));
+		
+		h.processIds();
+		
+		verify(cloned).updateToken(new AuthToken("token", "user"));
+		verify(adminCli, times(0)).removeFromNodeAcl(any(), any(), eq(ShockACLType.WRITE));
+		verify(adminCli, times(1)).removeFromNodeAcl(
+				new ShockNodeId(id), Arrays.asList("baz", "bat"), ShockACLType.DELETE);
+		verify(adminCli, times(0)).copyNode(any(), anyBoolean());
+	}
+	
+	@Test
+	public void processIDsOwnedNodeWithWriteDeleteUsers() throws Exception {
+		final BasicShockClient adminCli = mock(BasicShockClient.class);
+		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		
+		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+				.createHandler(String.class, new AuthToken("token", "user"));
+		
+		final String id = UUID.randomUUID().toString();
+		h.addId("foo", id, null);
+		
+		final BasicShockClient cloned = mock(BasicShockClient.class);
+		when(cloner.clone(adminCli)).thenReturn(cloned);
+		
+		when(adminCli.getToken()).thenReturn(new AuthToken("token", "admin"));
+
+		setUpShockACLResponse(
+				cloned, id, "admin", list("admin", "whee", "whoo"), list("bing", "bong"));
+		
+		h.processIds();
+		
+		verify(cloned).updateToken(new AuthToken("token", "user"));
+		verify(adminCli, times(1)).removeFromNodeAcl(
+				new ShockNodeId(id), Arrays.asList("whee", "whoo"), ShockACLType.WRITE);
+		verify(adminCli, times(1)).removeFromNodeAcl(
+				new ShockNodeId(id), Arrays.asList("bing", "bong"), ShockACLType.DELETE);
+		verify(adminCli, times(0)).copyNode(any(), anyBoolean());
 	}
 
 	private SimpleRemappedId toSRD(final String id) {
@@ -322,17 +452,32 @@ public class ShockIdHandlerFactoryTest {
 		when(node.getId()).thenReturn(new ShockNodeId(newId));
 	}
 
-	// ugh, the shock client needs to be easier to test with.
+	// ugh, the shock client needs to be way easier to test with.
 	private void setUpShockACLResponse(
 			final BasicShockClient client,
 			final String shockID,
-			final String user)
+			final String user,
+			final List<String> writeUsers,
+			final List<String> deleteUsers)
 			throws Exception {
 		final ShockACL acl = mock(ShockACL.class);
 		when(client.getACLs(new ShockNodeId(shockID))).thenReturn(acl);
 		final ShockUserId shockUser = mock(ShockUserId.class);
-		when(acl.getOwner()).thenReturn(shockUser);
 		when(shockUser.getUsername()).thenReturn(user);
+		when(acl.getOwner()).thenReturn(shockUser);
+		// you can't set up a mock inside .thenReturn()
+		final List<ShockUserId> writes = setUpACL(writeUsers);
+		when(acl.getWrite()).thenReturn(writes);
+		final List<ShockUserId> deleted = setUpACL(deleteUsers);
+		when(acl.getDelete()).thenReturn(deleted);
+	}
+
+	private List<ShockUserId> setUpACL(final List<String> users) {
+		return users.stream().map(u -> {
+			final ShockUserId uid = mock(ShockUserId.class);
+			when(uid.getUsername()).thenReturn(u);
+			return uid;
+		}).collect(Collectors.toList());
 	}
 	
 	@Test
@@ -483,6 +628,70 @@ public class ShockIdHandlerFactoryTest {
 	}
 	
 	@Test
+	public void processIDsFailOnRemoveACLIOException() throws Exception {
+		processIDsFailOnRemoveACL(
+				new IOException("poopy doopy"),
+				new IdReferenceHandlerException(
+						"There was an IO problem while attempting to contact Shock to " +
+						"process IDs: poopy doopy",
+						new IdReferenceType("shock"), null),
+				"writeUser",
+				null);
+	}
+	
+	@Test
+	public void processIDsFailOnRemoveACLShockHTTPException() throws Exception {
+		processIDsFailOnRemoveACL(
+				new ShockHttpException(400, "plectrum"),
+				new IdReferenceHandlerException(
+						"Shock reported a problem while attempting to process IDs: plectrum",
+						new IdReferenceType("shock"), null),
+				"deleteUser",
+				null);
+	}
+
+	private void processIDsFailOnRemoveACL(
+			final Exception thrown,
+			final IdReferenceHandlerException expected,
+			final String writeUser,
+			final String deleteUser)
+			throws Exception {
+		final BasicShockClient adminCli = mock(BasicShockClient.class);
+		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		
+		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+				.createHandler(String.class, new AuthToken("token", "someuser"));
+		
+		final String id = "51b68baa-ef40-4be1-a072-03814d61280e";
+		
+		h.addId("foo", id, null);
+		
+		final BasicShockClient cloned = mock(BasicShockClient.class);
+		when(cloner.clone(adminCli)).thenReturn(cloned);
+		
+		when(adminCli.getToken()).thenReturn(new AuthToken("token", "admin"));
+		
+		setUpShockACLResponse(cloned, id, "admin", listOrEmpty(writeUser), listOrEmpty(deleteUser));
+
+		when(adminCli.removeFromNodeAcl(
+				new ShockNodeId(id), listOrEmpty(writeUser), ShockACLType.WRITE))
+				.thenThrow(thrown);
+		when(adminCli.removeFromNodeAcl(
+				new ShockNodeId(id), listOrEmpty(deleteUser), ShockACLType.DELETE))
+				.thenThrow(thrown);
+		
+		processIDsFail(h, expected);
+	}
+	
+	private List<String> listOrEmpty(final String s) {
+		if (s == null) {
+			return MTL;
+		}
+		return Arrays.asList(s);
+		
+	}
+	
+	@Test
 	public void processIDsFailOnCopyIOException() throws Exception {
 		processIDsFailOnCopy(
 				new IOException("poopy doopy"),
@@ -520,7 +729,7 @@ public class ShockIdHandlerFactoryTest {
 		
 		when(adminCli.getToken()).thenReturn(new AuthToken("token", "admin"));
 		
-		setUpShockACLResponse(cloned, id, "someuser");
+		setUpShockACLResponse(cloned, id, "someuser", MTL, MTL);
 
 		when(adminCli.copyNode(new ShockNodeId(id), true)).thenThrow(thrown);
 		
@@ -569,7 +778,7 @@ public class ShockIdHandlerFactoryTest {
 		
 		when(adminCli.getToken()).thenReturn(new AuthToken("token", "admin"));
 
-		setUpShockACLResponse(cloned, id, "admin");
+		setUpShockACLResponse(cloned, id, "admin", MTL, MTL);
 		
 		h.processIds();
 		
