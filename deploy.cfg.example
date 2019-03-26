@@ -62,6 +62,21 @@ backend-user =
 # URL for the backend service. Not required for GridFS.
 backend-url = https://kbase.us/services/shock-api
 
+# The next three configuration items are for handling workspace objects that link to Shock nodes.
+# The Shock service may or may not be the same as the Shock service used for backend
+# storage. Similarly, the account used to own linked shock nodes may be the same as that
+# used for contacting the Shock backend, but it is strongly advised that different accounts
+# are used so that system administrators can distinguish between core workspace data and 
+# linked Shock data.
+# If the shock-url is not supplied, attempting to save objects with Shock links will fail,
+# and retrieving objects with shock IDs will contain errors in the returned data JSON.
+# Like the backend-user configuration item, shock-user is checked against shock-token as a
+# safety measure.
+# shock-token must have administrative privileges for Shock.
+shock-url =
+shock-user =
+shock-token =
+
 # Port for the service.
 port = 7058
 

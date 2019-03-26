@@ -979,8 +979,10 @@ module Workspace {
 		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
 			from the object.
 		string handle_error - if an error occurs while setting ACLs on
-			embedded handle IDs, it will be reported here.
-		string handle_stacktrace - the stacktrace for handle_error.
+			embedded external IDs, it will be reported here. If not for historical reasons the
+			parameter would be called "external_id_error".
+		string handle_stacktrace - the stacktrace for handle_error. As above, the parameter
+			should be called "external_id_stacktrace".
 		
 		@deprecated
 	*/
@@ -1032,8 +1034,10 @@ module Workspace {
 		mapping<id_type, list<extracted_id>> extracted_ids - any ids extracted
 			from the object.
 		string handle_error - if an error occurs while setting ACLs on
-			embedded handle IDs, it will be reported here.
-		string handle_stacktrace - the stacktrace for handle_error.
+			embedded external IDs, it will be reported here. If not for historical reasons the
+			parameter would be called "external_id_error".
+		string handle_stacktrace - the stacktrace for handle_error. As above, the parameter
+			should be called "external_id_stacktrace".
 		
 	*/
 	typedef structure {

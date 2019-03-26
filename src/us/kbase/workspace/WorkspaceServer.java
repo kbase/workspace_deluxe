@@ -33,6 +33,7 @@ import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifie
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 
 import java.net.URL;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -48,6 +49,8 @@ import ch.qos.logback.classic.Logger;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -99,13 +102,13 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "69c528958723a8c279ade8302b6490d9f7aca763";
+    private static final String gitCommitHash = "620e037e2b4967914544bd538c11633ef98162bb";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.9.0-dev3";
+	private static final String VER = "0.9.0-dev4";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
@@ -119,6 +122,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private final URL handleManagerUrl;
+	private final BasicShockClient linkedShockClient;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
 			new ThreadLocal<List<WorkspaceObjectData>>();
@@ -194,6 +198,18 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 	}
 	
+	public DependencyStatus checkShockLink() {
+		try {
+			return new DependencyStatus(true, "OK", "Linked Shock for IDs",
+					linkedShockClient.getRemoteVersion());
+		} catch (InvalidShockUrlException | IOException e) {
+			LoggerFactory.getLogger(getClass()).error("Failed to connect to Linked Shock", e);
+			return new DependencyStatus(
+					false, "Cannot connect to Shock: " + e.getMessage(),
+					"Linked Shock for IDs", "Unknown");
+		}
+	}
+	
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -225,6 +241,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		Types types = null;
 		WorkspaceAdministration wsadmin = null;
 		URL handleManagerUrl = null;
+		BasicShockClient linkedShockClient = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
 			logErr("Workspace server configuration has errors - all calls will fail");
@@ -242,6 +259,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				types = res.getTypes();
 				wsadmin = res.getWsAdmin();
 				handleManagerUrl = res.getHandleManagerUrl();
+				linkedShockClient = res.getLinkedShockClient();
 				setRpcDiskCacheTempDir(ws.getTempFilesManager().getTempDir());
 			}
 		}
@@ -250,6 +268,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		this.types = types;
 		this.wsadmin = wsadmin;
 		this.handleManagerUrl = handleManagerUrl;
+		this.linkedShockClient = linkedShockClient;
         //END_CONSTRUCTOR
     }
 
@@ -1720,6 +1739,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		if (handleManagerUrl != null) {
 			deps.add(checkHandleManager());
+		}
+		if (linkedShockClient != null) {
+			deps.add(checkShockLink());
 		}
 		boolean ok = true;
 		final List<Map<String, String>> dstate = new LinkedList<>();

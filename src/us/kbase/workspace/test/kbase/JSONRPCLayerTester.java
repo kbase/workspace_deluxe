@@ -341,6 +341,26 @@ public class JSONRPCLayerTester {
 			.withSpec("module UnreleasedModule {typedef int AType; funcdef aFunc(AType param) returns ();};")
 			.withNewTypes(Arrays.asList("AType")));
 		System.out.println("Starting tests");
+		
+		final String handleShock =
+				"module HandleShock {" +
+					"/* @id handle */" +
+					"typedef string handle;" +
+					"/* @id shock */" +
+					"typedef string shock;" +
+					"/* @optional h s */" +
+					"typedef structure {" +
+						"handle h;" +
+						"shock s;"+
+					"} ExtIDs;" +
+				"};";
+		CLIENT1.requestModuleOwnership("HandleShock");
+		administerCommand(CLIENT2, "approveModRequest", "module", "HandleShock");
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec(handleShock)
+			.withNewTypes(Arrays.asList("ExtIDs")));
+		CLIENT1.releaseModule("HandleShock");
 	}
 
 	public static void administerCommand(WorkspaceClient client, String command, String... params) throws IOException,

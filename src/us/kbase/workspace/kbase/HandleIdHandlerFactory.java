@@ -36,7 +36,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	//TODO TEST unit tests
 	//TODO JAVADOC
 	
-	public static final IdReferenceType type = new IdReferenceType("handle");
+	public static final IdReferenceType TYPE = new IdReferenceType("handle");
 	private final URL handleService;
 	private final HandleMngrClient client;
 	
@@ -67,7 +67,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
 	@Override
 	public IdReferenceType getIDType() {
-		return type;
+		return TYPE;
 	}
 	
 	private class HandlePermissionsHandler implements IdReferencePermissionHandler {
@@ -117,7 +117,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 		}
 	}
 	
-	public class HandleIdHandler<T> extends IdReferenceHandler<T> {
+	private class HandleIdHandler<T> extends IdReferenceHandler<T> {
 
 		private final Map<T, Set<String>> ids = new HashMap<T, Set<String>>();
 		private final AuthToken userToken;
@@ -135,7 +135,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 						". The workspace service currently does not have a " +
 						"connection to the handle service and so cannot " +
 						"process objects containing handle IDs.",
-						type, associatedObject, "" + id,
+						TYPE, associatedObject, "" + id,
 						attributes, null);
 			}
 			boolean unique = true;
@@ -172,7 +172,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			if (handleService == null) {
 				throw new IdReferenceHandlerException(
 						"The workspace is not currently connected to the Handle Service and cannot process Handle ids.",
-						type, null);
+						TYPE, null);
 			}
 			final Long allreadable;
 			try {
@@ -185,15 +185,15 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			} catch (UnauthorizedException e) {
 				throw new IdReferenceHandlerException(
 						"Authorization for Handle Service failed. The server said: "
-								+ e.getLocalizedMessage(), type, e);
+								+ e.getLocalizedMessage(), TYPE, e);
 			} catch (IOException e) {
 				throw new IdReferenceHandlerException(
 						"There was a communication error while trying to contact the Handle Service: "
-						+ e.getLocalizedMessage(), type, e);
+						+ e.getLocalizedMessage(), TYPE, e);
 			} catch (JsonClientException e) {
 				throw new IdReferenceHandlerException(
 						"There was an unexpected error while trying to contact the Handle Service: "
-						+ e.getLocalizedMessage(), type, e);
+						+ e.getLocalizedMessage(), TYPE, e);
 			}
 			//per Tom Brettin, 0 = false, anything else = true
 			if (allreadable == 0) {
@@ -202,7 +202,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 						"the handles contained in the objects in this call " +
 						"is not accessible - it may not exist, or the " +
 						"supplied credentials may not own the node, or some " +
-						"other reason. The call cannot complete.", type, null);
+						"other reason. The call cannot complete.", TYPE, null);
 			}
 		}
 
@@ -232,7 +232,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
 		@Override
 		public IdReferenceType getIdType() {
-			return type;
+			return TYPE;
 		}
 	}
 }

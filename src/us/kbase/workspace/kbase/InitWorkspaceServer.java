@@ -51,6 +51,7 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
+import us.kbase.workspace.kbase.ShockIdHandlerFactory.ShockClientCloner;
 import us.kbase.workspace.kbase.admin.AdministratorHandler;
 import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
 import us.kbase.workspace.kbase.admin.DefaultAdminHandler;
@@ -94,27 +95,27 @@ public class InitWorkspaceServer {
 	}
 	
 	public static class WorkspaceInitResults {
-		private Workspace ws;
-		private WorkspaceServerMethods wsmeth;
-		private WorkspaceAdministration wsadmin;
-		private Types types;
-		private URL handleManagerUrl;
-		private AuthToken handleMgrToken;
+		private final Workspace ws;
+		private final WorkspaceServerMethods wsmeth;
+		private final WorkspaceAdministration wsadmin;
+		private final Types types;
+		private final BasicShockClient linkedShockClient;
+		private final URL handleManagerUrl;
 		
 		public WorkspaceInitResults(
 				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
 				final Types types,
-				final URL handleManagerUrl,
-				final AuthToken handleMgrToken) {
+				final BasicShockClient linkedShockClient,
+				final URL handleManagerUrl) {
 			super();
 			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
 			this.types = types;
+			this.linkedShockClient = linkedShockClient;
 			this.handleManagerUrl = handleManagerUrl;
-			this.handleMgrToken = handleMgrToken;
 		}
 
 		public Workspace getWs() {
@@ -136,9 +137,9 @@ public class InitWorkspaceServer {
 		public URL getHandleManagerUrl() {
 			return handleManagerUrl;
 		}
-
-		public AuthToken getHandleMgrToken() {
-			return handleMgrToken;
+		
+		public BasicShockClient getLinkedShockClient() {
+			return linkedShockClient;
 		}
 	}
 	
@@ -198,6 +199,7 @@ public class InitWorkspaceServer {
 		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(maxUniqueIdCountPerCall)
 				.withFactory(new HandleIdHandlerFactory(cfg.getHandleServiceURL(), hmc))
+				.withFactory(wsdeps.shockFac.factory)
 				.build();
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
 				ws, types, builder, cfg.getHandleServiceURL(), auth);
@@ -211,8 +213,7 @@ public class InitWorkspaceServer {
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
 		return new WorkspaceInitResults(
-				ws, wsmeth, wsadmin, types, cfg.getHandleManagerURL(),
-				handleMgrToken);
+				ws, wsmeth, wsadmin, types, wsdeps.shockFac.client, cfg.getHandleManagerURL());
 	}
 	
 	private static AdministratorHandler getAdminHandler(
@@ -248,6 +249,7 @@ public class InitWorkspaceServer {
 		public TypeDefinitionDB typeDB;
 		public TypedObjectValidator validator;
 		public WorkspaceDatabase mongoWS;
+		public ShockFactoryBits shockFac;
 		public List<WorkspaceEventListener> listeners;
 	}
 	
@@ -280,10 +282,54 @@ public class InitWorkspaceServer {
 					"Error initializing the workspace database: " +
 					wde.getLocalizedMessage(), wde);
 		}
+		deps.shockFac = getShockIdHandlerFactory(cfg, auth);
+		
 		deps.listeners = loadListeners(cfg);
 		return deps;
 	}
 	
+	private static class ShockFactoryBits {
+		private final ShockIdHandlerFactory factory;
+		private final BasicShockClient client;
+		private ShockFactoryBits(
+				final ShockIdHandlerFactory factory,
+				final BasicShockClient client) {
+			this.factory = factory;
+			this.client = client;
+		}
+	}
+	
+	private static ShockFactoryBits getShockIdHandlerFactory(
+			final KBaseWorkspaceConfig cfg,
+			final ConfigurableAuthService auth)
+			throws WorkspaceInitException {
+		if (cfg.getShockURL() == null) {
+			return new ShockFactoryBits(new ShockIdHandlerFactory(null, null), null);
+		}
+		final AuthToken shockToken = getKBaseToken(
+				cfg.getShockUser(), cfg.getShockToken(), "shock", auth);
+		final BasicShockClient bsc;
+		final BasicShockClient unauthed;
+		try {
+			bsc = new BasicShockClient(cfg.getShockURL(), shockToken);
+			unauthed = new BasicShockClient(cfg.getShockURL());
+		} catch (InvalidShockUrlException | ShockHttpException | IOException e) {
+			throw new WorkspaceInitException(
+					"Couldn't contact Shock server configured for Shock ID links: " +
+			e.getMessage(), e);
+		}
+		return new ShockFactoryBits(
+				new ShockIdHandlerFactory(bsc, new ShockClientCloner() {
+					
+					@Override
+					public BasicShockClient clone(final BasicShockClient source)
+							throws IOException, InvalidShockUrlException {
+						return new BasicShockClient(source.getShockUrl());
+					}
+				}),
+				unauthed);
+	}
+
 	private static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
 			throws WorkspaceInitException {
 		//TODO ZLATER MONGO handle shards & replica sets
@@ -346,30 +392,32 @@ public class InitWorkspaceServer {
 		}
 	}
 
-	private static AuthToken getKBaseBackendToken(
-			final KBaseWorkspaceConfig cfg,
+	private static AuthToken getKBaseToken(
+			final String user,
+			final String token,
+			final String source,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
-		if (cfg.getBackendToken() == null) {
+		if (token == null) {
 			throw new WorkspaceInitException(
-					"No token provided for backend in configuration");
+					"No token provided for " + source + " in configuration");
 		}
 		try {
-			final AuthToken t = auth.validateToken(cfg.getBackendToken());
-			if (!t.getUserName().equals(cfg.getBackendUser())) {
+			final AuthToken t = auth.validateToken(token);
+			if (!t.getUserName().equals(user)) {
 				throw new WorkspaceInitException(String.format(
-						"The username from the backend token, %s, does " +
-						"not match the backend username, %s",
-						t.getUserName(), cfg.getBackendUser()));
+						"The username from the %s token, %s, does " +
+						"not match the %s username, %s",
+						source, t.getUserName(), source, user));
 			}
 			return t;
 		} catch (AuthException e) {
 			throw new WorkspaceInitException(
-					"Couldn't log in with backend credentials for user " +
-					cfg.getBackendUser() + ": " + e.getMessage(), e);
+					"Couldn't log in with " + source + " credentials for user " +
+					user + ": " + e.getMessage(), e);
 		} catch (IOException e) {
 			throw new WorkspaceInitException(
-					"Couldn't contact the auth service to validate the backend token: "
+					"Couldn't contact the auth service to validate the " + source + " token: "
 					+ e.getMessage(), e);
 		}
 	}
@@ -384,7 +432,8 @@ public class InitWorkspaceServer {
 			return new GridFSBlobStore(db);
 		}
 		if (cfg.getBackendType().equals(BackendType.Shock)) {
-			final AuthToken token = getKBaseBackendToken(cfg, auth);
+			final AuthToken token = getKBaseToken(
+					cfg.getBackendUser(), cfg.getBackendToken(), "backend", auth);
 			try {
 				return new ShockBlobStore(db.getCollection(COL_SHOCK_NODES),
 						new BasicShockClient(cfg.getBackendURL(), token));
