@@ -357,13 +357,14 @@ public class HandleAndShockTest {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> deps =
 				(List<Map<String, String>>) st.get("dependencies");
-		assertThat("missing dependencies", deps.size(), is(4));
+		assertThat("missing dependencies", deps.size(), is(5));
 		
 		final List<List<String>> exp = new ArrayList<List<String>>();
 		exp.add(Arrays.asList("MongoDB", "true"));
 		exp.add(Arrays.asList("Shock", "true"));
 		exp.add(Arrays.asList("Handle service", "false"));
 		exp.add(Arrays.asList("Handle manager", "false"));
+		exp.add(Arrays.asList("Linked Shock for IDs", "true"));
 		final Iterator<List<String>> expiter = exp.iterator();
 		final Iterator<Map<String, String>> gotiter = deps.iterator();
 		while (expiter.hasNext()) {
