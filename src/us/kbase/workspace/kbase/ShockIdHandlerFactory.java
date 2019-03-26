@@ -44,9 +44,7 @@ import us.kbase.typedobj.idref.RemappedId;
  */
 public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 
-	//TODO SHOCKID new params - shock url, shock user, shock token (toggle required based on shock url)
-	//TODO SHOCKID integrate into startup
-	//TODO SHOCKID integration tests
+	//TODO SHOCKID integrate into startup & integration tests
 	//TODO SHOCKID documentation, compare vs. handle ID (shock int docs, type @id docs)
 
 	/** Given a Shock client, provides a new Shock client with no token.
