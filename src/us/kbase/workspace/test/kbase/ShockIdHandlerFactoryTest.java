@@ -163,8 +163,9 @@ public class ShockIdHandlerFactoryTest {
 		addReadPermissionFailWithAndWithoutUser(
 				new ShockIdHandlerFactory(cli, cloner), "foo",
 				set(UUID.randomUUID().toString(), id.toString()),
-				new IdReferencePermissionHandlerException(
-						"There was an IO problem while attempting to set Shock ACLs: whoopsie"));
+				new IdReferencePermissionHandlerException(String.format(
+						"There was an IO problem while attempting to set Shock ACLs on node " +
+						"%s: whoopsie", id.toString())));
 	}
 	
 	@Test
@@ -183,8 +184,9 @@ public class ShockIdHandlerFactoryTest {
 		addReadPermissionFailWithAndWithoutUser(
 				new ShockIdHandlerFactory(cli, cloner), "foo",
 				set(UUID.randomUUID().toString(), id.toString()),
-				new IdReferencePermissionHandlerException(
-						"Shock reported a problem while attempting to set Shock ACLs: darn heck"));
+				new IdReferencePermissionHandlerException(String.format(
+						"Shock reported a problem while attempting to set Shock ACLs on node " +
+						"%s: darn heck", id.toString())));
 	}
 	
 	private void addReadPermissionFailWithAndWithoutUser(

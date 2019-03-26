@@ -22,6 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
@@ -35,6 +36,7 @@ import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
@@ -1125,6 +1127,66 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		assertNull("Got object info when expected null", nullobj.get(5));
 		assertNull("Got object info when expected null", nullobj.get(6));
+	}
+	
+	// TODO TEST should also test that getting objects with handles fail, but that's a pain to set up
+	@Test
+	public void saveObjectsFailNoHandleProcessor() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("nohandle")).getE1();
+		
+		saveObject2MethodsFail(CLIENT1, "nohandle", "foo", "HandleShock.ExtIDs",
+				new UObject(ImmutableMap.of("h", "KBH_1")), new ServerException(
+						"Object #1, foo failed type checking:\nInvalid id KBH_1 of type " +
+						"handle: Found handle id KBH_1. The workspace service currently does " +
+						"not have a connection to the handle service and so cannot process " +
+						"objects containing handle IDs. at /h", 1, "n"));
+	}
+	
+	@Test
+	public void saveObjectsFailNoShockProcessor() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("nohandle")).getE1();
+		
+		final String id = UUID.randomUUID().toString();
+		saveObject2MethodsFail(CLIENT1, "nohandle", "foo", "HandleShock.ExtIDs",
+				new UObject(ImmutableMap.of("s", id)),
+				new ServerException(String.format(
+						"Object #1, foo failed type checking:\nInvalid id %s of type " +
+						"shock: Found shock id %s. There is no connection configured for the " +
+						"Shock Service and so objects containing shock IDs cannot be processed. " +
+						"at /s", id, id), 1, "n"));
+	}
+	
+	private void saveObject2MethodsFail(
+			final WorkspaceClient cli,
+			final String workspace,
+			final String name,
+			final String type,
+			final UObject data,
+			final Exception expected) {
+		try {
+			@SuppressWarnings({ "deprecation", "unused" })
+			final Object saveObject = cli.saveObject(new us.kbase.workspace.SaveObjectParams()
+					.withData(data)
+					.withId(name)
+					.withWorkspace(workspace)
+					.withType(type));
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+		try {
+			cli.saveObjects(new SaveObjectsParams()
+					.withWorkspace(workspace)
+					.withObjects(Arrays.asList(new ObjectSaveData()
+							.withData(data)
+							.withName(name)
+							.withType(type))));
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
 	}
 	
 	@Test
