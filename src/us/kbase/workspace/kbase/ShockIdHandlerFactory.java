@@ -19,6 +19,7 @@ import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
+import us.kbase.shock.client.ShockUserId;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockAuthorizationException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
@@ -274,11 +275,39 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 								e.getMessage(), TYPE, e);
 					}
 					if (!acls.getOwner().getUsername().equals(adminUser)) {
-						unowned.add(node);
+						unowned.add(node); // make a copy of the node
+					} else {
+						// no copy, so clean acls up
+						removeFromACL(node, adminUser, acls.getWrite(), ShockACLType.WRITE);
+						removeFromACL(node, adminUser, acls.getDelete(), ShockACLType.DELETE);
 					}
 				}
 			}
 			return unowned;
+		}
+
+		private void removeFromACL(
+				final String node,
+				final String adminUser,
+				final List<ShockUserId> users,
+				final ShockACLType aclType) throws IdReferenceHandlerException {
+			final List<String> strUsers = users.stream().map(u -> u.getUsername())
+					.collect(Collectors.toList());
+			strUsers.remove(adminUser);
+			if (strUsers.isEmpty()) {
+				return;
+			}
+			try {
+				adminClient.removeFromNodeAcl(new ShockNodeId(node), strUsers, aclType);
+			} catch (IOException e) {
+				throw new IdReferenceHandlerException(
+						"There was an IO problem while attempting to contact Shock " +
+						"to process IDs: " + e.getMessage(), TYPE, e);
+			} catch (ShockHttpException e) {
+				throw new IdReferenceHandlerException(
+						"Shock reported a problem while attempting to process IDs: " +
+						e.getMessage(), TYPE, e);
+			}
 		}
 
 		@Override
