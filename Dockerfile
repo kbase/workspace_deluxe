@@ -1,3 +1,12 @@
+FROM kbase/sdkbase2 as build
+
+COPY . /tmp/workspace_deluxe
+RUN pip install configobj && \
+    cd /tmp && \
+    git clone https://github.com/kbase/jars && \
+    cd workspace_deluxe && \
+    make docker_deps
+
 FROM kbase/kb_jre
 
 # These ARGs values are passed in via the docker build command
@@ -5,7 +14,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG BRANCH=develop
 
-COPY deployment/ /kb/deployment/
+COPY --from=build /tmp/workspace_deluxe/deployment/ /kb/deployment/
 
 RUN /usr/bin/tomcat8-instance-create /kb/deployment/services/workspace/tomcat && \
     mv /kb/deployment/services/workspace/WorkspaceService.war /kb/deployment/services/workspace/tomcat/webapps/ROOT.war && \

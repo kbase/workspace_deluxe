@@ -42,6 +42,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -429,7 +430,9 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performWrites() throws Exception {
 			for (JsonNode o: objs) {
-				final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(1);
+				final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+						.getBuilder(1).build().getFactory(null);
+//				final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(1);
 //				fac.addFactory(ws.getHandlerFactory(foo));
 				wsids.add(ws.saveObjects(foo, new WorkspaceIdentifier(workspace),
 						Arrays.asList(new WorkspaceSaveObject(

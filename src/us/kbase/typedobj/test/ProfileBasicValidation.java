@@ -36,6 +36,7 @@ import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.test.TypeRegisteringTest;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 
 public class ProfileBasicValidation {
 	private final static String TEST_DB_LOCATION = "test/typedobj_test_files/t1";
@@ -180,8 +181,8 @@ public class ProfileBasicValidation {
 	}
 
 	private static void test(TestInstanceInfo instance) {
-		IdReferenceHandlerSetFactory fac =
-				new IdReferenceHandlerSetFactory(6);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(6).build().getFactory(null);
 		IdReferenceHandlerSet<String> han = fac.createHandlers(String.class);
 		han.associateObject("foo");
 		if(instance.isValid) {

@@ -18,81 +18,112 @@ import us.kbase.workspace.database.WorkspaceUser;
 public interface WorkspaceEventListener {
 	
 	/** Notification that a workspace was created.
+	 * @param user the user that created the workspace.
 	 * @param id the workspace ID.
 	 * @param time the time the create event occurred.
 	 */
-	void createWorkspace(long id, Instant time);
+	void createWorkspace(WorkspaceUser user, long id, Instant time);
 	
 	/** Notification that a workspace was cloned.
+	 * @param user the user that cloned the workspace.
 	 * @param id the workspace ID.
 	 * @param isPublic true if the workspace is public, false otherwise.
 	 * @param time the time the clone event occurred.
 	 */
-	void cloneWorkspace(long id, boolean isPublic, Instant time);
+	void cloneWorkspace(WorkspaceUser user, long id, boolean isPublic, Instant time);
 
 	/** Notification that a workspace's meta data was altered.
+	 * @param user the user that altered the workspace.
 	 * @param id the id of the workspace.
 	 * @param time the time the metadata event occurred.
 	 */
-	void setWorkspaceMetadata(long id, Instant time);
+	void setWorkspaceMetadata(WorkspaceUser user, long id, Instant time);
 	
 	/** Notification that a workspace has been locked.
+	 * @param user the user that locked the workspace.
 	 * @param id the id of the workspace.
 	 * @param time the time the lock event occurred.
 	 */
-	void lockWorkspace(long id, Instant time);
+	void lockWorkspace(WorkspaceUser user, long id, Instant time);
 
 	/** Notification that a workspace has been renamed.
+	 * @param user the user that renamed the workspace.
 	 * @param id the id of the workspace.
 	 * @param newname the new name of the workspace.
 	 * @param time the time the rename event occurred.
 	 */
-	void renameWorkspace(long id, final String newname, Instant time);
+	void renameWorkspace(WorkspaceUser user, long id, final String newname, Instant time);
 
 	/** Notification that the global permission for a workspace has been altered.
+	 * @param user the user that altered the workspace.
 	 * @param id the id of the workspace.
 	 * @param permission the new global permission.
 	 * @param time the time the permission event occurred.
 	 */
-	void setGlobalPermission(long id, Permission permission, Instant time);
+	void setGlobalPermission(WorkspaceUser user, long id, Permission permission, Instant time);
 
 	/** Notification that the permissions for a workspace have been altered.
+	 * @param user the user that altered the workspace. May be null if the user is an admin.
 	 * @param id the id of the workspace.
 	 * @param permission the new permission.
 	 * @param users the users that have been assigned the new permission.
 	 * @param time the time the permissions event occurred.
 	 */
-	void setPermissions(long id, Permission permission, List<WorkspaceUser> users, Instant time);
+	void setPermissions(
+			WorkspaceUser user,
+			long id,
+			Permission permission,
+			List<WorkspaceUser> users,
+			Instant time);
 
 	/** Notification that the workspace description has been set or altered.
+	 * @param user the user that altered the workspace. May be null if the user is an admin.
 	 * @param id the id of the workspace.
 	 * @param time the time the description change event occurred.
 	 */
-	void setWorkspaceDescription(long id, Instant time);
+	void setWorkspaceDescription(WorkspaceUser user, long id, Instant time);
 
 	/** Notification that the owner of a workspace has been changed.
+	 * @param user the user that changed the owner. Will be null if the user is an admin.
 	 * @param id the id of the workspace.
 	 * @param newUser the new owner of the workspace.
 	 * @param newName the new name for the workspace, if any.
 	 * @param time the time the owner change event occurred.
 	 */
-	void setWorkspaceOwner(long id, WorkspaceUser newUser, Optional<String> newName, Instant time);
+	void setWorkspaceOwner(
+			WorkspaceUser user,
+			long id,
+			WorkspaceUser newUser,
+			Optional<String> newName,
+			Instant time);
 
 	/** Notification that a workspace has been deleted or undeleted.
+	 * @param user the user that altered the workspace. May be null if the user is an admin.
 	 * @param id the id of the workspace.
 	 * @param delete true for a delete event, false for an undelete event.
 	 * @param maxObjectID the maximum ID for any object in the workspace.
 	 * @param time the time the deletion event occurred.
 	 */
-	void setWorkspaceDeleted(long id, boolean delete, long maxObjectID, Instant time);
+	void setWorkspaceDeleted(
+			WorkspaceUser user,
+			long id,
+			boolean delete,
+			long maxObjectID,
+			Instant time);
 
 	/** Notification that an object has been renamed.
+	 * @param user the user that renamed the object.
 	 * @param workspaceId the id of the workspace containing the object.
 	 * @param objectId the id of the object.
 	 * @param newName the object's new name.
 	 * @param time the time the rename event occurred.
 	 */
-	void renameObject(long workspaceId, long objectId, String newName, Instant time);
+	void renameObject(
+			final WorkspaceUser user,
+			final long workspaceId,
+			final long objectId,
+			final String newName,
+			final Instant time);
 
 	/** Notification that an object has been reverted.
 	 * @param object information about the reverted object.
@@ -101,12 +132,18 @@ public interface WorkspaceEventListener {
 	void revertObject(ObjectInformation object, boolean isPublic);
 
 	/** Notification that an object was deleted or undeleted.
+	 * @param user the user that changed the deletion state of the object.
 	 * @param workspaceId the workspace id.
 	 * @param objectId the object id.
 	 * @param delete true if the object was deleted, false if it was undeleted.
 	 * @param time the time the delete event occurred.
 	 */
-	void setObjectDeleted(long workspaceId, long objectId, boolean delete, Instant time);
+	void setObjectDeleted(
+			WorkspaceUser user,
+			long workspaceId,
+			long objectId,
+			boolean delete,
+			Instant time);
 
 	/** Notification that a single version of an object was copied.
 	 * @param object information about the new object version.
@@ -114,7 +151,8 @@ public interface WorkspaceEventListener {
 	 */
 	void copyObject(ObjectInformation object, boolean isPublic);
 
-	/** Notification that all the versions of an object was copied.
+	/** Notification that all the versions of an object were copied.
+	 * @param user the user that copied the object.
 	 * @param workspaceId the workspace id of the new object.
 	 * @param objectId the object id of the new object.
 	 * @param latestVersion the latest version of the new object.
@@ -122,6 +160,7 @@ public interface WorkspaceEventListener {
 	 * @param isPublic true if the new object is in a public workspace, false otherwise.
 	 */
 	void copyObject(
+			WorkspaceUser user,
 			long workspaceId,
 			long objectId,
 			int latestVersion,

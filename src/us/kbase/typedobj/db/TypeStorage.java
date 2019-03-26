@@ -80,8 +80,6 @@ public interface TypeStorage {
 	public void writeFuncParseRecord(String moduleName, String funcName, String version, long moduleVersion,
 			String parseText) throws TypeStorageException;
 
-	public void removeModule(String moduleName) throws TypeStorageException;
-
 	public void addRefs(Set<RefInfo> typeRefs, Set<RefInfo> funcRefs) throws TypeStorageException;
 
 	public void addNewModuleRegistrationRequest(String moduleName, String userId) throws TypeStorageException;
