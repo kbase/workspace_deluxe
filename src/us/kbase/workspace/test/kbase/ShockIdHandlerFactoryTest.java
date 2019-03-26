@@ -269,11 +269,11 @@ public class ShockIdHandlerFactoryTest {
 				.createHandler(String.class, new AuthToken("token", "user"));
 		
 		final String id_foo_1 = UUID.randomUUID().toString();
-		System.out.println("id_foo_1: " + id_foo_1);
+//		System.out.println("id_foo_1: " + id_foo_1);
 		final String id_foo_2 = UUID.randomUUID().toString();
-		System.out.println("id_foo_2: " + id_foo_2);
+//		System.out.println("id_foo_2: " + id_foo_2);
 		final String id_bar_1 = UUID.randomUUID().toString();
-		System.out.println("id_bar_1: " + id_bar_1);
+//		System.out.println("id_bar_1: " + id_bar_1);
 		final String id_bar_2 = id_foo_2;
 		
 		assertThat("incorrect uniq", h.addId("foo", id_foo_1, null), is(true));
@@ -671,7 +671,7 @@ public class ShockIdHandlerFactoryTest {
 		
 		when(adminCli.getToken()).thenReturn(new AuthToken("token", "admin"));
 		
-		setUpShockACLResponse(cloned, id, "admin", list(writeUser), list(deleteUser));
+		setUpShockACLResponse(cloned, id, "admin", listOrEmpty(writeUser), listOrEmpty(deleteUser));
 
 		when(adminCli.removeFromNodeAcl(
 				new ShockNodeId(id), listOrEmpty(writeUser), ShockACLType.WRITE))
