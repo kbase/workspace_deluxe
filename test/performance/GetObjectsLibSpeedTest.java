@@ -35,6 +35,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -106,7 +107,8 @@ public class GetObjectsLibSpeedTest {
 		ws.createWorkspace(user, "fake", false, null, null);
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("fake");
 		TypeDefId td = new TypeDefId(new TypeDefName(module, type));
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(1);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(1).build().getFactory(null);
 //		fac.addFactory(ws.getHandlerFactory(user));
 		ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(//added obj name when autonaming removed

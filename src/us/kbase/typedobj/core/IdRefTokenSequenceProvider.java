@@ -57,9 +57,6 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 		if (jts == null) {
 			throw new NullPointerException("jts");
 		}
-		if (idhandlers == null) {
-			throw new NullPointerException("idhandlers");
-		}
 		this.jts = jts;
 		this.schemaLoc = new ArrayList<JsonTokenValidationSchema>(
 				Arrays.asList(schema));
@@ -167,11 +164,10 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 			final IdReferenceType idType = s.getIdReferenceType();
 			final List<String> attribs = s.getIdReferenceAttributes();
 			if (ref != null) {
-				if (ref.equals(new IdReference<String>(
-						idType, ret, attribs))) {
+				if (ref.equals(new IdReference<String>(idType, ret, attribs))) {
 					foundPath = new JsonDocumentLocation(path);
 				}
-			} else if (handlers.hasHandler(idType)) {
+			} else if (handlers != null && handlers.hasHandler(idType)) {
 				return handlers.getRemappedId(idType, ret).getId();
 			}
 		}

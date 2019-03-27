@@ -20,6 +20,7 @@ public class ResolvedSaveObject {
 	private final List<Reference> provrefs;
 	final Map<IdReferenceType, Set<RemappedId>> extractedIDs;
 	
+	// provrefs *must* be in the same ordering as they are in the provenance actions
 	ResolvedSaveObject(
 			final ObjectIDNoWSNoVer id,
 			final WorkspaceUserMetadata userMeta,
@@ -81,6 +82,7 @@ public class ResolvedSaveObject {
 		return refs;
 	}
 
+	// provrefs *must* be in the same ordering as they are in the provenance actions
 	public List<Reference> getProvRefs() {
 		return provrefs;
 	}

@@ -18,8 +18,7 @@ public class IdReference<T> {
 	public IdReference(final IdReferenceType type, final T id,
 			List<String> attributes) {
 		if (type == null || id == null) {
-			throw new NullPointerException(
-					"type, id, and location cannot be null");
+			throw new NullPointerException("type and id cannot be null");
 		}
 		this.type = type;
 		this.id = id;
