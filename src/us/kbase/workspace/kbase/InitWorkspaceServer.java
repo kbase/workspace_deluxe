@@ -5,29 +5,29 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.jongo.Jongo;
-import org.jongo.MongoCollection;
-import org.jongo.marshall.MarshallingException;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.DB;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoCredential;
 import com.mongodb.MongoException;
-import com.mongodb.MongoTimeoutException;
+import com.mongodb.ServerAddress;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
-import us.kbase.common.mongo.GetMongoDB;
-import us.kbase.common.mongo.exceptions.InvalidHostException;
-import us.kbase.common.mongo.exceptions.MongoAuthException;
 import us.kbase.common.service.ServerException;
 import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.shock.client.BasicShockClient;
@@ -39,17 +39,24 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.TypeStorageException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
-import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
+import us.kbase.workspace.kbase.ShockIdHandlerFactory.ShockClientCloner;
+import us.kbase.workspace.kbase.admin.AdministratorHandler;
+import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
+import us.kbase.workspace.kbase.admin.DefaultAdminHandler;
+import us.kbase.workspace.kbase.admin.KBaseAuth2AdminHandler;
+import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
@@ -59,9 +66,10 @@ public class InitWorkspaceServer {
 	//TODO TEST unittests
 	//TODO JAVADOC
 	
-	private static final String COL_SETTINGS = InitConstants.COL_SETTINGS;
 	public static final String COL_SHOCK_NODES = InitConstants.COL_SHOCK_NODES;
 	
+	private static final int ADMIN_CACHE_MAX_SIZE = 100; // seems like more than enough admins
+	private static final int ADMIN_CACHE_EXP_TIME_MS = 5 * 60 * 1000; // cache admin role for 5m
 	
 	private static int maxUniqueIdCountPerCall = 100000;
 
@@ -87,27 +95,27 @@ public class InitWorkspaceServer {
 	}
 	
 	public static class WorkspaceInitResults {
-		private Workspace ws;
-		private WorkspaceServerMethods wsmeth;
-		private WorkspaceAdministration wsadmin;
-		private Types types;
-		private URL handleManagerUrl;
-		private AuthToken handleMgrToken;
+		private final Workspace ws;
+		private final WorkspaceServerMethods wsmeth;
+		private final WorkspaceAdministration wsadmin;
+		private final Types types;
+		private final BasicShockClient linkedShockClient;
+		private final URL handleManagerUrl;
 		
 		public WorkspaceInitResults(
 				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
 				final Types types,
-				final URL handleManagerUrl,
-				final AuthToken handleMgrToken) {
+				final BasicShockClient linkedShockClient,
+				final URL handleManagerUrl) {
 			super();
 			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
 			this.types = types;
+			this.linkedShockClient = linkedShockClient;
 			this.handleManagerUrl = handleManagerUrl;
-			this.handleMgrToken = handleMgrToken;
 		}
 
 		public Workspace getWs() {
@@ -129,9 +137,9 @@ public class InitWorkspaceServer {
 		public URL getHandleManagerUrl() {
 			return handleManagerUrl;
 		}
-
-		public AuthToken getHandleMgrToken() {
-			return handleMgrToken;
+		
+		public BasicShockClient getLinkedShockClient() {
+			return linkedShockClient;
 		}
 	}
 	
@@ -151,13 +159,14 @@ public class InitWorkspaceServer {
 		} 
 		
 		AuthToken handleMgrToken = null;
+		HandleMngrClient hmc = null;
 		if (!cfg.ignoreHandleService()) {
 			handleMgrToken = getHandleToken(cfg, rep, auth);
 			if (!rep.isFailed()) {
 				checkHandleServiceConnection(cfg.getHandleServiceURL(), handleMgrToken, rep);
 			}
 			if (!rep.isFailed()) {
-				checkHandleManagerConnection(cfg.getHandleManagerURL(), handleMgrToken, rep);
+				hmc = getHandleManagerClient(cfg.getHandleManagerURL(), handleMgrToken, rep);
 			}
 		}
 		
@@ -165,30 +174,38 @@ public class InitWorkspaceServer {
 			rep.reportFail("Server startup failed - all calls will error out.");
 			return null;
 		} 
-		rep.reportInfo("Starting server using connection parameters:\n" +
-				cfg.getParamReport());
+		rep.reportInfo("Starting server using connection parameters:\n" + cfg.getParamReport());
 		rep.reportInfo("Temporary file location: " + tfm.getTempDir());
 
 		final WorkspaceDependencies wsdeps;
+		final AdministratorHandler ah;
+		final Workspace ws;
 		try {
 			wsdeps = getDependencies(cfg, tfm, auth);
+			ws = new Workspace(
+					wsdeps.mongoWS,
+					new ResourceUsageConfigurationBuilder().build(),
+					wsdeps.validator,
+					wsdeps.listeners);
+			ah = getAdminHandler(cfg, ws);
 		} catch (WorkspaceInitException wie) {
 			rep.reportFail(wie.getLocalizedMessage());
 			rep.reportFail(
 					"Server startup failed - all calls will error out.");
 			return null;
 		}
-		rep.reportInfo(String.format("Initialized %s backend",
-				wsdeps.backendType));
-		Workspace ws = new Workspace(
-				wsdeps.mongoWS, new ResourceUsageConfigurationBuilder().build(), wsdeps.validator,
-				wsdeps.listeners);
+		rep.reportInfo(String.format("Initialized %s backend", cfg.getBackendType().name()));
 		Types types = new Types(wsdeps.typeDB);
+		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(maxUniqueIdCountPerCall)
+				.withFactory(new HandleIdHandlerFactory(cfg.getHandleServiceURL(), hmc))
+				.withFactory(wsdeps.shockFac.factory)
+				.build();
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
-				ws, types, cfg.getHandleServiceURL(), cfg.getHandleManagerURL(),
-				handleMgrToken, maxUniqueIdCountPerCall, auth);
+				ws, types, builder, cfg.getHandleServiceURL(), auth);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				ws, wsmeth, types, cfg.getWorkspaceAdmin());
+				ws, wsmeth, types, ah,
+				ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),
@@ -196,15 +213,43 @@ public class InitWorkspaceServer {
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
 		return new WorkspaceInitResults(
-				ws, wsmeth, wsadmin, types, cfg.getHandleManagerURL(),
-				handleMgrToken);
+				ws, wsmeth, wsadmin, types, wsdeps.shockFac.client, cfg.getHandleManagerURL());
 	}
 	
+	private static AdministratorHandler getAdminHandler(
+			final KBaseWorkspaceConfig cfg,
+			final Workspace ws) throws WorkspaceInitException {
+		if (cfg.getAdminReadOnlyRoles().isEmpty() && cfg.getAdminRoles().isEmpty()) {
+			final String a = cfg.getWorkspaceAdmin();
+			final WorkspaceUser admin = a == null || a.trim().isEmpty() ?
+					null : new WorkspaceUser(a);
+			return new DefaultAdminHandler(ws, admin);
+		} else {
+			final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+			cm.setMaxTotal(1000); //perhaps these should be configurable
+			cm.setDefaultMaxPerRoute(1000);
+			//TODO set timeouts for the client for 1/2m for conn req timeout and std timeout
+			final CloseableHttpClient client = HttpClients.custom().setConnectionManager(cm)
+					.build();
+			try {
+				return new KBaseAuth2AdminHandler(
+						client,
+						cfg.getAuth2URL(),
+						cfg.getAdminReadOnlyRoles(),
+						cfg.getAdminRoles());
+			} catch (URISyntaxException | AdministratorHandlerException e) {
+				throw new WorkspaceInitException(
+						"Could not start the KBase auth2 adminstrator handler: " +
+						e.getMessage(), e);
+			}
+		}
+	}
+
 	private static class WorkspaceDependencies {
 		public TypeDefinitionDB typeDB;
 		public TypedObjectValidator validator;
 		public WorkspaceDatabase mongoWS;
-		public String backendType;
+		public ShockFactoryBits shockFac;
 		public List<WorkspaceEventListener> listeners;
 	}
 	
@@ -215,20 +260,13 @@ public class InitWorkspaceServer {
 			throws WorkspaceInitException {
 		
 		final WorkspaceDependencies deps = new WorkspaceDependencies();
+		//TODO CODE update to new mongo APIs
+		final DB db = buildMongo(cfg, cfg.getDBname()).getDB(cfg.getDBname());
 		
-		final DB db = getMongoDBInstance(cfg.getHost(), cfg.getDBname(),
-				cfg.getMongoUser(), cfg.getMongoPassword(),
-				cfg.getMongoReconnectAttempts());
+		final BlobStore bs = setupBlobStore(db, cfg, auth);
 		
-		final Settings settings = getSettings(db);
-		deps.backendType = settings.isGridFSBackend() ? "GridFS" : "Shock";
-		
-		final BlobStore bs = setupBlobStore(db, deps.backendType, settings.getShockUrl(),
-				settings.getShockUser(), cfg, auth);
-		
-		final DB typeDB = getMongoDBInstance(cfg.getHost(),
-				settings.getTypeDatabase(), cfg.getMongoUser(),
-				cfg.getMongoPassword(), cfg.getMongoReconnectAttempts());
+		// see https://jira.mongodb.org/browse/JAVA-2656
+		final DB typeDB = buildMongo(cfg, cfg.getTypeDBName()).getDB(cfg.getTypeDBName());
 		
 		try {
 			deps.typeDB = new TypeDefinitionDB(new MongoTypeStorage(typeDB));
@@ -236,8 +274,7 @@ public class InitWorkspaceServer {
 			throw new WorkspaceInitException("Couldn't set up the type database: "
 					+ e.getLocalizedMessage(), e);
 		}
-		deps.validator = new TypedObjectValidator(
-				new LocalTypeProvider(deps.typeDB));
+		deps.validator = new TypedObjectValidator(new LocalTypeProvider(deps.typeDB));
 		try {
 			deps.mongoWS = new MongoWorkspaceDB(db, bs, tfm);
 		} catch (WorkspaceDBException wde) {
@@ -245,8 +282,72 @@ public class InitWorkspaceServer {
 					"Error initializing the workspace database: " +
 					wde.getLocalizedMessage(), wde);
 		}
+		deps.shockFac = getShockIdHandlerFactory(cfg, auth);
+		
 		deps.listeners = loadListeners(cfg);
 		return deps;
+	}
+	
+	private static class ShockFactoryBits {
+		private final ShockIdHandlerFactory factory;
+		private final BasicShockClient client;
+		private ShockFactoryBits(
+				final ShockIdHandlerFactory factory,
+				final BasicShockClient client) {
+			this.factory = factory;
+			this.client = client;
+		}
+	}
+	
+	private static ShockFactoryBits getShockIdHandlerFactory(
+			final KBaseWorkspaceConfig cfg,
+			final ConfigurableAuthService auth)
+			throws WorkspaceInitException {
+		if (cfg.getShockURL() == null) {
+			return new ShockFactoryBits(new ShockIdHandlerFactory(null, null), null);
+		}
+		final AuthToken shockToken = getKBaseToken(
+				cfg.getShockUser(), cfg.getShockToken(), "shock", auth);
+		final BasicShockClient bsc;
+		final BasicShockClient unauthed;
+		try {
+			bsc = new BasicShockClient(cfg.getShockURL(), shockToken);
+			unauthed = new BasicShockClient(cfg.getShockURL());
+		} catch (InvalidShockUrlException | ShockHttpException | IOException e) {
+			throw new WorkspaceInitException(
+					"Couldn't contact Shock server configured for Shock ID links: " +
+			e.getMessage(), e);
+		}
+		return new ShockFactoryBits(
+				new ShockIdHandlerFactory(bsc, new ShockClientCloner() {
+					
+					@Override
+					public BasicShockClient clone(final BasicShockClient source)
+							throws IOException, InvalidShockUrlException {
+						return new BasicShockClient(source.getShockUrl());
+					}
+				}),
+				unauthed);
+	}
+
+	private static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
+			throws WorkspaceInitException {
+		//TODO ZLATER MONGO handle shards & replica sets
+		try {
+			if (c.getMongoUser() != null) {
+				final MongoCredential creds = MongoCredential.createCredential(
+						c.getMongoUser(), dbName, c.getMongoPassword().toCharArray());
+				// unclear if and when it's safe to clear the password
+				return new MongoClient(new ServerAddress(c.getHost()), creds,
+						MongoClientOptions.builder().build());
+			} else {
+				return new MongoClient(new ServerAddress(c.getHost()));
+			}
+		} catch (MongoException e) {
+			LoggerFactory.getLogger(InitWorkspaceServer.class).error(
+					"Failed to connect to MongoDB: " + e.getMessage(), e);
+			throw new WorkspaceInitException("Failed to connect to MongoDB: " + e.getMessage(), e);
+		}
 	}
 	
 	private static List<WorkspaceEventListener> loadListeners(final KBaseWorkspaceConfig cfg)
@@ -291,64 +392,54 @@ public class InitWorkspaceServer {
 		}
 	}
 
-	private static AuthToken getBackendToken(
-			final String shockUserFromSettings,
-			final KBaseWorkspaceConfig cfg,
+	private static AuthToken getKBaseToken(
+			final String user,
+			final String token,
+			final String source,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
-		if (cfg.getBackendToken() == null) {
+		if (token == null) {
 			throw new WorkspaceInitException(
-					"No token provided for Shock backend in configuration");
+					"No token provided for " + source + " in configuration");
 		}
 		try {
-			final AuthToken t = auth.validateToken(cfg.getBackendToken());
-			if (!t.getUserName().equals(shockUserFromSettings)) {
+			final AuthToken t = auth.validateToken(token);
+			if (!t.getUserName().equals(user)) {
 				throw new WorkspaceInitException(String.format(
-						"The username from the backend token, %s, does " +
-						"not match the backend username stored in the " +
-						"database, %s",
-						t.getUserName(), shockUserFromSettings));
+						"The username from the %s token, %s, does " +
+						"not match the %s username, %s",
+						source, t.getUserName(), source, user));
 			}
 			return t;
 		} catch (AuthException e) {
 			throw new WorkspaceInitException(
-					"Couldn't log in with backend credentials for user " +
-					shockUserFromSettings + ": " + e.getMessage(), e);
+					"Couldn't log in with " + source + " credentials for user " +
+					user + ": " + e.getMessage(), e);
 		} catch (IOException e) {
 			throw new WorkspaceInitException(
-					"Couldn't contact the auth service to obtain a token for the backend: "
+					"Couldn't contact the auth service to validate the " + source + " token: "
 					+ e.getMessage(), e);
 		}
 	}
 
 	private static BlobStore setupBlobStore(
 			final DB db,
-			final String blobStoreType,
-			final String blobStoreURL,
-			final String shockUserFromSettings,
 			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
 		
-		if (blobStoreType.equals("GridFS")) {
+		if (cfg.getBackendType().equals(BackendType.GridFS)) {
 			return new GridFSBlobStore(db);
 		}
-		if (blobStoreType.equals("Shock")) {
-			final URL shockurl;
+		if (cfg.getBackendType().equals(BackendType.Shock)) {
+			final AuthToken token = getKBaseToken(
+					cfg.getBackendUser(), cfg.getBackendToken(), "backend", auth);
 			try {
-				shockurl = new URL(blobStoreURL);
-			} catch (MalformedURLException mue) {
-				throw new WorkspaceInitException(
-						"Workspace database settings document has bad shock url: "
-						+ blobStoreURL, mue);
-			}
-			final AuthToken token = getBackendToken(shockUserFromSettings, cfg, auth);
-			try {
-				return new ShockBlobStore(
-						db.getCollection(COL_SHOCK_NODES), new BasicShockClient(shockurl, token));
+				return new ShockBlobStore(db.getCollection(COL_SHOCK_NODES),
+						new BasicShockClient(cfg.getBackendURL(), token));
 			} catch (InvalidShockUrlException isue) {
 				throw new WorkspaceInitException(
-						"The shock url " + shockurl + " is invalid", isue);
+						"The backend url " + cfg.getBackendURL() + " is invalid", isue);
 			} catch (ShockHttpException she) {
 				throw new WorkspaceInitException(
 						"Shock appears to be misconfigured - the client could not initialize. " +
@@ -359,81 +450,7 @@ public class InitWorkspaceServer {
 						ioe.getLocalizedMessage(), ioe);
 			}
 		}
-		throw new WorkspaceInitException("Unknown backend type: " + blobStoreType);
-	}
-
-	private static DB getMongoDBInstance(final String host, final String dbs,
-			final String user, final String pwd, final int mongoReconnectRetry)
-			throws WorkspaceInitException {
-		try {
-		if (user != null) {
-			return GetMongoDB.getDB(
-					host, dbs, user, pwd, mongoReconnectRetry, 10);
-		} else {
-			return GetMongoDB.getDB(host, dbs, mongoReconnectRetry, 10);
-		}
-		} catch (InterruptedException ie) {
-			throw new WorkspaceInitException(
-					"Connection to MongoDB was interrupted. This should never "
-					+ "happen and indicates a programming problem. Error: " +
-					ie.getLocalizedMessage(), ie);
-		} catch (UnknownHostException uhe) {
-			throw new WorkspaceInitException("Couldn't find mongo host "
-					+ host + ": " + uhe.getLocalizedMessage(), uhe);
-		} catch (IOException | MongoTimeoutException e) {
-			throw new WorkspaceInitException("Couldn't connect to mongo host " 
-					+ host + ": " + e.getLocalizedMessage(), e);
-		} catch (MongoException e) {
-			throw new WorkspaceInitException(
-					"There was an error connecting to the mongo database: " +
-					e.getLocalizedMessage());
-		} catch (MongoAuthException ae) {
-			throw new WorkspaceInitException("Not authorized for mongo database "
-					+ dbs + ": " + ae.getLocalizedMessage(), ae);
-		} catch (InvalidHostException ihe) {
-			throw new WorkspaceInitException(host +
-					" is an invalid mongo database host: "  +
-					ihe.getLocalizedMessage(), ihe);
-		}
-	}
-	
-	private static Settings getSettings(final DB db)
-			throws WorkspaceInitException {
-		
-		if (!db.collectionExists(COL_SETTINGS)) {
-			throw new WorkspaceInitException(
-					"There is no settings collection in the workspace database");
-		}
-		MongoCollection settings = new Jongo(db).getCollection(COL_SETTINGS);
-		if (settings.count() != 1) {
-			throw new WorkspaceInitException(
-					"More than one settings document exists in the workspace database settings collection");
-		}
-		final Settings wsSettings;
-		try {
-			wsSettings = settings.findOne().as(Settings.class);
-		} catch (MarshallingException me) {
-			Throwable ex = me.getCause();
-			if (ex == null) {
-				throw new WorkspaceInitException(
-						"Unable to unmarshal settings workspace database document: " +
-						me.getLocalizedMessage(), me);
-			}
-			ex = ex.getCause();
-			if (ex == null || !(ex instanceof CorruptWorkspaceDBException)) {
-				throw new WorkspaceInitException(
-						"Unable to unmarshal settings workspace database document", me);
-			}
-			throw new WorkspaceInitException(
-					"Unable to unmarshal settings workspace database document: " +
-							ex.getLocalizedMessage(), ex);
-		}
-		if (db.getName().equals(wsSettings.getTypeDatabase())) {
-			throw new WorkspaceInitException(
-					"The type database name is the same as the workspace database name: "
-							+ db.getName());
-		}
-		return wsSettings;
+		throw new WorkspaceInitException("Unknown backend type: " + cfg.getBackendType().name());
 	}
 
 	private static TempFilesManager initTempFilesManager(
@@ -494,35 +511,45 @@ public class InitWorkspaceServer {
 		}
 	}
 	
-	private static void checkHandleManagerConnection(
+	private static HandleMngrClient getHandleManagerClient(
 			final URL handleManagerUrl,
 			final AuthToken handleMgrToken,
 			final InitReporter rep) {
+		final HandleMngrClient cli;
 		try {
-			final HandleMngrClient cli = new HandleMngrClient(
+			cli = new HandleMngrClient(
 					handleManagerUrl, handleMgrToken);
 			if (handleManagerUrl.getProtocol().equals("http")) {
 				rep.reportInfo("Warning - the Handle Manager url uses insecure http. " +
 						"https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
+		} catch (Exception e) {
+			rep.reportFail("Could not establish a connection to the Handle Manager Service at "
+					+ handleManagerUrl + ": " + e.getMessage());
+			return null;
+		}
+		try {
 			cli.setPublicRead(Arrays.asList("FAKEHANDLE_-100"));
 		} catch (Exception e) {
 			if (!(e instanceof ServerException) || !e.getMessage().contains(
 							"Unable to set acl(s) on handles FAKEHANDLE_-100")) {
 				rep.reportFail("Could not establish a connection to the Handle Manager Service at "
 						+ handleManagerUrl + ": " + e.getMessage());
+				return null;
 			}
 		}
+		return cli;
 	}
 	
 	private static ConfigurableAuthService setUpAuthClient(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
 		final AuthConfig c = new AuthConfig();
-		if (cfg.getGlobusURL().getProtocol().equals("http")) {
+		if (cfg.getAuth2URL().getProtocol().equals("http")) {
 			c.withAllowInsecureURLs(true);
-			rep.reportInfo("Warning - the Globus url uses insecure http. https is recommended.");
+			rep.reportInfo("Warning - the Auth Service MKII url uses insecure http. " +
+					"https is recommended.");
 		}
 		if (cfg.getAuthURL().getProtocol().equals("http")) {
 			c.withAllowInsecureURLs(true);
@@ -530,18 +557,19 @@ public class InitWorkspaceServer {
 					"Warning - the Auth Service url uses insecure http. https is recommended.");
 		}
 		try {
-			c.withGlobusAuthURL(cfg.getGlobusURL())
-				.withKBaseAuthServerURL(cfg.getAuthURL());
-		} catch (URISyntaxException e) {
-			throw new RuntimeException("this should be impossible", e);
+			final URL globusURL = cfg.getAuth2URL().toURI().resolve("api/legacy/globus").toURL();
+			c.withGlobusAuthURL(globusURL).withKBaseAuthServerURL(cfg.getAuthURL());
+		} catch (URISyntaxException | MalformedURLException e) {
+			rep.reportFail("Invalid Auth Service url: " + cfg.getAuth2URL());
+			return null;
 		}
 		try {
 			return new ConfigurableAuthService(c);
 		} catch (IOException e) {
 			rep.reportFail("Couldn't connect to authorization service at " +
 					c.getAuthServerURL() + " : " + e.getLocalizedMessage());
+			return null;
 		}
-		return null;
 	}
 
 	

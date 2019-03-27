@@ -1,7 +1,10 @@
 package us.kbase.workspace.kbase;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -12,7 +15,9 @@ import java.util.Set;
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientException;
+import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 //import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
@@ -22,47 +27,104 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.SimpleRemappedId;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
+import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
 import us.kbase.typedobj.idref.RemappedId;
 
 public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
 	//TODO TEST unit tests
+	//TODO JAVADOC
 	
-	public static final IdReferenceType type = new IdReferenceType("handle");
+	public static final IdReferenceType TYPE = new IdReferenceType("handle");
 	private final URL handleService;
-	private final AuthToken userToken;
+	private final HandleMngrClient client;
 	
 	/** pass in null for the handle service URL to cause an exception to be
-	 * thrown if a handle id is encountered
+	 * thrown if a handle id is encountered. Same for the client.
 	 */
-	public HandleIdHandlerFactory(
-			final URL handleServiceURL,
-			final AuthToken userToken) {
-		
-		if (userToken == null) {
-			throw new NullPointerException(
-					"userToken cannot be null");
-		}
+	public HandleIdHandlerFactory(final URL handleServiceURL, final HandleMngrClient client) {
 		this.handleService = handleServiceURL;
-		this.userToken = userToken;
+		this.client = client;
 	}
 	
 	@Override
-	public <T> IdReferenceHandler<T> createHandler(Class<T> clazz) {
-		return new HandleIdHandler<T>();
+	public <T> IdReferenceHandler<T> createHandler(
+			final Class<T> clazz,
+			final AuthToken userToken) {
+		return new HandleIdHandler<T>(requireNonNull(userToken, "userToken"));
+	}
+
+	@Override
+	public IdReferencePermissionHandler createPermissionHandler() {
+		return new HandlePermissionsHandler(null);
+	}
+
+	@Override
+	public IdReferencePermissionHandler createPermissionHandler(final String userName) {
+		return new HandlePermissionsHandler(userName);
 	}
 
 	@Override
 	public IdReferenceType getIDType() {
-		return type;
+		return TYPE;
 	}
 	
-	public class HandleIdHandler<T> extends IdReferenceHandler<T> {
-		// seems like this might be a candidate for an abstract class, lock/processed/null checking common code
+	private class HandlePermissionsHandler implements IdReferencePermissionHandler {
+		
+		private final String user;
+
+		private HandlePermissionsHandler(final String userName) {
+			this.user = userName;
+		}
+
+		@Override
+		public void addReadPermission(final Collection<String> ids)
+				throws IdReferencePermissionHandlerException {
+			if (ids == null || ids.isEmpty()) {
+				return;
+			}
+			if (client == null) {
+				throw new IdReferencePermissionHandlerException(
+						"The workspace is not currently connected to the Handle Service " +
+						"and cannot process Handle ids.");
+			}
+			try {
+				if (user == null) {
+					client.setPublicRead(new LinkedList<>(ids));
+				} else {
+					client.addReadAcl(new LinkedList<>(ids), user);
+				}
+			} catch (IOException e) {
+				throw new IdReferencePermissionHandlerException(
+						"There was an IO problem while attempting to set " +
+								"Handle ACLs: " + e.getMessage(), e);
+			} catch (UnauthorizedException e) {
+				throw new IdReferencePermissionHandlerException(
+						"Unable to contact the Handle Manager - " +
+								"the Workspace credentials were rejected: " +
+								e.getMessage(), e);
+			} catch (ServerException e) {
+				throw new IdReferencePermissionHandlerException(
+						"The Handle Manager reported a problem while attempting " +
+								"to set Handle ACLs: " + e.getMessage(), e);
+			} catch (JsonClientException e) {
+				throw new IdReferencePermissionHandlerException(
+						"There was an unexpected problem while contacting the " +
+								"Handle Manager to set Handle ACLs: " +
+								e.getMessage(), e);
+			}
+		}
+	}
+	
+	private class HandleIdHandler<T> extends IdReferenceHandler<T> {
 
 		private final Map<T, Set<String>> ids = new HashMap<T, Set<String>>();
+		private final AuthToken userToken;
 		
-		private HandleIdHandler() {}
+		private HandleIdHandler(final AuthToken userToken) {
+			this.userToken = userToken;
+		}
 		
 		@Override
 		protected boolean addIdImpl(final T associatedObject, final String id,
@@ -73,7 +135,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 						". The workspace service currently does not have a " +
 						"connection to the handle service and so cannot " +
 						"process objects containing handle IDs.",
-						type, associatedObject, "" + id,
+						TYPE, associatedObject, "" + id,
 						attributes, null);
 			}
 			boolean unique = true;
@@ -110,7 +172,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			if (handleService == null) {
 				throw new IdReferenceHandlerException(
 						"The workspace is not currently connected to the Handle Service and cannot process Handle ids.",
-						type, null);
+						TYPE, null);
 			}
 			final Long allreadable;
 			try {
@@ -123,15 +185,15 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			} catch (UnauthorizedException e) {
 				throw new IdReferenceHandlerException(
 						"Authorization for Handle Service failed. The server said: "
-								+ e.getLocalizedMessage(), type, e);
+								+ e.getLocalizedMessage(), TYPE, e);
 			} catch (IOException e) {
 				throw new IdReferenceHandlerException(
 						"There was a communication error while trying to contact the Handle Service: "
-						+ e.getLocalizedMessage(), type, e);
+						+ e.getLocalizedMessage(), TYPE, e);
 			} catch (JsonClientException e) {
 				throw new IdReferenceHandlerException(
 						"There was an unexpected error while trying to contact the Handle Service: "
-						+ e.getLocalizedMessage(), type, e);
+						+ e.getLocalizedMessage(), TYPE, e);
 			}
 			//per Tom Brettin, 0 = false, anything else = true
 			if (allreadable == 0) {
@@ -140,7 +202,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 						"the handles contained in the objects in this call " +
 						"is not accessible - it may not exist, or the " +
 						"supplied credentials may not own the node, or some " +
-						"other reason. The call cannot complete.", type, null);
+						"other reason. The call cannot complete.", TYPE, null);
 			}
 		}
 
@@ -170,7 +232,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
 		@Override
 		public IdReferenceType getIdType() {
-			return type;
+			return TYPE;
 		}
 	}
 }

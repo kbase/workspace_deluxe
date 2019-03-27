@@ -47,6 +47,7 @@ import us.kbase.typedobj.db.FileTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 
 
 /**
@@ -230,7 +231,8 @@ public class DetailedValidationTest {
 		if(VERBOSE) System.out.println("  -TEST ("+resource.resourceName+") - instance of '"+typeName+"' expected result: "+expectedResult+".");
 		// actually perform the test and verify we get what is expected
 		
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(6);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(6).build().getFactory(null);
 		IdReferenceHandlerSet<String> handler = fac.createHandlers(String.class);
 		handler.associateObject("foo");
 		

@@ -40,12 +40,12 @@ build-docs:
 	cp $(SERVICE).spec docs/.
 	cp docshtml/* docs/.
 
-docker_image: build-libs build-docs 
+docker_deps: build-libs build-docs 
 	$(ANT) buildwar
 	# cp server_scripts/glassfish_administer_service.py deployment/bin
 	# chmod 755 deployment/bin/glassfish_administer_service.py
+	mkdir -p deployment/services/workspace/
 	cp dist/$(WAR) deployment/services/workspace/
-	./build/build_docker_image.sh
 
 compile: compile-typespec compile-typespec-java compile-html
 

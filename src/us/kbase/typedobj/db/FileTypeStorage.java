@@ -545,8 +545,7 @@ public class FileTypeStorage implements TypeStorage {
 		}
 	}
 	
-	@Override
-	public void removeModule(String moduleName) {
+	private void removeModule(String moduleName) {
 		File moduleDir = getModuleDir(moduleName);
 		for (File f : moduleDir.listFiles())
 			f.delete();
