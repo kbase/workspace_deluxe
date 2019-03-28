@@ -31,6 +31,7 @@ import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.CopyResult;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -98,7 +99,7 @@ public class WorkspaceListenerTest {
 		
 		ws.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, null);
 		
-		verify(l).createWorkspace(42L, Instant.ofEpochMilli(20000));
+		verify(l).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -117,8 +118,8 @@ public class WorkspaceListenerTest {
 		
 		ws.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, null);
 		
-		verify(l1).createWorkspace(42L, Instant.ofEpochMilli(20000));
-		verify(l2).createWorkspace(42L, Instant.ofEpochMilli(20000));
+		verify(l1).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
+		verify(l2).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -143,7 +144,7 @@ public class WorkspaceListenerTest {
 		
 		ws.cloneWorkspace(user, wsi, "whee", false, null, null, null);
 		
-		verify(l).cloneWorkspace(42L, false, Instant.ofEpochMilli(20000));
+		verify(l).cloneWorkspace(user, 42L, false, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -170,8 +171,8 @@ public class WorkspaceListenerTest {
 		
 		ws.cloneWorkspace(user, wsi, "whee", true, null, null, null);
 		
-		verify(l1).cloneWorkspace(42L, true, Instant.ofEpochMilli(30000));
-		verify(l2).cloneWorkspace(42L, true, Instant.ofEpochMilli(30000));
+		verify(l1).cloneWorkspace(user, 42L, true, Instant.ofEpochMilli(30000));
+		verify(l2).cloneWorkspace(user, 42L, true, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -195,7 +196,8 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l, never()).setWorkspaceMetadata(anyLong(), any(Instant.class));
+		verify(l, never()).setWorkspaceMetadata(
+				any(WorkspaceUser.class), anyLong(), any(Instant.class));
 	}
 	
 	@Test
@@ -222,7 +224,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
+		verify(l).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -250,8 +252,8 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l1).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
-		verify(l2).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
+		verify(l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
+		verify(l2).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -282,7 +284,8 @@ public class WorkspaceListenerTest {
 			//fine
 		}
 		
-		verify(l, never()).setWorkspaceMetadata(anyLong(), any(Instant.class));
+		verify(l, never()).setWorkspaceMetadata(
+				any(WorkspaceUser.class), anyLong(), any(Instant.class));
 	}
 	
 	@Test
@@ -314,7 +317,7 @@ public class WorkspaceListenerTest {
 			//fine
 		}
 		
-		verify(l).setWorkspaceMetadata(24L, Instant.ofEpochMilli(20000));
+		verify(l).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -346,7 +349,7 @@ public class WorkspaceListenerTest {
 			//fine
 		}
 		
-		verify(l).setWorkspaceMetadata(24L, Instant.ofEpochMilli(30000));
+		verify(l).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -370,7 +373,7 @@ public class WorkspaceListenerTest {
 		
 		ws.lockWorkspace(user, wsi);
 		
-		verify(l).lockWorkspace(24L, Instant.ofEpochMilli(20000));
+		verify(l).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -395,8 +398,8 @@ public class WorkspaceListenerTest {
 		
 		ws.lockWorkspace(user, wsi);
 		
-		verify(l1).lockWorkspace(24L, Instant.ofEpochMilli(20000));
-		verify(l2).lockWorkspace(24L, Instant.ofEpochMilli(20000));
+		verify(l1).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
+		verify(l2).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -420,7 +423,7 @@ public class WorkspaceListenerTest {
 		
 		ws.renameWorkspace(user, wsi, "foobar");
 		
-		verify(l).renameWorkspace(24L, "foobar", Instant.ofEpochMilli(10000));
+		verify(l).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
 	}
 	
 	@Test
@@ -445,8 +448,8 @@ public class WorkspaceListenerTest {
 		
 		ws.renameWorkspace(user, wsi, "foobar");
 		
-		verify(l1).renameWorkspace(24L, "foobar", Instant.ofEpochMilli(10000));
-		verify(l2).renameWorkspace(24L, "foobar", Instant.ofEpochMilli(10000));
+		verify(l1).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
+		verify(l2).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
 	}
 	
 	@Test
@@ -469,7 +472,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setGlobalPermission(user, wsi, Permission.READ);
 		
-		verify(l).setGlobalPermission(24L, Permission.READ, Instant.ofEpochMilli(50000));
+		verify(l).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
 	}
 	
 	@Test
@@ -493,8 +496,8 @@ public class WorkspaceListenerTest {
 		
 		ws.setGlobalPermission(user, wsi, Permission.READ);
 		
-		verify(l1).setGlobalPermission(24L, Permission.READ, Instant.ofEpochMilli(50000));
-		verify(l2).setGlobalPermission(24L, Permission.READ, Instant.ofEpochMilli(50000));
+		verify(l1).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
+		verify(l2).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
 	}
 	
 	@Test
@@ -520,7 +523,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setPermissions(user, wsi, users, Permission.WRITE);
 		
-		verify(l).setPermissions(24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
+		verify(l).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
 	}
 	
 	@Test
@@ -547,8 +550,8 @@ public class WorkspaceListenerTest {
 		
 		ws.setPermissions(user, wsi, users, Permission.WRITE);
 		
-		verify(l1).setPermissions(24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
-		verify(l2).setPermissions(24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
+		verify(l1).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
+		verify(l2).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
 	}
 	
 	@Test
@@ -572,7 +575,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceDescription(user, wsi, "foo", false);
 		
-		verify(l).setWorkspaceDescription(24L, Instant.ofEpochMilli(30000));
+		verify(l).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -597,8 +600,8 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceDescription(user, wsi, "foo", false);
 		
-		verify(l1).setWorkspaceDescription(24L, Instant.ofEpochMilli(30000));
-		verify(l2).setWorkspaceDescription(24L, Instant.ofEpochMilli(30000));
+		verify(l1).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
+		verify(l2).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -625,7 +628,33 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceOwner(user, wsi, newUser, Optional.absent(), false);
 
-		verify(l).setWorkspaceOwner(24L, newUser, Optional.absent(),
+		verify(l).setWorkspaceOwner(user, 24L, newUser, Optional.absent(),
+				Instant.ofEpochMilli(30000));
+	}
+	
+	@Test
+	public void setWorkspaceOwner1AsAdmin() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceUser newUser = new WorkspaceUser("bar");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "foobar", false, false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(db.getWorkspaceOwner(rwsi)).thenReturn(user);
+		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
+		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.absent()))
+				.thenReturn(Instant.ofEpochMilli(30000));
+		
+		ws.setWorkspaceOwner(null, wsi, newUser, Optional.absent(), true);
+
+		verify(l).setWorkspaceOwner(null, 24L, newUser, Optional.absent(),
 				Instant.ofEpochMilli(30000));
 	}
 	
@@ -655,9 +684,9 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceOwner(user, wsi, newUser, Optional.absent(), false);
 
-		verify(l1).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"),
+		verify(l1).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
-		verify(l2).setWorkspaceOwner(24L, newUser, Optional.of("bar:foobar"),
+		verify(l2).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
 	}
 	
@@ -680,7 +709,7 @@ public class WorkspaceListenerTest {
 		
 		ws.setWorkspaceDeleted(user, wsi, true, true);
 
-		verify(l).setWorkspaceDeleted(24, true, 302, Instant.ofEpochMilli(20000));
+		verify(l).setWorkspaceDeleted(user, 24, true, 302, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -703,8 +732,8 @@ public class WorkspaceListenerTest {
 
 		ws.setWorkspaceDeleted(user, wsi, false, true);
 
-		verify(l1).setWorkspaceDeleted(24, false, 300, Instant.ofEpochMilli(20000));
-		verify(l2).setWorkspaceDeleted(24, false, 300, Instant.ofEpochMilli(20000));
+		verify(l1).setWorkspaceDeleted(user, 24, false, 300, Instant.ofEpochMilli(20000));
+		verify(l2).setWorkspaceDeleted(user, 24, false, 300, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -731,7 +760,7 @@ public class WorkspaceListenerTest {
 		
 		ws.renameObject(user, oi, "bollocks");
 
-		verify(l).renameObject(24, 42, "bollocks", Instant.ofEpochMilli(20000));
+		verify(l).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -759,8 +788,8 @@ public class WorkspaceListenerTest {
 		
 		ws.renameObject(user, oi, "bollocks");
 
-		verify(l1).renameObject(24, 42, "bollocks", Instant.ofEpochMilli(20000));
-		verify(l2).renameObject(24, 42, "bollocks", Instant.ofEpochMilli(20000));
+		verify(l1).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
+		verify(l2).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
@@ -867,8 +896,8 @@ public class WorkspaceListenerTest {
 
 		ws.setObjectsDeleted(user, Arrays.asList(oi1, oi2), true);
 
-		verify(l).setObjectDeleted(24, 16, true, Instant.ofEpochMilli(20000));
-		verify(l).setObjectDeleted(24, 75, true, Instant.ofEpochMilli(30000));
+		verify(l).setObjectDeleted(user, 24, 16, true, Instant.ofEpochMilli(20000));
+		verify(l).setObjectDeleted(user, 24, 75, true, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -901,10 +930,10 @@ public class WorkspaceListenerTest {
 
 		ws.setObjectsDeleted(user, Arrays.asList(oi1, oi2), false);
 
-		verify(l1).setObjectDeleted(24, 16, false, Instant.ofEpochMilli(20000));
-		verify(l1).setObjectDeleted(24, 75, false, Instant.ofEpochMilli(30000));
-		verify(l2).setObjectDeleted(24, 16, false, Instant.ofEpochMilli(20000));
-		verify(l2).setObjectDeleted(24, 75, false, Instant.ofEpochMilli(30000));
+		verify(l1).setObjectDeleted(user, 24, 16, false, Instant.ofEpochMilli(20000));
+		verify(l1).setObjectDeleted(user, 24, 75, false, Instant.ofEpochMilli(30000));
+		verify(l2).setObjectDeleted(user, 24, 16, false, Instant.ofEpochMilli(20000));
+		verify(l2).setObjectDeleted(user, 24, 75, false, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
@@ -982,8 +1011,8 @@ public class WorkspaceListenerTest {
 
 		ws.copyObject(user, from, to);
 		
-		verify(l1).copyObject(24, 42, 45, Instant.ofEpochMilli(40000), false);
-		verify(l2).copyObject(24, 42, 45, Instant.ofEpochMilli(40000), false);
+		verify(l1).copyObject(user, 24, 42, 45, Instant.ofEpochMilli(40000), false);
+		verify(l2).copyObject(user, 24, 42, 45, Instant.ofEpochMilli(40000), false);
 	}
 	
 	public static class SaveObjectsAnswerMatcher implements
@@ -1023,7 +1052,8 @@ public class WorkspaceListenerTest {
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
-		final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(100000).build().getFactory(null);
 		final WorkspaceSaveObject wso1 = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("foo1"),
 				new HashMap<>(),
@@ -1095,7 +1125,8 @@ public class WorkspaceListenerTest {
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
-		final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(100000).build().getFactory(null);
 		final WorkspaceSaveObject wso1 = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("foo1"),
 				new HashMap<>(),

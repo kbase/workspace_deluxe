@@ -26,5 +26,5 @@ Finally::
 
     make test
 
-The tests currently take 20-30 minutes to run.
+The tests currently take 20-30 minutes to run on spinning disks, or 8-10 minutes on SSDs.
 

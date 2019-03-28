@@ -25,18 +25,18 @@ public class KBasePermissions {
 		PERM_TO_API.put(Permission.OWNER, PERM_ADMIN);
 	}
 	
-	public static Permission translatePermission(String perm) {
+	public static Permission translatePermission(final String perm) {
 		if (!API_TO_PERM.containsKey(perm)) {
 			throw new IllegalArgumentException("No such permission: " + perm);
 		}
 		return API_TO_PERM.get(perm);
 	}
 	
-	public static String translatePermission(Permission perm) {
+	public static String translatePermission(final Permission perm) {
 		return PERM_TO_API.get(perm);
 	}
 	
-	public static String translatePermission(boolean globalread) {
+	public static String translatePermission(final boolean globalread) {
 		return PERM_TO_API.get(globalread);
 	}
 }

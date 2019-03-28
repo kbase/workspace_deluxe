@@ -3,6 +3,8 @@ package us.kbase.workspace.database.mongo;
 import java.util.List;
 import java.util.Set;
 
+import org.bson.types.ObjectId;
+
 import us.kbase.workspace.database.ResolvedSaveObject;
 
 public class ObjectSavePackage {
@@ -13,12 +15,6 @@ public class ObjectSavePackage {
 	String name;
 	Set<String> refs;
 	List<String> provrefs;
-	MongoProvenance mprov;
-	
-	@Override
-	public String toString() {
-		return "ObjectSavePackage [wo=" + wo + ", name=" + name +
-				", mprov =" + mprov +  "]";
-	}
+	ObjectId provid;
 
 }

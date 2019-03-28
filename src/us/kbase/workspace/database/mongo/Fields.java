@@ -66,12 +66,43 @@ public class Fields {
 	public static final String META_KEY = "k";
 	public static final String META_VALUE = "v";
 
-	// type fields
-	public static final String TYPE_CHKSUM = "chksum";
-	public static final String TYPE_SIZE = "size";
-	public static final String TYPE_SUBDATA = "subdata";
-	public static final String TYPE_TYPE = "type";
-
+	//provenance fields
+	public static final String PROV_USER = "user";
+	public static final String PROV_WS_ID = "wsid";
+	public static final String PROV_DATE = "date";
+	public static final String PROV_ACTIONS = "actions";
+	//provenance action fields
+	public static final String PROV_ACTION_TIME = "time";
+	public static final String PROV_ACTION_CALLER = "caller";
+	public static final String PROV_ACTION_SERVICE = "service";
+	public static final String PROV_ACTION_SERVICE_VER = "serviceVersion";
+	public static final String PROV_ACTION_METHOD = "method";
+	public static final String PROV_ACTION_METHOD_PARAMS = "methodParameters";
+	public static final String PROV_ACTION_SCRIPT = "script";
+	public static final String PROV_ACTION_SCRIPT_VER = "scriptVersion";
+	public static final String PROV_ACTION_COMMAND_LINE = "commandLine";
+	public static final String PROV_ACTION_WS_OBJS = "wsobjs";
+	public static final String PROV_ACTION_INCOMING_ARGS = "incomingArgs";
+	public static final String PROV_ACTION_OUTGOING_ARGS = "outgoingArgs";
+	public static final String PROV_ACTION_EXTERNAL_DATA = "externalData";
+	public static final String PROV_ACTION_SUB_ACTIONS = "subActions";
+	public static final String PROV_ACTION_CUSTOM = "custom";
+	public static final String PROV_ACTION_DESCRIPTION = "description";
+	//external data fields
+	public static final String PROV_EXTDATA_RESOURCE_NAME = "resourceName";
+	public static final String PROV_EXTDATA_RESOURCE_URL = "resourceUrl";
+	public static final String PROV_EXTDATA_RESOURCE_VER = "resourceVersion";
+	public static final String PROV_EXTDATA_RESOURCE_DATE = "resourceReleaseDate";
+	public static final String PROV_EXTDATA_DATA_URL = "dataUrl";
+	public static final String PROV_EXTDATA_DATA_ID = "dataId";
+	public static final String PROV_EXTDATA_DESCRIPTION = "description";
+	//subaction fields
+	public static final String PROV_SUBACTION_NAME = "name";
+	public static final String PROV_SUBACTION_VER = "ver";
+	public static final String PROV_SUBACTION_CODE_URL = "codeUrl";
+	public static final String PROV_SUBACTION_COMMIT = "commit";
+	public static final String PROV_SUBACTION_ENDPOINT_URL = "endpointUrl";
+	
 	// shock fields
 	public static final String SHOCK_CHKSUM = "chksum";
 	public static final String SHOCK_NODE = "node";

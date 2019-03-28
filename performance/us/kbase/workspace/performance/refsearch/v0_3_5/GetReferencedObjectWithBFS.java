@@ -21,6 +21,7 @@ import us.kbase.typedobj.core.TypeDefName;
 //import us.kbase.typedobj.db.MongoTypeStorage;
 //import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 //import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -150,7 +151,8 @@ public class GetReferencedObjectWithBFS {
 	private static void runBranchedReferencesTest() throws Exception {
 		WorkspaceUser u1 = new WorkspaceUser("brcu1");
 		WorkspaceUser u2 = new WorkspaceUser("brcu2");
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(10);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(10).build().getFactory(null);
 		Provenance p = new Provenance(u1);
 		WorkspaceIdentifier read = new WorkspaceIdentifier("brcread");
 		WorkspaceIdentifier priv = new WorkspaceIdentifier("brcpriv");
@@ -187,7 +189,8 @@ public class GetReferencedObjectWithBFS {
 			List<ObjectInformation> increfs,
 			int breadth) 
 			throws Exception {
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(100000);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(100000).build().getFactory(null);
 		Provenance p = new Provenance(user);
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		for (ObjectInformation oi: increfs) {
@@ -220,7 +223,8 @@ public class GetReferencedObjectWithBFS {
 		WorkspaceIdentifier read = new WorkspaceIdentifier("linread");
 		WS.createWorkspace(u1, read.getName(), true, null, null);
 		
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(10000);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(10000).build().getFactory(null);
 		Provenance p = new Provenance(u1);
 		ObjectInformation o = WS.saveObjects(u1, priv, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(), LEAF_TYPE,
@@ -251,7 +255,8 @@ public class GetReferencedObjectWithBFS {
 		String ref = o.getWorkspaceId() + "/" + o.getObjectId() + "/" + o.getVersion();
 		Map<String, List<String>> refdata = new HashMap<String, List<String>>();
 		refdata.put("refs", Arrays.asList(ref));
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(10000);
+		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(10000).build().getFactory(null);
 		Provenance p = new Provenance(u1);
 		return WS.saveObjects(u1, priv, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), refdata, REF_TYPE, null, p, false)), fac)

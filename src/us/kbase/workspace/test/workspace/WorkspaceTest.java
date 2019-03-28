@@ -2862,7 +2862,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		Provenance mtprov = new Provenance(user);
 		objs.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), d, SAFE_TYPE1, null,
 				mtprov, false));
-		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user, wsi, objs, getIdFactory(0));
 		
 		Provenance p = new Provenance(user).addAction(new ProvenanceAction()
 				.withWorkspaceObjects(Arrays.asList(
@@ -2878,16 +2878,16 @@ public class WorkspaceTest extends WorkspaceTester {
 	@Test
 	public void genericIdExtraction() throws Exception {
 		
-		String idtype1 = "someid";
-		String idtype2 = "someid2";
+		final IdReferenceType idtype1 = new IdReferenceType("someid");
+		final IdReferenceType idtype2 = new IdReferenceType("someid2");
 //		String idtypeint = "someintid";
 		String mod = "TestIDExtraction";
 		String type = "IdType";
 		final String idSpec =
 				"module " + mod + " {\n" +
-					"/* @id " + idtype1 + " */\n" +
+					"/* @id " + idtype1.getType() + " */\n" +
 					"typedef string some_id;\n" +
-					"/* @id " + idtype2 + " */\n" +
+					"/* @id " + idtype2.getType() + " */\n" +
 					"typedef string some_id2;\n" +
 //					"/* @id " + idtypeint + " */" +
 //					"typedef int int_id;" +
@@ -2921,7 +2921,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 
 		IdReferenceHandlerSetFactory fac = getIdFactory().addFactory(
-				new TestIDReferenceHandlerFactory(new IdReferenceType(idtype1)));
+				new TestIDReferenceHandlerFactory(idtype1));
 
 		data.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto2"),
 				iddata, idtype, null, emptyprov, false));
@@ -2929,7 +2929,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		iddata.put("an_id2", "foo");
 //		iddata.put("an_int_id", 34);
 		ws.saveObjects(user, wsi, data, fac); //should work
-		Map<String, List<String>> expected = new HashMap<String, List<String>>();
+		Map<IdReferenceType, List<String>> expected = new HashMap<>();
 		ObjectIdentifier obj1 = new ObjectIdentifier(wsi, "auto1");
 		checkExternalIds(user, obj1, expected);
 		
@@ -2937,7 +2937,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ObjectIdentifier obj2 = new ObjectIdentifier(wsi, "auto2");
 		checkExternalIds(user, obj2, expected);
 		
-		fac.addFactory(new TestIDReferenceHandlerFactory(new IdReferenceType(idtype2)));
+		fac.addFactory(new TestIDReferenceHandlerFactory(idtype2));
 		data.set(0, renameWSO(data.get(0), "auto3"));
 		data.set(1, renameWSO(data.get(1), "auto4"));
 		ws.saveObjects(user, wsi, data, fac); //should work
@@ -3089,7 +3089,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		Provenance emptyprov = new Provenance(user);
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(3);
+		IdReferenceHandlerSetFactory fac = getIdFactory(3);
 		
 		Map<String, Object> mt = new HashMap<String, Object>();
 		objs.add(new WorkspaceSaveObject(new ObjectIDNoWSNoVer("t1"), mt, type1, null, emptyprov, false));
@@ -3315,7 +3315,7 @@ public class WorkspaceTest extends WorkspaceTester {
 
 	private IdReferenceHandlerSetFactory makeFacForMaxIDTests(List<String> idtypes,
 			WorkspaceUser user, int max) {
-		IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(max);
+		IdReferenceHandlerSetFactory fac = getIdFactory(max);
 //				.addFactory(ws.getHandlerFactory(user));
 		for (String idtype: idtypes) {
 			fac.addFactory(new TestIDReferenceHandlerFactory(
@@ -3482,9 +3482,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		try {
 			new Provenance(null);
-		} catch (IllegalArgumentException iae) {
-			assertThat("correct exception", iae.getLocalizedMessage(),
-					is("user cannot be null"));
+		} catch (NullPointerException e) {
+			assertThat("correct exception", e.getMessage(), is("user"));
 		}
 		try {
 			Provenance pv = new Provenance(foo);
@@ -3521,7 +3520,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		Provenance p4 = new Provenance(foo);
 		ProvenanceAction pa = new ProvenanceAction();
-		pa.setWorkspaceObjects(null);
+		pa.withWorkspaceObjects(null);
 		p4.addAction(pa);
 		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
 		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
@@ -3531,7 +3530,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new HashMap<String, String>());
 	}
 	
-	@Test 
+	@Test
 	public void saveLargeProvenance() throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
 		WorkspaceIdentifier prov = new WorkspaceIdentifier("bigprov");
@@ -3559,7 +3558,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is(String.format("Object #1, %s provenance size 1000348 exceeds limit of " +
+					is(String.format("Object #1, %s provenance size 1000318 exceeds limit of " +
 							"1000000", getLastRandomName())));
 		}
 	}
@@ -3876,7 +3875,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			resolvedRefs.add(rrefs);
 		}
 		final List<ObjectInformation> ois = ws.saveObjects(
-				u1, testws, objs, new IdReferenceHandlerSetFactory(100000));
+				u1, testws, objs, getIdFactory());
 		final List<ObjectIdentifier> idents = new LinkedList<>();
 		for (final ObjectInformation oi: ois) {
 			// should probably add a ref -> oi method
@@ -4716,9 +4715,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		data.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, Object>(),
 				SAFE_TYPE1, null, emptyprov1, false));
 		
-		ws.saveObjects(user1, wsiSource1, data, new IdReferenceHandlerSetFactory(0));
-		ws.saveObjects(user1, wsiSource2, setRandomNames(data),
-				new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user1, wsiSource1, data, getIdFactory(0));
+		ws.saveObjects(user1, wsiSource2, setRandomNames(data), getIdFactory(0));
 		final ObjectIdentifier source1 = new ObjectIdentifier(wsiSource1, 1);
 		final ObjectIdentifier source2 = new ObjectIdentifier(wsiSource2, 1);
 		ObjectIdentifier copied1 = new ObjectIdentifier(wsiCid, "foo");
@@ -4728,25 +4726,24 @@ public class WorkspaceTest extends WorkspaceTester {
 		copied1 = new ObjectIdentifier(wsiCid, 1, 1);
 		copied2 = new ObjectIdentifier(wsiCid, 2, 1);
 		
-		ws.saveObjects(user2, wsiCopied, setRandomNames(data),
-				new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user2, wsiCopied, setRandomNames(data), getIdFactory(0));
 		final ObjectIdentifier nocopy = new ObjectIdentifier(wsiCid, 3, 1);
 
 		data.clear();
 		Map<String, Object> ref = new HashMap<String, Object>();
 		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/foo"));
 		data.add(new WorkspaceSaveObject(getRandomName(), ref, REF_TYPE, null, emptyprov2, false));
-		ws.saveObjects(user2, wsiCopied, data, new IdReferenceHandlerSetFactory(1));
+		ws.saveObjects(user2, wsiCopied, data, getIdFactory(1));
 		ObjectIDWithRefPath copyoc1 = new ObjectIDWithRefPath(new ObjectIdentifier(wsiCopied, 4L),
 				Arrays.asList(copied1));
 		
 		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/foo1"));
-		ws.saveObjects(user2, wsiCopied, setRandomNames(data), new IdReferenceHandlerSetFactory(1));
+		ws.saveObjects(user2, wsiCopied, setRandomNames(data), getIdFactory(1));
 		ObjectIDWithRefPath copyoc2 = new ObjectIDWithRefPath(new ObjectIdentifier(wsiCopied, 5L),
 				Arrays.asList(copied2));
 		
 		ref.put("refs", Arrays.asList(wsiCopied.getName() + "/3"));
-		ws.saveObjects(user2, wsiCopied, setRandomNames(data), new IdReferenceHandlerSetFactory(1));
+		ws.saveObjects(user2, wsiCopied, setRandomNames(data), getIdFactory(1));
 		ObjectIDWithRefPath nocopyoc = new ObjectIDWithRefPath(new ObjectIdentifier(wsiCopied, 6L),
 				Arrays.asList(nocopy));
 		
@@ -6651,7 +6648,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, new Provenance(user), false));
 		}
-		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user, wsi, objs, getIdFactory(0));
 
 		//simple tests on full object ranges, depends on natural mongo ordering
 		checkObjectLimit(user, wsi, 0, 1, 200);
@@ -6670,7 +6667,7 @@ public class WorkspaceTest extends WorkspaceTester {
 					new WorkspaceUserMetadata(meta), new Provenance(user),
 					false));
 		}
-		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user, wsi, objs, getIdFactory(0));
 		
 		//test versions
 		//skips over the old versions internally since they're interleaved in the last 20 objects
@@ -6687,7 +6684,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, new Provenance(user), false));
 		}
-		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user, wsi, objs, getIdFactory(0));
 		
 		List<ObjectIdentifier> loi = new LinkedList<ObjectIdentifier>();
 		loi.add(new ObjectIdentifier(wsi, 5));
@@ -6704,7 +6701,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, new Provenance(user), false));
 		}
-		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user, wsi, objs, getIdFactory(0));
 		
 		//test object pagination with deleted and hidden objects
 		checkObjectLimit(user, wsi, 5, 1, 6, nums(5));
@@ -6726,7 +6723,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, new Provenance(user), false));
 		}
-		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user, wsi, objs, getIdFactory(0));
 		
 		for (int i = 1; i < 251; i++) {
 			List<ObjectIdentifier> oi =
@@ -6742,7 +6739,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, new Provenance(user), false));
 		}
-		ws.saveObjects(user, wsi, objs, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user, wsi, objs, getIdFactory(0));
 		
 		//test several rounds of retrieving objects (the minimum # of objects
 		//pulled from mongo at a time is 100)
@@ -6774,8 +6771,8 @@ public class WorkspaceTest extends WorkspaceTester {
 			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
 					SAFE_TYPE1, null, new Provenance(user), false));
 		}
-		ws.saveObjects(user, wsi1, objs, new IdReferenceHandlerSetFactory(0));
-		ws.saveObjects(user, wsi2, objs, new IdReferenceHandlerSetFactory(0));
+		ws.saveObjects(user, wsi1, objs, getIdFactory(0));
+		ws.saveObjects(user, wsi2, objs, getIdFactory(0));
 		
 		checkObjectFilter(user, Arrays.asList(wsi1, wsi2), -1L, -1L, 1, 10);
 		checkObjectFilter(user, Arrays.asList(wsi1, wsi2), 1L, 11L, 1, 10);
@@ -6852,21 +6849,28 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
 				.withMaxObjectID(6L).withMinObjectID(1L), true);
 		
+		/* 19/2/13: This is really difficult to test on mongo 3+. There will always be a list
+		 * of workspaces in an $in clause, and so the query optimizer is now good enough to always
+		 * use the ws/obj/ver index to sort, at least for smaller data sets. It's still potentially
+		 * dangerous to add the sort, since that forces the optimizer to use the ws/obj/ver index
+		 * (which could return a huge number of results and really slow down the query).
+		 */
+		
 		//unsorted (at least with descending versions)
 		// type filter
-		assertOrdered(new ListObjectsParameters(user, SAFE_TYPE1), false);
+//		assertOrdered(new ListObjectsParameters(user, SAFE_TYPE1), false);
 		// after date filter
-		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
-				.withAfter(Date.from(Instant.now().minusSeconds(100))), false);
+//		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+//				.withAfter(Date.from(Instant.now().minusSeconds(100))), false);
 		// before date filter
-		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
-				.withBefore(Date.from(Instant.now())), false);
+//		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+//				.withBefore(Date.from(Instant.now())), false);
 		// user filter
-		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
-				.withSavers(Arrays.asList(user)), false);
+//		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+//				.withSavers(Arrays.asList(user)), false);
 		// meta filter
-		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
-				.withMetadata(new WorkspaceUserMetadata(meta)), false);
+//		assertOrdered(new ListObjectsParameters(Arrays.asList(wsi1, wsi2))
+//				.withMetadata(new WorkspaceUserMetadata(meta)), false);
 	}
 
 	private void assertOrdered(final ListObjectsParameters params, final boolean expectOrdered)
