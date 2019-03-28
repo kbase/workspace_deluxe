@@ -285,9 +285,9 @@ public class HandleAndShockTest {
 		ws.add("backend-url", shockURL.toString());
 		ws.add("backend-user", shockToken.getUserName());
 		ws.add("backend-token", shockToken.getToken());
-		ws.add("shock-url", shockURL.toString());
-		ws.add("shock-user", shockLinkToken.getUserName());
-		ws.add("shock-token", shockLinkToken.getToken());
+		ws.add("bytestream-url", shockURL.toString());
+		ws.add("bytestream-user", shockLinkToken.getUserName());
+		ws.add("bytestream-token", shockLinkToken.getToken());
 		ws.add("ws-admin", USER2);
 		ws.add("handle-service-url", "http://localhost:" + HANDLE.getHandleServerPort());
 		ws.add("handle-manager-url", "http://localhost:" + HANDLE.getHandleManagerPort());

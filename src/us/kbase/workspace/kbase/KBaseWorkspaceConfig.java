@@ -56,9 +56,9 @@ public class KBaseWorkspaceConfig {
 			"auth2-ws-admin-full-roles";
 	
 	// shock info 
-	private static final String SHOCK_USER = "shock-user";
-	private static final String SHOCK_TOKEN = "shock-token";
-	private static final String SHOCK_URL = "shock-url";
+	private static final String BYTESTREAM_USER = "bytestream-user";
+	private static final String BYTESTREAM_TOKEN = "bytestream-token";
+	private static final String BYTESTREAM_URL = "bytestream-url";
 	
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
@@ -91,9 +91,9 @@ public class KBaseWorkspaceConfig {
 	private final String backendUser;
 	private final String backendToken;
 	private final String tempDir;
-	private final URL shockURL;
-	private final String shockUser;
-	private final String shockToken;
+	private final URL bytestreamURL;
+	private final String bytestreamUser;
+	private final String bytestreamToken;
 	private final String workspaceAdmin;
 	private final String mongoUser;
 	private final String mongoPassword;
@@ -219,17 +219,17 @@ public class KBaseWorkspaceConfig {
 			backendUser = nullIfEmpty(config.get(BACKEND_USER));
 		}
 
-		shockURL = getUrl(config, SHOCK_URL, paramErrors, false);
-		if (shockURL == null) {
-			shockUser = null;
-			shockToken = null;
+		bytestreamURL = getUrl(config, BYTESTREAM_URL, paramErrors, false);
+		if (bytestreamURL == null) {
+			bytestreamUser = null;
+			bytestreamToken = null;
 		} else {
-			shockUser = nullIfEmpty(config.get(SHOCK_USER));
-			shockToken = nullIfEmpty(config.get(SHOCK_TOKEN));
-			if (shockUser == null || shockToken == null) {
+			bytestreamUser = nullIfEmpty(config.get(BYTESTREAM_USER));
+			bytestreamToken = nullIfEmpty(config.get(BYTESTREAM_TOKEN));
+			if (bytestreamUser == null || bytestreamToken == null) {
 				paramErrors.add(String.format(
 						"Must provide %s and %s parameters in config file if %s is provided",
-						SHOCK_USER, SHOCK_TOKEN, SHOCK_URL));
+						BYTESTREAM_USER, BYTESTREAM_TOKEN, BYTESTREAM_URL));
 			}
 		}
 		workspaceAdmin = nullIfEmpty(config.get(WSADMIN));
@@ -363,8 +363,8 @@ public class KBaseWorkspaceConfig {
 		if (!ignoreHandleService) {
 			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL, HANDLE_MANAGER_URL));
 		}
-		if (shockURL != null) {
-			paramSet.addAll(Arrays.asList(SHOCK_URL, SHOCK_USER));
+		if (bytestreamURL != null) {
+			paramSet.addAll(Arrays.asList(BYTESTREAM_URL, BYTESTREAM_USER));
 		}
 		for (final String s: paramSet) {
 			if (!nullOrEmpty(cfg.get(s))) {
@@ -450,16 +450,16 @@ public class KBaseWorkspaceConfig {
 		return tempDir;
 	}
 
-	public URL getShockURL() {
-		return shockURL;
+	public URL getBytestreamURL() {
+		return bytestreamURL;
 	}
 	
-	public String getShockUser() {
-		return shockUser;
+	public String getBytestreamUser() {
+		return bytestreamUser;
 	}
 	
-	public String getShockToken() {
-		return shockToken;
+	public String getBytestreamToken() {
+		return bytestreamToken;
 	}
 	
 	public String getWorkspaceAdmin() {

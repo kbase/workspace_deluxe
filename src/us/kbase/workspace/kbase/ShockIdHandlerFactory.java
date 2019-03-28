@@ -49,7 +49,6 @@ import us.kbase.typedobj.idref.RemappedId;
  */
 public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 	
-	//TODO SHOCKID change config from shock-* to bytestream-*
 	//TODO SHOCKID update docs
 
 	/** Given a Shock client, provides a new Shock client with no token.
