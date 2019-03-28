@@ -81,3 +81,12 @@ Build the documentation:
     bareubuntu@bu:~/ws/workspace_deluxe$ make build-docs
     
 The build directory is `docs`.
+
+Notes on Travis automated tests
+-------------------------------
+
+The Travis tests do not run the WorkspaceLongTest, JSONRPCLongTest, and HandleTest test classes
+because the two former classes take too long to run and the latter is too complicated to set up.
+
+Therefore, run the full test suite locally at least prior to every release, and prior to
+any PRs where there are changes to the handle management code.

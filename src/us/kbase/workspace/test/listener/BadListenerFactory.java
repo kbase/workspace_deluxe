@@ -30,52 +30,68 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 	public class BadListener implements WorkspaceEventListener {
 
 		@Override
-		public void createWorkspace(long id, Instant time) {}
+		public void createWorkspace(WorkspaceUser user, long id, Instant time) {}
 
 		@Override
-		public void cloneWorkspace(long id, boolean isPublic, Instant time) {}
+		public void cloneWorkspace(WorkspaceUser user,long id, boolean isPublic, Instant time) {}
 
 		@Override
-		public void setWorkspaceMetadata(long id, Instant time) {}
+		public void setWorkspaceMetadata(WorkspaceUser user, long id, Instant time) {}
 
 		@Override
-		public void lockWorkspace(long id, Instant time) {}
+		public void lockWorkspace(WorkspaceUser user, long id, Instant time) {}
 
 		@Override
-		public void renameWorkspace(long id, String newName, Instant time) {}
+		public void renameWorkspace(WorkspaceUser user, long id, String newName, Instant time) {}
 
 		@Override
-		public void setGlobalPermission(long id, Permission permission, Instant time) {}
+		public void setGlobalPermission(
+				WorkspaceUser user,
+				long id,
+				Permission permission,
+				Instant time) {}
 
 		@Override
 		public void setPermissions(
+				WorkspaceUser user,
 				long id,
 				Permission permission,
 				List<WorkspaceUser> users,
 				Instant time) {}
 
 		@Override
-		public void setWorkspaceDescription(long id, Instant time) {}
+		public void setWorkspaceDescription(WorkspaceUser user, long id, Instant time) {}
 
 		@Override
 		public void setWorkspaceOwner(
+				WorkspaceUser user, 
 				long id,
-				WorkspaceUser
-				newUser,
+				WorkspaceUser newUser,
 				Optional<String> newName,
 				Instant time) {}
 
 		@Override
-		public void setWorkspaceDeleted(long id, boolean delete, long maxObjectID, Instant time) {}
+		public void setWorkspaceDeleted(
+				WorkspaceUser user,
+				long id,
+				boolean delete,
+				long maxObjectID,
+				Instant time) {}
 
 		@Override
-		public void renameObject(long workspaceId, long objectId, String newName, Instant time) {}
+		public void renameObject(
+				WorkspaceUser user,
+				long workspaceId,
+				long objectId,
+				String newName,
+				Instant time) {}
 
 		@Override
 		public void revertObject(ObjectInformation obj, boolean isPublic) {}
 
 		@Override
 		public void setObjectDeleted(
+				WorkspaceUser user,
 				long workspaceId,
 				long objectId,
 				boolean delete,
@@ -86,6 +102,7 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 		
 		@Override
 		public void copyObject(
+				final WorkspaceUser user,
 				long workspaceId,
 				long objectId,
 				int latestVersion,

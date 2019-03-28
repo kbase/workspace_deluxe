@@ -2,8 +2,9 @@ package us.kbase.workspace.database;
 
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
+import java.util.Collections;
 
+import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 
 /** A package containing (optionally) a workspace object's data along with provenance and
@@ -21,7 +22,8 @@ public class WorkspaceObjectData {
 	private final List<String> references;
 	private Reference copied;
 	private boolean isCopySourceInaccessible = false;
-	private final Map<String, List<String>> extIDs;
+	//TODO CODE make this immutable. Need new map, new lists. Or better yet, use a builder.
+	private final Map<IdReferenceType, List<String>> extIDs;
 
 	/** Create a data package with only the provenance and other metadata.
 	 * @param info information about the object.
@@ -35,7 +37,7 @@ public class WorkspaceObjectData {
 			final Provenance prov,
 			final List<String> references,
 			final Reference copied,
-			final Map<String, List<String>> extIDs) {
+			final Map<IdReferenceType, List<String>> extIDs) {
 		if (info == null || prov == null || references == null) {
 			throw new IllegalArgumentException(
 					"references, prov and info cannot be null");
@@ -44,8 +46,7 @@ public class WorkspaceObjectData {
 		this.prov = prov;
 		this.references = references;
 		this.copied = copied;
-		this.extIDs = extIDs == null ? new HashMap<String, List<String>>() :
-			extIDs;
+		this.extIDs = extIDs == null ? Collections.emptyMap() : extIDs;
 		this.data = null;
 	}
 	
@@ -63,7 +64,7 @@ public class WorkspaceObjectData {
 			final Provenance prov,
 			final List<String> references,
 			final Reference copied,
-			final Map<String, List<String>> extIDs) {
+			final Map<IdReferenceType, List<String>> extIDs) {
 		if (info == null || prov == null || references == null) {
 			throw new IllegalArgumentException(
 					"references, prov and info cannot be null");
@@ -72,7 +73,7 @@ public class WorkspaceObjectData {
 		this.prov = prov;
 		this.references = references;
 		this.copied = copied;
-		this.extIDs = extIDs == null ? new HashMap<String, List<String>>() : extIDs;
+		this.extIDs = extIDs == null ? Collections.emptyMap() : extIDs;
 		this.data = data;
 	}
 
@@ -107,7 +108,7 @@ public class WorkspaceObjectData {
 	/** Returns any external IDs extracted from the object, mapped by the ID type.
 	 * @return 
 	 */
-	public Map<String, List<String>> getExtractedIds() {
+	public Map<IdReferenceType, List<String>> getExtractedIds() {
 		return extIDs;
 		//could make this immutable I suppose
 	}

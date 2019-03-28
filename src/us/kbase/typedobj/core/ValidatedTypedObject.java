@@ -26,7 +26,6 @@ import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
 import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
-import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -402,10 +401,7 @@ public class ValidatedTypedObject implements Restreamable {
 			final IdReference<?> ref)
 					throws IOException {
 		JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
-		IdRefTokenSequenceProvider idSubst =
-				new IdRefTokenSequenceProvider(jts, schema,
-						new IdReferenceHandlerSetFactory(0)
-							.createHandlers(String.class));
+		IdRefTokenSequenceProvider idSubst = new IdRefTokenSequenceProvider(jts, schema, null);
 		idSubst.setFindMode(ref);
 		try {
 			new JsonTokenStreamWriter().writeTokens(
