@@ -63,8 +63,9 @@ public class ShockIdHandlerFactoryTest {
 		final ShockClientCloner cloner = mock(ShockClientCloner.class);
 		
 		assertThat("incorrect type", new ShockIdHandlerFactory(cli, cloner).getIDType(),
-				is(new IdReferenceType("shock")));
-		assertThat("incorrect type", ShockIdHandlerFactory.TYPE, is(new IdReferenceType("shock")));
+				is(new IdReferenceType("bytestream")));
+		assertThat("incorrect type", ShockIdHandlerFactory.TYPE,
+				is(new IdReferenceType("bytestream")));
 	}
 	
 	@Test
@@ -143,8 +144,8 @@ public class ShockIdHandlerFactoryTest {
 		addReadPermissionFailWithAndWithoutUser(
 				new ShockIdHandlerFactory(null, null), "foo", set("id"),
 				new IdReferencePermissionHandlerException(
-						"There is no connection configured for the Shock Service and " +
-						"Shock IDs cannot be processed."));
+						"There is no connection configured for bytestream storage and " +
+						"bytestream IDs cannot be processed."));
 	}
 	
 	@Test
@@ -155,7 +156,7 @@ public class ShockIdHandlerFactoryTest {
 		addReadPermissionFailWithAndWithoutUser(
 				new ShockIdHandlerFactory(cli, cloner), "foo",
 				set(UUID.randomUUID().toString(), "id"),
-				new IdReferencePermissionHandlerException("Illegal shock ID: id"));
+				new IdReferencePermissionHandlerException("Illegal bytestream ID: id"));
 	}
 	
 	@Test
@@ -175,8 +176,8 @@ public class ShockIdHandlerFactoryTest {
 				new ShockIdHandlerFactory(cli, cloner), "foo",
 				set(UUID.randomUUID().toString(), id.toString()),
 				new IdReferencePermissionHandlerException(String.format(
-						"There was an IO problem while attempting to set Shock ACLs on node " +
-						"%s: whoopsie", id.toString())));
+						"There was an IO problem while attempting to set bytestream ACLs on " +
+						"node %s: whoopsie", id.toString())));
 	}
 	
 	@Test
@@ -196,8 +197,8 @@ public class ShockIdHandlerFactoryTest {
 				new ShockIdHandlerFactory(cli, cloner), "foo",
 				set(UUID.randomUUID().toString(), id.toString()),
 				new IdReferencePermissionHandlerException(String.format(
-						"Shock reported a problem while attempting to set Shock ACLs on node " +
-						"%s: darn heck", id.toString())));
+						"Bytestream storage reported a problem while attempting to set ACLs " +
+						"on node %s: darn heck", id.toString())));
 	}
 	
 	private void addReadPermissionFailWithAndWithoutUser(
@@ -240,7 +241,7 @@ public class ShockIdHandlerFactoryTest {
 		final IdReferenceHandler<Long> h = new ShockIdHandlerFactory(cli, cloner)
 				.createHandler(Long.class, new AuthToken("token", "user"));
 		
-		assertThat("incorrect type", h.getIdType(), is(new IdReferenceType("shock")));
+		assertThat("incorrect type", h.getIdType(), is(new IdReferenceType("bytestream")));
 	}
 	
 	@Test
@@ -486,9 +487,9 @@ public class ShockIdHandlerFactoryTest {
 				.createHandler(Long.class, new AuthToken("token", "user"));
 		
 		addIdImplFail(h, 4L, "i", Arrays.asList("foo", "bar"), new IdReferenceException(
-				"Found shock id i. There is no connection configured for the Shock Service " +
-				"and so objects containing shock IDs cannot be processed.",
-				new IdReferenceType("shock"), 4L, "i", null, null));
+				"Found bytestream id i. There is no connection configured for bytestream " +
+				"IDs and so objects containing bytestream IDs cannot be processed.",
+				new IdReferenceType("bytestream"), 4L, "i", null, null));
 	}
 	
 	@Test
@@ -500,8 +501,8 @@ public class ShockIdHandlerFactoryTest {
 				.createHandler(String.class, new AuthToken("token", "user"));
 		
 		addIdImplFail(h, "foo", "id", Arrays.asList("foo", "bat"), new IdReferenceException(
-				"Illegal shock ID: id",
-				new IdReferenceType("shock"), "foo", "id", null, null));
+				"Illegal bytestream ID: id",
+				new IdReferenceType("bytestream"), "foo", "id", null, null));
 	}
 	
 	private <T> void addIdImplFail(
@@ -531,16 +532,18 @@ public class ShockIdHandlerFactoryTest {
 	public void processIDsFailOnCloneIOException() throws Exception {
 		processIDsFailOnClone(
 				new IOException("crap"),
-				new IdReferenceHandlerException("Error contacting Shock to validate IDs: crap",
-						new IdReferenceType("shock"), null));
+				new IdReferenceHandlerException("Error contacting bytestream storage to " +
+						"validate IDs: crap",
+						new IdReferenceType("bytestream"), null));
 	}
 	
 	@Test
 	public void processIDsFailOnCloneInvalidURLException() throws Exception {
 		processIDsFailOnClone(
 				new InvalidShockUrlException("poop"),
-				new IdReferenceHandlerException("Error contacting Shock to validate IDs: poop",
-						new IdReferenceType("shock"), null));
+				new IdReferenceHandlerException("Error contacting bytestream storage to " +
+						"validate IDs: poop",
+						new IdReferenceType("bytestream"), null));
 	}
 
 	private void processIDsFailOnClone(
@@ -567,9 +570,9 @@ public class ShockIdHandlerFactoryTest {
 		processIDsFailOnGetACLs(
 				new ShockAuthorizationException(400, "booga booga booga"),
 				new IdReferenceException(
-						"User someuser cannot read Shock node " +
+						"User someuser cannot read bytestream node " +
 						"51b68baa-ef40-4be1-a072-03814d61280e",
-						new IdReferenceType("shock"), "foo",
+						new IdReferenceType("bytestream"), "foo",
 						"51b68baa-ef40-4be1-a072-03814d61280e", null, null));
 	}
 	
@@ -578,8 +581,8 @@ public class ShockIdHandlerFactoryTest {
 		processIDsFailOnGetACLs(
 				new ShockNoNodeException(400, "hey nonny nonny"),
 				new IdReferenceException(
-						"Shock node 51b68baa-ef40-4be1-a072-03814d61280e does not exist",
-						new IdReferenceType("shock"), "foo",
+						"Bytestream node 51b68baa-ef40-4be1-a072-03814d61280e does not exist",
+						new IdReferenceType("bytestream"), "foo",
 						"51b68baa-ef40-4be1-a072-03814d61280e", null, null));
 	}
 	
@@ -588,9 +591,9 @@ public class ShockIdHandlerFactoryTest {
 		processIDsFailOnGetACLs(
 				new IOException("rats"),
 				new IdReferenceHandlerException(
-						"There was an IO problem while attempting to contact Shock to " +
-						"process IDs: rats",
-						new IdReferenceType("shock"), null));
+						"There was an IO problem while attempting to contact bytestream " +
+						"storage to process IDs: rats",
+						new IdReferenceType("bytestream"), null));
 	}
 	
 	@Test
@@ -598,9 +601,9 @@ public class ShockIdHandlerFactoryTest {
 		processIDsFailOnGetACLs(
 				new ShockHttpException(400, "my pants are on fire"),
 				new IdReferenceHandlerException(
-						"Shock reported a problem while attempting to " +
+						"Bytestream storage reported a problem while attempting to " +
 						"process IDs: my pants are on fire",
-						new IdReferenceType("shock"), null));
+						new IdReferenceType("bytestream"), null));
 	}
 
 	private void processIDsFailOnGetACLs(
@@ -632,9 +635,9 @@ public class ShockIdHandlerFactoryTest {
 		processIDsFailOnRemoveACL(
 				new IOException("poopy doopy"),
 				new IdReferenceHandlerException(
-						"There was an IO problem while attempting to contact Shock to " +
-						"process IDs: poopy doopy",
-						new IdReferenceType("shock"), null),
+						"There was an IO problem while attempting to contact bytestream " +
+						"storage to process IDs: poopy doopy",
+						new IdReferenceType("bytestream"), null),
 				"writeUser",
 				null);
 	}
@@ -644,8 +647,9 @@ public class ShockIdHandlerFactoryTest {
 		processIDsFailOnRemoveACL(
 				new ShockHttpException(400, "plectrum"),
 				new IdReferenceHandlerException(
-						"Shock reported a problem while attempting to process IDs: plectrum",
-						new IdReferenceType("shock"), null),
+						"Bytestream storage reported a problem while attempting to process " +
+						"IDs: plectrum",
+						new IdReferenceType("bytestream"), null),
 				"deleteUser",
 				null);
 	}
@@ -696,9 +700,9 @@ public class ShockIdHandlerFactoryTest {
 		processIDsFailOnCopy(
 				new IOException("poopy doopy"),
 				new IdReferenceHandlerException(
-						"There was an IO problem while attempting to contact Shock to " +
-						"copy nodes: poopy doopy",
-						new IdReferenceType("shock"), null));
+						"There was an IO problem while attempting to contact bytestream " +
+						"storage to copy nodes: poopy doopy",
+						new IdReferenceType("bytestream"), null));
 	}
 	
 	@Test
@@ -706,8 +710,9 @@ public class ShockIdHandlerFactoryTest {
 		processIDsFailOnCopy(
 				new ShockHttpException(400, "plectrum"),
 				new IdReferenceHandlerException(
-						"Shock reported a problem while attempting to copy nodes: plectrum",
-						new IdReferenceType("shock"), null));
+						"Bytestream storage reported a problem while attempting to copy " +
+						"nodes: plectrum",
+						new IdReferenceType("bytestream"), null));
 	}
 
 	private void processIDsFailOnCopy(

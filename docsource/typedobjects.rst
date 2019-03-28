@@ -252,7 +252,7 @@ object is shared. See :ref:`shockintegration` for more details.
 **Shock ID**
 ::
 
-    @id shock
+    @id bytestream
 
 The ID must reference a `Shock <https://github.com/kbase/Shock>`_ node that exists in the
 Shock instance configured for linking Shock nodes to WSS objects. When saving an object

@@ -284,8 +284,8 @@ backend-token
 **Description**: Token for the file backend user account used by the WSS to communicate with
 the backend.
 
-shock-url
-"""""""""
+bytestream-url
+""""""""""""""
 **Required**: If linking WSS objects to Shock nodes is desired (See :ref:`shockintegration`).
 
 **Description**: The root url of the Shock server. This may be different from ``backend-url`` if
@@ -295,14 +295,14 @@ Shock is also used as the file backend.
    changing the shock server instance will result in unspecified behavior, including data
    corruption.
 
-shock-user
-""""""""""
+bytestream-user
+"""""""""""""""
 **Required**: If linking WSS objects to Shock nodes is desired.
 
 **Description**: The KBase user account that will be used to interact with Shock for the purposes
 of linking WSS objects to Shock nodes. This is provided in the configuration as a safety feature,
 as the shock token may change, but the user should not. The user associated with the shock token
-is checked against ``shock-user``, and if the names differ, the server will not start.
+is checked against ``bytestream-user``, and if the names differ, the server will not start.
 
 .. warning:: Once any data containing Shock node IDs has been saved by the workspace, changing the
    shock user will result in unspecified behavior, including data corruption.
@@ -310,8 +310,8 @@ is checked against ``shock-user``, and if the names differ, the server will not 
 .. note:: It is strongly encouraged to use different accounts for the backend shock user and
    the linking shock user so that core workspace data can be distinguished from linked data.
 
-shock-token
-"""""""""""
+bytestream-token
+""""""""""""""""
 **Required**: If linking WSS objects to Shock nodes is desired.
 
 **Description**: Token for the shock user account used by the WSS to communicate with Shock.

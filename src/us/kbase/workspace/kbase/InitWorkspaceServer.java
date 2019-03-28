@@ -303,16 +303,16 @@ public class InitWorkspaceServer {
 			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
-		if (cfg.getShockURL() == null) {
+		if (cfg.getBytestreamURL() == null) {
 			return new ShockFactoryBits(new ShockIdHandlerFactory(null, null), null);
 		}
 		final AuthToken shockToken = getKBaseToken(
-				cfg.getShockUser(), cfg.getShockToken(), "shock", auth);
+				cfg.getBytestreamUser(), cfg.getBytestreamToken(), "shock", auth);
 		final BasicShockClient bsc;
 		final BasicShockClient unauthed;
 		try {
-			bsc = new BasicShockClient(cfg.getShockURL(), shockToken);
-			unauthed = new BasicShockClient(cfg.getShockURL());
+			bsc = new BasicShockClient(cfg.getBytestreamURL(), shockToken);
+			unauthed = new BasicShockClient(cfg.getBytestreamURL());
 		} catch (InvalidShockUrlException | ShockHttpException | IOException e) {
 			throw new WorkspaceInitException(
 					"Couldn't contact Shock server configured for Shock ID links: " +
