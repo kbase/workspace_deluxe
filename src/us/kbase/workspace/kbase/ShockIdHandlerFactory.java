@@ -36,16 +36,21 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
 import us.kbase.typedobj.idref.RemappedId;
 
-/** A handler factory for shock IDs. Note that shock IDs may not have attributes, and any
- * attributes supplied to
+/** A handler factory for shock IDs. IDs are labeled as @id bytestream and are referred to
+ * as bytestream data in error messages.
+ * 
+ *  
+ * Note that shock IDs may not have attributes, and any attributes supplied to
  * {@link us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler#addId(Object, String, List)}
  * will be ignored.
+ * 
  * @author gaprice@lbl.gov
  *
  */
 public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
-
-	//TODO SHOCKID remove write & delete acls from owned nodes
+	
+	//TODO SHOCKID change config from shock-* to bytestream-*
+	//TODO SHOCKID update docs
 
 	/** Given a Shock client, provides a new Shock client with no token.
 	 * @author gaprice@lbl.gov
@@ -64,7 +69,7 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 	}
 	
 	/** The type of ID this ID handler processes. */
-	public static final IdReferenceType TYPE = new IdReferenceType("shock");
+	public static final IdReferenceType TYPE = new IdReferenceType("bytestream");
 	private final BasicShockClient adminClient;
 	private final ShockClientCloner cloner;
 	
@@ -118,8 +123,8 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 			}
 			if (adminClient == null) {
 				throw new IdReferencePermissionHandlerException(
-						"There is no connection configured for the Shock Service " +
-						"and Shock IDs cannot be processed.");
+						"There is no connection configured for bytestream storage " +
+						"and bytestream IDs cannot be processed.");
 			}
 			// could check node id format up front, but for the general use case shouldn't happen
 			String lastid = null; // yuck. Improve this later.
@@ -138,12 +143,12 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 				}
 			} catch (IOException e) {
 				throw new IdReferencePermissionHandlerException(
-						"There was an IO problem while attempting to set Shock ACLs on node " +
+						"There was an IO problem while attempting to set bytestream ACLs on node " +
 						lastid + ": " + e.getMessage(), e);
 			} catch (ShockHttpException e) {
 				throw new IdReferencePermissionHandlerException(
-						"Shock reported a problem while attempting to set Shock ACLs on node " +
-						lastid + ": " + e.getMessage(), e);
+						"Bytestream storage reported a problem while attempting to set ACLs on " +
+						"node " + lastid + ": " + e.getMessage(), e);
 			}
 		}
 
@@ -152,7 +157,7 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 			try {
 				return new ShockNodeId(id);
 			} catch (IllegalArgumentException e) {
-				throw new IdReferencePermissionHandlerException("Illegal shock ID: " + id);
+				throw new IdReferencePermissionHandlerException("Illegal bytestream ID: " + id);
 			}
 		}
 	}
@@ -175,15 +180,15 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 				throws IdReferenceException {
 			// nulls are checked by the superclass
 			if (adminClient == null) {
-				throw new IdReferenceException("Found shock id " + id +
-						". There is no connection configured for the Shock Service " +
-						"and so objects containing shock IDs cannot be processed.",
+				throw new IdReferenceException("Found bytestream id " + id +
+						". There is no connection configured for bytestream IDs " +
+						"and so objects containing bytestream IDs cannot be processed.",
 						TYPE, associatedObject, id, null, null);
 			}
 			try {
 				new ShockNodeId(id);
 			} catch (IllegalArgumentException e) {
-				throw new IdParseException("Illegal shock ID: " + id,
+				throw new IdParseException("Illegal bytestream ID: " + id,
 						TYPE, associatedObject, id, null, null);
 			}
 			boolean unique = true;
@@ -222,11 +227,11 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 				// for errors, could go back and delete the other copies... YAGNI for now.
 			} catch (IOException e) {
 				throw new IdReferenceHandlerException(
-						"There was an IO problem while attempting to contact Shock " +
+						"There was an IO problem while attempting to contact bytestream storage " +
 						"to copy nodes: " + e.getMessage(), TYPE, e);
 			} catch (ShockHttpException e) {
 				throw new IdReferenceHandlerException(
-						"Shock reported a problem while attempting to copy nodes: " +
+						"Bytestream storage reported a problem while attempting to copy nodes: " +
 						e.getMessage(), TYPE, e);
 			}
 			return newnode.getId().getId();
@@ -238,7 +243,8 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 			try {
 				client = cloner.clone(adminClient);
 			} catch (IOException | InvalidShockUrlException e) {
-				throw new IdReferenceHandlerException("Error contacting Shock to validate IDs: " +
+				throw new IdReferenceHandlerException(
+						"Error contacting bytestream storage to validate IDs: " +
 						e.getMessage(), TYPE, e);
 			}
 			// prevents client from creating & deleting a shock node every startup
@@ -258,21 +264,21 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 						acls = client.getACLs(new ShockNodeId(node));
 					} catch (ShockAuthorizationException e) {
 						throw new IdReferenceException(String.format(
-								"User %s cannot read Shock node %s",
+								"User %s cannot read bytestream node %s",
 								userToken.getUserName(), node),
 								TYPE, assObj, node, null, null);
 					} catch (ShockNoNodeException e) {
 						throw new IdReferenceException(
-								String.format("Shock node %s does not exist", node),
+								String.format("Bytestream node %s does not exist", node),
 								TYPE, assObj, node, null, null);
 					} catch (IOException e) {
 						throw new IdReferenceHandlerException(
-								"There was an IO problem while attempting to contact Shock " +
-								"to process IDs: " + e.getMessage(), TYPE, e);
+								"There was an IO problem while attempting to contact " +
+								"bytestream storage to process IDs: " + e.getMessage(), TYPE, e);
 					} catch (ShockHttpException e) {
 						throw new IdReferenceHandlerException(
-								"Shock reported a problem while attempting to process IDs: " +
-								e.getMessage(), TYPE, e);
+								"Bytestream storage reported a problem while attempting to " +
+								"process IDs: " + e.getMessage(), TYPE, e);
 					}
 					if (!acls.getOwner().getUsername().equals(adminUser)) {
 						unowned.add(node); // make a copy of the node
@@ -301,11 +307,11 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 				adminClient.removeFromNodeAcl(new ShockNodeId(node), strUsers, aclType);
 			} catch (IOException e) {
 				throw new IdReferenceHandlerException(
-						"There was an IO problem while attempting to contact Shock " +
+						"There was an IO problem while attempting to contact bytestream storage " +
 						"to process IDs: " + e.getMessage(), TYPE, e);
 			} catch (ShockHttpException e) {
 				throw new IdReferenceHandlerException(
-						"Shock reported a problem while attempting to process IDs: " +
+						"Bytestream storage reported a problem while attempting to process IDs: " +
 						e.getMessage(), TYPE, e);
 			}
 		}
