@@ -343,24 +343,24 @@ public class JSONRPCLayerTester {
 		System.out.println("Starting tests");
 		
 		final String handleShock =
-				"module HandleShock {" +
+				"module HandleByteStream {" +
 					"/* @id handle */" +
 					"typedef string handle;" +
-					"/* @id shock */" +
-					"typedef string shock;" +
+					"/* @id bytestream */" +
+					"typedef string bs;" +
 					"/* @optional h s */" +
 					"typedef structure {" +
 						"handle h;" +
-						"shock s;"+
+						"bs s;"+
 					"} ExtIDs;" +
 				"};";
-		CLIENT1.requestModuleOwnership("HandleShock");
-		administerCommand(CLIENT2, "approveModRequest", "module", "HandleShock");
+		CLIENT1.requestModuleOwnership("HandleByteStream");
+		administerCommand(CLIENT2, "approveModRequest", "module", "HandleByteStream");
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec(handleShock)
 			.withNewTypes(Arrays.asList("ExtIDs")));
-		CLIENT1.releaseModule("HandleShock");
+		CLIENT1.releaseModule("HandleByteStream");
 	}
 
 	public static void administerCommand(WorkspaceClient client, String command, String... params) throws IOException,
