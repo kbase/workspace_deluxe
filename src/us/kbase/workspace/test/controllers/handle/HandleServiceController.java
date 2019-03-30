@@ -1,18 +1,20 @@
 package us.kbase.workspace.test.controllers.handle;
 
-import static us.kbase.common.test.controllers.ControllerCommon.checkExe;
-import static us.kbase.common.test.controllers.ControllerCommon.checkFile;
 import static us.kbase.common.test.controllers.ControllerCommon.findFreePort;
 import static us.kbase.common.test.controllers.ControllerCommon.makeTempDirs;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.ini4j.Ini;
@@ -55,23 +57,20 @@ public class HandleServiceController {
 		
 		authServiceURL = new URL(authServiceURL.toString() + "/Sessions/Login");
 		
-		// checkExe(plackupExe, "plackup");
-		// checkFile(abstractHandlePSGIpath, "Abstract Handle Service PSGI");
-		// checkFile(handleManagerPSGIpath, "Handle Manager PSGI");
 		tempDir = makeTempDirs(rootTempDir, "HandleServiceController-",
 				new LinkedList<String>());
-		
-//		setUpHandleServiceMySQLTables(mongo.getClient());
 		
 		handleServicePort = findFreePort();
 		
 		File hsIniFile = createHandleServiceDeployCfg(mongo, shockHost, authServiceURL);
+		String lib_dir = "lib";
+		downloadSourceFiles(tempDir, lib_dir);
 
-		//uwsgi --http :9090 --wsgi-file stractHandle/AbstractHandleServer.py
-		String path = "AbstractHandle/AbstractHandleServer.py";
-		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http",
+		String lib_dir_path = tempDir.resolve(lib_dir).toAbsolutePath().toString();
+
+		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http", 
 				":" + handleServicePort, "--wsgi-file",
-				path, "--pythonpath", "/home/tian/Dev/handle_service2/lib")
+				"AbstractHandle/AbstractHandleServer.py", "--pythonpath", lib_dir_path)
 				.redirectErrorStream(true)
 				.redirectOutput(tempDir.resolve("handle_service.log").toFile());
 		Map<String, String> env = handlepb.environment();
@@ -79,11 +78,58 @@ public class HandleServiceController {
 		env.put("KB_DEPLOYMENT_CONFIG", hsIniFile.getAbsolutePath().toString());
 		env.put("KB_SERVICE_NAME", HANDLE_SERVICE_NAME);
 		env.put("KB_AUTH_TOKEN", shockAdminToken.toString());
-		env.put("PYTHONPATH", "/home/tian/Dev/handle_service2/lib");
-		handlepb.directory(new File("/home/tian/Dev/handle_service2/lib"));
+		env.put("PYTHONPATH", lib_dir_path);
+		handlepb.directory(new File(lib_dir_path));
 		handleService = handlepb.start();
 		
 		Thread.sleep(1000); //let the service start up
+	}
+	
+	private void downloadSourceFiles(Path parentDir, String subDir) throws IOException {
+		// download source files from github repo
+		
+		Path lib_root = parentDir.resolve(subDir);
+		Files.createDirectories(lib_root);
+		
+		Path handle_dir = lib_root.resolve("AbstractHandle");
+		Files.createDirectories(handle_dir);
+		
+		String handle_repo_prefix = "https://raw.githubusercontent.com/kbase/handle_service2/develop/lib/AbstractHandle/";
+		String [] handle_impl_files = {"__init__.py", "AbstractHandleImpl.py",
+				"AbstractHandleServer.py", "authclient.py", "baseclient.py"};
+		for (String file_name : handle_impl_files) {
+			FileUtils.copyURLToFile(new URL(handle_repo_prefix + file_name),
+					handle_dir.resolve(file_name).toFile());
+		}
+		
+		Path handle_utils_dir = handle_dir.resolve("Utils");
+		Files.createDirectories(handle_utils_dir);
+		String [] handle_util_files = {"__init__.py", "Handler.py", "MongoUtil.py", 
+				"ShockUtil.py", "TokenCache.py"};
+		for (String file_name : handle_util_files) {
+			FileUtils.copyURLToFile(new URL(handle_repo_prefix + "Utils/" + file_name), 
+					handle_utils_dir.resolve(file_name).toFile());
+		}
+		
+		Path biokbase_dir = lib_root.resolve("biokbase");
+		Files.createDirectories(biokbase_dir);
+		
+		String biokbase_repo_prefix = "https://raw.githubusercontent.com/kbase/kb_sdk/master/lib/biokbase/";
+		String [] biokbase_files = {"__init__.py", "log.py"};
+		for (String file_name : biokbase_files) {
+			FileUtils.copyURLToFile(new URL(biokbase_repo_prefix + file_name),
+					biokbase_dir.resolve(file_name).toFile());
+		}
+		
+		Path log_file = biokbase_dir.resolve("log.py");
+		Stream <String> lines = Files.lines(log_file);
+		List <String> replaced = lines.map(line -> line.replaceAll("import urllib.request as _urllib", 
+				"try:\n" + 
+				"    import urllib.request as _urllib\n" + 
+				"except ImportError:\n" + 
+				"    import urllib as _urllib")).collect(Collectors.toList());
+		Files.write(log_file, replaced);
+		lines.close();
 	}
 	
 	private File createHandleServiceDeployCfg(
@@ -108,8 +154,6 @@ public class HandleServiceController {
 		hs.add("mongo-database", DB);
 		hs.add("mongo-collection", COLLECTION);
 		hs.add("admin-roles", "HANDLE_ADMIN, KBASE_ADMIN");
-//		hs.add("mysql-pass", PWD);
-//		hs.add("data-source", "dbi:mysql:" + DB);
 		
 		ini.store(iniFile);
 		return iniFile;
@@ -132,34 +176,6 @@ public class HandleServiceController {
 			FileUtils.deleteDirectory(tempDir.toFile());
 		}
 	}
-	
-//	private static void setUpHandleServiceMySQLTables(Connection connection)
-//			throws Exception {
-//		Statement s = connection.createStatement();
-//		s.execute(	"CREATE DATABASE " + DB + ";");
-//		s.execute(	"USE " + DB + ";");
-//		s.execute(	"CREATE TABLE " + TABLE + " (" +
-//						"hid           int NOT NULL AUTO_INCREMENT," +
-//						"id            varchar(256) NOT NULL DEFAULT ''," +
-//						"file_name     varchar(256)," +
-//						"type          varchar(256)," +
-//						"url           varchar(256)," +
-//						"remote_md5    varchar(256)," +
-//						"remote_sha1   varchar(256)," +
-//						"created_by    varchar(256)," +
-//						"creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
-//						"PRIMARY KEY (hid)" +
-//					");");
-//		s.execute(	"GRANT SELECT,INSERT,UPDATE,DELETE " +
-//						"ON " + DB + ".* " +
-//						"TO '" + USER + "'@'localhost' " +
-//						"IDENTIFIED BY '" + PWD + "';");
-//		s.execute(	"GRANT SELECT,INSERT,UPDATE,DELETE " +
-//						"ON " + DB + ".* " +
-//						"TO '" + USER + "'@'127.0.0.1' " +
-//						"IDENTIFIED BY '" + PWD + "';");
-//		s.execute(	"ALTER TABLE Handle ADD CONSTRAINT unique_id UNIQUE (id);");
-//	}
 
 	public static void main(String[] args) throws Exception {
 		MongoController monc = new MongoController(
