@@ -114,9 +114,9 @@ public class HandleAndShockTest {
 	
 	private static ShockACLType READ_ACL = ShockACLType.READ;
 	
-	private static String HANDLE_TYPE = "HandleShockList.HList-0.1";
-	private static String SHOCK_TYPE = "HandleShockList.SList-0.1";
-	private static String HANDLE_REF_TYPE = "HandleShockList.HRef-0.1";
+	private static String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
+	private static String SHOCK_TYPE = "HandleByteStreamList.SList-0.1";
+	private static String HANDLE_REF_TYPE = "HandleByteStreamList.HRef-0.1";
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -220,16 +220,16 @@ public class HandleAndShockTest {
 
 	private static void setUpSpecs() throws Exception {
 		final String handlespec =
-				"module HandleShockList {" +
+				"module HandleByteStreamList {" +
 //					"/* @id handle */" +
 					"typedef string handle;" +
 					"typedef structure {" +
 						"list<handle> handles;" +
 					"} HList;" +
-					"/* @id shock */" +
-					"typedef string shock;" +
+					"/* @id bytestream */" +
+					"typedef string bs;" +
 					"typedef structure {" +
-						"list<shock> ids;" +
+						"list<bs> ids;" +
 					"} SList;" +
 					"/* @id ws */" +
 					"typedef string wsid;" +
@@ -237,8 +237,8 @@ public class HandleAndShockTest {
 						"wsid id;" +
 					"} HRef;" +
 				"};";
-		CLIENT1.requestModuleOwnership("HandleShockList");
-		administerCommand(CLIENT2, "approveModRequest", "module", "HandleShockList");
+		CLIENT1.requestModuleOwnership("HandleByteStreamList");
+		administerCommand(CLIENT2, "approveModRequest", "module", "HandleByteStreamList");
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec(handlespec)
@@ -279,9 +279,9 @@ public class HandleAndShockTest {
 		ws.add("backend-url", shockURL.toString());
 		ws.add("backend-user", shockToken.getUserName());
 		ws.add("backend-token", shockToken.getToken());
-		ws.add("shock-url", shockURL.toString());
-		ws.add("shock-user", shockLinkToken.getUserName());
-		ws.add("shock-token", shockLinkToken.getToken());
+		ws.add("bytestream-url", shockURL.toString());
+		ws.add("bytestream-user", shockLinkToken.getUserName());
+		ws.add("bytestream-token", shockLinkToken.getToken());
 		ws.add("ws-admin", USER2);
 		ws.add("handle-service-url", "http://localhost:" + HANDLE.getHandleServerPort());
 		ws.add("handle-manager-url", "http://localhost:" + HANDLE.getHandleServerPort());
@@ -597,8 +597,10 @@ public class HandleAndShockTest {
 		checkReadAcl(new2, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
 		
 		// check extracted IDS
-		assertThat("incorrect extracted ids", od.getExtractedIds().keySet(), is(set("shock")));
-		assertThat("incorrect extracted ids", new HashSet<>(od.getExtractedIds().get("shock")),
+		assertThat("incorrect extracted ids", od.getExtractedIds().keySet(),
+				is(set("bytestream")));
+		assertThat("incorrect extracted ids",
+				new HashSet<>(od.getExtractedIds().get("bytestream")),
 				is(set(n1.getId().getId(), new2.getId().getId())));
 		
 		// check nodes have the same contents
@@ -649,19 +651,19 @@ public class HandleAndShockTest {
 				"Object #1, foo failed type checking:\ninstance type (null) not allowed for " +
 				"ID reference (allowed: [\"string\"]), at /ids/0", 1, "n"));
 		
-		saveWithShockIDFail(CLIENT1, workspace, "badshockid", new ServerException(
-				"Object #1, foo failed type checking:\nUnparseable id badshockid of " +
-				"type shock: Illegal shock ID: badshockid at /ids/0", 1, "n"));
+		saveWithShockIDFail(CLIENT1, workspace, "badbytestreamid", new ServerException(
+				"Object #1, foo failed type checking:\nUnparseable id badbytestreamid of " +
+				"type bytestream: Illegal bytestream ID: badbytestreamid at /ids/0", 1, "n"));
 		
 		final String id = UUID.randomUUID().toString();
 		saveWithShockIDFail(CLIENT1, workspace, id, new ServerException(String.format(
-				"Object #1, foo has invalid reference: Shock node %s does not exist at /ids/0",
-				id), 1, "n"));
+				"Object #1, foo has invalid reference: Bytestream node %s does not exist at " +
+				"/ids/0", id), 1, "n"));
 		
 		final ShockNode sn = WS_OWNED_SHOCK.addNode();
 		saveWithShockIDFail(CLIENT1, workspace, sn.getId().getId(), new ServerException(
 				String.format("Object #1, foo has invalid reference: User user1 cannot " +
-				"read Shock node %s at /ids/0", sn.getId().getId()), 1, "n"));
+				"read bytestream node %s at /ids/0", sn.getId().getId()), 1, "n"));
 	}
 
 	private void saveWithShockIDFail(
@@ -728,7 +730,7 @@ public class HandleAndShockTest {
 				id.getId()))));
 		
 		final String err = String.format(
-				"Shock reported a problem while attempting to set Shock ACLs on node %s: " +
+				"Bytestream storage reported a problem while attempting to set ACLs on node %s: " +
 				"Node not found", id.getId());
 		assertThat("got correct error message", wod.getHandleError(), is(err));
 		

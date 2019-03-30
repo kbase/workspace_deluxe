@@ -94,7 +94,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.9.0-dev4"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.9.0-dev5"));
 	}
 	
 	@Test
@@ -1135,7 +1135,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
 				.withWorkspace("nohandle")).getE1();
 		
-		saveObject2MethodsFail(CLIENT1, "nohandle", "foo", "HandleShock.ExtIDs",
+		saveObject2MethodsFail(CLIENT1, "nohandle", "foo", "HandleByteStream.ExtIDs",
 				new UObject(ImmutableMap.of("h", "KBH_1")), new ServerException(
 						"Object #1, foo failed type checking:\nInvalid id KBH_1 of type " +
 						"handle: Found handle id KBH_1. The workspace service currently does " +
@@ -1146,16 +1146,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	@Test
 	public void saveObjectsFailNoShockProcessor() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
-				.withWorkspace("nohandle")).getE1();
+				.withWorkspace("noshock")).getE1();
 		
 		final String id = UUID.randomUUID().toString();
-		saveObject2MethodsFail(CLIENT1, "nohandle", "foo", "HandleShock.ExtIDs",
+		saveObject2MethodsFail(CLIENT1, "noshock", "foo", "HandleByteStream.ExtIDs",
 				new UObject(ImmutableMap.of("s", id)),
 				new ServerException(String.format(
 						"Object #1, foo failed type checking:\nInvalid id %s of type " +
-						"shock: Found shock id %s. There is no connection configured for the " +
-						"Shock Service and so objects containing shock IDs cannot be processed. " +
-						"at /s", id, id), 1, "n"));
+						"bytestream: Found bytestream id %s. There is no connection configured " +
+						"for bytestream IDs and so objects containing bytestream IDs cannot be " +
+						"processed. at /s", id, id), 1, "n"));
 	}
 	
 	private void saveObject2MethodsFail(

@@ -68,14 +68,14 @@ backend-url = https://kbase.us/services/shock-api
 # used for contacting the Shock backend, but it is strongly advised that different accounts
 # are used so that system administrators can distinguish between core workspace data and 
 # linked Shock data.
-# If the shock-url is not supplied, attempting to save objects with Shock links will fail,
+# If the bytestream-url is not supplied, attempting to save objects with Shock links will fail,
 # and retrieving objects with shock IDs will contain errors in the returned data JSON.
-# Like the backend-user configuration item, shock-user is checked against shock-token as a
-# safety measure.
-# shock-token must have administrative privileges for Shock.
-shock-url =
-shock-user =
-shock-token =
+# Like the backend-user configuration item, bytestream-user is checked against bytestream-token
+# as a safety measure.
+# bytestream-token must have administrative privileges for Shock.
+bytestream-url =
+bytestream-user =
+bytestream-token =
 
 # Port for the service.
 port = 7058

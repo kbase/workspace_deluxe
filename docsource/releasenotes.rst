@@ -23,7 +23,7 @@ BACKWARDS INCOMPATIBILITIES:
 
 UPDATES:
 
-* Workspace objects may now contain Shock IDs (via the ``@id shock`` annotation) which will
+* Workspace objects may now contain Shock IDs (via the ``@id bytestream`` annotation) which will
   ensure that the Shock nodes will be readable for any user that retrieves the object. This
   feature is disabled by default.
 * The KBase Authentication server may now be used to specify workspace administrators,

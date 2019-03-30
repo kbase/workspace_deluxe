@@ -52,7 +52,7 @@ Direct Shock links vs. Handles
 ------------------------------
 
 There are two ways to create links from WSS objects to Shock nodes - either by directly
-linking the node to an object with the ``@id shock`` annotation, or by linking the node
+linking the node to an object with the ``@id bytestream`` annotation, or by linking the node
 indirectly via a Handle (the ``@id handle`` annotation).
 
 The differences are summarized in the table below.
@@ -402,25 +402,25 @@ and a WSS type that allows linking WSS objects to Shock nodes. As might be expec
 not create a Handle for the node (although that is not prohibited). A type that allows direct
 Shock links can be as simple as::
 
-    /* @id shock */
-    typedef string shock_id;
+    /* @id bytestream */
+    typedef string bytestream_id;
  
     typedef structure {
-        shock_id sid;
-    } StructWithShockID;
+        bytestream_id bid;
+    } StructWithBytestreamID;
 
 .. note::
-   It is not advisable to make Shock IDs keys for maps, as that may prevent the future presorting
-   feature from working properly.
+   It is not advisable to make bytestream IDs keys for maps, as that may prevent the future
+   presorting feature from working properly.
 
-An object typed as StructWithShockID may then be saved to the WSS. The WSS will ensure that
-the Shock ID in the ``sid`` field exists and is readable by the user, and then make a copy of
+An object typed as ``StructWithBytestreamID`` may then be saved to the WSS. The WSS will ensure
+that the Shock ID in the ``bid`` field exists and is readable by the user, and then make a copy of
 the node if it is not already owned by the WSS. The node will be shared as the WSS object is
 shared, just like Handle based linked nodes.
 
 Retrieving objects works similarly as with Handle based nodes except that
 
-#. The Shock IDs extracted from the object will appear under the ``shock`` key in the
+#. The Shock IDs extracted from the object will appear under the ``bytestream`` key in the
    ``extracted_ids`` field as opposed to the ``handle`` field.
 #. The extracted IDs may not be the same as those in the original data sent to the WSS as
    the WSS may make copies of the nodes as described above.
