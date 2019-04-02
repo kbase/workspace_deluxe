@@ -341,6 +341,7 @@
           <fileset dir="${src}">
             <include name="**/test/**/**Test.java"/>
             <exclude name="**/test/**/**LongTest.java"/>
+            <exclude name="**/test/**/HandleAndShockTest.java"/>
           </fileset>
         </batchtest>
       </junit>
