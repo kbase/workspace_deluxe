@@ -75,7 +75,7 @@
     <include name="apache_commons/http/httpcore-4.3.jar"/>
     <include name="apache_commons/http/httpmime-4.3.1.jar"/>
   </fileset>
-	
+
   <fileset dir="${jardir}" id="applicationlib">
     <include name="kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar"/>
     <include name="apache_commons/commons-codec-1.8.jar"/>
@@ -88,9 +88,9 @@
     <include name="logback/logback-classic-1.1.2.jar"/>
     <include name="google/guava-14.0.1.jar"/>
     <include name="kafka/kafka-clients-2.1.0.jar"/>
-    <include name="kbase/handle/HandleService2Client-20190401.jar"/>
+    <include name="kbase/handle/AbstractHandleClient-1.0.0.jar"/>
   </fileset>
-	
+
   <fileset dir="${jardir}" id="testlib">
     <include name="apache_commons/velocity-1.7.jar"/>
     <include name="apache_commons/commons-lang-2.4.jar"/>
@@ -105,7 +105,7 @@
     <include name="bytebuddy/byte-buddy-agent-1.6.8.jar"/>
     <include name="objenesis/objenesis-2.5.1.jar"/>
   </fileset>
-	
+
   <union id="serverside">
     <fileset refid="serverlib"/>
     <fileset refid="clientserverlib"/>
@@ -124,7 +124,7 @@
     <exclude name="common/service/JsonTreeTraversingParser.java"/>
     <exclude name="common/service/KBaseJsonParser.java"/>
   </fileset>
-	
+
   <fileset id="sources-jdoc-files" dir="${tempunpack}/us/kbase/common/service"
     defaultexcludes="yes">
     <include name="UObject.java"/>
@@ -267,7 +267,7 @@
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
-	
+
   <target name="test_quick"
       depends="compile, preparejunitreportdir"
       description="run tests other than the *LongTest.java tests">
@@ -295,7 +295,7 @@
 
   <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml"
     classpathref="jacoco.classpath"/>
-	
+
   <target name="test_quick_no_handle_coverage"
           depends="test_quick_no_handle"
           description="run most tests and generate test report">
