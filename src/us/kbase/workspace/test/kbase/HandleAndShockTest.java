@@ -494,6 +494,8 @@ public class HandleAndShockTest {
 				.withObjid(1L)))).get(0);
 		checkExternalIDError(ret.getHandleError(), ret.getHandleStacktrace());
 		
+		checkReadAcl(node, oneuser);
+
 		//test error message for deleted node
 		node.delete();
 		
