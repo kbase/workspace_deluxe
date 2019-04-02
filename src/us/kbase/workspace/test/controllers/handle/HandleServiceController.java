@@ -147,7 +147,7 @@ public class HandleServiceController {
 		hs.add("auth-service-url", authServiceURL.toString());
 		hs.add("auth-url", authURL.toString());
 		hs.add("default-shock-server", shockHost);
-		hs.add("admin-token", shockAdminToken.toString());
+		hs.add("admin-token", shockAdminToken.getToken().toString());
 		
 		hs.add("mongo-host", "127.0.0.1");
 		hs.add("mongo-port", "" + mongo.getServerPort());
