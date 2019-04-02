@@ -37,6 +37,7 @@ import com.github.zafarkhaja.semver.Version;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
+import us.kbase.abstracthandle.Handle;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.ServerException;
@@ -207,8 +208,12 @@ public class HandleAndShockTest {
 		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
 				HANDLE.getHandleServerPort()), t1);
 		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
-		// test connection
-		HANDLE_CLIENT.areReadable(Arrays.asList("fake_handle_id"));
+		try {
+			HANDLE_CLIENT.areReadable(Arrays.asList("fake_handle_id"));
+		} catch (Exception e) {
+			System.out.println("Could not successfullly run methods on the Handle Service");
+			throw e;
+		}
 
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:"
 				+ SHOCK.getServerPort()), CLIENT1.getToken());
@@ -361,7 +366,7 @@ public class HandleAndShockTest {
 		final Iterator<Map<String, String>> gotiter = deps.iterator();
 		while (expiter.hasNext()) {
 			final Map<String, String> g = gotiter.next();
-			final List<String> e = expiter.next();;
+			final List<String> e = expiter.next();
 			assertThat("incorrect name", (String) g.get("name"), is(e.get(0)));
 			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
 			assertThat("incorrect message", g.get("message"),
@@ -393,8 +398,17 @@ public class HandleAndShockTest {
 				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
 		
 		final ShockNode node = bsc.addNode();
-		String handle_id = node.getId().getId();
+		String shock_id = node.getId().getId();
+		final Handle handle = new Handle();
+		handle.setId(shock_id);
+		handle.setFileName("empty_file");
+		handle.setUrl(bsc.getShockUrl().toString());
+		handle.setType("shock");
+		String handle_id = UUID.randomUUID().toString();
 		System.out.println("generated random handle_id for testing: " + handle_id);
+		handle.setHid(handle_id);
+		HANDLE_CLIENT.persistHandle(handle);
+		
 		List<String> handleList = new LinkedList<String>();
 		handleList.add(handle_id);
 		Map<String, Object> handleobj = new HashMap<String, Object>();
@@ -416,7 +430,7 @@ public class HandleAndShockTest {
 		 */
 
 		@SuppressWarnings("unused")
-		ShockACL acl = bsc.addToNodeAcl(new ShockNodeId(handle_id),
+		ShockACL acl = bsc.addToNodeAcl(new ShockNodeId(shock_id),
 				Arrays.asList(USER2), ShockACLType.ALL);
 		String workspace2 = "basichandle2";
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace2));
@@ -436,7 +450,7 @@ public class HandleAndShockTest {
 //						"other reason. The call cannot complete."));
 //		}
 		
-		bsc.removeFromNodeAcl(new ShockNodeId(handle_id),
+		bsc.removeFromNodeAcl(new ShockNodeId(shock_id),
 				Arrays.asList(USER2), ShockACLType.ALL);
 		
 		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
@@ -446,7 +460,7 @@ public class HandleAndShockTest {
 
 		// test that user2 can get shock nodes even though permissions have
 		// been removed when user2 can read the workspace object
-		bsc.addToNodeAcl(new ShockNodeId(handle_id),
+		bsc.addToNodeAcl(new ShockNodeId(shock_id),
 					Arrays.asList(USER2), ShockACLType.READ);
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
@@ -506,6 +520,8 @@ public class HandleAndShockTest {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
+		System.out.println(wod.getHandleError());
+		System.out.println(wod.getHandleStacktrace());
 //		assertThat("got correct error message", wod.getHandleError(),
 //				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
 //						+ handle_id));
@@ -749,7 +765,18 @@ public class HandleAndShockTest {
 				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
 
 		final ShockNode node = bsc.addNode();
-		String handle_id = node.getId().getId();
+		String shock_id = node.getId().getId();
+		
+		final Handle handle = new Handle();
+		handle.setId(shock_id);
+		handle.setFileName("empty_file");
+		handle.setUrl(bsc.getShockUrl().toString());
+		handle.setType("shock");
+		String handle_id = UUID.randomUUID().toString();
+		System.out.println("generated random handle_id for testing: " + handle_id);
+		handle.setHid(handle_id);
+		HANDLE_CLIENT.persistHandle(handle);
+		
 		List<String> handleList = new LinkedList<String>();
 		handleList.add(handle_id);
 		Map<String, Object> handleobj = new HashMap<String, Object>();
@@ -772,7 +799,7 @@ public class HandleAndShockTest {
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
-		bsc.addToNodeAcl(new ShockNodeId(handle_id),
+		bsc.addToNodeAcl(new ShockNodeId(shock_id),
 				Arrays.asList(USER2), ShockACLType.READ);
 		checkReadAcl(node, twouser);
 
@@ -794,7 +821,6 @@ public class HandleAndShockTest {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
-		
 //		assertThat("got correct error message", wod.getHandleError(),
 //				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
 //						+ handle_id));
