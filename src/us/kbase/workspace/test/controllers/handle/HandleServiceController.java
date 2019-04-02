@@ -66,8 +66,7 @@ public class HandleServiceController {
 		String lib_dir = "lib";
 		downloadSourceFiles(tempDir, lib_dir);
 
-//		String lib_dir_path = tempDir.resolve(lib_dir).toAbsolutePath().toString();
-		String lib_dir_path = "/home/tian/Dev/handle_service2/lib";
+		String lib_dir_path = tempDir.resolve(lib_dir).toAbsolutePath().toString();
 		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http", 
 				":" + handleServicePort, "--wsgi-file",
 				"AbstractHandle/AbstractHandleServer.py", "--pythonpath", lib_dir_path)
