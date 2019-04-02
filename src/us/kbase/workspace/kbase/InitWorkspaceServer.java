@@ -29,7 +29,6 @@ import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.service.ServerException;
-import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
@@ -100,7 +99,7 @@ public class InitWorkspaceServer {
 		private final WorkspaceAdministration wsadmin;
 		private final Types types;
 		private final BasicShockClient linkedShockClient;
-		private final URL handleManagerUrl;
+		private final URL handleServiceUrl;
 		
 		public WorkspaceInitResults(
 				final Workspace ws,
@@ -108,14 +107,14 @@ public class InitWorkspaceServer {
 				final WorkspaceAdministration wsadmin,
 				final Types types,
 				final BasicShockClient linkedShockClient,
-				final URL handleManagerUrl) {
+				final URL handleServiceUrl) {
 			super();
 			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
 			this.types = types;
 			this.linkedShockClient = linkedShockClient;
-			this.handleManagerUrl = handleManagerUrl;
+			this.handleServiceUrl = handleServiceUrl;
 		}
 
 		public Workspace getWs() {
@@ -134,8 +133,8 @@ public class InitWorkspaceServer {
 			return types;
 		}
 
-		public URL getHandleManagerUrl() {
-			return handleManagerUrl;
+		public URL getHandleServiceUrl() {
+			return handleServiceUrl;
 		}
 		
 		public BasicShockClient getLinkedShockClient() {
@@ -159,14 +158,11 @@ public class InitWorkspaceServer {
 		} 
 		
 		AuthToken handleMgrToken = null;
-		HandleMngrClient hmc = null;
+		AbstractHandleClient hsc = null;
 		if (!cfg.ignoreHandleService()) {
 			handleMgrToken = getHandleToken(cfg, rep, auth);
 			if (!rep.isFailed()) {
-				checkHandleServiceConnection(cfg.getHandleServiceURL(), handleMgrToken, rep);
-			}
-			if (!rep.isFailed()) {
-				hmc = getHandleManagerClient(cfg.getHandleManagerURL(), handleMgrToken, rep);
+				hsc = getHandleServiceClient(cfg.getHandleServiceURL(), handleMgrToken, rep);
 			}
 		}
 		
@@ -198,7 +194,7 @@ public class InitWorkspaceServer {
 		Types types = new Types(wsdeps.typeDB);
 		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(maxUniqueIdCountPerCall)
-				.withFactory(new HandleIdHandlerFactory(cfg.getHandleServiceURL(), hmc))
+				.withFactory(new HandleIdHandlerFactory(cfg.getHandleServiceURL(), hsc))
 				.withFactory(wsdeps.shockFac.factory)
 				.build();
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
@@ -213,7 +209,7 @@ public class InitWorkspaceServer {
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
 		return new WorkspaceInitResults(
-				ws, wsmeth, wsadmin, types, wsdeps.shockFac.client, cfg.getHandleManagerURL());
+				ws, wsmeth, wsadmin, types, wsdeps.shockFac.client, cfg.getHandleServiceURL());
 	}
 	
 	private static AdministratorHandler getAdminHandler(
@@ -488,56 +484,31 @@ public class InitWorkspaceServer {
 		return null;
 	}
 	
-
-	private static void checkHandleServiceConnection(
+	private static AbstractHandleClient getHandleServiceClient(
 			final URL handleServiceUrl,
 			final AuthToken handleMgrToken,
 			final InitReporter rep) {
+		final AbstractHandleClient cli;
 		try {
-			final AbstractHandleClient cli = new AbstractHandleClient(
+			cli = new AbstractHandleClient(
 					handleServiceUrl, handleMgrToken);
 			if (handleServiceUrl.getProtocol().equals("http")) {
 				rep.reportInfo("Warning - the Handle Service url uses insecure http. " +
 						"https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
-			cli.isOwner(new LinkedList<String>());
 		} catch (Exception e) {
-			if (!(e instanceof ServerException) || !e.getMessage().contains(
-							"can not execute select * from Handle")) {
-				rep.reportFail("Could not establish a connection to the Handle Service at "
-						+ handleServiceUrl + ": " + e.getMessage());
-			}
-		}
-	}
-	
-	private static HandleMngrClient getHandleManagerClient(
-			final URL handleManagerUrl,
-			final AuthToken handleMgrToken,
-			final InitReporter rep) {
-		final HandleMngrClient cli;
-		try {
-			cli = new HandleMngrClient(
-					handleManagerUrl, handleMgrToken);
-			if (handleManagerUrl.getProtocol().equals("http")) {
-				rep.reportInfo("Warning - the Handle Manager url uses insecure http. " +
-						"https is recommended.");
-				cli.setIsInsecureHttpConnectionAllowed(true);
-			}
-		} catch (Exception e) {
-			rep.reportFail("Could not establish a connection to the Handle Manager Service at "
-					+ handleManagerUrl + ": " + e.getMessage());
+			rep.reportFail("Could not establish a connection to the Handle Service at "
+					+ handleServiceUrl + ": " + e.getMessage());
 			return null;
 		}
 		try {
-			cli.setPublicRead(Arrays.asList("FAKEHANDLE_-100"));
+			cli.isOwner(Arrays.asList("FAKEHANDLE_-100"));
 		} catch (Exception e) {
-			if (!(e instanceof ServerException) || !e.getMessage().contains(
-							"Unable to set acl(s) on handles FAKEHANDLE_-100")) {
-				rep.reportFail("Could not establish a connection to the Handle Manager Service at "
-						+ handleManagerUrl + ": " + e.getMessage());
-				return null;
-			}
+
+			rep.reportFail("Could not successfullly run methods on the Handle Service at "
+						+ handleServiceUrl + ": " + e.getMessage());
+			return null;
 		}
 		return cli;
 	}

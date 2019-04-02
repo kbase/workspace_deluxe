@@ -63,7 +63,7 @@ public class KBaseWorkspaceConfig {
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
 	private static final String HANDLE_SERVICE_URL = "handle-service-url";
-	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
+//	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
 	private static final String HANDLE_MANAGER_TOKEN = "handle-manager-token";
 	
 	// listeners
@@ -103,7 +103,7 @@ public class KBaseWorkspaceConfig {
 	private final Set<String> adminReadOnlyRoles;
 	private final boolean ignoreHandleService;
 	private final URL handleServiceURL;
-	private final URL handleManagerURL;
+//	private final URL handleManagerURL;
 	private final String handleManagerToken;
 	private final List<String> errors;
 	private final List<String> infoMessages;
@@ -254,21 +254,17 @@ public class KBaseWorkspaceConfig {
 			infoMsgs.add("Ignoring Handle Service config. Objects with " +
 					"handle IDs will fail typechecking.");
 			handleServiceURL = null;
-			handleManagerURL = null;
 			handleManagerToken = null;
 		} else {
 			final String token = nullIfEmpty(config.get(HANDLE_MANAGER_TOKEN));
 			final URL hsURL = getUrl(config, HANDLE_SERVICE_URL, paramErrors, true);
-			final URL hmURL = getUrl(config, HANDLE_MANAGER_URL, paramErrors, true);
 			if (token == null) {
 				handleManagerToken = null;
 				handleServiceURL = null;
-				handleManagerURL = null;
 				paramErrors.add(String.format(
 						"Must provide param %s in config file", HANDLE_MANAGER_TOKEN));
 			} else {
 				handleServiceURL = hsURL;
-				handleManagerURL = hmURL;
 				handleManagerToken = token;
 			}
 		}
@@ -361,7 +357,7 @@ public class KBaseWorkspaceConfig {
 						KBASE_AUTH_ADMIN_READ_ONLY_ROLES, KBASE_AUTH_ADMIN_FULL_ROLES,
 						BACKEND_TYPE, BACKEND_URL, BACKEND_USER));
 		if (!ignoreHandleService) {
-			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL, HANDLE_MANAGER_URL));
+			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL));
 		}
 		if (bytestreamURL != null) {
 			paramSet.addAll(Arrays.asList(BYTESTREAM_URL, BYTESTREAM_USER));
@@ -480,10 +476,6 @@ public class KBaseWorkspaceConfig {
 
 	public URL getHandleServiceURL() {
 		return handleServiceURL;
-	}
-
-	public URL getHandleManagerURL() {
-		return handleManagerURL;
 	}
 
 	public String getHandleManagerToken() {

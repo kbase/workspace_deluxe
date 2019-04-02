@@ -121,7 +121,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final Types types;
 	private final WorkspaceAdministration wsadmin;
 	
-	private final URL handleManagerUrl;
+	private final URL handleServiceUrl;
 	private final BasicShockClient linkedShockClient;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
@@ -186,9 +186,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		
 	}
 	
-	public DependencyStatus checkHandleManager() {
+	public DependencyStatus checkHandleService() {
 		try {
-			ServiceChecker.checkService(handleManagerUrl);
+			ServiceChecker.checkService(handleServiceUrl);
 			return new DependencyStatus(
 					true, "OK", "Handle manager", "Unknown");
 		} catch (ServiceException se) {
@@ -240,7 +240,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		WorkspaceServerMethods wsmeth = null;
 		Types types = null;
 		WorkspaceAdministration wsadmin = null;
-		URL handleManagerUrl = null;
+		URL handleServiceUrl = null;
 		BasicShockClient linkedShockClient = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
@@ -258,7 +258,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				wsmeth = res.getWsmeth();
 				types = res.getTypes();
 				wsadmin = res.getWsAdmin();
-				handleManagerUrl = res.getHandleManagerUrl();
 				linkedShockClient = res.getLinkedShockClient();
 				setRpcDiskCacheTempDir(ws.getTempFilesManager().getTempDir());
 			}
@@ -267,7 +266,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		this.wsmeth = wsmeth;
 		this.types = types;
 		this.wsadmin = wsadmin;
-		this.handleManagerUrl = handleManagerUrl;
+		this.handleServiceUrl = handleServiceUrl;
 		this.linkedShockClient = linkedShockClient;
         //END_CONSTRUCTOR
     }
@@ -1736,9 +1735,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<DependencyStatus> deps = ws.status();
 		if (wsmeth.getHandleServiceURL() != null) {
 			deps.add(wsmeth.checkHandleService());
-		}
-		if (handleManagerUrl != null) {
-			deps.add(checkHandleManager());
 		}
 		if (linkedShockClient != null) {
 			deps.add(checkShockLink());

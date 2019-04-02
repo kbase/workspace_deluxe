@@ -87,7 +87,6 @@ public class HandleAndShockTest {
 	 * use Shock here anyway.
 	 */
 
-//	private static MySQLController MYSQL;
 	private static MongoController MONGO;
 	private static ShockController SHOCK;
 	private static HandleServiceController HANDLE;
@@ -179,6 +178,7 @@ public class HandleAndShockTest {
 				Paths.get(TestCommon.getTempDir()),
 				new URL(authURL.toString() + "/api/legacy/KBase"));
 		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
+		System.out.println("Started Handle Service on port " + HANDLE.getHandleServerPort());
 		
 		SERVER = startupWorkspaceServer(mongohost,
 				"HandleAndShockTestsss", 
@@ -206,7 +206,9 @@ public class HandleAndShockTest {
 		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
 				HANDLE.getHandleServerPort()), t1);
 		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
-		
+		// test connection
+		HANDLE_CLIENT.areReadable(Arrays.asList("fake_handle_id"));
+
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:"
 				+ SHOCK.getServerPort()), CLIENT1.getToken());
 		SHOCK_USER1 = bsc.addNode().getACLs().getOwner();
@@ -221,7 +223,7 @@ public class HandleAndShockTest {
 	private static void setUpSpecs() throws Exception {
 		final String handlespec =
 				"module HandleByteStreamList {" +
-//					"/* @id handle */" +
+					"/* @id handle */" +
 					"typedef string handle;" +
 					"typedef structure {" +
 						"list<handle> handles;" +
@@ -284,11 +286,9 @@ public class HandleAndShockTest {
 		ws.add("bytestream-token", shockLinkToken.getToken());
 		ws.add("ws-admin", USER2);
 		ws.add("handle-service-url", "http://localhost:" + HANDLE.getHandleServerPort());
-		ws.add("handle-manager-url", "http://localhost:" + HANDLE.getHandleServerPort());
 		ws.add("handle-manager-token", handleToken.getToken());
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForHandleAndShockTest"));
-		ws.add("ignore-handle-service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 
@@ -337,7 +337,7 @@ public class HandleAndShockTest {
 		//top level items
 		assertThat("incorrect state", st.get("state"), is((Object) "OK"));
 		assertThat("incorrect message", st.get("message"), is((Object) "OK"));
-		// should throw an error if not a valid semver
+		// should throw an error if not a valid sever
 		Version.valueOf((String) st.get("version")); 
 		assertThat("incorrect git url", st.get("git_url"),
 				is((Object) "https://github.com/kbase/workspace_deluxe"));
@@ -349,13 +349,12 @@ public class HandleAndShockTest {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> deps =
 				(List<Map<String, String>>) st.get("dependencies");
-		assertThat("missing dependencies", deps.size(), is(3));
+		assertThat("missing dependencies", deps.size(), is(4));
 		
 		final List<List<String>> exp = new ArrayList<List<String>>();
 		exp.add(Arrays.asList("MongoDB", "true"));
 		exp.add(Arrays.asList("Shock", "true"));
-//		exp.add(Arrays.asList("Handle service", "false"));
-//		exp.add(Arrays.asList("Handle manager", "false"));
+		exp.add(Arrays.asList("Handle service", "false"));
 		exp.add(Arrays.asList("Linked Shock for IDs", "true"));
 		final Iterator<List<String>> expiter = exp.iterator();
 		final Iterator<Map<String, String>> gotiter = deps.iterator();
@@ -391,7 +390,7 @@ public class HandleAndShockTest {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		BasicShockClient bsc = new BasicShockClient(
 				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
-
+		
 		final ShockNode node = bsc.addNode();
 		String handle_id = node.getId().getId();
 		System.out.println("generated random handle_id for testing: " + handle_id);
@@ -435,7 +434,7 @@ public class HandleAndShockTest {
 //						"supplied credentials may not own the node, or some " +
 //						"other reason. The call cannot complete."));
 //		}
-//		
+		
 		bsc.removeFromNodeAcl(new ShockNodeId(handle_id),
 				Arrays.asList(USER2), ShockACLType.ALL);
 		
@@ -482,7 +481,7 @@ public class HandleAndShockTest {
 		checkExternalIDError(ret2.getHandleError(), ret2.getHandleStacktrace());
 		
 		checkReadAcl(node, oneuser);
-		
+
 		//object by ref chain
 		Map<String, String> refdata = new HashMap<String, String>();
 		refdata.put("id", workspace + "/1");
@@ -502,11 +501,10 @@ public class HandleAndShockTest {
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
-		
+
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
-		
 //		assertThat("got correct error message", wod.getHandleError(),
 //				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
 //						+ handle_id));
@@ -517,7 +515,7 @@ public class HandleAndShockTest {
 //						"ACLs: Unable to set acl(s) on handles "
 //						+ handle_id));
 	}
-//	
+	
 	@Test
 	public void saveAndGetWithShockIDs() throws Exception {
 		// tests shock nodes that are already owned by the WS (but readable by the user)
@@ -784,7 +782,6 @@ public class HandleAndShockTest {
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
-//		checkPublicRead(node, true);
 		
 		//test error message for deleted node with no auth
 		node.delete();
@@ -799,13 +796,13 @@ public class HandleAndShockTest {
 		
 //		assertThat("got correct error message", wod.getHandleError(),
 //				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
-//						+ h1.getHid()));
+//						+ handle_id));
 //		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
 //				startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
 //						"IdReferencePermissionHandlerException: " +
 //						"The Handle Manager reported a problem while attempting to set Handle " +
 //						"ACLs: Unable to set acl(s) on handles "
-//						+ h1.getHid()));
+//						+ handle_id));
 		
 	}
 
@@ -839,64 +836,64 @@ public class HandleAndShockTest {
 		assertThat("correct shock acls", node.getACLs().getDelete(), is(users));
 	}
 	
-//	@Test
-//	public void badHandle() throws Exception {
-//		String workspace = "nullhandle";
-//		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-//		List<String> handleList = new LinkedList<String>();
-//		handleList.add(null);
-//		Map<String, Object> handleobj = new HashMap<String, Object>();
-//		handleobj.put("handles", handleList);
-//		try {
-//			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
-//					.withObjects(Arrays.asList(
-//							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo")
-//							.withType(HANDLE_TYPE))));
-//			fail("saved null handle");
-//		} catch (ServerException se) {
-//			assertThat("correct exception msg", se.getMessage(),
-//					is("Object #1, foo failed type checking:\ninstance type (null) not allowed " +
-//							"for ID reference (allowed: [\"string\"]), at /handles/0"));
-//		}
-//		handleList.set(0, "");
-//		try {
-//			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
-//					.withObjects(Arrays.asList(
-//							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo1")
-//							.withType(HANDLE_TYPE))));
-//			fail("saved bad handle");
-//		} catch (ServerException se) {
-//			assertThat("correct exception msg", se.getMessage(),
-//					is("Object #1, foo1 failed type checking:\nUnparseable id  of type handle: " +
-//							"IDs may not be null or the empty string at /handles/0"));
-//		}
-//	}
-//	
-//	@Test
-//	public void idCount() throws Exception {
-//		IdReferenceType type = HandleIdHandlerFactory.TYPE;
-//		IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder.getBuilder(4)
-//				.build().getFactory(CLIENT1.getToken());
-//		final HandleMngrClient client = new HandleMngrClient(
-//				new URL("http://localhost:" + HANDLE.getHandleManagerPort()), HANDLE_MNGR_TOKEN);
-//		fac.addFactory(new HandleIdHandlerFactory(
-//				new URL("http://localhost:" + HANDLE.getHandleServerPort()), client));
-//		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
-//		handlers.associateObject("foo");
-//		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
-//		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
-//		handlers.addStringId(new IdReference<String>(type, "KBH_2", null));
-//		handlers.associateObject("foo1");
-//		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
-//		assertThat("id count correct", handlers.size(), is(3));
-//		handlers.addStringId(new IdReference<String>(type, "KBH_2", null));
-//		try {
-//			handlers.addStringId(new IdReference<String>(type, "KBH_3", null));
-//			fail("exceeded max IDs");
-//		} catch (TooManyIdsException e) {
-//			assertThat("correct exception msg", e.getMessage(),
-//					is("Maximum ID count of 4 exceeded"));
-//		}
-//		
-//	}
+	@Test
+	public void badHandle() throws Exception {
+		String workspace = "nullhandle";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		List<String> handleList = new LinkedList<String>();
+		handleList.add(null);
+		Map<String, Object> handleobj = new HashMap<String, Object>();
+		handleobj.put("handles", handleList);
+		try {
+			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo")
+							.withType(HANDLE_TYPE))));
+			fail("saved null handle");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getMessage(),
+					is("Object #1, foo failed type checking:\ninstance type (null) not allowed " +
+							"for ID reference (allowed: [\"string\"]), at /handles/0"));
+		}
+		handleList.set(0, "");
+		try {
+			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo1")
+							.withType(HANDLE_TYPE))));
+			fail("saved bad handle");
+		} catch (ServerException se) {
+			assertThat("correct exception msg", se.getMessage(),
+					is("Object #1, foo1 failed type checking:\nUnparseable id  of type handle: " +
+							"IDs may not be null or the empty string at /handles/0"));
+		}
+	}
+	
+	@Test
+	public void idCount() throws Exception {
+		IdReferenceType type = HandleIdHandlerFactory.TYPE;
+		IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder.getBuilder(4)
+				.build().getFactory(CLIENT1.getToken());
+		final AbstractHandleClient client = new AbstractHandleClient(
+				new URL("http://localhost:" + HANDLE.getHandleServerPort()), HANDLE_MNGR_TOKEN);
+		fac.addFactory(new HandleIdHandlerFactory(
+				new URL("http://localhost:" + HANDLE.getHandleServerPort()), client));
+		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
+		handlers.associateObject("foo");
+		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
+		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
+		handlers.addStringId(new IdReference<String>(type, "KBH_2", null));
+		handlers.associateObject("foo1");
+		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));
+		assertThat("id count correct", handlers.size(), is(3));
+		handlers.addStringId(new IdReference<String>(type, "KBH_2", null));
+		try {
+			handlers.addStringId(new IdReference<String>(type, "KBH_3", null));
+			fail("exceeded max IDs");
+		} catch (TooManyIdsException e) {
+			assertThat("correct exception msg", e.getMessage(),
+					is("Maximum ID count of 4 exceeded"));
+		}
+		
+	}
 }

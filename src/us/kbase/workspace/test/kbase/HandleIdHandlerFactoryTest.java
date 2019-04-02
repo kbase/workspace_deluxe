@@ -19,7 +19,7 @@ import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestCommon;
-import us.kbase.handlemngr.HandleMngrClient;
+import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
 import us.kbase.typedobj.idref.IdReferenceType;
@@ -48,7 +48,7 @@ public class HandleIdHandlerFactoryTest {
 	}
 
 	private void setPermissionsReadNoop(final Collection<String> ids) throws Exception {
-		final HandleMngrClient c = mock(HandleMngrClient.class);
+		final AbstractHandleClient c = mock(AbstractHandleClient.class);
 		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, c);
 		
 		final IdReferencePermissionHandler h = f.createPermissionHandler();
@@ -60,7 +60,7 @@ public class HandleIdHandlerFactoryTest {
 	
 	@Test
 	public void addReadPermissions() throws Exception {
-		final HandleMngrClient c = mock(HandleMngrClient.class);
+		final AbstractHandleClient c = mock(AbstractHandleClient.class);
 		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, c);
 		
 		final IdReferencePermissionHandler h = f.createPermissionHandler();
@@ -72,7 +72,7 @@ public class HandleIdHandlerFactoryTest {
 	
 	@Test
 	public void addReadPermissionsWithUser() throws Exception {
-		final HandleMngrClient c = mock(HandleMngrClient.class);
+		final AbstractHandleClient c = mock(AbstractHandleClient.class);
 		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, c);
 		
 		final IdReferencePermissionHandler h = f.createPermissionHandler("user");
@@ -120,7 +120,7 @@ public class HandleIdHandlerFactoryTest {
 	
 	private void addReadPermissionsFailNoUser(final Exception ex, final String err)
 			throws IOException, JsonClientException {
-		final HandleMngrClient c = mock(HandleMngrClient.class);
+		final AbstractHandleClient c = mock(AbstractHandleClient.class);
 		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, c);
 		final IdReferencePermissionHandler h = f.createPermissionHandler();
 		
@@ -158,7 +158,7 @@ public class HandleIdHandlerFactoryTest {
 	
 	private void addReadPermissionsFailWithUser(final Exception ex, final String err)
 			throws IOException, JsonClientException {
-		final HandleMngrClient c = mock(HandleMngrClient.class);
+		final AbstractHandleClient c = mock(AbstractHandleClient.class);
 		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, c);
 		final IdReferencePermissionHandler h = f.createPermissionHandler("user");
 		

@@ -88,8 +88,7 @@
     <include name="logback/logback-classic-1.1.2.jar"/>
     <include name="google/guava-14.0.1.jar"/>
     <include name="kafka/kafka-clients-2.1.0.jar"/>
-    <include name="kbase/handle/HandleServiceClient-160803-b9de699.jar"/>
-    <include name="kbase/handle/HandleManagerClient-160803-08c8da3.jar"/>
+    <include name="kbase/handle/HandleService2Client-20190401.jar"/>
   </fileset>
 	
   <fileset dir="${jardir}" id="testlib">
@@ -342,7 +341,6 @@
           <fileset dir="${src}">
             <include name="**/test/**/**Test.java"/>
             <exclude name="**/test/**/**LongTest.java"/>
-            <exclude name="**/test/**/HandleAndShockTest.java"/>
           </fileset>
         </batchtest>
       </junit>
