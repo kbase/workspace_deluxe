@@ -113,8 +113,6 @@ public class HandleAndShockTest {
 	private static BasicShockClient WS_OWNED_SHOCK;
 	private static BasicShockClient SHOCK_CLIENT_1;
 	
-	private static ShockACLType READ_ACL = ShockACLType.READ;
-	
 	private static String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
 	private static String SHOCK_TYPE = "HandleByteStreamList.SList-0.1";
 	private static String HANDLE_REF_TYPE = "HandleByteStreamList.HRef-0.1";
@@ -428,40 +426,29 @@ public class HandleAndShockTest {
 		 * object where they don't own the shock nodes, even with all other
 		 * privileges
 		 */
-
-		@SuppressWarnings("unused")
-		ShockACL acl = bsc.addToNodeAcl(new ShockNodeId(shock_id),
-				Arrays.asList(USER2), ShockACLType.ALL);
+		bsc.addToNodeAcl(new ShockNodeId(shock_id), Arrays.asList(USER2), ShockACLType.ALL);
 		String workspace2 = "basichandle2";
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace2));
-//		try {
-//			CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace(workspace2)
-//					.withObjects(Arrays.asList(
-//							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo2")
-//							.withType(HANDLE_TYPE))));
-//			fail("saved object with bad handle");
-//		} catch (ServerException e) {
-//			assertThat("correct exception message", e.getMessage(),
-//					is("An error occured while processing IDs: " +
-//						"The Handle Service reported that at least one of " +
-//						"the handles contained in the objects in this call " +
-//						"is not accessible - it may not exist, or the " +
-//						"supplied credentials may not own the node, or some " +
-//						"other reason. The call cannot complete."));
-//		}
+		try {
+			CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace(workspace2)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo2")
+							.withType(HANDLE_TYPE))));
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
 		
 		bsc.removeFromNodeAcl(new ShockNodeId(shock_id),
 				Arrays.asList(USER2), ShockACLType.ALL);
 		
 		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
 		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
-		
+
 		checkReadAcl(node, oneuser);
 
 		// test that user2 can get shock nodes even though permissions have
 		// been removed when user2 can read the workspace object
-		bsc.addToNodeAcl(new ShockNodeId(shock_id),
-					Arrays.asList(USER2), ShockACLType.READ);
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
 		//get objects2
@@ -471,15 +458,13 @@ public class HandleAndShockTest {
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
 		
-		checkReadAcl(node, twouser);
-		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
 		
 		//get objects
 		ObjectData ret = CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
 				.withObjid(1L))).get(0);
 		checkExternalIDError(ret.getHandleError(), ret.getHandleStacktrace());
-	
+
 		checkReadAcl(node, oneuser);
 
 		//object subset
@@ -520,17 +505,7 @@ public class HandleAndShockTest {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
-		System.out.println(wod.getHandleError());
-		System.out.println(wod.getHandleStacktrace());
-//		assertThat("got correct error message", wod.getHandleError(),
-//				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
-//						+ handle_id));
-//		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
-//				startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
-//						"IdReferencePermissionHandlerException: " +
-//						"The Handle Manager reported a problem while attempting to set Handle " +
-//						"ACLs: Unable to set acl(s) on handles "
-//						+ handle_id));
+		checkExternalIDError(wod.getHandleError(), wod.getHandleStacktrace());
 	}
 	
 	@Test
@@ -799,10 +774,7 @@ public class HandleAndShockTest {
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
-		bsc.addToNodeAcl(new ShockNodeId(shock_id),
-				Arrays.asList(USER2), ShockACLType.READ);
-		checkReadAcl(node, twouser);
-
+		checkReadAcl(node, oneuser);
 		checkPublicRead(node, false);
 		// check that anonymous users can get the object & shock nodes
 		CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
@@ -810,7 +782,8 @@ public class HandleAndShockTest {
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
-		
+		checkPublicRead(node, false);
+
 		//test error message for deleted node with no auth
 		node.delete();
 		ObjectData wod = CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
@@ -821,15 +794,7 @@ public class HandleAndShockTest {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
-//		assertThat("got correct error message", wod.getHandleError(),
-//				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
-//						+ handle_id));
-//		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
-//				startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
-//						"IdReferencePermissionHandlerException: " +
-//						"The Handle Manager reported a problem while attempting to set Handle " +
-//						"ACLs: Unable to set acl(s) on handles "
-//						+ handle_id));
+		checkExternalIDError(wod.getHandleError(), wod.getHandleStacktrace());
 		
 	}
 
