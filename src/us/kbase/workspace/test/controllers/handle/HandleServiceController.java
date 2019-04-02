@@ -43,31 +43,26 @@ public class HandleServiceController {
 	private final static String HANDLE_SERVICE_NAME = "handle_service";
 
 	public HandleServiceController(
-			final String plackupExe,
-			final String abstractHandlePSGIpath,
-			final String handleManagerPSGIpath,
-			final String handleManagerAllowedUser,
 			final MongoController mongo,
 			final String shockHost,
 			final AuthToken shockAdminToken,
 			final String perl5lib,
 			final Path rootTempDir,
-			URL authServiceURL)
+			URL authURL, 
+			final String handleAdminRole)
 			throws Exception {
-		
-		authServiceURL = new URL(authServiceURL.toString() + "/Sessions/Login");
-		
+				
 		tempDir = makeTempDirs(rootTempDir, "HandleServiceController-",
 				new LinkedList<String>());
 		
 		handleServicePort = findFreePort();
 		
-		File hsIniFile = createHandleServiceDeployCfg(mongo, shockHost, authServiceURL);
+		File hsIniFile = createHandleServiceDeployCfg(mongo, shockHost, authURL,
+				shockAdminToken, handleAdminRole);
 		String lib_dir = "lib";
 		downloadSourceFiles(tempDir, lib_dir);
 
-//		String lib_dir_path = tempDir.resolve(lib_dir).toAbsolutePath().toString();
-		String lib_dir_path = "/home/tian/Dev/handle_service2/lib";
+		String lib_dir_path = tempDir.resolve(lib_dir).toAbsolutePath().toString();
 		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http", 
 				":" + handleServicePort, "--wsgi-file",
 				"AbstractHandle/AbstractHandleServer.py", "--pythonpath", lib_dir_path)
@@ -77,7 +72,7 @@ public class HandleServiceController {
 		env.put("PERL5LIB", perl5lib);
 		env.put("KB_DEPLOYMENT_CONFIG", hsIniFile.getAbsolutePath().toString());
 		env.put("KB_SERVICE_NAME", HANDLE_SERVICE_NAME);
-		env.put("KB_AUTH_TOKEN", shockAdminToken.toString());
+		env.put("KB_AUTH_TOKEN", shockAdminToken.getToken());
 		env.put("PYTHONPATH", lib_dir_path);
 		handlepb.directory(new File(lib_dir_path));
 		handleService = handlepb.start();
@@ -135,7 +130,9 @@ public class HandleServiceController {
 	private File createHandleServiceDeployCfg(
 			final MongoController mongo,
 			final String shockHost,
-			final URL authServiceURL) throws IOException {
+			final URL authURL,
+			final AuthToken shockAdminToken,
+			final String handleAdminRole) throws IOException {
 		final File iniFile = tempDir.resolve("handleService.cfg").toFile();
 		if (iniFile.exists()) {
 			iniFile.delete();
@@ -146,15 +143,17 @@ public class HandleServiceController {
 		hs.add("self-url", "http://localhost:" + handleServicePort);
 		hs.add("service-port", "" + handleServicePort);
 		hs.add("service-host", "localhost");
+		URL authServiceURL = new URL(authURL.toString() + "/api/legacy/KBase/Sessions/Login");
 		hs.add("auth-service-url", authServiceURL.toString());
-		hs.add("auth-url", authServiceURL.toString());
+		hs.add("auth-url", authURL.toString());
 		hs.add("default-shock-server", shockHost);
+		hs.add("admin-token", shockAdminToken.toString());
 		
 		hs.add("mongo-host", "127.0.0.1");
 		hs.add("mongo-port", "" + mongo.getServerPort());
 		hs.add("mongo-database", DB);
 		hs.add("mongo-collection", COLLECTION);
-		hs.add("admin-roles", "HANDLE_ADMIN, KBASE_ADMIN");
+		hs.add("admin-roles", handleAdminRole);
 		
 		ini.store(iniFile);
 		return iniFile;
@@ -174,7 +173,7 @@ public class HandleServiceController {
 			handleService.destroy();
 		}
 		if (tempDir != null && deleteTempFiles) {
-			FileUtils.deleteDirectory(tempDir.toFile());
+//			FileUtils.deleteDirectory(tempDir.toFile());
 		}
 	}
 
@@ -191,16 +190,13 @@ public class HandleServiceController {
 				"shockdb", "foo", "foo", new URL("http://foo.com")); 
 		
 		HandleServiceController hsc = new HandleServiceController(
-				"/kb/runtime/bin/plackup",
-				"/kb/deployment/lib/AbstractHandle.psgi",
-				"/kb/deployment/lib/HandleMngr.psgi",
-				System.getProperty("test.user2"),
 				monc,
 				"http://localhost:" + sc.getServerPort(),
 				null, //this will break the hm, need a token
 				"/kb/deployment/lib",
 				Paths.get("workspacetesttemp"),
-				new URL("http://foo.com"));
+				new URL("http://foo.com"),
+				"KBASE_ADMIN");
 		System.out.println("handlesrv: " + hsc.getHandleServerPort());
 		System.out.println(hsc.getTempDir());
 		Scanner reader = new Scanner(System.in);
