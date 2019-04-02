@@ -63,7 +63,6 @@ public class KBaseWorkspaceConfig {
 	//handle service / manager info
 	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
 	private static final String HANDLE_SERVICE_URL = "handle-service-url";
-//	private static final String HANDLE_MANAGER_URL = "handle-manager-url";
 	private static final String HANDLE_MANAGER_TOKEN = "handle-manager-token";
 	
 	// listeners
@@ -103,7 +102,6 @@ public class KBaseWorkspaceConfig {
 	private final Set<String> adminReadOnlyRoles;
 	private final boolean ignoreHandleService;
 	private final URL handleServiceURL;
-//	private final URL handleManagerURL;
 	private final String handleManagerToken;
 	private final List<String> errors;
 	private final List<String> infoMessages;

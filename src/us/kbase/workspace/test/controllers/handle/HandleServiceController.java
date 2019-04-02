@@ -173,7 +173,7 @@ public class HandleServiceController {
 			handleService.destroy();
 		}
 		if (tempDir != null && deleteTempFiles) {
-//			FileUtils.deleteDirectory(tempDir.toFile());
+			FileUtils.deleteDirectory(tempDir.toFile());
 		}
 	}
 
