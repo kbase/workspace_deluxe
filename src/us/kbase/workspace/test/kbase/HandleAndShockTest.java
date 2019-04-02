@@ -99,6 +99,7 @@ public class HandleAndShockTest {
 	private static ShockUserId SHOCK_USER1;
 	private static ShockUserId SHOCK_USER2;
 	private static ShockUserId SHOCK_USER3;
+	private static final String HANDLE_ADMIN_ROLE = "HANDLE_ADMIN_ROLE";
 	
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
@@ -136,8 +137,11 @@ public class HandleAndShockTest {
 				Paths.get(TestCommon.getTempDir()));
 		final URL authURL = new URL("http://localhost:" + AUTH.getServerPort() + "/testmode");
 		System.out.println("started auth server at " + authURL);
+		
 		TestCommon.createAuthUser(authURL, USER1, "display1");
 		final String token1 = TestCommon.createLoginToken(authURL, USER1);
+		TestCommon.createCustomRole(authURL, HANDLE_ADMIN_ROLE, "handle admin role");
+		TestCommon.setUserRoles(authURL, USER1, Arrays.asList(HANDLE_ADMIN_ROLE));
 		TestCommon.createAuthUser(authURL, USER2, "display2");
 		final String token2 = TestCommon.createLoginToken(authURL, USER2);
 		TestCommon.createAuthUser(authURL, USER3, "display3");
@@ -167,21 +171,18 @@ public class HandleAndShockTest {
 		SHOCK_CLIENT_1 = new BasicShockClient(shockURL, t1);
 		
 		HANDLE = new HandleServiceController(
-				WorkspaceTestCommon.getPlackupExe(),
-				WorkspaceTestCommon.getHandleServicePSGI(),
-				WorkspaceTestCommon.getHandleManagerPSGI(),
-				"user3",
 				MONGO,
 				shockURL.toString(),
-				HANDLE_MNGR_TOKEN,
+				t1,
 				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(TestCommon.getTempDir()),
-				new URL(authURL.toString() + "/api/legacy/KBase"));
+				new URL(authURL.toString()),
+				HANDLE_ADMIN_ROLE);
 		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
 		System.out.println("Started Handle Service on port " + HANDLE.getHandleServerPort());
 		
 		SERVER = startupWorkspaceServer(mongohost,
-				"HandleAndShockTestsss", 
+				"HandleAndShockTest", 
 				"HandleAndShockTest_types",
 				shockURL,
 				t2,
