@@ -61,38 +61,38 @@ import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 public class InitWorkspaceServer {
-	
+
 	//TODO TEST unittests
 	//TODO JAVADOC
-	
+
 	public static final String COL_SHOCK_NODES = InitConstants.COL_SHOCK_NODES;
-	
+
 	private static final int ADMIN_CACHE_MAX_SIZE = 100; // seems like more than enough admins
 	private static final int ADMIN_CACHE_EXP_TIME_MS = 5 * 60 * 1000; // cache admin role for 5m
-	
+
 	private static int maxUniqueIdCountPerCall = 100000;
 
 	private static int instanceCount = 0;
 	private static boolean wasTempFileCleaningDone = false;
-	
+
 	public static abstract class InitReporter {
-		
+
 		private boolean failed = false;
-		
+
 		public abstract void reportInfo(final String info);
-		
+
 		public void reportFail(final String fail) {
 			failed = true;
 			handleFail(fail);
 		}
-		
+
 		public abstract void handleFail(final String fail);
-		
+
 		public boolean isFailed() {
 			return failed;
 		}
 	}
-	
+
 	public static class WorkspaceInitResults {
 		private final Workspace ws;
 		private final WorkspaceServerMethods wsmeth;
@@ -100,7 +100,7 @@ public class InitWorkspaceServer {
 		private final Types types;
 		private final BasicShockClient linkedShockClient;
 		private final URL handleServiceUrl;
-		
+
 		public WorkspaceInitResults(
 				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
@@ -128,7 +128,7 @@ public class InitWorkspaceServer {
 		public WorkspaceAdministration getWsAdmin() {
 			return wsadmin;
 		}
-		
+
 		public Types getTypes() {
 			return types;
 		}
@@ -136,27 +136,27 @@ public class InitWorkspaceServer {
 		public URL getHandleServiceUrl() {
 			return handleServiceUrl;
 		}
-		
+
 		public BasicShockClient getLinkedShockClient() {
 			return linkedShockClient;
 		}
 	}
-	
+
 	public static void setMaximumUniqueIdCountForTests(final int count) {
 		maxUniqueIdCountPerCall = count;
 	}
-	
+
 	public static WorkspaceInitResults initWorkspaceServer(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
 		final TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(), rep);
-		
+
 		final ConfigurableAuthService auth = setUpAuthClient(cfg, rep);
 		if (rep.isFailed()) {
 			rep.reportFail("Server startup failed - all calls will error out.");
 			return null;
-		} 
-		
+		}
+
 		AuthToken handleMgrToken = null;
 		AbstractHandleClient hsc = null;
 		if (!cfg.ignoreHandleService()) {
@@ -165,11 +165,11 @@ public class InitWorkspaceServer {
 				hsc = getHandleServiceClient(cfg.getHandleServiceURL(), handleMgrToken, rep);
 			}
 		}
-		
+
 		if (rep.isFailed()) {
 			rep.reportFail("Server startup failed - all calls will error out.");
 			return null;
-		} 
+		}
 		rep.reportInfo("Starting server using connection parameters:\n" + cfg.getParamReport());
 		rep.reportInfo("Temporary file location: " + tfm.getTempDir());
 
@@ -211,7 +211,7 @@ public class InitWorkspaceServer {
 		return new WorkspaceInitResults(
 				ws, wsmeth, wsadmin, types, wsdeps.shockFac.client, cfg.getHandleServiceURL());
 	}
-	
+
 	private static AdministratorHandler getAdminHandler(
 			final KBaseWorkspaceConfig cfg,
 			final Workspace ws) throws WorkspaceInitException {
@@ -248,22 +248,22 @@ public class InitWorkspaceServer {
 		public ShockFactoryBits shockFac;
 		public List<WorkspaceEventListener> listeners;
 	}
-	
+
 	private static WorkspaceDependencies getDependencies(
 			final KBaseWorkspaceConfig cfg,
 			final TempFilesManager tfm,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
-		
+
 		final WorkspaceDependencies deps = new WorkspaceDependencies();
 		//TODO CODE update to new mongo APIs
 		final DB db = buildMongo(cfg, cfg.getDBname()).getDB(cfg.getDBname());
-		
+
 		final BlobStore bs = setupBlobStore(db, cfg, auth);
-		
+
 		// see https://jira.mongodb.org/browse/JAVA-2656
 		final DB typeDB = buildMongo(cfg, cfg.getTypeDBName()).getDB(cfg.getTypeDBName());
-		
+
 		try {
 			deps.typeDB = new TypeDefinitionDB(new MongoTypeStorage(typeDB));
 		} catch (TypeStorageException e) {
@@ -279,11 +279,11 @@ public class InitWorkspaceServer {
 					wde.getLocalizedMessage(), wde);
 		}
 		deps.shockFac = getShockIdHandlerFactory(cfg, auth);
-		
+
 		deps.listeners = loadListeners(cfg);
 		return deps;
 	}
-	
+
 	private static class ShockFactoryBits {
 		private final ShockIdHandlerFactory factory;
 		private final BasicShockClient client;
@@ -294,7 +294,7 @@ public class InitWorkspaceServer {
 			this.client = client;
 		}
 	}
-	
+
 	private static ShockFactoryBits getShockIdHandlerFactory(
 			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
@@ -316,7 +316,7 @@ public class InitWorkspaceServer {
 		}
 		return new ShockFactoryBits(
 				new ShockIdHandlerFactory(bsc, new ShockClientCloner() {
-					
+
 					@Override
 					public BasicShockClient clone(final BasicShockClient source)
 							throws IOException, InvalidShockUrlException {
@@ -345,7 +345,7 @@ public class InitWorkspaceServer {
 			throw new WorkspaceInitException("Failed to connect to MongoDB: " + e.getMessage(), e);
 		}
 	}
-	
+
 	private static List<WorkspaceEventListener> loadListeners(final KBaseWorkspaceConfig cfg)
 			throws WorkspaceInitException {
 		final List<WorkspaceEventListener> wels = new LinkedList<>();
@@ -423,7 +423,7 @@ public class InitWorkspaceServer {
 			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
-		
+
 		if (cfg.getBackendType().equals(BackendType.GridFS)) {
 			return new GridFSBlobStore(db);
 		}
@@ -468,7 +468,7 @@ public class InitWorkspaceServer {
 			return null;
 		}
 	}
-	
+
 	private static AuthToken getHandleToken(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep,
@@ -483,7 +483,7 @@ public class InitWorkspaceServer {
 		}
 		return null;
 	}
-	
+
 	private static AbstractHandleClient getHandleServiceClient(
 			final URL handleServiceUrl,
 			final AuthToken handleMgrToken,
@@ -500,6 +500,7 @@ public class InitWorkspaceServer {
 		} catch (Exception e) {
 			rep.reportFail("Could not establish a connection to the Handle Service at "
 					+ handleServiceUrl + ": " + e.getMessage());
+			e.printStackTrace();
 			return null;
 		}
 		try {
@@ -507,12 +508,12 @@ public class InitWorkspaceServer {
 		} catch (Exception e) {
 
 			rep.reportFail("Could not successfullly run methods on the Handle Service at "
-						+ handleServiceUrl + ": " + e.getMessage());
+						+ handleServiceUrl + ": " + e.requestModuleOwnership.getMessage());
 			return null;
 		}
 		return cli;
 	}
-	
+
 	private static ConfigurableAuthService setUpAuthClient(
 			final KBaseWorkspaceConfig cfg,
 			final InitReporter rep) {
@@ -543,15 +544,15 @@ public class InitWorkspaceServer {
 		}
 	}
 
-	
+
 	private static class WorkspaceInitException extends Exception {
-		
+
 		private static final long serialVersionUID = 1L;
 
 		public WorkspaceInitException(final String message) {
 			super(message);
 		}
-		
+
 		public WorkspaceInitException(final String message,
 				final Throwable throwable) {
 			super(message, throwable);
