@@ -6,6 +6,7 @@ jdk:
 python:
   - "3.4"
 
+
 # TODO split tests into mongo related & non mongo related. Run the former once.
 env:
   - MONGODB_VER=mongodb-linux-x86_64-2.6.12 ANT_TEST=test_quick WIRED_TIGER=false
@@ -15,8 +16,15 @@ env:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y ant-optional
-  - sudo pip install sphinx
-  - sudo pip install uwsgi
+  - sudo apt-get install python3
+  - sudo pip3 install sphinx
+  - sudo pip3 install uwsgi
+addons:
+  apt:
+    sources:
+        - deadsnakes
+    packages:
+        - python3.4
 
 install:
   - cd ..
