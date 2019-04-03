@@ -9,8 +9,10 @@ import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
 import us.kbase.workspace.test.kbase.JSONRPCLayerTester.ServerThread;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -201,8 +203,6 @@ public class HandleAndShockTest {
 		CLIENT3.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT_NOAUTH.setIsInsecureHttpConnectionAllowed(true);
 
-		
-
 		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
 				HANDLE.getHandleServerPort()), t1);
 		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
@@ -213,6 +213,13 @@ public class HandleAndShockTest {
 			System.out.println("Could not successfullly run methods on the Handle Service");
 			System.out.println(e.getMessage());
 			throw e;
+		}
+		
+		File log_file = HANDLE.getTempDir().resolve("handle_service.log").toFile();
+		BufferedReader br = new BufferedReader(new FileReader(log_file));
+		String line = null;
+		while ((line = br.readLine()) != null) {
+			System.out.println(line);
 		}
 		
 		setUpSpecs();
