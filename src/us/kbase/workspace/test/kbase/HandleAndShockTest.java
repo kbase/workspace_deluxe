@@ -210,6 +210,7 @@ public class HandleAndShockTest {
 			HANDLE_CLIENT.areReadable(Arrays.asList("fake_handle_id"));
 		} catch (Exception e) {
 			System.out.println("Could not successfullly run methods on the Handle Service");
+			System.out.println(e.getMessage());
 			throw e;
 		}
 
