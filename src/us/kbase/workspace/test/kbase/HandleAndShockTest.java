@@ -208,6 +208,7 @@ public class HandleAndShockTest {
 		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
 		try {
 			HANDLE_CLIENT.areReadable(Arrays.asList("fake_handle_id"));
+			System.out.println("Successfully run are_readable on handle service");
 		} catch (Exception e) {
 			System.out.println("Could not successfullly run methods on the Handle Service");
 			System.out.println(e.getMessage());
