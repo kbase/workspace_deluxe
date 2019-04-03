@@ -181,6 +181,13 @@ public class HandleAndShockTest {
 				HANDLE_ADMIN_ROLE);
 		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
 		System.out.println("Started Handle Service on port " + HANDLE.getHandleServerPort());
+		
+		File log_file = HANDLE.getTempDir().resolve("handle_service.log").toFile();
+		BufferedReader br = new BufferedReader(new FileReader(log_file));
+		String line = null;
+		while ((line = br.readLine()) != null) {
+			System.out.println(line);
+		}
 
 		SERVER = startupWorkspaceServer(mongohost,
 				"HandleAndShockTest",
@@ -192,6 +199,13 @@ public class HandleAndShockTest {
 
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
+		
+		log_file = HANDLE.getTempDir().resolve("handle_service.log").toFile();
+		br = new BufferedReader(new FileReader(log_file));
+		line = null;
+		while ((line = br.readLine()) != null) {
+			System.out.println(line);
+		}
 
 		final URL url = new URL("http://localhost:" + port);
 		CLIENT1 = new WorkspaceClient(url, t1);
@@ -215,9 +229,9 @@ public class HandleAndShockTest {
 			throw e;
 		}
 		
-		File log_file = HANDLE.getTempDir().resolve("handle_service.log").toFile();
-		BufferedReader br = new BufferedReader(new FileReader(log_file));
-		String line = null;
+		log_file = HANDLE.getTempDir().resolve("handle_service.log").toFile();
+		br = new BufferedReader(new FileReader(log_file));
+		line = null;
 		while ((line = br.readLine()) != null) {
 			System.out.println(line);
 		}
