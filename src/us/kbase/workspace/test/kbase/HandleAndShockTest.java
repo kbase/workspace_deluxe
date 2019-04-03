@@ -201,7 +201,7 @@ public class HandleAndShockTest {
 		CLIENT3.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT_NOAUTH.setIsInsecureHttpConnectionAllowed(true);
 
-		setUpSpecs();
+		
 
 		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
 				HANDLE.getHandleServerPort()), t1);
@@ -213,6 +213,8 @@ public class HandleAndShockTest {
 			System.out.println(e.getMessage());
 			throw e;
 		}
+		
+		setUpSpecs();
 
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:"
 				+ SHOCK.getServerPort()), CLIENT1.getToken());
