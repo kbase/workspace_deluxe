@@ -131,13 +131,7 @@ public class HandleServiceController {
 		replaced = lines.map(line -> line.replaceAll("str]", "unicode]")).collect(Collectors.toList());
 		Files.write(log_file, replaced);
 		lines.close();
-		
-		log_file = handle_utils_dir.resolve("MongoUtil.py");
-		lines = Files.lines(log_file);
-		replaced = lines.map(line -> line.replaceAll("#print", 
-				"print")).collect(Collectors.toList());
-		Files.write(log_file, replaced);
-		lines.close();
+
 	}
 	
 	private File createHandleServiceDeployCfg(
