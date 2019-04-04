@@ -13,7 +13,11 @@ env:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y ant-optional
+  - sudo apt-get install -y build-essential python-dev
   - sudo pip install sphinx
+  - sudo pip install jsonrpcbase
+  - sudo pip install pymongo
+  - sudo pip install cachetools
   - sudo pip install uwsgi
 
 install:
