@@ -115,7 +115,7 @@ public class ObjectInfoUtils {
 	private DBCursor buildCursor(
 			final DBObject verq,
 			final DBObject projection,
-			final  DBObject sort)
+			final DBObject sort)
 			throws WorkspaceCommunicationException {
 		final DBCursor cur;
 		try {
@@ -144,6 +144,12 @@ public class ObjectInfoUtils {
 	 * that could occur in mongodb memory - this means there's a limit to the amount of data
 	 * that can be sorted without an error and therefore errors *will* occur when a sort on more
 	 * data than the limit is attempted.
+	 * 
+	 * 19/2/13: This is really difficult to test on mongo 3+. There will always be a list
+	 * of workspaces in an $in clause, and so the query optimizer is now good enough to always
+	 * use the ws/obj/ver index to sort, at least for smaller data sets. It's still potentially
+	 * dangerous to add the sort, since that forces the optimizer to use the ws/obj/ver index
+	 * (which could return a huge number of results and really slow down the query).
 	 */
 	private DBObject buildSortSpec(final GetObjectInformationParameters params) {
 		final DBObject sort = new BasicDBObject();

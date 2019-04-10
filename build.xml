@@ -1,4 +1,5 @@
-<project name="Workspace Service" default="test" basedir=".">
+<project name="Workspace Service" default="test" basedir="."
+  xmlns:jacoco="antlib:org.jacoco.ant">
 
   <description>
       Build file for the Workspace Service
@@ -19,6 +20,7 @@
   <property name="war.file" value="WorkspaceService.war"/>
   <property name="clientjar.file" value="WorkspaceClient.jar"/>
   <property name="war.dir" value="war"/>
+  <property name="test.reports.dir" location="test-reports"/>
 
   <property environment="env"/>
   <condition property="jardir" value="../jars/lib/jars/">
@@ -67,7 +69,7 @@
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
-    <include name="kbase/shock/shock-client-0.0.14.jar"/>
+    <include name="kbase/shock/shock-client-0.0.16.jar"/>
     <include name="apache_commons/commons-logging-1.1.1.jar"/>
     <include name="apache_commons/http/httpclient-4.3.1.jar"/>
     <include name="apache_commons/http/httpcore-4.3.jar"/>
@@ -79,13 +81,13 @@
     <include name="apache_commons/commons-codec-1.8.jar"/>
     <include name="apache_commons/commons-io-2.4.jar"/>
     <include name="apache_commons/commons-lang3-3.1.jar"/>
-    <include name="mongo/mongo-java-driver-2.13.3.jar"/>
-    <include name="jongo/jongo-0.5-early-20130912-1506.jar"/>
+    <include name="mongo/mongo-java-driver-3.8.2.jar"/>
     <include name="bson4jackson/bson4jackson-2.2.0-2.2.0.jar"/>
     <include name="slf4j/slf4j-api-1.7.7.jar"/>
     <include name="logback/logback-core-1.1.2.jar"/>
     <include name="logback/logback-classic-1.1.2.jar"/>
     <include name="google/guava-14.0.1.jar"/>
+    <include name="kafka/kafka-clients-2.1.0.jar"/>
     <include name="kbase/handle/HandleServiceClient-160803-b9de699.jar"/>
     <include name="kbase/handle/HandleManagerClient-160803-08c8da3.jar"/>
   </fileset>
@@ -157,6 +159,8 @@
     <!-- Create the output directory structure-->
     <mkdir dir="${classes}"/>
     <mkdir dir="${dist}"/>
+    <mkdir dir="${test.reports.dir}"/>
+    <mkdir dir="${test.reports.dir}/html"/>
   </target>
 
   <target name="compile_client" description="compile only the client">
@@ -281,6 +285,68 @@
         </fileset>
       </batchtest>
     </junit>
+    <fail message="Test failure detected, check test results." if="test.failed" />
+  </target>
+
+  <path id="jacoco.classpath">
+    <fileset dir="${jardir}">
+      <include name="jacoco/jacocoant.jar"/>
+    </fileset>
+  </path>
+
+  <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml"
+    classpathref="jacoco.classpath"/>
+	
+  <target name="test_quick_no_handle_coverage"
+          depends="test_quick_no_handle"
+          description="run most tests and generate test report">
+    <delete file="${test.reports.dir}/merged_jacoco.exec"/>
+    <jacoco:merge destfile="${test.reports.dir}/merged_jacoco.exec">
+      <fileset dir="${test.reports.dir}" includes="*.exec"/>
+    </jacoco:merge>
+    <jacoco:report>
+      <executiondata>
+        <file file="${test.reports.dir}/merged_jacoco.exec"/>
+      </executiondata>
+      <structure name="${package} Unit Tests">
+        <classfiles>
+          <fileset dir="${classes}">
+            <exclude name="**/test/**"/>
+          </fileset>
+        </classfiles>
+        <sourcefiles encoding="UTF-8">
+          <fileset dir="${src}">
+            <exclude name="**/test/**"/>
+          </fileset>
+        </sourcefiles>
+      </structure>
+      <html destdir="${test.reports.dir}/html"/>
+      <csv destfile="${test.reports.dir}/coverage-report.csv"/>
+      <xml destfile="${test.reports.dir}/coverage-report.xml"/>
+    </jacoco:report>
+  </target>
+
+  <target name="test_quick_no_handle"
+      depends="compile, preparejunitreportdir"
+      description="run tests other than the *LongTest.java and HandleAndShockTest tests">
+    <echo message="starting ${package} tests"/>
+    <delete file="${test.reports.dir}/ws.exec"/>
+    <jacoco:coverage destfile="${test.reports.dir}/ws.exec"
+         excludes="org/*:junit/*">
+      <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
+        <classpath refid="test.classpath"/>
+        <formatter type="plain" usefile="false" />
+        <formatter type="xml" usefile="true" if="env.JENKINS_REPORT_DIR"/>
+        <sysproperty key="test.cfg" value="./test.cfg"/>
+        <batchtest todir="${env.JENKINS_REPORT_DIR}">
+          <fileset dir="${src}">
+            <include name="**/test/**/**Test.java"/>
+            <exclude name="**/test/**/**LongTest.java"/>
+            <exclude name="**/test/**/HandleAndShockTest.java"/>
+          </fileset>
+        </batchtest>
+      </junit>
+    </jacoco:coverage>
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
 

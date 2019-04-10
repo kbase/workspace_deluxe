@@ -245,9 +245,25 @@ from typed objects.
 The ID must reference a Handle ID from the
 `Handle Service <https://github.com/kbase/handle_service>`_. This is typically
 in the format KBH_XXX. When saving an object containing one or more handles to
-the WSS, the WSS checks that the handles are readable by the user before
+the WSS, the WSS checks that the handles are owned by the user before
 completing the save. Furthermore, the handle data is shared as the workspace
 object is shared. See :ref:`shockintegration` for more details.
+
+**Shock ID**
+::
+
+    @id bytestream
+
+The ID must reference a `Shock <https://github.com/kbase/Shock>`_ node that exists in the
+Shock instance configured for linking Shock nodes to WSS objects. When saving an object
+containing one or more shock nodes to the WSS, the WSS checks that the handles are readable by
+the user and (if necessary) makes a copy of the nodes so that WSS owns the nodes finally
+saved in the WSS object. Furthermore, the nodes are shared as the workspace object is shared.
+See :ref:`shockintegration` for more details.
+
+.. note::
+   It is not advisable to make Shock IDs keys for maps, as that may prevent the future presorting
+   feature from working properly.
 
 **External ID**
 ::

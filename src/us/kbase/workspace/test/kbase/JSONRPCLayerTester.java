@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -9,7 +10,6 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -38,16 +38,12 @@ import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.AuthUser;
 import us.kbase.auth.ConfigurableAuthService;
-import us.kbase.common.mongo.GetMongoDB;
-import us.kbase.common.mongo.exceptions.InvalidHostException;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
-import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestCommon;
-import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -80,7 +76,6 @@ import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -102,6 +97,8 @@ public class JSONRPCLayerTester {
 	private static final String DB_TYPE_NAME_1 = "JSONRPCLayerTester1_types";
 	private static final String DB_WS_NAME_2 = "JSONRPCLayerTester2";
 	private static final String DB_TYPE_NAME_2 = "JSONRPCLayerTester2_types";
+	private static final String DB_WS_NAME_AUTH2_ADMINS = "JSONRPCLayerTesterAuth2Admins";
+	private static final String DB_TYPE_NAME_AUTH2_ADMINS = "JSONRPCLayerTesterAuth2Admins_types";
 	
 	protected static WorkspaceServer SERVER1 = null;
 	protected static WorkspaceClient CLIENT1 = null;
@@ -116,6 +113,14 @@ public class JSONRPCLayerTester {
 	protected static WorkspaceServer SERVER2 = null;
 	protected static WorkspaceClient CLIENT_FOR_SRV2 = null;  // This client connects to SERVER2
 	protected static WorkspaceClient CLIENT_NO_AUTH = null;
+	
+	protected static WorkspaceServer SERVER_AUTH_ADMINS = null;
+	protected static WorkspaceClient CLIENT_AA1 = null;
+	protected static WorkspaceClient CLIENT_AA2 = null;
+	protected static WorkspaceClient CLIENT_AA3 = null;
+	protected static String AUTH_ROLE_READ1 = "WS_READ_1";
+	protected static String AUTH_ROLE_READ2 = "WS_READ_2";
+	protected static String AUTH_ROLE_FULL = "WS_FULL";
 	
 	protected static ObjectMapper MAPPER = new ObjectMapper();
 	protected final static int MAX_UNIQUE_IDS_PER_CALL = 4;
@@ -187,7 +192,6 @@ public class JSONRPCLayerTester {
 		System.out.println("Using mongo temp dir " + mongo.getTempDir());
 		
 		final String mongohost = "localhost:" + mongo.getServerPort();
-		MongoClient mongoClient = new MongoClient(mongohost);
 		
 		// set up auth
 		final String dbname = JSONRPCLayerTester.class.getSimpleName() + "Auth";
@@ -207,29 +211,25 @@ public class JSONRPCLayerTester {
 		final AuthToken t1 = new AuthToken(token1, USER1);
 		final AuthToken t2 = new AuthToken(token2, USER2);
 		final AuthToken t3 = new AuthToken(token3, USER3);
+		TestCommon.createCustomRole(authURL, AUTH_ROLE_READ1, "read 1");
+		TestCommon.createCustomRole(authURL, AUTH_ROLE_READ2, "read 2");
+		TestCommon.createCustomRole(authURL, AUTH_ROLE_FULL, "full");
+		TestCommon.setUserRoles(authURL, USER1, Arrays.asList(AUTH_ROLE_FULL));
+		TestCommon.setUserRoles(authURL, USER3, Arrays.asList(AUTH_ROLE_READ2));
 		
-		SERVER1 = startupWorkspaceServer(
-				mongohost, mongoClient.getDB(DB_WS_NAME_1), DB_TYPE_NAME_1);
+		SERVER1 = startupWorkspaceServer(mongohost, DB_WS_NAME_1, DB_TYPE_NAME_1);
 		int port = SERVER1.getServerPort();
 		System.out.println("Started test server 1 on port " + port);
-		try {
-			CLIENT1 = new WorkspaceClient(new URL("http://localhost:" + port), t1);
-		} catch (UnauthorizedException ue) {
-			throw new TestException("Unable to login with test.user1: " + USER1 +
-					"\nPlease check the credentials in the test configuration.", ue);
-		}
-		try {
-			CLIENT2 = new WorkspaceClient(new URL("http://localhost:" + port), t2);
-		} catch (UnauthorizedException ue) {
-			throw new TestException("Unable to login with test.user2: " + USER2 +
-					"\nPlease check the credentials in the test configuration.", ue);
-		}
-		try {
-			CLIENT3 = new WorkspaceClient(new URL("http://localhost:" + port), t3);
-		} catch (UnauthorizedException ue) {
-			throw new TestException("Unable to login with test.user3: " + USER3 +
-					"\nPlease check the credentials in the test configuration.", ue);
-		}
+		final URL wsurl = new URL("http://localhost:" + port);
+		CLIENT1 = new WorkspaceClient(wsurl, t1);
+		CLIENT2 = new WorkspaceClient(wsurl, t2);
+		CLIENT3 = new WorkspaceClient(wsurl, t3);
+		CLIENT1.setStreamingModeOn(true); //for JSONRPCLayerLongTest
+		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT3.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_NO_AUTH = new WorkspaceClient(wsurl);
+		CLIENT_NO_AUTH.setIsInsecureHttpConnectionAllowed(true);
 		final ConfigurableAuthService auth = new ConfigurableAuthService(
 				new AuthConfig().withKBaseAuthServerURL(new URL("http://localhost:" +
 						authc.getServerPort() + "/testmode/api/legacy/KBase"))
@@ -237,16 +237,22 @@ public class JSONRPCLayerTester {
 		AUTH_USER1 = auth.getUserFromToken(t1);
 		AUTH_USER2 = auth.getUserFromToken(t2);
 
-		SERVER2 = startupWorkspaceServer(
-				mongohost, mongoClient.getDB(DB_WS_NAME_2), DB_TYPE_NAME_2);
+		SERVER_AUTH_ADMINS = startupWorkspaceServer(
+				mongohost, DB_WS_NAME_AUTH2_ADMINS, DB_TYPE_NAME_AUTH2_ADMINS, true);
+		int port2 = SERVER_AUTH_ADMINS.getServerPort();
+		System.out.println("Started auth roles test server on port " + port2);
+		final URL wsurl2 = new URL("http://localhost:" + port2);
+		
+		CLIENT_AA1 = new WorkspaceClient(wsurl2, t1);
+		CLIENT_AA2 = new WorkspaceClient(wsurl2, t2);
+		CLIENT_AA3 = new WorkspaceClient(wsurl2, t3);
+		CLIENT_AA1.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_AA2.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_AA3.setIsInsecureHttpConnectionAllowed(true);
+		
+		SERVER2 = startupWorkspaceServer(mongohost, DB_WS_NAME_2, DB_TYPE_NAME_2);
 		CLIENT_FOR_SRV2 = new WorkspaceClient(new URL("http://localhost:" + 
 					SERVER2.getServerPort()), t2);
-		CLIENT_NO_AUTH = new WorkspaceClient(new URL("http://localhost:" + port));
-		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
-		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
-		CLIENT3.setIsInsecureHttpConnectionAllowed(true);
-		CLIENT_NO_AUTH.setIsInsecureHttpConnectionAllowed(true);
-		CLIENT1.setStreamingModeOn(true); //for JSONRPCLayerLongTest
 		
 		//set up a basic type for test use that doesn't worry about type checking
 		try {
@@ -335,6 +341,26 @@ public class JSONRPCLayerTester {
 			.withSpec("module UnreleasedModule {typedef int AType; funcdef aFunc(AType param) returns ();};")
 			.withNewTypes(Arrays.asList("AType")));
 		System.out.println("Starting tests");
+		
+		final String handleShock =
+				"module HandleByteStream {" +
+					"/* @id handle */" +
+					"typedef string handle;" +
+					"/* @id bytestream */" +
+					"typedef string bs;" +
+					"/* @optional h s */" +
+					"typedef structure {" +
+						"handle h;" +
+						"bs s;"+
+					"} ExtIDs;" +
+				"};";
+		CLIENT1.requestModuleOwnership("HandleByteStream");
+		administerCommand(CLIENT2, "approveModRequest", "module", "HandleByteStream");
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec(handleShock)
+			.withNewTypes(Arrays.asList("ExtIDs")));
+		CLIENT1.releaseModule("HandleByteStream");
 	}
 
 	public static void administerCommand(WorkspaceClient client, String command, String... params) throws IOException,
@@ -348,12 +374,18 @@ public class JSONRPCLayerTester {
 
 	private static WorkspaceServer startupWorkspaceServer(
 			final String mongohost,
-			final DB db,
+			final String db,
 			final String typedb)
-			throws InvalidHostException, UnknownHostException, IOException,
-			NoSuchFieldException, IllegalAccessException, Exception,
-			InterruptedException {
-		WorkspaceTestCommon.initializeGridFSWorkspaceDB(db, typedb);
+			throws Exception {
+		return startupWorkspaceServer(mongohost, db, typedb, false);
+	}
+	
+	private static WorkspaceServer startupWorkspaceServer(
+			final String mongohost,
+			final String db,
+			final String typedb,
+			final boolean authAdminRoles)
+			throws Exception {
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
@@ -365,14 +397,22 @@ public class JSONRPCLayerTester {
 		Ini ini = new Ini();
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
-		ws.add("mongodb-database", db.getName());
+		ws.add("mongodb-database", db);
+		ws.add("mongodb-type-database", typedb);
 		ws.add("auth-service-url-allow-insecure", "true");
 		ws.add("auth-service-url", new URL("http://localhost:" + authc.getServerPort() +
 				"/testmode/api/legacy/KBase"));
-		ws.add("globus-url", new URL("http://localhost:" + authc.getServerPort() +
-				"/testmode/api/legacy/globus"));
-		ws.add("backend-secret", "foo");
+		ws.add("auth2-service-url", new URL("http://localhost:" + authc.getServerPort() +
+				"/testmode/"));
+		ws.add("backend-type", "GridFS");
 		ws.add("ws-admin", USER2);
+		if (authAdminRoles) {
+			ws.add("auth2-ws-admin-read-only-roles", "  ,  " + AUTH_ROLE_READ1 + " ,   ,    " +
+					AUTH_ROLE_READ2);
+			ws.add("auth2-ws-admin-full-roles", "    " + AUTH_ROLE_FULL  + ",   ,    ");
+		} else {
+			ws.add("auth2-ws-admin-full-roles", "        ");
+		}
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForJSONRPCLayerTester"));
 		ws.add("ignore-handle-service", "true");
@@ -410,6 +450,11 @@ public class JSONRPCLayerTester {
 			SERVER1.stopServer();
 			System.out.println("Done");
 		}
+		if (SERVER_AUTH_ADMINS != null) {
+			System.out.print("Killing auth admins server... ");
+			SERVER_AUTH_ADMINS.stopServer();
+			System.out.println("Done");
+		}
 		if (SERVER2 != null) {
 			System.out.print("Killing server 2... ");
 			SERVER2.stopServer();
@@ -426,12 +471,15 @@ public class JSONRPCLayerTester {
 	}
 	@Before
 	public void clearDB() throws Exception {
-		DB wsdb1 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-				DB_WS_NAME_1);
-		DB wsdb2 = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-				DB_WS_NAME_2);
+		final DB wsdb1 = new MongoClient("localhost:" + mongo.getServerPort())
+				.getDB(DB_WS_NAME_1);
+		final DB wsdb2 = new MongoClient("localhost:" + mongo.getServerPort())
+				.getDB(DB_WS_NAME_2);
+		final DB wsdb3 = new MongoClient("localhost:" + mongo.getServerPort())
+				.getDB(DB_WS_NAME_AUTH2_ADMINS);
 		TestCommon.destroyDB(wsdb1);
 		TestCommon.destroyDB(wsdb2);
+		TestCommon.destroyDB(wsdb3);
 	}
 	
 	@After
@@ -1742,7 +1790,7 @@ public class JSONRPCLayerTester {
 		assertThat("incorrect exception message. Client side:\n"
 				+ ExceptionUtils.getStackTrace(se) +
 				"\nServer side:\n" + se.getData(),
-				se.getLocalizedMessage(), is(exp));
+				se.getLocalizedMessage(), containsString(exp));
 		
 	}
 

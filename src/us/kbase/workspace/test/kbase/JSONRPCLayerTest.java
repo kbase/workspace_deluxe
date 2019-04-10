@@ -22,6 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
@@ -35,6 +36,7 @@ import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
+import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
@@ -84,17 +86,18 @@ import com.google.common.collect.ImmutableMap;
  * These tests are specifically for testing the JSON-RPC communications between
  * the client, up to the invocation of the {@link us.kbase.workspace.workspaces.Workspaces}
  * methods. As such they do not test the full functionality of the Workspaces methods;
- * {@link us.kbase.workspace.test.workspaces.TestWorkspaces} handles that. This means
- * that only one backend (the simplest gridFS backend) is tested here, while TestWorkspaces
+ * {@link us.kbase.workspace.test.workspaces.WorkspaceTest} handles that. This means
+ * that only one backend (the simplest gridFS backend) is tested here, while WorkspaceTest
  * tests all backends and {@link us.kbase.workspace.database.WorkspaceDatabase} implementations.
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void ver() throws Exception {
-		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.8.2"));
+		assertThat("got correct version", CLIENT_NO_AUTH.ver(), is("0.9.0"));
 	}
 	
+	@Test
 	public void status() throws Exception {
 		final Map<String, Object> st = CLIENT1.status();
 		System.out.println(st);
@@ -1124,6 +1127,66 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				wsid, "saveget", "3c59f762140806c36ab48a152f28e840", 24, meta2, data2);
 		assertNull("Got object info when expected null", nullobj.get(5));
 		assertNull("Got object info when expected null", nullobj.get(6));
+	}
+	
+	// TODO TEST should also test that getting objects with handles fail, but that's a pain to set up
+	@Test
+	public void saveObjectsFailNoHandleProcessor() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("nohandle")).getE1();
+		
+		saveObject2MethodsFail(CLIENT1, "nohandle", "foo", "HandleByteStream.ExtIDs",
+				new UObject(ImmutableMap.of("h", "KBH_1")), new ServerException(
+						"Object #1, foo failed type checking:\nInvalid id KBH_1 of type " +
+						"handle: Found handle id KBH_1. The workspace service currently does " +
+						"not have a connection to the handle service and so cannot process " +
+						"objects containing handle IDs. at /h", 1, "n"));
+	}
+	
+	@Test
+	public void saveObjectsFailNoShockProcessor() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("noshock")).getE1();
+		
+		final String id = UUID.randomUUID().toString();
+		saveObject2MethodsFail(CLIENT1, "noshock", "foo", "HandleByteStream.ExtIDs",
+				new UObject(ImmutableMap.of("s", id)),
+				new ServerException(String.format(
+						"Object #1, foo failed type checking:\nInvalid id %s of type " +
+						"bytestream: Found bytestream id %s. There is no connection configured " +
+						"for bytestream IDs and so objects containing bytestream IDs cannot be " +
+						"processed. at /s", id, id), 1, "n"));
+	}
+	
+	private void saveObject2MethodsFail(
+			final WorkspaceClient cli,
+			final String workspace,
+			final String name,
+			final String type,
+			final UObject data,
+			final Exception expected) {
+		try {
+			@SuppressWarnings({ "deprecation", "unused" })
+			final Object saveObject = cli.saveObject(new us.kbase.workspace.SaveObjectParams()
+					.withData(data)
+					.withId(name)
+					.withWorkspace(workspace)
+					.withType(type));
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+		try {
+			cli.saveObjects(new SaveObjectsParams()
+					.withWorkspace(workspace)
+					.withObjects(Arrays.asList(new ObjectSaveData()
+							.withData(data)
+							.withName(name)
+							.withType(type))));
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
 	}
 	
 	@Test
@@ -3257,6 +3320,26 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
+	public void adminAuth2Roles() throws Exception {
+		final Map<String, Object> params = new HashMap<>();
+		params.put("command", "createWorkspace");
+		params.put("user", "user3");
+		params.put("params", new CreateWorkspaceParams().withWorkspace("ws"));
+		CLIENT_AA1.administer(new UObject(params)); // has full admin role
+		
+		// has read only role
+		failAdmin(CLIENT_AA3, params, "Full administration rights required for this command");
+		failAdmin(CLIENT_AA2, params, "user2 is not an admin"); // has no role
+		
+		params.put("command", "getWorkspaceInfo");
+		params.put("params", new WorkspaceIdentity().withId(1L));
+		final List<Object> wsinfo = CLIENT_AA3.administer(new UObject(params))
+				.asClassInstance(new TypeReference<List<Object>>() {});
+		assertThat("incorrect ws id", wsinfo.get(0), is(1));
+		assertThat("incorrect ws name", wsinfo.get(1), is("ws"));
+	}
+	
+	@Test
 	public void adminModRequest() throws Exception {
 		Map<String, String> mod2owner = new HashMap<String, String>();
 		checkModRequests(mod2owner);
@@ -3307,14 +3390,14 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				" \"user\": \"" + USER1 + "\"," +
 				" \"params\": [{\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"n\"," +
 				"			   \"description\": \"mydesc\"}]}",
-				"Unable to deserialize CreateWorkspaceParams out of params field.");
+				"Unable to deserialize CreateWorkspaceParams out of params field");
 		
 		failAdmin(CLIENT2,
 				"{\"command\": [\"createWorkspace\"]," +
 				" \"user\": \"" + USER1 + "\"," +
 				" \"params\": {\"workspace\": \"" + USER1 + ":admintest\", \"globalread\": \"n\"," +
 				"			   \"description\": \"mydesc\"}}",
-				"Unable to deserialize a workspace admin command from the input.");
+				"Unable to deserialize a workspace admin command from the input");
 		
 		TypeReference<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>> typeref
 				= new TypeReference<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>() {};

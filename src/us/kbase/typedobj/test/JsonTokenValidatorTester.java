@@ -27,6 +27,7 @@ import us.kbase.typedobj.db.TypeStorage;
 import us.kbase.typedobj.db.test.TypeRegisteringTest;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 
 public class JsonTokenValidatorTester {
 	private static final long seed = 1234567890L;
@@ -65,8 +66,8 @@ public class JsonTokenValidatorTester {
 			jgen.close();
 			long time = System.currentTimeMillis();
 			JsonTokenStream jp = new JsonTokenStream(f);  //, buffer);
-			IdReferenceHandlerSetFactory fac =
-					new IdReferenceHandlerSetFactory(6);
+			final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
+					.getBuilder(6).build().getFactory(null);
 			IdReferenceHandlerSet<String> han = fac.createHandlers(String.class);
 			han.associateObject("foo");
 			ValidatedTypedObject report = new TypedObjectValidator(
