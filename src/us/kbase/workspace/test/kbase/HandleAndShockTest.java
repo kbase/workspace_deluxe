@@ -437,11 +437,11 @@ public class HandleAndShockTest {
 		} catch (ServerException e) {
 			assertThat("correct exception message", e.getMessage(),
 							is("An error occured while processing IDs: " +
-								"The Handle Service reported that at least one of " +
-								"the handles contained in the objects in this call " +
-								"is not accessible - it may not exist, or the " +
-								"supplied credentials may not own the node, or some " +
-								"other reason. The call cannot complete."));
+									"The Handle Service reported that at least one of " +
+									"the handles contained in the objects in this call " +
+									"is not accessible - it may not exist, or the " +
+									"supplied credentials may not own the node, or some " +
+									"other reason. The call cannot complete."));
 		}
 
 		bsc.removeFromNodeAcl(new ShockNodeId(shock_id),
@@ -520,13 +520,13 @@ public class HandleAndShockTest {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
-		assertThat("got correct error message", wod.getHandleError(),
+		assertThat("got correct error message", wod.getHandleError(), 
 						startsWith("The Handle Manager reported a problem while attempting to set Handle ACLs: 'Grant readable access for node failed."));
 		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
 						startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
-							  			"IdReferencePermissionHandlerException: " +
-							  			"The Handle Manager reported a problem while attempting to set Handle " +
-							  			"ACLs: 'Grant readable access for node failed."));
+										"IdReferencePermissionHandlerException: " +
+										"The Handle Manager reported a problem while attempting to set Handle " +
+										"ACLs: 'Grant readable access for node failed."));
 	}
 
 	@Test
