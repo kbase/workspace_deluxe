@@ -189,6 +189,25 @@ public class HandleAndShockTest {
 		while ((line = br.readLine()) != null) {
 		   System.out.println(line);
 		 }
+		
+		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
+				HANDLE.getHandleServerPort()), t1);
+		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
+		try {
+			HANDLE_CLIENT.areReadable(Arrays.asList("fake_handle_id"));
+		} catch (Exception e) {
+			System.out.println("Could not successfullly run methods on the Handle Service");
+			System.out.println(e.getMessage());
+//			throw e;
+		}
+
+		log_file = HANDLE.getTempDir().resolve("handle_service.log").toFile();
+		br = new BufferedReader(new FileReader(log_file));
+		line = null;
+		while ((line = br.readLine()) != null) {
+		   System.out.println(line);
+		 }
+		
 
 		SERVER = startupWorkspaceServer(mongohost,
 				"HandleAndShockTest",
