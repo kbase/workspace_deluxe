@@ -125,11 +125,11 @@ public class HandleServiceController {
 		
 		log_file = handle_dir.resolve("AbstractHandleServer.py");
 		lines = Files.lines(log_file);
-		replaced = lines.map(line -> line.replaceAll("req = json.loads(request_body)",
-				"req = json.loads(request_body.decode('utf-8'))")).collect(Collectors.toList());
+		replaced = lines.map(line -> line.replaceAll("loads\\(request_body\\)",
+				"loads(request_body.decode('utf-8'))")).collect(Collectors.toList());
 		Files.write(log_file, replaced);
 		lines.close();
-		
+
 		log_file = handle_utils_dir.resolve("MongoUtil.py");
 		lines = Files.lines(log_file);
 		replaced = lines.map(line -> line.replaceAll("#print", 
