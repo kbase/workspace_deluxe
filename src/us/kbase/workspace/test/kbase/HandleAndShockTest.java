@@ -195,6 +195,7 @@ public class HandleAndShockTest {
 		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
 		try {
 			HANDLE_CLIENT.areReadable(Arrays.asList("fake_handle_id"));
+			HANDLE_CLIENT.isOwner(Arrays.asList("FAKEHANDLE_-100"));
 		} catch (Exception e) {
 			System.out.println("Could not successfullly run methods on the Handle Service");
 			System.out.println(e.getMessage());
