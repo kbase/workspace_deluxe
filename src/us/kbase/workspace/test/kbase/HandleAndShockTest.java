@@ -46,6 +46,7 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.shock.client.BasicShockClient;
+import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockFileInformation;
 import us.kbase.shock.client.ShockNode;
@@ -110,6 +111,8 @@ public class HandleAndShockTest {
 	private static AbstractHandleClient HANDLE_CLIENT;
 	private static BasicShockClient WS_OWNED_SHOCK;
 	private static BasicShockClient SHOCK_CLIENT_1;
+	
+	private static ShockACLType READ_ACL = ShockACLType.READ;
 
 	private static String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
 	private static String SHOCK_TYPE = "HandleByteStreamList.SList-0.1";
@@ -518,14 +521,12 @@ public class HandleAndShockTest {
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
 		assertThat("got correct error message", wod.getHandleError(),
-						is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
-										+ h1.getHid()));
+						startsWith("The Handle Manager reported a problem while attempting to set Handle ACLs: 'Grant readable access for node failed."));
 		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
 						startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
 							  			"IdReferencePermissionHandlerException: " +
 							  			"The Handle Manager reported a problem while attempting to set Handle " +
-							  			"ACLs: Unable to set acl(s) on handles "
-							  			+ h1.getHid()));
+							  			"ACLs: 'Grant readable access for node failed."));
 	}
 
 	@Test
@@ -815,14 +816,12 @@ public class HandleAndShockTest {
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
 		assertThat("got correct error message", wod.getHandleError(),
-						is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
-										+ h1.getHid()));
+						startsWith("The Handle Manager reported a problem while attempting to set Handle ACLs: 'Grant readable access for node failed."));
 		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
 						startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
 										"IdReferencePermissionHandlerException: " +
 										"The Handle Manager reported a problem while attempting to set Handle " +
-										"ACLs: Unable to set acl(s) on handles "
-										+ h1.getHid()));
+										"ACLs: 'Grant readable access for node failed."));
 	}
 
 	private void checkPublicRead(
