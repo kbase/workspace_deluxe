@@ -58,8 +58,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 			throw new NullPointerException("jts");
 		}
 		this.jts = jts;
-		this.schemaLoc = new ArrayList<JsonTokenValidationSchema>(
-				Arrays.asList(schema));
+		this.schemaLoc = new ArrayList<>(Arrays.asList(schema));
 		this.handlers = idhandlers;
 	}
 	
@@ -154,12 +153,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 	@Override
 	public String getText() throws IOException, JsonParseException {
 		final String ret = jts.getText();
-		final JsonTokenValidationSchema s;
-		if (wasField) {
-			s = getPreviousSchema();
-		} else {
-			s = getCurrentSchema();
-		}
+		final JsonTokenValidationSchema s = wasField ? getPreviousSchema() : getCurrentSchema();
 		if (s != null && s.hasIdReference()) {
 			final IdReferenceType idType = s.getIdReferenceType();
 			final List<String> attribs = s.getIdReferenceAttributes();
