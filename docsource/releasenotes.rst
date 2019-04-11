@@ -1,8 +1,16 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.9.0 (Released 4/10/19)
+VERSION: 0.9.1 (Released TBD)
 -----------------------------
+
+UPDATES:
+
+* Fixed a bug where objects with maps embedded within maps would always be sorted, even
+  if they were already sorted as received.
+
+VERSION: 0.9.0 (Released 4/10/19)
+---------------------------------
 
 BACKWARDS INCOMPATIBILITIES:
 
