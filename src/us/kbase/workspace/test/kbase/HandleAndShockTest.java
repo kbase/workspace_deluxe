@@ -177,9 +177,7 @@ public class HandleAndShockTest {
 				HANDLE_MNGR_TOKEN,
 				Paths.get(TestCommon.getTempDir()),
 				new URL(authURL.toString()),
-				HANDLE_ADMIN_ROLE,
-				DB,
-				COLLECTION);
+				HANDLE_ADMIN_ROLE);
 		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
 		System.out.println("Started Handle Service on port " + HANDLE.getHandleServerPort());
 

@@ -43,9 +43,7 @@ public class HandleServiceController {
 			final AuthToken shockAdminToken,
 			final Path rootTempDir,
 			final URL authURL, 
-			final String handleAdminRole,
-			final String DB,
-			final String collection)
+			final String handleAdminRole)
 			throws Exception {
 				
 		tempDir = makeTempDirs(rootTempDir, "HandleServiceController-",
@@ -54,7 +52,7 @@ public class HandleServiceController {
 		handleServicePort = findFreePort();
 		
 		File hsIniFile = createHandleServiceDeployCfg(mongo, shockHost, authURL,
-				shockAdminToken, handleAdminRole, DB, collection);
+				shockAdminToken, handleAdminRole);
 		String lib_dir = "lib";
 		downloadSourceFiles(tempDir, lib_dir);
 
@@ -67,7 +65,6 @@ public class HandleServiceController {
 		Map<String, String> env = handlepb.environment();
 		env.put("KB_DEPLOYMENT_CONFIG", hsIniFile.getAbsolutePath().toString());
 		env.put("KB_SERVICE_NAME", HANDLE_SERVICE_NAME);
-		env.put("KB_AUTH_TOKEN", shockAdminToken.getToken());
 		env.put("PYTHONPATH", lib_dir_path);
 		handlepb.directory(new File(lib_dir_path));
 		handleService = handlepb.start();
@@ -140,9 +137,7 @@ public class HandleServiceController {
 			final String shockHost,
 			final URL authURL,
 			final AuthToken shockAdminToken,
-			final String handleAdminRole,
-			final String DB,
-			final String collection) throws IOException {
+			final String handleAdminRole) throws IOException {
 		final File iniFile = tempDir.resolve("handleService.cfg").toFile();
 		if (iniFile.exists()) {
 			iniFile.delete();
@@ -158,11 +153,6 @@ public class HandleServiceController {
 		hs.add("auth-url", authURL.toString());
 		hs.add("default-shock-server", shockHost);
 		hs.add("admin-token", shockAdminToken.getToken().toString());
-		
-		hs.add("mongo-host", "127.0.0.1");
-		hs.add("mongo-port", "" + mongo.getServerPort());
-		hs.add("mongo-database", DB);
-		hs.add("mongo-collection", collection);
 		hs.add("admin-roles", handleAdminRole);
 		
 		ini.store(iniFile);
@@ -205,9 +195,7 @@ public class HandleServiceController {
 				null, //this will break the hm, need a token
 				Paths.get("workspacetesttemp"),
 				new URL("http://foo.com"),
-				"KBASE_ADMIN",
-				"handle_db",
-				"handle");
+				"KBASE_ADMIN");
 		System.out.println("handlesrv: " + hsc.getHandleServerPort());
 		System.out.println(hsc.getTempDir());
 		Scanner reader = new Scanner(System.in);
