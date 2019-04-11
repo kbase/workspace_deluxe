@@ -21,7 +21,6 @@ public class ServiceChecker {
 	public static final int PY_CODE = -32700;
 	public static final String JV_PL_MSG = "HTTP GET not allowed.";
 	public static final int JV_PL_CODE = -32300;
-//	public static final String HandleSerivce_MSG = "No JSON object could be decoded";
 	
 	/** Checks whether the KBase SDK service at the given url is contactable.
 	 * If not, throws an exception.

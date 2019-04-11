@@ -185,18 +185,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		
 	}
 	
-//	public DependencyStatus checkHandleService() {
-//		try {
-//			ServiceChecker.checkService(handleServiceUrl);
-//			return new DependencyStatus(
-//					true, "OK", "Handle manager", "Unknown");
-//		} catch (ServiceException se) {
-//			//tested manually, don't change without testing
-//			return new DependencyStatus(
-//					false, se.getMessage(), "Handle manager", "Unknown");
-//		}
-//	}
-	
 	public DependencyStatus checkShockLink() {
 		try {
 			return new DependencyStatus(true, "OK", "Linked Shock for IDs",
