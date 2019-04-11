@@ -9,8 +9,10 @@ import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
 import us.kbase.workspace.test.kbase.JSONRPCLayerTester.ServerThread;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -170,7 +172,7 @@ public class HandleAndShockTest {
 		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
 		WS_OWNED_SHOCK = new BasicShockClient(shockURL, HANDLE_MNGR_TOKEN);
 		SHOCK_CLIENT_1 = new BasicShockClient(shockURL, t1);
-
+		
 		HANDLE = new HandleServiceController(
 				MONGO,
 				shockURL.toString(),
@@ -180,6 +182,13 @@ public class HandleAndShockTest {
 				HANDLE_ADMIN_ROLE);
 		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
 		System.out.println("Started Handle Service on port " + HANDLE.getHandleServerPort());
+		
+		File log_file = HANDLE.getTempDir().resolve("handle_service.log").toFile();
+		BufferedReader br = new BufferedReader(new FileReader(log_file));
+		String line = null;
+		while ((line = br.readLine()) != null) {
+		   System.out.println(line);
+		 }
 
 		SERVER = startupWorkspaceServer(mongohost,
 				"HandleAndShockTest",
@@ -214,6 +223,13 @@ public class HandleAndShockTest {
 			System.out.println(e.getMessage());
 			throw e;
 		}
+		
+		log_file = HANDLE.getTempDir().resolve("handle_service.log").toFile();
+		br = new BufferedReader(new FileReader(log_file));
+		line = null;
+		while ((line = br.readLine()) != null) {
+		   System.out.println(line);
+		 }
 
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:"
 				+ SHOCK.getServerPort()), CLIENT1.getToken());
