@@ -101,7 +101,7 @@ public class HandleServiceController {
 		Path biokbase_dir = lib_root.resolve("biokbase");
 		Files.createDirectories(biokbase_dir);
 		
-		String biokbase_repo_prefix = "https://raw.githubusercontent.com/kbase/kb_sdk/master/lib/biokbase/";
+		String biokbase_repo_prefix = "https://raw.githubusercontent.com/kbase/kb_sdk/develop/lib/biokbase/";
 		String [] biokbase_files = {"__init__.py", "log.py"};
 		for (String file_name : biokbase_files) {
 			FileUtils.copyURLToFile(new URL(biokbase_repo_prefix + file_name),
