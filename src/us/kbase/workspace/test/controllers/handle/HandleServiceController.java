@@ -57,6 +57,7 @@ public class HandleServiceController {
 		downloadSourceFiles(tempDir, lib_dir);
 
 		String lib_dir_path = tempDir.resolve(lib_dir).toAbsolutePath().toString();
+//		String lib_dir_path = "/home/tian/Dev/handle_service2/lib";
 		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http", 
 				":" + handleServicePort, "--wsgi-file",
 				"AbstractHandle/AbstractHandleServer.py", "--pythonpath", lib_dir_path)
@@ -154,6 +155,9 @@ public class HandleServiceController {
 		hs.add("default-shock-server", shockHost);
 		hs.add("admin-token", shockAdminToken.getToken().toString());
 		hs.add("admin-roles", handleAdminRole);
+		
+		hs.add("mongo-host", "127.0.0.1");
+		hs.add("mongo-port", "" + mongo.getServerPort());
 		
 		ini.store(iniFile);
 		return iniFile;
