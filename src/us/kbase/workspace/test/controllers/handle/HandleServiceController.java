@@ -60,7 +60,7 @@ public class HandleServiceController {
 			downloadSourceFiles(lib_root);
 		}
 		else {
-			copyDirectory(handleServiceDir, lib_root);
+			FileUtils.copyDirectory(handleServiceDir.toFile(), lib_root.toFile());
 		}
 
 		String lib_dir_path = lib_root.toAbsolutePath().toString();
@@ -77,29 +77,6 @@ public class HandleServiceController {
 		handleService = handlepb.start();
 
 		Thread.sleep(1000); //let the service start up
-	}
-
-	private void copyDirectory(Path srcDir, Path destDir) throws IOException {
-		FileUtils.copyDirectory(srcDir.toFile(), destDir.toFile());
-
-		Path log_file = null;
-		Stream <String> lines = null;
-		List <String> replaced = null;
-
-		Path handle_dir = destDir.resolve("AbstractHandle");
-		log_file = handle_dir.resolve("AbstractHandleServer.py");
-		lines = Files.lines(log_file);
-		replaced = lines.map(line -> line.replaceAll("loads\\(request_body\\)",
-				"loads(request_body.decode('utf-8'))")).collect(Collectors.toList());
-		Files.write(log_file, replaced);
-		lines.close();
-		// Path handle_utils_dir = handle_dir.resolve("Utils");
-		// log_file = handle_utils_dir.resolve("MongoUtil.py");
-		// lines = Files.lines(log_file);
-		// replaced = lines.map(line -> line.replaceAll("#print",
-		// 		"print")).collect(Collectors.toList());
-		// Files.write(log_file, replaced);
-		// lines.close();
 	}
 
 	private void downloadSourceFiles(Path lib_root) throws IOException {
@@ -147,13 +124,6 @@ public class HandleServiceController {
 				"loads(request_body.decode('utf-8'))")).collect(Collectors.toList());
 		Files.write(log_file, replaced);
 		lines.close();
-
-		// log_file = handle_utils_dir.resolve("MongoUtil.py");
-		// lines = Files.lines(log_file);
-		// replaced = lines.map(line -> line.replaceAll("#print",
-		// 		"print")).collect(Collectors.toList());
-		// Files.write(log_file, replaced);
-		// lines.close();
 	}
 
 	private File createHandleServiceDeployCfg(
