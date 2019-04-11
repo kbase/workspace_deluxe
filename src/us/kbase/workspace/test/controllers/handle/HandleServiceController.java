@@ -109,22 +109,26 @@ public class HandleServiceController {
 					biokbase_dir.resolve(file_name).toFile());
 		}
 		
-		Path log_file = biokbase_dir.resolve("log.py");
-		Stream <String> lines = Files.lines(log_file);
-		List <String> replaced = lines.map(line -> line.replaceAll("import urllib.request as _urllib", 
-				"try:\n" + 
-				"    import urllib.request as _urllib\n" + 
-				"except ImportError:\n" + 
-				"    import urllib as _urllib")).collect(Collectors.toList());
-		Files.write(log_file, replaced);
-		lines.close();
+		Path log_file = null;
+		Stream <String> lines = null;
+		List <String> replaced = null;
 		
-		log_file = handle_dir.resolve("AbstractHandleServer.py");
+		log_file = biokbase_dir.resolve("log.py");
 		lines = Files.lines(log_file);
-		replaced = lines.map(line -> line.replaceAll("str]", "unicode]")).collect(Collectors.toList());
+		replaced = lines.map(line -> line.replaceAll("from ConfigParser import ConfigParser as _ConfigParser", 
+				"try:\n" + 
+				"    from ConfigParser import ConfigParser as _ConfigParser\n" + 
+				"except ImportError:\n" + 
+				"    from configparser import ConfigParser as _ConfigParser")).collect(Collectors.toList());
 		Files.write(log_file, replaced);
 		lines.close();
 		
+//		log_file = handle_dir.resolve("AbstractHandleServer.py");
+//		lines = Files.lines(log_file);
+//		replaced = lines.map(line -> line.replaceAll("str]", "unicode]")).collect(Collectors.toList());
+//		Files.write(log_file, replaced);
+//		lines.close();
+//		
 		log_file = handle_utils_dir.resolve("MongoUtil.py");
 		lines = Files.lines(log_file);
 		replaced = lines.map(line -> line.replaceAll("#print", 
@@ -177,7 +181,7 @@ public class HandleServiceController {
 			handleService.destroy();
 		}
 		if (tempDir != null && deleteTempFiles) {
-			FileUtils.deleteDirectory(tempDir.toFile());
+//			FileUtils.deleteDirectory(tempDir.toFile());
 		}
 	}
 

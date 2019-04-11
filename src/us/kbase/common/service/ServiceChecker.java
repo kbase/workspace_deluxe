@@ -21,7 +21,7 @@ public class ServiceChecker {
 	public static final int PY_CODE = -32700;
 	public static final String JV_PL_MSG = "HTTP GET not allowed.";
 	public static final int JV_PL_CODE = -32300;
-	public static final String HandleSerivce_MSG = "No JSON object could be decoded";
+//	public static final String HandleSerivce_MSG = "No JSON object could be decoded";
 	
 	/** Checks whether the KBase SDK service at the given url is contactable.
 	 * If not, throws an exception.
@@ -58,8 +58,7 @@ public class ServiceChecker {
 				final String msg = r.error.message;
 				final int code = r.error.code;
 				if (!(PY_MSG.equals(msg) && PY_CODE == code) &&
-						!(JV_PL_MSG.equals(msg) && JV_PL_CODE == code) &&
-						!(HandleSerivce_MSG.equals(msg) && PY_CODE == code)) {
+						!(JV_PL_MSG.equals(msg) && JV_PL_CODE == code)) {
 					throw new ServiceException(String.format(
 							"The JSONRPC service at %s is not a KBase SDK " +
 							"service. Code: %s, message: %s",
