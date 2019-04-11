@@ -43,20 +43,27 @@ public class HandleServiceController {
 			final AuthToken shockAdminToken,
 			final Path rootTempDir,
 			final URL authURL, 
-			final String handleAdminRole)
+			final String handleAdminRole,
+			final Path handleServiceDir)
 			throws Exception {
 				
 		tempDir = makeTempDirs(rootTempDir, "HandleServiceController-",
 				new LinkedList<String>());
 		
 		handleServicePort = findFreePort();
-		
 		File hsIniFile = createHandleServiceDeployCfg(mongo, shockHost, authURL,
 				shockAdminToken, handleAdminRole);
+		
 		String lib_dir = "lib";
-		downloadSourceFiles(tempDir, lib_dir);
-
-		String lib_dir_path = tempDir.resolve(lib_dir).toAbsolutePath().toString();
+		Path lib_root = tempDir.resolve(lib_dir);
+		if (handleServiceDir.toString().isEmpty()) {
+			downloadSourceFiles(lib_root);
+		}
+		else {
+			copyDirectory(handleServiceDir, lib_root);
+		}
+		
+		String lib_dir_path = lib_root.toAbsolutePath().toString();
 		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http", 
 				":" + handleServicePort, "--wsgi-file",
 				"AbstractHandle/AbstractHandleServer.py", "--pythonpath", lib_dir_path)
@@ -72,10 +79,32 @@ public class HandleServiceController {
 		Thread.sleep(1000); //let the service start up
 	}
 	
-	private void downloadSourceFiles(Path parentDir, String subDir) throws IOException {
-		// download source files from github repo
+	private void copyDirectory(Path srcDir, Path destDir) throws IOException {
+		FileUtils.copyDirectory(srcDir.toFile(), destDir.toFile());
 		
-		Path lib_root = parentDir.resolve(subDir);
+		Path log_file = null;
+		Stream <String> lines = null;
+		List <String> replaced = null;
+		
+		Path handle_dir = destDir.resolve("AbstractHandle");
+		log_file = handle_dir.resolve("AbstractHandleServer.py");
+		lines = Files.lines(log_file);
+		replaced = lines.map(line -> line.replaceAll("loads\\(request_body\\)",
+				"loads(request_body.decode('utf-8'))")).collect(Collectors.toList());
+		Files.write(log_file, replaced);
+		lines.close();
+		Path handle_utils_dir = handle_dir.resolve("Utils");
+		log_file = handle_utils_dir.resolve("MongoUtil.py");
+		lines = Files.lines(log_file);
+		replaced = lines.map(line -> line.replaceAll("#print", 
+				"print")).collect(Collectors.toList());
+		Files.write(log_file, replaced);
+		lines.close();
+	}
+	
+	private void downloadSourceFiles(Path lib_root) throws IOException {
+		// download source files from github repo
+
 		Files.createDirectories(lib_root);
 		
 		Path handle_dir = lib_root.resolve("AbstractHandle");
@@ -101,8 +130,8 @@ public class HandleServiceController {
 		Path biokbase_dir = lib_root.resolve("biokbase");
 		Files.createDirectories(biokbase_dir);
 		
-		String biokbase_repo_prefix = "https://raw.githubusercontent.com/kbase/kb_sdk/develop/lib/biokbase/";
-		String [] biokbase_files = {"__init__.py", "log.py"};
+		String biokbase_repo_prefix = "https://raw.githubusercontent.com/kbase/sdkbase2/python/";
+		String [] biokbase_files = {"log.py"};
 		for (String file_name : biokbase_files) {
 			FileUtils.copyURLToFile(new URL(biokbase_repo_prefix + file_name),
 					biokbase_dir.resolve(file_name).toFile());
@@ -111,16 +140,6 @@ public class HandleServiceController {
 		Path log_file = null;
 		Stream <String> lines = null;
 		List <String> replaced = null;
-		
-		log_file = biokbase_dir.resolve("log.py");
-		lines = Files.lines(log_file);
-		replaced = lines.map(line -> line.replaceAll("from ConfigParser import ConfigParser as _ConfigParser", 
-				"try:\n" + 
-				"    from ConfigParser import ConfigParser as _ConfigParser\n" + 
-				"except ImportError:\n" + 
-				"    from configparser import ConfigParser as _ConfigParser")).collect(Collectors.toList());
-		Files.write(log_file, replaced);
-		lines.close();
 		
 		log_file = handle_dir.resolve("AbstractHandleServer.py");
 		lines = Files.lines(log_file);
@@ -203,7 +222,8 @@ public class HandleServiceController {
 				null, //this will break the hm, need a token
 				Paths.get("workspacetesttemp"),
 				new URL("http://foo.com"),
-				"KBASE_ADMIN");
+				"KBASE_ADMIN",
+				Paths.get("/kb/deployment/lib"));
 		System.out.println("handlesrv: " + hsc.getHandleServerPort());
 		System.out.println(hsc.getTempDir());
 		Scanner reader = new Scanner(System.in);

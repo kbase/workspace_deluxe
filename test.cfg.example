@@ -24,3 +24,18 @@ test.temp.dir = workspace_test_temp
 # (for debugging purposes), any other value is false
 test.temp.dir.keep=false
 
+# Handle Service file location
+# Leave empty if you want to test the lastest HandleService
+# Otherwise clone handle_service2 repo (https://github.com/kbase/handle_service2)
+# Then creat biokbase dir in lib dir and copy log.py file into biokbase (https://github.com/kbase/sdkbase2/blob/python/log.py)
+# e.g.
+# git clone https://github.com/kbase/handle_service2
+# cd handle_service2/lib/
+# mkdir biokbase
+# cd biokbase/
+# wget https://raw.githubusercontent.com/kbase/sdkbase2/python/log.py
+# cd ..
+# pwd
+test.handleservice.dir =
+
+
