@@ -215,7 +215,6 @@ public class HandleServiceController {
 				System.getProperty("test.user1"),
 				"localhost:" + monc.getServerPort(),
 				"shockdb", "foo", "foo", new URL("http://foo.com")); 
-		
 		HandleServiceController hsc = new HandleServiceController(
 				monc,
 				"http://localhost:" + sc.getServerPort(),
