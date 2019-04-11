@@ -155,6 +155,9 @@ public class HandleServiceController {
 		hs.add("admin-token", shockAdminToken.getToken().toString());
 		hs.add("admin-roles", handleAdminRole);
 		
+		hs.add("mongo-host", "127.0.0.1");
+		hs.add("mongo-port", "" + mongo.getServerPort());
+		
 		ini.store(iniFile);
 		return iniFile;
 	}
