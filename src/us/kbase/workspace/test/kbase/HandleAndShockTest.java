@@ -101,6 +101,8 @@ public class HandleAndShockTest {
 	private static ShockUserId SHOCK_USER2;
 	private static ShockUserId SHOCK_USER3;
 	private static final String HANDLE_ADMIN_ROLE = "HANDLE_ADMIN_ROLE";
+	private final static String DB = "handle_db";
+	private final static String COLLECTION = "handle";
 
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
@@ -139,12 +141,12 @@ public class HandleAndShockTest {
 
 		TestCommon.createAuthUser(authURL, USER1, "display1");
 		final String token1 = TestCommon.createLoginToken(authURL, USER1);
-		TestCommon.createCustomRole(authURL, HANDLE_ADMIN_ROLE, "handle admin role");
-		TestCommon.setUserRoles(authURL, USER1, Arrays.asList(HANDLE_ADMIN_ROLE));
 		TestCommon.createAuthUser(authURL, USER2, "display2");
 		final String token2 = TestCommon.createLoginToken(authURL, USER2);
 		TestCommon.createAuthUser(authURL, USER3, "display3");
 		final String token3 = TestCommon.createLoginToken(authURL, USER3);
+		TestCommon.createCustomRole(authURL, HANDLE_ADMIN_ROLE, "handle admin role");
+		TestCommon.setUserRoles(authURL, USER3, Arrays.asList(HANDLE_ADMIN_ROLE));
 		final AuthToken t1 = new AuthToken(token1, USER1);
 		final AuthToken t2 = new AuthToken(token2, USER2);
 		HANDLE_MNGR_TOKEN = new AuthToken(token3, USER3);
@@ -172,11 +174,12 @@ public class HandleAndShockTest {
 		HANDLE = new HandleServiceController(
 				MONGO,
 				shockURL.toString(),
-				t1,
-				WorkspaceTestCommon.getHandlePERL5LIB(),
+				HANDLE_MNGR_TOKEN,
 				Paths.get(TestCommon.getTempDir()),
 				new URL(authURL.toString()),
-				HANDLE_ADMIN_ROLE);
+				HANDLE_ADMIN_ROLE,
+				DB,
+				COLLECTION);
 		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
 		System.out.println("Started Handle Service on port " + HANDLE.getHandleServerPort());
 
@@ -342,7 +345,7 @@ public class HandleAndShockTest {
 		//top level items
 		assertThat("incorrect state", st.get("state"), is((Object) "OK"));
 		assertThat("incorrect message", st.get("message"), is((Object) "OK"));
-		// should throw an error if not a valid sever
+		// should throw an error if not a valid semver
 		Version.valueOf((String) st.get("version"));
 		assertThat("incorrect git url", st.get("git_url"),
 				is((Object) "https://github.com/kbase/workspace_deluxe"));

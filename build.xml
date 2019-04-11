@@ -95,7 +95,6 @@
     <include name="apache_commons/velocity-1.7.jar"/>
     <include name="apache_commons/commons-lang-2.4.jar"/>
     <include name="apache_commons/commons-collections-3.2.1.jar"/>
-    <include name="mysql/mysql-connector-java-5.1.22-bin.jar"/>
     <include name="jsemver/java-semver-0.9.0.jar"/>
     <include name="equalsverifier/equalsverifier-2.2.2.jar"/>
     <include name="kbase/auth2/kbase-auth2test-0.2.4.jar"/>

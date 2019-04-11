@@ -34,22 +34,18 @@ public class HandleServiceController {
 	
 	private final Process handleService;
 	private final int handleServicePort;
-	
 	private final Path tempDir;
-	
-	private final static String DB = "handle_db";
-	private final static String COLLECTION = "handle";
-	
 	private final static String HANDLE_SERVICE_NAME = "handle_service";
 
 	public HandleServiceController(
 			final MongoController mongo,
 			final String shockHost,
 			final AuthToken shockAdminToken,
-			final String perl5lib,
 			final Path rootTempDir,
-			URL authURL, 
-			final String handleAdminRole)
+			final URL authURL, 
+			final String handleAdminRole,
+			final String DB,
+			final String collection)
 			throws Exception {
 				
 		tempDir = makeTempDirs(rootTempDir, "HandleServiceController-",
@@ -58,7 +54,7 @@ public class HandleServiceController {
 		handleServicePort = findFreePort();
 		
 		File hsIniFile = createHandleServiceDeployCfg(mongo, shockHost, authURL,
-				shockAdminToken, handleAdminRole);
+				shockAdminToken, handleAdminRole, DB, collection);
 		String lib_dir = "lib";
 		downloadSourceFiles(tempDir, lib_dir);
 
@@ -69,7 +65,6 @@ public class HandleServiceController {
 				.redirectErrorStream(true)
 				.redirectOutput(tempDir.resolve("handle_service.log").toFile());
 		Map<String, String> env = handlepb.environment();
-		env.put("PERL5LIB", perl5lib);
 		env.put("KB_DEPLOYMENT_CONFIG", hsIniFile.getAbsolutePath().toString());
 		env.put("KB_SERVICE_NAME", HANDLE_SERVICE_NAME);
 		env.put("KB_AUTH_TOKEN", shockAdminToken.getToken());
@@ -145,7 +140,9 @@ public class HandleServiceController {
 			final String shockHost,
 			final URL authURL,
 			final AuthToken shockAdminToken,
-			final String handleAdminRole) throws IOException {
+			final String handleAdminRole,
+			final String DB,
+			final String collection) throws IOException {
 		final File iniFile = tempDir.resolve("handleService.cfg").toFile();
 		if (iniFile.exists()) {
 			iniFile.delete();
@@ -165,7 +162,7 @@ public class HandleServiceController {
 		hs.add("mongo-host", "127.0.0.1");
 		hs.add("mongo-port", "" + mongo.getServerPort());
 		hs.add("mongo-database", DB);
-		hs.add("mongo-collection", COLLECTION);
+		hs.add("mongo-collection", collection);
 		hs.add("admin-roles", handleAdminRole);
 		
 		ini.store(iniFile);
@@ -206,10 +203,11 @@ public class HandleServiceController {
 				monc,
 				"http://localhost:" + sc.getServerPort(),
 				null, //this will break the hm, need a token
-				"/kb/deployment/lib",
 				Paths.get("workspacetesttemp"),
 				new URL("http://foo.com"),
-				"KBASE_ADMIN");
+				"KBASE_ADMIN",
+				"handle_db",
+				"handle");
 		System.out.println("handlesrv: " + hsc.getHandleServerPort());
 		System.out.println(hsc.getTempDir());
 		Scanner reader = new Scanner(System.in);

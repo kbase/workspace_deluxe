@@ -99,7 +99,6 @@ public class InitWorkspaceServer {
 		private final WorkspaceAdministration wsadmin;
 		private final Types types;
 		private final BasicShockClient linkedShockClient;
-		private final URL handleServiceUrl;
 		
 		public WorkspaceInitResults(
 				final Workspace ws,
@@ -114,7 +113,6 @@ public class InitWorkspaceServer {
 			this.wsadmin = wsadmin;
 			this.types = types;
 			this.linkedShockClient = linkedShockClient;
-			this.handleServiceUrl = handleServiceUrl;
 		}
 
 		public Workspace getWs() {
@@ -131,10 +129,6 @@ public class InitWorkspaceServer {
 		
 		public Types getTypes() {
 			return types;
-		}
-
-		public URL getHandleServiceUrl() {
-			return handleServiceUrl;
 		}
 		
 		public BasicShockClient getLinkedShockClient() {
@@ -497,19 +491,13 @@ public class InitWorkspaceServer {
 						"https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
+			cli.isOwner(Arrays.asList("FAKEHANDLE_-100"));
 		} catch (Exception e) {
 			rep.reportFail("Could not establish a connection to the Handle Service at "
 					+ handleServiceUrl + ": " + e.getMessage());
 			return null;
 		}
-		try {
-			cli.isOwner(Arrays.asList("FAKEHANDLE_-100"));
-		} catch (Exception e) {
 
-			rep.reportFail("Could not successfullly run methods on the Handle Service at "
-						+ handleServiceUrl + ": " + e.getMessage());
-			return null;
-		}
 		return cli;
 	}
 	

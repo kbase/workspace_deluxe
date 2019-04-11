@@ -121,7 +121,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final Types types;
 	private final WorkspaceAdministration wsadmin;
 	
-	private final URL handleServiceUrl;
 	private final BasicShockClient linkedShockClient;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
@@ -186,17 +185,17 @@ public class WorkspaceServer extends JsonServerServlet {
 		
 	}
 	
-	public DependencyStatus checkHandleService() {
-		try {
-			ServiceChecker.checkService(handleServiceUrl);
-			return new DependencyStatus(
-					true, "OK", "Handle manager", "Unknown");
-		} catch (ServiceException se) {
-			//tested manually, don't change without testing
-			return new DependencyStatus(
-					false, se.getMessage(), "Handle manager", "Unknown");
-		}
-	}
+//	public DependencyStatus checkHandleService() {
+//		try {
+//			ServiceChecker.checkService(handleServiceUrl);
+//			return new DependencyStatus(
+//					true, "OK", "Handle manager", "Unknown");
+//		} catch (ServiceException se) {
+//			//tested manually, don't change without testing
+//			return new DependencyStatus(
+//					false, se.getMessage(), "Handle manager", "Unknown");
+//		}
+//	}
 	
 	public DependencyStatus checkShockLink() {
 		try {
@@ -240,7 +239,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		WorkspaceServerMethods wsmeth = null;
 		Types types = null;
 		WorkspaceAdministration wsadmin = null;
-		URL handleServiceUrl = null;
 		BasicShockClient linkedShockClient = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
@@ -266,7 +264,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		this.wsmeth = wsmeth;
 		this.types = types;
 		this.wsadmin = wsadmin;
-		this.handleServiceUrl = handleServiceUrl;
 		this.linkedShockClient = linkedShockClient;
         //END_CONSTRUCTOR
     }
