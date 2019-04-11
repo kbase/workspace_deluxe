@@ -406,10 +406,7 @@ public class HandleAndShockTest {
 		handle.setFileName("empty_file");
 		handle.setUrl(bsc.getShockUrl().toString());
 		handle.setType("shock");
-		String handle_id = UUID.randomUUID().toString();
-		System.out.println("generated random handle_id for testing: " + handle_id);
-		handle.setHid(handle_id);
-		HANDLE_CLIENT.persistHandle(handle);
+		String handle_id = HANDLE_CLIENT.persistHandle(handle);
 
 		List<String> handleList = new LinkedList<String>();
 		handleList.add(handle_id);
