@@ -185,8 +185,7 @@ public class ValidatedTypedObject implements Restreamable {
 		}
 		final CountingOutputStream cos = new CountingOutputStream();
 		final JsonGenerator jgen = new JsonFactory().createGenerator(cos);
-		naturallySorted =
-				relabelWsIdReferencesIntoGeneratorAndCheckOrder(jgen);
+		naturallySorted = relabelWsIdReferencesIntoGeneratorAndCheckOrder(jgen);
 		jgen.close();
 		this.size = cos.getSize();
 		return this.size;
@@ -365,27 +364,18 @@ public class ValidatedTypedObject implements Restreamable {
 		return new IdRefTokenSequenceProvider(jts, schema, idHandler);
 	}
 	
-	private boolean relabelWsIdReferencesIntoGeneratorAndCheckOrder(
-			JsonGenerator jgen) throws IOException {
+	private boolean relabelWsIdReferencesIntoGeneratorAndCheckOrder(final JsonGenerator jgen)
+			throws IOException {
 		//TODO PERFORMANCE make the metadata extractor a TSP wrapper and extract here
 		TokenSequenceProvider tsp = null;
 		try {
-			if (idHandler.isEmpty()) {
-				JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
-				SortCheckingTokenSequenceProvider sortCheck =
-						new SortCheckingTokenSequenceProvider(jts);
-				tsp = sortCheck;
-				new JsonTokenStreamWriter().writeTokens(sortCheck, jgen);
-				return sortCheck.isSorted();
-			} else {
-				JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
-				IdRefTokenSequenceProvider idSubst =
-						new IdRefTokenSequenceProvider(jts, schema, idHandler);
-				tsp = idSubst;
-				new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
-				idSubst.close();
-				return idSubst.isSorted();
-			}
+			final JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
+			final IdRefTokenSequenceProvider idSubst =
+					new IdRefTokenSequenceProvider(jts, schema, idHandler);
+			tsp = idSubst;
+			new JsonTokenStreamWriter().writeTokens(idSubst, jgen);
+			idSubst.close();
+			return idSubst.isSorted();
 		} finally {
 			if (tsp != null)
 				tsp.close();
@@ -402,7 +392,7 @@ public class ValidatedTypedObject implements Restreamable {
 					throws IOException {
 		JsonTokenStream jts = tokenStreamProvider.getPlacedStream();
 		IdRefTokenSequenceProvider idSubst = new IdRefTokenSequenceProvider(jts, schema, null);
-		idSubst.setFindMode(ref);
+		idSubst.setFindMode(ref); // TODO CODE this should be a constructor arg
 		try {
 			new JsonTokenStreamWriter().writeTokens(
 					idSubst, new NullJsonGenerator());

@@ -58,8 +58,7 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 			throw new NullPointerException("jts");
 		}
 		this.jts = jts;
-		this.schemaLoc = new ArrayList<JsonTokenValidationSchema>(
-				Arrays.asList(schema));
+		this.schemaLoc = new ArrayList<>(Arrays.asList(schema));
 		this.handlers = idhandlers;
 	}
 	
