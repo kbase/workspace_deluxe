@@ -199,7 +199,7 @@ public class HandleAndShockTest {
 		} catch (Exception e) {
 			System.out.println("Could not successfullly run methods on the Handle Service");
 			System.out.println(e.getMessage());
-//			throw e;
+//			throw e;d
 		}
 
 		log_file = HANDLE.getTempDir().resolve("handle_service.log").toFile();
