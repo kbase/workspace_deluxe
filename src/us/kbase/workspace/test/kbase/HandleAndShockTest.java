@@ -46,7 +46,6 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.shock.client.BasicShockClient;
-import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockFileInformation;
 import us.kbase.shock.client.ShockNode;
@@ -72,7 +71,6 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.kbase.HandleIdHandlerFactory;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
 
@@ -101,8 +99,6 @@ public class HandleAndShockTest {
 	private static ShockUserId SHOCK_USER2;
 	private static ShockUserId SHOCK_USER3;
 	private static final String HANDLE_ADMIN_ROLE = "HANDLE_ADMIN_ROLE";
-	private final static String DB = "handle_db";
-	private final static String COLLECTION = "handle";
 
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
