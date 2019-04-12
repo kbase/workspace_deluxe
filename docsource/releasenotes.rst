@@ -1,6 +1,5 @@
 Workspace service release notes
 ===============================
-
 VERSION: 0.9.2 (Released TBD)
 -----------------------------
 
@@ -12,7 +11,7 @@ UPDATES:
 * updated travis to include HandleAndShock test
 
 
-VERSION: 0.9.0 (Released TBD)
+VERSION: 0.9.0 (Released 4/10/19)
 -----------------------------
 
 BACKWARDS INCOMPATIBILITIES:
