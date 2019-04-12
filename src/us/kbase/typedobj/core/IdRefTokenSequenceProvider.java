@@ -100,6 +100,12 @@ public class IdRefTokenSequenceProvider implements TokenSequenceProvider {
 			path.addArrayStart();
 		} else if (t == JsonToken.END_OBJECT || t == JsonToken.END_ARRAY) {
 			path.removeLast();
+			if (path.getDepth() != 0) {
+				final JsonLocation loc = path.getLast();
+				if (loc.isMapLocation()) {
+					prevFieldName = loc.getLocationAsString();
+				}
+			}
 			removeLastSchemaLocation();
 		} else if (t == JsonToken.FIELD_NAME) {
 			// this token that can not be first of some scalar or object and it means 
