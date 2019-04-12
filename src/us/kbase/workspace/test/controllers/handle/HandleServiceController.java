@@ -31,7 +31,7 @@ import us.kbase.common.test.controllers.shock.ShockController;
  *
  */
 public class HandleServiceController {
-	
+
 	private final Process handleService;
 	private final int handleServicePort;
 	private final Path tempDir;
@@ -42,18 +42,18 @@ public class HandleServiceController {
 			final String shockHost,
 			final AuthToken shockAdminToken,
 			final Path rootTempDir,
-			final URL authURL, 
+			final URL authURL,
 			final String handleAdminRole,
 			final Path handleServiceDir)
 			throws Exception {
-				
+
 		tempDir = makeTempDirs(rootTempDir, "HandleServiceController-",
 				new LinkedList<String>());
-		
+
 		handleServicePort = findFreePort();
 		File hsIniFile = createHandleServiceDeployCfg(mongo, shockHost, authURL,
 				shockAdminToken, handleAdminRole);
-		
+
 		String lib_dir = "lib";
 		Path lib_root = tempDir.resolve(lib_dir);
 		if (handleServiceDir.toString().isEmpty()) {
@@ -62,9 +62,9 @@ public class HandleServiceController {
 		else {
 			copyDirectory(handleServiceDir, lib_root);
 		}
-		
+
 		String lib_dir_path = lib_root.toAbsolutePath().toString();
-		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http", 
+		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http",
 				":" + handleServicePort, "--wsgi-file",
 				"AbstractHandle/AbstractHandleServer.py", "--pythonpath", lib_dir_path)
 				.redirectErrorStream(true)
@@ -75,17 +75,17 @@ public class HandleServiceController {
 		env.put("PYTHONPATH", lib_dir_path);
 		handlepb.directory(new File(lib_dir_path));
 		handleService = handlepb.start();
-		
+
 		Thread.sleep(1000); //let the service start up
 	}
-	
+
 	private void copyDirectory(Path srcDir, Path destDir) throws IOException {
 		FileUtils.copyDirectory(srcDir.toFile(), destDir.toFile());
-		
+
 		Path log_file = null;
 		Stream <String> lines = null;
 		List <String> replaced = null;
-		
+
 		Path handle_dir = destDir.resolve("AbstractHandle");
 		log_file = handle_dir.resolve("AbstractHandleServer.py");
 		lines = Files.lines(log_file);
@@ -93,23 +93,23 @@ public class HandleServiceController {
 				"loads(request_body.decode('utf-8'))")).collect(Collectors.toList());
 		Files.write(log_file, replaced);
 		lines.close();
-		Path handle_utils_dir = handle_dir.resolve("Utils");
-		log_file = handle_utils_dir.resolve("MongoUtil.py");
-		lines = Files.lines(log_file);
-		replaced = lines.map(line -> line.replaceAll("#print", 
-				"print")).collect(Collectors.toList());
-		Files.write(log_file, replaced);
-		lines.close();
+		// Path handle_utils_dir = handle_dir.resolve("Utils");
+		// log_file = handle_utils_dir.resolve("MongoUtil.py");
+		// lines = Files.lines(log_file);
+		// replaced = lines.map(line -> line.replaceAll("#print",
+		// 		"print")).collect(Collectors.toList());
+		// Files.write(log_file, replaced);
+		// lines.close();
 	}
-	
+
 	private void downloadSourceFiles(Path lib_root) throws IOException {
 		// download source files from github repo
 
 		Files.createDirectories(lib_root);
-		
+
 		Path handle_dir = lib_root.resolve("AbstractHandle");
 		Files.createDirectories(handle_dir);
-		
+
 		String handle_repo_prefix = "https://raw.githubusercontent.com/kbase/handle_service2/develop/lib/AbstractHandle/";
 		String [] handle_impl_files = {"__init__.py", "AbstractHandleImpl.py",
 				"AbstractHandleServer.py", "authclient.py", "baseclient.py"};
@@ -117,30 +117,30 @@ public class HandleServiceController {
 			FileUtils.copyURLToFile(new URL(handle_repo_prefix + file_name),
 					handle_dir.resolve(file_name).toFile());
 		}
-		
+
 		Path handle_utils_dir = handle_dir.resolve("Utils");
 		Files.createDirectories(handle_utils_dir);
-		String [] handle_util_files = {"__init__.py", "Handler.py", "MongoUtil.py", 
+		String [] handle_util_files = {"__init__.py", "Handler.py", "MongoUtil.py",
 				"ShockUtil.py", "TokenCache.py"};
 		for (String file_name : handle_util_files) {
-			FileUtils.copyURLToFile(new URL(handle_repo_prefix + "Utils/" + file_name), 
+			FileUtils.copyURLToFile(new URL(handle_repo_prefix + "Utils/" + file_name),
 					handle_utils_dir.resolve(file_name).toFile());
 		}
-		
+
 		Path biokbase_dir = lib_root.resolve("biokbase");
 		Files.createDirectories(biokbase_dir);
-		
+
 		String biokbase_repo_prefix = "https://raw.githubusercontent.com/kbase/sdkbase2/python/";
 		String [] biokbase_files = {"log.py"};
 		for (String file_name : biokbase_files) {
 			FileUtils.copyURLToFile(new URL(biokbase_repo_prefix + file_name),
 					biokbase_dir.resolve(file_name).toFile());
 		}
-		
+
 		Path log_file = null;
 		Stream <String> lines = null;
 		List <String> replaced = null;
-		
+
 		log_file = handle_dir.resolve("AbstractHandleServer.py");
 		lines = Files.lines(log_file);
 		replaced = lines.map(line -> line.replaceAll("loads\\(request_body\\)",
@@ -148,14 +148,14 @@ public class HandleServiceController {
 		Files.write(log_file, replaced);
 		lines.close();
 
-		log_file = handle_utils_dir.resolve("MongoUtil.py");
-		lines = Files.lines(log_file);
-		replaced = lines.map(line -> line.replaceAll("#print", 
-				"print")).collect(Collectors.toList());
-		Files.write(log_file, replaced);
-		lines.close();
+		// log_file = handle_utils_dir.resolve("MongoUtil.py");
+		// lines = Files.lines(log_file);
+		// replaced = lines.map(line -> line.replaceAll("#print",
+		// 		"print")).collect(Collectors.toList());
+		// Files.write(log_file, replaced);
+		// lines.close();
 	}
-	
+
 	private File createHandleServiceDeployCfg(
 			final MongoController mongo,
 			final String shockHost,
@@ -166,7 +166,7 @@ public class HandleServiceController {
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
-		
+
 		final Ini ini = new Ini();
 		final Section hs = ini.add(HANDLE_SERVICE_NAME);
 		hs.add("self-url", "http://localhost:" + handleServicePort);
@@ -175,26 +175,26 @@ public class HandleServiceController {
 		URL authServiceURL = new URL(authURL.toString() + "/api/legacy/KBase/Sessions/Login");
 		hs.add("auth-service-url", authServiceURL.toString());
 		hs.add("auth-url", authURL.toString());
-		hs.add("default-shock-server", shockHost);
+		hs.add("shock-url", shockHost);
 		hs.add("admin-token", shockAdminToken.getToken().toString());
 		hs.add("admin-roles", handleAdminRole);
-		
+
 		hs.add("mongo-host", "127.0.0.1");
 		hs.add("mongo-port", "" + mongo.getServerPort());
-		
+
 		ini.store(iniFile);
 		return iniFile;
 	}
-	
+
 
 	public int getHandleServerPort() {
 		return handleServicePort;
 	}
-	
+
 	public Path getTempDir() {
 		return tempDir;
 	}
-	
+
 	public void destroy(boolean deleteTempFiles) throws IOException {
 		if (handleService != null) {
 			handleService.destroy();
@@ -207,14 +207,14 @@ public class HandleServiceController {
 	public static void main(String[] args) throws Exception {
 		MongoController monc = new MongoController(
 				"/kb/runtime/bin/mongod",
-				Paths.get("workspacetesttemp"), false); 
+				Paths.get("workspacetesttemp"), false);
 		ShockController sc = new ShockController(
 				"/kb/deployment/bin/shock-server",
 				"0.9.6",
 				Paths.get("workspacetesttemp"),
 				System.getProperty("test.user1"),
 				"localhost:" + monc.getServerPort(),
-				"shockdb", "foo", "foo", new URL("http://foo.com")); 
+				"shockdb", "foo", "foo", new URL("http://foo.com"));
 		HandleServiceController hsc = new HandleServiceController(
 				monc,
 				"http://localhost:" + sc.getServerPort(),

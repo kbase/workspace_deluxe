@@ -430,9 +430,15 @@ public class HandleAndShockTest {
 					.withObjects(Arrays.asList(
 							new ObjectSaveData().withData(new UObject(handleobj)).withName("foo2")
 							.withType(HANDLE_TYPE))));
-		} catch (ServerException se) {
-			System.out.println(se.getData());
-			throw se;
+			fail("saved object with bad handle");
+		} catch (ServerException e) {
+			assertThat("correct exception message", e.getMessage(),
+							is("An error occured while processing IDs: " +
+								"The Handle Service reported that at least one of " +
+								"the handles contained in the objects in this call " +
+								"is not accessible - it may not exist, or the " +
+								"supplied credentials may not own the node, or some " +
+								"other reason. The call cannot complete."));
 		}
 
 		bsc.removeFromNodeAcl(new ShockNodeId(shock_id),
@@ -454,6 +460,8 @@ public class HandleAndShockTest {
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
 
+		checkReadAcl(node, twouser);
+		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
 
 		//get objects
@@ -461,6 +469,8 @@ public class HandleAndShockTest {
 				.withObjid(1L))).get(0);
 		checkExternalIDError(ret.getHandleError(), ret.getHandleStacktrace());
 
+		checkReadAcl(node, twouser);
+		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
 
 		//object subset
@@ -468,6 +478,8 @@ public class HandleAndShockTest {
 				.withObjid(1L))).get(0);
 		checkExternalIDError(ret.getHandleError(), ret.getHandleStacktrace());
 
+		checkReadAcl(node, twouser);
+		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
 
 		//object provenance
@@ -476,6 +488,8 @@ public class HandleAndShockTest {
 				.withObjid(1L))).get(0);
 		checkExternalIDError(ret2.getHandleError(), ret2.getHandleStacktrace());
 
+		checkReadAcl(node, twouser);
+		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
 
 		//object by ref chain
@@ -490,7 +504,7 @@ public class HandleAndShockTest {
 				.withObjid(1L)))).get(0);
 		checkExternalIDError(ret.getHandleError(), ret.getHandleStacktrace());
 
-		checkReadAcl(node, oneuser);
+		checkReadAcl(node, twouser);
 
 		//test error message for deleted node
 		node.delete();
@@ -503,7 +517,15 @@ public class HandleAndShockTest {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
-		checkExternalIDError(wod.getHandleError(), wod.getHandleStacktrace());
+		assertThat("got correct error message", wod.getHandleError(),
+						is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
+										+ h1.getHid()));
+		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
+						startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
+							  			"IdReferencePermissionHandlerException: " +
+							  			"The Handle Manager reported a problem while attempting to set Handle " +
+							  			"ACLs: Unable to set acl(s) on handles "
+							  			+ h1.getHid()));
 	}
 
 	@Test
@@ -772,7 +794,7 @@ public class HandleAndShockTest {
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
-		checkReadAcl(node, oneuser);
+		checkReadAcl(node, twouser);
 		checkPublicRead(node, false);
 		// check that anonymous users can get the object & shock nodes
 		CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
@@ -780,7 +802,7 @@ public class HandleAndShockTest {
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
-		checkPublicRead(node, false);
+		checkPublicRead(node, true);
 
 		//test error message for deleted node with no auth
 		node.delete();
@@ -792,8 +814,15 @@ public class HandleAndShockTest {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
-		checkExternalIDError(wod.getHandleError(), wod.getHandleStacktrace());
-
+		assertThat("got correct error message", wod.getHandleError(),
+						is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
+										+ h1.getHid()));
+		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
+						startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
+										"IdReferencePermissionHandlerException: " +
+										"The Handle Manager reported a problem while attempting to set Handle " +
+										"ACLs: Unable to set acl(s) on handles "
+										+ h1.getHid()));
 	}
 
 	private void checkPublicRead(
