@@ -27,9 +27,9 @@ auth-service-url = https://kbase.us/services/auth/api/legacy/KBase/Sessions/Logi
 # The KBase authorization service mkII url.
 auth2-service-url = https://kbase.us/services/auth
 
-# The urls for the Handle Service and Handle Manager.
+# The urls for the Handle Service.
 handle-service-url =
-# The token used to access the handle manager.
+# The token used to access the handle manager (shock admin token).
 handle-manager-token =
 
 # The user name for a workspace administrator. This name is not permanently

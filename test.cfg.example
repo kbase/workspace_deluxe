@@ -36,6 +36,6 @@ test.temp.dir.keep=false
 # wget https://raw.githubusercontent.com/kbase/sdkbase2/python/log.py
 # cd ..
 # pwd
-test.handleservice.dir =
+test.handleservice.dir=
 
 
