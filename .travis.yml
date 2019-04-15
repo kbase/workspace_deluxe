@@ -28,10 +28,19 @@ before_install:
   - source ~/.bash_aliases
 
 install:
+  - export HOMEDIR=`pwd`
   - cd ..
   - git clone https://github.com/kbase/jars
   - export JARSDIR=`pwd`/jars/lib/jars/
-  - cd -
+  - export HS_VER=version_1.0.0
+  - git clone -b $HS_VER --single-branch https://github.com/kbase/handle_service2.git
+  - cd handle_service2/lib/
+  - mkdir biokbase
+  - cd biokbase/
+  - wget https://raw.githubusercontent.com/kbase/sdkbase2/python/log.py
+  - cd ..
+  - export HSDIR=`pwd`
+  - cd $HOMEDIR
 
 script:
   - cd ..
@@ -47,6 +56,7 @@ script:
   - sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
   - sed -i "s#^test.shock.version.*#test.shock.version=0.9.6#" test.cfg
   - sed -i "s#^test.shock.exe.*#test.shock.exe=$SHOCKEXE#" test.cfg
+  - sed -i "s#^test.handleservice.dir.*#test.handleservice.dir=$HSDIR#" test.cfg
   - cat test.cfg
   - ant javadoc
   - ant $ANT_TEST
