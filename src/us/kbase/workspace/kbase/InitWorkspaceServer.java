@@ -105,8 +105,7 @@ public class InitWorkspaceServer {
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
 				final Types types,
-				final BasicShockClient linkedShockClient,
-				final URL handleServiceUrl) {
+				final BasicShockClient linkedShockClient) {
 			super();
 			this.ws = ws;
 			this.wsmeth = wsmeth;
@@ -203,7 +202,7 @@ public class InitWorkspaceServer {
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
 		return new WorkspaceInitResults(
-				ws, wsmeth, wsadmin, types, wsdeps.shockFac.client, cfg.getHandleServiceURL());
+				ws, wsmeth, wsadmin, types, wsdeps.shockFac.client);
 	}
 	
 	private static AdministratorHandler getAdminHandler(
