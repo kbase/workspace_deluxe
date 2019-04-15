@@ -114,16 +114,6 @@ public class HandleServiceController {
 					biokbase_dir.resolve(file_name).toFile());
 		}
 
-		Path log_file = null;
-		Stream <String> lines = null;
-		List <String> replaced = null;
-
-		log_file = handle_dir.resolve("AbstractHandleServer.py");
-		lines = Files.lines(log_file);
-		replaced = lines.map(line -> line.replaceAll("loads\\(request_body\\)",
-				"loads(request_body.decode('utf-8'))")).collect(Collectors.toList());
-		Files.write(log_file, replaced);
-		lines.close();
 	}
 
 	private File createHandleServiceDeployCfg(
