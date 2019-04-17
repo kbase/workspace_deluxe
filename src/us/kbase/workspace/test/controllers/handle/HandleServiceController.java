@@ -10,12 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.commons.io.FileUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
@@ -44,7 +40,8 @@ public class HandleServiceController {
 			final Path rootTempDir,
 			final URL authURL,
 			final String handleAdminRole,
-			final Path handleServiceDir)
+			final Path handleServiceDir,
+			final String mongoDB)
 			throws Exception {
 
 		tempDir = makeTempDirs(rootTempDir, "HandleServiceController-",
@@ -52,7 +49,7 @@ public class HandleServiceController {
 
 		handleServicePort = findFreePort();
 		File hsIniFile = createHandleServiceDeployCfg(mongo, shockHost, authURL,
-				shockAdminToken, handleAdminRole);
+				shockAdminToken, handleAdminRole, mongoDB);
 
 		String lib_dir = "lib";
 		Path lib_root = tempDir.resolve(lib_dir);
@@ -121,7 +118,8 @@ public class HandleServiceController {
 			final String shockHost,
 			final URL authURL,
 			final AuthToken shockAdminToken,
-			final String handleAdminRole) throws IOException {
+			final String handleAdminRole,
+			final String mongoDB) throws IOException {
 		final File iniFile = tempDir.resolve("handleService.cfg").toFile();
 		if (iniFile.exists()) {
 			iniFile.delete();
@@ -141,7 +139,7 @@ public class HandleServiceController {
 
 		hs.add("mongo-host", "127.0.0.1");
 		hs.add("mongo-port", "" + mongo.getServerPort());
-		hs.add("mongo-database", "handle_controller_test_handle_db");
+		hs.add("mongo-database", mongoDB);
 
 		ini.store(iniFile);
 		return iniFile;
@@ -183,7 +181,8 @@ public class HandleServiceController {
 				Paths.get("workspacetesttemp"),
 				new URL("http://foo.com"),
 				"KBASE_ADMIN",
-				Paths.get("/kb/deployment/lib"));
+				Paths.get("/kb/deployment/lib"),
+				"handle_controller_test_handle_db");
 		System.out.println("handlesrv: " + hsc.getHandleServerPort());
 		System.out.println(hsc.getTempDir());
 		Scanner reader = new Scanner(System.in);

@@ -117,6 +117,8 @@ public class HandleAndShockTest {
 	private static String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
 	private static String SHOCK_TYPE = "HandleByteStreamList.SList-0.1";
 	private static String HANDLE_REF_TYPE = "HandleByteStreamList.HRef-0.1";
+	
+	private static String HANDLE_SERVICE_TEST_DB = "handle_service_test_handle_db";
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -177,7 +179,8 @@ public class HandleAndShockTest {
 				Paths.get(TestCommon.getTempDir()),
 				new URL(authURL.toString()),
 				HANDLE_ADMIN_ROLE,
-				Paths.get(TestCommon.getHandleServiceDir()));
+				Paths.get(TestCommon.getHandleServiceDir()),
+				HANDLE_SERVICE_TEST_DB);
 		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
 		System.out.println("Started Handle Service on port " + HANDLE.getHandleServerPort());
 
