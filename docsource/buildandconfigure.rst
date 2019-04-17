@@ -223,7 +223,7 @@ handle-manager-token
 """"""""""""""""""""
 **Required**: If using handles
 
-**Description**: Credentials for the account approved for Shock admin use
+**Description**: Credentials for the account approved to assign/modify shock node ACLs.
 
 ws-admin
 """"""""

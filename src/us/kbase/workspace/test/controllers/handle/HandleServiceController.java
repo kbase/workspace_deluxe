@@ -141,7 +141,7 @@ public class HandleServiceController {
 
 		hs.add("mongo-host", "127.0.0.1");
 		hs.add("mongo-port", "" + mongo.getServerPort());
-		hs.add("mongo-database", "handle_db");
+		hs.add("mongo-database", "handle_controller_test_handle_db");
 
 		ini.store(iniFile);
 		return iniFile;
