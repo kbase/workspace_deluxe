@@ -3,23 +3,45 @@ sudo: required
 language: java
 jdk:
   - openjdk8
-  
+
 # TODO split tests into mongo related & non mongo related. Run the former once.
 env:
-  - MONGODB_VER=mongodb-linux-x86_64-2.6.12 ANT_TEST=test_quick_no_handle_coverage WIRED_TIGER=false
-  - MONGODB_VER=mongodb-linux-x86_64-3.6.10 ANT_TEST=test_quick_no_handle_coverage WIRED_TIGER=false
-  - MONGODB_VER=mongodb-linux-x86_64-3.6.10 ANT_TEST=test_quick_no_handle_coverage WIRED_TIGER=true
+  - MONGODB_VER=mongodb-linux-x86_64-2.6.12 ANT_TEST=test_quick_coverage WIRED_TIGER=false
+  - MONGODB_VER=mongodb-linux-x86_64-3.6.10 ANT_TEST=test_quick_coverage WIRED_TIGER=false
+  - MONGODB_VER=mongodb-linux-x86_64-3.6.10 ANT_TEST=test_quick_coverage WIRED_TIGER=true
 
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y ant-optional
-  - sudo pip install sphinx
-  
+  - sudo apt-get install -y build-essential python3-pip python3-dev
+  - sudo apt-cache search python3.6
+  - sudo add-apt-repository -y ppa:jonathonf/python-3.6
+  - sudo apt-get -qq update
+  - sudo apt-get install python3.6
+  - sudo pip3 install sphinx
+  - sudo pip3 install jsonrpcbase
+  - sudo pip3 install configparser
+  - sudo pip3 install pymongo
+  - sudo pip3 install cachetools
+  - sudo pip3 install uwsgi
+  - echo "alias python=python3.6" >> ~/.bash_aliases
+  - source ~/.bash_aliases
+
 install:
+  - export HOMEDIR=`pwd`
   - cd ..
   - git clone https://github.com/kbase/jars
   - export JARSDIR=`pwd`/jars/lib/jars/
-  - cd -
+  - export HS_VER=version_1.0.0
+  - export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
+  - git clone -b $HS_VER --single-branch https://github.com/kbase/handle_service2.git
+  - cd handle_service2/lib/
+  - mkdir biokbase
+  - cd biokbase/
+  - wget https://raw.githubusercontent.com/kbase/sdkbase2/$LOG_COMMIT/log.py
+  - cd ..
+  - export HSDIR=`pwd`
+  - cd $HOMEDIR
 
 script:
   - cd ..
@@ -35,6 +57,7 @@ script:
   - sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
   - sed -i "s#^test.shock.version.*#test.shock.version=0.9.6#" test.cfg
   - sed -i "s#^test.shock.exe.*#test.shock.exe=$SHOCKEXE#" test.cfg
+  - sed -i "s#^test.handleservice.dir.*#test.handleservice.dir=$HSDIR#" test.cfg
   - cat test.cfg
   - ant javadoc
   - ant $ANT_TEST

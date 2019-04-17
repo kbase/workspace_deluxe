@@ -17,7 +17,6 @@ import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UnauthorizedException;
-import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 //import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
@@ -38,12 +37,12 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	
 	public static final IdReferenceType TYPE = new IdReferenceType("handle");
 	private final URL handleService;
-	private final HandleMngrClient client;
+	private final AbstractHandleClient client;
 	
 	/** pass in null for the handle service URL to cause an exception to be
 	 * thrown if a handle id is encountered. Same for the client.
 	 */
-	public HandleIdHandlerFactory(final URL handleServiceURL, final HandleMngrClient client) {
+	public HandleIdHandlerFactory(final URL handleServiceURL, final AbstractHandleClient client) {
 		this.handleService = handleServiceURL;
 		this.client = client;
 	}

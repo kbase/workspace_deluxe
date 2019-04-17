@@ -5,7 +5,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Scanner;
 
-import us.kbase.handlemngr.HandleMngrClient;
+import us.kbase.abstracthandle.AbstractHandleClient;
 
 
 public class HandleManagerTest {
@@ -30,10 +30,10 @@ public class HandleManagerTest {
 			}
 			s.close();
 			try {
-				final HandleMngrClient hmc;
-				hmc = new HandleMngrClient(new URL(URL), args[0], args[1]);
-				hmc.setIsInsecureHttpConnectionAllowed(true);
-				hmc.addReadAcl(Arrays.asList("KBH_3"), "kbasetest2");
+				final AbstractHandleClient hsc;
+				hsc = new AbstractHandleClient(new URL(URL), args[0], args[1]);
+				hsc.setIsInsecureHttpConnectionAllowed(true);
+				hsc.addReadAcl(Arrays.asList("KBH_3"), "kbasetest2");
 			} catch (Exception e) {
 				System.out.println(e.getClass().getName() + ": " +
 						e.getLocalizedMessage());
