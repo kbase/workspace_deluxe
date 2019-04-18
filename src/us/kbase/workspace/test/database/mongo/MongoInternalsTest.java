@@ -656,8 +656,7 @@ public class MongoInternalsTest {
 		
 		WorkspaceIdentifier wsi = new WorkspaceIdentifier("ws");
 		WorkspaceUser user = new WorkspaceUser("u");
-		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null)
-				.getId();
+		long wsid = ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		
 		final Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, String> meta = new HashMap<String, String>();
@@ -668,8 +667,7 @@ public class MongoInternalsTest {
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
 		setWsidOnProvenance(wsid, p);
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
-		AbsoluteTypeDefId at = new AbsoluteTypeDefId(
-				new TypeDefName("SomeModule", "AType"), 0, 1);
+		AbsoluteTypeDefId at = new AbsoluteTypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		
 		WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("testobj"), new UObject(data), t,
