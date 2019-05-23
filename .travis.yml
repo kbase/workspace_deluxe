@@ -37,7 +37,7 @@ install:
   - export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
   - git clone -b $HS_VER --single-branch https://github.com/kbase/handle_service2.git
   - cd handle_service2/
-  - git reset --hard $HS_COMMIT
+  - git checkout $HS_COMMIT
   - sudo chmod -R 777 .
   - cd lib/
   - mkdir biokbase
