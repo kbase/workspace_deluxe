@@ -38,11 +38,10 @@ install:
   - git clone -b $HS_VER --single-branch https://github.com/kbase/handle_service2.git
   - cd handle_service2
   - git reset --hard $HS_COMMIT
-  - sudo chmod -R 777 ./
   - cd /lib
-  - mkdir biokbase
+  - sudo mkdir biokbase
   - cd biokbase/
-  - wget https://raw.githubusercontent.com/kbase/sdkbase2/$LOG_COMMIT/log.py
+  - sudo wget https://raw.githubusercontent.com/kbase/sdkbase2/$LOG_COMMIT/log.py
   - cd ..
   - export HSDIR=`pwd`
   - cd $HOMEDIR
