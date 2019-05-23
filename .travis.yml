@@ -33,9 +33,12 @@ install:
   - git clone https://github.com/kbase/jars
   - export JARSDIR=`pwd`/jars/lib/jars/
   - export HS_VER=version_1.0.0
+  - export HS_COMMIT=f90f1647456d2fd39c7c8b340e6c0727e306bba7
   - export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
   - git clone -b $HS_VER --single-branch https://github.com/kbase/handle_service2.git
-  - cd handle_service2/lib/
+  - cd handle_service2
+  - git reset --hard $HS_COMMIT
+  - cd /lib
   - mkdir biokbase
   - cd biokbase/
   - wget https://raw.githubusercontent.com/kbase/sdkbase2/$LOG_COMMIT/log.py
