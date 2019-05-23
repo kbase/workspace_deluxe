@@ -39,7 +39,7 @@ install:
   - cd handle_service2
   - git reset --hard $HS_COMMIT
   - cd /lib
-  - mkdir biokbase
+  - sudo mkdir biokbase
   - cd biokbase/
   - wget https://raw.githubusercontent.com/kbase/sdkbase2/$LOG_COMMIT/log.py
   - cd ..
