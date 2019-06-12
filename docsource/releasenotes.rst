@@ -1,6 +1,16 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.10.0 (Released TBD)
+------------------------------
+
+BACKWARDS INCOMPATIBILITES:
+
+* Shock nodes included in workspaces objects as ``@id bytestream`` annotations must now be
+  owned by the user or by the workspace service. If the user owns the node, the node's owner
+  will be changed to the workspace service and write and delete ACLs will be cleared. The
+  node is no longer copied.
+
 VERSION: 0.9.1 (Released 4/18/19)
 ---------------------------------
 
