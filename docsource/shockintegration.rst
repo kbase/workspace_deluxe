@@ -61,17 +61,17 @@ The differences are summarized in the table below.
 Stage                                  Handle links                 Direct links
 =====================================  ===========================  ===============================
 Before saving an object the user must  ensure a handle exists       do nothing special
-When saving an object the user must    own the linked node          be able to read the linked node
-During the saving process              the node is unchanged        the WSS makes a copy (1)
+When saving an object the user must    own the linked node          own the linked node (1)
+During the saving process              the node is unchanged        the WSS owns the node (1)
 After the object is saved              the user may alter the node  the user may not alter the node
 =====================================  ===========================  ===============================
 
 #. Unless the workspace already owns the node.
 
 Generally speaking, direct Shock links are much easier to work with, with the disadvantage
-(although a large advantage from a provenance and reproducibility standpoint) that the user
-will not own any nodes linked from the final version of the saved WSS object and therefore cannot
-modify them.
+(although a large advantage from a provenance and reproducibility standpoint) that the workspace
+takes ownership of the nodes and the user will not own any nodes linked from the final version of
+the saved WSS object and therefore cannot modify them.
 
 Handles
 -------
@@ -397,10 +397,9 @@ Direct Shock links
 ------------------
 
 Much of the Handle instructions above are applicable to direct Shock links as well. The user
-must create or have access to one or more readable (as opposed to owned for Handles) Shock nodes
-and a WSS type that allows linking WSS objects to Shock nodes. As might be expected, the user need
-not create a Handle for the node (although that is not prohibited). A type that allows direct
-Shock links can be as simple as::
+must create or have access to one or more owned Shock nodes and a WSS type that allows linking
+WSS objects to Shock nodes. As might be expected, the user need not create a Handle for the node
+(although that is not prohibited). A type that allows direct Shock links can be as simple as::
 
     /* @id bytestream */
     typedef string bytestream_id;
@@ -409,21 +408,15 @@ Shock links can be as simple as::
         bytestream_id bid;
     } StructWithBytestreamID;
 
-.. note::
-   It is not advisable to make bytestream IDs keys for maps, as that may prevent the future
-   presorting feature from working properly.
-
 An object typed as ``StructWithBytestreamID`` may then be saved to the WSS. The WSS will ensure
-that the Shock ID in the ``bid`` field exists and is readable by the user, and then make a copy of
-the node if it is not already owned by the WSS. The node will be shared as the WSS object is
-shared, just like Handle based linked nodes.
+that the Shock ID in the ``bid`` field exists and is owned by the user or the workspace, and take
+ownership of the node if it is not already owned by the WSS. The node will be shared as the WSS
+object is shared, just like Handle based linked nodes.
 
 Retrieving objects works similarly as with Handle based nodes except that
 
 #. The Shock IDs extracted from the object will appear under the ``bytestream`` key in the
    ``extracted_ids`` field as opposed to the ``handle`` field.
-#. The extracted IDs may not be the same as those in the original data sent to the WSS as
-   the WSS may make copies of the nodes as described above.
 #. The WSS contacts Shock directly instead of contacting the Handle Service to set node
    permissions.
 #. To avoid duplicating fields, any errors relating to setting Shock permissions when retrieving
