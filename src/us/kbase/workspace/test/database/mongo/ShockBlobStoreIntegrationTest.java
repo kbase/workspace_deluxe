@@ -149,6 +149,10 @@ public class ShockBlobStoreIntegrationTest {
 		public InputStream getInputStream() {
 			return IOUtils.toInputStream(data);
 		}
+		@Override
+		public long getSize() {
+			return -1; // unused for Shock (might be used for blobstore in future)
+		}
 	}
 	
 	@Test
