@@ -42,13 +42,6 @@ public class S3BlobStore implements BlobStore {
 	}
 
 	@Override
-	public String getExternalIdentifier(final MD5 md5)
-			throws BlobStoreCommunicationException, NoSuchBlobException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public List<DependencyStatus> status() {
 		// TODO Auto-generated method stub
 		return null;

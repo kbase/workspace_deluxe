@@ -117,11 +117,6 @@ public class GridFSBlobStore implements BlobStore {
 	}
 
 	@Override
-	public String getExternalIdentifier(MD5 md5) {
-		return null;
-	}
-
-	@Override
 	public List<DependencyStatus> status() {
 		//note failures are tested manually for now, if you make changes test
 		//things still work

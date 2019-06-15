@@ -357,6 +357,7 @@
       <exclude name="performance/**"/>
       <exclude name="debugging/**"/>
       <exclude name="sorting/**"/>
+      <exclude name="s3presignedurl/**"/>
     </javac>
     <junit fork="yes" failureproperty="test.failed">
       <classpath refid="test.client.import.classpath"/>

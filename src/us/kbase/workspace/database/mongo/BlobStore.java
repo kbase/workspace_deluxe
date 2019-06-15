@@ -62,10 +62,6 @@ public interface BlobStore {
 	public void removeBlob(MD5 md5) throws BlobStoreAuthorizationException,
 		BlobStoreCommunicationException;
 	
-	// TODO NOW remove. Why the hell is this here?
-	public String getExternalIdentifier(MD5 md5) throws
-		BlobStoreCommunicationException, NoSuchBlobException;
-	
 	/** Returns the status of the blob store's dependencies.
 	 * @return the dependency status.
 	 */
