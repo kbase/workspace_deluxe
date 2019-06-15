@@ -2,7 +2,6 @@ package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -132,7 +131,6 @@ public class GridFSBlobStoreTest {
 		assertThat("data returned marked as sorted", d.isSorted(), is(true));
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
-		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(md1copy) == null);
 		gfsb.saveBlob(md1, new StringRestreamable(data), true); //should be able to save the same thing twice with no error
 		
 		gfsb.saveBlob(md1, new StringRestreamable(data), false); //this should do nothing

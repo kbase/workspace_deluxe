@@ -246,10 +246,4 @@ public class ShockBlobStore implements BlobStore {
 					"Could not read from the mongo database", me);
 		}
 	}
-
-	@Override
-	public String getExternalIdentifier(final MD5 md5) throws
-			BlobStoreCommunicationException, NoSuchBlobException {
-		return getNode(md5);
-	}
 }
