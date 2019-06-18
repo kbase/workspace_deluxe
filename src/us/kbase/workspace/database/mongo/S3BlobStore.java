@@ -6,6 +6,7 @@ import static us.kbase.workspace.database.Util.checkString;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.slf4j.LoggerFactory;
 
@@ -42,11 +43,24 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
  */
 public class S3BlobStore implements BlobStore {
 	
+	/** An interface for generating a random UUID. Used for mocking UUID generation in unit tests.
+	 * @author gaprice@lbl.gov
+	 *
+	 */
+	public interface UUIDGen {
+		
+		/** Generates a random UUID identically to {@link UUID#randomUUID()}.
+		 * @return a UUID.
+		 */
+		UUID randomUUID();
+	}
+	
 	private static final String IDX_UNIQ = "unique";
 	
 	private final DBCollection col;
 	private final S3ClientWithPresign s3;
 	private final String bucket;
+	private final UUIDGen uuidGen;
 	
 	/** Create the blob store.
 	 * @param mongoCollection the MongoDB collection in which the blob store will store records.
@@ -60,6 +74,25 @@ public class S3BlobStore implements BlobStore {
 			final S3ClientWithPresign s3,
 			final String bucket)
 			throws BlobStoreCommunicationException, IllegalArgumentException {
+		this(mongoCollection, s3, bucket, new UUIDGen() {
+			@Override
+			public UUID randomUUID() {
+				return UUID.randomUUID();
+			}
+		});
+	}
+	
+	/** This constructor is to be used only for unit testing, as it allows mocking the UUID
+	 * generator. It is otherwise equivalent to
+	 * {@link #S3BlobStore(DBCollection, S3ClientWithPresign, String)}.
+	 */
+	public S3BlobStore(
+			final DBCollection mongoCollection,
+			final S3ClientWithPresign s3,
+			final String bucket,
+			final UUIDGen uuidGen)
+			throws BlobStoreCommunicationException, IllegalArgumentException {
+		this.uuidGen = uuidGen;
 		this.col = requireNonNull(mongoCollection, "mongoCollection");
 		this.s3 = requireNonNull(s3, "s3");
 		this.bucket = checkBucketName(bucket);
@@ -111,7 +144,7 @@ public class S3BlobStore implements BlobStore {
 		} catch (NoSuchBlobException nb) {
 			//go ahead, need to save
 		}
-		final String key = toS3Key(md5);
+		final String key = toS3Key(uuidGen.randomUUID());
 		try {
 			s3.presignAndPutObject(bucket, key, data);
 		} catch (IOException e) {
@@ -131,6 +164,7 @@ public class S3BlobStore implements BlobStore {
 					"Error stating S3 object: " + e.getMessage(), e);
 		}
 		final DBObject dbo = new BasicDBObject(Fields.S3_CHKSUM, md5.getMD5())
+				.append(Fields.S3_KEY, key)
 				.append(Fields.S3_SORTED, sorted);
 		try {
 			//possible that this was inserted just prior to saving the object
@@ -142,8 +176,8 @@ public class S3BlobStore implements BlobStore {
 		}
 	}
 	
-	private String toS3Key(final MD5 md5) {
-		final String m = md5.getMD5();
+	private String toS3Key(final UUID uuid) {
+		final String m = uuid.toString();
 		return m.substring(0, 2) + "/" + m.substring(2, 4) + "/" + m.substring(4, 6) + "/" + m;
 	}
 	
@@ -167,11 +201,12 @@ public class S3BlobStore implements BlobStore {
 				NoSuchBlobException, FileCacheLimitExceededException, FileCacheIOException {
 		requireNonNull(bafcMan, "bafcMan");
 		final DBObject entry = getBlobEntry(requireNonNull(md5, "md5"));
-		final boolean sorted = (Boolean)entry.get(Fields.SHOCK_SORTED);
+		final boolean sorted = (Boolean)entry.get(Fields.S3_SORTED);
+		final String key = (String)entry.get(Fields.S3_KEY);
 		try (final ResponseInputStream<GetObjectResponse> obj = s3.getClient().getObject(
 				GetObjectRequest.builder()
 					.bucket(bucket)
-					.key(toS3Key(md5))
+					.key(key)
 					.build())
 			) {
 			return bafcMan.createBAFC(obj, true, sorted);
@@ -195,8 +230,9 @@ public class S3BlobStore implements BlobStore {
 	@Override
 	public void removeBlob(final MD5 md5)
 			throws BlobStoreAuthorizationException, BlobStoreCommunicationException {
+		final DBObject entry;
 		try {
-			getBlobEntry(requireNonNull(md5, "md5"));
+			entry = getBlobEntry(requireNonNull(md5, "md5"));
 		} catch (NoSuchBlobException nb) {
 			return; //already gone
 		}
@@ -211,7 +247,7 @@ public class S3BlobStore implements BlobStore {
 			// don't worry about it for now
 			s3.getClient().deleteObject(DeleteObjectRequest.builder()
 					.bucket(bucket)
-					.key(toS3Key(md5))
+					.key((String)entry.get(Fields.S3_KEY))
 					.build());
 		} catch (SdkException e) {
 			throw new BlobStoreCommunicationException("Failed to delete blob: " +

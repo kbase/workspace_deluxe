@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -50,13 +51,13 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.mongo.S3BlobStore;
+import us.kbase.workspace.database.mongo.S3BlobStore.UUIDGen;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public class S3BlobStoreTest {
 	
-	//TODO NOW S3 keys should be path uuids, not MD5s
 	//TODO NOW update docs & version
 	
 	// strictly unit tests. Integration tests are in another class.
@@ -213,6 +214,7 @@ public class S3BlobStoreTest {
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 			.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+					.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 					.append("sorted", true));
 		
 		s3.saveBlob(new MD5("1fc5a11811de5142af444f5d482cd748"), new TestRestreamable("f"), true);
@@ -241,24 +243,29 @@ public class S3BlobStoreTest {
 		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
 		final S3Client s3cli = mock(S3Client.class);
 		final DBCollection col = mock(DBCollection.class);
+		final UUIDGen uuidGen = mock(UUIDGen.class);
 		when(cli.getClient()).thenReturn(s3cli);
 		
-		final S3BlobStore s3 = new S3BlobStore(col, cli, "foo");
+		final S3BlobStore s3 = new S3BlobStore(col, cli, "foo", uuidGen);
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 			.thenReturn(null);
 		
+		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
+				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
+		
 		when(s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
-				"1f/c5/a1/1fc5a11811de5142af444f5d482cd748").build())).thenReturn(
+				"68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build())).thenReturn(
 				HeadObjectResponse.builder()
 						.eTag("   \"   1fc5a11811de5142af444f5d482cd748\"  ").build());
 		
 		s3.saveBlob(new MD5("1fc5a11811de5142af444f5d482cd748"), data, sorted);
 
 		verify(cli).presignAndPutObject(
-				"foo", "1f/c5/a1/1fc5a11811de5142af444f5d482cd748", expecteddata);
+				"foo", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9", expecteddata);
 		verify(col).update(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748"),
 				new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 						.append("sorted", sorted),
 				true, false);
 	}
@@ -301,16 +308,19 @@ public class S3BlobStoreTest {
 		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
 		final S3Client s3cli = mock(S3Client.class);
 		final DBCollection col = mock(DBCollection.class);
+		final UUIDGen uuidGen = mock(UUIDGen.class);
 		when(cli.getClient()).thenReturn(s3cli);
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
+		final S3BlobStore s = new S3BlobStore(col, cli, "foo", uuidGen);
 		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final Restreamable r = new TestRestreamable("f");
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenReturn(null);
+		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
+				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
 		doThrow(new IOException("get your trash data outta here")).when(cli)
-				.presignAndPutObject("foo", "1f/c5/a1/1fc5a11811de5142af444f5d482cd748", r);
+				.presignAndPutObject("foo", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9", r);
 		
 		saveBlobFail(s, m, r, new BlobStoreCommunicationException(
 				"S3 error: get your trash data outta here"));
@@ -321,16 +331,19 @@ public class S3BlobStoreTest {
 		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
 		final S3Client s3cli = mock(S3Client.class);
 		final DBCollection col = mock(DBCollection.class);
+		final UUIDGen uuidGen = mock(UUIDGen.class);
 		when(cli.getClient()).thenReturn(s3cli);
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
+		final S3BlobStore s = new S3BlobStore(col, cli, "foo", uuidGen);
 		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final Restreamable r = new TestRestreamable("f");
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenReturn(null);
+		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
+				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
 		when(s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
-				"1f/c5/a1/1fc5a11811de5142af444f5d482cd748").build())).thenThrow(
+				"68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build())).thenThrow(
 						SdkException.builder().message("how dare you... how DARE you!").build());
 		
 		saveBlobFail(s, m, r, new BlobStoreCommunicationException(
@@ -342,17 +355,21 @@ public class S3BlobStoreTest {
 		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
 		final S3Client s3cli = mock(S3Client.class);
 		final DBCollection col = mock(DBCollection.class);
+		final UUIDGen uuidGen = mock(UUIDGen.class);
 		when(cli.getClient()).thenReturn(s3cli);
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
+		final S3BlobStore s = new S3BlobStore(col, cli, "foo", uuidGen);
 		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final Restreamable r = new TestRestreamable("f");
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenReturn(null);
+		
+		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
+				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
 
 		when(s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
-				"1f/c5/a1/1fc5a11811de5142af444f5d482cd748").build())).thenReturn(
+				"68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build())).thenReturn(
 				HeadObjectResponse.builder()
 						.eTag("   \"   1fc5a11811de5142af444f5d482cd749\"  ").build());
 		
@@ -365,22 +382,27 @@ public class S3BlobStoreTest {
 		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
 		final S3Client s3cli = mock(S3Client.class);
 		final DBCollection col = mock(DBCollection.class);
+		final UUIDGen uuidGen = mock(UUIDGen.class);
 		when(cli.getClient()).thenReturn(s3cli);
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
+		final S3BlobStore s = new S3BlobStore(col, cli, "foo", uuidGen);
 		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final Restreamable r = new TestRestreamable("f");
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenReturn(null);
+		
+		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
+				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
 
 		when(s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
-				"1f/c5/a1/1fc5a11811de5142af444f5d482cd748").build())).thenReturn(
+				"68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build())).thenReturn(
 				HeadObjectResponse.builder()
 						.eTag("   \"   1fc5a11811de5142af444f5d482cd748\"  ").build());
 		
 		when(col.update(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748"),
 				new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 						.append("sorted", true),
 				true, false)).thenThrow(new MongoException("dang!"));
 		
@@ -418,10 +440,11 @@ public class S3BlobStoreTest {
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 						.append("sorted", sorted));
 		
 		when(s3cli.getObject(GetObjectRequest.builder().bucket("foo")
-				.key("1f/c5/a1/1fc5a11811de5142af444f5d482cd748").build()))
+				.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build()))
 			.thenReturn(new ResponseInputStream<GetObjectResponse>(
 					GetObjectResponse.builder().build(), // not currently used
 					AbortableInputStream.create(
@@ -509,10 +532,11 @@ public class S3BlobStoreTest {
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 						.append("sorted", true));
 		
 		when(s3cli.getObject(GetObjectRequest.builder().bucket("foo")
-				.key("1f/c5/a1/1fc5a11811de5142af444f5d482cd748").build()))
+				.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build()))
 			.thenThrow(thrown);
 		
 		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
@@ -565,13 +589,14 @@ public class S3BlobStoreTest {
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 			.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+					.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 					.append("sorted", true));
 
 		s.removeBlob(m);
 		
 		verify(col).remove(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748"));
 		verify(s3cli).deleteObject(DeleteObjectRequest.builder()
-				.bucket("foo").key("1f/c5/a1/1fc5a11811de5142af444f5d482cd748").build());
+				.bucket("foo").key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build());
 	}
 	
 	@Test
@@ -615,6 +640,7 @@ public class S3BlobStoreTest {
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 			.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+					.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 					.append("sorted", true));
 
 		when(col.remove(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
@@ -636,10 +662,11 @@ public class S3BlobStoreTest {
 		
 		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
 			.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+					.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 					.append("sorted", true));
 		
 		when(s3cli.deleteObject(DeleteObjectRequest.builder()
-				.bucket("foo").key("1f/c5/a1/1fc5a11811de5142af444f5d482cd748").build()))
+				.bucket("foo").key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build()))
 				.thenThrow(SdkException.builder().message("my pants are on fire").build());
 
 		removeBlobFail(s, m, new BlobStoreCommunicationException(

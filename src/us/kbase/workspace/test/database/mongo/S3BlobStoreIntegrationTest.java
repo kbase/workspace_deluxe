@@ -2,6 +2,7 @@ package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -253,10 +254,10 @@ public class S3BlobStoreIntegrationTest {
 						"S3 error: Error saving file to S3 (404), truncated response " +
 						"follows:\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
 						"<Error><Code>NoSuchBucket</Code><Message>The specified bucket does " +
-						"not exist</Message><Key>5e/49/8c/5e498cecc4017dad15313bb009b0ef49" +
-						"</Key><BucketName>test-bucket</BucketName><Resource>" +
-						"/test-bucket/5e/49/8c/5e498cecc4017dad15313bb009b0ef49</Resource>" +
-						"<RequestId>"));
+						"not exist</Message><Key>"));
+				
+				assertThat("incorrect exception", e.getMessage(), containsString(
+						"</Key><BucketName>test-bucket</BucketName><Resource>"));
 			}
 		} finally {
 			s3bs = new S3BlobStore(mongo.getCollection(COLLECTION), s3client, BUCKET);
