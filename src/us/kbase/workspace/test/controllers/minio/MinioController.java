@@ -28,7 +28,6 @@ public class MinioController {
 			final String minioExe,
 			final String s3AccessKey,
 			final String s3AccessSecret,
-			final String region,
 			final Path rootTempDir)
 			throws Exception {
 		tempDir = makeTempDirs(rootTempDir, "MinioController-", Arrays.asList("data"));
@@ -52,7 +51,6 @@ public class MinioController {
 		Thread.sleep(1000); //wait for server to start
 	}
 	
-	
 	public int getServerPort() {
 		return port;
 	}
@@ -75,7 +73,6 @@ public class MinioController {
 				"Minio",
 				"foobar",
 				"Wheewhoowhump",
-				"us-west-1",
 				Paths.get("minio_temp_dir"));
 		System.out.println(ac.getServerPort());
 		Scanner reader = new Scanner(System.in);

@@ -81,12 +81,16 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.mongo.S3BlobStore;
+import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
+import us.kbase.workspace.test.controllers.minio.MinioController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import software.amazon.awssdk.regions.Region;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -140,6 +144,7 @@ public class WorkspaceTester {
 			
 	
 	private static MongoController mongo = null;
+	private static MinioController minio = null;
 	private static ShockController shock = null;
 	private static AuthController auth = null;
 	protected static TempFilesManager tfm;
@@ -180,12 +185,14 @@ public class WorkspaceTester {
 			System.out.println("Skipping shock backend tests");
 			tests = Arrays.asList(new Object[][] {
 					{"mongo", "mongo", null},
-					{"mongoUseFile", "mongo", 1}
+					{"mongoUseFile", "mongo", 1},
+					{"minio", "minio", null}
 			});
 		} else {
 			tests = Arrays.asList(new Object[][] {
 					{"mongo", "mongo", null},
 					{"mongoUseFile", "mongo", 1},
+					{"minio", "minio", null},
 					{"shock", "shock", null}
 			});
 		}
@@ -195,6 +202,9 @@ public class WorkspaceTester {
 	
 	@AfterClass
 	public static void tearDownClass() throws Exception {
+		if (minio != null) {
+			minio.destroy(TestCommon.getDeleteTempFiles());
+		}
 		if (shock != null) {
 			shock.destroy(TestCommon.getDeleteTempFiles());
 		}
@@ -221,8 +231,7 @@ public class WorkspaceTester {
 		TestCommon.assertNoTempFilesExist(tfm);
 	}
 	
-	private static final Map<String, WSandTypes> CONFIGS =
-			new HashMap<String, WSandTypes>();
+	private static final Map<String, WSandTypes> CONFIGS = new HashMap<String, WSandTypes>();
 	protected final Workspace ws;
 	protected final Types types;
 	
@@ -252,8 +261,7 @@ public class WorkspaceTester {
 		if (!CONFIGS.containsKey(config)) {
 			final DB wsdb = new MongoClient("localhost:" + mongo.getServerPort())
 					.getDB(DB_WS_NAME);
-			WorkspaceTestCommon.destroyWSandTypeDBs(wsdb,
-					DB_TYPE_NAME);
+			WorkspaceTestCommon.destroyWSandTypeDBs(wsdb, DB_TYPE_NAME);
 			System.out.println("Starting test suite with parameters:");
 			System.out.println(String.format(
 					"\tConfig: %s, Backend: %s, MaxMemPerCall: %s",
@@ -262,6 +270,8 @@ public class WorkspaceTester {
 				CONFIGS.put(config, setUpShock(wsdb, maxMemoryUsePerCall));
 			} else if("mongo".equals(backend)) {
 				CONFIGS.put(config, setUpMongo(wsdb, maxMemoryUsePerCall));
+			} else if ("minio".equals(backend)) {
+				CONFIGS.put(config, setUpMinio(wsdb, maxMemoryUsePerCall));
 			} else {
 				throw new TestException("Unknown backend: " + config);
 			}
@@ -280,10 +290,28 @@ public class WorkspaceTester {
 		}
 	}
 	
-	private WSandTypes setUpMongo(DB wsdb, Integer maxMemoryUsePerCall)
+	private WSandTypes setUpMongo(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
+		return setUpWorkspaces(wsdb, new GridFSBlobStore(wsdb), maxMemoryUsePerCall);
+	}
+	
+	private WSandTypes setUpMinio(final DB wsdb, final Integer maxMemoryUsePerCall)
 			throws Exception {
-		return setUpWorkspaces(wsdb, new GridFSBlobStore(wsdb),
-				maxMemoryUsePerCall);
+		if (minio == null) {
+			minio = new MinioController(
+					TestCommon.getMinioExe(),
+					"s3key",
+					"supersecretkey",
+					Paths.get(TestCommon.getTempDir())
+					);
+			System.out.println("Using Minio temp dir " + minio.getTempDir());
+		}
+		final S3ClientWithPresign cli = new S3ClientWithPresign(
+				new URL("http://localhost:" + minio.getServerPort()),
+				"s3key",
+				"supersecretkey",
+				Region.of("us-west-1"));
+		final BlobStore bs = new S3BlobStore(wsdb.getCollection("s3_map"), cli, "test-bucket");
+		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
 	
 	private WSandTypes setUpShock(DB wsdb, Integer maxMemoryUsePerCall)
@@ -318,10 +346,10 @@ public class WorkspaceTester {
 	}
 	
 	private WSandTypes setUpWorkspaces(
-			DB db,
-			BlobStore bs,
-			Integer maxMemoryUsePerCall)
-					throws Exception {
+			final DB db,
+			final BlobStore bs,
+			final Integer maxMemoryUsePerCall)
+			throws Exception {
 		
 		tfm = new TempFilesManager(
 				new File(TestCommon.getTempDir()));
@@ -330,11 +358,12 @@ public class WorkspaceTester {
 		final DB tdb = new MongoClient("localhost:" + mongo.getServerPort())
 				.getDB(DB_TYPE_NAME);
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
-		TypedObjectValidator val = new TypedObjectValidator(
+		final TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
-		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, bs, tfm);
-		Workspace work = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
-		Types t = new Types(typeDefDB);
+		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, bs, tfm);
+		final Workspace work = new Workspace(
+				mwdb, new ResourceUsageConfigurationBuilder().build(), val);
+		final Types t = new Types(typeDefDB);
 		if (maxMemoryUsePerCall != null) {
 			final ResourceUsageConfigurationBuilder build =
 					new ResourceUsageConfigurationBuilder(work.getResourceConfig());
