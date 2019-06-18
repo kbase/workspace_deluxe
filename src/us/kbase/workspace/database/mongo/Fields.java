@@ -114,6 +114,12 @@ public class Fields {
 	// since 0.2.0, if missing assume false
 	public static final String GFS_SORTED = "sorted";
 	
+	// s3 fields
+	// since 0.10.1.
+	public static final String S3_CHKSUM = "chksum";
+	// may have older data ported in that isn't sorted
+	public static final String S3_SORTED = "sorted";
+	
 	// admin fields
 	public static final String ADMIN_NAME = "user";
 	
