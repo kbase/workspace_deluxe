@@ -18,6 +18,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import software.amazon.awssdk.regions.Region;
 import us.kbase.common.test.MapBuilder;
 import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.kbase.BackendType;
@@ -119,6 +120,8 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.GridFS));
 		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
+		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
+		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
@@ -141,7 +144,7 @@ public class KBaseWorkspaceConfigTest {
 	}
 	
 	@Test
-	public void configMaximal() throws Exception {
+	public void configMaximalShock() throws Exception {
 		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
@@ -203,6 +206,105 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend url", kwc.getBackendURL(),
 				is(new URL(CI_SERV + "shock-api")));
 		assertThat("incorrect backend user", kwc.getBackendUser(), is("someuser"));
+		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
+		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
+		assertThat("incorrect errors", kwc.getErrors(), is(MT));
+		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), is("hmtoken"));
+		assertThat("incorrect mngr url", kwc.getHandleManagerURL(),
+				is(new URL(CI_SERV + "handle_mngr")));
+		assertThat("incorrect srvc url", kwc.getHandleServiceURL(),
+				is(new URL(CI_SERV + "handle_service")));
+		assertThat("incorrect host", kwc.getHost(), is("somehost"));
+		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Collections.emptyList()));
+		assertThat("incorrect listeners", kwc.getListenerConfigs(), is(Arrays.asList(
+				new ListenerConfig("us.kbase.MyListener",
+						ImmutableMap.of("key1", "value1", "key2", "value2")),
+				new ListenerConfig("us.kbase.MyListener2", ImmutableMap.of("key1", "value3")))));
+		assertThat("incorrect mongo pwd", kwc.getMongoPassword(), is("mpwd"));
+		assertThat("incorrect mongo user", kwc.getMongoUser(), is("muser"));
+		assertThat("incorrect param report", kwc.getParamReport(), is(paramReport));
+		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), is("token token"));
+		assertThat("incorrect bytestream url", kwc.getBytestreamURL(),
+				is(new URL(CI_SERV + "shock-api2")));
+		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), is("otheruser"));
+		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
+		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
+		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), is("wsadminuser"));
+		assertThat("incorrect has err", kwc.hasErrors(), is(false));
+		assertThat("incorrect ignore hs", kwc.ignoreHandleService(), is(false));
+	}
+	
+	@Test
+	public void configMaximalS3() throws Exception {
+		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
+				.with("mongodb-host", "    somehost    ")
+				.with("mongodb-database", "    somedb   ")
+				.with("mongodb-type-database", "     typedb     ")
+				.with("temp-dir", "   temp   ")
+				.with("auth-service-url", "    " + AUTH_LEGACY_URL + "    ")
+				.with("auth2-service-url", "   " + CI_SERV + "auth     ")
+				.with("mongodb-user", "   muser   ")
+				.with("mongodb-pwd", "    mpwd    ")
+				.with("ws-admin", "    wsadminuser     ")
+				.with("auth2-ws-admin-read-only-roles", "   role1,   ,   role2   , ")
+				.with("auth2-ws-admin-full-roles", "   role3,   ,   role4   , ")
+				.with("backend-type", "   S3   ")
+				.with("backend-url", "   http://localhost:34567    ")
+				.with("backend-user", "    someuser    ")
+				.with("backend-token", "    token token token    ")
+				.with("backend-container", "   mahbukkit   ")
+				.with("backend-region", "   a-lovely-region   ")
+				.with("handle-manager-token", "    hmtoken    ")
+				.with("handle-manager-url", "    " + CI_SERV + "handle_mngr     ")
+				.with("handle-service-url", "     " + CI_SERV + "handle_service    ")
+				.with("bytestream-url", "   " + CI_SERV + "shock-api2    ")
+				.with("bytestream-user", "    otheruser    ")
+				.with("bytestream-token", "    token token    ")
+				.with("listeners", "listener1,   ,   listener2  , ")
+				.with("listener-listener1-class", "    us.kbase.MyListener     ")
+				.with("listener-listener1-config-key1", "value1")
+				.with("listener-listener1-config-key2", "value2")
+				.with("listener-listener2-class", "    us.kbase.MyListener2     ")
+				.with("listener-listener2-config-key1", "value3")
+				.build();
+		
+		final String paramReport =
+				"mongodb-host=somehost\n" +
+				"mongodb-database=somedb\n" +
+				"mongodb-type-database=typedb\n" +
+				"mongodb-user=muser\n" +
+				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
+				"auth2-service-url=" + CI_SERV + "auth\n" +
+				"auth2-ws-admin-read-only-roles=role1,   ,   role2   ,\n" +
+				"auth2-ws-admin-full-roles=role3,   ,   role4   ,\n" +
+				"backend-type=S3\n" +
+				"backend-url=http://localhost:34567\n" +
+				"backend-user=someuser\n" + 
+				"backend-region=a-lovely-region\n" +
+				"backend-container=mahbukkit\n" +
+				"handle-service-url=" + CI_SERV + "handle_service\n" +
+				"handle-manager-url=" + CI_SERV + "handle_mngr\n" +
+				"bytestream-url=" + CI_SERV + "shock-api2\n" +
+				"bytestream-user=otheruser\n" +
+				"mongodb-pwd=[redacted for your safety and comfort]\n" +
+				"listeners=us.kbase.MyListener,us.kbase.MyListener2\n";
+		
+		final KBaseWorkspaceConfig kwc = new KBaseWorkspaceConfig(cfg);
+		
+		assertThat("incorrect admin read roles", kwc.getAdminReadOnlyRoles(),
+				is(set("role1", "role2")));
+		assertThat("incorrect admin roles", kwc.getAdminRoles(), is(set("role3", "role4")));
+		assertThat("incorrect auth2 url", kwc.getAuth2URL(), is(new URL(CI_SERV + "auth")));
+		assertThat("incorrect auth url", kwc.getAuthURL(), is(new URL(AUTH_LEGACY_URL)));
+		assertThat("incorrect backend token", kwc.getBackendToken(), is("token token token"));
+		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.S3));
+		assertThat("incorrect backend url", kwc.getBackendURL(),
+				is(new URL("http://localhost:34567")));
+		assertThat("incorrect backend user", kwc.getBackendUser(), is("someuser"));
+		assertThat("incorrect backend container", kwc.getBackendContainer(), is("mahbukkit"));
+		assertThat("incorrect backend region", kwc.getBackendRegion(),
+				is(Region.of("a-lovely-region")));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), is("hmtoken"));
@@ -249,6 +351,8 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-token", "   \t    ")
 				.with("backend-user", "   \t    ")
 				.with("backend-url", "   \t    ")
+				.with("backend-container", "   \t    ")
+				.with("backend-region", "   \t    ")
 				.with("handle-manager-token", "hmtoken")
 				.with("handle-manager-url", CI_SERV + "handle_mngr")
 				.with("handle-service-url", CI_SERV + "handle_service")
@@ -278,6 +382,8 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.GridFS));
 		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
+		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
+		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), is("hmtoken"));
@@ -416,6 +522,8 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend type", kwc.getBackendType(), nullValue());
 		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
+		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
+		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
 		assertThat("incorrect mngr url", kwc.getHandleManagerURL(), nullValue());
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
 		assertThat("incorrect host", kwc.getHost(), nullValue());
@@ -483,6 +591,8 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend type", kwc.getBackendType(), nullValue());
 		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
+		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
+		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
 		assertThat("incorrect db", kwc.getDBname(), nullValue());
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
@@ -555,6 +665,8 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.Shock));
 		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
 		assertThat("incorrect backend user", kwc.getBackendUser(), is("buser"));
+		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
+		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), is("hmtoken"));
@@ -611,6 +723,8 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.GridFS));
 		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
+		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
+		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
@@ -665,6 +779,8 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend type", kwc.getBackendType(), nullValue());
 		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
+		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
+		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
@@ -751,6 +867,8 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.Shock));
 		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
+		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
+		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
@@ -772,5 +890,77 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect has err", kwc.hasErrors(), is(true));
 		assertThat("incorrect ignore hs", kwc.ignoreHandleService(), is(true));
 	}
+	
+	@Test
+	public void configFailS3ParamsMissing() throws Exception {
+		configFailS3ParamsMissing(null);
+		configFailS3ParamsMissing("    \t   ");
+	}
 
+	private void configFailS3ParamsMissing(final String backendParam) throws Exception {
+		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
+				.with("mongodb-host", "    somehost    ")
+				.with("mongodb-database", "    somedb   ")
+				.with("mongodb-type-database", "    typedb   ")
+				.with("backend-type", "S3")
+				.with("backend-token", backendParam)
+				.with("backend-user", backendParam)
+				.with("backend-url", backendParam)
+				.with("backend-container", backendParam)
+				.with("backend-region", backendParam)
+				.with("temp-dir", "   temp   ")
+				.with("auth-service-url", AUTH_LEGACY_URL)
+				.with("auth2-service-url", CI_SERV + "auth")
+				.with("ignore-handle-service", "foo")
+				.build();
+		
+		final String paramReport =
+				"mongodb-host=somehost\n" +
+				"mongodb-database=somedb\n" +
+				"mongodb-type-database=typedb\n" +
+				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
+				"auth2-service-url=" + CI_SERV + "auth\n" +
+				"backend-type=S3\n";
+		
+		final String err = "Must provide S3 param %s in config file";
+		
+		final List<String> errors = Arrays.asList(
+				String.format(err, "backend-token"),
+				String.format(err, "backend-url"),
+				String.format(err, "backend-user"),
+				String.format(err, "backend-container"),
+				String.format(err, "backend-region"));
+		
+		final KBaseWorkspaceConfig kwc = new KBaseWorkspaceConfig(cfg);
+		
+		assertThat("incorrect admin read roles", kwc.getAdminReadOnlyRoles(), is(set()));
+		assertThat("incorrect admin roles", kwc.getAdminRoles(), is(set()));
+		assertThat("incorrect auth2 url", kwc.getAuth2URL(), is(new URL(CI_SERV + "auth")));
+		assertThat("incorrect auth url", kwc.getAuthURL(), is(new URL(AUTH_LEGACY_URL)));
+		assertThat("incorrect backend token", kwc.getBackendToken(), nullValue());
+		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.S3));
+		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
+		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
+		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
+		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
+		assertThat("incorrect errors", kwc.getErrors(), is(errors));
+		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
+		assertThat("incorrect mngr url", kwc.getHandleManagerURL(), nullValue());
+		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
+		assertThat("incorrect host", kwc.getHost(), is("somehost"));
+		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Arrays.asList(IGNORE_HANDLE)));
+		assertThat("incorrect listeners", kwc.getListenerConfigs(), is(Collections.emptyList()));
+		assertThat("incorrect mongo pwd", kwc.getMongoPassword(), nullValue());
+		assertThat("incorrect mongo user", kwc.getMongoUser(), nullValue());
+		assertThat("incorrect param report", kwc.getParamReport(), is(paramReport));
+		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), is(nullValue()));
+		assertThat("incorrect bytestream url", kwc.getBytestreamURL(), is(nullValue()));
+		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), is(nullValue()));
+		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
+		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
+		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), nullValue());
+		assertThat("incorrect has err", kwc.hasErrors(), is(true));
+		assertThat("incorrect ignore hs", kwc.ignoreHandleService(), is(true));
+	}
 }

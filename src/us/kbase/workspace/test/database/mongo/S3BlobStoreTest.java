@@ -56,8 +56,8 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public class S3BlobStoreTest {
 	
-	//TODO NOW add to config
 	//TODO NOW integrate into build and test manually
+	//TODO NOW update docs & version
 	
 	// strictly unit tests. Integration tests are in another class.
 	
