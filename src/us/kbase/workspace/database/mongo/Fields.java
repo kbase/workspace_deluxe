@@ -117,6 +117,7 @@ public class Fields {
 	// s3 fields
 	// since 0.10.1.
 	public static final String S3_CHKSUM = "chksum";
+	public static final String S3_KEY = "key";
 	// may have older data ported in that isn't sorted
 	public static final String S3_SORTED = "sorted";
 	

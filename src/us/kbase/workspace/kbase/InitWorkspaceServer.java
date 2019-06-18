@@ -454,6 +454,7 @@ public class InitWorkspaceServer {
 						ioe.getLocalizedMessage(), ioe);
 			}
 		}
+		// tested manually
 		if (cfg.getBackendType().equals(BackendType.S3)) {
 			try {
 				final S3ClientWithPresign cli = new S3ClientWithPresign(
