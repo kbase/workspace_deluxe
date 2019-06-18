@@ -72,7 +72,6 @@ public class S3BlobStoreIntegrationTest {
 				TestCommon.getMinioExe(),
 				"s3keyhere",
 				"sooporsekrit",
-				"us-west-1",
 				Paths.get(TestCommon.getTempDir()));
 		System.out.println("Using Minio temp dir " + minio.getTempDir());
 		URL url = new URL("http://localhost:" + minio.getServerPort());

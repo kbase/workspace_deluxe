@@ -56,7 +56,6 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public class S3BlobStoreTest {
 	
-	//TODO NOW integrate into workspace test & workspace long test
 	//TODO NOW add to config
 	//TODO NOW integrate into build and test manually
 	
