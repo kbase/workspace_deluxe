@@ -18,6 +18,8 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 
+import software.amazon.awssdk.regions.Region;
+
 public class KBaseWorkspaceConfig {
 	
 	//TODO CODE How the config is created could use a rethink. Would be much simpler just throwing an exception rather than collecting errors.
@@ -41,6 +43,8 @@ public class KBaseWorkspaceConfig {
 	private static final String BACKEND_USER = "backend-user";
 	private static final String BACKEND_TOKEN = "backend-token";
 	private static final String BACKEND_URL = "backend-url";
+	private static final String BACKEND_REGION = "backend-region";
+	private static final String BACKEND_CONTAINER = "backend-container";
 	//mongo db auth params:
 	private static final String MONGO_USER = "mongodb-user";
 	private static final String MONGO_PWD = "mongodb-pwd";
@@ -80,6 +84,8 @@ public class KBaseWorkspaceConfig {
 			HOST, DB, TYPE_DB, TEMP_DIR, BACKEND_TYPE);
 	
 	private static final Map<String, List<String>> BACKEND_TYPES = ImmutableMap.of(
+			BackendType.S3.name(), Arrays.asList(BACKEND_TOKEN, BACKEND_URL, BACKEND_USER,
+					BACKEND_CONTAINER, BACKEND_REGION),
 			BackendType.Shock.name(), Arrays.asList(BACKEND_TOKEN, BACKEND_URL, BACKEND_USER),
 			BackendType.GridFS.name(), Collections.emptyList());
 	
@@ -87,6 +93,8 @@ public class KBaseWorkspaceConfig {
 	private final String db;
 	private final String typedb;
 	private final BackendType backendType;
+	private final Region backendRegion;
+	private final String backendContainer;
 	private final URL backendURL;
 	private final String backendUser;
 	private final String backendToken;
@@ -206,6 +214,8 @@ public class KBaseWorkspaceConfig {
 			backendToken = null;
 			backendURL = null;
 			backendUser = null;
+			backendRegion = null;
+			backendContainer = null;
 		} else {
 			backendType = BackendType.valueOf(bet);
 			for (final String param: BACKEND_TYPES.get(backendType.name())) {
@@ -217,6 +227,8 @@ public class KBaseWorkspaceConfig {
 			backendToken = nullIfEmpty(config.get(BACKEND_TOKEN));
 			backendURL = getUrl(config, BACKEND_URL, paramErrors, false);
 			backendUser = nullIfEmpty(config.get(BACKEND_USER));
+			backendContainer = nullIfEmpty(config.get(BACKEND_CONTAINER));
+			backendRegion = getRegion(config, BACKEND_REGION, paramErrors);
 		}
 
 		bytestreamURL = getUrl(config, BYTESTREAM_URL, paramErrors, false);
@@ -359,7 +371,8 @@ public class KBaseWorkspaceConfig {
 		final List<String> paramSet = new LinkedList<String>(
 				Arrays.asList(HOST, DB, TYPE_DB, MONGO_USER, KBASE_AUTH_URL, KBASE_AUTH2_URL,
 						KBASE_AUTH_ADMIN_READ_ONLY_ROLES, KBASE_AUTH_ADMIN_FULL_ROLES,
-						BACKEND_TYPE, BACKEND_URL, BACKEND_USER));
+						BACKEND_TYPE, BACKEND_URL, BACKEND_USER, BACKEND_REGION,
+						BACKEND_CONTAINER));
 		if (!ignoreHandleService) {
 			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL, HANDLE_MANAGER_URL));
 		}
@@ -400,6 +413,18 @@ public class KBaseWorkspaceConfig {
 			errors.add("Invalid url for parameter " + configKey + ": " + urlStr.trim());
 		}
 		return null;
+	}
+	
+	// assume optional for now
+	private static Region getRegion(
+			final Map<String, String> wsConfig,
+			final String configKey,
+			final List<String> errors) {
+		final String regionStr = wsConfig.get(configKey);
+		if (nullOrEmpty(regionStr)) {
+			return null;
+		}
+		return Region.of(regionStr.trim());
 	}
 	
 	public String getHost() {
@@ -444,6 +469,14 @@ public class KBaseWorkspaceConfig {
 	
 	public String getBackendToken() {
 		return backendToken;
+	}
+	
+	public String getBackendContainer() {
+		return backendContainer;
+	}
+	
+	public Region getBackendRegion() {
+		return backendRegion;
 	}
 
 	public String getTempDir() {
