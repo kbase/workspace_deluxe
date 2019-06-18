@@ -53,12 +53,13 @@ public class S3BlobStore implements BlobStore {
 	 * @param s3 the S3 client.
 	 * @param bucket the name of the bucket in which files will be stored.
 	 * @throws BlobStoreCommunicationException if an error occurs contacting the S3 backend.
+	 * @throws IllegalArgumentException if the bucket name is illegal.
 	 */
 	public S3BlobStore(
 			final DBCollection mongoCollection,
 			final S3ClientWithPresign s3,
 			final String bucket)
-			throws BlobStoreCommunicationException {
+			throws BlobStoreCommunicationException, IllegalArgumentException {
 		this.col = requireNonNull(mongoCollection, "mongoCollection");
 		this.s3 = requireNonNull(s3, "s3");
 		this.bucket = checkBucketName(bucket);
@@ -75,7 +76,7 @@ public class S3BlobStore implements BlobStore {
 		//TODO DBCONSIST check that a few files exist to ensure we're pointing at the right S3 instance
 	}
 	
-	private String checkBucketName(String bucket) {
+	private String checkBucketName(String bucket) throws IllegalArgumentException {
 		bucket = checkString(bucket, "bucket");
 		if (bucket.length() < 3 || bucket.length() > 63) {
 			throw new IllegalArgumentException(

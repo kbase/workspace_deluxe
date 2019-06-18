@@ -56,7 +56,7 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public class S3BlobStoreTest {
 	
-	//TODO NOW integrate into build and test manually
+	//TODO NOW S3 keys should be path uuids, not MD5s
 	//TODO NOW update docs & version
 	
 	// strictly unit tests. Integration tests are in another class.
