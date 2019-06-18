@@ -56,7 +56,6 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public class S3BlobStoreTest {
 	
-	//TODO NOW integration tests
 	//TODO NOW integrate into workspace test & workspace long test
 	//TODO NOW add to config
 	//TODO NOW integrate into build and test manually
@@ -178,7 +177,7 @@ public class S3BlobStoreTest {
 
 		@Override
 		public long getSize() {
-			return data.codePointCount(0, data.length());
+			return data.getBytes(StandardCharsets.UTF_8).length;
 		}
 
 		@Override

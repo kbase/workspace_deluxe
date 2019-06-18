@@ -42,8 +42,8 @@ import us.kbase.typedobj.core.Restreamable;
  */
 public class S3ClientWithPresign {
 	
-	// TODO NOW TEST
 	// this isolates code that can't easily be mocked from the rest of the S3 blobstore.
+	// all tests are in the S3BlobStore integration tests.
 	
 	private final S3Client client;
 	private final CloseableHttpClient httpClient;
