@@ -10,6 +10,11 @@ BACKWARDS INCOMPATIBILITES:
   owned by the user or by the workspace service. If the user owns the node, the node's owner
   will be changed to the workspace service and write and delete ACLs will be cleared. The
   node is no longer copied.
+  
+UPDATES:
+
+* Storage systems that support the AWS S3 API can now be used as backend file storage systems
+  as an alternative to Shock or GridFS.
 
 VERSION: 0.9.1 (Released 4/18/19)
 ---------------------------------
