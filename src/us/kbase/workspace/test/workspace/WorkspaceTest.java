@@ -118,11 +118,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		DependencyStatus blob = deps.get(1);
 		assertThat("incorrect fail", blob.isOk(), is(true));
 		String n = blob.getName();
-		assertThat("incorrect name", n.equals("Shock") || n.equals("GridFS"),
+		assertThat("incorrect name", n.equals("Shock") || n.equals("GridFS") || n.equals("S3"),
 				is(true));
 		assertThat("incorrect status", blob.getStatus(), is("OK"));
-		//should throw an error if not a semantic version
-		Version.valueOf(blob.getVersion());
+		if (!blob.getVersion().equals("Unknown")) {
+			//should throw an error if not a semantic version
+			Version.valueOf(blob.getVersion());
+		}
 	}
 	
 	@Test

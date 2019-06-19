@@ -46,21 +46,33 @@ ws-admin = workspaceadmin
 auth2-ws-admin-read-only-roles =
 auth2-ws-admin-full-roles =
 
-# The type of the backend that will store the workspace data. Either 'GridFS' or 'Shock'.
+# The type of the backend that will store the workspace data. Either 'GridFS', 'S3', or 'Shock'.
 # WARNING: Once any data has been saved by the workspace, changing the backend will result in
 # unspecified behavior, including data corruption.
 backend-type = GridFS
 
-# Token for the backend account. Not required for GridFS.
+# Token / access secret for the backend account. Not required for GridFS.
 backend-token =
 
-# Username for the backend account. This name is checked against the token as a safety measure.
-# WARNING: Once any data has been saved by the workspace, changing the backend username
+# Username / access key for the backend account. For Shock, this name is checked against the
+# token as a safety measure.
+# WARNING: Once any data has been saved by the workspace, changing the backend user
 # (except for the GridFS backend) will result in unspecified behavior, including data corruption.
+# Changing the access key for the S3 backend is acceptable as long as the new access key is
+# associated with the same user.
 backend-user =
 
 # URL for the backend service. Not required for GridFS.
 backend-url = https://kbase.us/services/shock-api
+
+# Container for data in the backend service. Only required for S3 - this is the bucket name in
+# which objects will be stored.
+# The bucket name must obey https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html
+# with the extra restriction that periods are not allowed.
+backend-container = workspace-data
+
+# Region where the backend service will store data. Only required for S3.
+backend-region = us-west-1
 
 # The next three configuration items are for handling workspace objects that link to Shock nodes.
 # The Shock service may or may not be the same as the Shock service used for backend

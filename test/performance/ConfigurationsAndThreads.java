@@ -306,6 +306,10 @@ public class ConfigurationsAndThreads {
 			public InputStream getInputStream() {
 				return IOUtils.toInputStream(value.toString());
 			}
+			@Override
+			public long getSize() {
+				return 0;
+			}
 		};
 	}
 

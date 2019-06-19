@@ -43,11 +43,6 @@ public class ByteArrayFileCacheManager {
 		this.tfm = tfm;
 	}
 	
-	public ByteArrayFileCache createBAFC(InputStream input)
-			throws FileCacheIOException, FileCacheLimitExceededException {
-		return createBAFC(input);
-	}
-	
 	public int getSizeInMem() {
 		return sizeInMem;
 	}
@@ -65,8 +60,10 @@ public class ByteArrayFileCacheManager {
 	}
 
 	@SuppressWarnings("resource")
-	public ByteArrayFileCache createBAFC(final InputStream input,
-			final boolean trustedJson, final boolean sorted)
+	public ByteArrayFileCache createBAFC(
+			final InputStream input,
+			final boolean trustedJson,
+			final boolean sorted)
 			throws FileCacheIOException, FileCacheLimitExceededException {
 		byte[] buf = new byte[100000];
 		ByteArrayOutputStream bufOs = new ByteArrayOutputStream();
@@ -288,7 +285,7 @@ public class ByteArrayFileCacheManager {
 		}
 		
 		/** True if this BAFC was marked as containing known good JSON.
-		 * @return true if the this BAFC was marked as contains known good
+		 * @return true if the this BAFC was marked as containing known good
 		 * JSON, false otherwise.
 		 */
 		public boolean containsTrustedJson() {

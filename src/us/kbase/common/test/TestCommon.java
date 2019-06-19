@@ -43,6 +43,7 @@ import us.kbase.typedobj.core.TempFilesManager;
 
 public class TestCommon {
 	
+	public static final String MINIOEXE = "test.minio.exe";
 	public static final String SHOCKEXE = "test.shock.exe";
 	public static final String SHOCKVER = "test.shock.version";
 	public static final String MONGOEXE = "test.mongo.exe";
@@ -138,6 +139,10 @@ public class TestCommon {
 	
 	public static String getMongoExe() {
 		return getTestProperty(MONGOEXE);
+	}
+
+	public static String getMinioExe() {
+		return getTestProperty(MINIOEXE);
 	}
 	
 	public static String getShockExe() {

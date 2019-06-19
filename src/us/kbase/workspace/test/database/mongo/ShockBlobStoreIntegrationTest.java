@@ -1,7 +1,6 @@
 package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -11,7 +10,6 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
@@ -29,7 +27,6 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
-import us.kbase.shock.client.ShockNodeId;
 import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Restreamable;
@@ -53,8 +50,6 @@ public class ShockBlobStoreIntegrationTest {
 	private static AuthController authc;
 	private static AuthToken token;
 	
-	private static final Pattern UUID =
-			Pattern.compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}");
 	private static final String A32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	private static final String COLLECTION = "shock_nodeMap";
 
@@ -149,6 +144,10 @@ public class ShockBlobStoreIntegrationTest {
 		public InputStream getInputStream() {
 			return IOUtils.toInputStream(data);
 		}
+		@Override
+		public long getSize() {
+			return -1; // unused for Shock (might be used for blobstore in future)
+		}
 	}
 	
 	@Test
@@ -156,11 +155,6 @@ public class ShockBlobStoreIntegrationTest {
 		MD5 md1 = new MD5("5e498cecc4017dad15313bb009b0ef49");
 		String data = "this is a blob yo";
 		sb.saveBlob(md1, new StringRestreamable(data), true);
-		ShockNodeId id = new ShockNodeId(sb.getExternalIdentifier(md1));
-		assertTrue("Got a valid shock id",
-				UUID.matcher(id.getId()).matches());
-		assertThat("Ext id is the shock node", id.getId(),
-				is(sb.getExternalIdentifier(md1)));
 		MD5 md1copy = new MD5("5e498cecc4017dad15313bb009b0ef49");
 		ByteArrayFileCache d = sb.getBlob(md1copy, 
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));

@@ -265,6 +265,7 @@ public class TypedObjectValidationReportTest {
 		failGetMD5(tovr);
 		assertThat("incorrect size", tovr.calculateRelabeledSize(), is(27L));
 		assertThat("incorrect size", tovr.getRelabeledSize(), is(27L));
+		assertThat("incorrect size", tovr.getSize(), is(27L));
 		failGetMD5(tovr);
 		// uses the naturally sorted path
 		tovr.sort(SORT_FAC);
@@ -284,6 +285,7 @@ public class TypedObjectValidationReportTest {
 		// uses the naturally sorted path
 		tovr.sort(SORT_FAC, tfm);
 		assertThat("incorrect size", tovr.getRelabeledSize(), is(27L));
+		assertThat("incorrect size", tovr.getSize(), is(27L));
 		assertThat("incorrect md5", tovr.getMD5(),
 				is(new MD5("b5a128ad62a50790c65d66831eec6e66")));
 		gotjson = IOUtils.toString(tovr.getInputStream(), "UTF-8");
@@ -318,6 +320,7 @@ public class TypedObjectValidationReportTest {
 		failGetMD5(tovr);
 		tovr.sort(SORT_FAC);
 		assertThat("incorrect size", tovr.getRelabeledSize(), is(17L));
+		assertThat("incorrect size", tovr.getSize(), is(17L));
 		assertThat("incorrect md5", tovr.getMD5(),
 				is(new MD5("16903d0745c0f47a90d92d1abd535b12")));
 		
@@ -421,6 +424,7 @@ public class TypedObjectValidationReportTest {
 		//sort via sort() method in memory
 		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
 		assertThat("correct object size", tovr.getRelabeledSize(), is(27L));
+		assertThat("correct object size", tovr.getSize(), is(27L));
 		// check twice, result is memoized
 		assertThat("correct object size", tovr.calculateRelabeledSize(), is(27L));
 		failGetMD5(tovr);
@@ -469,6 +473,14 @@ public class TypedObjectValidationReportTest {
 	private void failGetRelabeledSize(ValidatedTypedObject tovr) {
 		try {
 			tovr.getRelabeledSize();
+			fail("got relabled size before calculation");
+		} catch (IllegalStateException e) {
+			assertThat("incorrect exception", e.getMessage(),
+					is("Must call calculateRelabeledSize() before getting said size"));
+		}
+		
+		try {
+			tovr.getSize();
 			fail("got relabled size before calculation");
 		} catch (IllegalStateException e) {
 			assertThat("incorrect exception", e.getMessage(),
