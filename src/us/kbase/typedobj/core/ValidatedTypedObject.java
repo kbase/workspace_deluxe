@@ -37,6 +37,11 @@ import com.fasterxml.jackson.databind.JsonNode;
  * A typed object that has been validated  If the type
  * definition indicates that fields are ID references, those ID references can
  * be extracted from this object.
+ * 
+ * Note that before the VTO can be treated as a {@link Restreamable}, the
+ * {@link ValidatedTypedObject#sort(UTF8JsonSorterFactory)} or
+ * {@link ValidatedTypedObject#sort(UTF8JsonSorterFactory, TempFilesManager)} method must be
+ * called.
  *
  * @author msneddon
  * @author rsutormin
@@ -205,6 +210,12 @@ public class ValidatedTypedObject implements Restreamable {
 		}
 		return size;
 	}
+	
+	// to implement Restreamable
+	@Override
+	public long getSize() {
+		return getRelabeledSize();
+	}
 
 	/** Get the MD5 of the sorted, relabeled object.
 	 * sort() must have been called previously.
@@ -262,8 +273,7 @@ public class ValidatedTypedObject implements Restreamable {
 	 * @throws KeyDuplicationException if there are duplicate keys present
 	 * in a map after relabeling.
 	 */
-	public void sort(final UTF8JsonSorterFactory fac,
-			final TempFilesManager tfm)
+	public void sort(final UTF8JsonSorterFactory fac, final TempFilesManager tfm)
 			throws IOException, KeyDuplicationException, TooManyKeysException {
 		if (fac == null) {
 			throw new NullPointerException("Sorter factory cannot be null");

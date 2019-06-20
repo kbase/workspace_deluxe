@@ -16,8 +16,6 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 
 //BEGIN_HEADER
-import us.kbase.common.service.ServiceChecker;
-import us.kbase.common.service.ServiceChecker.ServiceException;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
@@ -108,7 +106,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.9.2-dev1";
+	private static final String VER = "0.10.0-dev3";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;

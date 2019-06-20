@@ -40,7 +40,7 @@ public class HandleServiceController {
 			final Path rootTempDir,
 			final URL authURL,
 			final String handleAdminRole,
-			final Path handleServiceDir,
+			final String handleServiceDir,
 			final String mongoDB)
 			throws Exception {
 
@@ -53,11 +53,11 @@ public class HandleServiceController {
 
 		String lib_dir = "lib";
 		Path lib_root = tempDir.resolve(lib_dir);
-		if (handleServiceDir.toString().isEmpty()) {
+		if (handleServiceDir == null) {
 			downloadSourceFiles(lib_root);
 		}
 		else {
-			FileUtils.copyDirectory(handleServiceDir.toFile(), lib_root.toFile());
+			FileUtils.copyDirectory(new File(handleServiceDir), lib_root.toFile());
 		}
 
 		String lib_dir_path = lib_root.toAbsolutePath().toString();
@@ -181,7 +181,7 @@ public class HandleServiceController {
 				Paths.get("workspacetesttemp"),
 				new URL("http://foo.com"),
 				"KBASE_ADMIN",
-				Paths.get("/kb/deployment/lib"),
+				"/kb/deployment/lib",
 				"handle_controller_test_handle_db");
 		System.out.println("handlesrv: " + hsc.getHandleServerPort());
 		System.out.println(hsc.getTempDir());

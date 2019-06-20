@@ -44,12 +44,15 @@ public class GridFSBlobStore implements BlobStore {
 		if (getFile(md5) != null) {
 			return; //already exists
 		}
-		final GridFSInputFile gif = gfs.createFile(data.getInputStream(), true);
-		gif.setId(md5.getMD5());
-		gif.setFilename(md5.getMD5());
-		gif.put(Fields.GFS_SORTED, sorted);
-		try {
+		try (final InputStream is = data.getInputStream()) {
+			final GridFSInputFile gif = gfs.createFile(is, true);
+			gif.setId(md5.getMD5());
+			gif.setFilename(md5.getMD5());
+			gif.put(Fields.GFS_SORTED, sorted);
 			gif.save();
+		} catch (IOException e) {
+			throw new BlobStoreCommunicationException("Couldn't connect to the GridFS backend: " +
+					e.getMessage(), e);
 		} catch (DuplicateKeyException dk) {
 			// already here, done
 		} catch (MongoException me) {
@@ -111,11 +114,6 @@ public class GridFSBlobStore implements BlobStore {
 			throw new BlobStoreCommunicationException(
 					"Could not write to the mongo database", me);
 		}
-	}
-
-	@Override
-	public String getExternalIdentifier(MD5 md5) {
-		return null;
 	}
 
 	@Override

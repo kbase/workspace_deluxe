@@ -48,7 +48,10 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.mongo.S3BlobStore;
+import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.mongo.ShockBlobStore;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
 import us.kbase.workspace.kbase.ShockIdHandlerFactory.ShockClientCloner;
 import us.kbase.workspace.kbase.admin.AdministratorHandler;
@@ -62,10 +65,11 @@ import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 public class InitWorkspaceServer {
 	
-	//TODO TEST unittests
+	//TODO TEST unittests... are going to be a real pain.
 	//TODO JAVADOC
 	
 	public static final String COL_SHOCK_NODES = InitConstants.COL_SHOCK_NODES;
+	public static final String COL_S3_OBJECTS = InitConstants.COL_S3_OBJECTS;
 	
 	private static final int ADMIN_CACHE_MAX_SIZE = 100; // seems like more than enough admins
 	private static final int ADMIN_CACHE_EXP_TIME_MS = 5 * 60 * 1000; // cache admin role for 5m
@@ -437,6 +441,28 @@ public class InitWorkspaceServer {
 				throw new WorkspaceInitException(
 						"Could not connect to the shock backend: " +
 						ioe.getLocalizedMessage(), ioe);
+			}
+		}
+		// tested manually
+		if (cfg.getBackendType().equals(BackendType.S3)) {
+			try {
+				final S3ClientWithPresign cli = new S3ClientWithPresign(
+						cfg.getBackendURL(),
+						cfg.getBackendUser(),
+						cfg.getBackendToken(),
+						cfg.getBackendRegion());
+				return new S3BlobStore(
+						db.getCollection(COL_S3_OBJECTS),
+						cli,
+						cfg.getBackendContainer());
+			} catch (URISyntaxException e) {
+				throw new WorkspaceInitException("S3 url is not a valid URI: " +
+						e.getMessage(), e);
+			} catch (BlobStoreCommunicationException e) {
+				throw new WorkspaceInitException("Error communicating with the blob store: " +
+						e.getMessage(), e);
+			} catch (IllegalArgumentException e) {
+				throw new WorkspaceInitException("Illegal S3 bucket name: " + e.getMessage(), e);
 			}
 		}
 		throw new WorkspaceInitException("Unknown backend type: " + cfg.getBackendType().name());
