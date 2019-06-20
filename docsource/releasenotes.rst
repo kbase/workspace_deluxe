@@ -1,18 +1,25 @@
 Workspace service release notes
 ===============================
-VERSION: 0.9.2 (Released TBD)
------------------------------
 
+VERSION: 0.10.0 (Released TBD)
+------------------------------
+
+BACKWARDS INCOMPATIBILITES:
+
+* The workspace is no longer compatible with the old Perl-based handle service, and must use
+  https://github.com/kbase/handle_service2.
+* Shock nodes included in workspaces objects as ``@id bytestream`` annotations must now be
+  owned by the user or by the workspace service. If the user owns the node, the node's owner
+  will be changed to the workspace service and write and delete ACLs will be cleared. The
+  node is no longer copied.
+  
 UPDATES:
-* merged Handle Service and Handle Manager Service into one service
-  (https://github.com/kbase/handle_service2)
-* removed Handle Manager Service related code
-* updated travis to use Python3
-* updated travis to include HandleAndShock test
 
+* Storage systems that support the AWS S3 API can now be used as backend file storage systems
+  as an alternative to Shock or GridFS.
 
-VERSION: 0.9.1 (Released TBD)
------------------------------
+VERSION: 0.9.1 (Released 4/18/19)
+---------------------------------
 
 UPDATES:
 

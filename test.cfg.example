@@ -6,7 +6,10 @@
 # [path to jars repo]/lib/jars
 test.jars.dir =
 
-# Shock exe file location
+# Minio exe file location 
+test.minio.exe = minio
+
+# Shock exe file location 
 test.shock.exe = /kb/deployment/bin/shock-server
 # Shock exe file version
 test.shock.version = 0.9.6

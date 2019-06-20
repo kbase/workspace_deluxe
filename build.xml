@@ -91,6 +91,24 @@
     <include name="kbase/handle/AbstractHandleClient-1.0.0.jar"/>
   </fileset>
 
+  <fileset dir="${jardir}" id="s3lib">
+    <include name="amazon/V2/annotations-2.5.62.jar"/>
+    <include name="amazon/V2/auth-2.5.62.jar"/>
+    <include name="amazon/V2/aws-core-2.5.62.jar"/>
+    <include name="amazon/V2/aws-query-protocol-2.5.62.jar"/>
+    <include name="amazon/V2/aws-xml-protocol-2.5.62.jar"/>
+    <include name="amazon/V2/eventstream-1.0.1.jar"/>
+    <include name="amazon/V2/http-client-spi-2.5.62.jar"/>
+    <include name="amazon/V2/profiles-2.5.62.jar"/>
+    <include name="amazon/V2/protocol-core-2.5.62.jar"/>
+    <include name="amazon/V2/regions-2.5.62.jar"/>
+    <include name="amazon/V2/s3-2.5.62.jar"/>
+    <include name="amazon/V2/sdk-core-2.5.62.jar"/>
+    <include name="amazon/V2/utils-2.5.62.jar"/>
+    <include name="amazon/V2/url-connection-client-2.5.63.jar"/>
+    <include name="reactivestreams/reactive-streams-1.0.2.jar"/>
+  </fileset>
+
   <fileset dir="${jardir}" id="testlib">
     <include name="apache_commons/velocity-1.7.jar"/>
     <include name="apache_commons/commons-lang-2.4.jar"/>
@@ -110,6 +128,7 @@
     <fileset refid="clientserverlib"/>
     <fileset refid="shocklib"/>
     <fileset refid="applicationlib"/>
+    <fileset refid="s3lib"/>
     <fileset refid="testlib"/>
   </union>
 
@@ -388,6 +407,7 @@
       <exclude name="performance/**"/>
       <exclude name="debugging/**"/>
       <exclude name="sorting/**"/>
+      <exclude name="s3presignedurl/**"/>
     </javac>
     <junit fork="yes" failureproperty="test.failed">
       <classpath refid="test.client.import.classpath"/>

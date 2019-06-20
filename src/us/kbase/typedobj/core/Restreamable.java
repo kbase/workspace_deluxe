@@ -16,4 +16,10 @@ public interface Restreamable {
 	 */
 	InputStream getInputStream();
 	
+	
+	/** Get the size of the streamed data.
+	 * @return the data size.
+	 */
+	long getSize();
+	
 }

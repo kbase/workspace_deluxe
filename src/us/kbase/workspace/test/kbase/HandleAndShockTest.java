@@ -1,7 +1,6 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -46,7 +45,6 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.shock.client.BasicShockClient;
-import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockFileInformation;
 import us.kbase.shock.client.ShockNode;
@@ -111,6 +109,7 @@ public class HandleAndShockTest {
 	private static AbstractHandleClient HANDLE_CLIENT;
 	private static BasicShockClient WS_OWNED_SHOCK;
 	private static BasicShockClient SHOCK_CLIENT_1;
+	private static BasicShockClient SHOCK_CLIENT_2;
 	
 	private static ShockACLType READ_ACL = ShockACLType.READ;
 
@@ -171,6 +170,7 @@ public class HandleAndShockTest {
 		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
 		WS_OWNED_SHOCK = new BasicShockClient(shockURL, HANDLE_MNGR_TOKEN);
 		SHOCK_CLIENT_1 = new BasicShockClient(shockURL, t1);
+		SHOCK_CLIENT_2 = new BasicShockClient(shockURL, t2);
 
 		HANDLE = new HandleServiceController(
 				MONGO,
@@ -179,7 +179,7 @@ public class HandleAndShockTest {
 				Paths.get(TestCommon.getTempDir()),
 				new URL(authURL.toString()),
 				HANDLE_ADMIN_ROLE,
-				Paths.get(TestCommon.getHandleServiceDir()),
+				TestCommon.getHandleServiceDir(),
 				HANDLE_SERVICE_TEST_DB);
 		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
 		System.out.println("Started Handle Service on port " + HANDLE.getHandleServerPort());
@@ -535,7 +535,7 @@ public class HandleAndShockTest {
 	@Test
 	public void saveAndGetWithShockIDs() throws Exception {
 		// tests shock nodes that are already owned by the WS (but readable by the user)
-		// as well as nodes merely readable by the user.
+		// as well as nodes merely owned by the user.
 		final String workspace = "basicshock";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		final ShockNode n1 = WS_OWNED_SHOCK.addNode(ImmutableMap.of("foo", "bar"),
@@ -578,66 +578,59 @@ public class HandleAndShockTest {
 		final ObjectData od = CLIENT3.getObjects2(gop).getData().get(0);
 		checkExternalIDError(od.getHandleError(), od.getHandleStacktrace());
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1));
-
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3));
+		
 		final Map<String, Object> data = od.getData().asClassInstance(
 				new TypeReference<Map<String, Object>>() {});
 		@SuppressWarnings("unchecked")
 		final List<String> shockids = (List<String>) data.get("ids");
 		assertThat("incorrect shock node", shockids.get(0), is(n1.getId().getId()));
 		final ShockNode new2 = WS_OWNED_SHOCK.getNode(new ShockNodeId(shockids.get(1)));
-		assertThat("node not updated", new2.getId(), is(not(n2.getId())));
-		checkReadAcl(new2, Arrays.asList(SHOCK_USER3));
-
+		assertThat("node unexpectedly updated", new2.getId(), is(n2.getId()));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3));
+		
 		// get the object with user 1
 		CLIENT1.getObjects2(gop);
-		checkReadAcl(new2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3));
+		
 		// get the object with user 2
 		CLIENT2.getObjects2(gop);
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1));
-		checkReadAcl(new2, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3, SHOCK_USER2));
+		
 		// remove user 2 privs, and re get
 		WS_OWNED_SHOCK.removeFromNodeAcl(n1.getId(), Arrays.asList(USER2), ShockACLType.READ);
-		WS_OWNED_SHOCK.removeFromNodeAcl(new2.getId(), Arrays.asList(USER2), ShockACLType.READ);
+		WS_OWNED_SHOCK.removeFromNodeAcl(n2.getId(), Arrays.asList(USER2), ShockACLType.READ);
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1));
-		checkReadAcl(new2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3));
 		CLIENT2.getObjects2(gop);
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1));
-		checkReadAcl(new2, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3, SHOCK_USER2));
+		
 		// check extracted IDS
 		assertThat("incorrect extracted ids", od.getExtractedIds().keySet(),
 				is(set("bytestream")));
 		assertThat("incorrect extracted ids",
 				new HashSet<>(od.getExtractedIds().get("bytestream")),
-				is(set(n1.getId().getId(), new2.getId().getId())));
-
+				is(set(n1.getId().getId(), n2.getId().getId())));
+		
 		// check nodes have the same contents
 		checkNode(WS_OWNED_SHOCK, n1.getId(), ImmutableMap.of("foo", "bar"),
 				"contents", "fname", "text");
-		checkNode(WS_OWNED_SHOCK, new2.getId(), ImmutableMap.of("foo", "bar2"),
+		checkNode(WS_OWNED_SHOCK, n2.getId(), ImmutableMap.of("foo", "bar2"),
 				"contents2", "fname2", "text2");
 
 		checkPublicRead(n1, false);
 		checkPublicRead(n2, false);
-		checkPublicRead(new2, false);
-
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace(workspace).withNewPermission("r"));
 
 		// get the object with anon user
 		CLIENT_NOAUTH.getObjects2(gop);
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1));
-		checkReadAcl(new2, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3, SHOCK_USER2));
 		checkPublicRead(n1, true);
-		checkPublicRead(n2, false);
-		checkPublicRead(new2, true);
+		checkPublicRead(n2, true);
 	}
 
 	private void checkNode(
@@ -678,6 +671,12 @@ public class HandleAndShockTest {
 		saveWithShockIDFail(CLIENT1, workspace, sn.getId().getId(), new ServerException(
 				String.format("Object #1, foo has invalid reference: User user1 cannot " +
 				"read bytestream node %s at /ids/0", sn.getId().getId()), 1, "n"));
+		
+		final ShockNode sn2 = SHOCK_CLIENT_2.addNode();
+		sn2.addToNodeAcl(Arrays.asList(USER1), ShockACLType.READ);
+		saveWithShockIDFail(CLIENT1, workspace, sn2.getId().getId(), new ServerException(
+				String.format("Object #1, foo has invalid reference: User user1 does not " +
+				"own bytestream node %s at /ids/0", sn2.getId().getId()), 1, "n"));
 	}
 
 	private void saveWithShockIDFail(
