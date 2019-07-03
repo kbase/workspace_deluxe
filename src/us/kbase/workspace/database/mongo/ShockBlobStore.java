@@ -169,9 +169,8 @@ public class ShockBlobStore implements BlobStore {
 	@Override
 	public ByteArrayFileCache getBlob(final MD5 md5,
 			final ByteArrayFileCacheManager bafcMan)
-			throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException, NoSuchBlobException,
-			FileCacheLimitExceededException, FileCacheIOException {
+			throws BlobStoreAuthorizationException, BlobStoreCommunicationException,
+				NoSuchBlobException, FileCacheLimitExceededException, FileCacheIOException {
 		final DBObject entry = getBlobEntry(md5);
 		final String node = (String)entry.get(Fields.SHOCK_NODE);
 		final boolean sorted;
@@ -245,11 +244,5 @@ public class ShockBlobStore implements BlobStore {
 			throw new BlobStoreCommunicationException(
 					"Could not read from the mongo database", me);
 		}
-	}
-
-	@Override
-	public String getExternalIdentifier(final MD5 md5) throws
-			BlobStoreCommunicationException, NoSuchBlobException {
-		return getNode(md5);
 	}
 }

@@ -536,6 +536,6 @@ public class ShockBlobStoreTest {
 		failRemoveBlob(sbs, new MD5(md5), expected);
 	}
 	
-	// TODO TEST getBlob, removeAllBlobs, getExternalIdentifier tests
+	// TODO TEST getBlob, removeAllBlobs tests
 }
 

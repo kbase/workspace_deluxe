@@ -17,7 +17,6 @@ import us.kbase.auth.AuthToken;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
-import us.kbase.shock.client.ShockNode;
 import us.kbase.shock.client.ShockNodeId;
 import us.kbase.shock.client.ShockUserId;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
@@ -71,7 +70,8 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 	private final ShockClientCloner cloner;
 	
 	/** Create the shock ID handler.
-	 * @param adminClient a Shock client with a Shock administrator token. Pass null to 
+	 * @param adminClient a Shock client with a Shock administrator token. All nodes passed to
+	 * this handler will be owned by the administrator user. Pass null to 
 	 * cause an exception to be thrown if a shock id is encountered.
 	 * @param cloner a Shock client cloner.
 	 */
@@ -207,34 +207,38 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 				return;
 			}
 			// check readability first, then make copies
-			final Set<String> unowned = ensureNodesUserReadableAndGetUnownedNodes();
+			final Set<String> unowned = ensureNodesUserOwnedAndGetUnownedNodes();
 			for (final T assObj: ids.keySet()) {
 				for (final String node: ids.get(assObj)) {
 					if (!remapped.containsKey(node)) {
-						remapped.put(node, unowned.contains(node) ? copy(node) : node);
+						remapped.put(node, unowned.contains(node) ? own(node) : node);
 					}
 				}
 			}
 		}
 
-		private String copy(final String node) throws IdReferenceHandlerException {
-			final ShockNode newnode;
+		// this method assumes the adminClient really is an admin and the node exists.
+		private String own(final String node) throws IdReferenceHandlerException {
+			final String adminUser = adminClient.getToken().getUserName();
 			try {
-				newnode = adminClient.copyNode(new ShockNodeId(node), true);
 				// for errors, could go back and delete the other copies... YAGNI for now.
+				final ShockACL acls = adminClient.addToNodeAcl(
+						new ShockNodeId(node), Arrays.asList(adminUser), ShockACLType.OWNER);
+				removeFromACL(node, adminUser, acls.getWrite(), ShockACLType.WRITE);
+				removeFromACL(node, adminUser, acls.getDelete(), ShockACLType.DELETE);
 			} catch (IOException e) {
 				throw new IdReferenceHandlerException(
 						"There was an IO problem while attempting to contact bytestream storage " +
-						"to copy nodes: " + e.getMessage(), TYPE, e);
+						"to alter nodes: " + e.getMessage(), TYPE, e);
 			} catch (ShockHttpException e) {
 				throw new IdReferenceHandlerException(
-						"Bytestream storage reported a problem while attempting to copy nodes: " +
+						"Bytestream storage reported a problem while attempting to alter nodes: " +
 						e.getMessage(), TYPE, e);
 			}
-			return newnode.getId().getId();
+			return node;
 		}
 
-		private Set<String> ensureNodesUserReadableAndGetUnownedNodes()
+		private Set<String> ensureNodesUserOwnedAndGetUnownedNodes()
 				throws IdReferenceHandlerException, IdReferenceException {
 			final BasicShockClient client;
 			try {
@@ -277,18 +281,24 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 								"Bytestream storage reported a problem while attempting to " +
 								"process IDs: " + e.getMessage(), TYPE, e);
 					}
-					if (!acls.getOwner().getUsername().equals(adminUser)) {
-						unowned.add(node); // make a copy of the node
-					} else {
-						// no copy, so clean acls up
+					if (acls.getOwner().getUsername().equals(adminUser)) {
+						// clean acls up
 						removeFromACL(node, adminUser, acls.getWrite(), ShockACLType.WRITE);
 						removeFromACL(node, adminUser, acls.getDelete(), ShockACLType.DELETE);
+					} else if (!acls.getOwner().getUsername().equals(userToken.getUserName())) {
+						throw new IdReferenceException(String.format(
+								"User %s does not own bytestream node %s",
+								userToken.getUserName(), node),
+								TYPE, assObj, node, null, null);
+					} else {
+						unowned.add(node); // own the node
 					}
 				}
 			}
 			return unowned;
 		}
 
+		// this method assumes the adminClient really is an admin and the node exists.
 		private void removeFromACL(
 				final String node,
 				final String adminUser,

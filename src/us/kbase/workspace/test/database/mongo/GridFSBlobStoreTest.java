@@ -2,10 +2,13 @@ package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.List;
@@ -30,6 +33,7 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 
 public class GridFSBlobStoreTest {
@@ -110,6 +114,10 @@ public class GridFSBlobStoreTest {
 		public InputStream getInputStream() {
 			return IOUtils.toInputStream(data);
 		}
+		@Override
+		public long getSize() {
+			return -1; //unused for GFS
+		}
 	}
 	
 	@Test
@@ -123,7 +131,6 @@ public class GridFSBlobStoreTest {
 		assertThat("data returned marked as sorted", d.isSorted(), is(true));
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
-		assertTrue("GridFS has no external ID", gfsb.getExternalIdentifier(md1copy) == null);
 		gfsb.saveBlob(md1, new StringRestreamable(data), true); //should be able to save the same thing twice with no error
 		
 		gfsb.saveBlob(md1, new StringRestreamable(data), false); //this should do nothing
@@ -140,6 +147,41 @@ public class GridFSBlobStoreTest {
 		
 		gfsb.removeBlob(md1);
 		gfsb.removeBlob(md2);
+	}
+	
+	private class FailOnCloseInputStream extends InputStream {
+		
+		private final InputStream wrapped;
+		
+		public FailOnCloseInputStream(final InputStream wrapped) {
+			this.wrapped = wrapped;
+		}
+		
+		@Override
+		public int read() throws IOException {
+			return wrapped.read();
+		}
+		
+		@Override
+		public void close() throws IOException {
+			throw new IOException("oh drat.");
+		}
+	}
+	
+	@Test
+	public void saveFailIOOnClose() throws Exception {
+		// throwing a IOError on reading from a stream makes gridfs throw
+		//    new Runtime("i'm doing something wrong")
+		final Restreamable rs = mock(Restreamable.class);
+		when(rs.getInputStream()).thenReturn(new FailOnCloseInputStream(
+				new ByteArrayInputStream("a".getBytes())));
+		
+		try {
+			gfsb.saveBlob(new MD5(a32), rs, true);
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new BlobStoreCommunicationException(
+					"Couldn't connect to the GridFS backend: oh drat."));
+		}
 	}
 	
 	@Test
