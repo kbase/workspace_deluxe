@@ -1,13 +1,19 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.10.0 (Released TBD)
-------------------------------
+VERSION: 0.11.0 (Released TBD)
+---------------------------------
 
 BACKWARDS INCOMPATIBILITES:
 
 * The workspace is no longer compatible with the old Perl-based handle service, and must use
   https://github.com/kbase/handle_service2.
+
+VERSION: 0.10.0 (Released 7/2/19)
+---------------------------------
+
+BACKWARDS INCOMPATIBILITES:
+
 * Shock nodes included in workspaces objects as ``@id bytestream`` annotations must now be
   owned by the user or by the workspace service. If the user owns the node, the node's owner
   will be changed to the workspace service and write and delete ACLs will be cleared. The
