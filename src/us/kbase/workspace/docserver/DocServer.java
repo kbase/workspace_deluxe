@@ -2,6 +2,8 @@ package us.kbase.workspace.docserver;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.FileNameMap;
+import java.net.URLConnection;
 import java.util.Map;
 
 import javax.servlet.ServletException;
@@ -13,6 +15,8 @@ import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+
+import com.google.common.io.Files;
 
 import us.kbase.common.service.JsonServerServlet;
 import us.kbase.common.service.JsonServerSyslog;
@@ -49,6 +53,8 @@ public class DocServer extends HttpServlet {
 	
 	private static final String X_FORWARDED_FOR = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
+	
+	private static final FileNameMap FILE_NAME_MAP = URLConnection.getFileNameMap();
 	
 	private final String docsLoc;
 	private final JsonServerSyslog logger;
@@ -145,23 +151,39 @@ public class DocServer extends HttpServlet {
 			return;
 		}
 		try {
+			response.setHeader("Content-Type", getMimeType(path));
 			final byte[] page = IOUtils.toByteArray(is);
 			response.getOutputStream().write(page);
 		} catch (IOException ioe) {
-			logger.logErr(request.getRequestURI() + " 500 " +
-					request.getHeader(USER_AGENT));
+			logger.logErr(request.getRequestURI() + " 500 " + request.getHeader(USER_AGENT));
 			logger.logErr(ioe);
 			response.sendError(500);
 			return;
 		}
-		logger.logInfo(request.getRequestURI() + " 200 " +
-				request.getHeader(USER_AGENT));
+		logger.logInfo(request.getRequestURI() + " 200 " + request.getHeader(USER_AGENT));
+	}
+
+	private String getMimeType(final String path) {
+		final String ct = FILE_NAME_MAP.getContentTypeFor(path);
+		if (ct == null) {
+			// kind of unbelievable js and css aren't covered. If many more types are needed
+			// in the future (unlikely) maybe push own file map into URLConnection. YAGNI for now.
+			final String ext = Files.getFileExtension(path);
+			if (ext.equals("js")) {
+				return "text/javascript";
+			}
+			if (ext.equals("css")) {
+				return "text/css";
+			}
+			return "application/octet-stream";
+		} else {
+			return ct;
+		}
 	}
 
 	private void handle404(final HttpServletRequest request,
 			final HttpServletResponse response) throws IOException {
-		logger.logErr(request.getRequestURI() + " 404 " +
-				request.getHeader(USER_AGENT));
+		logger.logErr(request.getRequestURI() + " 404 " + request.getHeader(USER_AGENT));
 		response.sendError(404);
 	}
 	
