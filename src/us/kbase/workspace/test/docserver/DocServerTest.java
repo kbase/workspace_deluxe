@@ -59,9 +59,6 @@ public class DocServerTest {
 	private static String IDX1_CONTENTS = "<html>\n<body>\nidx\n</body>\n</html>";
 	private static String IDX2_CONTENTS = "<html>\n<body>\nidx2\n</body>\n</html>";
 	
-	private static String CT_HTML = "text/html";
-	private static String CT_HTML_ERR = "text/html;charset=ISO-8859-1";
-	
 	private static int INFO = JsonServerSyslog.LOG_LEVEL_INFO;
 	private static int ERR = JsonServerSyslog.LOG_LEVEL_ERR;
 
@@ -226,44 +223,42 @@ public class DocServerTest {
 	
 	@Test
 	public void serverNameNull() throws Exception {
-		checkStartup(null, "DocServ", "/us/kbase/workspace/test/docserver", CT_HTML,
+		checkStartup(null, "DocServ", "/us/kbase/workspace/test/docserver",
 				IDX1_CONTENTS);
 	}
 	
 	@Test
 	public void serverNameEmpty() throws Exception {
-		checkStartup("", "DocServ", "/us/kbase/workspace/test/docserver", CT_HTML, IDX1_CONTENTS);
+		checkStartup("", "DocServ", "/us/kbase/workspace/test/docserver",
+				IDX1_CONTENTS);
 	}
 	
 	@Test
 	public void docsLocNull() throws Exception {
-		DocServer.setDefaultDocsLocation("/us/kbase/workspace/test/docserver/files");
-		checkStartup("WhooptyWoo", "WhooptyWoo", null, CT_HTML, IDX2_CONTENTS);
+		DocServer.setDefaultDocsLocation(
+				"/us/kbase/workspace/test/docserver/files");
+		checkStartup("WhooptyWoo", "WhooptyWoo", null, IDX2_CONTENTS);
 	}
 	
 	@Test
 	public void docsLocEmpty() throws Exception {
-		DocServer.setDefaultDocsLocation("/us/kbase/workspace/test/docserver/files");
-		checkStartup("WhooptyWoo", "WhooptyWoo", "", CT_HTML, IDX2_CONTENTS);
+		DocServer.setDefaultDocsLocation(
+				"/us/kbase/workspace/test/docserver/files");
+		checkStartup("WhooptyWoo", "WhooptyWoo", "", IDX2_CONTENTS);
 	}
 	
 	@Test
 	public void docsLocNoSlash() throws Exception {
 		checkStartup("WhooptyWoo", "WhooptyWoo",
-				"us/kbase/workspace/test/docserver/files", CT_HTML, IDX2_CONTENTS);
+				"us/kbase/workspace/test/docserver/files", IDX2_CONTENTS);
 	}
 
-	private void checkStartup(
-			final String serverName,
-			final String serverNameExp,
-			final String serverDocs,
-			final String contentType,
-			final String body)
-			throws Exception {
+	private void checkStartup(String serverName, String serverNameExp,
+			String serverDocs, String body) throws Exception {
 		DocServer serv = createServer(serverName, serverDocs);
 		URL url = getServerURL(serv);
 		CloseableHttpResponse res = getClient().execute(new HttpGet(url + "/"));
-		checkResponse(res, 200, contentType, body);
+		checkResponse(res, 200, body);
 		
 		checkLogging(Arrays.asList(
 				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/")
@@ -313,7 +308,7 @@ public class DocServerTest {
 				is("application/json"));
 		assertThat("correct content length",
 				res.getFirstHeader("Content-Length").getValue(), is("0"));
-		checkResponse(res, 200, "application/json", "");
+		checkResponse(res, 200, "");
 	}
 	
 	@Test
@@ -321,7 +316,7 @@ public class DocServerTest {
 		HttpGet h = new HttpGet(docURL + "/");
 		h.addHeader("X-Forwarded-For", "123.456.789.123,foo,bar");
 		CloseableHttpResponse res = getClient().execute(h);
-		checkResponse(res, 200, CT_HTML, IDX1_CONTENTS);
+		checkResponse(res, 200, IDX1_CONTENTS);
 		
 		checkLogging(Arrays.asList(
 				new ExpectedLog(INFO, "123.456.789.123", "GET")
@@ -334,7 +329,7 @@ public class DocServerTest {
 		HttpGet h = new HttpGet(docURL + "/");
 		h.addHeader("X-Forwarded-For", "");
 		CloseableHttpResponse res = getClient().execute(h);
-		checkResponse(res, 200, CT_HTML, IDX1_CONTENTS);
+		checkResponse(res, 200, IDX1_CONTENTS);
 		
 		checkLogging(Arrays.asList(
 				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/")));
@@ -342,8 +337,9 @@ public class DocServerTest {
 	
 	@Test
 	public void getIndexIndirect() throws Exception {
-		CloseableHttpResponse res = getClient().execute(new HttpGet(docURL + "/"));
-		checkResponse(res, 200, CT_HTML, IDX1_CONTENTS);
+		CloseableHttpResponse res = getClient().execute(
+				new HttpGet(docURL + "/"));
+		checkResponse(res, 200, IDX1_CONTENTS);
 		
 		checkLogging(Arrays.asList(
 				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/")));
@@ -351,8 +347,9 @@ public class DocServerTest {
 	
 	@Test
 	public void getIndexDirect() throws Exception {
-		CloseableHttpResponse res = getClient().execute(new HttpGet(docURL + "/index.html"));
-		checkResponse(res, 200, CT_HTML, IDX1_CONTENTS);
+		CloseableHttpResponse res = getClient().execute(
+				new HttpGet(docURL + "/index.html"));
+		checkResponse(res, 200, IDX1_CONTENTS);
 		
 		checkLogging(Arrays.asList(
 				new ExpectedLog(INFO, "127.0.0.1", "GET")
@@ -363,7 +360,7 @@ public class DocServerTest {
 	public void getSubIndexIndirect() throws Exception {
 		CloseableHttpResponse res = getClient().execute(
 				new HttpGet(docURL + "/files/"));
-		checkResponse(res, 200, CT_HTML, IDX2_CONTENTS);
+		checkResponse(res, 200, IDX2_CONTENTS);
 		
 		checkLogging(Arrays.asList(
 				new ExpectedLog(INFO, "127.0.0.1", "GET")
@@ -374,7 +371,7 @@ public class DocServerTest {
 	public void getSubIndexDirect() throws Exception {
 		CloseableHttpResponse res = getClient().execute(
 				new HttpGet(docURL + "/files/index.html"));
-		checkResponse(res, 200, CT_HTML, IDX2_CONTENTS);
+		checkResponse(res, 200, IDX2_CONTENTS);
 		
 		checkLogging(Arrays.asList(
 				new ExpectedLog(INFO, "127.0.0.1", "GET")
@@ -385,7 +382,7 @@ public class DocServerTest {
 	public void getFile() throws Exception {
 		CloseableHttpResponse res = getClient().execute(
 				new HttpGet(docURL + "/docserverTestFile.html"));
-		checkResponse(res, 200, CT_HTML, FILE1_CONTENTS);
+		checkResponse(res, 200, FILE1_CONTENTS);
 		
 		checkLogging(Arrays.asList(
 				new ExpectedLog(INFO, "127.0.0.1", "GET")
@@ -396,7 +393,7 @@ public class DocServerTest {
 	public void getSubFile() throws Exception {
 		CloseableHttpResponse res = getClient().execute(
 				new HttpGet(docURL + "/files/docserverTestFile2.html"));
-		checkResponse(res, 200, CT_HTML, FILE2_CONTENTS);
+		checkResponse(res, 200, FILE2_CONTENTS);
 		
 		checkLogging(Arrays.asList(
 				new ExpectedLog(INFO, "127.0.0.1", "GET")
@@ -404,73 +401,10 @@ public class DocServerTest {
 	}
 	
 	@Test
-	public void getCSS() throws Exception {
-		CloseableHttpResponse res = getClient().execute(new HttpGet(docURL + "/fake.css"));
-		checkResponse(res, 200, "text/css", "Not really css");
-		
-		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/fake.css")));
-	}
-	
-	@Test
-	public void getGIF() throws Exception {
-		CloseableHttpResponse res = getClient().execute(new HttpGet(docURL + "/fake.gif"));
-		checkResponse(res, 200, "image/gif", "Not really a gif");
-		
-		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/fake.gif")));
-	}
-	
-	@Test
-	public void getJS() throws Exception {
-		CloseableHttpResponse res = getClient().execute(new HttpGet(docURL + "/fake.js"));
-		checkResponse(res, 200, "text/javascript", "Not really javascript");
-		
-		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/fake.js")));
-	}
-	
-	@Test
-	public void getPNG() throws Exception {
-		CloseableHttpResponse res = getClient().execute(new HttpGet(docURL + "/fake.png"));
-		checkResponse(res, 200, "image/png", "Not really a png");
-		
-		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/fake.png")));
-	}
-	
-	@Test
-	public void getSpec() throws Exception {
-		CloseableHttpResponse res = getClient().execute(new HttpGet(docURL + "/fake.spec"));
-		checkResponse(res, 200, "application/octet-stream", "Not really a spec");
-		
-		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/fake.spec")));
-	}
-	
-	@Test
-	public void getTXT() throws Exception {
-		CloseableHttpResponse res = getClient().execute(new HttpGet(docURL + "/fake.txt"));
-		checkResponse(res, 200, "text/plain", "This really is a text file");
-		
-		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/fake.txt")));
-	}
-	
-	@Test
-	public void getWeird() throws Exception {
-		CloseableHttpResponse res = getClient().execute(new HttpGet(docURL + "/fake.weirdsuffix"));
-		checkResponse(res, 200, "application/octet-stream", "Weird crap in here");
-		
-		checkLogging(Arrays.asList(
-				new ExpectedLog(INFO, "127.0.0.1", "GET").withURL("/docs/fake.weirdsuffix")));
-	}
-	
-	@Test
 	public void nullRoot() throws Exception {
 		CloseableHttpResponse res = getClient().execute(
 				new HttpGet(docURL + ""));
-		checkResponse(res, 404, CT_HTML_ERR, null);
+		checkResponse(res, 404, null);
 		
 		checkLogging(Arrays.asList(
 				new ExpectedLog(ERR, "127.0.0.1", "GET").withURL("/docs")));
@@ -480,9 +414,10 @@ public class DocServerTest {
 	public void getNonExtantFile() throws Exception {
 		CloseableHttpResponse res = getClient().execute(
 				new HttpGet(docURL + "/foo.html"));
-		checkResponse(res, 404, CT_HTML_ERR, null);
+		checkResponse(res, 404, null);
 		
-		checkLogging(Arrays.asList(new ExpectedLog(ERR, "127.0.0.1", "GET")
+		checkLogging(Arrays.asList(
+				new ExpectedLog(ERR, "127.0.0.1", "GET")
 				.withURL("/docs/foo.html")));
 	}
 	
@@ -518,15 +453,10 @@ public class DocServerTest {
 		}
 	}
 	
-	private void checkResponse(
-			final CloseableHttpResponse res,
-			final int code,
-			final String contentType,
-			final String body)
+	private void checkResponse(CloseableHttpResponse res, int code, String body)
 			throws Exception {
-		assertThat("correct response code", res.getStatusLine().getStatusCode(), is(code));
-		assertThat("incorrect content-type", res.getHeaders("Content-Type")[0].getValue(),
-				is(contentType));
+		assertThat("correct response code", res.getStatusLine().getStatusCode(),
+				is(code));
 		if (code != 404) {
 			assertThat("correct response body",
 					EntityUtils.toString(res.getEntity()), is(body));

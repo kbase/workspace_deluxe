@@ -98,20 +98,6 @@ import com.mongodb.WriteResult;
 
 public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
-	/* NOTES ON SHARDING:
-	 * - workspace cannot be sharded as it requires unique indexes on id and name. It's
-	 *   extremely unlikely to get big enough to require sharding though. The WSobject & ver
-	 *   collections are 2-3 orderes of magnitude larger in prod.
-	 * - WS ACLs could be sharded on a hashed WSID, but probably not necessary.
-	 * - WS objects could be sharded on a hashed WSID. This means that large workspaces would
-	 *   exist entirely on one shard, unfortunately, but that index must be unique.
-	 * - WS object verisons could be sharded on a hashed WSID or combined WSID/Object ID. The
-	 *   latter would split objects between shards, but all the versions for a particular object
-	 *   would remain on one shard. Again, the WSID/Object ID index must be unique.
-	 * - Provedence could be sharded on the (hashed?) Mongo Object ID.
-	 * - Admins and configs are tiny.
-	 */
-	
 	// TODO TEST need some lower level tests for this module rather than just integration tests
 
 	public static final String COL_ADMINS = CollectionNames.COL_ADMINS;
