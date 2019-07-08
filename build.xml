@@ -221,6 +221,12 @@
           <include name="**/instance.*"/>
           <include name="**/*.instance"/>
           <include name="**/*.html"/>
+          <include name="**/*.css"/>
+          <include name="**/*.gif"/>
+          <include name="**/*.js"/>
+          <include name="**/*.png"/>
+          <include name="**/*.txt"/>
+          <include name="**/*.weirdsuffix"/>
         </patternset>
       </fileset>
     </copy>
