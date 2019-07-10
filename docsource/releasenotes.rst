@@ -4,6 +4,10 @@ Workspace service release notes
 VERSION: 0.10.1 (Released TBD)
 ---------------------------------
 
+DEPRECATIONS:
+
+* Shock support has been deprecated and will be removed in a future version.
+
 UPDATES:
 
 * The docs server (at /docs) now returns the Content-Type header as expected.
