@@ -1,8 +1,12 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.10.1 (Released TBD)
----------------------------------
+VERSION: 0.10.1 (Released 7/11/19)
+----------------------------------
+
+DEPRECATIONS:
+
+* Shock support has been deprecated and will be removed in a future version.
 
 UPDATES:
 
