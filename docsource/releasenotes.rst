@@ -9,6 +9,17 @@ BACKWARDS INCOMPATIBILITES:
 * The workspace is no longer compatible with the old Perl-based handle service, and must use
   https://github.com/kbase/handle_service2.
 
+VERSION: 0.10.1 (Released 7/11/19)
+----------------------------------
+
+DEPRECATIONS:
+
+* Shock support has been deprecated and will be removed in a future version.
+
+UPDATES:
+
+* The docs server (at /docs) now returns the Content-Type header as expected.
+
 VERSION: 0.10.0 (Released 7/2/19)
 ---------------------------------
 
