@@ -53,15 +53,13 @@ public class HandleServiceController {
 
 		String lib_dir = "lib";
 		Path lib_root = tempDir.resolve(lib_dir);
-		System.out.println("fdsafsdafsda");
-		System.out.println(handleServiceDir);
 		downloadSourceFiles(lib_root);
-		// if (handleServiceDir == null || handleServiceDir == "") {
-		// 	downloadSourceFiles(lib_root);
-		// }
-		// else {
-		// 	FileUtils.copyDirectory(new File(handleServiceDir), lib_root.toFile());
-		// }
+		if (handleServiceDir == null) {
+			downloadSourceFiles(lib_root);
+		}
+		else {
+			FileUtils.copyDirectory(new File(handleServiceDir), lib_root.toFile());
+		}
 
 		String lib_dir_path = lib_root.toAbsolutePath().toString();
 		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http",
