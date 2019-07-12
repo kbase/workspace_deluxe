@@ -53,7 +53,6 @@ public class HandleServiceController {
 
 		String lib_dir = "lib";
 		Path lib_root = tempDir.resolve(lib_dir);
-		downloadSourceFiles(lib_root);
 		if (handleServiceDir == null) {
 			downloadSourceFiles(lib_root);
 		}
