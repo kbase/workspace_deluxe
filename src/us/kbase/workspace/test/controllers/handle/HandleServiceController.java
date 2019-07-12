@@ -53,12 +53,15 @@ public class HandleServiceController {
 
 		String lib_dir = "lib";
 		Path lib_root = tempDir.resolve(lib_dir);
-		if (handleServiceDir == null) {
-			downloadSourceFiles(lib_root);
-		}
-		else {
-			FileUtils.copyDirectory(new File(handleServiceDir), lib_root.toFile());
-		}
+		System.out.println("fdsafsdafsda");
+		System.out.println(handleServiceDir);
+		downloadSourceFiles(lib_root);
+		// if (handleServiceDir == null || handleServiceDir == "") {
+		// 	downloadSourceFiles(lib_root);
+		// }
+		// else {
+		// 	FileUtils.copyDirectory(new File(handleServiceDir), lib_root.toFile());
+		// }
 
 		String lib_dir_path = lib_root.toAbsolutePath().toString();
 		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http",
@@ -140,6 +143,11 @@ public class HandleServiceController {
 		hs.add("mongo-host", "127.0.0.1");
 		hs.add("mongo-port", "" + mongo.getServerPort());
 		hs.add("mongo-database", mongoDB);
+		hs.add("mongo-user", "");
+		hs.add("mongo-password", "");
+
+		hs.add("start-local-mongo", 1);
+		hs.add("namespace", "KBH");
 
 		ini.store(iniFile);
 		return iniFile;
