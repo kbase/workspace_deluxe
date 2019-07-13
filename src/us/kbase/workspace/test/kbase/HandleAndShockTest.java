@@ -211,7 +211,7 @@ public class HandleAndShockTest {
 				HANDLE.getHandleServerPort()), t1);
 		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
 		try {
-			HANDLE_CLIENT.areReadable(Arrays.asList("KBH_0"));
+			HANDLE_CLIENT.areReadable(Arrays.asList("fake_handle_id"));
 		} catch (Exception e) {
 			System.out.println("Could not successfullly run methods on the Handle Service");
 			System.out.println(e.getMessage());
