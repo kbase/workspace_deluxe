@@ -516,7 +516,7 @@ public class InitWorkspaceServer {
 						"https is recommended.");
 				cli.setIsInsecureHttpConnectionAllowed(true);
 			}
-			cli.isOwner(Arrays.asList("KBH_-100"));
+			cli.isOwner(Arrays.asList("FAKEHANDLE_-100"));
 		} catch (Exception e) {
 			rep.reportFail("Could not establish a connection to the Handle Service at "
 					+ handleServiceUrl + ": " + e.getMessage());
