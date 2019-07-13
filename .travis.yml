@@ -34,7 +34,7 @@ install:
   - export JARSDIR=`pwd`/jars/lib/jars/
 
   - export HS_VER=version_1.0.0
-  - export HS_COMMIT=ab7bd41a76a2d00be7162726ee9e23cc574614fa
+  - export HS_COMMIT=cfd32ee951f1d71cabed5e0a7c294e332704f484
   - export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
   - git clone -b $HS_VER --single-branch https://github.com/kbase/handle_service2.git
   - cd handle_service2/
