@@ -143,7 +143,7 @@ public class HandleServiceController {
 		hs.add("mongo-user", "");
 		hs.add("mongo-password", "");
 
-		hs.add("start-local-mongo", 1);
+		hs.add("start-local-mongo", 0);
 		hs.add("namespace", "KBH");
 
 		ini.store(iniFile);
