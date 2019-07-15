@@ -140,6 +140,11 @@ public class HandleServiceController {
 		hs.add("mongo-host", "127.0.0.1");
 		hs.add("mongo-port", "" + mongo.getServerPort());
 		hs.add("mongo-database", mongoDB);
+		hs.add("mongo-user", "");
+		hs.add("mongo-password", "");
+
+		hs.add("start-local-mongo", 0);
+		hs.add("namespace", "KBH");
 
 		ini.store(iniFile);
 		return iniFile;
