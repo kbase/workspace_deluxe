@@ -38,7 +38,7 @@ paths which the WSS build needs::
     /kb$ cd dev_container/
     /kb/dev_container$ sudo ./bootstrap /kb/runtime/
     /kb/dev_container$ source user-env.sh
-    
+
 Now the WSS may be built. If building inside the ``dev_container`` all the
 dependencies from the ``DEPENDENCIES`` file are required, but to build outside
 the ``dev_container``, only the ``jars`` and ``workspace_deluxe`` repos are
@@ -64,7 +64,7 @@ necessary::
     ~/kb$ cd workspace_deluxe/
     ~/kb/workspace_deluxe$ make
     *snip*
-    
+
 ``make`` will build:
 
 * A workspace client jar in ``/dist/client``
@@ -74,7 +74,7 @@ necessary::
 .. note::
    If the build fails due to a sphinx error, sphinx may require an upgrade to
    >= 1.3::
-   
+
        $ sudo pip install sphinx --upgrade
 
 .. _servicedeps:
@@ -88,17 +88,14 @@ may optionally use:
 * Any AWS S3 compatible storage system as a file storage backend.
 * `Shock <https://github.com/kbase/Shock>`_ as a file storage backend or for linking WSS objects
   to Shock nodes.
-* The `Handle Service <https://github.com/kbase/handle_service>`_ 
-  `b9de699 <https://github.com/kbase/handle_service/commit/b9de6991b851e9cd8fa9b5012db565f051e0894f>`_ +
-  and `Handle Manager <https://github.com/kbase/handle_mngr>`_ 
-  `3e60998 <https://github.com/kbase/handle_mngr/commit/3e60998fc22bb331e51b189ae1b71ebd54e58b90>`_ +
+* The `Handle Service <https://github.com/kbase/handle_service2>`_+
   to allow linking workspace objects to Shock nodes (see
   :ref:`shockintegration`).
-  
+
 The WSS has been tested against the auth2 branch of the KBase fork of Shock version 0.9.6
 (e9f0e1618e265042bf5cb96429995b5e6ec0a06a), and against MongoDB versions 2.6.12 and 3.6.10.
 3.0+ versions were tested with and without the WiredTiger storage engine.
-  
+
 Please see the respective service documentation to set up and run the services
 required.
 
@@ -110,7 +107,7 @@ required.
    The alternative to Shock or S3 as a file storage backend is MongoDB GridFS.
    GridFS is simpler to set up, but locks the entire database when writing
    files. Since the workspace can consume very large files, this can cause a
-   significant impact on other database operations. 
+   significant impact on other database operations.
 
 Configuration
 -------------
@@ -212,7 +209,7 @@ ignore-handle-service
 
 **Description**: Set to anything (``true`` is good) to not use handles. In this
 case attempting to save an object with a handle will fail. Delete or leave
-blank to use handles (the default). 
+blank to use handles (the default).
 
 handle-service-url
 """"""""""""""""""
@@ -220,17 +217,11 @@ handle-service-url
 
 **Description**: The URL of the Handle Service
 
-handle-manager-url
-""""""""""""""""""
-**Required**: If using handles
-
-**Description**: The URL of the Handle Manager
-
 handle-manager-token
 """"""""""""""""""""
 **Required**: If using handles
 
-**Description**: Credentials for the account approved for Handle Manager use
+**Description**: Credentials for the account approved to assign/modify shock node ACLs.
 
 ws-admin
 """"""""
@@ -405,7 +396,7 @@ environment variables and dependent services remain the same for both Glassfish 
 **Run under Glassfiash 3.1.2**
 ::
 
-    ~/kb/workspace_deluxe$ /kb/deployment/services/workspace/start_service 
+    ~/kb/workspace_deluxe$ /kb/deployment/services/workspace/start_service
     Creating domain Workspace at /kb/deployment/services/workspace/glassfish_domain
     Using default port 4848 for Admin.
     Using default port 8080 for HTTP Instance.
@@ -444,7 +435,7 @@ environment variables and dependent services remain the same for both Glassfish 
 
 Stop the service::
 
-    ~/kb/workspace_deluxe$ /kb/deployment/services/workspace/stop_service 
+    ~/kb/workspace_deluxe$ /kb/deployment/services/workspace/stop_service
     Domain Workspace exists at /kb/deployment/services/workspace/glassfish_domain, skipping creation
     Domain Workspace is already running on port 4848
     Command undeploy executed successfully.
@@ -482,14 +473,14 @@ Download Tomcat and unzip into working directory::
     Length: 9487006 (9.0M) [application/x-gzip]
     Saving to: ‘apache-tomcat-8.5.24.tar.gz’
 
-    apache-tomcat-8.5.24.tar.gz                       100%[==========================================================================================================>]   9.05M  1.01MB/s    in 9.1s    
+    apache-tomcat-8.5.24.tar.gz                       100%[==========================================================================================================>]   9.05M  1.01MB/s    in 9.1s
 
     2018-01-18 09:40:47 (1018 KB/s) - ‘apache-tomcat-8.5.24.tar.gz’ saved [9487006/9487006]
 
-    Steves-MBP:tmp sychan$ tar xzf apache-tomcat-8.5.24.tar.gz 
+    Steves-MBP:tmp sychan$ tar xzf apache-tomcat-8.5.24.tar.gz
     Steves-MBP:tmp sychan$ ls apache-tomcat-8.5.24
     LICENSE		NOTICE		RELEASE-NOTES	RUNNING.txt	bin		conf		lib		logs		temp		webapps		work
-    Steves-MBP:tmp sychan$ 
+    Steves-MBP:tmp sychan$
 
 The next step is to remove the default Tomcat distributed root servlet container and replace it
 with the workspace WAR file generated by make, so that the the only code running is the workspace service.
@@ -507,7 +498,7 @@ Update Tomcat ROOT warfile::
     Steves-MBP:webapps sychan$ ls -l
     total 39704
     -rw-r--r--  1 sychan  staff  20324677 Jan 18 09:50 ROOT.war
-    Steves-MBP:webapps sychan$ 
+    Steves-MBP:webapps sychan$
 
 At this point, we can start Tomcat and it will deploy the WorkspaceService.war file as the
 root handler on the default listener port of 8080. However the directives in the
@@ -606,7 +597,6 @@ Start Tomcat with Workspace service::
     Warning - the Auth Service MKII url uses insecure http. https is recommended.
     Warning - the Auth Service url uses insecure http. https is recommended.
     Warning - the Handle Service url uses insecure http. https is recommended.
-    Warning - the Handle Manager url uses insecure http. https is recommended.
     Starting server using connection parameters:
     mongodb-host=ci-mongo
     mongodb-database=workspace
@@ -614,7 +604,6 @@ Start Tomcat with Workspace service::
     auth2-service-url=http://auth:8080/
     auth-service-url=http://auth:8080/api/legacy/KBase
     handle-service-url=http://handle_service:8080/
-    handle-manager-url=http://handle_manager:8080/
     listeners=us.kbase.workspace.modules.SearchPrototypeEventHandlerFactory,us.kbase.workspace.modules.KnowledgeEnginePrototypeEventHandlerFactory
     Temporary file location: ws_temp_dir
     Initialized Shock backend
@@ -642,4 +631,4 @@ Catalina.sh start/stop::
     Using CATALINA_TMPDIR: /Users/sychan/src/workspace_deluxe/tmp/apache-tomcat-8.5.24/temp
     Using JRE_HOME:        /Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home
     Using CLASSPATH:       /Users/sychan/src/workspace_deluxe/tmp/apache-tomcat-8.5.24/bin/bootstrap.jar:/Users/sychan/src/workspace_deluxe/tmp/apache-tomcat-8.5.24/bin/tomcat-juli.jar
-    120:apache-tomcat-8.5.24 sychan$ 
+    120:apache-tomcat-8.5.24 sychan$

@@ -1,6 +1,14 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.11.0 (Released TBD)
+---------------------------------
+
+BACKWARDS INCOMPATIBILITES:
+
+* The workspace is no longer compatible with the old Perl-based handle service, and must use
+  https://github.com/kbase/handle_service2.
+
 VERSION: 0.10.1 (Released 7/11/19)
 ----------------------------------
 
@@ -46,7 +54,7 @@ BACKWARDS INCOMPATIBILITIES:
   can be determined for existing installations by examining the contents of the ``settings``
   collection in the MongoDB workspace database (although note that ``shock`` and ``gridFS`` are
   now capitalized as ``Shock`` and ``GridFS``).
-  
+
 .. warning:: Setting these values incorrectly can cause unexpected and undesired behavior,
    including data corruption.
 
@@ -97,7 +105,7 @@ BACKWARDS INCOMPATIBILITIES:
 * Building and running the service now requires Java 8.
 * The ``getPermissions`` administration command, like the ``get_permissions`` method, is now
   deprecated.
-  
+
 ADMIN NOTES:
 
 * Two new indexes have been added to the workspace versions mongo collection:
@@ -279,7 +287,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * Added the ``custom``, ``subactions``, and ``caller`` fields to
   ``ProvenanceAction``.
 * Added original workspace ID to the data returned by ``get_objects*`` methods.
-* Unix epoch times are now accepted and emitted where possible (e.g. not in 
+* Unix epoch times are now accepted and emitted where possible (e.g. not in
   tuples) as well as string timestamps.
 * ``list_referencing_object_counts`` has been deprecated.
 
@@ -294,7 +302,7 @@ BACKWARDS INCOMPATIBILITIES:
   the remaining objects that match the filters or ``limit`` objects. ``skip``
   now behaves in an unintuitive way in that the same object may appear in
   ``list_objects`` results even when the ``skip`` parameter setting should
-  ensure that each set of returned objects is disjoint with all the others. 
+  ensure that each set of returned objects is disjoint with all the others.
 * Module names and type names are now limited to 255 bytes.
 * Metadata keys and values are limited to 900B for the total of each pair
   of key and value.
@@ -318,7 +326,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * Improved logging for the ``administer()`` method.
 * Fixed a bug where mongo connections would not be released when redeploying
   the server in an already running glassfish instance.
-* Fixed a bug where objects from deleted workspaces could be listed in 
+* Fixed a bug where objects from deleted workspaces could be listed in
   ``list_objects`` output.
 * ``get_permissions`` no longer requires authentication.
 * the admin user specified in the ``deploy.cfg`` file can no longer be removed
@@ -351,7 +359,7 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   object version
 * Fixed a race condition that could occur when operating on an object that's in
   mid save
-* 'strict_maps' and 'strict_arrays' properties are now present in 
+* 'strict_maps' and 'strict_arrays' properties are now present in
   'get_object_subset' method
 * Slashes are now supported in paths used in 'get_object_subset' method
 
@@ -371,9 +379,9 @@ UPDATED FEATURES / MAJOR BUG FIXES:
 * The workspace client now has streaming mode off by default. To turn it back
   on, do setStreamingModeOn(true).
 * Fixed a bug that would cause calls to the handle service or handle manager
-  to fail every other call if they were not behind nginx and the call 
+  to fail every other call if they were not behind nginx and the call
   frequency was between 1-4s.
-  
+
 VERSION: 0.3.1 (Released 10/1/2014)
 -----------------------------------
 
@@ -434,7 +442,7 @@ NEW FEATURES:
   information registered for a specified module
 * a parsed structure of type and function defintions were added to TypeInfo
   and FuncInfo
-* the owner of a module now can determine the released versions of a types and 
+* the owner of a module now can determine the released versions of a types and
   and functions (released version info was added to TypeInfo and FuncInfo)
 * Java client now has a method to deactivate SSL certification validation
   (primarily for use with self-signed certs)
@@ -707,8 +715,8 @@ UPDATED FEATURES / MAJOR BUG FIXES:
   'public' user is now no different from any other user
 * Workspace default permissions are now limited to none and read only
 * A user must have at least read access to a workspace to get its metadata
-* Only the user's own permission level is now returned by 
-  get_workspacepermissions() if a user has read or write access to a workspace 
+* Only the user's own permission level is now returned by
+  get_workspacepermissions() if a user has read or write access to a workspace
 * Only the workspace's owner can change the owner's permissions
 * Type names are now limited to ascii alphanumeric characters and _
 * Object names are now limited to ascii alphanumeric characters and .|_-

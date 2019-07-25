@@ -125,7 +125,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(), nullValue());
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
 		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Arrays.asList(IGNORE_HANDLE)));
@@ -162,7 +161,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-user", "    someuser    ")
 				.with("backend-token", "    token token token    ")
 				.with("handle-manager-token", "    hmtoken    ")
-				.with("handle-manager-url", "    " + CI_SERV + "handle_mngr     ")
 				.with("handle-service-url", "     " + CI_SERV + "handle_service    ")
 				.with("bytestream-url", "   " + CI_SERV + "shock-api2    ")
 				.with("bytestream-user", "    otheruser    ")
@@ -188,7 +186,6 @@ public class KBaseWorkspaceConfigTest {
 				"backend-url=" + CI_SERV + "shock-api\n" +
 				"backend-user=someuser\n" + 
 				"handle-service-url=" + CI_SERV + "handle_service\n" +
-				"handle-manager-url=" + CI_SERV + "handle_mngr\n" +
 				"bytestream-url=" + CI_SERV + "shock-api2\n" +
 				"bytestream-user=otheruser\n" +
 				"mongodb-pwd=[redacted for your safety and comfort]\n" +
@@ -211,8 +208,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), is("hmtoken"));
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(),
-				is(new URL(CI_SERV + "handle_mngr")));
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(),
 				is(new URL(CI_SERV + "handle_service")));
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
@@ -284,7 +279,6 @@ public class KBaseWorkspaceConfigTest {
 				"backend-region=a-lovely-region\n" +
 				"backend-container=mahbukkit\n" +
 				"handle-service-url=" + CI_SERV + "handle_service\n" +
-				"handle-manager-url=" + CI_SERV + "handle_mngr\n" +
 				"bytestream-url=" + CI_SERV + "shock-api2\n" +
 				"bytestream-user=otheruser\n" +
 				"mongodb-pwd=[redacted for your safety and comfort]\n" +
@@ -308,8 +302,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), is("hmtoken"));
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(),
-				is(new URL(CI_SERV + "handle_mngr")));
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(),
 				is(new URL(CI_SERV + "handle_service")));
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
@@ -354,7 +346,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-container", "   \t    ")
 				.with("backend-region", "   \t    ")
 				.with("handle-manager-token", "hmtoken")
-				.with("handle-manager-url", CI_SERV + "handle_mngr")
 				.with("handle-service-url", CI_SERV + "handle_service")
 				.with("bytestream-token", "   \t    ")
 				.with("bytestream-user", "   \t    ")
@@ -369,8 +360,7 @@ public class KBaseWorkspaceConfigTest {
 				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
 				"backend-type=GridFS\n" +
-				"handle-service-url=" + CI_SERV + "handle_service\n" +
-				"handle-manager-url=" + CI_SERV + "handle_mngr\n";
+				"handle-service-url=" + CI_SERV + "handle_service\n";
 		
 		final KBaseWorkspaceConfig kwc = new KBaseWorkspaceConfig(cfg);
 		
@@ -387,8 +377,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), is("hmtoken"));
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(),
-				is(new URL(CI_SERV + "handle_mngr")));
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(),
 				is(new URL(CI_SERV + "handle_service")));
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
@@ -483,7 +471,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("auth2-service-url", null)
 				.with("backend-type", null)
 				.with("handle-manager-token", null)
-				.with("handle-manager-url", null)
 				.with("handle-service-url", null)
 				.with("listeners", "listener1,   ,   listener2  , ")
 				.with("listener-listener1-class", null)
@@ -504,7 +491,6 @@ public class KBaseWorkspaceConfigTest {
 				"Must provide both mongodb-user and mongodb-pwd params in config file if " +
 						"MongoDB authentication is to be used",
 				String.format(MISSING_PARAM, "handle-service-url"),
-				String.format(MISSING_PARAM, "handle-manager-url"),
 				String.format(MISSING_PARAM, "handle-manager-token"),
 				"Missing listener class: listener-listener1-class",
 				"Invalid listener configuration item: listener-listener2-config-");
@@ -524,7 +510,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(), nullValue());
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
 		assertThat("incorrect host", kwc.getHost(), nullValue());
 		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Collections.emptyList()));
@@ -555,7 +540,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("auth-service-url", "   \t    ")
 				.with("auth2-service-url", "   \t    ")
 				.with("handle-manager-token", "   \t    ")
-				.with("handle-manager-url", "   \t    ")
 				.with("handle-service-url", "   \t    ")
 				.with("listeners", "listener1,   ,   listener2  , ")
 				.with("listener-listener1-class", "   \t    ")
@@ -576,7 +560,6 @@ public class KBaseWorkspaceConfigTest {
 				"Must provide both mongodb-user and mongodb-pwd params in config file if " +
 						"MongoDB authentication is to be used",
 				String.format(MISSING_PARAM, "handle-service-url"),
-				String.format(MISSING_PARAM, "handle-manager-url"),
 				String.format(MISSING_PARAM, "handle-manager-token"),
 				"Missing listener class: listener-listener1-class",
 				"Invalid listener configuration item: listener-listener2-config-    \t   ");
@@ -596,7 +579,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect db", kwc.getDBname(), nullValue());
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(), nullValue());
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
 		assertThat("incorrect host", kwc.getHost(), nullValue());
 		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Collections.emptyList()));
@@ -629,7 +611,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("auth-service-url", "   crappy ass url   ")
 				.with("auth2-service-url", "   crappy ass url2   ")
 				.with("handle-manager-token", "    hmtoken    ")
-				.with("handle-manager-url", "   crappy ass url3   ")
 				.with("handle-service-url", "   crappy ass url4   ")
 				.build();
 		
@@ -642,8 +623,7 @@ public class KBaseWorkspaceConfigTest {
 				"backend-type=Shock\n" +
 				"backend-url=crappy ass url for backend\n" +
 				"backend-user=buser\n" +
-				"handle-service-url=crappy ass url4\n" +
-				"handle-manager-url=crappy ass url3\n";
+				"handle-service-url=crappy ass url4\n";
 		
 		final String err = "Invalid url for parameter %s: crappy ass url%s";
 		
@@ -652,8 +632,7 @@ public class KBaseWorkspaceConfigTest {
 				String.format(err, "auth2-service-url", "2"),
 				String.format(err, "backend-url", " for backend"),
 				String.format(err, "bytestream-url", " for shock"),
-				String.format(err, "handle-service-url", "4"),
-				String.format(err, "handle-manager-url", "3"));
+				String.format(err, "handle-service-url", "4"));
 		
 		final KBaseWorkspaceConfig kwc = new KBaseWorkspaceConfig(cfg);
 		
@@ -670,7 +649,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), is("hmtoken"));
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(), nullValue());
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
 		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Collections.emptyList()));
@@ -728,7 +706,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(), nullValue());
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
 		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Arrays.asList(IGNORE_HANDLE)));
@@ -784,7 +761,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(), nullValue());
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
 		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Arrays.asList(IGNORE_HANDLE)));
@@ -872,7 +848,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(), nullValue());
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
 		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Arrays.asList(IGNORE_HANDLE)));
@@ -946,7 +921,6 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect mngr token", kwc.getHandleManagerToken(), nullValue());
-		assertThat("incorrect mngr url", kwc.getHandleManagerURL(), nullValue());
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
 		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Arrays.asList(IGNORE_HANDLE)));
