@@ -6,6 +6,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
+import us.kbase.workspace.test.kbase.JSONRPCLayerTester.ServerThread;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -43,10 +44,7 @@ import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.common.test.controllers.mysql.MySQLController;
-import us.kbase.handlemngr.HandleMngrClient;
 import us.kbase.shock.client.BasicShockClient;
-import us.kbase.shock.client.ShockACL;
 import us.kbase.shock.client.ShockACLType;
 import us.kbase.shock.client.ShockFileInformation;
 import us.kbase.shock.client.ShockNode;
@@ -72,41 +70,40 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.kbase.HandleIdHandlerFactory;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class HandleAndShockTest {
-	
+
 	/* The Handle ID tests were written years before the Shock ID tests, and cover a lot
 	 * of cases that are general to both ID types, such as making sure all the methods that
 	 * allow retrieving an object set the permissions correctly. As such, the Shock ID tests
 	 * concentrate on testing cases that are unique to Shock IDs.
 	 */
-	
+
 	/* This test also performs an integration test on the Shock backend since we have to
 	 * use Shock here anyway.
 	 */
 
-	private static MySQLController MYSQL;
 	private static MongoController MONGO;
 	private static ShockController SHOCK;
 	private static HandleServiceController HANDLE;
 	private static AuthController AUTH;
 	private static WorkspaceServer SERVER;
-	
+
 	private static final String USER1 = "user1";
 	private static final String USER2 = "user2";
 	private static final String USER3 = "user3";
 	private static ShockUserId SHOCK_USER1;
 	private static ShockUserId SHOCK_USER2;
 	private static ShockUserId SHOCK_USER3;
-	
+	private static final String HANDLE_ADMIN_ROLE = "HANDLE_ADMIN_ROLE";
+
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
 	private static WorkspaceClient CLIENT3;
 	private static WorkspaceClient CLIENT_NOAUTH;
-	
+
 	private static AuthToken HANDLE_MNGR_TOKEN;
 
 	private static AbstractHandleClient HANDLE_CLIENT;
@@ -115,15 +112,17 @@ public class HandleAndShockTest {
 	private static BasicShockClient SHOCK_CLIENT_2;
 	
 	private static ShockACLType READ_ACL = ShockACLType.READ;
-	
+
 	private static String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
 	private static String SHOCK_TYPE = "HandleByteStreamList.SList-0.1";
 	private static String HANDLE_REF_TYPE = "HandleByteStreamList.HRef-0.1";
 	
+	private static String HANDLE_SERVICE_TEST_DB = "handle_service_test_handle_db";
+
 	@BeforeClass
 	public static void setUpClass() throws Exception {
 		TestCommon.stfuLoggers();
-		
+
 		MONGO = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
 				TestCommon.useWiredTigerEngine());
@@ -139,16 +138,19 @@ public class HandleAndShockTest {
 				Paths.get(TestCommon.getTempDir()));
 		final URL authURL = new URL("http://localhost:" + AUTH.getServerPort() + "/testmode");
 		System.out.println("started auth server at " + authURL);
+
 		TestCommon.createAuthUser(authURL, USER1, "display1");
 		final String token1 = TestCommon.createLoginToken(authURL, USER1);
 		TestCommon.createAuthUser(authURL, USER2, "display2");
 		final String token2 = TestCommon.createLoginToken(authURL, USER2);
 		TestCommon.createAuthUser(authURL, USER3, "display3");
 		final String token3 = TestCommon.createLoginToken(authURL, USER3);
+		TestCommon.createCustomRole(authURL, HANDLE_ADMIN_ROLE, "handle admin role");
+		TestCommon.setUserRoles(authURL, USER3, Arrays.asList(HANDLE_ADMIN_ROLE));
 		final AuthToken t1 = new AuthToken(token1, USER1);
 		final AuthToken t2 = new AuthToken(token2, USER2);
 		HANDLE_MNGR_TOKEN = new AuthToken(token3, USER3);
-		
+
 		SHOCK = new ShockController(
 				TestCommon.getShockExe(),
 				TestCommon.getShockVersion(),
@@ -170,36 +172,29 @@ public class HandleAndShockTest {
 		SHOCK_CLIENT_1 = new BasicShockClient(shockURL, t1);
 		SHOCK_CLIENT_2 = new BasicShockClient(shockURL, t2);
 
-		MYSQL = new MySQLController(
-				TestCommon.getMySQLExe(),
-				TestCommon.getMySQLInstallExe(),
-				Paths.get(TestCommon.getTempDir()));
-		System.out.println("Using MySQL temp dir " + MYSQL.getTempDir());
-		
 		HANDLE = new HandleServiceController(
-				WorkspaceTestCommon.getPlackupExe(),
-				WorkspaceTestCommon.getHandleServicePSGI(),
-				WorkspaceTestCommon.getHandleManagerPSGI(),
-				"user3",
-				MYSQL,
+				MONGO,
 				shockURL.toString(),
 				HANDLE_MNGR_TOKEN,
-				WorkspaceTestCommon.getHandlePERL5LIB(),
 				Paths.get(TestCommon.getTempDir()),
-				new URL(authURL.toString() + "/api/legacy/KBase"));
+				new URL(authURL.toString()),
+				HANDLE_ADMIN_ROLE,
+				TestCommon.getHandleServiceDir(),
+				HANDLE_SERVICE_TEST_DB);
 		System.out.println("Using Handle Service temp dir " + HANDLE.getTempDir());
-		
-		
+		System.out.println("Started Handle Service on port " + HANDLE.getHandleServerPort());
+
 		SERVER = startupWorkspaceServer(mongohost,
-				"JSONRPCLayerHandleTester", 
-				"JSONRPCLayerHandleTester_types",
+				"HandleAndShockTest",
+				"HandleAndShockTest_types",
 				shockURL,
 				t2,
 				HANDLE_MNGR_TOKEN,
 				HANDLE_MNGR_TOKEN);
+
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
-		
+
 		final URL url = new URL("http://localhost:" + port);
 		CLIENT1 = new WorkspaceClient(url, t1);
 		CLIENT2 = new WorkspaceClient(url, t2);
@@ -209,13 +204,20 @@ public class HandleAndShockTest {
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT3.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT_NOAUTH.setIsInsecureHttpConnectionAllowed(true);
-		
+
 		setUpSpecs();
-		
+
 		HANDLE_CLIENT = new AbstractHandleClient(new URL("http://localhost:" +
 				HANDLE.getHandleServerPort()), t1);
 		HANDLE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
-		
+		try {
+			HANDLE_CLIENT.areReadable(Arrays.asList("fake_handle_id"));
+		} catch (Exception e) {
+			System.out.println("Could not successfullly run methods on the Handle Service");
+			System.out.println(e.getMessage());
+			throw e;
+		}
+
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:"
 				+ SHOCK.getServerPort()), CLIENT1.getToken());
 		SHOCK_USER1 = bsc.addNode().getACLs().getOwner();
@@ -223,6 +225,8 @@ public class HandleAndShockTest {
 		SHOCK_USER2 = bsc.addNode().getACLs().getOwner();
 		bsc.updateToken(HANDLE_MNGR_TOKEN);
 		SHOCK_USER3 = bsc.addNode().getACLs().getOwner();
+
+		System.out.println("finished HandleService setup");
 	}
 
 	private static void setUpSpecs() throws Exception {
@@ -251,7 +255,7 @@ public class HandleAndShockTest {
 			.withSpec(handlespec)
 			.withNewTypes(Arrays.asList("HList", "SList", "HRef")));
 	}
-	
+
 	private static WorkspaceServer startupWorkspaceServer(
 			final String mongohost,
 			final String db,
@@ -263,7 +267,7 @@ public class HandleAndShockTest {
 			throws InvalidHostException, UnknownHostException, IOException,
 				NoSuchFieldException, IllegalAccessException, Exception,
 				InterruptedException {
-		
+
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg",
 				new File(TestCommon.getTempDir()));
@@ -291,10 +295,9 @@ public class HandleAndShockTest {
 		ws.add("bytestream-token", shockLinkToken.getToken());
 		ws.add("ws-admin", USER2);
 		ws.add("handle-service-url", "http://localhost:" + HANDLE.getHandleServerPort());
-		ws.add("handle-manager-url", "http://localhost:" + HANDLE.getHandleManagerPort());
 		ws.add("handle-manager-token", handleToken.getToken());
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
-				.resolve("tempForJSONRPCLayerTester"));
+				.resolve("tempForHandleAndShockTest"));
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 
@@ -305,16 +308,16 @@ public class HandleAndShockTest {
 
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer server = new WorkspaceServer();
-		new JSONRPCLayerTester.ServerThread(server).start();
+		new ServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
 			Thread.sleep(1000);
 		}
 		return server;
 	}
-	
+
 	//TODO TEST should clear DBs between tests
-	
+
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (SERVER != null) {
@@ -334,37 +337,33 @@ public class HandleAndShockTest {
 		if (MONGO != null) {
 			MONGO.destroy(TestCommon.getDeleteTempFiles());
 		}
-		if (MYSQL != null) {
-			MYSQL.destroy(TestCommon.getDeleteTempFiles());
-		}
 	}
 
 	@Test
 	public void status() throws Exception {
 		final Map<String, Object> st = CLIENT1.status();
-		
+
 		//top level items
 		assertThat("incorrect state", st.get("state"), is((Object) "OK"));
 		assertThat("incorrect message", st.get("message"), is((Object) "OK"));
 		// should throw an error if not a valid semver
-		Version.valueOf((String) st.get("version")); 
+		Version.valueOf((String) st.get("version"));
 		assertThat("incorrect git url", st.get("git_url"),
 				is((Object) "https://github.com/kbase/workspace_deluxe"));
 		checkMem(st.get("freemem"), "freemem");
 		checkMem(st.get("totalmem"), "totalmem");
 		checkMem(st.get("maxmem"), "maxmem");
-		
+
 		//deps
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> deps =
 				(List<Map<String, String>>) st.get("dependencies");
-		assertThat("missing dependencies", deps.size(), is(5));
-		
+		assertThat("missing dependencies", deps.size(), is(4));
+
 		final List<List<String>> exp = new ArrayList<List<String>>();
 		exp.add(Arrays.asList("MongoDB", "true"));
 		exp.add(Arrays.asList("Shock", "true"));
 		exp.add(Arrays.asList("Handle service", "false"));
-		exp.add(Arrays.asList("Handle manager", "false"));
 		exp.add(Arrays.asList("Linked Shock for IDs", "true"));
 		final Iterator<List<String>> expiter = exp.iterator();
 		final Iterator<Map<String, String>> gotiter = deps.iterator();
@@ -383,7 +382,7 @@ public class HandleAndShockTest {
 			}
 		}
 	}
-	
+
 	private void checkMem(final Object num, final String name)
 			throws Exception {
 		if (num instanceof Integer) {
@@ -392,15 +391,26 @@ public class HandleAndShockTest {
 			assertThat("bad " + name, (Long) num > 0, is(true));
 		}
 	}
-	
+
 	@SuppressWarnings("deprecation")
 	@Test
 	public void basicHandleTest() throws Exception {
 		String workspace = "basichandle";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-		Handle h1 = HANDLE_CLIENT.newHandle();
+		BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
+
+		final ShockNode node = bsc.addNode();
+		String shock_id = node.getId().getId();
+		final Handle handle = new Handle();
+		handle.setId(shock_id);
+		handle.setFileName("empty_file");
+		handle.setUrl(bsc.getShockUrl().toString());
+		handle.setType("shock");
+		String handle_id = HANDLE_CLIENT.persistHandle(handle);
+
 		List<String> handleList = new LinkedList<String>();
-		handleList.add(h1.getHid());
+		handleList.add(handle_id);
 		Map<String, Object> handleobj = new HashMap<String, Object>();
 		handleobj.put("handles", handleList);
 		try {
@@ -418,11 +428,7 @@ public class HandleAndShockTest {
 		 * object where they don't own the shock nodes, even with all other
 		 * privileges
 		 */
-		BasicShockClient bsc = new BasicShockClient(
-				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
-		@SuppressWarnings("unused")
-		ShockACL acl = bsc.addToNodeAcl(new ShockNodeId(h1.getId()),
-				Arrays.asList(USER2), ShockACLType.ALL);
+		bsc.addToNodeAcl(new ShockNodeId(shock_id), Arrays.asList(USER2), ShockACLType.ALL);
 		String workspace2 = "basichandle2";
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace2));
 		try {
@@ -433,22 +439,20 @@ public class HandleAndShockTest {
 			fail("saved object with bad handle");
 		} catch (ServerException e) {
 			assertThat("correct exception message", e.getMessage(),
-					is("An error occured while processing IDs: " +
-						"The Handle Service reported that at least one of " +
-						"the handles contained in the objects in this call " +
-						"is not accessible - it may not exist, or the " +
-						"supplied credentials may not own the node, or some " +
-						"other reason. The call cannot complete."));
+							is("An error occured while processing IDs: " +
+									"The Handle Service reported that at least one of " +
+									"the handles contained in the objects in this call " +
+									"is not accessible - it may not exist, or the " +
+									"supplied credentials may not own the node, or some " +
+									"other reason. The call cannot complete."));
 		}
-		
-		bsc.removeFromNodeAcl(new ShockNodeId(h1.getId()),
+
+		bsc.removeFromNodeAcl(new ShockNodeId(shock_id),
 				Arrays.asList(USER2), ShockACLType.ALL);
-		
+
 		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
 		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
-		
-		ShockNode node = bsc.getNode(new ShockNodeId(h1.getId()));
-		
+
 		checkReadAcl(node, oneuser);
 
 		// test that user2 can get shock nodes even though permissions have
@@ -456,22 +460,21 @@ public class HandleAndShockTest {
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
 		//get objects2
-				
 		ObjectData ret1 = CLIENT2.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
-		
+
 		checkReadAcl(node, twouser);
 		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
-		
+
 		//get objects
 		ObjectData ret = CLIENT2.getObjects(Arrays.asList(new ObjectIdentity().withWorkspace(workspace)
 				.withObjid(1L))).get(0);
 		checkExternalIDError(ret.getHandleError(), ret.getHandleStacktrace());
-		
+
 		checkReadAcl(node, twouser);
 		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
@@ -480,7 +483,7 @@ public class HandleAndShockTest {
 		ret = CLIENT2.getObjectSubset(Arrays.asList(new us.kbase.workspace.SubObjectIdentity().withWorkspace(workspace)
 				.withObjid(1L))).get(0);
 		checkExternalIDError(ret.getHandleError(), ret.getHandleStacktrace());
-		
+
 		checkReadAcl(node, twouser);
 		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
@@ -490,12 +493,11 @@ public class HandleAndShockTest {
 				new ObjectIdentity().withWorkspace(workspace)
 				.withObjid(1L))).get(0);
 		checkExternalIDError(ret2.getHandleError(), ret2.getHandleStacktrace());
-		
-		
+
 		checkReadAcl(node, twouser);
 		node.removeFromNodeAcl(Arrays.asList(USER2), READ_ACL);
 		checkReadAcl(node, oneuser);
-		
+
 		//object by ref chain
 		Map<String, String> refdata = new HashMap<String, String>();
 		refdata.put("id", workspace + "/1");
@@ -507,32 +509,29 @@ public class HandleAndShockTest {
 				.withObjid(2L), new ObjectIdentity().withWorkspace(workspace)
 				.withObjid(1L)))).get(0);
 		checkExternalIDError(ret.getHandleError(), ret.getHandleStacktrace());
-		
+
 		checkReadAcl(node, twouser);
-		
+
 		//test error message for deleted node
 		node.delete();
-		
+
 		ObjectData wod = CLIENT2.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
-		
+
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
-		
-		assertThat("got correct error message", wod.getHandleError(),
-				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
-						+ h1.getHid()));
+		assertThat("got correct error message", wod.getHandleError(), 
+						is("The Handle Manager reported a problem while attempting to set Handle ACLs: 'Unable to set acl(s) on handles " + handle_id + "'"));
 		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
-				startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
-						"IdReferencePermissionHandlerException: " +
-						"The Handle Manager reported a problem while attempting to set Handle " +
-						"ACLs: Unable to set acl(s) on handles "
-						+ h1.getHid()));
+						startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
+										"IdReferencePermissionHandlerException: " +
+										"The Handle Manager reported a problem while attempting to set Handle " +
+										"ACLs: 'Unable to set acl(s) on handles " + handle_id));
 	}
-	
+
 	@Test
 	public void saveAndGetWithShockIDs() throws Exception {
 		// tests shock nodes that are already owned by the WS (but readable by the user)
@@ -570,11 +569,11 @@ public class HandleAndShockTest {
 		checkPublicRead(n2, false);
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withNewPermission("r").withUsers(Arrays.asList(USER2, USER3)));
-		
+
 		final GetObjects2Params gop = new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 						.withWorkspace(workspace).withName("foo")));
-		
+
 		// get the object with the workspace user that owns linked shock nodes
 		final ObjectData od = CLIENT3.getObjects2(gop).getData().get(0);
 		checkExternalIDError(od.getHandleError(), od.getHandleStacktrace());
@@ -620,13 +619,12 @@ public class HandleAndShockTest {
 				"contents", "fname", "text");
 		checkNode(WS_OWNED_SHOCK, n2.getId(), ImmutableMap.of("foo", "bar2"),
 				"contents2", "fname2", "text2");
-		
+
 		checkPublicRead(n1, false);
 		checkPublicRead(n2, false);
-		
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace(workspace).withNewPermission("r"));
-		
+
 		// get the object with anon user
 		CLIENT_NOAUTH.getObjects2(gop);
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
@@ -634,7 +632,7 @@ public class HandleAndShockTest {
 		checkPublicRead(n1, true);
 		checkPublicRead(n2, true);
 	}
-	
+
 	private void checkNode(
 			final BasicShockClient cli,
 			final ShockNodeId id,
@@ -650,25 +648,25 @@ public class HandleAndShockTest {
 		assertThat("incorrect format", fi.getFormat(), is(format));
 		assertThat("incorrect file", IOUtils.toString(sn.getFile()), is(file));
 	}
-	
+
 	@Test
 	public void saveWithShockIDFail() throws Exception {
 		final String workspace = "shocksavefail";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-		
+
 		saveWithShockIDFail(CLIENT1, workspace, null, new ServerException(
 				"Object #1, foo failed type checking:\ninstance type (null) not allowed for " +
 				"ID reference (allowed: [\"string\"]), at /ids/0", 1, "n"));
-		
+
 		saveWithShockIDFail(CLIENT1, workspace, "badbytestreamid", new ServerException(
 				"Object #1, foo failed type checking:\nUnparseable id badbytestreamid of " +
 				"type bytestream: Illegal bytestream ID: badbytestreamid at /ids/0", 1, "n"));
-		
+
 		final String id = UUID.randomUUID().toString();
 		saveWithShockIDFail(CLIENT1, workspace, id, new ServerException(String.format(
 				"Object #1, foo has invalid reference: Bytestream node %s does not exist at " +
 				"/ids/0", id), 1, "n"));
-		
+
 		final ShockNode sn = WS_OWNED_SHOCK.addNode();
 		saveWithShockIDFail(CLIENT1, workspace, sn.getId().getId(), new ServerException(
 				String.format("Object #1, foo has invalid reference: User user1 cannot " +
@@ -699,7 +697,7 @@ public class HandleAndShockTest {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
-	
+
 	@Test
 	public void getWithShockIDsFail() throws Exception {
 		final String workspace = "shockgetfail";
@@ -720,21 +718,21 @@ public class HandleAndShockTest {
 			System.out.println(se.getData());
 			throw se;
 		}
-		
+
 		n1.delete();
 		final ObjectData wod = CLIENT1.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace).withName("foo")))).getData().get(0);
-		
+
 		getWithShockIDsFail(id, wod);
-		
+
 		// anon user
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withWorkspace(workspace).withNewPermission("r"));
 		final ObjectData anonwod = CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 						.withWorkspace(workspace).withName("foo")))).getData().get(0);
-		
+
 		getWithShockIDsFail(id, anonwod);
 	}
 
@@ -743,13 +741,13 @@ public class HandleAndShockTest {
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(ImmutableMap.of("ids", Arrays.asList(
 				id.getId()))));
-		
+
 		final String err = String.format(
 				"Bytestream storage reported a problem while attempting to set ACLs on node %s: " +
 				"Node not found", id.getId());
 		assertThat("got correct error message", wod.getHandleError(), is(err));
-		
-		
+
+
 		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
 				startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
 						"IdReferencePermissionHandlerException: " + err));
@@ -760,27 +758,35 @@ public class HandleAndShockTest {
 		String workspace = "publicWS";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
 				.withWorkspace(workspace).withGlobalread("r"));
-		Handle h1 = HANDLE_CLIENT.newHandle();
+
+		BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
+
+		final ShockNode node = bsc.addNode();
+		String shock_id = node.getId().getId();
+
+		final Handle handle = new Handle();
+		handle.setId(shock_id);
+		handle.setFileName("empty_file");
+		handle.setUrl(bsc.getShockUrl().toString());
+		handle.setType("shock");
+		String handle_id = HANDLE_CLIENT.persistHandle(handle);
+
 		List<String> handleList = new LinkedList<String>();
-		handleList.add(h1.getHid());
+		handleList.add(handle_id);
 		Map<String, Object> handleobj = new HashMap<String, Object>();
 		handleobj.put("handles", handleList);
 		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(workspace)
 				.withObjects(Arrays.asList(
 						new ObjectSaveData().withData(new UObject(handleobj)).withName("foo")
 						.withType(HANDLE_TYPE))));
-		
+
 		// check that there's only one user in the ACL
-		BasicShockClient bsc = new BasicShockClient(
-				new URL("http://localhost:" + SHOCK.getServerPort()),
-				CLIENT1.getToken());
 		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
 		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
-		
-		ShockNode node = bsc.getNode(new ShockNodeId(h1.getId()));
-		
+
 		checkReadAcl(node, oneuser);
-		
+
 		// check users without explicit access to the workspace can get
 		// object & nodes
 		ObjectData ret1 = CLIENT2.getObjects2(new GetObjects2Params()
@@ -789,7 +795,6 @@ public class HandleAndShockTest {
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
 		checkReadAcl(node, twouser);
-		
 		checkPublicRead(node, false);
 		// check that anonymous users can get the object & shock nodes
 		CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
@@ -798,28 +803,24 @@ public class HandleAndShockTest {
 					.withObjid(1L)))).getData().get(0);
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
 		checkPublicRead(node, true);
-		
+
 		//test error message for deleted node with no auth
 		node.delete();
 		ObjectData wod = CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
-		
+
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
-		
 		assertThat("got correct error message", wod.getHandleError(),
-				is("The Handle Manager reported a problem while attempting to set Handle ACLs: Unable to set acl(s) on handles "
-						+ h1.getHid()));
+						is("The Handle Manager reported a problem while attempting to set Handle ACLs: 'Unable to set acl(s) on handles " + handle_id + "'"));
 		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
-				startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
-						"IdReferencePermissionHandlerException: " +
-						"The Handle Manager reported a problem while attempting to set Handle " +
-						"ACLs: Unable to set acl(s) on handles "
-						+ h1.getHid()));
-		
+						startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
+										"IdReferencePermissionHandlerException: " +
+										"The Handle Manager reported a problem while attempting to set Handle " +
+										"ACLs: 'Unable to set acl(s) on handles " + handle_id));
 	}
 
 	private void checkPublicRead(
@@ -836,22 +837,22 @@ public class HandleAndShockTest {
 					+ err + "\n" + stack);
 		}
 	}
-	
+
 	private void checkReadAcl(final ShockNode node, final List<ShockUserId> users)
 			throws Exception {
 		assertThat("correct shock acls", node.getACLs().getRead(), is(users));
 	}
-	
+
 	private void checkWriteAcl(final ShockNode node, final List<ShockUserId> users)
 			throws Exception {
 		assertThat("correct shock acls", node.getACLs().getWrite(), is(users));
 	}
-	
+
 	private void checkDeleteAcl(final ShockNode node, final List<ShockUserId> users)
 			throws Exception {
 		assertThat("correct shock acls", node.getACLs().getDelete(), is(users));
 	}
-	
+
 	@Test
 	public void badHandle() throws Exception {
 		String workspace = "nullhandle";
@@ -884,14 +885,14 @@ public class HandleAndShockTest {
 							"IDs may not be null or the empty string at /handles/0"));
 		}
 	}
-	
+
 	@Test
 	public void idCount() throws Exception {
 		IdReferenceType type = HandleIdHandlerFactory.TYPE;
 		IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder.getBuilder(4)
 				.build().getFactory(CLIENT1.getToken());
-		final HandleMngrClient client = new HandleMngrClient(
-				new URL("http://localhost:" + HANDLE.getHandleManagerPort()), HANDLE_MNGR_TOKEN);
+		final AbstractHandleClient client = new AbstractHandleClient(
+				new URL("http://localhost:" + HANDLE.getHandleServerPort()), HANDLE_MNGR_TOKEN);
 		fac.addFactory(new HandleIdHandlerFactory(
 				new URL("http://localhost:" + HANDLE.getHandleServerPort()), client));
 		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
@@ -910,6 +911,6 @@ public class HandleAndShockTest {
 			assertThat("correct exception msg", e.getMessage(),
 					is("Maximum ID count of 4 exceeded"));
 		}
-		
+
 	}
 }

@@ -19,19 +19,6 @@ test.mongo.exe = /kb/runtime/bin/mongod
 # 'true' to use the MongoDB WiredTiger file storage engine (3.0+)
 test.mongo.useWiredTiger=false
 
-# MySQL exe file locations for mysqld and mysql_install_db
-test.mysql.exe = /usr/sbin/mysqld
-test.mysql.install.exe = /usr/bin/mysql_install_db
-
-# Handle service and Handle manager constants
-# Plackup executable file location
-test.plackup.exe = /kb/runtime/bin/plackup
-# location of PSGI files for the handle service and handle manager
-test.handle.service.psgi = /kb/deployment/lib/AbstractHandle.psgi
-test.handle.manager.psgi = /kb/deployment/lib/HandleMngr.psgi
-# the PERL paths to use with the handle service and handle manager
-test.handle.PERL5LIB = /kb/deployment/lib
-
 # Temp directory for various database and server files. This path cannot have
 # any system specific information (e.g. ~, $HOME, etc)
 test.temp.dir = workspace_test_temp
@@ -39,4 +26,19 @@ test.temp.dir = workspace_test_temp
 # Set to 'true' (without quotes) to keep temporary test files
 # (for debugging purposes), any other value is false
 test.temp.dir.keep=false
+
+# Handle Service file location
+# Leave empty if you want to test the lastest HandleService
+# Otherwise clone handle_service2 repo (https://github.com/kbase/handle_service2)
+# Then creat biokbase dir in lib dir and copy log.py file into biokbase (https://github.com/kbase/sdkbase2/blob/python/log.py)
+# e.g.
+# git clone https://github.com/kbase/handle_service2
+# cd handle_service2/lib/
+# mkdir biokbase
+# cd biokbase/
+# wget https://raw.githubusercontent.com/kbase/sdkbase2/python/log.py
+# cd ..
+# pwd
+test.handleservice.dir=
+
 

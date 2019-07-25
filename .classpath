@@ -50,11 +50,9 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/logback/logback-classic-1.1.2.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/velocity-1.7.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-lang-2.4.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/mysql/mysql-connector-java-5.1.22-bin.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/kidl/kbase-kidl-parser-1409261812-7863aef.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/jsemver/java-semver-0.9.0.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/HandleManagerClient-160803-08c8da3.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/HandleServiceClient-160803-b9de699.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/kbase/handle/AbstractHandleClient-1.0.0.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/auth/kbase-auth-0.4.4.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/equalsverifier/equalsverifier-2.2.2.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/junit/junit-4.12.jar"/>

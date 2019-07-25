@@ -14,9 +14,8 @@ In order to run tests:
   * `AppArmor <http://wiki.apparmor.net>`_ must be configured to allow spawning
     of a mysql instance with files in non-default locations by the user running
     tests.
-    
+
 * The Handle Service must be installed, but not necessarily running.
-* The Handle Manager must be installed, but not necessarily running.
 
 See :ref:`servicedeps` for more information about these test dependencies.
 

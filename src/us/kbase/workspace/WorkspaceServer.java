@@ -16,8 +16,6 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 
 //BEGIN_HEADER
-import us.kbase.common.service.ServiceChecker;
-import us.kbase.common.service.ServiceChecker.ServiceException;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
@@ -108,7 +106,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 
-	private static final String VER = "0.10.1";
+	private static final String VER = "0.11.0";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
@@ -121,7 +119,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final Types types;
 	private final WorkspaceAdministration wsadmin;
 	
-	private final URL handleManagerUrl;
 	private final BasicShockClient linkedShockClient;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
@@ -186,18 +183,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		
 	}
 	
-	public DependencyStatus checkHandleManager() {
-		try {
-			ServiceChecker.checkService(handleManagerUrl);
-			return new DependencyStatus(
-					true, "OK", "Handle manager", "Unknown");
-		} catch (ServiceException se) {
-			//tested manually, don't change without testing
-			return new DependencyStatus(
-					false, se.getMessage(), "Handle manager", "Unknown");
-		}
-	}
-	
 	public DependencyStatus checkShockLink() {
 		try {
 			return new DependencyStatus(true, "OK", "Linked Shock for IDs",
@@ -240,7 +225,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		WorkspaceServerMethods wsmeth = null;
 		Types types = null;
 		WorkspaceAdministration wsadmin = null;
-		URL handleManagerUrl = null;
 		BasicShockClient linkedShockClient = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
@@ -258,7 +242,6 @@ public class WorkspaceServer extends JsonServerServlet {
 				wsmeth = res.getWsmeth();
 				types = res.getTypes();
 				wsadmin = res.getWsAdmin();
-				handleManagerUrl = res.getHandleManagerUrl();
 				linkedShockClient = res.getLinkedShockClient();
 				setRpcDiskCacheTempDir(ws.getTempFilesManager().getTempDir());
 			}
@@ -267,7 +250,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		this.wsmeth = wsmeth;
 		this.types = types;
 		this.wsadmin = wsadmin;
-		this.handleManagerUrl = handleManagerUrl;
 		this.linkedShockClient = linkedShockClient;
         //END_CONSTRUCTOR
     }
@@ -1736,9 +1718,6 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<DependencyStatus> deps = ws.status();
 		if (wsmeth.getHandleServiceURL() != null) {
 			deps.add(wsmeth.checkHandleService());
-		}
-		if (handleManagerUrl != null) {
-			deps.add(checkHandleManager());
 		}
 		if (linkedShockClient != null) {
 			deps.add(checkShockLink());
