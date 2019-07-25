@@ -48,8 +48,7 @@ public class TestCommon {
 	public static final String SHOCKVER = "test.shock.version";
 	public static final String MONGOEXE = "test.mongo.exe";
 	public static final String MONGO_USE_WIRED_TIGER = "test.mongo.useWiredTiger";
-	public static final String MYSQLEXE = "test.mysql.exe";
-	public static final String MYSQL_INSTALL_EXE = "test.mysql.install.exe";
+	public static final String HANDLE_SERVICE_DIR = "test.handleservice.dir";
 	
 	public static final String JARS_PATH = "test.jars.dir";
 	
@@ -92,15 +91,19 @@ public class TestCommon {
 				System.getProperty("java.runtime.version"));
 	}
 	
-	public static String getTestProperty(final String propertyKey) {
+	public static String getTestProperty(final String propertyKey, final boolean allowNull) {
 		getTestConfig();
 		final String prop = testConfig.get(propertyKey);
-		if (prop == null || prop.trim().isEmpty()) {
+		if (!allowNull && (prop == null || prop.trim().isEmpty())) {
 			throw new TestException(String.format(
 					"Property %s in section %s of test file %s is missing",
 					propertyKey, TEST_CONFIG_FILE_SECTION, getConfigFilePath()));
 		}
 		return prop;
+	}
+	
+	public static String getTestProperty(final String propertyKey) {
+		return getTestProperty(propertyKey, false);
 	}
 
 	private static void getTestConfig() {
@@ -152,13 +155,9 @@ public class TestCommon {
 	public static String getShockVersion() {
 		return getTestProperty(SHOCKVER);
 	}
-
-	public static String getMySQLExe() {
-		return getTestProperty(MYSQLEXE);
-	}
 	
-	public static String getMySQLInstallExe() {
-		return getTestProperty(MYSQL_INSTALL_EXE);
+	public static String getHandleServiceDir() {
+		return getTestProperty(HANDLE_SERVICE_DIR, true);
 	}
 	
 	public static Path getJarsDir() {

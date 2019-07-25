@@ -1,28 +1,23 @@
 package us.kbase.workspace.test.controllers.handle;
 
-import static us.kbase.common.test.controllers.ControllerCommon.checkExe;
-import static us.kbase.common.test.controllers.ControllerCommon.checkFile;
 import static us.kbase.common.test.controllers.ControllerCommon.findFreePort;
 import static us.kbase.common.test.controllers.ControllerCommon.makeTempDirs;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Scanner;
-
 import org.apache.commons.io.FileUtils;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 
 import us.kbase.auth.AuthToken;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.common.test.controllers.mysql.MySQLController;
 import us.kbase.common.test.controllers.shock.ShockController;
 
 
@@ -32,223 +27,168 @@ import us.kbase.common.test.controllers.shock.ShockController;
  *
  */
 public class HandleServiceController {
-	
+
 	private final Process handleService;
 	private final int handleServicePort;
-	private final Process handleManager;
-	private final int handleManagerPort;
-	
 	private final Path tempDir;
-	
-	private final static String DB = "hsi";
-	private final static String TABLE = "Handle";
-	private final static String USER = "hsitest";
-	private final static String PWD = "hsi-pass-test";
-	
 	private final static String HANDLE_SERVICE_NAME = "handle_service";
 
 	public HandleServiceController(
-			final String plackupExe,
-			final String abstractHandlePSGIpath,
-			final String handleManagerPSGIpath,
-			final String handleManagerAllowedUser,
-			final MySQLController mysql,
+			final MongoController mongo,
 			final String shockHost,
 			final AuthToken shockAdminToken,
-			final String perl5lib,
 			final Path rootTempDir,
-			URL authServiceURL)
+			final URL authURL,
+			final String handleAdminRole,
+			final String handleServiceDir,
+			final String mongoDB)
 			throws Exception {
-		
-		authServiceURL = new URL(authServiceURL.toString() + "/Sessions/Login");
-		
-		checkExe(plackupExe, "plackup");
-		checkFile(abstractHandlePSGIpath, "Abstract Handle Service PSGI");
-		checkFile(handleManagerPSGIpath, "Handle Manager PSGI");
+
 		tempDir = makeTempDirs(rootTempDir, "HandleServiceController-",
 				new LinkedList<String>());
-		
-		setUpHandleServiceMySQLTables(mysql.getClient());
-		
+
 		handleServicePort = findFreePort();
-		
-		File hsIniFile = createHandleServiceDeployCfg(mysql, shockHost, authServiceURL);
-		
-		/*
-		crusherofheads@icrushdeheads:~$ export PERL5LIB=/kb/deployment/lib
-		crusherofheads@icrushdeheads:~$ export KB_DEPLOYMENT_CONFIG=/kb/deployment/deployment.cfg
-		crusherofheads@icrushdeheads:~$ plackup /kb/deployment/lib/AbstractHandle.psgi
-		2014/07/27 23:26:42 15811 reading config from /kb/deployment/deployment.cfg
-		2014/07/27 23:26:42 15811 using http://localhost:7044 as the default shock server
-		{"attribute_indexes":[""],"contact":"shock-admin@kbase.us","documentation":"http://localhost:7044/wiki/","id":"Shock","resources":["node"],"type":"Shock","url":"http://localhost:7044/","version":"0.8.16"}DBI connect('hsi;host=localhost','hsi',...) failed: Access denied for user 'hsi'@'localhost' (using password: YES) at /kb/deployment/lib/Bio/KBase/AbstractHandle/AbstractHandleImpl.pm line 67
-		Cannot read config file /etc/log/log.conf at /kb/deployment/lib/Bio/KBase/Log.pm line 282.
-		HTTP::Server::PSGI: Accepting connections at http://0:5000/
-		
-		--port for port
-		 */
-		
-		ProcessBuilder handlepb = new ProcessBuilder(plackupExe, "--port",
-				"" + handleServicePort, abstractHandlePSGIpath)
+		File hsIniFile = createHandleServiceDeployCfg(mongo, shockHost, authURL,
+				shockAdminToken, handleAdminRole, mongoDB);
+
+		String lib_dir = "lib";
+		Path lib_root = tempDir.resolve(lib_dir);
+		if (handleServiceDir == null) {
+			downloadSourceFiles(lib_root);
+		}
+		else {
+			FileUtils.copyDirectory(new File(handleServiceDir), lib_root.toFile());
+		}
+
+		String lib_dir_path = lib_root.toAbsolutePath().toString();
+		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http",
+				":" + handleServicePort, "--wsgi-file",
+				"AbstractHandle/AbstractHandleServer.py", "--pythonpath", lib_dir_path)
 				.redirectErrorStream(true)
 				.redirectOutput(tempDir.resolve("handle_service.log").toFile());
 		Map<String, String> env = handlepb.environment();
-		env.put("PERL5LIB", perl5lib);
-		env.put("KB_DEPLOYMENT_CONFIG", hsIniFile.toString());
+		env.put("KB_DEPLOYMENT_CONFIG", hsIniFile.getAbsolutePath().toString());
 		env.put("KB_SERVICE_NAME", HANDLE_SERVICE_NAME);
+		env.put("PYTHONPATH", lib_dir_path);
+		handlepb.directory(new File(lib_dir_path));
 		handleService = handlepb.start();
-		
+
 		Thread.sleep(1000); //let the service start up
-		
-		handleManagerPort = findFreePort();
-		
-		File hmIniFile = createHandleManagerDeployCfg(
-				shockAdminToken, handleManagerAllowedUser, authServiceURL);
-		
-		ProcessBuilder handlemgrpb = new ProcessBuilder(plackupExe, "--port",
-				"" + handleManagerPort, handleManagerPSGIpath)
-				.redirectErrorStream(true)
-				.redirectOutput(tempDir.resolve("handle_mngr.log").toFile());
-		env = handlemgrpb.environment();
-		env.put("PERL5LIB", perl5lib);
-		env.put("KB_DEPLOYMENT_CONFIG", hmIniFile.toString());
-		handleManager = handlemgrpb.start();
-		
-		Thread.sleep(15000); // friggin Keith made the HM pause for up to 15s on start.
-		// Thanks Keith
 	}
 
-	private File createHandleManagerDeployCfg(
-			final AuthToken shockAdminToken,
-			final String allowedUser,
-			final URL authServiceURL)
-			throws IOException {
-		final File iniFile = tempDir.resolve("handleManager.cfg").toFile();
-		if (iniFile.exists()) {
-			iniFile.delete();
+	private void downloadSourceFiles(Path lib_root) throws IOException {
+		// download source files from github repo
+
+		Files.createDirectories(lib_root);
+
+		Path handle_dir = lib_root.resolve("AbstractHandle");
+		Files.createDirectories(handle_dir);
+
+		String handle_repo_prefix = "https://raw.githubusercontent.com/kbase/handle_service2/develop/lib/AbstractHandle/";
+		String [] handle_impl_files = {"__init__.py", "AbstractHandleImpl.py",
+				"AbstractHandleServer.py", "authclient.py", "baseclient.py"};
+		for (String file_name : handle_impl_files) {
+			FileUtils.copyURLToFile(new URL(handle_repo_prefix + file_name),
+					handle_dir.resolve(file_name).toFile());
 		}
-		
-		final Ini ini = new Ini();
-		final Section hm = ini.add("HandleMngr");
-		hm.add("handle-service-url", "http://localhost:" + handleServicePort);
-		hm.add("service-host", "localhost");
-		hm.add("service-port", "" + handleManagerPort);
-		hm.add("auth-service-url", authServiceURL.toString());
-		hm.add("admin-token", shockAdminToken.getToken());
-		hm.add("allowed-users", allowedUser);
-		
-		ini.store(iniFile);
-		return iniFile;
+
+		Path handle_utils_dir = handle_dir.resolve("Utils");
+		Files.createDirectories(handle_utils_dir);
+		String [] handle_util_files = {"__init__.py", "Handler.py", "MongoUtil.py",
+				"ShockUtil.py", "TokenCache.py"};
+		for (String file_name : handle_util_files) {
+			FileUtils.copyURLToFile(new URL(handle_repo_prefix + "Utils/" + file_name),
+					handle_utils_dir.resolve(file_name).toFile());
+		}
+
+		Path biokbase_dir = lib_root.resolve("biokbase");
+		Files.createDirectories(biokbase_dir);
+
+		String biokbase_repo_prefix = "https://raw.githubusercontent.com/kbase/sdkbase2/python/";
+		String [] biokbase_files = {"log.py"};
+		for (String file_name : biokbase_files) {
+			FileUtils.copyURLToFile(new URL(biokbase_repo_prefix + file_name),
+					biokbase_dir.resolve(file_name).toFile());
+		}
+
 	}
-	
+
 	private File createHandleServiceDeployCfg(
-			final MySQLController mysql,
+			final MongoController mongo,
 			final String shockHost,
-			final URL authServiceURL) throws IOException {
+			final URL authURL,
+			final AuthToken shockAdminToken,
+			final String handleAdminRole,
+			final String mongoDB) throws IOException {
 		final File iniFile = tempDir.resolve("handleService.cfg").toFile();
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
-		
+
 		final Ini ini = new Ini();
 		final Section hs = ini.add(HANDLE_SERVICE_NAME);
 		hs.add("self-url", "http://localhost:" + handleServicePort);
 		hs.add("service-port", "" + handleServicePort);
 		hs.add("service-host", "localhost");
+		URL authServiceURL = new URL(authURL.toString() + "/api/legacy/KBase/Sessions/Login");
 		hs.add("auth-service-url", authServiceURL.toString());
-		hs.add("default-shock-server", shockHost);
-		
-		hs.add("mysql-host", "127.0.0.1");
-		hs.add("mysql-port", "" + mysql.getServerPort());
-		hs.add("mysql-user", USER);
-		hs.add("mysql-pass", PWD);
-		hs.add("data-source", "dbi:mysql:" + DB);
-		
+		hs.add("auth-url", authURL.toString());
+		hs.add("shock-url", shockHost);
+		hs.add("admin-token", shockAdminToken.getToken().toString());
+		hs.add("admin-roles", handleAdminRole);
+
+		hs.add("mongo-host", "127.0.0.1");
+		hs.add("mongo-port", "" + mongo.getServerPort());
+		hs.add("mongo-database", mongoDB);
+		hs.add("mongo-user", "");
+		hs.add("mongo-password", "");
+
+		hs.add("start-local-mongo", 0);
+		hs.add("namespace", "KBH");
+
 		ini.store(iniFile);
 		return iniFile;
 	}
-	
+
 
 	public int getHandleServerPort() {
 		return handleServicePort;
 	}
-	
-	public int getHandleManagerPort() {
-		return handleManagerPort;
-	}
-	
+
 	public Path getTempDir() {
 		return tempDir;
 	}
-	
+
 	public void destroy(boolean deleteTempFiles) throws IOException {
 		if (handleService != null) {
 			handleService.destroy();
-		}
-		if (handleManager != null) {
-			handleManager.destroy();
 		}
 		if (tempDir != null && deleteTempFiles) {
 			FileUtils.deleteDirectory(tempDir.toFile());
 		}
 	}
-	
-	private static void setUpHandleServiceMySQLTables(Connection connection)
-			throws Exception {
-		Statement s = connection.createStatement();
-		s.execute(	"CREATE DATABASE " + DB + ";");
-		s.execute(	"USE " + DB + ";");
-		s.execute(	"CREATE TABLE " + TABLE + " (" +
-						"hid           int NOT NULL AUTO_INCREMENT," +
-						"id            varchar(256) NOT NULL DEFAULT ''," +
-						"file_name     varchar(256)," +
-						"type          varchar(256)," +
-						"url           varchar(256)," +
-						"remote_md5    varchar(256)," +
-						"remote_sha1   varchar(256)," +
-						"created_by    varchar(256)," +
-						"creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
-						"PRIMARY KEY (hid)" +
-					");");
-		s.execute(	"GRANT SELECT,INSERT,UPDATE,DELETE " +
-						"ON " + DB + ".* " +
-						"TO '" + USER + "'@'localhost' " +
-						"IDENTIFIED BY '" + PWD + "';");
-		s.execute(	"GRANT SELECT,INSERT,UPDATE,DELETE " +
-						"ON " + DB + ".* " +
-						"TO '" + USER + "'@'127.0.0.1' " +
-						"IDENTIFIED BY '" + PWD + "';");
-		s.execute(	"ALTER TABLE Handle ADD CONSTRAINT unique_id UNIQUE (id);");
-	}
 
 	public static void main(String[] args) throws Exception {
-		MySQLController mc = new MySQLController(
-				"/usr/sbin/mysqld",
-				"/usr/bin/mysql_install_db",
-				Paths.get("workspacetesttemp"));
 		MongoController monc = new MongoController(
 				"/kb/runtime/bin/mongod",
-				Paths.get("workspacetesttemp"), false); 
+				Paths.get("workspacetesttemp"), false);
 		ShockController sc = new ShockController(
 				"/kb/deployment/bin/shock-server",
 				"0.9.6",
 				Paths.get("workspacetesttemp"),
 				System.getProperty("test.user1"),
 				"localhost:" + monc.getServerPort(),
-				"shockdb", "foo", "foo", new URL("http://foo.com")); 
-		
+				"shockdb", "foo", "foo", new URL("http://foo.com"));
 		HandleServiceController hsc = new HandleServiceController(
-				"/kb/runtime/bin/plackup",
-				"/kb/deployment/lib/AbstractHandle.psgi",
-				"/kb/deployment/lib/HandleMngr.psgi",
-				System.getProperty("test.user2"),
-				mc,
+				monc,
 				"http://localhost:" + sc.getServerPort(),
 				null, //this will break the hm, need a token
-				"/kb/deployment/lib",
 				Paths.get("workspacetesttemp"),
-				new URL("http://foo.com"));
+				new URL("http://foo.com"),
+				"KBASE_ADMIN",
+				"/kb/deployment/lib",
+				"handle_controller_test_handle_db");
 		System.out.println("handlesrv: " + hsc.getHandleServerPort());
-		System.out.println("handlemng: " + hsc.getHandleManagerPort());
 		System.out.println(hsc.getTempDir());
 		Scanner reader = new Scanner(System.in);
 		System.out.println("any char to shut down");
@@ -257,8 +197,6 @@ public class HandleServiceController {
 		hsc.destroy(false);
 		sc.destroy(false);
 		monc.destroy(false);
-		mc.destroy(false);
 		reader.close();
 	}
-	
 }
