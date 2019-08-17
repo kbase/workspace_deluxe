@@ -1,6 +1,14 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.11.1 (Released TBD)
+----------------------------------
+
+UPDATES:
+
+* Fixed a bug introduced in 0.9.0 where older objects saved before handle service integration in
+  release 0.3.0 would not be retrievable and would fail with a null pointer exception.
+
 VERSION: 0.11.0 (Released 7/25/19)
 ----------------------------------
 
