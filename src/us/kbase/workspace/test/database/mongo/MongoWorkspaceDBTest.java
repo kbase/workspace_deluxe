@@ -46,6 +46,7 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.mongo.BlobStore;
+import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 
 //TODO TEST start moving a bunch of the tests from Workspace test to here, and use mocks in workspace test.
@@ -153,5 +154,60 @@ public class MongoWorkspaceDBTest {
 		final ProvenanceAction pagot = pgot.getActions().get(0);
 		
 		assertThat("incorrect caller", pagot.getCaller(), is("call"));
+	}
+	
+	@Test
+	public void getObjectWithoutExternalIDsField() throws Exception {
+		// check that older objects without external ID fields in the document don't cause NPEs
+		final BlobStore bs = mock(BlobStore.class);
+		final TempFilesManager tfm = mock(TempFilesManager.class);
+		final ValidatedTypedObject vto = mock(ValidatedTypedObject.class);
+		
+		final MongoWorkspaceDB db = new MongoWorkspaceDB(MONGO_DB, bs, tfm);
+		
+		db.createWorkspace(new WorkspaceUser("u"), "ws", false, null, new WorkspaceUserMetadata());
+		
+		final Provenance p = new Provenance(new WorkspaceUser("u"), new Date(10000));
+		p.setWorkspaceID(1L);
+		
+		when(vto.getValidationTypeDefId())
+				.thenReturn(new AbsoluteTypeDefId(new TypeDefName("Mod.Type"), 5, 1));
+		when(vto.extractMetadata(16000)).thenReturn(new ExtractedMetadata(Collections.emptyMap()));
+		when(vto.getMD5()).thenReturn(new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+		when(vto.getRelabeledSize()).thenReturn(22L);
+		
+		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
+		db.saveObjects(new WorkspaceUser("u"), wsid,
+				Arrays.asList(new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("newobj"),
+						new UObject(ImmutableMap.of("foo", "bar")),
+						new TypeDefId("Mod.Type", "5.1"),
+						null,
+						p,
+						false)
+						.resolve(
+								vto,
+								set(),
+								Collections.emptyList(),
+								Collections.emptyMap())
+						));
+		
+		MONGO_DB.getCollection("workspaceObjVersions").update(
+				new BasicDBObject(),
+				new BasicDBObject("$unset", new BasicDBObject(Fields.VER_EXT_IDS, "")));
+		
+		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> res =
+				db.getObjects(
+						ImmutableMap.of(new ObjectIDResolvedWS(wsid, 1), set()),
+						null,
+						0,
+						true,
+						false,
+						true);
+		
+		final WorkspaceObjectData wod = res.get(new ObjectIDResolvedWS(wsid, 1))
+				.get(SubsetSelection.EMPTY);
+		assertThat("incorrect data", wod.getSerializedData(), nullValue());
+		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
 	}
 }
