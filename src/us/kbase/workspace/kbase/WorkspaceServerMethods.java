@@ -121,6 +121,7 @@ public class WorkspaceServerMethods {
 		return handleServiceUrl;
 	}
 	
+	//TODO CODE just call the status() method on the HS client. Prevents errors in the HS logs
 	// TODO CODE move this into the WorkspaceServer class and remove HS url 
 	public DependencyStatus checkHandleService() {
 		try {
