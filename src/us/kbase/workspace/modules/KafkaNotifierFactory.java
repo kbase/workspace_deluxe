@@ -215,7 +215,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 			try {
 				client.partitionsFor(this.topic); // check kafka is up
 			} catch (KafkaException e) {
-				// TODO CODE this blocks forever, needs 2.2.0 for a fix.
+				// TODO KAFKA CODE this blocks forever, needs 2.2.0 for a fix.
 				// https://issues.apache.org/jira/browse/KAFKA-5503
 				client.close(0, TimeUnit.MILLISECONDS);
 				// might want a notifier exception here
@@ -229,6 +229,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 			try {
 				res.get(35000, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException | TimeoutException e) {
+				//TODO KAFKA ERR include timeout in error message
 				throw new RuntimeException("Failed sending notification to Kafka: " +
 						e.getMessage(), e);
 			} catch (ExecutionException e) {

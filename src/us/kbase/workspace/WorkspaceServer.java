@@ -105,6 +105,7 @@ public class WorkspaceServer extends JsonServerServlet {
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
+	//TODO DOCS workspace glossary
 
 	private static final String VER = "0.11.1";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
