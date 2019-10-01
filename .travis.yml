@@ -20,11 +20,11 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install python3.6
   - sudo pip3 install sphinx
-  - sudo pip3 install jsonrpcbase
-  - sudo pip3 install configparser
-  - sudo pip3 install pymongo
-  - sudo pip3 install cachetools
-  - sudo pip3 install uwsgi
+  - sudo pip3 install jsonrpcbase==0.2.0
+  - sudo pip3 install configparser==4.0.2
+  - sudo pip3 install pymongo==3.9.0
+  - sudo pip3 install cachetools==3.1.1
+  - sudo pip3 install uwsgi==2.0.18
   - echo "alias python=python3.6" >> ~/.bash_aliases
   - source ~/.bash_aliases
 
