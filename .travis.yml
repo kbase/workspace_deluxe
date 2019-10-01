@@ -3,6 +3,7 @@ sudo: required
 language: java
 jdk:
   - openjdk8
+  - openjdk11
 
 # TODO split tests into mongo related & non mongo related. Run the former once.
 env:
@@ -33,10 +34,9 @@ install:
   - git clone https://github.com/kbase/jars
   - export JARSDIR=`pwd`/jars/lib/jars/
 
-  - export HS_VER=version_1.0.0
-  - export HS_COMMIT=cfd32ee951f1d71cabed5e0a7c294e332704f484
+  - export HS_COMMIT=aae2f70120e75d2ccccab1b1c01dbb9e8327eee8
   - export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
-  - git clone -b $HS_VER --single-branch https://github.com/kbase/handle_service2.git
+  - git clone https://github.com/kbase/handle_service2.git
   - cd handle_service2/
   - git checkout $HS_COMMIT
   - sudo chmod -R 777 .
