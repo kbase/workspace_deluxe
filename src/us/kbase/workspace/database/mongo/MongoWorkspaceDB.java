@@ -1536,7 +1536,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
-		//TODO look into why saving array of maps via List.ToArray() /w Jongo makes Lazy?Objects return, which screw up everything
+		//TODO look into why saving array of maps via List.ToArray() makes Lazy?Objects return, which screw up everything
 		final List<DBObject> dbo = new LinkedList<DBObject>();
 		for (final Map<String, Object> v: versions) {
 			v.put(Fields.VER_SAVEDATE, saved);

@@ -55,6 +55,8 @@ To create a custom listener, implement the
     to impersonate a user (such as setting user permissions), the user name passed to the event
     listener may be ``null``.
 
+.. _kafka_listener:
+
 Kafka listener
 --------------
 
@@ -98,20 +100,26 @@ The Kafka event listener messages are JSON objects:
 The ``evtype``, ``time``, and ``wsid`` fields are always present, but other fields are present
 or not based on the event type:
 
-======================== ============================= =============== ===============
-Event                    Event type                    Addl. Fields    Null admin user
-======================== ============================= =============== ===============
-save object              NEW_VERSION                   (1)             No
-copy one version         NEW_VERSION                   (1)             No
-copy all versions        COPY_OBJECT                   objid           No
-revert object            NEW_VERSION                   (1)             No
-rename object            RENAME_OBJECT                 objid           No
-set object un/deleted    OBJECT_DELETE_STATE_CHANGE    objid           No
-clone workspace          CLONE_WORKSPACE                               No
-set permission           SET_PERMISSION                perm, permusers Yes
-set global permission    SET_GLOBAL_PERMISSION                         No
-set workspace un/deleted WORKSPACE_DELETE_STATE_CHANGE                 Yes
-======================== ============================= =============== ===============
+========================= ============================= =============== ===============
+Event                     Event type                    Addl. Fields    Null admin user
+========================= ============================= =============== ===============
+save object               NEW_VERSION                   (1)             No
+copy one version          NEW_VERSION                   (1)             No
+copy all versions         COPY_OBJECT                   objid           No
+revert object             NEW_VERSION                   (1)             No
+rename object             RENAME_OBJECT                 objid           No
+set object un/deleted     OBJECT_DELETE_STATE_CHANGE    objid           No
+clone workspace           CLONE_WORKSPACE                               No
+set permission            SET_PERMISSION                perm, permusers Yes
+set global permission     SET_GLOBAL_PERMISSION                         No
+set workspace un/deleted  WORKSPACE_DELETE_STATE_CHANGE                 Yes
+create workspace          WORKSPACE_STATE_CHANGE                        No
+rename workspace          WORKSPACE_STATE_CHANGE                        No
+alter workspace metadata  WORKSPACE_STATE_CHANGE                        No
+lock workspace            WORKSPACE_STATE_CHANGE                        No
+set workspace description WORKSPACE_STATE_CHANGE                        Yes
+set workspace owner       WORKSPACE_STATE_CHANGE                        Yes
+========================= ============================= =============== ===============
 
 #. objid, ver, objtype
 

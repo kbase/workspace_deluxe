@@ -3,9 +3,7 @@ package us.kbase.workspace.test.modules;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -82,64 +80,194 @@ public class KafkaNotifierFactoryTest {
 	
 	@Test
 	public void createWorkspace() throws Exception {
-		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
+		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
 		
-		mocks.listener.createWorkspace(new WorkspaceUser("u"), 1L, Instant.ofEpochMilli(10000));
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
 		
-		verify(mocks.client, never()).send(any());
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "user8")
+						.with("wsid", 22L)
+						.with("objid", null)
+						.with("ver", null)
+						.with("evtype", "WORKSPACE_STATE_CHANGE")
+						.with("objtype", null)
+						.with("time", 40000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
+						.build())))
+				.thenReturn(fut);
+
+		mocks.listener.createWorkspace(
+				new WorkspaceUser("user8"), 22L, Instant.ofEpochMilli(40000));
+		
+		verify(mocks.client).partitionsFor("mytopic");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
 	}
 	
 	@Test
 	public void setWSMetadata() throws Exception {
-		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
+		final TestMocks mocks = initTestMocks("mytopic3", "localhost:9081");
 		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic3",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "user7")
+						.with("wsid", 23L)
+						.with("objid", null)
+						.with("ver", null)
+						.with("evtype", "WORKSPACE_STATE_CHANGE")
+						.with("objtype", null)
+						.with("time", 40000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
+						.build())))
+				.thenReturn(fut);
+
 		mocks.listener.setWorkspaceMetadata(
-				new WorkspaceUser("u"), 1L, Instant.ofEpochMilli(10000));
+				new WorkspaceUser("user7"), 23L, Instant.ofEpochMilli(40000));
 		
-		verify(mocks.client, never()).send(any());
+		verify(mocks.client).partitionsFor("mytopic3");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
 	}
 	
 	@Test
 	public void lockWorkspace() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.listener.lockWorkspace(new WorkspaceUser("u"), 1L, Instant.ofEpochMilli(10000));
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
 		
-		verify(mocks.client, never()).send(any());
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic2",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "user42")
+						.with("wsid", 6L)
+						.with("objid", null)
+						.with("ver", null)
+						.with("evtype", "WORKSPACE_STATE_CHANGE")
+						.with("objtype", null)
+						.with("time", 30000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
+						.build())))
+				.thenReturn(fut);
+
+		mocks.listener.lockWorkspace(
+				new WorkspaceUser("user42"), 6L, Instant.ofEpochMilli(30000));
+		
+		verify(mocks.client).partitionsFor("mytopic2");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
 	}
 	
 	@Test
 	public void renameWorkspace() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic2",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "u")
+						.with("wsid", 1L)
+						.with("objid", null)
+						.with("ver", null)
+						.with("evtype", "WORKSPACE_STATE_CHANGE")
+						.with("objtype", null)
+						.with("time", 10000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
+						.build())))
+				.thenReturn(fut);
+
 		mocks.listener.renameWorkspace(
 				new WorkspaceUser("u"), 1L, "foo", Instant.ofEpochMilli(10000));
 		
-		verify(mocks.client, never()).send(any());
+		verify(mocks.client).partitionsFor("mytopic2");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
 	}
 	
 	@Test
 	public void setWorkspaceDescription() throws Exception {
+		setWorkspaceDescription(new WorkspaceUser("wsuser"), "wsuser");
+	}
+	
+	@Test
+	public void setWorkspaceDescriptionNullUser() throws Exception {
+		setWorkspaceDescription(null, null);
+	}
+	
+	private void setWorkspaceDescription(final WorkspaceUser user, final String expectedUser)
+			throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
-		mocks.listener.setWorkspaceDescription(
-				new WorkspaceUser("u"), 1L, Instant.ofEpochMilli(10000));
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
 		
-		verify(mocks.client, never()).send(any());
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic2",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", expectedUser)
+						.with("wsid", 34L)
+						.with("objid", null)
+						.with("ver", null)
+						.with("evtype", "WORKSPACE_STATE_CHANGE")
+						.with("objtype", null)
+						.with("time", 20000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
+						.build())))
+				.thenReturn(fut);
+		
+		mocks.listener.setWorkspaceDescription(
+				user, 34L, Instant.ofEpochMilli(20000));
+		
+		verify(mocks.client).partitionsFor("mytopic2");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
 	}
 	
 	@Test
 	public void setWorkspaceOwner() throws Exception {
+		setWorkspaceOwner(new WorkspaceUser("wsuser"), "wsuser");
+	}
+	
+	@Test
+	public void setWorkspaceOwnerNullUser() throws Exception {
+		setWorkspaceOwner(null, null);
+	}
+	
+	private void setWorkspaceOwner(final WorkspaceUser user, final String expectedUser)
+			throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic2", "localhost:9081");
 		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic2",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", expectedUser)
+						.with("wsid", 67L)
+						.with("objid", null)
+						.with("ver", null)
+						.with("evtype", "WORKSPACE_STATE_CHANGE")
+						.with("objtype", null)
+						.with("time", 15000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
+						.build())))
+				.thenReturn(fut);
+		
 		mocks.listener.setWorkspaceOwner(
-				new WorkspaceUser("bar"),
-				1L,
+				user,
+				67L,
 				new WorkspaceUser("foo"),
 				Optional.of("bar"),
-				Instant.ofEpochMilli(10000));
+				Instant.ofEpochMilli(15000));
 		
-		verify(mocks.client, never()).send(any());
+		verify(mocks.client).partitionsFor("mytopic2");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
 	}
 	
 	@Test
@@ -592,8 +720,8 @@ public class KafkaNotifierFactoryTest {
 					false);
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got,
-					new RuntimeException("Failed sending notification to Kafka: time up"));
+			TestCommon.assertExceptionCorrect(got, new RuntimeException(
+					"Timed out after 35s while sending notification to Kafka: time up"));
 		}
 	}
 	

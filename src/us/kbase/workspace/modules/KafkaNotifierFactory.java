@@ -118,6 +118,16 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		 */
 		public static final String OBJECT_DELETE_STATE_CHANGE = "OBJECT_DELETE_STATE_CHANGE";
 		/** The event type sent by the
+		 * {@link WorkspaceEventListener#createWorkspace(WorkspaceUser, long, Instant)},
+		 * {@link WorkspaceEventListener#lockWorkspace(WorkspaceUser, long, Instant)},
+		 * {@link WorkspaceEventListener#renameWorkspace(WorkspaceUser, long, String, Instant)},
+		 * {@link WorkspaceEventListener#setWorkspaceDescription(WorkspaceUser, long, Instant)},
+		 * {@link WorkspaceEventListener#setWorkspaceMetadata(WorkspaceUser, long, Instant)},
+		 * and {@link WorkspaceEventListener#setWorkspaceOwner(WorkspaceUser, long, WorkspaceUser, Optional, Instant)}
+		 * events.
+		 */
+		public static final String WORKSPACE_STATE_CHANGE = "WORKSPACE_STATE_CHANGE";
+		/** The event type sent by the
 		 * {@link WorkspaceEventListener#setWorkspaceDeleted(WorkspaceUser, long, boolean, long, Instant)}
 		 * method.
 		 */
@@ -228,19 +238,25 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 			final Future<RecordMetadata> res = client.send(new ProducerRecord<>(topic, message));
 			try {
 				res.get(35000, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException | TimeoutException e) {
-				//TODO KAFKA ERR include timeout in error message
+			} catch (InterruptedException e) {
 				throw new RuntimeException("Failed sending notification to Kafka: " +
 						e.getMessage(), e);
+			} catch (TimeoutException e) {
+				throw new RuntimeException("Timed out after 35s while sending notification " +
+						"to Kafka: " + e.getMessage(), e);
 			} catch (ExecutionException e) {
 				throw new RuntimeException("Failed sending notification to Kafka: " +
 						e.getCause().getMessage(), e.getCause());
 			}
 		}
+		
+		private String getNullableUser(final WorkspaceUser user) {
+			return user == null ? null : user.getUser();
+		}
 
 		@Override
-		public void createWorkspace(WorkspaceUser user, long id, Instant time) {
-			// no action
+		public void createWorkspace(final WorkspaceUser user, final long id, final Instant time) {
+			newEvent(user.getUser(), id, null, null, null, WORKSPACE_STATE_CHANGE, time);
 		}
 
 		@Override
@@ -253,18 +269,25 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setWorkspaceMetadata(WorkspaceUser user, long id, Instant time) {
-			// no action
+		public void setWorkspaceMetadata(
+				final WorkspaceUser user,
+				final long id,
+				final Instant time) {
+			newEvent(user.getUser(), id, null, null, null, WORKSPACE_STATE_CHANGE, time);
 		}
 
 		@Override
-		public void lockWorkspace(WorkspaceUser user, long id, Instant time) {
-			// no action
+		public void lockWorkspace(final WorkspaceUser user, final long id, final Instant time) {
+			newEvent(user.getUser(), id, null, null, null, WORKSPACE_STATE_CHANGE, time);
 		}
 
 		@Override
-		public void renameWorkspace(WorkspaceUser user, long id, String newname, Instant time) {
-			// no action
+		public void renameWorkspace(
+				final WorkspaceUser user,
+				final long id,
+				final String newname,
+				final Instant time) {
+			newEvent(user.getUser(), id, null, null, null, WORKSPACE_STATE_CHANGE, time);
 		}
 
 		@Override
@@ -283,23 +306,26 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 				final Permission permission,
 				final List<WorkspaceUser> users,
 				final Instant time) {
-			newEvent(user == null ? null : user.getUser(), id, null, null, null, SET_PERMISSION,
+			newEvent(getNullableUser(user), id, null, null, null, SET_PERMISSION,
 					time, permission, users);
 		}
 
 		@Override
-		public void setWorkspaceDescription(WorkspaceUser user, long id, Instant time) {
-			// no action
+		public void setWorkspaceDescription(
+				final WorkspaceUser user,
+				final long id,
+				final Instant time) {
+			newEvent(getNullableUser(user), id, null, null, null, WORKSPACE_STATE_CHANGE, time);
 		}
 
 		@Override
 		public void setWorkspaceOwner(
-				WorkspaceUser user,
-				long id,
-				WorkspaceUser newUser,
-				Optional<String> newName,
-				Instant time) {
-			// no action
+				final WorkspaceUser user,
+				final long id,
+				final WorkspaceUser newUser,
+				final Optional<String> newName,
+				final Instant time) {
+			newEvent(getNullableUser(user), id, null, null, null, WORKSPACE_STATE_CHANGE, time);
 		}
 
 		@Override
@@ -309,7 +335,7 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 				final boolean delete,
 				final long maxObjectID,
 				final Instant time) {
-			newEvent(user == null ? null : user.getUser(), id, null, null, null,
+			newEvent(getNullableUser(user), id, null, null, null,
 					WORKSPACE_DELETE_STATE_CHANGE, time);
 		}
 
