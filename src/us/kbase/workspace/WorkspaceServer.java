@@ -106,6 +106,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 	//TODO DOCS workspace glossary
+    //TODO DOCS fix typedobjects.rst for bytestream. Now must own or ws must own, id doesn't get rewritten (?)
 
 	private static final String VER = "0.11.1";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
