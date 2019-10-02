@@ -15,13 +15,7 @@ before_install:
   - sudo add-apt-repository -y ppa:jonathonf/python-3.6
   - sudo apt-get -qq update
   - sudo apt-get install -y ant-optional
-  - sudo apt-get install python3.6
-  - sudo apt-get install -y python3-pip
-  - which python
-  - python --version
-  - which pip3
-  - pip3 --version
-  - which python3.6
+  - sudo apt-get install -y python3.6 python3-pip
   - pyenv local 3.6
   - which python
   - python --version
@@ -83,7 +77,6 @@ script:
   - cat test.cfg
  
   # run tests
-  - pyenv local 3.6
   - which python
   - python --version
   - ant javadoc
