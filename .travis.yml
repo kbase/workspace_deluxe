@@ -12,8 +12,10 @@ env:
   - MONGODB_VER=mongodb-linux-x86_64-3.6.10 MINIO=2019-05-23T00-29-34Z ANT_TEST=test_quick_coverage WIRED_TIGER=true
 
 before_install:
+  - sudo add-apt-repository -y ppa:jonathonf/python-3.6
   - sudo apt-get -qq update
   - sudo apt-get install -y ant-optional
+  - sudo apt-get install python3.6
   - which python
   - python --version
   - which pip3
