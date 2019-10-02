@@ -28,6 +28,11 @@ before_install:
   - which pip3
   - pip3 --version
   - which python3.6
+  - pipenv install --python=/path/to/your/python
+  - which python
+  - python --version
+  - which pip3
+  - pip3 --version
   - sudo pip3 install sphinx
   - sudo pip3 install jsonrpcbase==0.2.0
   - sudo pip3 install configparser==4.0.2
