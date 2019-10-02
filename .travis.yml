@@ -28,6 +28,8 @@ before_install:
   - source ~/.bash_aliases
   - which python
   - python --version
+  - which pip3
+  - pip3 --version
 
 install:
   - export HOMEDIR=`pwd`
