@@ -28,7 +28,7 @@ before_install:
   - which pip3
   - pip3 --version
   - which python3.6
-  - pipenv install --python=/path/to/your/python
+  - pyenv --version 3.6
   - which python
   - python --version
   - which pip3
