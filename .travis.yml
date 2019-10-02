@@ -89,6 +89,7 @@ script:
   - cat test.cfg
  
   # run tests
+  - pyenv local 3.6
   - ant javadoc
   - ant $ANT_TEST
 
