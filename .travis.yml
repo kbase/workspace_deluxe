@@ -26,6 +26,8 @@ before_install:
   - sudo pip3 install uwsgi
   - echo "alias python=python3.6" >> ~/.bash_aliases
   - source ~/.bash_aliases
+  - which python
+  - python --version
 
 install:
   - export HOMEDIR=`pwd`
