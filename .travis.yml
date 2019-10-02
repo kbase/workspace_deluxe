@@ -17,9 +17,7 @@ before_install:
   - sudo apt-get install -y ant-optional
   - sudo apt-get install -y python3.6 python3-pip
   - pyenv local 3.6
-  - which python
   - python --version
-  - which pip3
   - pip3 --version
   - pip3 install sphinx
   - pip3 install jsonrpcbase==0.2.0
@@ -77,8 +75,6 @@ script:
   - cat test.cfg
  
   # run tests
-  - which python
-  - python --version
   - ant javadoc
   - ant $ANT_TEST
 
