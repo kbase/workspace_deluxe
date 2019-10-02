@@ -10,7 +10,7 @@ the API or using scripts (similar to ``sudo``).
 First initialize a workspace client with administrator credentials::
 
     from biokbase.workspace.client import Workspace
-    wsadmin = Workspace('https://kbase.us/services/ws', user_id=[user], password=[pwd])
+    wsadmin = Workspace('https://kbase.us/services/ws', token=[token])
 
 .. note::
    These examples use the Python client, but translating the commands to
@@ -62,7 +62,7 @@ Managing workspaces
 Change the owner of a workspace:
    
 The ``setWorkspaceOwner`` command is more complex than the commands seen so
-far. It takes a map with a ``param`` key that maps to a map with the
+far. It takes a map with a ``params`` key that maps to a map with the
 keys:
 
 * ``wsi`` - a ``WorkspaceIdentity`` as specified in the API specification.

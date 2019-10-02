@@ -231,11 +231,13 @@ Example::
 
     @id kb
     
-The ID must reference a KBase ID which is typically registered in the 
-`ID service <https://github.com/kbase/idserver>`_ in a format such as
-“kb|type.XXX”.  No type checking on this field is performed, but the annotation
-may be used in the future so that users can automatically extract KBase IDs
-from typed objects.
+This annotation originally specified that the string must be a KBase ID which was typically
+registered in the `ID service <https://github.com/kbase/idserver>`_ in a format such as
+“kb|type.XXX”. The ID server is no longer used in KBase and this field doesn't have any particular
+meaning at this point.
+
+No type checking on this field is performed, but the annotation may be used in the future so
+that users can automatically extract KBase IDs from typed objects.
 
 **Handle ID**
 ::
