@@ -90,6 +90,8 @@ script:
  
   # run tests
   - pyenv local 3.6
+  - which python
+  - python --version
   - ant javadoc
   - ant $ANT_TEST
 
