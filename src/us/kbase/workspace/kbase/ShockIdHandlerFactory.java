@@ -262,6 +262,7 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 					final ShockACL acls;
 					try {
 						// checked id syntax on add
+						// ensures user can read the node
 						acls = client.getACLs(new ShockNodeId(node));
 					} catch (ShockAuthorizationException e) {
 						throw new IdReferenceException(String.format(
@@ -282,7 +283,9 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 								"process IDs: " + e.getMessage(), TYPE, e);
 					}
 					if (acls.getOwner().getUsername().equals(adminUser)) {
-						// clean acls up
+						// clean acls up since a user could create a node and then chown it to
+						// the workspace
+						// TODO BYTESTREAM there's actually no way to unshare nodes when the WS owns them. Need to add a function to do that.
 						removeFromACL(node, adminUser, acls.getWrite(), ShockACLType.WRITE);
 						removeFromACL(node, adminUser, acls.getDelete(), ShockACLType.DELETE);
 					} else if (!acls.getOwner().getUsername().equals(userToken.getUserName())) {
