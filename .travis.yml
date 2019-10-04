@@ -3,6 +3,7 @@ sudo: required
 language: java
 jdk:
   - openjdk8
+  - openjdk11
 
 # TODO split tests into mongo related & non mongo related. Run the former once.
 env:
@@ -11,21 +12,19 @@ env:
   - MONGODB_VER=mongodb-linux-x86_64-3.6.10 MINIO=2019-05-23T00-29-34Z ANT_TEST=test_quick_coverage WIRED_TIGER=true
 
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y ant-optional
-  - sudo apt-get install -y build-essential python3-pip python3-dev
-  - sudo apt-cache search python3.6
   - sudo add-apt-repository -y ppa:jonathonf/python-3.6
   - sudo apt-get -qq update
-  - sudo apt-get install python3.6
-  - sudo pip3 install sphinx
-  - sudo pip3 install jsonrpcbase
-  - sudo pip3 install configparser
-  - sudo pip3 install pymongo
-  - sudo pip3 install cachetools
-  - sudo pip3 install uwsgi
-  - echo "alias python=python3.6" >> ~/.bash_aliases
-  - source ~/.bash_aliases
+  - sudo apt-get install -y ant-optional
+  - sudo apt-get install -y python3.6 python3-pip
+  - pyenv local 3.6
+  - python --version
+  - pip3 --version
+  - pip3 install sphinx
+  - pip3 install jsonrpcbase==0.2.0
+  - pip3 install configparser==4.0.2
+  - pip3 install pymongo==3.9.0
+  - pip3 install cachetools==3.1.1
+  - pip3 install uwsgi==2.0.18
 
 install:
   - export HOMEDIR=`pwd`
@@ -33,10 +32,9 @@ install:
   - git clone https://github.com/kbase/jars
   - export JARSDIR=`pwd`/jars/lib/jars/
 
-  - export HS_VER=version_1.0.0
-  - export HS_COMMIT=cfd32ee951f1d71cabed5e0a7c294e332704f484
+  - export HS_COMMIT=aae2f70120e75d2ccccab1b1c01dbb9e8327eee8
   - export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
-  - git clone -b $HS_VER --single-branch https://github.com/kbase/handle_service2.git
+  - git clone https://github.com/kbase/handle_service2.git
   - cd handle_service2/
   - git checkout $HS_COMMIT
   - sudo chmod -R 777 .

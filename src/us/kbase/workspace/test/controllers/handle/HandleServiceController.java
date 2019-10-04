@@ -3,6 +3,7 @@ package us.kbase.workspace.test.controllers.handle;
 import static us.kbase.common.test.controllers.ControllerCommon.findFreePort;
 import static us.kbase.common.test.controllers.ControllerCommon.makeTempDirs;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -32,6 +33,7 @@ public class HandleServiceController {
 	private final int handleServicePort;
 	private final Path tempDir;
 	private final static String HANDLE_SERVICE_NAME = "handle_service";
+	private final Path logfile;
 
 	public HandleServiceController(
 			final MongoController mongo,
@@ -60,12 +62,13 @@ public class HandleServiceController {
 			FileUtils.copyDirectory(new File(handleServiceDir), lib_root.toFile());
 		}
 
-		String lib_dir_path = lib_root.toAbsolutePath().toString();
+		final String lib_dir_path = lib_root.toAbsolutePath().toString();
+		logfile = tempDir.resolve("handle_service.log");
 		ProcessBuilder handlepb = new ProcessBuilder("uwsgi", "--http",
 				":" + handleServicePort, "--wsgi-file",
 				"AbstractHandle/AbstractHandleServer.py", "--pythonpath", lib_dir_path)
 				.redirectErrorStream(true)
-				.redirectOutput(tempDir.resolve("handle_service.log").toFile());
+				.redirectOutput(logfile.toFile());
 		Map<String, String> env = handlepb.environment();
 		env.put("KB_DEPLOYMENT_CONFIG", hsIniFile.getAbsolutePath().toString());
 		env.put("KB_SERVICE_NAME", HANDLE_SERVICE_NAME);
@@ -159,9 +162,19 @@ public class HandleServiceController {
 		return tempDir;
 	}
 
-	public void destroy(boolean deleteTempFiles) throws IOException {
+	public void destroy(final boolean deleteTempFiles) throws IOException {
+		destroy(deleteTempFiles, false);
+	}
+	
+	public void destroy(final boolean deleteTempFiles, final boolean dumpLogToStdOut)
+			throws IOException {
 		if (handleService != null) {
 			handleService.destroy();
+		}
+		if (dumpLogToStdOut) {
+			try (final BufferedReader is = Files.newBufferedReader(logfile)) {
+				is.lines().forEach(l -> System.out.println(l));
+			}
 		}
 		if (tempDir != null && deleteTempFiles) {
 			FileUtils.deleteDirectory(tempDir.toFile());
