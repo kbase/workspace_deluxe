@@ -16,7 +16,6 @@ import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifie
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.IOException;
-import java.net.URL;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -32,8 +31,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
-import us.kbase.common.service.ServiceChecker;
-import us.kbase.common.service.ServiceChecker.ServiceException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.typedobj.core.TypeDefId;
@@ -64,7 +61,6 @@ import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
-import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -96,7 +92,6 @@ public class WorkspaceServerMethods {
 	
 	final private Workspace ws;
 	final private Types types;
-	final private URL handleServiceUrl;
 	final private ConfigurableAuthService auth;
 	private final IdReferenceHandlerSetFactoryBuilder idFacBuilder;
 	
@@ -104,35 +99,15 @@ public class WorkspaceServerMethods {
 			final Workspace ws,
 			final Types types,
 			final IdReferenceHandlerSetFactoryBuilder idFacBuilder,
-			final URL handleServiceUrl,
 			final ConfigurableAuthService auth) {
 		this.ws = ws;
 		this.types = types;
 		this.idFacBuilder = idFacBuilder;
-		this.handleServiceUrl = handleServiceUrl;
 		this.auth = auth;
 	}
 	
 	public ConfigurableAuthService getAuth() {
 		return auth;
-	}
-	
-	public URL getHandleServiceURL() {
-		return handleServiceUrl;
-	}
-	
-	//TODO CODE just call the status() method on the HS client. Prevents errors in the HS logs
-	// TODO CODE move this into the WorkspaceServer class and remove HS url 
-	public DependencyStatus checkHandleService() {
-		try {
-			ServiceChecker.checkService(handleServiceUrl);
-			return new DependencyStatus(
-					true, "OK", "Handle service", "Unknown");
-		} catch (ServiceException se) {
-			//tested manually, don't change without testing
-			return new DependencyStatus(
-					false, se.getMessage(), "Handle Service", "Unknown");
-		}
 	}
 	
 	public WorkspaceUser getUser(
