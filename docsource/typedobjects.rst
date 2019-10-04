@@ -258,14 +258,10 @@ object is shared. See :ref:`shockintegration` for more details.
 
 The ID must reference a `Shock <https://github.com/kbase/Shock>`_ node that exists in the
 Shock instance configured for linking Shock nodes to WSS objects. When saving an object
-containing one or more shock nodes to the WSS, the WSS checks that the handles are readable by
-the user and (if necessary) makes a copy of the nodes so that WSS owns the nodes finally
-saved in the WSS object. Furthermore, the nodes are shared as the workspace object is shared.
+containing one or more Shock nodes to the WSS, the WSS checks that the handles are owned by
+the user or owned by the workspace and readable by the user and (if necessary) takes ownership
+of the nodes. Furthermore, the nodes are shared as the workspace object is shared.
 See :ref:`shockintegration` for more details.
-
-.. note::
-   It is not advisable to make Shock IDs keys for maps, as that may prevent the future presorting
-   feature from working properly.
 
 **External ID**
 ::
