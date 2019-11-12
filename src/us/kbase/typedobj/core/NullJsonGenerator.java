@@ -233,4 +233,14 @@ public class NullJsonGenerator extends JsonGenerator {
 	@Override
 	public void close() throws IOException {
 	}
+
+	@Override
+	public int getFeatureMask() {
+		return 0;
+	}
+
+	@Override
+	public JsonGenerator setFeatureMask(int values) {
+		return null;
+	}
 }

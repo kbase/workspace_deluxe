@@ -849,7 +849,7 @@ public class KafkaNotifierFactoryTest {
 		final String e = "Unserializable data sent to Kafka: No serializer found for " +
 				"class java.io.ByteArrayOutputStream and no properties discovered to " +
 				"create BeanSerializer (to avoid exception, disable " +
-				"SerializationFeature.FAIL_ON_EMPTY_BEANS) ) (through reference chain: " +
+				"SerializationFeature.FAIL_ON_EMPTY_BEANS) (through reference chain: " +
 				"com.google.common.collect.SingletonImmutableBiMap[\"foo\"])";
 		mapSerializerFail(ImmutableMap.of("foo", new ByteArrayOutputStream()),
 				new RuntimeException(e));
