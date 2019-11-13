@@ -88,7 +88,7 @@ may optionally use:
 * Any AWS S3 compatible storage system as a file storage backend.
 * `Shock <https://github.com/kbase/Shock>`_ as a file storage backend or for linking WSS objects
   to Shock nodes.
-* The `Handle Service <https://github.com/kbase/handle_service2>`_+
+* The `Handle Service <https://github.com/kbase/handle_service2>`_
   to allow linking workspace objects to Shock nodes (see
   :ref:`shockintegration`).
 

@@ -34,7 +34,7 @@
   <!-- Properties in ant are immutable, so the following assignment will only take place if jardir was not set above. -->
   <property name="jardir" location="${env.JENKINS_JARS_MODULE_PATH}/lib/jars"/>
 
-  <condition property="commonjar" value="kbase/common/kbase-common-0.0.24.jar">
+  <condition property="commonjar" value="kbase/common/kbase-common-0.1.0.jar">
     <or>
       <equals arg1="${env.JENKINS_JAVA_COMMON_JARFILE}" arg2=""/>
       <not>
@@ -63,9 +63,9 @@
     <include name="junit/junit-4.12.jar"/>
     <include name="hamcrest/hamcrest-core-1.3.jar"/>
     <include name="kbase/auth/kbase-auth-0.4.4.jar"/>
-    <include name="jackson/jackson-annotations-2.2.3.jar"/>
-    <include name="jackson/jackson-core-2.2.3.jar"/>
-    <include name="jackson/jackson-databind-2.2.3.jar"/>
+    <include name="jackson/jackson-annotations-2.9.9.jar"/>
+    <include name="jackson/jackson-core-2.9.9.jar"/>
+    <include name="jackson/jackson-databind-2.9.9.jar"/>
     <include name="${commonjar}"/>
   </fileset>
 
@@ -169,8 +169,8 @@
   </path>
 
   <path id="test.classpath">
-    <path refid="compile.classpath"/>
     <fileset file="${dist}/${jar.file}"/>
+    <path refid="compile.classpath"/>
   </path>
 
   <target name="init" description="make directories">

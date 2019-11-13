@@ -258,7 +258,7 @@ object is shared. See :ref:`shockintegration` for more details.
 
 The ID must reference a `Shock <https://github.com/kbase/Shock>`_ node that exists in the
 Shock instance configured for linking Shock nodes to WSS objects. When saving an object
-containing one or more Shock nodes to the WSS, the WSS checks that the handles are owned by
+containing one or more Shock nodes to the WSS, the WSS checks that the nodes are owned by
 the user or owned by the workspace and readable by the user and (if necessary) takes ownership
 of the nodes. Furthermore, the nodes are shared as the workspace object is shared.
 See :ref:`shockintegration` for more details.

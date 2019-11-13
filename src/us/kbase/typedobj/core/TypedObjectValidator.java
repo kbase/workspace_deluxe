@@ -6,8 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -57,8 +57,6 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
  * @author rsutormin
  */
 public class TypedObjectValidator {
-	
-	private static final boolean VERBOSE_EXCEPTIONS = false;
 	
 	private static final Map<String, String> ERROR_MAP =
 			new HashMap<String, String>();
@@ -252,16 +250,11 @@ public class TypedObjectValidator {
 				try { jts.close(); } catch (Exception ignore) {}
 			}
 		} catch (JsonTokenValidationException ex) {
-			if (VERBOSE_EXCEPTIONS) {
-				ex.printStackTrace();
-			}
 			mapErrors(errors, ex.getMessage());
 		} catch (IllegalArgumentException iae) {
-			if (iae.getCause() instanceof JsonGenerationException) {
+			if (iae.getCause() instanceof JsonMappingException) {
 				//thrown if there's a null map key by Jackson
-				if (VERBOSE_EXCEPTIONS) {
-					iae.printStackTrace();
-				}
+				//TODO ERROR It'd be nice to incorporate the location
 				mapErrors(errors, iae.getMessage());
 			} else {
 				throw iae;
@@ -278,10 +271,12 @@ public class TypedObjectValidator {
 	}
 	
 	private void mapErrors(final List<String> errors, final String err) {
-		if (ERROR_MAP.containsKey(err)) {
-			errors.add(ERROR_MAP.get(err));
-		} else {
-			errors.add(err);
+		for (final String prefix: ERROR_MAP.keySet()) {
+			if (err.startsWith(prefix)) {
+				errors.add(ERROR_MAP.get(prefix));
+			} else {
+				errors.add(err);
+			}
 		}
 	}
 	
