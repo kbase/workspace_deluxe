@@ -108,8 +108,9 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 	//TODO DOCS workspace glossary
+	//TODO TEST better testing instructions (e.g. pipfile for handle service)
 
-	private static final String VER = "0.11.2-dev1";
+	private static final String VER = "0.11.2";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
