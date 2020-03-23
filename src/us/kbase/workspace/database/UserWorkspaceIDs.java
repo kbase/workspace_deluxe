@@ -5,10 +5,9 @@ import static us.kbase.workspace.database.Util.nonNull;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-
-import com.google.common.base.Optional;
 
 /** A set of workspace IDs to which a user has permission.
  * @author gaprice@lbl.gov
@@ -34,7 +33,7 @@ public class UserWorkspaceIDs {
 			final Permission perm,
 			final Collection<Long> workspaceIDs,
 			final Collection<Long> publicWorkspaceIDs) {
-		this.user = Optional.fromNullable(user);
+		this.user = Optional.ofNullable(user);
 		nonNull(perm, "perm");
 		this.perm = perm;
 		nonNull(workspaceIDs, "workspaceIDs");

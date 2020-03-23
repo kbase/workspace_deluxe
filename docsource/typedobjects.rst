@@ -231,11 +231,13 @@ Example::
 
     @id kb
     
-The ID must reference a KBase ID which is typically registered in the 
-`ID service <https://github.com/kbase/idserver>`_ in a format such as
-“kb|type.XXX”.  No type checking on this field is performed, but the annotation
-may be used in the future so that users can automatically extract KBase IDs
-from typed objects.
+This annotation originally specified that the string must be a KBase ID which was typically
+registered in the `ID service <https://github.com/kbase/idserver>`_ in a format such as
+“kb|type.XXX”. The ID server is no longer used in KBase and this field doesn't have any particular
+meaning at this point.
+
+No type checking on this field is performed, but the annotation may be used in the future so
+that users can automatically extract KBase IDs from typed objects.
 
 **Handle ID**
 ::
@@ -256,14 +258,10 @@ object is shared. See :ref:`shockintegration` for more details.
 
 The ID must reference a `Shock <https://github.com/kbase/Shock>`_ node that exists in the
 Shock instance configured for linking Shock nodes to WSS objects. When saving an object
-containing one or more shock nodes to the WSS, the WSS checks that the handles are readable by
-the user and (if necessary) makes a copy of the nodes so that WSS owns the nodes finally
-saved in the WSS object. Furthermore, the nodes are shared as the workspace object is shared.
+containing one or more Shock nodes to the WSS, the WSS checks that the handles are owned by
+the user or owned by the workspace and readable by the user and (if necessary) takes ownership
+of the nodes. Furthermore, the nodes are shared as the workspace object is shared.
 See :ref:`shockintegration` for more details.
-
-.. note::
-   It is not advisable to make Shock IDs keys for maps, as that may prevent the future presorting
-   feature from working properly.
 
 **External ID**
 ::

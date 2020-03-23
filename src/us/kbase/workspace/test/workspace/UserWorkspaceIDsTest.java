@@ -8,11 +8,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.TreeSet;
 
 import org.junit.Test;
-
-import com.google.common.base.Optional;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
@@ -31,14 +30,14 @@ public class UserWorkspaceIDsTest {
 	public void minimalConstructor() {
 		final UserWorkspaceIDs uwi = new UserWorkspaceIDs(
 				null, Permission.READ, Collections.emptyList(), Collections.emptyList());
-		assertThat("incorrect user", uwi.getUser(), is(Optional.absent()));
+		assertThat("incorrect user", uwi.getUser(), is(Optional.empty()));
 		assertThat("incorrect perm", uwi.getPerm(), is(Permission.READ));
 		assertThat("incorrect wsids", uwi.getWorkspaceIDs(), is(new TreeSet<>()));
 		assertThat("incorrect pub wsids", uwi.getPublicWorkspaceIDs(),
 				is(new HashSet<>()));
 		assertThat("incorrect toString", uwi.toString(), is(
 				"UserWorkspaceIDs [workspaceIDs=[], publicWorkspaceIDs=[], " +
-				"user=Optional.absent(), perm=READ]"));
+				"user=Optional.empty, perm=READ]"));
 	}
 	
 	@Test
@@ -54,7 +53,7 @@ public class UserWorkspaceIDsTest {
 				is(new TreeSet<>(Arrays.asList(5L, 6L, 9L))));
 		assertThat("incorrect toString", uwi.toString(), is(
 				"UserWorkspaceIDs [workspaceIDs=[3, 5, 7, 9], publicWorkspaceIDs=[5, 6, 9], " +
-				"user=Optional.of(User [user=foo]), perm=ADMIN]"));
+				"user=Optional[User [user=foo]], perm=ADMIN]"));
 	}
 	
 	@Test

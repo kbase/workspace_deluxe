@@ -28,7 +28,6 @@ import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
-import us.kbase.common.service.ServerException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
@@ -103,19 +102,22 @@ public class InitWorkspaceServer {
 		private final WorkspaceAdministration wsadmin;
 		private final Types types;
 		private final BasicShockClient linkedShockClient;
+		private final AbstractHandleClient linkedHandleServiceClient;
 		
 		public WorkspaceInitResults(
 				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
 				final Types types,
-				final BasicShockClient linkedShockClient) {
+				final BasicShockClient linkedShockClient,
+				final AbstractHandleClient linkedHandleServiceClient) {
 			super();
 			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
 			this.types = types;
 			this.linkedShockClient = linkedShockClient;
+			this.linkedHandleServiceClient = linkedHandleServiceClient;
 		}
 
 		public Workspace getWs() {
@@ -137,6 +139,10 @@ public class InitWorkspaceServer {
 		public BasicShockClient getLinkedShockClient() {
 			return linkedShockClient;
 		}
+		
+		public AbstractHandleClient getLinkedAbstractHandleClient() {
+			return linkedHandleServiceClient;
+		}
 	}
 	
 	public static void setMaximumUniqueIdCountForTests(final int count) {
@@ -154,12 +160,14 @@ public class InitWorkspaceServer {
 			return null;
 		} 
 		
-		AuthToken handleMgrToken = null;
 		AbstractHandleClient hsc = null;
+		AbstractHandleClient hscNoToken = null;
 		if (!cfg.ignoreHandleService()) {
-			handleMgrToken = getHandleToken(cfg, rep, auth);
+			final AuthToken handleMgrToken = getHandleToken(cfg, rep, auth);
 			if (!rep.isFailed()) {
 				hsc = getHandleServiceClient(cfg.getHandleServiceURL(), handleMgrToken, rep);
+				hscNoToken = new AbstractHandleClient(hsc.getURL());
+				hscNoToken.setIsInsecureHttpConnectionAllowed(true);
 			}
 		}
 		
@@ -194,8 +202,7 @@ public class InitWorkspaceServer {
 				.withFactory(new HandleIdHandlerFactory(cfg.getHandleServiceURL(), hsc))
 				.withFactory(wsdeps.shockFac.factory)
 				.build();
-		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(
-				ws, types, builder, cfg.getHandleServiceURL(), auth);
+		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, types, builder, auth);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
 				ws, wsmeth, types, ah,
 				ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
@@ -206,7 +213,7 @@ public class InitWorkspaceServer {
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
 		return new WorkspaceInitResults(
-				ws, wsmeth, wsadmin, types, wsdeps.shockFac.client);
+				ws, wsmeth, wsadmin, types, wsdeps.shockFac.client, hscNoToken);
 	}
 	
 	private static AdministratorHandler getAdminHandler(

@@ -8,14 +8,15 @@ In order to run tests:
 
 * MongoDB must be installed, but not necessarily running.
 * Shock must be installed, but not necessarily running.
-* `MySQL <https://www.mysql.com/>`_ must be installed, but not necessarily
-  running.
 
-  * `AppArmor <http://wiki.apparmor.net>`_ must be configured to allow spawning
-    of a mysql instance with files in non-default locations by the user running
-    tests.
+  * A Linux Shock binary is provided in ``shock_builds``.
 
-* The Handle Service must be installed, but not necessarily running.
+* Minio must be installed, but not necessarily running.
+
+  * Minio version must be greater than 2019-05-23T00-29-34Z.
+
+* The Handle Service must be installed, but not necessarily running. See ``test.cfg.example``
+  for setup instructions.
 
 See :ref:`servicedeps` for more information about these test dependencies.
 

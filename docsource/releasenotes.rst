@@ -1,6 +1,16 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.11.2 (Released 3/23/20)
+----------------------------------
+
+UPDATES:
+
+* The workspace now emits several new workspace level events for the Kafka based notifier.
+  See :ref:`kafka_listener`.
+* The workspace is now tested on OpenJDK 8 and 11.
+* Modified the ``status()`` API method so it doesn't spam the handle service logs.
+
 VERSION: 0.11.1 (Released 8/20/19)
 ----------------------------------
 

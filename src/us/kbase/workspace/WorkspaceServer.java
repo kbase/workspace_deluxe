@@ -47,6 +47,8 @@ import ch.qos.logback.classic.Logger;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import us.kbase.abstracthandle.AbstractHandleClient;
+import us.kbase.common.service.JsonClientException;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
@@ -105,8 +107,10 @@ public class WorkspaceServer extends JsonServerServlet {
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
+	//TODO DOCS workspace glossary
+	//TODO TEST better testing instructions (e.g. pipfile for handle service)
 
-	private static final String VER = "0.11.1";
+	private static final String VER = "0.11.2";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
@@ -120,6 +124,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private final BasicShockClient linkedShockClient;
+	private final AbstractHandleClient linkedHandleServiceClient;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
 			new ThreadLocal<List<WorkspaceObjectData>>();
@@ -195,6 +200,19 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 	}
 	
+	public DependencyStatus checkHandleService() {
+		try {
+			linkedHandleServiceClient.status();
+			// no need to check return value, always returns OK or fails
+			return new DependencyStatus(
+					true, "OK", "Handle service", "Unknown");
+		} catch (IOException | JsonClientException e) {
+			//tested manually, don't change without testing
+			return new DependencyStatus(
+					false, e.getMessage(), "Handle Service", "Unknown");
+		}
+	}
+	
     //END_CLASS_HEADER
 
     public WorkspaceServer() throws Exception {
@@ -226,6 +244,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		Types types = null;
 		WorkspaceAdministration wsadmin = null;
 		BasicShockClient linkedShockClient = null;
+		AbstractHandleClient linkedHandleServiceClient = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
 			logErr("Workspace server configuration has errors - all calls will fail");
@@ -243,6 +262,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				types = res.getTypes();
 				wsadmin = res.getWsAdmin();
 				linkedShockClient = res.getLinkedShockClient();
+				linkedHandleServiceClient = res.getLinkedAbstractHandleClient();
 				setRpcDiskCacheTempDir(ws.getTempFilesManager().getTempDir());
 			}
 		}
@@ -251,6 +271,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		this.types = types;
 		this.wsadmin = wsadmin;
 		this.linkedShockClient = linkedShockClient;
+		this.linkedHandleServiceClient = linkedHandleServiceClient;
         //END_CONSTRUCTOR
     }
 
@@ -1716,8 +1737,8 @@ public class WorkspaceServer extends JsonServerServlet {
 		//TODO TEST add tests exercising failures
 		returnVal = new LinkedHashMap<String, Object>();
 		final List<DependencyStatus> deps = ws.status();
-		if (wsmeth.getHandleServiceURL() != null) {
-			deps.add(wsmeth.checkHandleService());
+		if (linkedHandleServiceClient != null) {
+			deps.add(checkHandleService());
 		}
 		if (linkedShockClient != null) {
 			deps.add(checkShockLink());

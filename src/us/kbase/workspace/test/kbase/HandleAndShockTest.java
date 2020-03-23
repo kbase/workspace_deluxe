@@ -326,7 +326,7 @@ public class HandleAndShockTest {
 			System.out.println("Done");
 		}
 		if (HANDLE != null) {
-			HANDLE.destroy(TestCommon.getDeleteTempFiles());
+			HANDLE.destroy(TestCommon.getDeleteTempFiles(), false);
 		}
 		if (SHOCK != null) {
 			SHOCK.destroy(TestCommon.getDeleteTempFiles());
