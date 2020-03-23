@@ -13,9 +13,9 @@ env:
 
 before_install:
   - sudo add-apt-repository -y ppa:jonathonf/python-3.6
-  - sudo apt-get -qq update
-  - sudo apt-get install -y ant-optional
-  - sudo apt-get install -y python3.6 python3-pip
+  - sudo apt update
+  - sudo apt install -y ant-optional
+  - sudo apt install -y python3.6 python3-pip
   - pyenv local 3.6
   - python --version
   - pip3 --version
