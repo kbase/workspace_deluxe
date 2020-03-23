@@ -1,7 +1,7 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.11.2 (Released TBD)
+VERSION: 0.11.2 (Released 3/23/20)
 ----------------------------------
 
 UPDATES:
