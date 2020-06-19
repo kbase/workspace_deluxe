@@ -24,7 +24,7 @@ public class ErrorOrTest {
 	
 	@Test
 	public void constructWithError() {
-		final ErrorOr<Integer> eeyore= new ErrorOr<>(ErrorType.DELETED_WORKSPACE);
+		final ErrorOr<Integer> eeyore = new ErrorOr<>(ErrorType.DELETED_WORKSPACE);
 		
 		assertThat("incorrect is error", eeyore.isError(), is(true));
 		assertThat("incorrect error", eeyore.getError(), is(ErrorType.DELETED_WORKSPACE));
