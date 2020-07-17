@@ -217,7 +217,7 @@ handle-service-url
 
 **Description**: The URL of the Handle Service
 
-handle-manager-token
+handle-service-token
 """"""""""""""""""""
 **Required**: If using handles
 

@@ -64,9 +64,11 @@ public class KBaseWorkspaceConfig {
 	private static final String BYTESTREAM_TOKEN = "bytestream-token";
 	private static final String BYTESTREAM_URL = "bytestream-url";
 	
-	//handle service / manager info
+	//handle service info
 	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
 	private static final String HANDLE_SERVICE_URL = "handle-service-url";
+	private static final String HANDLE_SERVICE_TOKEN = "handle-service-token";
+	// for backwards compatibility
 	private static final String HANDLE_MANAGER_TOKEN = "handle-manager-token";
 	
 	// listeners
@@ -110,7 +112,7 @@ public class KBaseWorkspaceConfig {
 	private final Set<String> adminReadOnlyRoles;
 	private final boolean ignoreHandleService;
 	private final URL handleServiceURL;
-	private final String handleManagerToken;
+	private final String handleServiceToken;
 	private final List<String> errors;
 	private final List<String> infoMessages;
 	private final String paramReport;
@@ -177,6 +179,7 @@ public class KBaseWorkspaceConfig {
 	}
 
 	public KBaseWorkspaceConfig(final Map<String, String> config) {
+		// this is a really long constructor. Clean up at some point
 		requireNonNull(config, "config");
 		final List<String> paramErrors = new ArrayList<String>();
 		final List<String> infoMsgs = new ArrayList<String>();
@@ -264,18 +267,19 @@ public class KBaseWorkspaceConfig {
 			infoMsgs.add("Ignoring Handle Service config. Objects with " +
 					"handle IDs will fail typechecking.");
 			handleServiceURL = null;
-			handleManagerToken = null;
+			handleServiceToken = null;
 		} else {
-			final String token = nullIfEmpty(config.get(HANDLE_MANAGER_TOKEN));
+			final String token = nullIfEmpty(config.get(HANDLE_SERVICE_TOKEN));
+			final String managertoken = nullIfEmpty(config.get(HANDLE_MANAGER_TOKEN));
 			final URL hsURL = getUrl(config, HANDLE_SERVICE_URL, paramErrors, true);
-			if (token == null) {
-				handleManagerToken = null;
+			if (token == null && managertoken == null) {
+				handleServiceToken = null;
 				handleServiceURL = null;
 				paramErrors.add(String.format(
-						"Must provide param %s in config file", HANDLE_MANAGER_TOKEN));
+						"Must provide param %s in config file", HANDLE_SERVICE_TOKEN));
 			} else {
 				handleServiceURL = hsURL;
-				handleManagerToken = token;
+				handleServiceToken = token == null ? managertoken : token;
 			}
 		}
 		
@@ -509,8 +513,8 @@ public class KBaseWorkspaceConfig {
 		return handleServiceURL;
 	}
 
-	public String getHandleManagerToken() {
-		return handleManagerToken;
+	public String getHandleServiceToken() {
+		return handleServiceToken;
 	}
 
 	public List<ListenerConfig> getListenerConfigs() {
