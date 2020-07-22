@@ -68,6 +68,7 @@
     <include name="google/guava-14.0.1.jar"/>
     <include name="kafka/kafka-clients-2.1.0.jar"/>
     <include name="kbase/handle/AbstractHandleClient-1.0.0.jar"/>
+    <include name="kbase/sample/SampleServiceClient-0.1.0-alpha21.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="s3lib">
