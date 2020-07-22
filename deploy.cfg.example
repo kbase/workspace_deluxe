@@ -29,8 +29,8 @@ auth2-service-url = https://kbase.us/services/auth
 
 # The urls for the Handle Service.
 handle-service-url =
-# The credential for the account approved to assign/modify shock node ACLs (run add_read_acl).
-handle-manager-token =
+# The credential for the account approved to assign/modify shock node ACLs.
+handle-service-token =
 
 # The user name for a workspace administrator. This name is not permanently
 # stored in the database and thus the administrator will change if this name

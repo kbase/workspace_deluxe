@@ -500,7 +500,7 @@ public class InitWorkspaceServer {
 			final InitReporter rep,
 			final ConfigurableAuthService auth) {
 		try {
-			return auth.validateToken(cfg.getHandleManagerToken());
+			return auth.validateToken(cfg.getHandleServiceToken());
 		} catch (AuthException e) {
 			rep.reportFail("Invalid handle manager token: " + e.getMessage());
 		} catch (IOException e) {
