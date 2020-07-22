@@ -893,8 +893,7 @@ public class HandleAndShockTest {
 				.build().getFactory(CLIENT1.getToken());
 		final AbstractHandleClient client = new AbstractHandleClient(
 				new URL("http://localhost:" + HANDLE.getHandleServerPort()), HANDLE_MNGR_TOKEN);
-		fac.addFactory(new HandleIdHandlerFactory(
-				new URL("http://localhost:" + HANDLE.getHandleServerPort()), client));
+		fac.addFactory(new HandleIdHandlerFactory(client));
 		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
 		handlers.associateObject("foo");
 		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));

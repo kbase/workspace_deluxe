@@ -199,7 +199,7 @@ public class InitWorkspaceServer {
 		Types types = new Types(wsdeps.typeDB);
 		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(maxUniqueIdCountPerCall)
-				.withFactory(new HandleIdHandlerFactory(cfg.getHandleServiceURL(), hsc))
+				.withFactory(new HandleIdHandlerFactory(hsc))
 				.withFactory(wsdeps.shockFac.factory)
 				.build();
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, types, builder, auth);

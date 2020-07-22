@@ -37,7 +37,7 @@ public class HandleIdHandlerFactoryTest {
 	
 	@Test
 	public void getIDType() throws Exception {
-		assertThat("incorrect type", new HandleIdHandlerFactory(null, null).getIDType(),
+		assertThat("incorrect type", new HandleIdHandlerFactory(null).getIDType(),
 				is(new IdReferenceType("handle")));
 	}
 	
@@ -49,7 +49,7 @@ public class HandleIdHandlerFactoryTest {
 
 	private void setPermissionsReadNoop(final Collection<String> ids) throws Exception {
 		final AbstractHandleClient c = mock(AbstractHandleClient.class);
-		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, c);
+		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(c);
 		
 		final IdReferencePermissionHandler h = f.createPermissionHandler();
 		
@@ -61,7 +61,7 @@ public class HandleIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissions() throws Exception {
 		final AbstractHandleClient c = mock(AbstractHandleClient.class);
-		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, c);
+		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(c);
 		
 		final IdReferencePermissionHandler h = f.createPermissionHandler();
 		
@@ -73,7 +73,7 @@ public class HandleIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissionsWithUser() throws Exception {
 		final AbstractHandleClient c = mock(AbstractHandleClient.class);
-		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, c);
+		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(c);
 		
 		final IdReferencePermissionHandler h = f.createPermissionHandler("user");
 		
@@ -84,7 +84,7 @@ public class HandleIdHandlerFactoryTest {
 	
 	@Test
 	public void addReadPermissionsFailNullClient() throws Exception {
-		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, null);
+		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null);
 		final IdReferencePermissionHandler h = f.createPermissionHandler("user");
 		addReadPermissionsFail(h, new IdReferencePermissionHandlerException(
 				"The workspace is not currently connected to the Handle Service and cannot " +
@@ -121,7 +121,7 @@ public class HandleIdHandlerFactoryTest {
 	private void addReadPermissionsFailNoUser(final Exception ex, final String err)
 			throws IOException, JsonClientException {
 		final AbstractHandleClient c = mock(AbstractHandleClient.class);
-		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, c);
+		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(c);
 		final IdReferencePermissionHandler h = f.createPermissionHandler();
 		
 		doThrow(ex).when(c).setPublicRead(Arrays.asList("foo"));
@@ -159,7 +159,7 @@ public class HandleIdHandlerFactoryTest {
 	private void addReadPermissionsFailWithUser(final Exception ex, final String err)
 			throws IOException, JsonClientException {
 		final AbstractHandleClient c = mock(AbstractHandleClient.class);
-		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(null, c);
+		final HandleIdHandlerFactory f = new HandleIdHandlerFactory(c);
 		final IdReferencePermissionHandler h = f.createPermissionHandler("user");
 		
 		doThrow(ex).when(c).addReadAcl(Arrays.asList("foo"), "user");

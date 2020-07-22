@@ -3,7 +3,6 @@ package us.kbase.workspace.kbase;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,20 +29,23 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
 import us.kbase.typedobj.idref.RemappedId;
 
+/**
+ * A factory for building a handler for Handle Service IDs. These are embedded in Workspace
+ * Service objects and denoted in the object type specification with an @id handle annotation.
+ */
 public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 
-	//TODO TEST unit tests
-	//TODO JAVADOC
+	//TODO TEST unit tests for HandleIDHandler
 	
 	public static final IdReferenceType TYPE = new IdReferenceType("handle");
-	private final URL handleService;
 	private final AbstractHandleClient client;
 	
-	/** pass in null for the handle service URL to cause an exception to be
-	 * thrown if a handle id is encountered. Same for the client.
+	/** Create the Handle ID handler factory.
+	 * @param client a handle service client with administrator permissions. Must be able
+	 * to set user permissions. Pass null if there is no handle service available - in this
+	 * case an error will be throw if a handle ID is encountered.
 	 */
-	public HandleIdHandlerFactory(final URL handleServiceURL, final AbstractHandleClient client) {
-		this.handleService = handleServiceURL;
+	public HandleIdHandlerFactory(final AbstractHandleClient client) {
 		this.client = client;
 	}
 	
@@ -129,7 +131,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 		protected boolean addIdImpl(final T associatedObject, final String id,
 				final List<String> attributes)
 				throws IdReferenceHandlerException, HandlerLockedException {
-			if (handleService == null) {
+			if (client == null) {
 				throw new IdReferenceException("Found handle id " + id +
 						". The workspace service currently does not have a " +
 						"connection to the handle service and so cannot " +
@@ -168,7 +170,7 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			if (handles.isEmpty()) {
 				return;
 			}
-			if (handleService == null) {
+			if (client == null) {
 				throw new IdReferenceHandlerException(
 						"The workspace is not currently connected to the Handle Service and cannot process Handle ids.",
 						TYPE, null);
@@ -176,8 +178,8 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 			final Long allreadable;
 			try {
 				final AbstractHandleClient ahc = new AbstractHandleClient(
-						handleService, userToken);
-				if (handleService.getProtocol().equals("http")) {
+						client.getURL(), userToken);
+				if (client.getURL().getProtocol().equals("http")) {
 					ahc.setIsInsecureHttpConnectionAllowed(true);
 				}
 				allreadable = ahc.isOwner(new LinkedList<String>(handles));
