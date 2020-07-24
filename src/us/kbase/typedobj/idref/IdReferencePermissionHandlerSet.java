@@ -39,8 +39,7 @@ public class IdReferencePermissionHandlerSet {
 	 */
 	protected IdReferencePermissionHandlerSet(
 			final Map<IdReferenceType, IdReferencePermissionHandler> handlers) {
-		this.handlers = new HashMap<IdReferenceType, IdReferencePermissionHandler>(
-				handlers);
+		this.handlers = new HashMap<IdReferenceType, IdReferencePermissionHandler>(handlers);
 	}
 
 	/** Returns true if this handler set contains a handler for the ID type
