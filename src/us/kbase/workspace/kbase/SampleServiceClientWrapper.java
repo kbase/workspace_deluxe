@@ -74,7 +74,7 @@ public class SampleServiceClientWrapper {
 			final JsonClientCaller caller,
 			final Optional<String> serviceVersion) {
 		if (serviceVersion == null ||
-				serviceVersion.isEmpty() ||
+				!serviceVersion.isPresent() ||
 				serviceVersion.get().trim().isEmpty()) {
 			return new SampleServiceClientWrapper(caller);
 		} else {
