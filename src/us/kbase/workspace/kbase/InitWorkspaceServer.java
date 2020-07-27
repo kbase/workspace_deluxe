@@ -502,10 +502,10 @@ public class InitWorkspaceServer {
 		try {
 			return auth.validateToken(cfg.getHandleServiceToken());
 		} catch (AuthException e) {
-			rep.reportFail("Invalid handle manager token: " + e.getMessage());
+			rep.reportFail("Invalid handle service token: " + e.getMessage());
 		} catch (IOException e) {
 			rep.reportFail("Couldn't contact the auth service to obtain a token " +
-					"for the handle manager: " + e.getLocalizedMessage());
+					"for the handle service: " + e.getLocalizedMessage());
 		}
 		return null;
 	}

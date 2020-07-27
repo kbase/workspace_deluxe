@@ -22,8 +22,7 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.common.test.controllers.shock.ShockController;
 
 
-/** Q&D Utility to run Handle Service/Manager servers for the purposes of
- * testing from Java.
+/** Q&D Utility to run the Handle Service for the purposes of testing from Java.
  * @author gaprice@lbl.gov
  *
  */
@@ -55,12 +54,7 @@ public class HandleServiceController {
 
 		String lib_dir = "lib";
 		Path lib_root = tempDir.resolve(lib_dir);
-		if (handleServiceDir == null) {
-			downloadSourceFiles(lib_root);
-		}
-		else {
-			FileUtils.copyDirectory(new File(handleServiceDir), lib_root.toFile());
-		}
+		FileUtils.copyDirectory(new File(handleServiceDir), lib_root.toFile());
 
 		final String lib_dir_path = lib_root.toAbsolutePath().toString();
 		logfile = tempDir.resolve("handle_service.log");
@@ -77,43 +71,6 @@ public class HandleServiceController {
 		handleService = handlepb.start();
 
 		Thread.sleep(1000); //let the service start up
-	}
-
-	private void downloadSourceFiles(Path lib_root) throws IOException {
-		// download source files from github repo
-
-		Files.createDirectories(lib_root);
-
-		Path handle_dir = lib_root.resolve("AbstractHandle");
-		Files.createDirectories(handle_dir);
-
-		String handle_repo_prefix = "https://raw.githubusercontent.com/kbase/handle_service2/develop/lib/AbstractHandle/";
-		String [] handle_impl_files = {"__init__.py", "AbstractHandleImpl.py",
-				"AbstractHandleServer.py", "authclient.py", "baseclient.py"};
-		for (String file_name : handle_impl_files) {
-			FileUtils.copyURLToFile(new URL(handle_repo_prefix + file_name),
-					handle_dir.resolve(file_name).toFile());
-		}
-
-		Path handle_utils_dir = handle_dir.resolve("Utils");
-		Files.createDirectories(handle_utils_dir);
-		String [] handle_util_files = {"__init__.py", "Handler.py", "MongoUtil.py",
-				"ShockUtil.py", "TokenCache.py"};
-		for (String file_name : handle_util_files) {
-			FileUtils.copyURLToFile(new URL(handle_repo_prefix + "Utils/" + file_name),
-					handle_utils_dir.resolve(file_name).toFile());
-		}
-
-		Path biokbase_dir = lib_root.resolve("biokbase");
-		Files.createDirectories(biokbase_dir);
-
-		String biokbase_repo_prefix = "https://raw.githubusercontent.com/kbase/sdkbase2/python/";
-		String [] biokbase_files = {"log.py"};
-		for (String file_name : biokbase_files) {
-			FileUtils.copyURLToFile(new URL(biokbase_repo_prefix + file_name),
-					biokbase_dir.resolve(file_name).toFile());
-		}
-
 	}
 
 	private File createHandleServiceDeployCfg(
