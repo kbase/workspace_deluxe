@@ -1,0 +1,35 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+# joint dependencies
+jsonrpcbase = "==0.2.0"
+requests = "==2.22.0"
+
+# handle service dependencies
+cachetools = "*"
+configparser = "*"
+pymongo = "*"
+uwsgi = "*"
+
+# sample service dependencies
+python-arango = "==5.0.0"
+apscheduler = "==3.6.3"
+maps = "==5.1.1"
+cacheout = "==0.11.2"
+pyyaml = "==5.3"
+jsonschema = "==3.2.0"
+pint = "==0.10.1"
+python-ranges = "==0.1.3"
+pygtrie = "==2.3.2"
+jinja2 = "==2.11.2"
+gevent = "==20.5.0"
+gunicorn = "==20.0.4"
+kafka-python = "==2.0.1"
+
+[requires]
+python_version = "3.7"
