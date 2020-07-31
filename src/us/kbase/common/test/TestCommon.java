@@ -49,6 +49,9 @@ public class TestCommon {
 	public static final String MONGOEXE = "test.mongo.exe";
 	public static final String MONGO_USE_WIRED_TIGER = "test.mongo.useWiredTiger";
 	public static final String HANDLE_SERVICE_DIR = "test.handleservice.dir";
+	public static final String SAMPLE_SERVICE_DIR = "test.sampleservice.dir";
+	public static final String ARANGOEXE = "test.arango.exe";
+	public static final String ARANGOJS = "test.arango.js";
 	
 	public static final String JARS_PATH = "test.jars.dir";
 	
@@ -143,6 +146,14 @@ public class TestCommon {
 	public static String getMongoExe() {
 		return getTestProperty(MONGOEXE);
 	}
+	
+	public static Path getArangoExe() {
+		return Paths.get(getTestProperty(ARANGOEXE));
+	}
+	
+	public static Path getArangoJS() {
+		return Paths.get(getTestProperty(ARANGOJS));
+	}
 
 	public static String getMinioExe() {
 		return getTestProperty(MINIOEXE);
@@ -157,7 +168,11 @@ public class TestCommon {
 	}
 	
 	public static String getHandleServiceDir() {
-		return getTestProperty(HANDLE_SERVICE_DIR, true);
+		return getTestProperty(HANDLE_SERVICE_DIR);
+	}
+	
+	public static Path getSampleServiceDir() {
+		return Paths.get(getTestProperty(SAMPLE_SERVICE_DIR));
 	}
 	
 	public static Path getJarsDir() {
