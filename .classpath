@@ -95,5 +95,11 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.1.0.jar" sourcepath="/jars/lib/jars/kbase/common/kbase-common-0.1.0-sources.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/sample/SampleServiceClient-0.1.0-alpha22.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/arangodb/arangodb-java-driver-6.7.2.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/jars/lib/jars/arangodb/arangodb-java-driver-6.7.2-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/jars/lib/jars/arangodb/velocypack-2.4.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
