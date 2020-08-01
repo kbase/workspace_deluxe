@@ -190,6 +190,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		
 	}
 	
+	//TODO CODE move dependency checks into respective factory classes
 	public DependencyStatus checkShockLink() {
 		try {
 			return new DependencyStatus(true, "OK", "Linked Shock for IDs",
@@ -205,6 +206,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	public DependencyStatus checkSampleLink() {
 		try {
 			final String ver = (String) linkedSampleServiceClient.status().get("version");
+			// no need to check return value, always returns OK or fails
 			return new DependencyStatus(true, "OK", "Sample service", ver);
 		} catch (IOException | JsonClientException e) {
 			//tested manually, don't change without testing
@@ -214,14 +216,12 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	public DependencyStatus checkHandleService() {
 		try {
-			linkedHandleServiceClient.status();
+			final String ver = (String) linkedHandleServiceClient.status().get("version");
 			// no need to check return value, always returns OK or fails
-			return new DependencyStatus(
-					true, "OK", "Handle service", "Unknown");
+			return new DependencyStatus(true, "OK", "Handle service", ver);
 		} catch (IOException | JsonClientException e) {
 			//tested manually, don't change without testing
-			return new DependencyStatus(
-					false, e.getMessage(), "Handle Service", "Unknown");
+			return new DependencyStatus(false, e.getMessage(), "Handle Service", "Unknown");
 		}
 	}
 	
