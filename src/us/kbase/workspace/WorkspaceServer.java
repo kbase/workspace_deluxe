@@ -78,6 +78,7 @@ import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig;
+import us.kbase.workspace.kbase.SampleServiceClientWrapper;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 //END_HEADER
 
@@ -124,6 +125,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	private final WorkspaceAdministration wsadmin;
 	
 	private final BasicShockClient linkedShockClient;
+	private final SampleServiceClientWrapper linkedSampleServiceClient;
 	private final AbstractHandleClient linkedHandleServiceClient;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
@@ -200,6 +202,16 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 	}
 	
+	public DependencyStatus checkSampleLink() {
+		try {
+			final String ver = (String) linkedSampleServiceClient.status().get("version");
+			return new DependencyStatus(true, "OK", "Sample service", ver);
+		} catch (IOException | JsonClientException e) {
+			//tested manually, don't change without testing
+			return new DependencyStatus(false, e.getMessage(), "Sample service", "Unknown");
+		}
+	}
+	
 	public DependencyStatus checkHandleService() {
 		try {
 			linkedHandleServiceClient.status();
@@ -245,6 +257,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		WorkspaceAdministration wsadmin = null;
 		BasicShockClient linkedShockClient = null;
 		AbstractHandleClient linkedHandleServiceClient = null;
+		SampleServiceClientWrapper linkedSampleServiceClient = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
 			logErr("Workspace server configuration has errors - all calls will fail");
@@ -263,6 +276,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				wsadmin = res.getWsAdmin();
 				linkedShockClient = res.getLinkedShockClient();
 				linkedHandleServiceClient = res.getLinkedAbstractHandleClient();
+				linkedSampleServiceClient = res.getLinkedSampleServiceClient();
 				setRpcDiskCacheTempDir(ws.getTempFilesManager().getTempDir());
 			}
 		}
@@ -272,6 +286,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		this.wsadmin = wsadmin;
 		this.linkedShockClient = linkedShockClient;
 		this.linkedHandleServiceClient = linkedHandleServiceClient;
+		this.linkedSampleServiceClient = linkedSampleServiceClient;
         //END_CONSTRUCTOR
     }
 
@@ -1733,8 +1748,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN_STATUS
 		//note failures are tested manually for now, if you make changes test
 		//things still work
-		//TODO TEST when the client supports this method
-		//TODO TEST add tests exercising failures
+		//TODO TEST add tests exercising failures - this is a huge pain
 		returnVal = new LinkedHashMap<String, Object>();
 		final List<DependencyStatus> deps = ws.status();
 		if (linkedHandleServiceClient != null) {
@@ -1742,6 +1756,9 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		if (linkedShockClient != null) {
 			deps.add(checkShockLink());
+		}
+		if (linkedSampleServiceClient != null) {
+			deps.add(checkSampleLink());
 		}
 		boolean ok = true;
 		final List<Map<String, String>> dstate = new LinkedList<>();

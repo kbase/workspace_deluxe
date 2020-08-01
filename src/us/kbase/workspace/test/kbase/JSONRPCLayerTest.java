@@ -1129,7 +1129,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertNull("Got object info when expected null", nullobj.get(6));
 	}
 
-	// TODO TEST should also test that getting objects with handles fail, but that's a pain to set up
+	// TODO TEST should test that getting objects with handles fail, but that's a pain to set up
 	@Test
 	public void saveObjectsFailNoHandleProcessor() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
@@ -1143,6 +1143,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						"objects containing handle IDs. at /h", 1, "n"));
 	}
 
+	// TODO TEST should test that getting objects with bs ids fail, but that's a pain to set up
 	@Test
 	public void saveObjectsFailNoShockProcessor() throws Exception {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams()
@@ -1157,6 +1158,24 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						"for bytestream IDs and so objects containing bytestream IDs cannot be " +
 						"processed. at /s", id, id), 1, "n"));
 	}
+	
+	// TODO TEST should test that getting objects with samples fail, but that's a pain to set up
+	@Test
+	public void saveObjectsFailNoSampleProcessor() throws Exception {
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace("nosample")).getE1();
+
+		// these error messages could be cleaned up a bit. They're caused by multiple layers
+		// of code handling the lower layer's errors.
+		// However, these errors should basically never happen in practice so meh.
+		saveObject2MethodsFail(CLIENT1, "nosample", "foo", "Sample.SampleID",
+				new UObject(ImmutableMap.of("s", "UUID_goes_here")), new ServerException(
+						"Object #1, foo failed type checking:\nInvalid id UUID_goes_here of " +
+						"type sample: Found sample id UUID_goes_here. The workspace service " +
+						"currently does not have a connection to the sample service and so " +
+						"cannot process objects containing sample IDs. at /s", 1, "n"));
+	}
+
 
 	private void saveObject2MethodsFail(
 			final WorkspaceClient cli,
