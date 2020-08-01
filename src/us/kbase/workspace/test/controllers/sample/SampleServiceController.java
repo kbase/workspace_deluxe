@@ -94,6 +94,8 @@ public class SampleServiceController {
 	}
 
 	/** Create the sample service controller.
+	 * @param port the port on which the service should listen. Pass a number less than 1 to
+	 *  generate a random port number.
 	 * @param arango the ArangoDB controller where the sample service will store files.
 	 * @param sampleServiceDir the directory containing the sample service repo.
 	 * @param rootTempDir a temporary directory in which to store sample service data and log
@@ -109,6 +111,7 @@ public class SampleServiceController {
 	 * @throws Exception if an error occurs.
 	 */
 	public SampleServiceController(
+			final int port,
 			final ArangoController arango,
 			final Path sampleServiceDir,
 			final Path rootTempDir,
@@ -122,7 +125,11 @@ public class SampleServiceController {
 
 		tempDir = makeTempDirs(rootTempDir, "SampleServiceController-", new LinkedList<String>());
 
-		port = findFreePort();
+		if (port < 1) {
+			this.port = findFreePort();
+		} else {
+			this.port = port;
+		}
 		File ssIniFile = createSampleServiceDeployCfg(
 				arango,
 				authURL,
