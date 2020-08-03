@@ -1,19 +1,36 @@
 package us.kbase.typedobj.idref;
 
-public class IdReferenceType {
+import static us.kbase.workspace.database.Util.checkString;
+
+import java.util.Objects;
+
+/** The type of and ID that references some other entity. An arbitrary string, typically with
+ * some semantic value.
+ * @author gaprice@lbl.gov
+ *
+ */
+public class IdReferenceType implements Comparable<IdReferenceType>{
 	
 	private final String type;
 
-	public IdReferenceType(String type) {
-		super();
-		if (type == null) {
-			throw new NullPointerException("type cannot be null");
-		}
-		this.type = type;
+	/** The ID reference type.
+	 * @param type the type.
+	 */
+	public IdReferenceType(final String type) {
+		// do we want any more checks here? Internal only so don't worry about it for now.
+		this.type = checkString(type, "type");
 	}
 
+	/** Get the type.
+	 * @return the type.
+	 */
 	public String getType() {
 		return type;
+	}
+	
+	@Override
+	public int compareTo(final IdReferenceType other) {
+		return this.type.compareTo(Objects.requireNonNull(other, "other").type);
 	}
 
 	@Override
@@ -45,5 +62,4 @@ public class IdReferenceType {
 			return false;
 		return true;
 	}
-
 }
