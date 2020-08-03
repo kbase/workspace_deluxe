@@ -1750,16 +1750,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		//things still work
 		//TODO TEST add tests exercising failures - this is a huge pain
 		returnVal = new LinkedHashMap<String, Object>();
-		final List<DependencyStatus> deps = ws.status();
-		if (linkedHandleServiceClient != null) {
-			deps.add(checkHandleService());
-		}
-		if (linkedShockClient != null) {
-			deps.add(checkShockLink());
-		}
-		if (linkedSampleServiceClient != null) {
-			deps.add(checkSampleLink());
-		}
+		final List<DependencyStatus> deps = wsmeth.getDependencyStatus();
 		boolean ok = true;
 		final List<Map<String, String>> dstate = new LinkedList<>();
 		for (final DependencyStatus ds: deps) {
