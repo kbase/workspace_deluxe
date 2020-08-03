@@ -704,7 +704,7 @@ public class Workspace {
 		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
 			//maintain ordering
-			wo.getProvenance().setWorkspaceID(new Long(rwsi.getID()));
+			wo.getProvenance().setWorkspaceID(Long.valueOf(rwsi.getID()));
 			final List<Reference> provrefs = new LinkedList<Reference>();
 			for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
 				for (final String ref: action.getWorkspaceObjects()) {
@@ -1720,6 +1720,12 @@ public class Workspace {
 		@Override
 		public IdReferenceType getIDType() {
 			return WS_ID_TYPE;
+		}
+		
+		@Override
+		public List<DependencyStatus> getDependencyStatus() {
+			// unused
+			return null;
 		}
 
 		@Override

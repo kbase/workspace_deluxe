@@ -7,13 +7,17 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.set;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
@@ -23,6 +27,7 @@ import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
 import us.kbase.typedobj.idref.IdReferenceType;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.kbase.HandleIdHandlerFactory;
 
 public class HandleIdHandlerFactoryTest {
@@ -39,6 +44,49 @@ public class HandleIdHandlerFactoryTest {
 	public void getIDType() throws Exception {
 		assertThat("incorrect type", new HandleIdHandlerFactory(null).getIDType(),
 				is(new IdReferenceType("handle")));
+	}
+	
+	@Test
+	public void getDependenciesNoop() throws Exception {
+		assertThat("incorrect dependencies",
+				new HandleIdHandlerFactory(null).getDependencyStatus(),
+				is(Collections.emptyList()));
+	}
+	
+	@Test
+	public void getDependencies() throws Exception {
+		final AbstractHandleClient cli = mock(AbstractHandleClient.class);
+		
+		when(cli.status()).thenReturn(ImmutableMap.of("version", "8.6.3-fake"));
+		
+		assertThat("incorrect dependencies",
+				new HandleIdHandlerFactory(cli).getDependencyStatus(),
+				is(Arrays.asList(new DependencyStatus(
+						true, "OK", "Handle service", "8.6.3-fake"))));
+	}
+	
+	@Test
+	public void getDependenciesFailIOException() throws Exception {
+		final AbstractHandleClient cli = mock(AbstractHandleClient.class);
+		
+		when(cli.status()).thenThrow(new IOException("whoops"));
+		
+		assertThat("incorrect dependencies",
+				new HandleIdHandlerFactory(cli).getDependencyStatus(),
+				is(Arrays.asList(new DependencyStatus(
+						false, "whoops", "Handle service", "Unknown"))));
+	}
+	
+	@Test
+	public void getDependenciesFailJsonClientException() throws Exception {
+		final AbstractHandleClient cli = mock(AbstractHandleClient.class);
+		
+		when(cli.status()).thenThrow(new JsonClientException("whoops2"));
+		
+		assertThat("incorrect dependencies",
+				new HandleIdHandlerFactory(cli).getDependencyStatus(),
+				is(Arrays.asList(new DependencyStatus(
+						false, "whoops2", "Handle service", "Unknown"))));
 	}
 	
 	@Test

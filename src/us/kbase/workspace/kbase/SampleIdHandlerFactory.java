@@ -29,6 +29,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.typedobj.idref.RemappedId;
 
 /**
@@ -69,6 +70,21 @@ public class SampleIdHandlerFactory implements IdReferenceHandlerFactory {
 	@Override
 	public IdReferenceType getIDType() {
 		return TYPE;
+	}
+	
+	@Override
+	public List<DependencyStatus> getDependencyStatus() {
+		if (client == null) {
+			return Collections.emptyList();
+		}
+		try {
+			final String ver = (String) client.status().get("version");
+			// no need to check return value, always returns OK or fails
+			return Arrays.asList(new DependencyStatus(true, "OK", "Sample service", ver));
+		} catch (IOException | JsonClientException e) {
+			return Arrays.asList(
+					new DependencyStatus(false, e.getMessage(), "Sample service", "Unknown"));
+		}
 	}
 	
 	private class SamplePermissionsHandler implements IdReferencePermissionHandler {

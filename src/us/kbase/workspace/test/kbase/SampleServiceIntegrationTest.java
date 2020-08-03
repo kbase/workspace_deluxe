@@ -309,8 +309,8 @@ public class SampleServiceIntegrationTest {
 		
 		assertThat("incorrect sample dep", sample, is(ImmutableMap.of(
 				"name", "Sample service", "state", "OK", "message", "OK")));
-		
-		
 	}
+	
+	// TODO NOW finish sample integration tests
 	
 }
