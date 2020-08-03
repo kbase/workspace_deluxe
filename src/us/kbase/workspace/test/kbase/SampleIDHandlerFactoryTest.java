@@ -331,7 +331,9 @@ public class SampleIDHandlerFactoryTest {
 		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
 		
 		final IdReferenceHandler<Integer> h = new SampleIdHandlerFactory(cli)
-				.createHandler(Integer.class, new AuthToken("t", "user1"));
+				// keep the new String(). String interning caused this test to pass when
+				// it should've failed
+				.createHandler(Integer.class, new AuthToken("t", new String("user1")));
 		
 		assertThat("incorrect uniqueness", h.addId(9, "id1", null), is(true));
 		assertThat("incorrect uniqueness", h.addId(9, "id1", null), is(false));
