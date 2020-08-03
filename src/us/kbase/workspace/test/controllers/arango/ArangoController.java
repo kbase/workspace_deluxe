@@ -14,6 +14,8 @@ import java.util.Scanner;
 import org.apache.commons.io.FileUtils;
 
 import com.arangodb.ArangoDB;
+import com.arangodb.ArangoDatabase;
+import com.arangodb.entity.CollectionEntity;
 
 // ported from https://github.com/kbase/sample_service/blob/master/test/arango_controller.py
 
@@ -102,6 +104,24 @@ public class ArangoController {
 		}
 		if (tempDir != null && deleteTempFiles) {
 			FileUtils.deleteDirectory(tempDir.toFile());
+		}
+	}
+	
+	/** Clear all data from a database.
+	 * @param dbName the database to clear.
+	 * @param dropIndexes remove any indexes as well as data.
+	 */
+	public void clearDatabase(final String dbName, final boolean dropIndexes) {
+		final ArangoDatabase db = this.client.db(dbName);
+		if (dropIndexes) {
+			db.drop();
+		} else {
+			for (final CollectionEntity col: db.getCollections()) {
+				if (!col.getName().startsWith("_")) {
+					// don't drop collection since that drops indexes
+					db.collection(col.getName()).truncate();
+				}
+			}
 		}
 	}
 

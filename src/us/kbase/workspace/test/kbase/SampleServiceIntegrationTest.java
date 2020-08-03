@@ -17,6 +17,7 @@ import java.util.Map;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -25,6 +26,7 @@ import com.arangodb.entity.CollectionType;
 import com.arangodb.model.CollectionCreateOptions;
 import com.github.zafarkhaja.semver.Version;
 import com.google.common.collect.ImmutableMap;
+import com.mongodb.MongoClient;
 
 import us.kbase.auth.AuthToken;
 import us.kbase.common.test.TestCommon;
@@ -71,6 +73,8 @@ public class SampleServiceIntegrationTest {
 	private static final String ARANGO_COL_DATA_LINK = "dataLinkCol";
 	private static final String ARANGO_COL_WS_OBJ = "wsObjCol";
 	private static final String ARANGO_COL_SCHEMA = "schemaCol";
+	
+	private static final String WS_DB = ARANGO_DB;
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -115,8 +119,8 @@ public class SampleServiceIntegrationTest {
 		final int sampleServicePort = findFreePort();
 
 		SERVER = startupWorkspaceServer(mongohost,
-				SampleServiceIntegrationTest.class.getSimpleName(),
-				SampleServiceIntegrationTest.class.getSimpleName() + "_types",
+				WS_DB,
+				WS_DB + "_types",
 				new URL("http://localhost:" + sampleServicePort),
 				SAMPLE_SERVICE_ADMIN_TOKEN
 				);
@@ -259,8 +263,6 @@ public class SampleServiceIntegrationTest {
 		return server;
 	}
 
-	//TODO TEST should clear DBs between tests
-
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (SAMPLE != null) {
@@ -280,6 +282,15 @@ public class SampleServiceIntegrationTest {
 		if (MONGO != null) {
 			MONGO.destroy(TestCommon.getDeleteTempFiles());
 		}
+	}
+	
+	
+	@Before
+	public void clearDB() throws Exception {
+		try (final MongoClient cli = new MongoClient("localhost:" + MONGO.getServerPort())) {
+			TestCommon.destroyDB(cli.getDatabase(WS_DB));
+		}
+		ARANGO.clearDatabase(ARANGO_DB, false);
 	}
 	
 	@Test
