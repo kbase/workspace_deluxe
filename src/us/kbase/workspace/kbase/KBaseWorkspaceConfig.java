@@ -59,10 +59,15 @@ public class KBaseWorkspaceConfig {
 	private static final String KBASE_AUTH_ADMIN_FULL_ROLES =
 			"auth2-ws-admin-full-roles";
 	
-	// shock info 
+	// shock / blobstore info 
 	private static final String BYTESTREAM_USER = "bytestream-user";
 	private static final String BYTESTREAM_TOKEN = "bytestream-token";
 	private static final String BYTESTREAM_URL = "bytestream-url";
+	
+	// sample service info 
+	private static final String SAMPLE_SERVICE_URL = "sample-service-url";
+	private static final String SAMPLE_SERVICE_TOKEN = "sample-service-administrator-token";
+	private static final String SAMPLE_SERVICE_TAG = "sample-service-tag";
 	
 	//handle service info
 	private static final String IGNORE_HANDLE_SERVICE = "ignore-handle-service";
@@ -103,6 +108,9 @@ public class KBaseWorkspaceConfig {
 	private final URL bytestreamURL;
 	private final String bytestreamUser;
 	private final String bytestreamToken;
+	private final URL sampleServiceURL;
+	private final String sampleServiceToken;
+	private final String sampleServiceTag;
 	private final String workspaceAdmin;
 	private final String mongoUser;
 	private final String mongoPassword;
@@ -245,6 +253,20 @@ public class KBaseWorkspaceConfig {
 						BYTESTREAM_USER, BYTESTREAM_TOKEN, BYTESTREAM_URL));
 			}
 		}
+		
+		sampleServiceURL = getUrl(config, SAMPLE_SERVICE_URL, paramErrors, false);
+		if (sampleServiceURL == null) {
+			sampleServiceToken = null;
+			sampleServiceTag = null;
+		} else {
+			sampleServiceToken = nullIfEmpty(config.get(SAMPLE_SERVICE_TOKEN));
+			if (sampleServiceToken == null) {
+				paramErrors.add(String.format("If %s is supplied, %s is required",
+						SAMPLE_SERVICE_URL, SAMPLE_SERVICE_TOKEN));
+			}
+			sampleServiceTag = nullIfEmpty(config.get(SAMPLE_SERVICE_TAG));
+		}
+		
 		workspaceAdmin = nullIfEmpty(config.get(WSADMIN));
 		
 		final String muser = nullIfEmpty(config.get(MONGO_USER));
@@ -377,6 +399,9 @@ public class KBaseWorkspaceConfig {
 		if (bytestreamURL != null) {
 			paramSet.addAll(Arrays.asList(BYTESTREAM_URL, BYTESTREAM_USER));
 		}
+		if (sampleServiceURL != null) {
+			paramSet.addAll(Arrays.asList(SAMPLE_SERVICE_URL, SAMPLE_SERVICE_TAG));
+		}
 		for (final String s: paramSet) {
 			if (!nullOrEmpty(cfg.get(s))) {
 				params += s + "=" + cfg.get(s).trim() + "\n";
@@ -491,6 +516,18 @@ public class KBaseWorkspaceConfig {
 	
 	public String getBytestreamToken() {
 		return bytestreamToken;
+	}
+	
+	public URL getSampleServiceURL() {
+		return sampleServiceURL;
+	}
+	
+	public String getSampleServiceToken() {
+		return sampleServiceToken;
+	}
+	
+	public String getSampleServiceTag() {
+		return sampleServiceTag;
 	}
 	
 	public String getWorkspaceAdmin() {

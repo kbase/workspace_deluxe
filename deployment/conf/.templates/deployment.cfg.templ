@@ -34,6 +34,10 @@ handle-service-token={{ default .Env.handle_service_token "" }}
 # precedence.
 handle-manager-token={{ default .Env.handle_manager_token "" }}
 
+sample-service-url = {{ default .Env.sample_service_url "" }}
+sample-service-administrator-token = {{ default .Env.sample_service_administrator_token "" }}
+sample-service-tag = {{ default .Env.sample_service_tag "" }}
+
 # configuration options for RESKE
 listeners={{ default .Env.listeners "Search" }}
 
