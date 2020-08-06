@@ -50,6 +50,7 @@ import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.ObjectData;
+import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.RegisterTypespecParams;
@@ -99,6 +100,7 @@ public class SampleServiceIntegrationTest {
 	private static final String WS_DB = ARANGO_DB;
 	
 	private static final String SAMPLE_TYPE = "Samples.SList-0.1";
+	private static final String SAMPLE_REF_TYPE = "Samples.SRef-0.1";
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -364,7 +366,7 @@ public class SampleServiceIntegrationTest {
 		SAMPLE_CLIENT.updateSampleAcls(new UpdateSampleACLsParams()
 				.withId(samadd.getId())
 				.withAdmin(Arrays.asList(USER2)));
-		String workspace = "basicsample";
+		final String workspace = "basicsample";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		CLIENT1.setPermissions(new SetPermissionsParams()
 				.withWorkspace(workspace)
@@ -377,7 +379,6 @@ public class SampleServiceIntegrationTest {
 			saveSampleObject(cli, workspace, objName, samadd, true);
 			
 			final ObjectData obj = getObject(cli, "1/" + objName + "/1");
-			checkExternalIDError(obj);
 			
 			assertThat("incorrect object name", obj.getInfo().getE2(), is(objName));
 			
@@ -399,7 +400,7 @@ public class SampleServiceIntegrationTest {
 	@Test
 	public void publicReadChange() throws Exception {
 		final SampleAddress samadd = createGenericSample();
-		String workspace = "basicsample";
+		final String workspace = "pubread";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
 				.withId(1L).withNewPermission("r"));
@@ -410,6 +411,103 @@ public class SampleServiceIntegrationTest {
 		getObject(CLIENT_NOAUTH, "1/myobj/1");
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), initEmptyACLs()
 				.withOwner(USER1).withPublicRead(1L));
+	}
+	
+	@Test
+	public void removeSampleACLAndGet() throws Exception {
+		// Tests that a user can still read a sample after getting a referring object
+		// even if they're removed from the sample ACLs.
+		final SampleAddress samadd = createGenericSample();
+		final String workspace = "removeACL";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		CLIENT1.setPermissions(new SetPermissionsParams()
+				.withWorkspace(workspace)
+				.withUsers(Arrays.asList(USER2))
+				.withNewPermission("r"));
+		
+		saveSampleObject(CLIENT1, workspace, "myobj", samadd, true);
+		getObject(CLIENT2, "1/myobj/1");
+		
+		final SampleACLs acls = addRead(initEmptyACLs().withOwner(USER1), USER2);
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), acls);
+		
+		SAMPLE_CLIENT.updateSampleAcls(new UpdateSampleACLsParams()
+				.withId(samadd.getId())
+				.withRemove(Arrays.asList(USER2)));
+		acls.getRead().clear();
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), acls);
+
+		getObject(CLIENT2, "1/myobj/1");
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), addRead(acls, USER2));
+	}
+	
+	@SuppressWarnings("deprecation")
+	@Test
+	public void deprecatedMethods() throws Exception {
+		// tests that the deprecated object retrieval methods trigger ACL changes
+		final SampleAddress samadd = createGenericSample();
+		final String workspace = "removeACL";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		CLIENT1.setPermissions(new SetPermissionsParams()
+				.withWorkspace(workspace)
+				.withUsers(Arrays.asList(USER2))
+				.withNewPermission("r"));
+		
+		saveSampleObject(CLIENT1, workspace, "myobj", samadd, true);
+		CLIENT1.saveObjects(new SaveObjectsParams()
+				.withId(1L)
+				.withObjects(Arrays.asList(new ObjectSaveData()
+						.withName("ref")
+						.withType(SAMPLE_REF_TYPE)
+						.withData(new UObject(ImmutableMap.of("id", "1/1/1"))))));
+		final SampleACLs acls = initEmptyACLs().withOwner(USER1);
+		final SampleACLs readacls = addRead(initEmptyACLs().withOwner(USER1), USER2);
+		
+		// get objects
+		final ObjectData obj = CLIENT2
+				.getObjects(Arrays.asList(new ObjectIdentity().withName("myobj").withWsid(1L)))
+				.get(0);
+		checkExternalIDError(obj);
+		
+		assertThat("incorrect object", obj.getData().asClassInstance(Map.class),
+				is(ImmutableMap.of("samples", Arrays.asList(samadd.getId()))));
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), readacls);
+
+		// get object provenance
+		removeUserFromSampleACLs(SAMPLE_CLIENT, samadd.getId(), USER2);
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), acls);
+		final us.kbase.workspace.ObjectProvenanceInfo pobj = CLIENT2.getObjectProvenance(
+				Arrays.asList(new ObjectIdentity().withObjid(1L).withWsid(1L))).get(0);
+		checkExternalIDError(pobj.getHandleError(), pobj.getHandleStacktrace());
+		
+		assertThat("incorrect ids", pobj.getExtractedIds(),
+				is(ImmutableMap.of("sample", Arrays.asList(samadd.getId()))));
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), readacls);
+		
+		// get object subset
+		removeUserFromSampleACLs(SAMPLE_CLIENT, samadd.getId(), USER2);
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), acls);
+		final ObjectData sobj = CLIENT2.getObjectSubset(Arrays.asList(
+				new us.kbase.workspace.SubObjectIdentity()
+						.withIncluded(Arrays.asList("samples"))
+						.withWsid(1L)
+						.withObjid(1L)))
+				.get(0);
+		checkExternalIDError(sobj);
+		assertThat("incorrect object", sobj.getData().asClassInstance(Map.class),
+				is(ImmutableMap.of("samples", Arrays.asList(samadd.getId()))));
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), readacls);
+		
+		// get object by ref
+		removeUserFromSampleACLs(SAMPLE_CLIENT, samadd.getId(), USER2);
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), acls);
+		final ObjectData robj = CLIENT2.getReferencedObjects(Arrays.asList(Arrays.asList(
+				new ObjectIdentity().withRef("1/2/1"), new ObjectIdentity().withRef("1/1/1"))))
+				.get(0);
+		checkExternalIDError(robj);
+		assertThat("incorrect object", robj.getData().asClassInstance(Map.class),
+				is(ImmutableMap.of("samples", Arrays.asList(samadd.getId()))));
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), readacls);
 	}
 	
 	@Test
@@ -488,7 +586,20 @@ public class SampleServiceIntegrationTest {
 			final String id,
 			final SampleACLs expected)
 			throws Exception {
+		assertAclsCorrect(cli, id, expected, false);
+		
+	}
+	
+	private void assertAclsCorrect(
+			final SampleServiceClient cli,
+			final String id,
+			final SampleACLs expected,
+			final boolean printACLs)
+			throws Exception {
 		final SampleACLs acls = cli.getSampleAcls(new GetSampleACLsParams().withId(id));
+		if (printACLs) {
+			System.out.println(acls);
+		}
 		assertAclsCorrect(acls, expected);
 		
 	}
@@ -526,14 +637,25 @@ public class SampleServiceIntegrationTest {
 		return initedACLs;
 	}
 	
-	private ObjectData getObject(final WorkspaceClient cli, final String ref) throws Exception {
-		return cli.getObjects2(new GetObjects2Params().withObjects(
-				Arrays.asList(new ObjectSpecification().withRef(ref))))
-				.getData().get(0);
+	private void removeUserFromSampleACLs(
+			final SampleServiceClient cli,
+			final String id,
+			final String user)
+			throws Exception {
+		cli.updateSampleAcls(new UpdateSampleACLsParams()
+				.withId(id)
+				.withRemove(Arrays.asList(USER2)));
 	}
 	
-	private void checkExternalIDError(final ObjectData obj) {
+	private ObjectData getObject(final WorkspaceClient cli, final String ref) throws Exception {
+		return checkExternalIDError(cli.getObjects2(new GetObjects2Params().withObjects(
+				Arrays.asList(new ObjectSpecification().withRef(ref))))
+				.getData().get(0));
+	}
+	
+	private ObjectData checkExternalIDError(final ObjectData obj) {
 		checkExternalIDError(obj.getHandleError(), obj.getHandleStacktrace());
+		return obj;
 	}
 	
 	private void checkExternalIDError(final String err, final String stack) {
