@@ -15,6 +15,7 @@ User documentation
    traversereferences
    lockpublish
    shockintegration
+   sampleserviceintegration
    limits
    userfaq
    knownuserbugs

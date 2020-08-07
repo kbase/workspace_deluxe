@@ -22,7 +22,7 @@ import software.amazon.awssdk.regions.Region;
 
 public class KBaseWorkspaceConfig {
 	
-	//TODO CODE How the config is created could use a rethink. Would be much simpler just throwing an exception rather than collecting errors.
+	//TODO CONFIG How the config is created could use a rethink. Would be much simpler just throwing an exception rather than collecting errors.
 	/* I think it was originally this way because Glassfish would do (?? I forget) when
 	 * the WS threw an exception, which we wanted to avoid, and so we made the service start
 	 * but throw errors for all calls (e.g. "the service did not start correctly, check the logs".
@@ -30,6 +30,10 @@ public class KBaseWorkspaceConfig {
 	 * On the other hand, it's nice to see all the errors at once *shrug*
 	 */
 	
+	// TODO CONFIG the config docs include the port, but the port is ignored in deploy.cfg
+	//    The tomcat cutover didn't handle the documentation update apparently
+	//    I would prefer if all the configuration was in one place, namely deploy.cfg,
+	//    rather than scattered around multiple files
 	//TODO JAVADOCS
 	//TODO CODE use optionals instead of nulls.
 	//TODO CODE consider returning classes containing related parameters rather than individual parameters.

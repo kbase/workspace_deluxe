@@ -1,6 +1,15 @@
 Workspace service release notes
 ===============================
 
+=======
+VERSION: 0.11.4 (Released TBD)
+----------------------------------
+
+UPDATES:
+
+* The workspace now recognizes the ``@id sample`` annotation and links samples in the KBase
+  sample service to objects with that annotation in the type. See :ref:`sampleserviceintegration`.
+
 VERSION: 0.11.3 (Released 10/15/20)
 ----------------------------------
 
