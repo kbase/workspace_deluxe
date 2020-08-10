@@ -27,7 +27,7 @@ Next, copy the ``test.cfg.example`` file to ``test.cfg`` and fill in appropriate
 
 Then::
 
-    cd handle_service_test/
+    cd python_dependencies/
     pipenv shell
     cd ..
     make test
