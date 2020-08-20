@@ -28,8 +28,7 @@ test.temp.dir = workspace_test_temp
 test.temp.dir.keep=false
 
 # Handle Service lib directory location
-# Leave empty if you want to test the latest HandleService
-# Otherwise clone handle_service2 repo (https://github.com/kbase/handle_service2)
+# To set up, clone handle_service2 repo (https://github.com/kbase/handle_service2)
 # Then create biokbase dir in lib dir and copy log.py file into biokbase
 #   (https://github.com/kbase/sdkbase2/blob/python/log.py)
 # e.g.
@@ -41,8 +40,8 @@ test.temp.dir.keep=false
 # cd ..
 # pwd
 
-# A HS2 environment can be created with https://github.com/pypa/pipenv via the Pipfile in
-# handle_service_test.
+# A python environment for the handle service can be created with https://github.com/pypa/pipenv
+# via the Pipfile in python dependencies.
 
 test.handleservice.dir=
 
