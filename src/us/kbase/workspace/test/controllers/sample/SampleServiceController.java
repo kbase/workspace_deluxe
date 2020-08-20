@@ -19,7 +19,7 @@ import org.ini4j.Profile.Section;
 
 import us.kbase.workspace.test.controllers.arango.ArangoController;
 
-/** Q&D Utility to run the Samnple Service for the purposes of testing from Java.
+/** Q&D Utility to run the Sample Service for the purposes of testing from Java.
  * @author gaprice@lbl.gov
  *
  */
@@ -79,7 +79,7 @@ public class SampleServiceController {
 			this.arangoUser = checkString(arangoUser, "arangoUser");
 			this.arangoPwd = checkString(arangoPwd, "arangoPwd");
 			this.arangoDB = checkString(arangoDB, "arangoDB");
-			this.sampleCollection = checkString(sampleCollection, "ampleCollection");
+			this.sampleCollection = checkString(sampleCollection, "sampleCollection");
 			this.versionCollection = checkString(versionCollection, "versionCollection");
 			this.versionEdgeCollection = checkString(
 					versionEdgeCollection, "versionEdgeCollection");
