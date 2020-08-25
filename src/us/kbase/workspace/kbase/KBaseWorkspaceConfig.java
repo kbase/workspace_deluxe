@@ -31,6 +31,8 @@ public class KBaseWorkspaceConfig {
 	 */
 	
 	//TODO JAVADOCS
+	//TODO CODE use optionals instead of nulls.
+	//TODO CODE consider returning classes containing related parameters rather than individual parameters.
 	
 	//required deploy parameters
 	private static final String HOST = "mongodb-host";

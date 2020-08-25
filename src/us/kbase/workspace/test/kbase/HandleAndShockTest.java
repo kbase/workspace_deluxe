@@ -395,6 +395,8 @@ public class HandleAndShockTest {
 	@SuppressWarnings("deprecation")
 	@Test
 	public void basicHandleTest() throws Exception {
+		// this test exercises deprecated methods. It should not be changed until the
+		// deprecated methods are removed from the workspace API.
 		String workspace = "basichandle";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		BasicShockClient bsc = new BasicShockClient(

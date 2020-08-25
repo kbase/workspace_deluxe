@@ -13,6 +13,8 @@ import java.util.Scanner;
 
 import org.apache.commons.io.FileUtils;
 
+import com.arangodb.ArangoDB;
+
 // ported from https://github.com/kbase/sample_service/blob/master/test/arango_controller.py
 
 /** Q&D Utility to run an Arango server for the purposes of testing from
@@ -27,6 +29,7 @@ public class ArangoController {
 	
 	private final Process arango;
 	private final int port;
+	private final ArangoDB client;
 
 	/** Create the controller.
 	 * @param arangoExe the path to the ArangoDB executable.
@@ -62,7 +65,17 @@ public class ArangoController {
 				.redirectOutput(tempDir.resolve("arango_server.log").toFile());
 		
 		arango = servpb.start();
-		Thread.sleep(1000); //wait for server to start
+		Thread.sleep(2000); //wait for server to start
+		
+		client = new ArangoDB.Builder().host("localhost", port).build();
+		client.db().getVersion(); // checks connection
+	}
+	
+	/** Get a client pointed at the ArangoDB instance.
+	 * @return the client.
+	 */
+	public ArangoDB getClient() {
+		return client;
 	}
 	
 	/** Get the Arango port.
