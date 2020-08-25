@@ -19,6 +19,16 @@ test.mongo.exe = /kb/runtime/bin/mongod
 # 'true' to use the MongoDB WiredTiger file storage engine (3.0+)
 test.mongo.useWiredTiger=false
 
+# path to the ArangoDB executable (arangod, *not* arangodb) to use for the tests.
+# In the downloaded tarball it is at /usr/sbin/arangod.
+test.arango.exe=/path/to/arangoddbexecutable
+
+# path to the ArangoDB javascript startup directory to use for the tests.
+# This is the same path as provided to --javascript.startup-directory for the arangod executable.
+# In the downloaded tarball it is at /usr/share/arangodb3/js/.
+test.arango.js=/path/to/arangodjs
+
+
 # Temp directory for various database and server files. This path cannot have
 # any system specific information (e.g. ~, $HOME, etc)
 test.temp.dir = workspace_test_temp
@@ -41,8 +51,15 @@ test.temp.dir.keep=false
 # pwd
 
 # A python environment for the handle service can be created with https://github.com/pypa/pipenv
-# via the Pipfile in python dependencies.
+# via the Pipfile in python_dependencies.
 
 test.handleservice.dir=
 
+# Sample Service lib directory location
+# To set up, clone sample_service repo (https://github.com/kbase/sample_service)
+
+# A python environment for the sample service can be created with https://github.com/pypa/pipenv
+# via the Pipfile in python_dependencies.
+
+test.sampleservice.dir=
 
