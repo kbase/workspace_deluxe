@@ -14,7 +14,7 @@ requests = "==2.22.0"
 cachetools = "*"
 configparser = "*"
 pymongo = "*"
-uwsgi = "*"
+uwsgi = "==2.0.18"
 
 # sample service dependencies
 python-arango = "==5.0.0"
