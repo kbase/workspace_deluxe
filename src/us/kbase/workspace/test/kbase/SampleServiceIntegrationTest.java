@@ -264,7 +264,7 @@ public class SampleServiceIntegrationTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (SAMPLE != null) {
-			SAMPLE.destroy(TestCommon.getDeleteTempFiles());
+			SAMPLE.destroy(TestCommon.getDeleteTempFiles(), true);
 		}
 		if (SERVER != null) {
 			System.out.print("Killing workspace server... ");

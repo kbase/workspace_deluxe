@@ -85,7 +85,7 @@ public class S3BlobStoreIntegrationTest {
 	@AfterClass
 	public static void tearDownClass() throws Exception {
 		if (minio != null) {
-			minio.destroy(TestCommon.getDeleteTempFiles());
+			minio.destroy(TestCommon.getDeleteTempFiles(), true);
 		}
 		if (mongoCon != null) {
 			mongoCon.destroy(TestCommon.getDeleteTempFiles());
