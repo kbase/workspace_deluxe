@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: required
 language: java
 jdk:
@@ -14,26 +14,35 @@ env:
 before_install:
   # apt update fails without this key
   - wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-  - sudo add-apt-repository -y ppa:deadsnakes/ppa
-  - sudo apt update -q
+
+  # install ant deps
   - sudo apt install -y ant-optional
-  - sudo apt install -y python3.6 python3-pip
-  - pyenv local 3.6
+
+  # install python deps
+  - pyenv versions
+  - export PYVER=$(pyenv versions | grep "3.7")
+  - echo $PYVER
+  - pyenv local $PYVER
   - python --version
-  - pip3 --version
-  - pip3 install sphinx
-  - pip3 install jsonrpcbase==0.2.0
-  - pip3 install configparser==4.0.2
-  - pip3 install pymongo==3.9.0
-  - pip3 install cachetools==3.1.1
-  - pip3 install uwsgi==2.0.18
+  - pip3 install pipenv
 
 install:
   - export HOMEDIR=`pwd`
+  
+  # set up jars
   - cd ..
   - git clone https://github.com/kbase/jars
   - export JARSDIR=`pwd`/jars/lib/jars/
 
+  # set up arango
+  - export ARANGODB_VER=3.5.1
+  - export ARANGODB_V=35
+  - curl -O https://download.arangodb.com/arangodb$ARANGODB_V/Community/Linux/arangodb3-linux-$ARANGODB_VER.tar.gz
+  - tar -xf arangodb3-linux-$ARANGODB_VER.tar.gz 
+  - export ARANGO_EXE=$(pwd)/arangodb3-$ARANGODB_VER/usr/sbin/arangod
+  - export ARANGO_JS=$(pwd)/arangodb3-$ARANGODB_VER/usr/share/arangodb3/js/
+
+  # set up handle service
   - export HS_COMMIT=aae2f70120e75d2ccccab1b1c01dbb9e8327eee8
   - export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
   - git clone https://github.com/kbase/handle_service2.git
@@ -46,7 +55,23 @@ install:
   - wget https://raw.githubusercontent.com/kbase/sdkbase2/$LOG_COMMIT/log.py
   - cd ..
   - export HSDIR=`pwd`
+  - cd ../..
+  
+  # set up sample service
+  - export SAMPLE_COMMIT=695bb800cb3babe2084e93c260affcd10018d3e7
+  - git clone https://github.com/kbase/sample_service.git
+  - cd sample_service
+  - git checkout $SAMPLE_COMMIT
+  - cd lib
+  - export SAMPLE_DIR=`pwd`
+  - cd ../..
+  
   - cd $HOMEDIR
+  
+  # install python dependencies
+  - cd python_dependencies
+  - pipenv install --dev
+  - cd ..
 
 script:
   # set up minio
@@ -74,11 +99,15 @@ script:
   - sed -i "s#^test.shock.version.*#test.shock.version=0.9.6#" test.cfg
   - sed -i "s#^test.shock.exe.*#test.shock.exe=$SHOCKEXE#" test.cfg
   - sed -i "s#^test.handleservice.dir.*#test.handleservice.dir=$HSDIR#" test.cfg
+  - sed -i "s#^test.sampleservice.dir.*#test.sampleservice.dir=$SAMPLE_DIR#" test.cfg
+  - sed -i "s#^test.arango.exe.*#test.arango.exe=$ARANGO_EXE#" test.cfg
+  - sed -i "s#^test.arango.js.*#test.arango.js=$ARANGO_JS#" test.cfg
   - cat test.cfg
  
   # run tests
   - ant javadoc
-  - ant $ANT_TEST
+  - export PIPENV_PIPFILE=$(pwd)/python_dependencies/Pipfile
+  - pipenv run ant $ANT_TEST
 
 after_success:
   - ls test-reports
