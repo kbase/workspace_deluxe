@@ -12,13 +12,10 @@ env:
   - MONGODB_VER=mongodb-linux-x86_64-3.6.10 MINIO=2019-05-23T00-29-34Z ANT_TEST=test_quick_coverage WIRED_TIGER=true
 
 before_install:
-  # apt update fails without this key
-  - wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-
   # install ant deps
   - sudo apt install -y ant-optional
 
-  # install python deps
+  # setup python environment
   - pyenv versions
   - export PYVER=$(pyenv versions | grep "3.7")
   - echo $PYVER
