@@ -236,6 +236,10 @@ public class HandleAndShockTest {
 	private static void setUpSpecs() throws Exception {
 		final String handlespec =
 				"module HandleByteStreamList {" +
+					"/* @optional dontusethis */" +
+					"typedef structure {" +
+						"int dontusethis;" +
+					"} Empty;" + // for ad hoc testing
 					"/* @id handle */" +
 					"typedef string handle;" +
 					"typedef structure {" +
@@ -257,7 +261,8 @@ public class HandleAndShockTest {
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec(handlespec)
-			.withNewTypes(Arrays.asList("HList", "SList", "HRef")));
+			.withNewTypes(Arrays.asList("HList", "SList", "HRef", "Empty")));
+		CLIENT1.releaseModule("HandleByteStreamList");
 	}
 
 	private static WorkspaceServer startupWorkspaceServer(
