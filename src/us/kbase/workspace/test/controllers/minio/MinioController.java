@@ -4,7 +4,9 @@ import static us.kbase.common.test.controllers.ControllerCommon.checkExe;
 import static us.kbase.common.test.controllers.ControllerCommon.findFreePort;
 import static us.kbase.common.test.controllers.ControllerCommon.makeTempDirs;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -23,6 +25,7 @@ public class MinioController {
 	
 	private final Process minio;
 	private final int port;
+	private final Path logfile;
 
 	public MinioController(
 			final String minioExe,
@@ -35,15 +38,15 @@ public class MinioController {
 		
 		checkExe(minioExe, "minio server");
 		
+		logfile = tempDir.resolve("minio_server.log");
 		ProcessBuilder servpb = new ProcessBuilder(
 				minioExe,
 				"server",
 				"--compat",
-				"--address",
-				"localhost:" + port,
+				"--address", "localhost:" + port,
 				tempDir.resolve("data").toString())
 				.redirectErrorStream(true)
-				.redirectOutput(tempDir.resolve("minio_server.log").toFile());
+				.redirectOutput(logfile.toFile());
 		
 		servpb.environment().put("MINIO_ACCESS_KEY", s3AccessKey);
 		servpb.environment().put("MINIO_SECRET_KEY", s3AccessSecret);
@@ -60,8 +63,17 @@ public class MinioController {
 	}
 	
 	public void destroy(boolean deleteTempFiles) throws IOException {
+		destroy(deleteTempFiles, false);
+	}
+	
+	public void destroy(boolean deleteTempFiles, boolean dumpLogToStdOut) throws IOException {
 		if (minio != null) {
 			minio.destroy();
+		}
+		if (dumpLogToStdOut) {
+			try (final BufferedReader is = Files.newBufferedReader(logfile)) {
+				is.lines().forEach(l -> System.out.println(l));
+			}
 		}
 		if (tempDir != null && deleteTempFiles) {
 			FileUtils.deleteDirectory(tempDir.toFile());
