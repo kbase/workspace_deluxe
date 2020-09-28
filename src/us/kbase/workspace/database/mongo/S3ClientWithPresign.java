@@ -132,7 +132,7 @@ public class S3ClientWithPresign {
 			try {
 				htp = new HttpPut(target.toURI());
 			} catch (URISyntaxException e) {
-				// this means the S3 SDK it generating urls that are invalid URIs, which is
+				// this means the S3 SDK is generating urls that are invalid URIs, which is
 				// pretty bizarre.
 				// not sure how to test this.
 				// since the URI contains credentials, we deliberately do not include the 
