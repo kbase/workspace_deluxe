@@ -147,17 +147,21 @@ public class S3ClientWithPresign {
 			// other S3 instances) the connection dies. If the stream is pretty small,
 			// you can get an error back.
 			final CloseableHttpResponse res = httpClient.execute(htp);
-			if (res.getStatusLine().getStatusCode() > 399) {
-				final byte[] buffer = new byte[1000];
-				try (final InputStream in = res.getEntity().getContent()) {
-					new DataInputStream(in).readFully(buffer);
-				} catch (EOFException e) {
-					// do nothing
+			try {
+				if (res.getStatusLine().getStatusCode() > 399) {
+					final byte[] buffer = new byte[1000];
+					try (final InputStream in = res.getEntity().getContent()) {
+						new DataInputStream(in).readFully(buffer);
+					} catch (EOFException e) {
+						// do nothing
+					}
+					throw new IOException(String.format(
+							"Error saving file to S3 (%s), truncated response follows:\n%s",
+							res.getStatusLine().getStatusCode(),
+							new String(buffer, StandardCharsets.UTF_8).trim()));
 				}
-				throw new IOException(String.format(
-						"Error saving file to S3 (%s), truncated response follows:\n%s",
-						res.getStatusLine().getStatusCode(),
-						new String(buffer, StandardCharsets.UTF_8).trim()));
+			} finally {
+				res.close();
 			}
 		}
 	}
