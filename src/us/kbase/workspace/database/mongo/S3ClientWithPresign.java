@@ -12,7 +12,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
@@ -108,7 +107,6 @@ public class S3ClientWithPresign {
 		checkString(bucket, "bucket");
 		requireNonNull(object, "object");
 		final Aws4PresignerParams params = Aws4PresignerParams.builder()
-				.expirationTime(Instant.ofEpochSecond(15 * 60))
 				.awsCredentials(creds)
 				.signingName("s3")
 				.signingRegion(region)
