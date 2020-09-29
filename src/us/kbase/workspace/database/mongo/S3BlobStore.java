@@ -26,6 +26,7 @@ import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Restreamable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
@@ -146,7 +147,9 @@ public class S3BlobStore implements BlobStore {
 		}
 		final String key = toS3Key(uuidGen.randomUUID());
 		try {
-			s3.presignAndPutObject(bucket, key, data);
+			s3.presignAndPutObject(
+					PutObjectRequest.builder().bucket(bucket).key(key).build(),
+					data);
 		} catch (IOException e) {
 			throw new BlobStoreCommunicationException("S3 error: " + e.getMessage(), e);
 		}
