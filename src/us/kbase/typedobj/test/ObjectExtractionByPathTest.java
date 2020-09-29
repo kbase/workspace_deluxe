@@ -3,6 +3,7 @@ package us.kbase.typedobj.test;
 import static org.junit.Assert.*;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,10 +28,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.SubdataExtractor;
@@ -114,7 +117,9 @@ public class ObjectExtractionByPathTest {
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode instanceData = mapper.readTree(instanceJson);
 		JsonNode paths = instanceData.get("paths");
-		JsonNode data = instanceData.get("data");
+		JsonNode treedata = instanceData.get("data");
+		final String sdata = new ObjectMapper().writeValueAsString(treedata);
+		final JsonTokenStream data = new JsonTokenStream(sdata);
 		JsonNode strict = instanceData.get("strict");
 		JsonNode expectedExtract = instanceData.get("extract");
 		boolean expectError = false;
@@ -130,13 +135,16 @@ public class ObjectExtractionByPathTest {
 		}
 		SubsetSelection op;
 		try {
-			JsonNode extract;
 			if (strict != null) {
 			    op = new SubsetSelection(pathStrings, strict.asBoolean(), SubsetSelection.STRICT_ARRAYS_DEFAULT);
 			} else {
 			    op = new SubsetSelection(pathStrings);
 			}
-            extract = SubdataExtractor.extract(op, data);
+			final ByteArrayOutputStream os = new ByteArrayOutputStream();
+			final JsonGenerator jgen = new ObjectMapper().getFactory().createGenerator(os);
+			SubdataExtractor.extract(op, data, jgen);
+			jgen.close();
+			final JsonNode extract = new ObjectMapper().readTree(os.toByteArray());
 			
 			assertFalse("  -("+instance.resourceName+") extracted something when error was expected; extract="+extract,expectError);
 			

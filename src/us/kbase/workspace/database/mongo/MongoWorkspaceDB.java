@@ -1014,6 +1014,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Set<WorkspaceIdentifier> wsis,
 			final boolean allowDeleted,
 			final boolean allowMissing)
+			// TODO CODE don't think comm exception needs to be checked. Usually will just fail.
 			throws WorkspaceCommunicationException, NoSuchWorkspaceException {
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> ret =
 				new HashMap<WorkspaceIdentifier, ResolvedWorkspaceID>();

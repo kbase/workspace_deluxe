@@ -16,6 +16,8 @@ import us.kbase.common.service.ServiceChecker;
 import us.kbase.common.service.ServiceChecker.ServiceException;
 
 public class ServiceCheckerTest {
+	
+	private final static String KBASE_ENV = "https://ci.kbase.us"; // "https://kbase.us/"
 
 	public static class TestSpec {
 		public final String err;
@@ -32,11 +34,11 @@ public class ServiceCheckerTest {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		TESTS.put("Perl", new TestSpec(
-				null, "https://ci.kbase.us/services/handle_service"));
+				null, KBASE_ENV + "/services/handle_service"));
 		TESTS.put("Python", new TestSpec(
-				null, "https://ci.kbase.us/services/catalog"));
+				null, KBASE_ENV + "/services/catalog"));
 		TESTS.put("Java", new TestSpec(
-				null, "https://ci.kbase.us/services/ws"));
+				null, KBASE_ENV + "/services/ws"));
 		TESTS.put("HTTP", new TestSpec(
 				null, "http://dev03.berkeley.kbase.us:7058"));
 		TESTS.put("500", new TestSpec(
@@ -50,10 +52,10 @@ public class ServiceCheckerTest {
 				"<!doctype html><html itemscope=",
 				"http://google.com"));
 		TESTS.put("short200", new TestSpec(
-				"URL https://ci.kbase.us/services/shock-api does not point " +
+				"URL " + KBASE_ENV + "/services/shock-api does not point " +
 				"to a KBase SDK generated service. Code: 200, message: OK, " +
 				"content: {\"attribute_indexes\"",
-				"https://ci.kbase.us/services/shock-api"));
+				KBASE_ENV + "/services/shock-api"));
 		
 	}
 	

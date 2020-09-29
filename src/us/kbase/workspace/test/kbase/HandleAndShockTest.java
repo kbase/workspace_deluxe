@@ -104,7 +104,7 @@ public class HandleAndShockTest {
 	private static WorkspaceClient CLIENT3;
 	private static WorkspaceClient CLIENT_NOAUTH;
 
-	private static AuthToken HANDLE_MNGR_TOKEN;
+	private static AuthToken HANDLE_SRVC_TOKEN;
 
 	private static AbstractHandleClient HANDLE_CLIENT;
 	private static BasicShockClient WS_OWNED_SHOCK;
@@ -149,7 +149,7 @@ public class HandleAndShockTest {
 		TestCommon.setUserRoles(authURL, USER3, Arrays.asList(HANDLE_ADMIN_ROLE));
 		final AuthToken t1 = new AuthToken(token1, USER1);
 		final AuthToken t2 = new AuthToken(token2, USER2);
-		HANDLE_MNGR_TOKEN = new AuthToken(token3, USER3);
+		HANDLE_SRVC_TOKEN = new AuthToken(token3, USER3);
 
 		SHOCK = new ShockController(
 				TestCommon.getShockExe(),
@@ -168,14 +168,14 @@ public class HandleAndShockTest {
 					"Unregistered version - Shock may not start correctly");
 		}
 		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
-		WS_OWNED_SHOCK = new BasicShockClient(shockURL, HANDLE_MNGR_TOKEN);
+		WS_OWNED_SHOCK = new BasicShockClient(shockURL, HANDLE_SRVC_TOKEN);
 		SHOCK_CLIENT_1 = new BasicShockClient(shockURL, t1);
 		SHOCK_CLIENT_2 = new BasicShockClient(shockURL, t2);
 
 		HANDLE = new HandleServiceController(
 				MONGO,
 				shockURL.toString(),
-				HANDLE_MNGR_TOKEN,
+				HANDLE_SRVC_TOKEN,
 				Paths.get(TestCommon.getTempDir()),
 				new URL(authURL.toString()),
 				HANDLE_ADMIN_ROLE,
@@ -189,8 +189,8 @@ public class HandleAndShockTest {
 				"HandleAndShockTest_types",
 				shockURL,
 				t2,
-				HANDLE_MNGR_TOKEN,
-				HANDLE_MNGR_TOKEN);
+				HANDLE_SRVC_TOKEN,
+				HANDLE_SRVC_TOKEN);
 
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
@@ -198,7 +198,7 @@ public class HandleAndShockTest {
 		final URL url = new URL("http://localhost:" + port);
 		CLIENT1 = new WorkspaceClient(url, t1);
 		CLIENT2 = new WorkspaceClient(url, t2);
-		CLIENT3 = new WorkspaceClient(url, HANDLE_MNGR_TOKEN);
+		CLIENT3 = new WorkspaceClient(url, HANDLE_SRVC_TOKEN);
 		CLIENT_NOAUTH = new WorkspaceClient(url);
 		CLIENT1.setIsInsecureHttpConnectionAllowed(true);
 		CLIENT2.setIsInsecureHttpConnectionAllowed(true);
@@ -223,7 +223,7 @@ public class HandleAndShockTest {
 		SHOCK_USER1 = bsc.addNode().getACLs().getOwner();
 		bsc.updateToken(CLIENT2.getToken());
 		SHOCK_USER2 = bsc.addNode().getACLs().getOwner();
-		bsc.updateToken(HANDLE_MNGR_TOKEN);
+		bsc.updateToken(HANDLE_SRVC_TOKEN);
 		SHOCK_USER3 = bsc.addNode().getACLs().getOwner();
 
 		System.out.println("finished HandleService setup");
@@ -295,7 +295,7 @@ public class HandleAndShockTest {
 		ws.add("bytestream-token", shockLinkToken.getToken());
 		ws.add("ws-admin", USER2);
 		ws.add("handle-service-url", "http://localhost:" + HANDLE.getHandleServerPort());
-		ws.add("handle-manager-token", handleToken.getToken());
+		ws.add("handle-service-token", handleToken.getToken());
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
 				.resolve("tempForHandleAndShockTest"));
 		ini.store(iniFile);
@@ -892,9 +892,8 @@ public class HandleAndShockTest {
 		IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder.getBuilder(4)
 				.build().getFactory(CLIENT1.getToken());
 		final AbstractHandleClient client = new AbstractHandleClient(
-				new URL("http://localhost:" + HANDLE.getHandleServerPort()), HANDLE_MNGR_TOKEN);
-		fac.addFactory(new HandleIdHandlerFactory(
-				new URL("http://localhost:" + HANDLE.getHandleServerPort()), client));
+				new URL("http://localhost:" + HANDLE.getHandleServerPort()), HANDLE_SRVC_TOKEN);
+		fac.addFactory(new HandleIdHandlerFactory(client));
 		IdReferenceHandlerSet<String> handlers = fac.createHandlers(String.class);
 		handlers.associateObject("foo");
 		handlers.addStringId(new IdReference<String>(type, "KBH_1", null));

@@ -23,6 +23,7 @@ import com.mongodb.MongoClient;
 
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.MD5;
@@ -129,29 +130,20 @@ public class S3BlobStoreIntegrationTest {
 	
 	@Test
 	public void uploadPresignFailBadInput() throws Exception {
-		final String b = "b";
-		final String k = "k";
+		final PutObjectRequest p = PutObjectRequest.builder().bucket("b").key("k").build();
 		final Restreamable r = new StringRestreamable("foo");
 		
-		uploadPresignFail(null, k, r, new IllegalArgumentException(
-				"bucket cannot be null or whitespace only"));
-		uploadPresignFail("   \t   ", k, r, new IllegalArgumentException(
-				"bucket cannot be null or whitespace only"));
-		uploadPresignFail(b, null, r, new IllegalArgumentException(
-				"key cannot be null or whitespace only"));
-		uploadPresignFail(b, "   \t   ", r, new IllegalArgumentException(
-				"key cannot be null or whitespace only"));
-		uploadPresignFail(b, k, null, new NullPointerException("object"));
+		uploadPresignFail(null, r, new NullPointerException("put"));
+		uploadPresignFail(p, null, new NullPointerException("object"));
 		
 	}
 	
 	private void uploadPresignFail(
-			final String bucket,
-			final String key,
+			final PutObjectRequest put,
 			final Restreamable object,
 			final Exception expected) {
 		try {
-			s3client.presignAndPutObject(bucket, key, object);
+			s3client.presignAndPutObject(put, object);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);

@@ -31,6 +31,9 @@ auth2-service-url = {{ default .Env.auth2_service "https://ci.kbase.us/services/
 auth2-ws-admin-read-only-roles = {{ default .Env.auth2_ws_admin_read_only_roles "" }}
 auth2-ws-admin-full-roles = {{ default .Env.auth2_ws_admin_full_roles "" }}
 # The credential for the account approved to assign/modify shock node ACLs.
+handle-service-token={{ default .Env.handle_service_token "" }}
+# handle-manager-token is present for backwards compatibility. handle-service-token takes
+# precedence.
 handle-manager-token={{ default .Env.handle_manager_token "" }}
 
 # configuration options for RESKE
