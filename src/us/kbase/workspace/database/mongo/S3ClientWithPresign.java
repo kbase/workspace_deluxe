@@ -114,7 +114,7 @@ public class S3ClientWithPresign {
 				// use a 2 hour timeout. Old Glassfish server scripts set timeout to 15m.
 				// current tomcat server has a 30m default timeout.
 				// most servers are going to have a 1h timeout at the most.
-				.signatureDuration(Duration.ofMinutes(2 * 60))
+				.signatureDuration(Duration.ofHours(2))
 				.putObjectRequest(requireNonNull(put, "put"))
 				.build();
 		final PresignedPutObjectRequest presignedPut = presigner.presignPutObject(putreq);

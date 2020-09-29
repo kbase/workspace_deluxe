@@ -262,9 +262,9 @@ public class S3BlobStoreTest {
 
 		verify(cli).presignAndPutObject(
 				PutObjectRequest.builder()
-					.bucket("foo")
-					.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
-					.build(),
+						.bucket("foo")
+						.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
+						.build(),
 				expecteddata);
 		verify(col).update(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748"),
 				new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
