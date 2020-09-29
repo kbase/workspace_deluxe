@@ -116,7 +116,10 @@ public class S3ClientWithPresign {
 		// of the bucket and key
 		// See https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/presigner/S3Presigner.html
 		final PutObjectPresignRequest put = PutObjectPresignRequest.builder()
-				.signatureDuration(Duration.ofMinutes(15))
+				// use a 2 hour timeout. Old Glassfish server scripts set timeout to 15m.
+				// current tomcat server has a 30m default timeout.
+				// most servers are going to have a 1h timeout at the most.
+				.signatureDuration(Duration.ofMinutes(2 * 60))
 				.putObjectRequest(
 						PutObjectRequest.builder()
 								.bucket(bucket)
@@ -146,8 +149,7 @@ public class S3ClientWithPresign {
 			// error handling is a pain here. If the stream is large, for Minio (and probably most
 			// other S3 instances) the connection dies. If the stream is pretty small,
 			// you can get an error back.
-			final CloseableHttpResponse res = httpClient.execute(htp);
-			try {
+			try (final CloseableHttpResponse res = httpClient.execute(htp)) {
 				if (res.getStatusLine().getStatusCode() > 399) {
 					final byte[] buffer = new byte[1000];
 					try (final InputStream in = res.getEntity().getContent()) {
@@ -160,8 +162,6 @@ public class S3ClientWithPresign {
 							res.getStatusLine().getStatusCode(),
 							new String(buffer, StandardCharsets.UTF_8).trim()));
 				}
-			} finally {
-				res.close();
 			}
 		}
 	}
