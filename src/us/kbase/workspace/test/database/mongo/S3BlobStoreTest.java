@@ -43,6 +43,7 @@ import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestCommon.LogEvent;
 import us.kbase.typedobj.core.MD5;
@@ -219,7 +220,7 @@ public class S3BlobStoreTest {
 		
 		verify(s3cli).createBucket(CreateBucketRequest.builder().bucket("foo").build());
 		verifyNoMoreInteractions(s3cli);
-		verify(cli, never()).presignAndPutObject(any(), any(), any());
+		verify(cli, never()).presignAndPutObject(any(), any());
 		verify(col, never()).update(any(), any(), anyBoolean(), anyBoolean());
 	}
 	
@@ -260,7 +261,11 @@ public class S3BlobStoreTest {
 		s3.saveBlob(new MD5("1fc5a11811de5142af444f5d482cd748"), data, sorted);
 
 		verify(cli).presignAndPutObject(
-				"foo", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9", expecteddata);
+				PutObjectRequest.builder()
+					.bucket("foo")
+					.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
+					.build(),
+				expecteddata);
 		verify(col).update(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748"),
 				new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
 						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
@@ -318,7 +323,12 @@ public class S3BlobStoreTest {
 		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
 				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
 		doThrow(new IOException("get your trash data outta here")).when(cli)
-				.presignAndPutObject("foo", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9", r);
+				.presignAndPutObject(
+						PutObjectRequest.builder()
+								.bucket("foo")
+								.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
+								.build(),
+						r);
 		
 		saveBlobFail(s, m, r, new BlobStoreCommunicationException(
 				"S3 error: get your trash data outta here"));
@@ -571,7 +581,7 @@ public class S3BlobStoreTest {
 		
 		verify(s3cli).createBucket(CreateBucketRequest.builder().bucket("foo").build());
 		verifyNoMoreInteractions(s3cli);
-		verify(cli, never()).presignAndPutObject(any(), any(), any());
+		verify(cli, never()).presignAndPutObject(any(), any());
 		verify(col, never()).remove(any());
 	}
 	

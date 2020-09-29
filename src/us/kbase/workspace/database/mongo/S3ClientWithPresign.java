@@ -105,28 +105,19 @@ public class S3ClientWithPresign {
 	 * @throws IOException if an error occurs.
 	 */
 	public void presignAndPutObject(
-			final String bucket,
-			final String key,
+			final PutObjectRequest put,
 			final Restreamable object)
 			throws IOException {
-		checkString(key, "key");
-		checkString(bucket, "bucket");
 		requireNonNull(object, "object");
-		// TODO CODE if this approach fixes the problem, pass in the PutObjectRequest instead
-		// of the bucket and key
 		// See https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/presigner/S3Presigner.html
-		final PutObjectPresignRequest put = PutObjectPresignRequest.builder()
+		final PutObjectPresignRequest putreq = PutObjectPresignRequest.builder()
 				// use a 2 hour timeout. Old Glassfish server scripts set timeout to 15m.
 				// current tomcat server has a 30m default timeout.
 				// most servers are going to have a 1h timeout at the most.
 				.signatureDuration(Duration.ofMinutes(2 * 60))
-				.putObjectRequest(
-						PutObjectRequest.builder()
-								.bucket(bucket)
-								.key(key)
-								.build()
-				).build();
-		final PresignedPutObjectRequest presignedPut = presigner.presignPutObject(put);
+				.putObjectRequest(requireNonNull(put, "put"))
+				.build();
+		final PresignedPutObjectRequest presignedPut = presigner.presignPutObject(putreq);
 		
 		final URL target = presignedPut.url();
 		
