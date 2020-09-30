@@ -1,8 +1,6 @@
 Workspace service release notes
 ===============================
 
-
-
 VERSION: 0.11.3 (Released TBD)
 ----------------------------------
 
@@ -10,7 +8,6 @@ UPDATES:
 
 * Fixed a bug that would cause the workspace to eventually hang when using the S3 backend
   configuration.
-
 
 VERSION: 0.11.2 (Released 3/23/20)
 ----------------------------------
