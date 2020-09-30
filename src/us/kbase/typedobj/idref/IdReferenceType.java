@@ -4,7 +4,7 @@ import static us.kbase.workspace.database.Util.checkString;
 
 import java.util.Objects;
 
-/** The type of and ID that references some other entity. An arbitrary string, typically with
+/** The type of an ID that references some other entity. An arbitrary string, typically with
  * some semantic value.
  * @author gaprice@lbl.gov
  *
