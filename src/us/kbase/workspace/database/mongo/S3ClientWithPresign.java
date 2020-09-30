@@ -8,11 +8,10 @@ import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
+import java.time.Duration;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
@@ -22,15 +21,16 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.auth.signer.AwsS3V4Signer;
-import software.amazon.awssdk.auth.signer.params.Aws4PresignerParams;
-import software.amazon.awssdk.http.SdkHttpFullRequest;
-import software.amazon.awssdk.http.SdkHttpMethod;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import us.kbase.typedobj.core.Restreamable;
 
 /** An S3 client that wraps the standard Amazon supplied S3 client and provides a method to
@@ -46,10 +46,8 @@ public class S3ClientWithPresign {
 	// all tests are in the S3BlobStore integration tests.
 	
 	private final S3Client client;
+	private final S3Presigner presigner;
 	private final CloseableHttpClient httpClient;
-	private final URL host;
-	private final Region region;
-	private final AwsBasicCredentials creds;
 	
 	/** Construct the client.
 	 * @param host the host the client will interact with. Schema must be http or https.
@@ -64,10 +62,17 @@ public class S3ClientWithPresign {
 			final String s3secret,
 			final Region region)
 			throws URISyntaxException {
-		this.host = requireNonNull(host, "host");
-		this.region = requireNonNull(region, "region");
-		this.creds = AwsBasicCredentials.create(
+		final AwsCredentials creds = AwsBasicCredentials.create(
 				checkString(s3key, "s3key"), checkString(s3secret, "s3secret"));
+		this.presigner = S3Presigner.builder()
+				.credentialsProvider(StaticCredentialsProvider.create(creds))
+				.region(requireNonNull(region, "region"))
+				.endpointOverride(requireNonNull(host, "host").toURI())
+				.serviceConfiguration(
+						S3Configuration.builder().pathStyleAccessEnabled(true).build())
+				.build();
+		// the client is not actually used in the code here, but might as well build and provide
+		// it here, as all the info needed to build it is required for the presigner
 		this.client = S3Client.builder()
 				.region(region)
 				.endpointOverride(host.toURI())
@@ -100,31 +105,34 @@ public class S3ClientWithPresign {
 	 * @throws IOException if an error occurs.
 	 */
 	public void presignAndPutObject(
-			final String bucket,
-			final String key,
+			final PutObjectRequest put,
 			final Restreamable object)
 			throws IOException {
-		checkString(key, "key");
-		checkString(bucket, "bucket");
 		requireNonNull(object, "object");
-		final Aws4PresignerParams params = Aws4PresignerParams.builder()
-				.expirationTime(Instant.ofEpochSecond(15 * 60))
-				.awsCredentials(creds)
-				.signingName("s3")
-				.signingRegion(region)
+		// See https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/presigner/S3Presigner.html
+		final PutObjectPresignRequest putreq = PutObjectPresignRequest.builder()
+				// use a 2 hour timeout. Old Glassfish server scripts set timeout to 15m.
+				// current tomcat server has a 30m default timeout.
+				// most servers are going to have a 1h timeout at the most.
+				.signatureDuration(Duration.ofHours(2))
+				.putObjectRequest(requireNonNull(put, "put"))
 				.build();
-		final SdkHttpFullRequest request = SdkHttpFullRequest.builder()
-				.encodedPath("/" + bucket + "/" + key)
-				.host(host.getHost())
-				.port(host.getPort())
-				.method(SdkHttpMethod.PUT)
-				.protocol(host.getProtocol())
-				.build();
-		final SdkHttpFullRequest result = AwsS3V4Signer.create().presign(request, params);
-		final URI target = result.getUri();
+		final PresignedPutObjectRequest presignedPut = presigner.presignPutObject(putreq);
+		
+		final URL target = presignedPut.url();
 		
 		try (final InputStream is = object.getInputStream()) {
-			final HttpPut htp = new HttpPut(target);
+			final HttpPut htp;
+			try {
+				htp = new HttpPut(target.toURI());
+			} catch (URISyntaxException e) {
+				// this means the S3 SDK is generating urls that are invalid URIs, which is
+				// pretty bizarre.
+				// not sure how to test this.
+				// since the URI contains credentials, we deliberately do not include the 
+				// source error or URI
+				throw new RuntimeException("S3 presigned request builder generated invalid URI");
+			}
 			final BasicHttpEntity ent = new BasicHttpEntity();
 			ent.setContent(new BufferedInputStream(is));
 			ent.setContentLength(object.getSize());
@@ -132,18 +140,19 @@ public class S3ClientWithPresign {
 			// error handling is a pain here. If the stream is large, for Minio (and probably most
 			// other S3 instances) the connection dies. If the stream is pretty small,
 			// you can get an error back.
-			final CloseableHttpResponse res = httpClient.execute(htp);
-			if (res.getStatusLine().getStatusCode() > 399) {
-				final byte[] buffer = new byte[1000];
-				try (final InputStream in = res.getEntity().getContent()) {
-					new DataInputStream(in).readFully(buffer);
-				} catch (EOFException e) {
-					// do nothing
+			try (final CloseableHttpResponse res = httpClient.execute(htp)) {
+				if (res.getStatusLine().getStatusCode() > 399) {
+					final byte[] buffer = new byte[1000];
+					try (final InputStream in = res.getEntity().getContent()) {
+						new DataInputStream(in).readFully(buffer);
+					} catch (EOFException e) {
+						// do nothing
+					}
+					throw new IOException(String.format(
+							"Error saving file to S3 (%s), truncated response follows:\n%s",
+							res.getStatusLine().getStatusCode(),
+							new String(buffer, StandardCharsets.UTF_8).trim()));
 				}
-				throw new IOException(String.format(
-						"Error saving file to S3 (%s), truncated response follows:\n%s",
-						res.getStatusLine().getStatusCode(),
-						new String(buffer, StandardCharsets.UTF_8).trim()));
 			}
 		}
 	}
