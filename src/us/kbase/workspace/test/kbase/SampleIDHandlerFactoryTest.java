@@ -19,6 +19,8 @@ import java.util.Objects;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 
+import com.google.common.collect.ImmutableMap;
+
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
@@ -35,6 +37,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.kbase.SampleIdHandlerFactory;
 import us.kbase.workspace.kbase.SampleServiceClientWrapper;
 
@@ -110,7 +113,49 @@ public class SampleIDHandlerFactoryTest {
 		
 		assertThat("incorrect ID type", new SampleIdHandlerFactory(cli).getIDType(),
 				is(new IdReferenceType("sample")));
+	}
+	
+	@Test
+	public void getDependenciesNoop() throws Exception {
+		assertThat("incorrect dependencies",
+				new SampleIdHandlerFactory(null).getDependencyStatus(),
+				is(Collections.emptyList()));
+	}
+	
+	@Test
+	public void getDependencies() throws Exception {
+		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
 		
+		when(cli.status()).thenReturn(ImmutableMap.of("version", "8.7.3-fake"));
+		
+		assertThat("incorrect dependencies",
+				new SampleIdHandlerFactory(cli).getDependencyStatus(),
+				is(Arrays.asList(new DependencyStatus(
+						true, "OK", "Sample service", "8.7.3-fake"))));
+	}
+	
+	@Test
+	public void getDependenciesFailIOException() throws Exception {
+		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		
+		when(cli.status()).thenThrow(new IOException("whoopsie"));
+		
+		assertThat("incorrect dependencies",
+				new SampleIdHandlerFactory(cli).getDependencyStatus(),
+				is(Arrays.asList(new DependencyStatus(
+						false, "whoopsie", "Sample service", "Unknown"))));
+	}
+	
+	@Test
+	public void getDependenciesFailJsonClientException() throws Exception {
+		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		
+		when(cli.status()).thenThrow(new JsonClientException("whoopsie2"));
+		
+		assertThat("incorrect dependencies",
+				new SampleIdHandlerFactory(cli).getDependencyStatus(),
+				is(Arrays.asList(new DependencyStatus(
+						false, "whoopsie2", "Sample service", "Unknown"))));
 	}
 	
 	@Test

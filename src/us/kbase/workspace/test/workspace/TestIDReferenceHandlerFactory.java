@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import us.kbase.auth.AuthToken;
+import us.kbase.common.exceptions.UnimplementedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.HandlerLockedException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdParseException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
@@ -19,6 +20,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.idref.SimpleRemappedId;
+import us.kbase.workspace.database.DependencyStatus;
 
 public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory {
 
@@ -147,6 +149,11 @@ public class TestIDReferenceHandlerFactory implements IdReferenceHandlerFactory 
 	@Override
 	public IdReferencePermissionHandler createPermissionHandler(String userName) {
 		return null;
+	}
+
+	@Override
+	public List<DependencyStatus> getDependencyStatus() {
+		throw new UnimplementedException();
 	}
 
 }

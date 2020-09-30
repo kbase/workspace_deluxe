@@ -1,12 +1,14 @@
 package us.kbase.typedobj.idref;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import us.kbase.auth.AuthToken;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
+import us.kbase.workspace.database.DependencyStatus;
 
 /** Builds a set of ID handlers for handling IDs found while validating a
  * typed object. The handler could, for example, check the ID format, check
@@ -63,6 +65,12 @@ public class IdReferenceHandlerSetFactory {
 		 * @return the ID type.
 		 */
 		public IdReferenceType getIDType();
+		
+		/** Get the status of any dependencies on which this factory relies.
+		 * @return the dependency statuses or an empty list if the factory has no dependencies or
+		 *  is inactive.
+		 */
+		public List<DependencyStatus> getDependencyStatus();
 	}
 	
 	/** Create a handler set factory.
