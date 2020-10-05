@@ -141,7 +141,10 @@ public class S3ClientWithPresign {
 			// other S3 instances) the connection dies. If the stream is pretty small,
 			// you can get an error back.
 			try (final CloseableHttpResponse res = httpClient.execute(htp)) {
-				if (res.getStatusLine().getStatusCode() > 399) {
+				// see https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html#API_PutObject_ResponseSyntax
+				// only 200 is success, so don't count 3XX or any other 2XX as successful.
+				// Maybe a bit conservative, but missing a fail or redirect here = corrupt WS data
+				if (res.getStatusLine().getStatusCode() != 200) {
 					final byte[] buffer = new byte[1000];
 					try (final InputStream in = res.getEntity().getContent()) {
 						new DataInputStream(in).readFully(buffer);
