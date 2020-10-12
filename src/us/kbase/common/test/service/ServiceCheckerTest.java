@@ -54,7 +54,7 @@ public class ServiceCheckerTest {
 		TESTS.put("short200", new TestSpec(
 				"URL " + KBASE_ENV + "/services/shock-api does not point " +
 				"to a KBase SDK generated service. Code: 200, message: OK, " +
-				"content: {\"attribute_indexes\"",
+				"content: {",
 				KBASE_ENV + "/services/shock-api"));
 		
 	}
