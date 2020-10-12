@@ -361,7 +361,7 @@ public class HandleAndShockTest {
 
 		final Iterator<Map<String, String>> gotiter = deps.iterator();
 		for (final String name: Arrays.asList(
-				"MongoDB", "Shock", "Handle service", "Linked Shock for IDs")) {
+				"MongoDB", "Shock", "Linked Shock for IDs", "Handle service")) {
 			final Map<String, String> g = gotiter.next();
 			assertThat("incorrect name", (String) g.get("name"), is(name));
 			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
