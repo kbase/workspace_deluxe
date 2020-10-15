@@ -49,11 +49,11 @@
   </fileset>
 
   <fileset dir="${jardir}" id="shocklib">
-    <include name="kbase/shock/shock-client-0.0.16.jar"/>
+    <include name="kbase/shock/shock-client-0.1.0.jar"/>
     <include name="apache_commons/commons-logging-1.1.1.jar"/>
-    <include name="apache_commons/http/httpclient-4.3.1.jar"/>
-    <include name="apache_commons/http/httpcore-4.3.jar"/>
-    <include name="apache_commons/http/httpmime-4.3.1.jar"/>
+    <include name="apache_commons/http/httpclient-4.5.9.jar"/>
+    <include name="apache_commons/http/httpcore-4.4.5.jar"/>
+    <include name="apache_commons/http/httpmime-4.5.8.jar"/>
   </fileset>
 
   <fileset dir="${jardir}" id="applicationlib">

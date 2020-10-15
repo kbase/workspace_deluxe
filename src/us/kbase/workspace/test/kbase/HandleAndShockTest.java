@@ -220,13 +220,18 @@ public class HandleAndShockTest {
 
 		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:"
 				+ SHOCK.getServerPort()), CLIENT1.getToken());
-		SHOCK_USER1 = bsc.addNode().getACLs().getOwner();
+		SHOCK_USER1 = addBasicNode(bsc).getACLs().getOwner();
 		bsc.updateToken(CLIENT2.getToken());
-		SHOCK_USER2 = bsc.addNode().getACLs().getOwner();
+		SHOCK_USER2 = addBasicNode(bsc).getACLs().getOwner();
 		bsc.updateToken(HANDLE_SRVC_TOKEN);
-		SHOCK_USER3 = bsc.addNode().getACLs().getOwner();
+		SHOCK_USER3 = addBasicNode(bsc).getACLs().getOwner();
 
 		System.out.println("finished HandleService setup");
+	}
+	
+	private static ShockNode addBasicNode(final BasicShockClient bsc) throws Exception {
+		return bsc.addNode(
+				new ByteArrayInputStream("a".getBytes("UTF-8")), 1, "n", "JSON");
 	}
 
 	private static void setUpSpecs() throws Exception {
@@ -400,7 +405,7 @@ public class HandleAndShockTest {
 		BasicShockClient bsc = new BasicShockClient(
 				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
 
-		final ShockNode node = bsc.addNode();
+		final ShockNode node = addBasicNode(bsc);
 		String shock_id = node.getId().getId();
 		final Handle handle = new Handle();
 		handle.setId(shock_id);
@@ -538,15 +543,15 @@ public class HandleAndShockTest {
 		// as well as nodes merely owned by the user.
 		final String workspace = "basicshock";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-		final ShockNode n1 = WS_OWNED_SHOCK.addNode(ImmutableMap.of("foo", "bar"),
-				new ByteArrayInputStream("contents".getBytes()), "fname", "text");
+		final ShockNode n1 = WS_OWNED_SHOCK.addNode(
+				new ByteArrayInputStream("contents".getBytes()), 8, "fname", "text");
 		n1.addToNodeAcl(Arrays.asList(USER1), ShockACLType.ALL);
 		// test that user1's write & delete creds are removed from the ws-owned node
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		checkWriteAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		checkDeleteAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		final ShockNode n2 = SHOCK_CLIENT_1.addNode(ImmutableMap.of("foo", "bar2"),
-				new ByteArrayInputStream("contents2".getBytes()), "fname2", "text2");
+		final ShockNode n2 = SHOCK_CLIENT_1.addNode(
+				new ByteArrayInputStream("contents2".getBytes()), 9, "fname2", "text2");
 		try {
 			// expect n1 to stay the same, n2 to be changed to a new shock ID
 			CLIENT1.saveObjects(new SaveObjectsParams()
@@ -643,7 +648,6 @@ public class HandleAndShockTest {
 			throws Exception {
 		final ShockNode sn = cli.getNode(id);
 		final ShockFileInformation fi = sn.getFileInformation();
-		assertThat("incorrect attribs", sn.getAttributes(), is(attrib));
 		assertThat("incorrect filename", fi.getName(), is(filename));
 		assertThat("incorrect format", fi.getFormat(), is(format));
 		assertThat("incorrect file", IOUtils.toString(sn.getFile()), is(file));
@@ -667,12 +671,12 @@ public class HandleAndShockTest {
 				"Object #1, foo has invalid reference: Bytestream node %s does not exist at " +
 				"/ids/0", id), 1, "n"));
 
-		final ShockNode sn = WS_OWNED_SHOCK.addNode();
+		final ShockNode sn = addBasicNode(WS_OWNED_SHOCK);
 		saveWithShockIDFail(CLIENT1, workspace, sn.getId().getId(), new ServerException(
 				String.format("Object #1, foo has invalid reference: User user1 cannot " +
 				"read bytestream node %s at /ids/0", sn.getId().getId()), 1, "n"));
 		
-		final ShockNode sn2 = SHOCK_CLIENT_2.addNode();
+		final ShockNode sn2 = addBasicNode(SHOCK_CLIENT_2);
 		sn2.addToNodeAcl(Arrays.asList(USER1), ShockACLType.READ);
 		saveWithShockIDFail(CLIENT1, workspace, sn2.getId().getId(), new ServerException(
 				String.format("Object #1, foo has invalid reference: User user1 does not " +
@@ -702,7 +706,7 @@ public class HandleAndShockTest {
 	public void getWithShockIDsFail() throws Exception {
 		final String workspace = "shockgetfail";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-		final ShockNode n1 = WS_OWNED_SHOCK.addNode();
+		final ShockNode n1 = addBasicNode(WS_OWNED_SHOCK);
 		n1.addToNodeAcl(Arrays.asList(USER1), ShockACLType.READ);
 		final ShockNodeId id = n1.getId();
 		try {
@@ -762,7 +766,7 @@ public class HandleAndShockTest {
 		BasicShockClient bsc = new BasicShockClient(
 				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
 
-		final ShockNode node = bsc.addNode();
+		final ShockNode node = addBasicNode(bsc);
 		String shock_id = node.getId().getId();
 
 		final Handle handle = new Handle();

@@ -127,7 +127,7 @@ public class ShockBlobStore implements BlobStore {
 	private ShockNode saveNode(final MD5 md5, final Restreamable data)
 			throws BlobStoreCommunicationException {
 		try (final InputStream is = data.getInputStream()) {
-			return client.addNode(is, "workspace_" + md5.getMD5(), "JSON");
+			return client.addNode(is, data.getSize(), "workspace_" + md5.getMD5(), "JSON");
 		} catch (JsonProcessingException jpe) {
 			//this should be impossible
 			throw new RuntimeException("Attribute serialization failed: "
