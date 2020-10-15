@@ -168,11 +168,12 @@ public class ShockBlobStoreTest {
 		
 		when(col.findOne(new BasicDBObject("chksum", md5))).thenReturn(null);
 		
-		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
+		final InputStream stream = new ByteArrayInputStream("foobar".getBytes());
 		
 		when(res.getInputStream()).thenReturn(stream);
+		when(res.getSize()).thenReturn(6L);
 		
-		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+		when(client.addNode(stream, 6, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
 				.thenReturn(sn);
 		
 		when(sn.getId()).thenReturn(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
@@ -214,8 +215,9 @@ public class ShockBlobStoreTest {
 		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
 		
 		when(res.getInputStream()).thenReturn(stream);
+		when(res.getSize()).thenReturn(3L);
 		
-		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+		when(client.addNode(stream, 3, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
 				.thenReturn(sn1, sn2, sn3, sn4, sn5);
 		
 		when(sfi1.getChecksum("md5")).thenReturn("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3");
@@ -272,8 +274,9 @@ public class ShockBlobStoreTest {
 		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
 		
 		when(res.getInputStream()).thenReturn(stream);
+		when(res.getSize()).thenReturn(3L);
 		
-		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+		when(client.addNode(stream, 3, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
 				.thenReturn(sn1, sn2, sn3, sn4, sn5);
 		
 		when(sfi1.getChecksum("md5")).thenReturn("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3");
@@ -355,8 +358,9 @@ public class ShockBlobStoreTest {
 		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
 		
 		when(res.getInputStream()).thenReturn(stream);
+		when(res.getSize()).thenReturn(3L);
 		
-		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+		when(client.addNode(stream, 3, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
 				.thenThrow(thrown);
 		
 		failSaveBlob(sbs, new MD5(md5), res, true, expected);
@@ -380,8 +384,9 @@ public class ShockBlobStoreTest {
 		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
 		
 		when(res.getInputStream()).thenReturn(stream);
+		when(res.getSize()).thenReturn(3L);
 		
-		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+		when(client.addNode(stream, 3, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
 				.thenReturn(sn);
 		
 		when(sn.getId()).thenReturn(new ShockNodeId("ca4a4b5a-b676-4090-9a7d-9690189e29be"));
@@ -428,8 +433,9 @@ public class ShockBlobStoreTest {
 		final InputStream stream = new ByteArrayInputStream("foo".getBytes());
 		
 		when(res.getInputStream()).thenReturn(stream);
+		when(res.getSize()).thenReturn(3L);
 		
-		when(client.addNode(stream, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
+		when(client.addNode(stream, 3, "workspace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1", "JSON"))
 				.thenReturn(sn1);
 		
 		when(sfi1.getChecksum("md5")).thenReturn("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3");
