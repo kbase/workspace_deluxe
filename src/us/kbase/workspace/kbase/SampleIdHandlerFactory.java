@@ -239,7 +239,7 @@ public class SampleIdHandlerFactory implements IdReferenceHandlerFactory {
 							"There was an unexpected error while trying to contact the " +
 							"Sample Service: " + e.getLocalizedMessage(), TYPE, e);
 				}
-				if (user != acls.getOwner() && !acls.getAdmin().contains(user)) {
+				if (!user.equals(acls.getOwner()) && !acls.getAdmin().contains(user)) {
 					throw new IdReferenceException(
 							String.format("User %s does not have administrative permissions " +
 									"for sample %s", user, id),
