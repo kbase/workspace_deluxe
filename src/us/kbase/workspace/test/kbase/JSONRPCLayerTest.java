@@ -92,7 +92,7 @@ import com.google.common.collect.ImmutableMap;
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
-	private static final String VER = "0.11.2";
+	private static final String VER = "0.11.3";
 
 	@Test
 	public void ver() throws Exception {
