@@ -7,9 +7,12 @@ import static us.kbase.common.test.controllers.ControllerCommon.findFreePort;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +32,30 @@ import com.google.common.collect.ImmutableMap;
 import com.mongodb.MongoClient;
 
 import us.kbase.auth.AuthToken;
+import us.kbase.common.service.JsonClientException;
+import us.kbase.common.service.ServerException;
+import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
+import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.sampleservice.CreateSampleParams;
+import us.kbase.sampleservice.GetSampleACLsParams;
+import us.kbase.sampleservice.Sample;
+import us.kbase.sampleservice.SampleACLs;
+import us.kbase.sampleservice.SampleAddress;
+import us.kbase.sampleservice.SampleNode;
 import us.kbase.sampleservice.SampleServiceClient;
+import us.kbase.sampleservice.UpdateSampleACLsParams;
 import us.kbase.test.auth2.authcontroller.AuthController;
+import us.kbase.workspace.CreateWorkspaceParams;
+import us.kbase.workspace.GetObjects2Params;
+import us.kbase.workspace.ObjectData;
+import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.RegisterTypespecParams;
+import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.SetGlobalPermissionsParams;
+import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.test.controllers.arango.ArangoController;
@@ -75,6 +97,8 @@ public class SampleServiceIntegrationTest {
 	private static final String ARANGO_COL_SCHEMA = "schemaCol";
 	
 	private static final String WS_DB = ARANGO_DB;
+	
+	private static final String SAMPLE_TYPE = "Samples.SList-0.1";
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -293,6 +317,18 @@ public class SampleServiceIntegrationTest {
 		ARANGO.clearDatabase(ARANGO_DB, false);
 	}
 	
+
+	private SampleAddress createGenericSample() throws IOException, JsonClientException {
+		return SAMPLE_CLIENT.createSample(new CreateSampleParams()
+				.withSample(new Sample()
+					.withName("my name")
+					.withNodeTree(Arrays.asList(new SampleNode()
+							.withId("node1")
+							.withType("BioReplicate")
+							))
+					));
+	}
+	
 	@Test
 	public void status() throws Exception {
 		// only test the parts of the status that are relevant for the sample service
@@ -322,6 +358,190 @@ public class SampleServiceIntegrationTest {
 				"name", "Sample service", "state", "OK", "message", "OK")));
 	}
 	
+	@Test
+	public void saveSampleAndCheckACLChanges() throws Exception {
+		final SampleAddress samadd = createGenericSample();
+		SAMPLE_CLIENT.updateSampleAcls(new UpdateSampleACLsParams()
+				.withId(samadd.getId())
+				.withAdmin(Arrays.asList(USER2)));
+		String workspace = "basicsample";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		CLIENT1.setPermissions(new SetPermissionsParams()
+				.withWorkspace(workspace)
+				.withUsers(Arrays.asList(USER2, USER3))
+				.withNewPermission("w"));
+		
+		for (final WorkspaceClient cli: Arrays.asList(CLIENT1, CLIENT2)) {
+			// test users can save against sample as long as they have admin privs
+			final String objName = cli.getToken().getUserName() + "obj";
+			saveSampleObject(cli, workspace, objName, samadd, true);
+			
+			final ObjectData obj = getObject(cli, "1/" + objName + "/1");
+			checkExternalIDError(obj);
+			
+			assertThat("incorrect object name", obj.getInfo().getE2(), is(objName));
+			
+			assertThat("incorrect extracted IDs", obj.getExtractedIds(), is(ImmutableMap.of(
+					"sample", Arrays.asList(samadd.getId()))));
+			
+			assertThat("incorrect object", obj.getData().asClassInstance(Map.class),
+					is(ImmutableMap.of("samples", Arrays.asList(samadd.getId()))));
+		}
+		
+		final SampleACLs expected = addAdmin(initEmptyACLs().withOwner(USER1), USER2);
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), expected);
+		
+		// trigger ACL change
+		getObject(CLIENT3, "1/" + USER1 + "obj/1");
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), addRead(expected, USER3));
+	}
+	
+	@Test
+	public void publicReadChange() throws Exception {
+		final SampleAddress samadd = createGenericSample();
+		String workspace = "basicsample";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
+				.withId(1L).withNewPermission("r"));
+		
+		saveSampleObject(CLIENT1, workspace, "myobj", samadd, true);
+		
+		// trigger ACL change
+		getObject(CLIENT_NOAUTH, "1/myobj/1");
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), initEmptyACLs()
+				.withOwner(USER1).withPublicRead(1L));
+	}
+	
+	@Test
+	public void saveSampleFailUnauthorized() throws Exception {
+		final SampleAddress samadd = createGenericSample();
+		SAMPLE_CLIENT.updateSampleAcls(new UpdateSampleACLsParams()
+				.withId(samadd.getId())
+				.withPublicRead(1L)
+				.withWrite(Arrays.asList(USER3))
+				.withRead(Arrays.asList(USER2)));
+		String workspace = "basicsample";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		CLIENT1.setPermissions(new SetPermissionsParams()
+				.withWorkspace(workspace)
+				.withUsers(Arrays.asList(USER2, USER3))
+				.withNewPermission("w"));
+		
+		for (final WorkspaceClient cli: Arrays.asList(CLIENT2, CLIENT3)) {
+			saveSampleObjectFail(cli, workspace, "foo", samadd, new ServerException(String.format(
+					"Object #1, foo has invalid reference: User %s does not have " +
+					"administrative permissions for sample %s at /samples/0",
+					cli.getToken().getUserName(), samadd.getId()), 1, "name"));
+		}
+		
+	}
+	
+	private void saveSampleObject(
+			final WorkspaceClient cli,
+			final String workspace,
+			final String objectName,
+			final SampleAddress samadd)
+			throws Exception {
+		saveSampleObject(cli, workspace, objectName, samadd, false);
+	}
+	
+	private void saveSampleObject(
+			final WorkspaceClient cli,
+			final String workspace,
+			final String objectName,
+			final SampleAddress samadd,
+			final boolean printException)
+			throws Exception {
+		try {
+			cli.saveObjects(new SaveObjectsParams()
+					.withWorkspace(workspace)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData()
+									.withData(new UObject(ImmutableMap.of(
+											"samples", Arrays.asList(samadd.getId()))))
+									.withName(objectName)
+									.withType(SAMPLE_TYPE))));
+		} catch (ServerException se) {
+			if (printException) {
+				System.out.println(se.getData());
+			}
+			throw se;
+		}
+	}
+	
+	private void saveSampleObjectFail(
+			final WorkspaceClient cli,
+			final String workspace,
+			final String objectName,
+			final SampleAddress samadd,
+			final Exception expected) {
+		try {
+			saveSampleObject(cli, workspace, objectName, samadd);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	private void assertAclsCorrect(
+			final SampleServiceClient cli,
+			final String id,
+			final SampleACLs expected)
+			throws Exception {
+		final SampleACLs acls = cli.getSampleAcls(new GetSampleACLsParams().withId(id));
+		assertAclsCorrect(acls, expected);
+		
+	}
+	
+	private void assertAclsCorrect(final SampleACLs got, final SampleACLs expected) {
+		// ^(^&*^^^(%_ no equals in SDK objects
+		assertThat("incorrect ACL addl props", got.getAdditionalProperties(),
+				is(Collections.emptyMap()));
+		assertThat("incorrect is public", got.getPublicRead(), is(expected.getPublicRead()));
+		assertThat("incorrect owner", got.getOwner(), is(expected.getOwner()));
+		assertThat("incorrect admin", got.getAdmin(), is(expected.getAdmin()));
+		assertThat("incorrect write", got.getWrite(), is(expected.getWrite()));
+		assertThat("incorrect read", got.getRead(), is(expected.getRead()));
+	}
+	
+	// Initializes with empty mutable arraylists for the ACLs and false for public read.
+	// Owner is left as null.
+	private SampleACLs initEmptyACLs() {
+		return new SampleACLs()
+				.withPublicRead(0L)
+				.withAdmin(new ArrayList<>())
+				.withWrite(new ArrayList<>())
+				.withRead(new ArrayList<>());
+	}
+	
+	// expects that there's a mutable list in the read field
+	private SampleACLs addRead(final SampleACLs initedACLs, final String user) {
+		initedACLs.getRead().add(user);
+		return initedACLs;
+	}
+	
+	// expects that there's a mutable list in the admin field
+	private SampleACLs addAdmin(final SampleACLs initedACLs, final String user) {
+		initedACLs.getAdmin().add(user);
+		return initedACLs;
+	}
+	
+	private ObjectData getObject(final WorkspaceClient cli, final String ref) throws Exception {
+		return cli.getObjects2(new GetObjects2Params().withObjects(
+				Arrays.asList(new ObjectSpecification().withRef(ref))))
+				.getData().get(0);
+	}
+	
+	private void checkExternalIDError(final ObjectData obj) {
+		checkExternalIDError(obj.getHandleError(), obj.getHandleStacktrace());
+	}
+	
+	private void checkExternalIDError(final String err, final String stack) {
+		if (err != null || stack != null) {
+			throw new TestException("External service reported an error: "
+					+ err + "\n" + stack);
+		}
+	}
 	// TODO NOW finish sample integration tests
 	
 }
