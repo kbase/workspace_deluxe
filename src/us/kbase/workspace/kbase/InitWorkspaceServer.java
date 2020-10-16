@@ -199,7 +199,7 @@ public class InitWorkspaceServer {
 		Types types = new Types(wsdeps.typeDB);
 		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(maxUniqueIdCountPerCall)
-				.withFactory(new HandleIdHandlerFactory(cfg.getHandleServiceURL(), hsc))
+				.withFactory(new HandleIdHandlerFactory(hsc))
 				.withFactory(wsdeps.shockFac.factory)
 				.build();
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, types, builder, auth);
@@ -500,7 +500,7 @@ public class InitWorkspaceServer {
 			final InitReporter rep,
 			final ConfigurableAuthService auth) {
 		try {
-			return auth.validateToken(cfg.getHandleManagerToken());
+			return auth.validateToken(cfg.getHandleServiceToken());
 		} catch (AuthException e) {
 			rep.reportFail("Invalid handle manager token: " + e.getMessage());
 		} catch (IOException e) {

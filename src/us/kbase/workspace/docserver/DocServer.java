@@ -56,15 +56,21 @@ public class DocServer extends HttpServlet {
 	
 	private static final FileNameMap FILE_NAME_MAP = URLConnection.getFileNameMap();
 	
+	private static final String DONT_TRUST_X_IP_HEADERS =
+			"dont_trust_x_ip_headers";
+	private static final String DONT_TRUST_X_IP_HEADERS2 =
+			"dont-trust-x-ip-headers";
+	private static final String STRING_TRUE = "true";
+	
 	private final String docsLoc;
 	private final JsonServerSyslog logger;
-	private final Map<String, String> config;
 	
 	private static String defaultDocsLoc = DEFAULT_DOCS_LOC;
 	private static SyslogOutput sysLogOut = null;
 	private static final String SERVER_CONTEXT_LOC = "/docs/*";
 	private Integer jettyPort = null;
 	private Server jettyServer = null;
+	private final boolean trustX_IPHeaders;
 	private static final long serialVersionUID = 1L;
 	
 
@@ -75,6 +81,7 @@ public class DocServer extends HttpServlet {
 	 * Creates a new document server
 	 */
 	public DocServer() {
+		//TODO JERSEY switch to a jersey endpoint when that's available, ditch logger, etc. Pretty big rewrite/simplification
 		super();
 		/* really should try and get the companion service name from the env
 		 * here, but not worth the effort
@@ -86,8 +93,8 @@ public class DocServer extends HttpServlet {
 			templogger.changeOutput(sysLogOut);
 		}
 		// getConfig() gets the service name from the env if it exists
-		config = JsonServerServlet.getConfig(DEFAULT_COMPANION_SERVICE_NAME,
-				templogger);
+		final Map<String, String> config = JsonServerServlet.getConfig(
+				DEFAULT_COMPANION_SERVICE_NAME, templogger);
 		
 		String serverName = config.get(CFG_SERVICE_NAME);
 		if (serverName == null || serverName.isEmpty()) {
@@ -108,6 +115,9 @@ public class DocServer extends HttpServlet {
 		if (sysLogOut != null) {
 			logger.changeOutput(sysLogOut);
 		}
+		this.trustX_IPHeaders =
+				!STRING_TRUE.equals(config.get(DONT_TRUST_X_IP_HEADERS)) &&
+				!STRING_TRUE.equals(config.get(DONT_TRUST_X_IP_HEADERS2));
 	}
 	
 	@Override
@@ -129,7 +139,7 @@ public class DocServer extends HttpServlet {
 		
 		final RpcInfo rpc = JsonServerSyslog.getCurrentRpcInfo();
 		rpc.setId(("" + Math.random()).substring(2));
-		rpc.setIp(JsonServerServlet.getIpAddress(request, config));
+		rpc.setIp(JsonServerServlet.getIpAddress(request, trustX_IPHeaders));
 		rpc.setMethod("GET");
 		logHeaders(request);
 	

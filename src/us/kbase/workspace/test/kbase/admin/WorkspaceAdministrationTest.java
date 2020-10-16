@@ -219,7 +219,7 @@ public class WorkspaceAdministrationTest {
 			assertThat("incorrect message", got.getMessage(), containsString(
 					"Unable to deserialize a workspace admin command from the input: " +
 					"Unexpected character (',' (code 44)): was expecting double-quote to " +
-					"start field name\n at [Source: java.io.StringReader"));
+					"start field name"));
 		}
 	}
 	
@@ -239,8 +239,8 @@ public class WorkspaceAdministrationTest {
 					"Unable to deserialize a workspace admin command from the input: " +
 					"Unrecognized field \"unexpectedfield\" (" +
 					"class us.kbase.workspace.kbase.admin.AdminCommand), not marked as " +
-					"ignorable (4 known properties: , " +
-					"\"command\", \"user\", \"module\", \"params\"])"));
+					"ignorable (4 known properties: " +
+					"\"command\", \"module\", \"params\", \"user\"])"));
 		}
 	}
 	
@@ -254,6 +254,7 @@ public class WorkspaceAdministrationTest {
 		
 		when(jts.setRoot(null)).thenReturn(jts);
 		when(jts.getCurrentToken()).thenReturn(JsonToken.START_OBJECT);
+		when(jts.isExpectedStartObjectToken()).thenReturn(true);
 		when(jts.nextToken()).thenThrow(new IOException("whoopsie"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah"))).thenReturn(AdminRole.READ_ONLY);
@@ -418,7 +419,7 @@ public class WorkspaceAdministrationTest {
 				final String err = "incorrect message for exception:\n" +
 						ExceptionUtils.getStackTrace(got);
 				assertThat(err, got.getMessage(), containsString(
-						"Unable to deserialize " + me.clazz + " out of params field: Can not"));
+						"Unable to deserialize " + me.clazz + " out of params field: Cannot"));
 			}
 		}
 	}

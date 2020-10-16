@@ -249,7 +249,7 @@ public class KBaseAuth2AdminHandlerTest {
 			assertThat("incorrect exception", got.getMessage(), containsString(
 					"Invalid KBase authentication server response. Server said 400 Bad Request. " +
 					"JSON parser said Unrecognized token 'No': was expecting 'null', 'true', " +
-					"'false' or NaN\n at [Source: java.io.ByteArrayInputStream"));
+					"'false' or NaN"));
 			assertThat("incorrect exception", got.getMessage(), containsString(
 					"; line: 1, column: 4]"));
 		}
@@ -480,8 +480,7 @@ public class KBaseAuth2AdminHandlerTest {
 					"Invalid KBase authentication server response. " +
 					"Server said 420 Enhance your calm. JSON parser said Unexpected " +
 					"character (' ' (code 32)) in numeric value: expected digit (0-9) to " +
-					"follow minus sign, for valid numeric value\n" + 
-					" at [Source: java.io.ByteArrayInputStream"));
+					"follow minus sign, for valid numeric value"));
 			assertThat("incorrect exception", got.getMessage(), containsString(
 					"; line: 1, column: 3]"));
 		}

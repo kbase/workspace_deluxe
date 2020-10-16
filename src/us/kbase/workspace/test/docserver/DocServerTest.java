@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.docserver;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
@@ -61,6 +62,7 @@ public class DocServerTest {
 	
 	private static String CT_HTML = "text/html";
 	private static String CT_HTML_ERR = "text/html;charset=ISO-8859-1";
+	private static String USER_AGENT_PREFIX = "Apache-HttpClient/4.5.9 ("; // java version next
 	
 	private static int INFO = JsonServerSyslog.LOG_LEVEL_INFO;
 	private static int ERR = JsonServerSyslog.LOG_LEVEL_ERR;
@@ -567,7 +569,7 @@ public class DocServerTest {
 			assertThat("status code correct", msgparts[1],
 					is(exp.level == INFO ? "200" : "404"));
 			assertThat("User agent correct", msgparts[2],
-					is("Apache-HttpClient/4.3.1 (java 1.5)"));
+					startsWith(USER_AGENT_PREFIX));
 		}
 		return callID;
 	}

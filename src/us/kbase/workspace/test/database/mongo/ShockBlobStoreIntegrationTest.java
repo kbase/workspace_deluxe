@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -119,7 +120,8 @@ public class ShockBlobStoreIntegrationTest {
 	@Test
 	public void dataWithoutSortMarker() throws Exception {
 		String s = "pootypoot";
-		ShockNode sn = client.addNode(new ByteArrayInputStream(s.getBytes("UTF-8")), A32, "JSON");
+		ShockNode sn = client.addNode(
+				new ByteArrayInputStream(s.getBytes("UTF-8")), 9, A32, "JSON");
 		DBObject rec = new BasicDBObject(Fields.SHOCK_CHKSUM, A32);
 		rec.put(Fields.SHOCK_NODE, sn.getId().getId());
 		rec.put(Fields.SHOCK_VER, sn.getVersion().getVersion());
@@ -146,7 +148,7 @@ public class ShockBlobStoreIntegrationTest {
 		}
 		@Override
 		public long getSize() {
-			return -1; // unused for Shock (might be used for blobstore in future)
+			return data.getBytes(StandardCharsets.UTF_8).length;
 		}
 	}
 	

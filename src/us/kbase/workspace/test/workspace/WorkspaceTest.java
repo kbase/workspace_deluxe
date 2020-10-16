@@ -6753,7 +6753,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	private Set<Long> nums(Integer... nums) {
 		Set<Long> ret = new HashSet<Long>();
 		for (int i = 0; i < nums.length; i++) {
-			ret.add(new Long(nums[i]));
+			ret.add(Long.valueOf(nums[i]));
 		}
 		return ret;
 	}

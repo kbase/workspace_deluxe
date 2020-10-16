@@ -8,38 +8,18 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import us.kbase.common.utils.JsonTreeGenerator;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 
 /**
  * Extraction of ws-searchable subset based on json token stream.
  * @author rsutormin
  */
 public class SubdataExtractor {
-	private static ObjectMapper mapper = new ObjectMapper();
-	
-	/**
-	 * This method should be used only in tests because it processes json data 
-	 * stored in memory as a tree rather than as token stream that could be processed
-	 * directly from a file.
-	 */
-	public static JsonNode extract(SubsetSelection objpaths, JsonNode input) 
-			throws IOException, TypedObjectExtractionException {
-		TokenSequenceProvider tsp = createTokenSequenceProvider(new TreeTraversingParser(input));
-		JsonTreeGenerator jgen = new JsonTreeGenerator(mapper);
-		extractFields(objpaths, tsp, jgen);
-		tsp.close();
-		jgen.close();
-		return jgen.getTree();
-	}
 	
 	/**
 	 * extract the fields listed in selection from the element and add them to the subset
