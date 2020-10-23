@@ -55,7 +55,6 @@ import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.SaveObjectsParams;
-import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
@@ -376,7 +375,7 @@ public class SampleServiceIntegrationTest {
 		for (final WorkspaceClient cli: Arrays.asList(CLIENT1, CLIENT2)) {
 			// test users can save against sample as long as they have admin privs
 			final String objName = cli.getToken().getUserName() + "obj";
-			saveSampleObject(cli, workspace, objName, samadd, true);
+			saveSampleObject(cli, workspace, objName, samadd.getId(), true);
 			
 			final ObjectData obj = getObject(cli, "1/" + objName + "/1");
 			
@@ -401,16 +400,21 @@ public class SampleServiceIntegrationTest {
 	public void publicReadChange() throws Exception {
 		final SampleAddress samadd = createGenericSample();
 		final String workspace = "pubread";
-		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
-				.withId(1L).withNewPermission("r"));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams()
+				.withWorkspace(workspace)
+				.withGlobalread("r"));
 		
-		saveSampleObject(CLIENT1, workspace, "myobj", samadd, true);
+		saveSampleObject(CLIENT1, workspace, "myobj", samadd.getId(), true);
 		
-		// trigger ACL change
+		// trigger ACL change for anon user
 		getObject(CLIENT_NOAUTH, "1/myobj/1");
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), initEmptyACLs()
 				.withOwner(USER1).withPublicRead(1L));
+		
+		// trigger ACL change for user without direct workspace access
+		getObject(CLIENT2, "1/myobj/1");
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), addRead(initEmptyACLs()
+				.withOwner(USER1).withPublicRead(1L), USER2));
 	}
 	
 	@Test
@@ -425,7 +429,7 @@ public class SampleServiceIntegrationTest {
 				.withUsers(Arrays.asList(USER2))
 				.withNewPermission("r"));
 		
-		saveSampleObject(CLIENT1, workspace, "myobj", samadd, true);
+		saveSampleObject(CLIENT1, workspace, "myobj", samadd.getId(), true);
 		getObject(CLIENT2, "1/myobj/1");
 		
 		final SampleACLs acls = addRead(initEmptyACLs().withOwner(USER1), USER2);
@@ -453,7 +457,7 @@ public class SampleServiceIntegrationTest {
 				.withUsers(Arrays.asList(USER2))
 				.withNewPermission("r"));
 		
-		saveSampleObject(CLIENT1, workspace, "myobj", samadd, true);
+		saveSampleObject(CLIENT1, workspace, "myobj", samadd.getId(), true);
 		CLIENT1.saveObjects(new SaveObjectsParams()
 				.withId(1L)
 				.withObjects(Arrays.asList(new ObjectSaveData()
@@ -511,6 +515,26 @@ public class SampleServiceIntegrationTest {
 	}
 	
 	@Test
+	public void saveSampleFailBadID() throws Exception {
+		createGenericSample(); // put a sample in the database
+		String workspace = "failbadid";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		
+		saveSampleObjectFail(CLIENT1, workspace, "whoops", null,
+				new ServerException(
+						"Object #1, whoops failed type checking:\ninstance type (null) not " +
+						"allowed for ID reference (allowed: [\"string\"]), at /samples/0",
+						1, "name"));
+		
+		saveSampleObjectFail(CLIENT1, workspace, "whoops", "fakesampleaddress",
+				new ServerException(
+						"Object #1, whoops has invalid reference: The Sample Service reported " +
+						"a problem while attempting to get Sample ACLs: Sample service " +
+						"error code 30001 Illegal input parameter: id fakesampleaddress " +
+						"must be a UUID string at /samples/0", 1, "name"));
+	}
+	
+	@Test
 	public void saveSampleFailUnauthorized() throws Exception {
 		final SampleAddress samadd = createGenericSample();
 		SAMPLE_CLIENT.updateSampleAcls(new UpdateSampleACLsParams()
@@ -518,7 +542,7 @@ public class SampleServiceIntegrationTest {
 				.withPublicRead(1L)
 				.withWrite(Arrays.asList(USER3))
 				.withRead(Arrays.asList(USER2)));
-		String workspace = "basicsample";
+		String workspace = "failunauthed";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		CLIENT1.setPermissions(new SetPermissionsParams()
 				.withWorkspace(workspace)
@@ -526,10 +550,12 @@ public class SampleServiceIntegrationTest {
 				.withNewPermission("w"));
 		
 		for (final WorkspaceClient cli: Arrays.asList(CLIENT2, CLIENT3)) {
-			saveSampleObjectFail(cli, workspace, "foo", samadd, new ServerException(String.format(
-					"Object #1, foo has invalid reference: User %s does not have " +
-					"administrative permissions for sample %s at /samples/0",
-					cli.getToken().getUserName(), samadd.getId()), 1, "name"));
+			saveSampleObjectFail(cli, workspace, "foo", samadd.getId(), new ServerException(
+					String.format(
+						"Object #1, foo has invalid reference: User %s does not have " +
+						"administrative permissions for sample %s at /samples/0",
+						cli.getToken().getUserName(), samadd.getId()),
+					1, "name"));
 		}
 		
 	}
@@ -538,16 +564,16 @@ public class SampleServiceIntegrationTest {
 			final WorkspaceClient cli,
 			final String workspace,
 			final String objectName,
-			final SampleAddress samadd)
+			final String sampleid)
 			throws Exception {
-		saveSampleObject(cli, workspace, objectName, samadd, false);
+		saveSampleObject(cli, workspace, objectName, sampleid, false);
 	}
 	
 	private void saveSampleObject(
 			final WorkspaceClient cli,
 			final String workspace,
 			final String objectName,
-			final SampleAddress samadd,
+			final String sampleid,
 			final boolean printException)
 			throws Exception {
 		try {
@@ -556,7 +582,7 @@ public class SampleServiceIntegrationTest {
 					.withObjects(Arrays.asList(
 							new ObjectSaveData()
 									.withData(new UObject(ImmutableMap.of(
-											"samples", Arrays.asList(samadd.getId()))))
+											"samples", Arrays.asList(sampleid))))
 									.withName(objectName)
 									.withType(SAMPLE_TYPE))));
 		} catch (ServerException se) {
@@ -571,10 +597,10 @@ public class SampleServiceIntegrationTest {
 			final WorkspaceClient cli,
 			final String workspace,
 			final String objectName,
-			final SampleAddress samadd,
+			final String sampleid,
 			final Exception expected) {
 		try {
-			saveSampleObject(cli, workspace, objectName, samadd);
+			saveSampleObject(cli, workspace, objectName, sampleid);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
