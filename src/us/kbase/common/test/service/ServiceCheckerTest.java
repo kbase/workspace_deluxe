@@ -17,7 +17,7 @@ import us.kbase.common.service.ServiceChecker.ServiceException;
 
 public class ServiceCheckerTest {
 	
-	private final static String KBASE_ENV = "https://ci.kbase.us"; // "https://kbase.us/"
+	private final static String KBASE_ENV = "https://next.kbase.us"; // "https://kbase.us/"
 
 	public static class TestSpec {
 		public final String err;
