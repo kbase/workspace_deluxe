@@ -34,7 +34,7 @@ public class SaveAndGetFromShock {
 		final long presave = System.nanoTime();
 		for (int i = 0; i < COUNT; i++) {
 			final ByteArrayInputStream bais = new ByteArrayInputStream(conbytes);
-			final ShockNode node = bsc.addNode(bais, "foo", "text");
+			final ShockNode node = bsc.addNode(bais, FILE_SIZE, "foo", "text");
 			ids.add(node.getId().getId());
 		}
 		double elapsed = printElapse("shock load", presave);

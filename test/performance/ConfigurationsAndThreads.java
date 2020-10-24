@@ -566,7 +566,8 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performWrites() throws Exception {
 			for (int i = 0; i < this.writes; i++) {
-				nodes.add(bsc.addNode(new ByteArrayInputStream(data), "foo", "UTF-8"));
+				nodes.add(bsc.addNode(
+						new ByteArrayInputStream(data), data.length, "foo", "UTF-8"));
 			}
 			return 0;
 		}
