@@ -235,10 +235,13 @@ public class HandleAndShockTest {
 
 	private static void setUpSpecs() throws Exception {
 		final String handlespec =
+				// An SDK struct type must always have at least one field, but that field can be
+				// optional. The Empty type allows for arbitrary contents *other than* if its
+				// singular field is included. So just don't use that field
 				"module HandleByteStreamList {" +
-					"/* @optional dontusethis */" +
+					"/* @optional ifyouputanythinginthisfielditmustbeanint */" +
 					"typedef structure {" +
-						"int dontusethis;" +
+						"int ifyouputanythinginthisfielditmustbeanint;" +
 					"} Empty;" + // for ad hoc testing
 					"/* @id handle */" +
 					"typedef string handle;" +
