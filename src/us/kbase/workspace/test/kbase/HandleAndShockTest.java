@@ -235,7 +235,14 @@ public class HandleAndShockTest {
 
 	private static void setUpSpecs() throws Exception {
 		final String handlespec =
+				// An SDK struct type must always have at least one field, but that field can be
+				// optional. The Empty type allows for arbitrary contents *other than* if its
+				// singular field is included. So just don't use that field
 				"module HandleByteStreamList {" +
+					"/* @optional ifyouputanythinginthisfielditmustbeanint */" +
+					"typedef structure {" +
+						"int ifyouputanythinginthisfielditmustbeanint;" +
+					"} Empty;" + // for ad hoc testing
 					"/* @id handle */" +
 					"typedef string handle;" +
 					"typedef structure {" +
@@ -257,7 +264,8 @@ public class HandleAndShockTest {
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec(handlespec)
-			.withNewTypes(Arrays.asList("HList", "SList", "HRef")));
+			.withNewTypes(Arrays.asList("HList", "SList", "HRef", "Empty")));
+		CLIENT1.releaseModule("HandleByteStreamList");
 	}
 
 	private static WorkspaceServer startupWorkspaceServer(
