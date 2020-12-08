@@ -1,6 +1,13 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.11.4 (Released TBD)
+----------------------------------
+
+UPDATES:
+
+* Added an option to trust all SLL certificates to the S3 backend (default false).
+
 VERSION: 0.11.3 (Released 10/15/20)
 ----------------------------------
 
