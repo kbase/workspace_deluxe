@@ -122,6 +122,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), nullValue());
@@ -160,6 +161,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-url", "   " + CI_SERV + "shock-api    ")
 				.with("backend-user", "    someuser    ")
 				.with("backend-token", "    token token token    ")
+				.with("backend-trust-all-ssl-certificates", "    true    ")
 				.with("handle-service-token", "    hstoken    ")
 				.with("handle-manager-token", "    hmtoken    ")  // test service takes precedence
 				.with("handle-service-url", "     " + CI_SERV + "handle_service    ")
@@ -185,7 +187,8 @@ public class KBaseWorkspaceConfigTest {
 				"auth2-ws-admin-full-roles=role3,   ,   role4   ,\n" +
 				"backend-type=Shock\n" +
 				"backend-url=" + CI_SERV + "shock-api\n" +
-				"backend-user=someuser\n" + 
+				"backend-user=someuser\n" +
+				"backend-trust-all-ssl-certificates=true\n" +
 				"handle-service-url=" + CI_SERV + "handle_service\n" +
 				"bytestream-url=" + CI_SERV + "shock-api2\n" +
 				"bytestream-user=otheruser\n" +
@@ -206,6 +209,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), is("someuser"));
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(true));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), is("hstoken"));
@@ -251,6 +255,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-token", "    token token token    ")
 				.with("backend-container", "   mahbukkit   ")
 				.with("backend-region", "   a-lovely-region   ")
+				.with("backend-trust-all-ssl-certificates", "trudat")
 				.with("handle-manager-token", "    hmtoken    ")
 				.with("handle-manager-url", "    " + CI_SERV + "handle_mngr     ")
 				.with("handle-service-url", "     " + CI_SERV + "handle_service    ")
@@ -279,6 +284,7 @@ public class KBaseWorkspaceConfigTest {
 				"backend-user=someuser\n" + 
 				"backend-region=a-lovely-region\n" +
 				"backend-container=mahbukkit\n" +
+				"backend-trust-all-ssl-certificates=trudat\n" +
 				"handle-service-url=" + CI_SERV + "handle_service\n" +
 				"bytestream-url=" + CI_SERV + "shock-api2\n" +
 				"bytestream-user=otheruser\n" +
@@ -300,6 +306,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend container", kwc.getBackendContainer(), is("mahbukkit"));
 		assertThat("incorrect backend region", kwc.getBackendRegion(),
 				is(Region.of("a-lovely-region")));
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), is("hmtoken"));
@@ -345,6 +352,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-user", "   \t    ")
 				.with("backend-url", "   \t    ")
 				.with("backend-container", "   \t    ")
+				.with("backend-trust-all-ssl-certificates", "   \t    ")
 				.with("backend-region", "   \t    ")
 				.with("handle-service-token", "hstoken")
 				.with("handle-service-url", CI_SERV + "handle_service")
@@ -375,6 +383,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
 		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), is("hstoken"));
@@ -511,6 +520,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(), nullValue());
 		assertThat("incorrect host", kwc.getHost(), nullValue());
 		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Collections.emptyList()));
@@ -577,6 +587,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), nullValue());
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), nullValue());
@@ -647,6 +658,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), is("buser"));
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), is("hmtoken"));
@@ -704,6 +716,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), nullValue());
@@ -759,6 +772,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), nullValue());
@@ -846,6 +860,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), nullValue());
@@ -919,6 +934,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
 		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
 		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), nullValue());

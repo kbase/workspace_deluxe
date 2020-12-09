@@ -458,7 +458,7 @@ public class InitWorkspaceServer {
 						cfg.getBackendUser(),
 						cfg.getBackendToken(),
 						cfg.getBackendRegion(),
-						false); // TODO NOW add toggle from from config
+						cfg.getBackendTrustAllCerts());
 				return new S3BlobStore(
 						db.getCollection(COL_S3_OBJECTS),
 						cli,
