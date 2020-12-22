@@ -45,6 +45,7 @@ public class KBaseWorkspaceConfig {
 	private static final String BACKEND_URL = "backend-url";
 	private static final String BACKEND_REGION = "backend-region";
 	private static final String BACKEND_CONTAINER = "backend-container";
+	private static final String BACKEND_SSC_SSL = "backend-trust-all-ssl-certificates";
 	//mongo db auth params:
 	private static final String MONGO_USER = "mongodb-user";
 	private static final String MONGO_PWD = "mongodb-pwd";
@@ -80,6 +81,8 @@ public class KBaseWorkspaceConfig {
 	//directory for temp files
 	private static final String TEMP_DIR = "temp-dir";
 	
+	private static final String TRUE_STR = "true";
+	
 	// the auth2 urls are checked when getting the url
 	private static final List<String> REQUIRED_PARAMS = Arrays.asList(
 			HOST, DB, TYPE_DB, TEMP_DIR, BACKEND_TYPE);
@@ -99,6 +102,7 @@ public class KBaseWorkspaceConfig {
 	private final URL backendURL;
 	private final String backendUser;
 	private final String backendToken;
+	private final boolean backendTrustAllCerts;
 	private final String tempDir;
 	private final URL bytestreamURL;
 	private final String bytestreamUser;
@@ -217,6 +221,7 @@ public class KBaseWorkspaceConfig {
 			backendUser = null;
 			backendRegion = null;
 			backendContainer = null;
+			backendTrustAllCerts = false;
 		} else {
 			backendType = BackendType.valueOf(bet);
 			for (final String param: BACKEND_TYPES.get(backendType.name())) {
@@ -230,6 +235,7 @@ public class KBaseWorkspaceConfig {
 			backendUser = nullIfEmpty(config.get(BACKEND_USER));
 			backendContainer = nullIfEmpty(config.get(BACKEND_CONTAINER));
 			backendRegion = getRegion(config, BACKEND_REGION, paramErrors);
+			backendTrustAllCerts = TRUE_STR.equals(nullIfEmpty(config.get(BACKEND_SSC_SSL)));
 		}
 
 		bytestreamURL = getUrl(config, BYTESTREAM_URL, paramErrors, false);
@@ -366,11 +372,12 @@ public class KBaseWorkspaceConfig {
 
 	private String generateParamReport(final Map<String, String> cfg) {
 		String params = "";
+		// TODO CODE move this up top where it's easier to see & alter, document
 		final List<String> paramSet = new LinkedList<String>(
 				Arrays.asList(HOST, DB, TYPE_DB, MONGO_USER, KBASE_AUTH_URL, KBASE_AUTH2_URL,
 						KBASE_AUTH_ADMIN_READ_ONLY_ROLES, KBASE_AUTH_ADMIN_FULL_ROLES,
 						BACKEND_TYPE, BACKEND_URL, BACKEND_USER, BACKEND_REGION,
-						BACKEND_CONTAINER));
+						BACKEND_CONTAINER, BACKEND_SSC_SSL));
 		if (!ignoreHandleService) {
 			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL));
 		}
@@ -379,6 +386,8 @@ public class KBaseWorkspaceConfig {
 		}
 		for (final String s: paramSet) {
 			if (!nullOrEmpty(cfg.get(s))) {
+				// TODO CODE this should probably be the actual instance value so defaults
+				// are shown vs the map entry. Means quite a bit more code/annoyance though.
 				params += s + "=" + cfg.get(s).trim() + "\n";
 			}
 		}
@@ -475,6 +484,10 @@ public class KBaseWorkspaceConfig {
 	
 	public Region getBackendRegion() {
 		return backendRegion;
+	}
+	
+	public boolean getBackendTrustAllCerts() {
+		return backendTrustAllCerts;
 	}
 
 	public String getTempDir() {

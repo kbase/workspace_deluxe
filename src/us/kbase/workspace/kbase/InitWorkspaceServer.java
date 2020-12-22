@@ -457,7 +457,8 @@ public class InitWorkspaceServer {
 						cfg.getBackendURL(),
 						cfg.getBackendUser(),
 						cfg.getBackendToken(),
-						cfg.getBackendRegion());
+						cfg.getBackendRegion(),
+						cfg.getBackendTrustAllCerts());
 				return new S3BlobStore(
 						db.getCollection(COL_S3_OBJECTS),
 						cli,
