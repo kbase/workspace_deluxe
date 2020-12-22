@@ -1,7 +1,7 @@
 Workspace service release notes
 ===============================
 
-VERSION: 0.11.4 (Released TBD)
+VERSION: 0.11.5 (Released TBD)
 ------------------------------
 
 UPDATES:
@@ -10,6 +10,14 @@ UPDATES:
   sample service to objects with that annotation in the type. See :ref:`sampleserviceintegration`
   for operations and :ref:`configurationparameters` for new configuration parameters:
   ``sample-service-url``, ``sample-service-admin-token``, and ``sample-service-admin-tag``.
+
+VERSION: 0.11.4 (Released TBD)
+------------------------------
+
+UPDATES:
+
+* Added an option to trust all SSL certificates to the S3 backend (default false). See the
+  ``deploy.cfg.example`` file for details.
 
 VERSION: 0.11.3 (Released 10/15/20)
 -----------------------------------
