@@ -46,6 +46,9 @@ public class S3BlobStoreIntegrationTest {
 	// some reason.
 	
 	private static S3BlobStore s3bs;
+	// use to exercise the cert trusting code, although doesn't actually test against self
+	//signed certs
+	private static S3BlobStore s3bsTrustCerts;
 	private static S3ClientWithPresign s3client;
 	private static DB mongo;
 	private static MinioController minio;
@@ -79,8 +82,12 @@ public class S3BlobStoreIntegrationTest {
 		URL url = new URL("http://localhost:" + minio.getServerPort());
 		System.out.println("Testing workspace Minio backend pointed at: " + url);
 		s3client = new S3ClientWithPresign(
-				url, "s3keyhere", "sooporsekrit", Region.of("us-west-1"));
+				url, "s3keyhere", "sooporsekrit", Region.of("us-west-1"), false);
 		s3bs = new S3BlobStore(mongo.getCollection(COLLECTION), s3client, BUCKET);
+		
+		final S3ClientWithPresign s3client2 = new S3ClientWithPresign(
+				url, "s3keyhere", "sooporsekrit", Region.of("us-west-1"), true);
+		s3bsTrustCerts = new S3BlobStore(mongo.getCollection(COLLECTION), s3client2, BUCKET);
 	}
 	
 	@AfterClass
@@ -121,7 +128,7 @@ public class S3BlobStoreIntegrationTest {
 			final Region region,
 			final Exception expected) {
 		try {
-			new S3ClientWithPresign(host, key, secret, region);
+			new S3ClientWithPresign(host, key, secret, region, false);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
@@ -169,9 +176,14 @@ public class S3BlobStoreIntegrationTest {
 	
 	@Test
 	public void saveAndGetBlob() throws Exception {
+		saveAndGetBlob(s3bs);
+		saveAndGetBlob(s3bsTrustCerts);
+	}
+	
+	private void saveAndGetBlob(final S3BlobStore bs) throws Exception {
 		MD5 md1 = new MD5("5e498cecc4017dad15313bb009b0ef49");
 		String data = "this is a blob yo";
-		s3bs.saveBlob(md1, new StringRestreamable(data), true);
+		bs.saveBlob(md1, new StringRestreamable(data), true);
 		MD5 md1copy = new MD5("5e498cecc4017dad15313bb009b0ef49");
 		ByteArrayFileCache d = s3bs.getBlob(md1copy, 
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
@@ -179,22 +191,22 @@ public class S3BlobStoreIntegrationTest {
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
 		//should be able to save the same thing twice with no error
-		s3bs.saveBlob(md1, new StringRestreamable(data), true);
+		bs.saveBlob(md1, new StringRestreamable(data), true);
 		
-		s3bs.saveBlob(md1, new StringRestreamable(data), false); //this should do nothing
+		bs.saveBlob(md1, new StringRestreamable(data), false); //this should do nothing
 		assertThat("sorted still true", s3bs.getBlob(md1copy,
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm))
 				.isSorted(), is(true));
 		
 		MD5 md2 = new MD5("78afe93c486269db5b49d9017e850103");
 		String data2 = "this is also a blob yo";
-		s3bs.saveBlob(md2, new StringRestreamable(data2), false);
-		d = s3bs.getBlob(md2,
+		bs.saveBlob(md2, new StringRestreamable(data2), false);
+		d = bs.getBlob(md2,
 				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
 		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
 		
-		s3bs.removeBlob(md1);
-		s3bs.removeBlob(md2);
+		bs.removeBlob(md1);
+		bs.removeBlob(md2);
 		failGetBlob(md1);
 	}
 	

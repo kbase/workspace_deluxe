@@ -309,7 +309,8 @@ public class WorkspaceTester {
 				new URL("http://localhost:" + minio.getServerPort()),
 				"s3key",
 				"supersecretkey",
-				Region.of("us-west-1"));
+				Region.of("us-west-1"),
+				false);
 		final BlobStore bs = new S3BlobStore(wsdb.getCollection("s3_map"), cli, "test-bucket");
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}

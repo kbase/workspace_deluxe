@@ -73,6 +73,13 @@ backend-container = workspace-data
 # Region where the backend service will store data. Only required for S3.
 backend-region = us-west-1
 
+# Whether to trust all SSL certificates presented by the backend service. Useful for testing with
+# self-signed certificates. 'true' (without quotes) sets the backend to trust all certs; anything
+# else requires that the cert, if present, is a standard valid signed certificate. Only affects the
+# S3 backend.
+# *WARNING* Do not set this to true unless you are absolutely sure of what you are doing.
+backend-trust-all-ssl-certificates = false
+
 # The next three configuration items are for handling workspace objects that link to Shock nodes.
 # The Shock service may or may not be the same as the Shock service used for backend
 # storage. Similarly, the account used to own linked shock nodes may be the same as that

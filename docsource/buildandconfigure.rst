@@ -297,6 +297,16 @@ backend-region
 
 **Description**: The S3 region the server will communicate with, e.g. ``us-west-1``.
 
+backend-trust-all-ssl-certificates
+""""""""""""""""""""""""""""""""""
+**Required**: No
+
+**Description**: Set to ``true`` to trust all SSL certificates, including self-signed certificates,
+presented by an S3 backend. Other backend types are unaffected. Any other value handles
+certificates normally, which is the default behavior.
+
+.. warning:: Setting this parameter to ``true`` exposes the workspace to Man-In-The-Middle attacks.
+
 bytestream-url
 """"""""""""""
 **Required**: If linking WSS objects to Shock nodes is desired (See :ref:`shockintegration`).
