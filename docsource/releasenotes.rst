@@ -1,8 +1,16 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.11.4 (Released 1/6/21)
+---------------------------------
+
+UPDATES:
+
+* Added an option to trust all SSL certificates to the S3 backend (default false). See the
+  ``deploy.cfg.example`` file for details.
+
 VERSION: 0.11.3 (Released 10/15/20)
-----------------------------------
+-----------------------------------
 
 UPDATES:
 

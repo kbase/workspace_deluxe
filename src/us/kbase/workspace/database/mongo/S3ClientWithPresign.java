@@ -11,19 +11,30 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContextBuilder;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
+import software.amazon.awssdk.core.internal.http.loader.DefaultSdkHttpClientBuilder;
+import software.amazon.awssdk.http.SdkHttpConfigurationOption;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
@@ -31,6 +42,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import software.amazon.awssdk.utils.AttributeMap;
 import us.kbase.typedobj.core.Restreamable;
 
 /** An S3 client that wraps the standard Amazon supplied S3 client and provides a method to
@@ -60,7 +72,8 @@ public class S3ClientWithPresign {
 			final URL host,
 			final String s3key,
 			final String s3secret,
-			final Region region)
+			final Region region,
+			final boolean trustAllCertificates)
 			throws URISyntaxException {
 		final AwsCredentials creds = AwsBasicCredentials.create(
 				checkString(s3key, "s3key"), checkString(s3secret, "s3secret"));
@@ -79,15 +92,51 @@ public class S3ClientWithPresign {
 				.credentialsProvider(StaticCredentialsProvider.create(creds))
 				.serviceConfiguration(
 						S3Configuration.builder().pathStyleAccessEnabled(true).build())
-				.httpClient(UrlConnectionHttpClient.create())
-				// Don't need to disable ssl
+				.httpClient(new DefaultSdkHttpClientBuilder().buildWithDefaults(
+						AttributeMap.builder().put(
+								SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES,
+								trustAllCertificates)
+							.build()))
 				.build();
 		
-		final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
-		cm.setMaxTotal(1000); //perhaps these should be configurable
-		cm.setDefaultMaxPerRoute(1000);
-		// TODO set timeouts for the client for 1/2m for conn req timeout and std timeout
-		httpClient = HttpClients.custom().setConnectionManager(cm).build();
+		httpClient = createHttpClient(trustAllCertificates);
+	}
+	
+	private CloseableHttpClient createHttpClient(final boolean trustAllCertificates) {
+		if (trustAllCertificates) {
+			// http://stackoverflow.com/questions/19517538/ignoring-ssl-certificate-in-apache-httpclient-4-3
+			final SSLConnectionSocketFactory sslsf;
+			try {
+				final SSLContextBuilder builder = new SSLContextBuilder();
+				builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+				sslsf = new SSLConnectionSocketFactory(builder.build());
+			} catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
+				throw new RuntimeException("Unable to build http client", e);
+			}
+
+			final Registry<ConnectionSocketFactory> registry =
+					RegistryBuilder.<ConnectionSocketFactory>create()
+					.register("http", new PlainConnectionSocketFactory())
+					.register("https", sslsf)
+					.build();
+
+			final PoolingHttpClientConnectionManager cm =
+					new PoolingHttpClientConnectionManager(registry);
+			cm.setMaxTotal(1000); //perhaps these should be configurable
+			cm.setDefaultMaxPerRoute(1000);
+
+			//TODO set timeouts for the client for 1/2m for conn req timeout and std timeout
+			return HttpClients.custom()
+					.setSSLSocketFactory(sslsf)
+					.setConnectionManager(cm)
+					.build();
+		} else {
+			final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+			cm.setMaxTotal(1000); //perhaps these should be configurable
+			cm.setDefaultMaxPerRoute(1000);
+			//TODO set timeouts for the client for 1/2m for conn req timeout and std timeout
+			return HttpClients.custom().setConnectionManager(cm).build();
+		}
 	}
 	
 	/** Get the standard S3 client.
