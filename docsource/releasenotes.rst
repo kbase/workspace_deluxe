@@ -11,8 +11,8 @@ UPDATES:
   for operations and :ref:`configurationparameters` for new configuration parameters:
   ``sample-service-url``, ``sample-service-admin-token``, and ``sample-service-admin-tag``.
 
-VERSION: 0.11.4 (Released TBD)
-------------------------------
+VERSION: 0.11.4 (Released 1/6/21)
+---------------------------------
 
 UPDATES:
 
