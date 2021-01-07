@@ -136,6 +136,9 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), nullValue());
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(), nullValue());
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), nullValue());
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), nullValue());
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(), nullValue());
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), nullValue());
 		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
 		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), nullValue());
@@ -145,6 +148,7 @@ public class KBaseWorkspaceConfigTest {
 	
 	@Test
 	public void configMaximalShock() throws Exception {
+		// also tests full sample service config
 		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
@@ -165,6 +169,9 @@ public class KBaseWorkspaceConfigTest {
 				.with("handle-service-token", "    hstoken    ")
 				.with("handle-manager-token", "    hmtoken    ")  // test service takes precedence
 				.with("handle-service-url", "     " + CI_SERV + "handle_service    ")
+				.with("sample-service-url", "     " + CI_SERV + "sample_service    ")
+				.with("sample-service-administrator-token", "    sstoken    ")
+				.with("sample-service-tag", "    sstag    ")
 				.with("bytestream-url", "   " + CI_SERV + "shock-api2    ")
 				.with("bytestream-user", "    otheruser    ")
 				.with("bytestream-token", "    token token    ")
@@ -192,6 +199,8 @@ public class KBaseWorkspaceConfigTest {
 				"handle-service-url=" + CI_SERV + "handle_service\n" +
 				"bytestream-url=" + CI_SERV + "shock-api2\n" +
 				"bytestream-user=otheruser\n" +
+				"sample-service-url=" + CI_SERV +"sample_service\n" +
+				"sample-service-tag=sstag\n" +
 				"mongodb-pwd=[redacted for your safety and comfort]\n" +
 				"listeners=us.kbase.MyListener,us.kbase.MyListener2\n";
 		
@@ -228,6 +237,10 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(),
 				is(new URL(CI_SERV + "shock-api2")));
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), is("otheruser"));
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), is("sstoken"));
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(),
+				is(new URL(CI_SERV + "sample_service")));
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), is("sstag"));
 		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
 		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), is("wsadminuser"));
@@ -237,6 +250,7 @@ public class KBaseWorkspaceConfigTest {
 	
 	@Test
 	public void configMaximalS3() throws Exception {
+		// also tests sample service config without a tag
 		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
@@ -262,6 +276,8 @@ public class KBaseWorkspaceConfigTest {
 				.with("bytestream-url", "   " + CI_SERV + "shock-api2    ")
 				.with("bytestream-user", "    otheruser    ")
 				.with("bytestream-token", "    token token    ")
+				.with("sample-service-url", "     " + CI_SERV + "sample_service2    ")
+				.with("sample-service-administrator-token", "    sstoken2    ")
 				.with("listeners", "listener1,   ,   listener2  , ")
 				.with("listener-listener1-class", "    us.kbase.MyListener     ")
 				.with("listener-listener1-config-key1", "value1")
@@ -288,6 +304,7 @@ public class KBaseWorkspaceConfigTest {
 				"handle-service-url=" + CI_SERV + "handle_service\n" +
 				"bytestream-url=" + CI_SERV + "shock-api2\n" +
 				"bytestream-user=otheruser\n" +
+				"sample-service-url=" + CI_SERV +"sample_service2\n" +
 				"mongodb-pwd=[redacted for your safety and comfort]\n" +
 				"listeners=us.kbase.MyListener,us.kbase.MyListener2\n";
 		
@@ -325,6 +342,10 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(),
 				is(new URL(CI_SERV + "shock-api2")));
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), is("otheruser"));
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), is("sstoken2"));
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(),
+				is(new URL(CI_SERV + "sample_service2")));
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), nullValue());
 		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
 		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), is("wsadminuser"));
@@ -359,6 +380,9 @@ public class KBaseWorkspaceConfigTest {
 				.with("bytestream-token", "   \t    ")
 				.with("bytestream-user", "   \t    ")
 				.with("bytestream-url", "   \t    ")
+				.with("sample-service-url", "     " + CI_SERV + "sample_service3    ")
+				.with("sample-service-administrator-token", "    sstoken3    ")
+				.with("sample-service-tag", "    \t    ")
 				.with("listeners", "   \t    ")
 				.build();
 		
@@ -369,7 +393,8 @@ public class KBaseWorkspaceConfigTest {
 				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
 				"backend-type=GridFS\n" +
-				"handle-service-url=" + CI_SERV + "handle_service\n";
+				"handle-service-url=" + CI_SERV + "handle_service\n" +
+				"sample-service-url=" + CI_SERV +"sample_service3\n";
 		
 		final KBaseWorkspaceConfig kwc = new KBaseWorkspaceConfig(cfg);
 		
@@ -398,6 +423,10 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), nullValue());
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(), nullValue());
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), nullValue());
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), is("sstoken3"));
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(),
+				is(new URL(CI_SERV + "sample_service3")));
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), nullValue());
 		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
 		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), nullValue());
@@ -482,6 +511,8 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-type", null)
 				.with("handle-manager-token", null)
 				.with("handle-service-url", null)
+				.with("sample-service-url", "https://foo.com")
+				.with("sample-service-administrator-token", null)
 				.with("listeners", "listener1,   ,   listener2  , ")
 				.with("listener-listener1-class", null)
 				.with("listener-listener1-config-key1", "value1")
@@ -498,6 +529,8 @@ public class KBaseWorkspaceConfigTest {
 				String.format(MISSING_PARAM, "backend-type"),
 				String.format(MISSING_PARAM, "auth-service-url"),
 				String.format(MISSING_PARAM, "auth2-service-url"),
+				"If sample-service-url is supplied, sample-service-administrator-token is " +
+						"required",
 				"Must provide both mongodb-user and mongodb-pwd params in config file if " +
 						"MongoDB authentication is to be used",
 				String.format(MISSING_PARAM, "handle-service-url"),
@@ -527,10 +560,15 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect listeners", kwc.getListenerConfigs(), is(Collections.emptyList()));
 		assertThat("incorrect mongo pwd", kwc.getMongoPassword(), nullValue());
 		assertThat("incorrect mongo user", kwc.getMongoUser(), nullValue());
-		assertThat("incorrect param report", kwc.getParamReport(), is("mongodb-user=user\n"));
+		assertThat("incorrect param report", kwc.getParamReport(),
+				is("mongodb-user=user\nsample-service-url=https://foo.com\n"));
 		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), nullValue());
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(), nullValue());
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), nullValue());
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), nullValue());
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(),
+				is(new URL("https://foo.com")));
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), nullValue());
 		assertThat("incorrect temp dir", kwc.getTempDir(), nullValue());
 		assertThat("incorrect type db", kwc.getTypeDBName(), nullValue());
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), nullValue());
@@ -552,6 +590,8 @@ public class KBaseWorkspaceConfigTest {
 				.with("auth2-service-url", "   \t    ")
 				.with("handle-manager-token", "   \t    ")
 				.with("handle-service-url", "   \t    ")
+				.with("sample-service-url", "https://foo2.com")
+				.with("sample-service-administrator-token", "    \t    ")
 				.with("listeners", "listener1,   ,   listener2  , ")
 				.with("listener-listener1-class", "   \t    ")
 				.with("listener-listener1-config-key1", "value1")
@@ -568,6 +608,8 @@ public class KBaseWorkspaceConfigTest {
 				String.format(MISSING_PARAM, "backend-type"),
 				String.format(MISSING_PARAM, "auth-service-url"),
 				String.format(MISSING_PARAM, "auth2-service-url"),
+				"If sample-service-url is supplied, sample-service-administrator-token is " +
+						"required",
 				"Must provide both mongodb-user and mongodb-pwd params in config file if " +
 						"MongoDB authentication is to be used",
 				String.format(MISSING_PARAM, "handle-service-url"),
@@ -597,10 +639,15 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect listeners", kwc.getListenerConfigs(), is(Collections.emptyList()));
 		assertThat("incorrect mongo pwd", kwc.getMongoPassword(), nullValue());
 		assertThat("incorrect mongo user", kwc.getMongoUser(), nullValue());
-		assertThat("incorrect param report", kwc.getParamReport(), is(""));
+		assertThat("incorrect param report", kwc.getParamReport(),
+				is("sample-service-url=https://foo2.com\n"));
 		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), nullValue());
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(), nullValue());
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), nullValue());
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), nullValue());
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(),
+				is(new URL("https://foo2.com")));
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), nullValue());
 		assertThat("incorrect temp dir", kwc.getTempDir(), nullValue());
 		assertThat("incorrect type db", kwc.getTypeDBName(), nullValue());
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), nullValue());
@@ -624,6 +671,8 @@ public class KBaseWorkspaceConfigTest {
 				.with("auth2-service-url", "   crappy ass url2   ")
 				.with("handle-manager-token", "    hmtoken    ")
 				.with("handle-service-url", "   crappy ass url4   ")
+				.with("sample-service-url", "   crappy ass url5   ")
+				.with("sample-service-administration-token", "   t   ")
 				.build();
 		
 		final String paramReport =
@@ -644,6 +693,7 @@ public class KBaseWorkspaceConfigTest {
 				String.format(err, "auth2-service-url", "2"),
 				String.format(err, "backend-url", " for backend"),
 				String.format(err, "bytestream-url", " for shock"),
+				String.format(err, "sample-service-url", "5"),
 				String.format(err, "handle-service-url", "4"));
 		
 		final KBaseWorkspaceConfig kwc = new KBaseWorkspaceConfig(cfg);
@@ -672,6 +722,9 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), nullValue());
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(), nullValue());
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), nullValue());
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), nullValue());
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(), nullValue());
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), nullValue());
 		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
 		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), nullValue());
@@ -730,6 +783,9 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), nullValue());
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(), nullValue());
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), nullValue());
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), nullValue());
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(), nullValue());
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), nullValue());
 		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
 		assertThat("incorrect type db", kwc.getTypeDBName(), is("somedb"));
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), nullValue());
@@ -786,6 +842,9 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), nullValue());
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(), nullValue());
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), nullValue());
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), nullValue());
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(), nullValue());
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), nullValue());
 		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
 		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), nullValue());
@@ -875,6 +934,9 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(),
 				is(new URL("https://foo.com")));
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), is(bytestreamUser));
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), nullValue());
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(), nullValue());
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), nullValue());
 		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
 		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), nullValue());
@@ -948,6 +1010,9 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), is(nullValue()));
 		assertThat("incorrect bytestream url", kwc.getBytestreamURL(), is(nullValue()));
 		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), is(nullValue()));
+		assertThat("incorrect sample token", kwc.getSampleServiceToken(), nullValue());
+		assertThat("incorrect sample url", kwc.getSampleServiceURL(), nullValue());
+		assertThat("incorrect sample tag", kwc.getSampleServiceTag(), nullValue());
 		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
 		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
 		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), nullValue());

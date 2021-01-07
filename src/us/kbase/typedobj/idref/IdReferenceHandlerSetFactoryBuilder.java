@@ -3,12 +3,16 @@ package us.kbase.typedobj.idref;
 import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import us.kbase.auth.AuthToken;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
+import us.kbase.workspace.database.DependencyStatus;
 
 /** A builder for a factory for a set of {@link IdReferenceHandler}s.
  * 
@@ -33,11 +37,11 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
  */
 public class IdReferenceHandlerSetFactoryBuilder {
 	
-	private final Map<IdReferenceType, IdReferenceHandlerFactory> factories;
+	private final Map<IdReferenceType, IdReferenceHandlerFactory> factories; // tree map
 	private final int maxUniqueIdCount;
 	
 	private IdReferenceHandlerSetFactoryBuilder(
-			final Map<IdReferenceType, IdReferenceHandlerFactory> factories,
+			final Map<IdReferenceType, IdReferenceHandlerFactory> factories, // tree map
 			final int maxUniqueIdCount) {
 		this.factories = factories;
 		this.maxUniqueIdCount = maxUniqueIdCount;
@@ -81,6 +85,16 @@ public class IdReferenceHandlerSetFactoryBuilder {
 		}
 		return new IdReferencePermissionHandlerSet(handlers);
 	}
+	
+	/** Get the status of any dependencies of the contained factories in this builder.
+	 * @return the status of the factory dependencies.
+	 */
+	public List<DependencyStatus> getDependencyStatus() {
+		return factories.keySet().stream()
+				.flatMap(k -> factories.get(k).getDependencyStatus().stream())
+				.collect(Collectors.toList());
+		
+	}
 
 	/** Get a builder for a {@link IdReferenceHandlerSetFactoryBuilder}.
 	 * @param maxUniqueIdCount - the maximum number of unique IDs allowed in
@@ -100,7 +114,7 @@ public class IdReferenceHandlerSetFactoryBuilder {
 	public static class Builder {
 
 		private final int maxUniqueIdCount;
-		private final Map<IdReferenceType,IdReferenceHandlerFactory> factories = new HashMap<>();
+		private final Map<IdReferenceType,IdReferenceHandlerFactory> factories = new TreeMap<>();
 
 		private Builder(final int maxUniqueIdCount) {
 			if (maxUniqueIdCount < 0) {

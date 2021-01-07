@@ -43,6 +43,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.kbase.ShockIdHandlerFactory;
 import us.kbase.workspace.kbase.ShockIdHandlerFactory.ShockClientCloner;
 
@@ -76,6 +77,52 @@ public class ShockIdHandlerFactoryTest {
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new NullPointerException("cloner"));
 		}
+	}
+	
+	@Test
+	public void getDependenciesNoop() throws Exception {
+		assertThat("incorrect dependencies",
+				new ShockIdHandlerFactory(null, null).getDependencyStatus(),
+				is(Collections.emptyList()));
+	}
+	
+	@Test
+	public void getDependencies() throws Exception {
+		final BasicShockClient cli = mock(BasicShockClient.class);
+		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		
+		when(cli.getRemoteVersion()).thenReturn("8.6.3-fake");
+		
+		assertThat("incorrect dependencies",
+				new ShockIdHandlerFactory(cli, cloner).getDependencyStatus(),
+				is(Arrays.asList(new DependencyStatus(
+						true, "OK", "Linked Shock for IDs", "8.6.3-fake"))));
+	}
+	
+	@Test
+	public void getDependenciesFailIOException() throws Exception {
+		final BasicShockClient cli = mock(BasicShockClient.class);
+		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		
+		when(cli.getRemoteVersion()).thenThrow(new IOException("oh dang"));
+		
+		assertThat("incorrect dependencies",
+				new ShockIdHandlerFactory(cli, cloner).getDependencyStatus(),
+				is(Arrays.asList(new DependencyStatus(
+						false, "oh dang", "Linked Shock for IDs", "Unknown"))));
+	}
+	
+	@Test
+	public void getDependenciesFailInvalidShockURLException() throws Exception {
+		final BasicShockClient cli = mock(BasicShockClient.class);
+		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		
+		when(cli.getRemoteVersion()).thenThrow(new InvalidShockUrlException("poopie"));
+		
+		assertThat("incorrect dependencies",
+				new ShockIdHandlerFactory(cli, cloner).getDependencyStatus(),
+				is(Arrays.asList(new DependencyStatus(
+						false, "poopie", "Linked Shock for IDs", "Unknown"))));
 	}
 	
 	@Test

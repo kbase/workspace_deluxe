@@ -17,6 +17,7 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
 import us.kbase.typedobj.idref.DefaultRemappedId;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
+import us.kbase.workspace.database.DependencyStatus;
 
 public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 
@@ -127,6 +128,11 @@ public class DummyIdHandlerFactory implements IdReferenceHandlerFactory {
 	@Override
 	public IdReferencePermissionHandler createPermissionHandler(String userName) {
 		return null;
+	}
+
+	@Override
+	public List<DependencyStatus> getDependencyStatus() {
+		throw new UnimplementedException();
 	}
 
 }

@@ -263,6 +263,17 @@ the user or owned by the workspace and readable by the user and (if necessary) t
 of the nodes. Furthermore, the nodes are shared as the workspace object is shared.
 See :ref:`shockintegration` for more details.
 
+**Sample ID**
+::
+
+    @id sample
+
+The ID must reference a `Sample service <https://github.com/kbase/sample_service>`_ sample.
+When saving an object containing one or more sample IDs to the WSS, the WSS checks that the
+samples are administrated by the user. Furthermore, the nodes are shared as the workspace object
+is shared.
+See :ref:`sampleserviceintegration` for more details.
+
 **External ID**
 ::
 

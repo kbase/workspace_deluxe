@@ -89,12 +89,21 @@ may optionally use:
 * `Shock <https://github.com/kbase/Shock>`_ as a file storage backend or for linking WSS objects
   to Shock nodes.
 * The `Handle Service <https://github.com/kbase/handle_service2>`_
-  to allow linking workspace objects to Shock nodes (see
-  :ref:`shockintegration`).
+  to mediate linking workspace objects to Shock nodes (see :ref:`shockintegration`).
+* The `Sample Service <https://github.com/kbase/sample_service>`_ to allow linking workspace
+  objects to samples (see :ref:`sampleserviceintegration`).
+* Apache Kafka as a notification service.
 
-The WSS has been tested against the auth2 branch of the KBase fork of Shock version 0.9.6
-(e9f0e1618e265042bf5cb96429995b5e6ec0a06a), and against MongoDB versions 2.6.12 and 3.6.10.
-3.0+ versions were tested with and without the WiredTiger storage engine.
+The WSS is tested against:
+
+* The auth2 branch of the KBase fork of Shock version ``0.9.6``
+  (``e9f0e1618e265042bf5cb96429995b5e6ec0a06a``)
+* MongoDB version ``2.6.12``
+* MongoDB version ``3.6.10`` with and without WiredTiger
+* Minio version ``2019-05-23T00-29-34Z``
+* Handle service commit ``aae2f70120e75d2ccccab1b1c01dbb9e8327eee8`` with ``log.py`` commit
+  ``b549c557e3c519e0a55eadf7863a93db25cd6806``
+* Sample service commit ``b549c557e3c519e0a55eadf7863a93db25cd6806``
 
 Please see the respective service documentation to set up and run the services
 required.
@@ -329,6 +338,34 @@ bytestream-token
 **Required**: If linking WSS objects to Shock nodes is desired.
 
 **Description**: Token for the shock user account used by the WSS to communicate with Shock.
+
+sample-service-url
+""""""""""""""""""
+**Required**: If linking WSS objects to samples is desired (See :ref:`sampleserviceintegration`).
+
+**Description**: The root url of the Sample server or the root url of the KBase Service Wizard
+(see below).
+
+.. warning:: Once any data containing sample IDs has been saved by the workspace,
+   changing the sample server instance will result in unspecified behavior, including data
+   corruption.
+
+sample-service-admin-token
+""""""""""""""""""""""""""
+**Required**: If linking WSS objects to samples is desired.
+
+**Description**: Token for the user account used by the WSS to communicate with the Sample
+service. Must have full administration permissions for the service.
+
+sample-service-tag
+""""""""""""""""""
+**Required**: If linking WSS objects to samples is desired and the sample service to be used
+is deployed as a KBase Dynamic service.
+
+**Description**: The release tag for the sample service. Leave blank if the url is a direct
+url to the service. If the url is a KBase Service Wizard url and the sample service url will
+be determined dynamically, the value must be the appropriate release tag for the sample service.
+Examples: dev, beta, release, a git hash.
 
 port
 """"

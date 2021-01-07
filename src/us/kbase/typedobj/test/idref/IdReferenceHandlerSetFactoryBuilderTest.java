@@ -24,6 +24,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.typedobj.idref.IdReferenceType;
 
 public class IdReferenceHandlerSetFactoryBuilderTest {
@@ -227,6 +228,46 @@ public class IdReferenceHandlerSetFactoryBuilderTest {
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new NullPointerException("userName"));
 		}
+	}
+	
+	@Test
+	public void getDependenciesEmpty() throws Exception {
+		final IdReferenceHandlerSetFactoryBuilder b = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(2).build();
+		
+		assertThat("incorrect dependencies", b.getDependencyStatus(), is(Collections.emptyList()));
+	}
+	
+	@Test
+	public void getDependencies() throws Exception {
+		final IdReferenceHandlerFactory fac1 = mock(IdReferenceHandlerFactory.class);
+		when(fac1.getIDType()).thenReturn(new IdReferenceType("t1"));
+		when(fac1.getDependencyStatus()).thenReturn(
+				Arrays.asList(new DependencyStatus(true, "s1", "n1", "v1")));
+		
+		final IdReferenceHandlerFactory fac2 = mock(IdReferenceHandlerFactory.class);
+		when(fac2.getIDType()).thenReturn(new IdReferenceType("t2"));
+		when(fac2.getDependencyStatus()).thenReturn(
+				Arrays.asList(new DependencyStatus(false, "s2", "n2", "v2")));
+		
+		final IdReferenceHandlerFactory fac3 = mock(IdReferenceHandlerFactory.class);
+		when(fac3.getIDType()).thenReturn(new IdReferenceType("t3"));
+		when(fac3.getDependencyStatus()).thenReturn(
+				Arrays.asList(new DependencyStatus(true, "s3", "n3", "v3"),
+						new DependencyStatus(false, "s4", "n4", "v4")));
+
+		final IdReferenceHandlerSetFactoryBuilder b = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(2)
+				.withFactory(fac3)
+				.withFactory(fac1)
+				.withFactory(fac2)
+				.build();
+		
+		assertThat("incorrect dependencies", b.getDependencyStatus(), is(Arrays.asList(
+				new DependencyStatus(true, "s1", "n1", "v1"),
+				new DependencyStatus(false, "s2", "n2", "v2"),
+				new DependencyStatus(true, "s3", "n3", "v3"),
+				new DependencyStatus(false, "s4", "n4", "v4"))));
 	}
 
 }
