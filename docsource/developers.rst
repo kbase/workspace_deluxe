@@ -4,14 +4,15 @@ Developer documentation
 Contributions and branches
 --------------------------
 
-All pull requests should go to the ``dev-candidate`` branch or a feature
-branch.
+All pull requests should go to the ``develop`` branch or a feature branch. If the feature or bugfix
+will take more than a single PR to complete, it should go to a feature branch in the workspace
+repo. Contact a maintainer to create a feature branch if this is the case.
 
 Branches:
 
-* ``dev-candidate`` - work in progress goes here, not stable, tests may not
+* feature branches - work in progress goes here, not stable, tests may not
   pass.
-* ``develop`` - All tests pass. ``dev-candidate`` is merged here when features
+* ``develop`` - All tests pass. Feature branches are merged here when features
   are ready for release. Ready for integration testing.
 * ``master`` - All tests pass, code is production ready.
 
@@ -34,10 +35,14 @@ Release checklist
 * Update documentation if necessary.
 * Ensure tests cover changes. Add new tests if necessary.
 * Run tests against supported versions of MongoDB and Shock.
-* Tag the release in git with the new version.
+* Tag the release in git with the new dev version in the semantic version format
+  ``X.Y.Z-devA``,  where ``X.Y.Z`` is the semantic version and ``A`` is the incremental dev version.
 * Merge ``dev-candidate`` to ``develop``.
-* When satisfied with CI testing (work with devops here), merge ``develop`` to
-  ``master``.
+* When satisfied with CI testing (work with devops here):
+
+  * Change the version to ``X.Y.Z``.
+  * Merge ``develop`` to ``master``.
+  * Tag master with ``X.Y.Z`` in git.
 
 Deploying the Workspace Service locally
 ----------------------------------------
