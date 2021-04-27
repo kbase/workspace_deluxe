@@ -690,6 +690,4 @@ public class SampleServiceIntegrationTest {
 					+ err + "\n" + stack);
 		}
 	}
-	// TODO NOW finish sample integration tests
-	
 }

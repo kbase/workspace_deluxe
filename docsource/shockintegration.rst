@@ -299,7 +299,7 @@ Step 5 - retrieve the data from the Workspace
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Retrieving the data from the workspace also works normally, but there’s a
-couple of important points. When calling the ``get_objects2``, method (or the deprecated
+couple of important points. When calling the ``get_objects2`` method (or the deprecated
 ``get_objects``, ``get_referenced_objects``, ``get_object_subset``, or
 ``get_object_provenance`` methods):
 
