@@ -29,6 +29,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.SimpleRemappedId;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
@@ -102,6 +103,20 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 	@Override
 	public IdReferenceType getIDType() {
 		return TYPE;
+	}
+	
+	@Override
+	public List<DependencyStatus> getDependencyStatus() {
+		if (adminClient == null) {
+			return Collections.emptyList();
+		}
+		try {
+			return Arrays.asList(new DependencyStatus(true, "OK", "Linked Shock for IDs",
+					adminClient.getRemoteVersion()));
+		} catch (InvalidShockUrlException | IOException e) {
+			return Arrays.asList(new DependencyStatus(
+					false, e.getMessage(), "Linked Shock for IDs", "Unknown"));
+		}
 	}
 	
 	private class ShockPermissionsHandler implements IdReferencePermissionHandler {

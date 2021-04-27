@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -28,6 +29,7 @@ import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
+import us.kbase.common.service.JsonClientCaller;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
@@ -64,8 +66,14 @@ import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 public class InitWorkspaceServer {
 	
-	//TODO TEST unittests... are going to be a real pain.
-	//TODO JAVADOC
+	// TODO TEST unittests... are going to be a real pain.
+	// TODO JAVADOC
+	// TODO CODE try and clean this mess up a little. Nulls everywhere, long methods.
+	//			some places report errors to the InitReporter, some throw exceptions.
+	// TODO CODE drop the idea of reporting all errors and going into fail mode.
+	//			Just throw an exception immediately, much simpler.
+	//			Test what happens in tomcat / Jetty first though.
+	// TODO CODE Drop all references to Glassfish and streamline Tomcat setup.
 	
 	public static final String COL_SHOCK_NODES = InitConstants.COL_SHOCK_NODES;
 	public static final String COL_S3_OBJECTS = InitConstants.COL_S3_OBJECTS;
@@ -101,23 +109,17 @@ public class InitWorkspaceServer {
 		private final WorkspaceServerMethods wsmeth;
 		private final WorkspaceAdministration wsadmin;
 		private final Types types;
-		private final BasicShockClient linkedShockClient;
-		private final AbstractHandleClient linkedHandleServiceClient;
 		
 		public WorkspaceInitResults(
 				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
-				final Types types,
-				final BasicShockClient linkedShockClient,
-				final AbstractHandleClient linkedHandleServiceClient) {
+				final Types types) {
 			super();
 			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
 			this.types = types;
-			this.linkedShockClient = linkedShockClient;
-			this.linkedHandleServiceClient = linkedHandleServiceClient;
 		}
 
 		public Workspace getWs() {
@@ -134,14 +136,6 @@ public class InitWorkspaceServer {
 		
 		public Types getTypes() {
 			return types;
-		}
-		
-		public BasicShockClient getLinkedShockClient() {
-			return linkedShockClient;
-		}
-		
-		public AbstractHandleClient getLinkedAbstractHandleClient() {
-			return linkedHandleServiceClient;
 		}
 	}
 	
@@ -161,13 +155,10 @@ public class InitWorkspaceServer {
 		} 
 		
 		AbstractHandleClient hsc = null;
-		AbstractHandleClient hscNoToken = null;
 		if (!cfg.ignoreHandleService()) {
 			final AuthToken handleMgrToken = getHandleToken(cfg, rep, auth);
 			if (!rep.isFailed()) {
 				hsc = getHandleServiceClient(cfg.getHandleServiceURL(), handleMgrToken, rep);
-				hscNoToken = new AbstractHandleClient(hsc.getURL());
-				hscNoToken.setIsInsecureHttpConnectionAllowed(true);
 			}
 		}
 		
@@ -182,7 +173,7 @@ public class InitWorkspaceServer {
 		final AdministratorHandler ah;
 		final Workspace ws;
 		try {
-			wsdeps = getDependencies(cfg, tfm, auth);
+			wsdeps = getDependencies(cfg, tfm, auth, rep);
 			ws = new Workspace(
 					wsdeps.mongoWS,
 					new ResourceUsageConfigurationBuilder().build(),
@@ -191,34 +182,33 @@ public class InitWorkspaceServer {
 			ah = getAdminHandler(cfg, ws);
 		} catch (WorkspaceInitException wie) {
 			rep.reportFail(wie.getLocalizedMessage());
-			rep.reportFail(
-					"Server startup failed - all calls will error out.");
+			rep.reportFail("Server startup failed - all calls will error out.");
 			return null;
 		}
 		rep.reportInfo(String.format("Initialized %s backend", cfg.getBackendType().name()));
-		Types types = new Types(wsdeps.typeDB);
+		final Types types = new Types(wsdeps.typeDB);
 		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(maxUniqueIdCountPerCall)
 				.withFactory(new HandleIdHandlerFactory(hsc))
-				.withFactory(wsdeps.shockFac.factory)
+				.withFactory(wsdeps.shockFac)
+				.withFactory(wsdeps.sampleFac)
 				.build();
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, types, builder, auth);
 		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				ws, wsmeth, types, ah,
-				ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
+				ws, wsmeth, types, ah, ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),
 				Runtime.getRuntime().totalMemory(),
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
-		return new WorkspaceInitResults(
-				ws, wsmeth, wsadmin, types, wsdeps.shockFac.client, hscNoToken);
+		return new WorkspaceInitResults(ws, wsmeth, wsadmin, types);
 	}
 	
 	private static AdministratorHandler getAdminHandler(
 			final KBaseWorkspaceConfig cfg,
-			final Workspace ws) throws WorkspaceInitException {
+			final Workspace ws)
+			throws WorkspaceInitException {
 		if (cfg.getAdminReadOnlyRoles().isEmpty() && cfg.getAdminRoles().isEmpty()) {
 			final String a = cfg.getWorkspaceAdmin();
 			final WorkspaceUser admin = a == null || a.trim().isEmpty() ?
@@ -249,14 +239,16 @@ public class InitWorkspaceServer {
 		public TypeDefinitionDB typeDB;
 		public TypedObjectValidator validator;
 		public WorkspaceDatabase mongoWS;
-		public ShockFactoryBits shockFac;
+		public ShockIdHandlerFactory shockFac;
+		public SampleIdHandlerFactory sampleFac;
 		public List<WorkspaceEventListener> listeners;
 	}
 	
 	private static WorkspaceDependencies getDependencies(
 			final KBaseWorkspaceConfig cfg,
 			final TempFilesManager tfm,
-			final ConfigurableAuthService auth)
+			final ConfigurableAuthService auth,
+			final InitReporter rep) // DO NOT use the rep to report failures. Throw instead.
 			throws WorkspaceInitException {
 		
 		final WorkspaceDependencies deps = new WorkspaceDependencies();
@@ -283,51 +275,66 @@ public class InitWorkspaceServer {
 					wde.getLocalizedMessage(), wde);
 		}
 		deps.shockFac = getShockIdHandlerFactory(cfg, auth);
+		deps.sampleFac = getSampleIdHandlerFactory(cfg, auth, rep);
 		
 		deps.listeners = loadListeners(cfg);
 		return deps;
 	}
-	
-	private static class ShockFactoryBits {
-		private final ShockIdHandlerFactory factory;
-		private final BasicShockClient client;
-		private ShockFactoryBits(
-				final ShockIdHandlerFactory factory,
-				final BasicShockClient client) {
-			this.factory = factory;
-			this.client = client;
-		}
-	}
-	
-	private static ShockFactoryBits getShockIdHandlerFactory(
+
+	private static ShockIdHandlerFactory getShockIdHandlerFactory(
 			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
 		if (cfg.getBytestreamURL() == null) {
-			return new ShockFactoryBits(new ShockIdHandlerFactory(null, null), null);
+			return new ShockIdHandlerFactory(null, null);
 		}
 		final AuthToken shockToken = getKBaseToken(
 				cfg.getBytestreamUser(), cfg.getBytestreamToken(), "shock", auth);
 		final BasicShockClient bsc;
-		final BasicShockClient unauthed;
 		try {
 			bsc = new BasicShockClient(cfg.getBytestreamURL(), shockToken);
-			unauthed = new BasicShockClient(cfg.getBytestreamURL());
 		} catch (InvalidShockUrlException | ShockHttpException | IOException e) {
 			throw new WorkspaceInitException(
 					"Couldn't contact Shock server configured for Shock ID links: " +
 			e.getMessage(), e);
 		}
-		return new ShockFactoryBits(
-				new ShockIdHandlerFactory(bsc, new ShockClientCloner() {
+		return new ShockIdHandlerFactory(bsc, new ShockClientCloner() {
 					
 					@Override
 					public BasicShockClient clone(final BasicShockClient source)
 							throws IOException, InvalidShockUrlException {
 						return new BasicShockClient(source.getShockUrl());
 					}
-				}),
-				unauthed);
+				});
+	}
+	
+	private static SampleIdHandlerFactory getSampleIdHandlerFactory(
+			final KBaseWorkspaceConfig cfg,
+			final ConfigurableAuthService auth,
+			final InitReporter rep) // DO NOT use the rep to report failures. Throw instead.
+			throws WorkspaceInitException {
+		if (cfg.getSampleServiceURL() == null) {
+			return new SampleIdHandlerFactory(null);
+		}
+		// We deliberately don't verify a connection to the sample service here, as
+		// the sample service has a dependency on the workspace on startup. Checking the
+		// connection here would cause a deadlock. Instead it'll fail when someone tries to
+		// create or get an object with sample IDs in it.
+		// This points to the fact that the sample service and workspace service are
+		// tightly coupled, although the workspace service dependency on the sample
+		// service is optional.
+		final AuthToken t = getToken(cfg.getSampleServiceToken(), auth, "Sample Service");
+		final JsonClientCaller jcc = new JsonClientCaller(cfg.getSampleServiceURL(), t);
+		if (cfg.getSampleServiceURL().getProtocol().equals("http")) {
+			rep.reportInfo("Warning - the Sample Service url uses insecure http. " +
+					"https is recommended.");
+			jcc.setInsecureHttpConnectionAllowed(true);
+		}
+		// testing the tag is basically impossible in automated tests. It should fail fast if
+		// it doesn't work though.
+		final SampleServiceClientWrapper cli = SampleServiceClientWrapper.getClient(
+				jcc, Optional.ofNullable(cfg.getSampleServiceTag()));
+		return new SampleIdHandlerFactory(cli);
 	}
 
 	private static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
@@ -398,23 +405,30 @@ public class InitWorkspaceServer {
 			final String source,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
+		final AuthToken t = getToken(token, auth, source);
+		if (!t.getUserName().equals(user)) {
+			throw new WorkspaceInitException(String.format(
+					"The username from the %s token, %s, does " +
+					"not match the %s username, %s",
+					source, t.getUserName(), source, user));
+		}
+		return t;
+	}
+	
+	private static AuthToken getToken(
+			final String token,
+			final ConfigurableAuthService auth,
+			final String source)
+			throws WorkspaceInitException {
 		if (token == null) {
 			throw new WorkspaceInitException(
 					"No token provided for " + source + " in configuration");
 		}
 		try {
-			final AuthToken t = auth.validateToken(token);
-			if (!t.getUserName().equals(user)) {
-				throw new WorkspaceInitException(String.format(
-						"The username from the %s token, %s, does " +
-						"not match the %s username, %s",
-						source, t.getUserName(), source, user));
-			}
-			return t;
+			return auth.validateToken(token);
 		} catch (AuthException e) {
 			throw new WorkspaceInitException(
-					"Couldn't log in with " + source + " credentials for user " +
-					user + ": " + e.getMessage(), e);
+					"Couldn't log in with " + source + " credentials: " + e.getMessage(), e);
 		} catch (IOException e) {
 			throw new WorkspaceInitException(
 					"Couldn't contact the auth service to validate the " + source + " token: "
@@ -503,10 +517,10 @@ public class InitWorkspaceServer {
 		try {
 			return auth.validateToken(cfg.getHandleServiceToken());
 		} catch (AuthException e) {
-			rep.reportFail("Invalid handle manager token: " + e.getMessage());
+			rep.reportFail("Invalid handle service token: " + e.getMessage());
 		} catch (IOException e) {
 			rep.reportFail("Couldn't contact the auth service to obtain a token " +
-					"for the handle manager: " + e.getLocalizedMessage());
+					"for the handle service: " + e.getLocalizedMessage());
 		}
 		return null;
 	}

@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -236,7 +235,14 @@ public class HandleAndShockTest {
 
 	private static void setUpSpecs() throws Exception {
 		final String handlespec =
+				// An SDK struct type must always have at least one field, but that field can be
+				// optional. The Empty type allows for arbitrary contents *other than* if its
+				// singular field is included. So just don't use that field
 				"module HandleByteStreamList {" +
+					"/* @optional ifyouputanythinginthisfielditmustbeanint */" +
+					"typedef structure {" +
+						"int ifyouputanythinginthisfielditmustbeanint;" +
+					"} Empty;" + // for ad hoc testing
 					"/* @id handle */" +
 					"typedef string handle;" +
 					"typedef structure {" +
@@ -258,7 +264,8 @@ public class HandleAndShockTest {
 		CLIENT1.registerTypespec(new RegisterTypespecParams()
 			.withDryrun(0L)
 			.withSpec(handlespec)
-			.withNewTypes(Arrays.asList("HList", "SList", "HRef")));
+			.withNewTypes(Arrays.asList("HList", "SList", "HRef", "Empty")));
+		CLIENT1.releaseModule("HandleByteStreamList");
 	}
 
 	private static WorkspaceServer startupWorkspaceServer(
@@ -365,26 +372,14 @@ public class HandleAndShockTest {
 				(List<Map<String, String>>) st.get("dependencies");
 		assertThat("missing dependencies", deps.size(), is(4));
 
-		final List<List<String>> exp = new ArrayList<List<String>>();
-		exp.add(Arrays.asList("MongoDB", "true"));
-		exp.add(Arrays.asList("Shock", "true"));
-		exp.add(Arrays.asList("Handle service", "false"));
-		exp.add(Arrays.asList("Linked Shock for IDs", "true"));
-		final Iterator<List<String>> expiter = exp.iterator();
 		final Iterator<Map<String, String>> gotiter = deps.iterator();
-		while (expiter.hasNext()) {
+		for (final String name: Arrays.asList(
+				"MongoDB", "Shock", "Linked Shock for IDs", "Handle service")) {
 			final Map<String, String> g = gotiter.next();
-			final List<String> e = expiter.next();
-			assertThat("incorrect name", (String) g.get("name"), is(e.get(0)));
+			assertThat("incorrect name", (String) g.get("name"), is(name));
 			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
-			assertThat("incorrect message", g.get("message"),
-					is((Object) "OK"));
-			if (e.get(1).equals("false")) {
-				assertThat("incorrect version", (String) g.get("version"),
-						is("Unknown"));
-			} else {
-				Version.valueOf((String) g.get("version"));
-			}
+			assertThat("incorrect message", g.get("message"), is((Object) "OK"));
+			Version.valueOf((String) g.get("version"));
 		}
 	}
 
@@ -400,6 +395,8 @@ public class HandleAndShockTest {
 	@SuppressWarnings("deprecation")
 	@Test
 	public void basicHandleTest() throws Exception {
+		// this test exercises deprecated methods. It should not be changed until the
+		// deprecated methods are removed from the workspace API.
 		String workspace = "basichandle";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		BasicShockClient bsc = new BasicShockClient(

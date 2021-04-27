@@ -412,8 +412,7 @@ public class IdReferenceHandlerSet<T> {
 			}
 			this.id = id;
 			this.idAttributes = idAttributes == null ? null :
-				Collections.unmodifiableList(
-						new LinkedList<String>(idAttributes));
+				Collections.unmodifiableList(new LinkedList<String>(idAttributes));
 			this.associatedObject = associatedObject;
 		}
 

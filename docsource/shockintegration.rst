@@ -18,7 +18,7 @@ many cases, bytestream and sequential data may be more efficiently stored in
 and retrieved from Shock, and in the cases of data > 1GB, cannot be stored in
 the WSS (see :ref:`limits`).
 
-This document describes how link WSS objects to Shock nodes, either directly or via the
+This document describes how to link WSS objects to Shock nodes, either directly or via the
 `Handle Service <https://github.com/kbase/handle_service>`_, such that when the object is
 shared via the Workspace API, the linked Shock nodes are shared (more specifically, made readable)
 as well.
@@ -299,9 +299,9 @@ Step 5 - retrieve the data from the Workspace
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Retrieving the data from the workspace also works normally, but there’s a
-couple of important points. When calling the ``get_objects``, ``get_objects2``,
-``get_referenced_objects``, ``get_object_subset``, or
-``get_object_provenance`` methods:
+couple of important points. When calling the ``get_objects2`` method (or the deprecated
+``get_objects``, ``get_referenced_objects``, ``get_object_subset``, or
+``get_object_provenance`` methods):
 
 * The Handle IDs found in the object are returned in the output as strings, and
 * The Workspace makes a request to the Handle Service such that the caller of

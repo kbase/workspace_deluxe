@@ -361,6 +361,22 @@ public class JSONRPCLayerTester {
 			.withSpec(handleShock)
 			.withNewTypes(Arrays.asList("ExtIDs")));
 		CLIENT1.releaseModule("HandleByteStream");
+		
+		final String sample =
+				"module Sample {" +
+					"/* @id sample */" +
+					"typedef string sample;" +
+					"typedef structure {" +
+						"sample s;" +
+					"} SampleID;" +
+				"};";
+		CLIENT1.requestModuleOwnership("Sample");
+		administerCommand(CLIENT2, "approveModRequest", "module", "Sample");
+		CLIENT1.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withSpec(sample)
+			.withNewTypes(Arrays.asList("SampleID")));
+		CLIENT1.releaseModule("Sample");
 	}
 
 	public static void administerCommand(WorkspaceClient client, String command, String... params) throws IOException,

@@ -61,6 +61,7 @@ import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -90,6 +91,9 @@ import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
 public class WorkspaceServerMethods {
 	
+	// TODO TEST unit
+	// TODO JAVADOC
+	
 	final private Workspace ws;
 	final private Types types;
 	final private ConfigurableAuthService auth;
@@ -104,6 +108,15 @@ public class WorkspaceServerMethods {
 		this.types = types;
 		this.idFacBuilder = idFacBuilder;
 		this.auth = auth;
+	}
+	
+	/** Get the status of any dependencies of the workspace service.
+	 * @return the dependency status.
+	 */
+	public List<DependencyStatus> getDependencyStatus() {
+		final List<DependencyStatus> ret = ws.status();
+		ret.addAll(idFacBuilder.getDependencyStatus());
+		return ret;
 	}
 	
 	public ConfigurableAuthService getAuth() {

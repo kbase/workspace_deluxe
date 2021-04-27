@@ -3,7 +3,9 @@ package us.kbase.workspace.kbase;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -27,6 +29,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFactory;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
+import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.typedobj.idref.RemappedId;
 
 /**
@@ -69,6 +72,21 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 	@Override
 	public IdReferenceType getIDType() {
 		return TYPE;
+	}
+	
+	@Override
+	public List<DependencyStatus> getDependencyStatus() {
+		if (client == null) {
+			return Collections.emptyList();
+		}
+		try {
+			final String ver = (String) client.status().get("version");
+			// no need to check return value, always returns OK or fails
+			return Arrays.asList(new DependencyStatus(true, "OK", "Handle service", ver));
+		} catch (IOException | JsonClientException e) {
+			return Arrays.asList(
+					new DependencyStatus(false, e.getMessage(), "Handle service", "Unknown"));
+		}
 	}
 	
 	private class HandlePermissionsHandler implements IdReferencePermissionHandler {
