@@ -9,6 +9,9 @@ BACKWARDS INCOMPATIBILITIES:
 * The Sample service is no longer supported as a KBase dynamic dynamic service, only as a core
   service. As such, the ``sample-service-tag`` configuration key has been removed.
 
+VERSION: 0.11.5 (Released 4/27/21)
+----------------------------------
+
 UPDATES:
 
 * The workspace now recognizes the ``@id sample`` annotation and links samples in the KBase
