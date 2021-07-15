@@ -101,11 +101,6 @@ sample-service-url =
 # Sample service administrator token. The token must possess full read/write administrator
 # rights for the sample service.
 sample-service-administrator-token =
-# Sample service service tag. If left blank, the url will be presumed to be a direct url to
-# the sample service. Otherwise, the release tag will be used to look up the url in the KBase
-# service wizard, the url of which should be provided in the sample-service-url field.
-# Examples: dev, beta, release, a git hash.
-sample-service-tag =
 
 # Port for the service.
 port = 7058

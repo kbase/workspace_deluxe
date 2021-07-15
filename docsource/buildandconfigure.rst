@@ -343,8 +343,7 @@ sample-service-url
 """"""""""""""""""
 **Required**: If linking WSS objects to samples is desired (See :ref:`sampleserviceintegration`).
 
-**Description**: The root url of the Sample server or the root url of the KBase Service Wizard
-(see below).
+**Description**: The root url of the Sample server.
 
 .. warning:: Once any data containing sample IDs has been saved by the workspace,
    changing the sample server instance will result in unspecified behavior, including data
@@ -356,16 +355,6 @@ sample-service-admin-token
 
 **Description**: Token for the user account used by the WSS to communicate with the Sample
 service. Must have full administration permissions for the service.
-
-sample-service-tag
-""""""""""""""""""
-**Required**: If linking WSS objects to samples is desired and the sample service to be used
-is deployed as a KBase Dynamic service.
-
-**Description**: The release tag for the sample service. Leave blank if the url is a direct
-url to the service. If the url is a KBase Service Wizard url and the sample service url will
-be determined dynamically, the value must be the appropriate release tag for the sample service.
-Examples: dev, beta, release, a git hash.
 
 port
 """"

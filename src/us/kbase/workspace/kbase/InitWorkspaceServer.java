@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -29,7 +28,8 @@ import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
-import us.kbase.common.service.JsonClientCaller;
+import us.kbase.common.service.UnauthorizedException;
+import us.kbase.sampleservice.SampleServiceClient;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
@@ -324,16 +324,20 @@ public class InitWorkspaceServer {
 		// tightly coupled, although the workspace service dependency on the sample
 		// service is optional.
 		final AuthToken t = getToken(cfg.getSampleServiceToken(), auth, "Sample Service");
-		final JsonClientCaller jcc = new JsonClientCaller(cfg.getSampleServiceURL(), t);
+		final SampleServiceClient cli;
+		try {
+			cli = new SampleServiceClient(cfg.getSampleServiceURL(), t);
+		} catch (UnauthorizedException | IOException e) {
+			// these exceptions are not actually thrown by the code. The generated client
+			// needs an update
+			throw new RuntimeException("It should be impossible for this exception to get "+
+					"thrown, but here we are", e);
+		}
 		if (cfg.getSampleServiceURL().getProtocol().equals("http")) {
 			rep.reportInfo("Warning - the Sample Service url uses insecure http. " +
 					"https is recommended.");
-			jcc.setInsecureHttpConnectionAllowed(true);
+			cli.setIsInsecureHttpConnectionAllowed(true);
 		}
-		// testing the tag is basically impossible in automated tests. It should fail fast if
-		// it doesn't work though.
-		final SampleServiceClientWrapper cli = SampleServiceClientWrapper.getClient(
-				jcc, Optional.ofNullable(cfg.getSampleServiceTag()));
 		return new SampleIdHandlerFactory(cli);
 	}
 
