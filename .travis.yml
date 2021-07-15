@@ -7,9 +7,8 @@ jdk:
 
 # TODO split tests into mongo related & non mongo related. Run the former once.
 env:
-  - MONGODB_VER=mongodb-linux-x86_64-2.6.12 MINIO=2019-05-23T00-29-34Z ANT_TEST=test_quick_coverage WIRED_TIGER=false
-  - MONGODB_VER=mongodb-linux-x86_64-3.6.10 MINIO=2019-05-23T00-29-34Z ANT_TEST=test_quick_coverage WIRED_TIGER=false
-  - MONGODB_VER=mongodb-linux-x86_64-3.6.10 MINIO=2019-05-23T00-29-34Z ANT_TEST=test_quick_coverage WIRED_TIGER=true
+  - MONGODB_VER=mongodb-linux-x86_64-3.6.23 MINIO=2019-05-23T00-29-34Z ANT_TEST=test_quick_coverage WIRED_TIGER=false
+  - MONGODB_VER=mongodb-linux-x86_64-3.6.23 MINIO=2019-05-23T00-29-34Z ANT_TEST=test_quick_coverage WIRED_TIGER=true
 
 before_install:
   # install ant deps

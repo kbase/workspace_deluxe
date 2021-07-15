@@ -82,7 +82,7 @@ necessary::
 Service dependencies
 --------------------
 
-The WSS requires `MongoDB <https://mongodb.org>`_ 2.6+ to run. The WSS
+The WSS requires `MongoDB <https://mongodb.org>`_ 3.6+ to run. The WSS
 may optionally use:
 
 * Any AWS S3 compatible storage system as a file storage backend.
@@ -98,8 +98,7 @@ The WSS is tested against:
 
 * The auth2 branch of the KBase fork of Shock version ``0.9.6``
   (``e9f0e1618e265042bf5cb96429995b5e6ec0a06a``)
-* MongoDB version ``2.6.12``
-* MongoDB version ``3.6.10`` with and without WiredTiger
+* MongoDB version ``3.6.23`` with and without WiredTiger
 * Minio version ``2019-05-23T00-29-34Z``
 * Handle service commit ``aae2f70120e75d2ccccab1b1c01dbb9e8327eee8`` with ``log.py`` commit
   ``b549c557e3c519e0a55eadf7863a93db25cd6806``
