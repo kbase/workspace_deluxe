@@ -27,9 +27,9 @@ auth-service-url = https://kbase.us/services/auth/api/legacy/KBase/Sessions/Logi
 # The KBase authorization service mkII url.
 auth2-service-url = https://kbase.us/services/auth
 
-# The urls for the Handle Service.
+# The url for the Handle Service.
 handle-service-url =
-# The credential for the account approved to assign/modify shock node ACLs.
+# The credential for the account approved to run the add_read_acl handle service method.
 handle-service-token =
 
 # The user name for a workspace administrator. This name is not permanently
@@ -45,7 +45,7 @@ ws-admin = workspaceadmin
 auth2-ws-admin-read-only-roles =
 auth2-ws-admin-full-roles =
 
-# The type of the backend that will store the workspace data. Either 'GridFS', 'S3', or 'Shock'.
+# The type of the backend that will store the workspace data. Either 'GridFS' or 'S3'.
 # WARNING: Once any data has been saved by the workspace, changing the backend will result in
 # unspecified behavior, including data corruption.
 backend-type = GridFS
@@ -53,8 +53,7 @@ backend-type = GridFS
 # Token / access secret for the backend account. Not required for GridFS.
 backend-token =
 
-# Username / access key for the backend account. For Shock, this name is checked against the
-# token as a safety measure.
+# Username / access key for the backend account.
 # WARNING: Once any data has been saved by the workspace, changing the backend user
 # (except for the GridFS backend) will result in unspecified behavior, including data corruption.
 # Changing the access key for the S3 backend is acceptable as long as the new access key is
@@ -62,7 +61,7 @@ backend-token =
 backend-user =
 
 # URL for the backend service. Not required for GridFS.
-backend-url = https://kbase.us/services/shock-api
+backend-url = 
 
 # Container for data in the backend service. Only required for S3 - this is the bucket name in
 # which objects will be stored.

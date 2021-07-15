@@ -37,11 +37,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
-import us.kbase.auth.AuthToken;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.shock.client.BasicShockClient;
 import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -83,11 +81,9 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.S3BlobStore;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
-import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.minio.MinioController;
-import us.kbase.workspace.test.controllers.shock.ShockController;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import software.amazon.awssdk.regions.Region;
@@ -102,8 +98,6 @@ import com.mongodb.MongoClient;
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
 	
-	private static final boolean SKIP_SHOCK = false;
-
 	protected static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	protected static final String LONG_TEXT_PART =
@@ -145,7 +139,6 @@ public class WorkspaceTester {
 	
 	private static MongoController mongo = null;
 	private static MinioController minio = null;
-	private static ShockController shock = null;
 	private static AuthController auth = null;
 	protected static TempFilesManager tfm;
 	
@@ -180,22 +173,11 @@ public class WorkspaceTester {
 	@Parameters
 	public static Collection<Object[]> generateData() throws Exception {
 		printMem("*** startup ***");
-		List<Object[]> tests;
-		if (SKIP_SHOCK) {
-			System.out.println("Skipping shock backend tests");
-			tests = Arrays.asList(new Object[][] {
-					{"mongo", "mongo", null},
-					{"mongoUseFile", "mongo", 1},
-					{"minio", "minio", null}
-			});
-		} else {
-			tests = Arrays.asList(new Object[][] {
-					{"mongo", "mongo", null},
-					{"mongoUseFile", "mongo", 1},
-					{"minio", "minio", null},
-					{"shock", "shock", null}
-			});
-		}
+		List<Object[]> tests = Arrays.asList(new Object[][] {
+				{"mongo", "mongo", null},
+				{"mongoUseFile", "mongo", 1},
+				{"minio", "minio", null}
+		});
 		printMem("*** startup complete ***");
 		return tests;
 	}
@@ -204,9 +186,6 @@ public class WorkspaceTester {
 	public static void tearDownClass() throws Exception {
 		if (minio != null) {
 			minio.destroy(TestCommon.getDeleteTempFiles());
-		}
-		if (shock != null) {
-			shock.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (auth != null) {
 			auth.destroy(TestCommon.getDeleteTempFiles());
@@ -266,9 +245,7 @@ public class WorkspaceTester {
 			System.out.println(String.format(
 					"\tConfig: %s, Backend: %s, MaxMemPerCall: %s",
 					config, backend, maxMemoryUsePerCall));
-			if ("shock".equals(backend)) {
-				CONFIGS.put(config, setUpShock(wsdb, maxMemoryUsePerCall));
-			} else if("mongo".equals(backend)) {
+			if("mongo".equals(backend)) {
 				CONFIGS.put(config, setUpMongo(wsdb, maxMemoryUsePerCall));
 			} else if ("minio".equals(backend)) {
 				CONFIGS.put(config, setUpMinio(wsdb, maxMemoryUsePerCall));
@@ -312,37 +289,6 @@ public class WorkspaceTester {
 				Region.of("us-west-1"),
 				false);
 		final BlobStore bs = new S3BlobStore(wsdb.getCollection("s3_map"), cli, "test-bucket");
-		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
-	}
-	
-	private WSandTypes setUpShock(DB wsdb, Integer maxMemoryUsePerCall)
-			throws Exception {
-		final URL authURL = new URL("http://localhost:" + auth.getServerPort() + "/testmode");
-		TestCommon.createAuthUser(authURL, "user1", "display1");
-		final String token1 = TestCommon.createLoginToken(authURL, "user1");
-		final AuthToken t = new AuthToken(token1, "user1");
-		if (shock == null) {
-			shock = new ShockController(
-					TestCommon.getShockExe(),
-					TestCommon.getShockVersion(),
-					Paths.get(TestCommon.getTempDir()),
-					"***---fakeuser---***",
-					"localhost:" + mongo.getServerPort(),
-					"WorkspaceTester_ShockDB",
-					null,
-					null,
-					new URL(authURL.toString() + "/api/legacy/globus"));
-			System.out.println("Shock controller version: " +
-					shock.getVersion());
-			if (shock.getVersion() == null) {
-				System.out.println(
-						"Unregistered version - Shock may not start correctly");
-			}
-			System.out.println("Using Shock temp dir " + shock.getTempDir());
-		}
-		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		BlobStore bs = new ShockBlobStore(
-				wsdb.getCollection("shock_nodes"), new BasicShockClient(shockUrl, t));
 		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
 	}
 	
