@@ -113,6 +113,11 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		 */
 		public static final String RENAME_OBJECT = "RENAME_OBJECT";
 		/** The event type sent by the
+		 * {@link WorkspaceEventListener#setObjectHidden(WorkspaceUser, long, long, boolean, Instant)}
+		 * method.
+		 */
+		public static final String OBJECT_HIDE_STATE_CHANGE = "OBJECT_HIDE_STATE_CHANGE";
+		/** The event type sent by the
 		 * {@link WorkspaceEventListener#setObjectDeleted(WorkspaceUser, long, long, boolean, Instant)}
 		 * method.
 		 */
@@ -357,6 +362,17 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 			
 		}
 
+		@Override
+		public void setObjectHidden(
+				final WorkspaceUser user,
+				final long workspaceId,
+				final long objectId,
+				final boolean hidden,
+				final Instant time) {
+			newEvent(user.getUser(), workspaceId, objectId, null, null, OBJECT_HIDE_STATE_CHANGE,
+					time);
+		}
+		
 		@Override
 		public void setObjectDeleted(
 				final WorkspaceUser user,

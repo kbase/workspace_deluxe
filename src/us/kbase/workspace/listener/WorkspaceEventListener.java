@@ -131,6 +131,20 @@ public interface WorkspaceEventListener {
 	 */
 	void revertObject(ObjectInformation object, boolean isPublic);
 
+	/** Notification that an object was hidden or unhidden.
+	 * @param user the user that changed the hidden state of the object.
+	 * @param workspaceId the workspace id.
+	 * @param objectId the object id.
+	 * @param hidden true if the object was hidden, false if it was unhidden.
+	 * @param time the time the hide event occurred.
+	 */
+	void setObjectHidden(
+			WorkspaceUser user,
+			long workspaceId,
+			long objectId,
+			boolean hidden,
+			Instant time);
+
 	/** Notification that an object was deleted or undeleted.
 	 * @param user the user that changed the deletion state of the object.
 	 * @param workspaceId the workspace id.

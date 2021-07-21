@@ -88,6 +88,14 @@ public class BadListenerFactory implements WorkspaceEventListenerFactory {
 
 		@Override
 		public void revertObject(ObjectInformation obj, boolean isPublic) {}
+		
+		@Override
+		public void setObjectHidden(
+				WorkspaceUser user,
+				long workspaceId,
+				long objectId,
+				boolean hidden,
+				Instant time) {}
 
 		@Override
 		public void setObjectDeleted(

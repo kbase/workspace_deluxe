@@ -10,6 +10,8 @@ BACKWARDS INCOMPATIBILITIES:
   service. As such, the ``sample-service-tag`` configuration key has been removed.
 * Shock is no longer supported as a data backend.
 * The SearchPrototypeEventHandlerFactory has been removed.
+* The WorkspaceEventListener interface now includes a setObjectHidden method. Code using this
+  interface must be updated to implement this method.
 
 VERSION: 0.11.5 (Released 4/27/21)
 ----------------------------------
