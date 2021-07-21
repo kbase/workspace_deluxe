@@ -86,7 +86,7 @@ The WSS requires `MongoDB <https://mongodb.org>`_ 3.6+ to run. The WSS
 may optionally use:
 
 * Any AWS S3 compatible storage system as a file storage backend.
-* `Shock <https://github.com/kbase/Shock>`_ as a file storage backend or for linking WSS objects
+* `Shock <https://github.com/kbase/Shock>`_ for linking WSS objects
   to Shock nodes.
 * The `Handle Service <https://github.com/kbase/handle_service2>`_
   to mediate linking workspace objects to Shock nodes (see :ref:`shockintegration`).
@@ -112,7 +112,7 @@ required.
    above.
 
 .. note::
-   The alternative to Shock or S3 as a file storage backend is MongoDB GridFS.
+   The alternative to S3 as a file storage backend is MongoDB GridFS.
    GridFS is simpler to set up, but locks the entire database when writing
    files. Since the workspace can consume very large files, this can cause a
    significant impact on other database operations.
@@ -131,7 +131,7 @@ to create the file.
    ``deploy.cfg`` contains several sets of credentials, and thus should be
    protected like any other file containing unencryted passwords or tokens.
    It is especially important to protect the credentials that the WSS uses
-   to talk to Shock or S3 (``backend-token``) as they can be used to delete
+   to talk to S3 (``backend-token``) as they can be used to delete
    or corrupt the workspace data. At minimum, only the user that runs the WSS (which
    should **not** be ``root``) should have read access to ``deploy.cfg``. Also be
    aware that the ``deploy.cfg`` contents are copied to, by default,
@@ -248,7 +248,7 @@ backend-type
 **Required**: Yes
 
 **Description**: Determines which backend will be used to store the workspace object data.
-Either ``GridFS``, ``S3``, or ``Shock``. Note all data other than the object data is stored
+Either ``GridFS`` or ``S3``. Note all data other than the object data is stored
 in MongoDB.
 
 .. warning:: Once any data has been saved by the workspace, changing the backend type will
@@ -256,33 +256,27 @@ in MongoDB.
 
 backend-url
 """""""""""
-**Required**: If using Shock or S3 as the file backend.
+**Required**: If using S3 as the file backend.
 
-**Description**: The root url of the Shock or S3 server.
+**Description**: The root url of the S3 server.
 
-.. warning:: Once any data has been saved by the workspace, changing the Shock or S3 server
+.. warning:: Once any data has been saved by the workspace, changing the S3 server
    instance will result in unspecified behavior, including data corruption.
 
 backend-user
 """"""""""""
-**Required**: If using Shock or S3 as the file backend.
+**Required**: If using S3 as the file backend.
 
 **Description**: For S3, the access key for the S3 account that will own the workspace data.
-For Shock, the KBase user account that will be used to interact with Shock. In the case of Shock,
-this is provided in the configuration as a safety feature, as the backend token may change, but the
-user should not. The user associated with the backend token is checked against ``backend-user``,
-and if the names differ, the server will not start.
 
 .. warning:: Once any data has been saved by the workspace, changing the backend user will
    result in unspecified behavior, including data corruption.
 
 backend-token
 """""""""""""
-**Required**: If using Shock or S3 as the file backend.
+**Required**: If using S3 as the file backend.
 
 **Description**: For S3, the access secret for the S3 account that will own the workspace data.
-For Shock, the token for the file backend user account used by the WSS to communicate with
-the backend.
 
 backend-container
 """""""""""""""""

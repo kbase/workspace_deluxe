@@ -51,7 +51,6 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.S3BlobStore;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
-import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
 import us.kbase.workspace.kbase.ShockIdHandlerFactory.ShockClientCloner;
@@ -449,26 +448,6 @@ public class InitWorkspaceServer {
 		if (cfg.getBackendType().equals(BackendType.GridFS)) {
 			return new GridFSBlobStore(db);
 		}
-		if (cfg.getBackendType().equals(BackendType.Shock)) {
-			final AuthToken token = getKBaseToken(
-					cfg.getBackendUser(), cfg.getBackendToken(), "backend", auth);
-			try {
-				return new ShockBlobStore(db.getCollection(COL_SHOCK_NODES),
-						new BasicShockClient(cfg.getBackendURL(), token));
-			} catch (InvalidShockUrlException isue) {
-				throw new WorkspaceInitException(
-						"The backend url " + cfg.getBackendURL() + " is invalid", isue);
-			} catch (ShockHttpException she) {
-				throw new WorkspaceInitException(
-						"Shock appears to be misconfigured - the client could not initialize. " +
-						"Shock said: " + she.getLocalizedMessage(), she);
-			} catch (IOException ioe) {
-				throw new WorkspaceInitException(
-						"Could not connect to the shock backend: " +
-						ioe.getLocalizedMessage(), ioe);
-			}
-		}
-		// tested manually
 		if (cfg.getBackendType().equals(BackendType.S3)) {
 			try {
 				final S3ClientWithPresign cli = new S3ClientWithPresign(

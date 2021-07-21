@@ -14,7 +14,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
@@ -23,7 +22,6 @@ import org.nocrala.tools.texttablefmt.Table;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.DB;
 
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
@@ -33,16 +31,11 @@ import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
-import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Restreamable;
 import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
-import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
@@ -51,18 +44,9 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
-import us.kbase.workspace.database.ObjectIDNoWSNoVer;
-import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
-import us.kbase.workspace.database.Workspace;
-import us.kbase.workspace.database.WorkspaceIdentifier;
-import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
-import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.database.mongo.ShockBlobStore;
 
 /* DO NOT run these tests on production workspaces.
  * WARNING: extensive changes have been made to the code. Read through the code
@@ -70,6 +54,8 @@ import us.kbase.workspace.database.mongo.ShockBlobStore;
  * correctly any more. See TODOs
  * 
  * Removed all references to the 0.0.5 Perl workspace version 2016/01/23.
+ * Removed all references to the Shock backend 2021/7/14
+ * See the git history if you wish to examine examples of timing various layers of the workspace.
  * 
  * Note you must make the SupahFakeKBGA.Genome type available in the workspace
  * before running these tests. 
@@ -97,10 +83,7 @@ public class ConfigurationsAndThreads {
 	static {
 		configMap.put("Shock", ShockClient.class);
 		configMap.put("WS_JSONRPCShock1ObjPerCall", WorkspaceJsonRPCShock.class);
-		configMap.put("WorkspaceLibShock", WorkspaceLibShock.class);
 		configMap.put("GridFSBackend", GridFSBackendOnly.class);
-		configMap.put("ShockBackend", ShockBackendOnly.class);
-		configMap.put("WorkspaceLibShockEmptyType", WorkspaceLibShockEmptySpec.class);
 	}
 	
 	private static final String FILE = "83333.2.txt";
@@ -112,12 +95,9 @@ public class ConfigurationsAndThreads {
 	private static final String MODULE = "SupahFakeKBGA";
 	private static final String M_TYPE = "Genome";
 	private static final String TYPE = MODULE + "." + M_TYPE;
-	private static final TypeDefId TYPEDEF = new TypeDefId(TYPE);
 	
 	private static final String SIMPLE_MODULE = "SomeModule";
 	private static final String SIMPLE_M_TYPE = "AType";
-	private static final String SIMPLE_TYPE = SIMPLE_MODULE + "." + SIMPLE_M_TYPE;
-	private static final TypeDefId SIMPLE_TYPEDEF = new TypeDefId(SIMPLE_TYPE);
 	private static final String SIMPLE_SPEC =
 			"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};";
 	
@@ -368,132 +348,6 @@ public class ConfigurationsAndThreads {
 		@Override
 		public void cleanUp() throws Exception {
 			wsc.deleteWorkspace(new WorkspaceIdentity().withWorkspace(workspace));
-		}
-	}
-	
-	public static class WorkspaceLibShockEmptySpec extends WorkspaceLibShock {
-		
-		public WorkspaceLibShockEmptySpec() throws Exception {
-			super();
-			type = SIMPLE_TYPEDEF;
-		}
-	}
-	
-	public static class WorkspaceLibShock extends AbstractReadWriteTest {
-
-		private static final WorkspaceUser foo = new WorkspaceUser("foo");
-		protected TypeDefId type;
-		
-		private Workspace ws;
-		private int writes;
-		@SuppressWarnings("unused")
-		private int id;
-		final List<String> wsids = new LinkedList<String>();
-		private List<JsonNode> objs = new LinkedList<JsonNode>();
-		private String workspace;
-		
-		public WorkspaceLibShock() throws Exception {
-			super();
-			//NOTE check this still works NOTE2 it doesn't
-			DB db = GetMongoDB.getDB(MONGO_HOST, MONGO_DB);
-			final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
-					new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)));
-			TypedObjectValidator val = new TypedObjectValidator(
-					new LocalTypeProvider(typeDefDB));
-			MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-					new ShockBlobStore(db.getCollection("shock_map"),
-							new BasicShockClient(shockURL,
-							AuthService.validateToken("foo"))), tfm);
-			ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
-			workspace = "SupahFake" + new String("" + Math.random()).substring(2)
-					.replace("-", ""); //in case it's E-X
-			ws.createWorkspace(foo, workspace, false, null, null);
-			type = TYPEDEF;
-		};
-		
-		@SuppressWarnings("unchecked")
-		public void initialize(int writes, int id) throws Exception {
-			this.writes = writes;
-			this.id = id;
-			for (int i = 0; i < this.writes; i++) {
-				Map<String, Object> foo = (Map<String, Object>) MAP.readValue(data, Map.class);
-				foo.put("fakekey", Math.random());
-				objs.add(MAP.valueToTree(foo));
-			}
-		}
-
-		@Override
-		public int performReads() throws Exception {
-			for (String id: wsids) {
-				ws.getObjects(foo, Arrays.asList(
-						new ObjectIdentifier(new WorkspaceIdentifier(workspace), id)));
-			}
-			return 0;
-		}
-
-		@Override
-		public int performWrites() throws Exception {
-			for (JsonNode o: objs) {
-				final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
-						.getBuilder(1).build().getFactory(null);
-//				final IdReferenceHandlerSetFactory fac = new IdReferenceHandlerSetFactory(1);
-//				fac.addFactory(ws.getHandlerFactory(foo));
-				wsids.add(ws.saveObjects(foo, new WorkspaceIdentifier(workspace),
-						Arrays.asList(new WorkspaceSaveObject(
-								//added obj name when autonaming removed
-								new ObjectIDNoWSNoVer(UUID.randomUUID().toString()
-										.replace("-", "")),
-								o, type, null, new Provenance(foo), false)), fac)
-						.get(0).getObjectName());
-			}
-			return 0;
-		}
-
-		@Override
-		public void cleanUp() throws Exception {
-			ws.setWorkspaceDeleted(foo, new WorkspaceIdentifier(workspace), true);
-		}
-	}
-	
-	public static class ShockBackendOnly extends AbstractReadWriteTest {
-		
-		private ShockBlobStore sb;
-		@SuppressWarnings("unused")
-		private int id;
-		public final List<MD5> md5s = new LinkedList<MD5>();
-		
-		public void initialize(int writes, int id) throws Exception {
-			Random rand = new Random();
-			this.sb = new ShockBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB, 0, 0).getCollection(
-					"temp_shock_node_map"), new BasicShockClient(shockURL, token));
-			for (int i = 0; i < writes; i++) {
-				byte[] r = new byte[16]; //128 bit
-				rand.nextBytes(r);
-				md5s.add(new MD5(Hex.encodeHexString(r)));
-			}
-			this.id = id;
-		}
-		
-		@Override
-		public int performReads() throws Exception {
-			for (MD5 md5: md5s) {
-				sb.getBlob(md5,
-						new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
-			}
-			return 0;
-		}
-
-		@Override
-		public int performWrites() throws Exception {
-			for (MD5 md5: md5s) {
-				sb.saveBlob(md5, treeToWritable(jsonData), true);
-			}
-			return 0;
-		}
-
-		@Override
-		public void cleanUp() throws Exception {
-			sb.removeAllBlobs();
 		}
 	}
 	

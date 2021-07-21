@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -22,11 +21,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.DB;
 
-import us.kbase.auth.AuthService;
 import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.test.TestCommon;
-import us.kbase.shock.client.BasicShockClient;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -46,8 +43,8 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.database.mongo.ShockBlobStore;
 
 public class GetObjectsLibSpeedTest {
 	
@@ -59,11 +56,9 @@ public class GetObjectsLibSpeedTest {
 	};
 	
 	public static void main(String[] args) throws Exception {
-		String shocktoken = args[0];
 		Op op = Op.XLATEOPS;
 		int reps = 500;
 		String mongohost = "localhost";
-		String shockurl = "http://localhost:7044";
 		String wsDB = "getObjectsSpeedTest"; // this will get wiped out
 		String typeDB = "getObjectsSpeedTestTypes"; // this too
 		String module = "SupahFakeKBGA";
@@ -75,7 +70,6 @@ public class GetObjectsLibSpeedTest {
 		System.setProperty("test.mongo.db1", wsDB);
 		System.setProperty("test.mongo.db.types1", typeDB);
 		System.setProperty("test.mongo.host", mongohost);
-		System.setProperty("test.shock.url", shockurl);
 		//need to redo set up if this is used again
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, shockuser, null);
@@ -87,11 +81,7 @@ public class GetObjectsLibSpeedTest {
 				GetMongoDB.getDB(mongohost, typeDB)));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
-		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db,
-				new ShockBlobStore(db.getCollection("shock_map"),
-						new BasicShockClient(
-								new URL(shockurl), AuthService.validateToken(shocktoken))),
-				tfm);
+		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 		Workspace ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 		Types types = new Types(typeDefDB);
 		

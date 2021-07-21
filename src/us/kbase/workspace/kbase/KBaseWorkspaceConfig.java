@@ -100,7 +100,6 @@ public class KBaseWorkspaceConfig {
 	private static final Map<String, List<String>> BACKEND_TYPES = ImmutableMap.of(
 			BackendType.S3.name(), Arrays.asList(BACKEND_TOKEN, BACKEND_URL, BACKEND_USER,
 					BACKEND_CONTAINER, BACKEND_REGION),
-			BackendType.Shock.name(), Arrays.asList(BACKEND_TOKEN, BACKEND_URL, BACKEND_USER),
 			BackendType.GridFS.name(), Collections.emptyList());
 	
 	private final String host;

@@ -8,6 +8,7 @@ BACKWARDS INCOMPATIBILITIES:
 
 * The Sample service is no longer supported as a KBase dynamic dynamic service, only as a core
   service. As such, the ``sample-service-tag`` configuration key has been removed.
+* Shock is no longer supported as a data backend.
 
 VERSION: 0.11.5 (Released 4/27/21)
 ----------------------------------

@@ -146,106 +146,8 @@ public class KBaseWorkspaceConfigTest {
 	}
 	
 	@Test
-	public void configMaximalShock() throws Exception {
-		// also tests full sample service config
-		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
-				.with("mongodb-host", "    somehost    ")
-				.with("mongodb-database", "    somedb   ")
-				.with("mongodb-type-database", "     typedb     ")
-				.with("temp-dir", "   temp   ")
-				.with("auth-service-url", "    " + AUTH_LEGACY_URL + "    ")
-				.with("auth2-service-url", "   " + CI_SERV + "auth     ")
-				.with("mongodb-user", "   muser   ")
-				.with("mongodb-pwd", "    mpwd    ")
-				.with("ws-admin", "    wsadminuser     ")
-				.with("auth2-ws-admin-read-only-roles", "   role1,   ,   role2   , ")
-				.with("auth2-ws-admin-full-roles", "   role3,   ,   role4   , ")
-				.with("backend-type", "   Shock   ")
-				.with("backend-url", "   " + CI_SERV + "shock-api    ")
-				.with("backend-user", "    someuser    ")
-				.with("backend-token", "    token token token    ")
-				.with("backend-trust-all-ssl-certificates", "    true    ")
-				.with("handle-service-token", "    hstoken    ")
-				.with("handle-manager-token", "    hmtoken    ")  // test service takes precedence
-				.with("handle-service-url", "     " + CI_SERV + "handle_service    ")
-				.with("sample-service-url", "     " + CI_SERV + "sample_service    ")
-				.with("sample-service-administrator-token", "    sstoken    ")
-				.with("bytestream-url", "   " + CI_SERV + "shock-api2    ")
-				.with("bytestream-user", "    otheruser    ")
-				.with("bytestream-token", "    token token    ")
-				.with("listeners", "listener1,   ,   listener2  , ")
-				.with("listener-listener1-class", "    us.kbase.MyListener     ")
-				.with("listener-listener1-config-key1", "value1")
-				.with("listener-listener1-config-key2", "value2")
-				.with("listener-listener2-class", "    us.kbase.MyListener2     ")
-				.with("listener-listener2-config-key1", "value3")
-				.build();
-		
-		final String paramReport =
-				"mongodb-host=somehost\n" +
-				"mongodb-database=somedb\n" +
-				"mongodb-type-database=typedb\n" +
-				"mongodb-user=muser\n" +
-				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
-				"auth2-service-url=" + CI_SERV + "auth\n" +
-				"auth2-ws-admin-read-only-roles=role1,   ,   role2   ,\n" +
-				"auth2-ws-admin-full-roles=role3,   ,   role4   ,\n" +
-				"backend-type=Shock\n" +
-				"backend-url=" + CI_SERV + "shock-api\n" +
-				"backend-user=someuser\n" +
-				"backend-trust-all-ssl-certificates=true\n" +
-				"handle-service-url=" + CI_SERV + "handle_service\n" +
-				"bytestream-url=" + CI_SERV + "shock-api2\n" +
-				"bytestream-user=otheruser\n" +
-				"sample-service-url=" + CI_SERV +"sample_service\n" +
-				"mongodb-pwd=[redacted for your safety and comfort]\n" +
-				"listeners=us.kbase.MyListener,us.kbase.MyListener2\n";
-		
-		final KBaseWorkspaceConfig kwc = new KBaseWorkspaceConfig(cfg);
-		
-		assertThat("incorrect admin read roles", kwc.getAdminReadOnlyRoles(),
-				is(set("role1", "role2")));
-		assertThat("incorrect admin roles", kwc.getAdminRoles(), is(set("role3", "role4")));
-		assertThat("incorrect auth2 url", kwc.getAuth2URL(), is(new URL(CI_SERV + "auth")));
-		assertThat("incorrect auth url", kwc.getAuthURL(), is(new URL(AUTH_LEGACY_URL)));
-		assertThat("incorrect backend token", kwc.getBackendToken(), is("token token token"));
-		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.Shock));
-		assertThat("incorrect backend url", kwc.getBackendURL(),
-				is(new URL(CI_SERV + "shock-api")));
-		assertThat("incorrect backend user", kwc.getBackendUser(), is("someuser"));
-		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
-		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
-		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(true));
-		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
-		assertThat("incorrect errors", kwc.getErrors(), is(MT));
-		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), is("hstoken"));
-		assertThat("incorrect srvc url", kwc.getHandleServiceURL(),
-				is(new URL(CI_SERV + "handle_service")));
-		assertThat("incorrect host", kwc.getHost(), is("somehost"));
-		assertThat("incorrect info msgs", kwc.getInfoMessages(), is(Collections.emptyList()));
-		assertThat("incorrect listeners", kwc.getListenerConfigs(), is(Arrays.asList(
-				new ListenerConfig("us.kbase.MyListener",
-						ImmutableMap.of("key1", "value1", "key2", "value2")),
-				new ListenerConfig("us.kbase.MyListener2", ImmutableMap.of("key1", "value3")))));
-		assertThat("incorrect mongo pwd", kwc.getMongoPassword(), is("mpwd"));
-		assertThat("incorrect mongo user", kwc.getMongoUser(), is("muser"));
-		assertThat("incorrect param report", kwc.getParamReport(), is(paramReport));
-		assertThat("incorrect bytestream token", kwc.getBytestreamToken(), is("token token"));
-		assertThat("incorrect bytestream url", kwc.getBytestreamURL(),
-				is(new URL(CI_SERV + "shock-api2")));
-		assertThat("incorrect bytestream user", kwc.getBytestreamUser(), is("otheruser"));
-		assertThat("incorrect sample token", kwc.getSampleServiceToken(), is("sstoken"));
-		assertThat("incorrect sample url", kwc.getSampleServiceURL(),
-				is(new URL(CI_SERV + "sample_service")));
-		assertThat("incorrect temp dir", kwc.getTempDir(), is("temp"));
-		assertThat("incorrect type db", kwc.getTypeDBName(), is("typedb"));
-		assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), is("wsadminuser"));
-		assertThat("incorrect has err", kwc.hasErrors(), is(false));
-		assertThat("incorrect ignore hs", kwc.ignoreHandleService(), is(false));
-	}
-	
-	@Test
 	public void configMaximalS3() throws Exception {
+		// also tests full sample service config
 		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
@@ -265,7 +167,8 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-container", "   mahbukkit   ")
 				.with("backend-region", "   a-lovely-region   ")
 				.with("backend-trust-all-ssl-certificates", "trudat")
-				.with("handle-manager-token", "    hmtoken    ")
+				.with("handle-service-token", "    hstoken    ")
+				.with("handle-manager-token", "    hmtoken    ")  // test service takes precedence
 				.with("handle-manager-url", "    " + CI_SERV + "handle_mngr     ")
 				.with("handle-service-url", "     " + CI_SERV + "handle_service    ")
 				.with("bytestream-url", "   " + CI_SERV + "shock-api2    ")
@@ -321,7 +224,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
-		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), is("hmtoken"));
+		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), is("hstoken"));
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(),
 				is(new URL(CI_SERV + "handle_service")));
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
@@ -369,7 +272,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-container", "   \t    ")
 				.with("backend-trust-all-ssl-certificates", "   \t    ")
 				.with("backend-region", "   \t    ")
-				.with("handle-service-token", "hstoken")
+				.with("handle-manager-token", "       hmtoken   ") // test that backwards compat ok
 				.with("handle-service-url", CI_SERV + "handle_service")
 				.with("bytestream-token", "   \t    ")
 				.with("bytestream-user", "   \t    ")
@@ -404,7 +307,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(MT));
-		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), is("hstoken"));
+		assertThat("incorrect srvc token", kwc.getHandleServiceToken(), is("hmtoken"));
 		assertThat("incorrect srvc url", kwc.getHandleServiceURL(),
 				is(new URL(CI_SERV + "handle_service")));
 		assertThat("incorrect host", kwc.getHost(), is("somehost"));
@@ -651,10 +554,12 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
 				.with("mongodb-type-database", "    typedb   ")
-				.with("backend-type", "Shock")
+				.with("backend-type", "S3")
 				.with("backend-token", "   bet   ")
 				.with("backend-user", "   buser  ")
 				.with("backend-url", "    crappy ass url for backend   ")
+				.with("backend-container", "foo")
+				.with("backend-region", " over there")
 				.with("bytestream-url", "    crappy ass url for shock   ")
 				.with("temp-dir", "   temp   ")
 				.with("auth-service-url", "   crappy ass url   ")
@@ -671,9 +576,11 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-type-database=typedb\n" +
 				"auth-service-url=crappy ass url\n" +
 				"auth2-service-url=crappy ass url2\n" +
-				"backend-type=Shock\n" +
+				"backend-type=S3\n" +
 				"backend-url=crappy ass url for backend\n" +
 				"backend-user=buser\n" +
+				"backend-region=over there\n" +
+				"backend-container=foo\n" +
 				"handle-service-url=crappy ass url4\n";
 		
 		final String err = "Invalid url for parameter %s: crappy ass url%s";
@@ -693,11 +600,12 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect auth2 url", kwc.getAuth2URL(), nullValue());
 		assertThat("incorrect auth url", kwc.getAuthURL(), nullValue());
 		assertThat("incorrect backend token", kwc.getBackendToken(), is("bet"));
-		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.Shock));
+		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.S3));
 		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
 		assertThat("incorrect backend user", kwc.getBackendUser(), is("buser"));
-		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
-		assertThat("incorrect backend region", kwc.getBackendRegion(), nullValue());
+		assertThat("incorrect backend container", kwc.getBackendContainer(), is("foo"));
+		assertThat("incorrect backend region", kwc.getBackendRegion(),
+				is(Region.of("over there")));
 		assertThat("incorrect backend trust certs", kwc.getBackendTrustAllCerts(), is(false));
 		assertThat("incorrect db", kwc.getDBname(), is("somedb"));
 		assertThat("incorrect errors", kwc.getErrors(), is(errors));
@@ -840,15 +748,14 @@ public class KBaseWorkspaceConfigTest {
 	}
 	
 	@Test
-	public void configFailShockParamsMissing() throws Exception {
-		configFailShockParamsMissing(null, null, "user", "bytestream-user=user\n");
-		configFailShockParamsMissing(null, "    \t    ", "user", "bytestream-user=user\n");
-		configFailShockParamsMissing("    \t   ", "token", null, "");
-		configFailShockParamsMissing("    \t   ", "token", "   \t     ", "");
+	public void configFailBytestreamParamsMissing() throws Exception {
+		configFailBytestreamParamsMissing(null, "user", "bytestream-user=user\n");
+		configFailBytestreamParamsMissing("    \t    ", "user", "bytestream-user=user\n");
+		configFailBytestreamParamsMissing("token", null, "");
+		configFailBytestreamParamsMissing("token", "   \t     ", "");
 	}
 
-	private void configFailShockParamsMissing(
-			final String backendParam,
+	private void configFailBytestreamParamsMissing(
 			String bytestreamToken,
 			String bytestreamUser,
 			final String paramReportLast)
@@ -857,10 +764,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
 				.with("mongodb-type-database", "    typedb   ")
-				.with("backend-type", "Shock")
-				.with("backend-token", backendParam)
-				.with("backend-user", backendParam)
-				.with("backend-url", backendParam)
+				.with("backend-type", "GridFS")
 				.with("bytestream-token", bytestreamToken)
 				.with("bytestream-user", bytestreamUser)
 				.with("bytestream-url", "https://foo.com")
@@ -876,16 +780,11 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-type-database=typedb\n" +
 				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
-				"backend-type=Shock\n" +
+				"backend-type=GridFS\n" +
 				"bytestream-url=https://foo.com\n" + 
 				paramReportLast;
 		
-		final String err = "Must provide Shock param %s in config file";
-		
 		final List<String> errors = Arrays.asList(
-				String.format(err, "backend-token"),
-				String.format(err, "backend-url"),
-				String.format(err, "backend-user"),
 				"Must provide bytestream-user and bytestream-token parameters in config file if " +
 				"bytestream-url is provided");
 		
@@ -901,7 +800,7 @@ public class KBaseWorkspaceConfigTest {
 		assertThat("incorrect auth2 url", kwc.getAuth2URL(), is(new URL(CI_SERV + "auth")));
 		assertThat("incorrect auth url", kwc.getAuthURL(), is(new URL(AUTH_LEGACY_URL)));
 		assertThat("incorrect backend token", kwc.getBackendToken(), nullValue());
-		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.Shock));
+		assertThat("incorrect backend type", kwc.getBackendType(), is(BackendType.GridFS));
 		assertThat("incorrect backend url", kwc.getBackendURL(), nullValue());
 		assertThat("incorrect backend user", kwc.getBackendUser(), nullValue());
 		assertThat("incorrect backend container", kwc.getBackendContainer(), nullValue());
