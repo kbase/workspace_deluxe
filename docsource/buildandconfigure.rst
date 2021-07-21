@@ -633,7 +633,6 @@ Start Tomcat with Workspace service::
     auth2-service-url=http://auth:8080/
     auth-service-url=http://auth:8080/api/legacy/KBase
     handle-service-url=http://handle_service:8080/
-    listeners=us.kbase.workspace.modules.SearchPrototypeEventHandlerFactory,us.kbase.workspace.modules.KnowledgeEnginePrototypeEventHandlerFactory
     Temporary file location: ws_temp_dir
     Initialized Shock backend
     Started workspace server instance 1. Free mem: 936900632 Total mem: 1048576000, Max mem: 3145728000

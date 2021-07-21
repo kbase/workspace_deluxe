@@ -6,9 +6,10 @@ VERSION: 0.12.0 (Released TBD)
 
 BACKWARDS INCOMPATIBILITIES:
 
-* The Sample service is no longer supported as a KBase dynamic dynamic service, only as a core
+* The Sample service is no longer supported as a KBase dynamic service, only as a core
   service. As such, the ``sample-service-tag`` configuration key has been removed.
 * Shock is no longer supported as a data backend.
+* The SearchPrototypeEventHandlerFactory has been removed.
 
 VERSION: 0.11.5 (Released 4/27/21)
 ----------------------------------
