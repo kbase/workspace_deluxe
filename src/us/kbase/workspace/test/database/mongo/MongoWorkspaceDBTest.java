@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import org.bson.types.ObjectId;
@@ -34,12 +35,13 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
+import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceSaveObject;
@@ -90,38 +92,18 @@ public class MongoWorkspaceDBTest {
 		
 		final BlobStore bs = mock(BlobStore.class);
 		final TempFilesManager tfm = mock(TempFilesManager.class);
-		final ValidatedTypedObject vto = mock(ValidatedTypedObject.class);
 		
 		final MongoWorkspaceDB db = new MongoWorkspaceDB(MONGO_DB, bs, tfm);
 		
 		db.createWorkspace(new WorkspaceUser("u"), "ws", false, null, new WorkspaceUserMetadata());
 		
 		final Provenance p = new Provenance(new WorkspaceUser("u"), new Date(10000));
-		
 		p.setWorkspaceID(1L);
 		p.addAction(new ProvenanceAction().withCaller("call"));
 		
-		when(vto.getValidationTypeDefId())
-				.thenReturn(new AbsoluteTypeDefId(new TypeDefName("Mod.Type"), 5, 1));
-		when(vto.extractMetadata(16000)).thenReturn(new ExtractedMetadata(Collections.emptyMap()));
-		when(vto.getMD5()).thenReturn(new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
-		when(vto.getRelabeledSize()).thenReturn(22L);
-		
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
-		db.saveObjects(new WorkspaceUser("u"), wsid,
-				Arrays.asList(new WorkspaceSaveObject(
-						new ObjectIDNoWSNoVer("newobj"),
-						new UObject(ImmutableMap.of("foo", "bar")),
-						new TypeDefId("Mod.Type", "5.1"),
-						null,
-						p,
-						false)
-						.resolve(
-								vto,
-								set(),
-								Collections.emptyList(),
-								Collections.emptyMap())
-						));
+		saveTestObject(db, wsid, "u", p, "newobj", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
 		
 		final DBObject v = MONGO_DB.getCollection("workspaceObjVersions").findOne();
 		final ObjectId i = (ObjectId) v.get("provenance");
@@ -161,7 +143,6 @@ public class MongoWorkspaceDBTest {
 		// check that older objects without external ID fields in the document don't cause NPEs
 		final BlobStore bs = mock(BlobStore.class);
 		final TempFilesManager tfm = mock(TempFilesManager.class);
-		final ValidatedTypedObject vto = mock(ValidatedTypedObject.class);
 		
 		final MongoWorkspaceDB db = new MongoWorkspaceDB(MONGO_DB, bs, tfm);
 		
@@ -170,27 +151,9 @@ public class MongoWorkspaceDBTest {
 		final Provenance p = new Provenance(new WorkspaceUser("u"), new Date(10000));
 		p.setWorkspaceID(1L);
 		
-		when(vto.getValidationTypeDefId())
-				.thenReturn(new AbsoluteTypeDefId(new TypeDefName("Mod.Type"), 5, 1));
-		when(vto.extractMetadata(16000)).thenReturn(new ExtractedMetadata(Collections.emptyMap()));
-		when(vto.getMD5()).thenReturn(new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
-		when(vto.getRelabeledSize()).thenReturn(22L);
-		
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
-		db.saveObjects(new WorkspaceUser("u"), wsid,
-				Arrays.asList(new WorkspaceSaveObject(
-						new ObjectIDNoWSNoVer("newobj"),
-						new UObject(ImmutableMap.of("foo", "bar")),
-						new TypeDefId("Mod.Type", "5.1"),
-						null,
-						p,
-						false)
-						.resolve(
-								vto,
-								set(),
-								Collections.emptyList(),
-								Collections.emptyMap())
-						));
+		saveTestObject(db, wsid, "u", p, "newobj", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
 		
 		MONGO_DB.getCollection("workspaceObjVersions").update(
 				new BasicDBObject(),
@@ -209,5 +172,39 @@ public class MongoWorkspaceDBTest {
 				.get(SubsetSelection.EMPTY);
 		assertThat("incorrect data", wod.getSerializedData(), nullValue());
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
+	}
+	
+	private Reference saveTestObject(
+			final MongoWorkspaceDB db,
+			final ResolvedWorkspaceID wsid,
+			final String user,
+			final Provenance prov,
+			final String name,
+			final String absoluteTypeDef,
+			final String md5,
+			final long size)
+			throws Exception {
+		final ValidatedTypedObject vto = mock(ValidatedTypedObject.class);
+		when(vto.getValidationTypeDefId()).thenReturn(
+				AbsoluteTypeDefId.fromAbsoluteTypeString(absoluteTypeDef));
+		when(vto.extractMetadata(16000)).thenReturn(new ExtractedMetadata(Collections.emptyMap()));
+		when(vto.getMD5()).thenReturn(new MD5(md5));
+		when(vto.getRelabeledSize()).thenReturn(size);
+
+		final List<ObjectInformation> res = db.saveObjects(new WorkspaceUser(user), wsid,
+				Arrays.asList(new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer(name),
+						new UObject(ImmutableMap.of("foo", "bar")),
+						new TypeDefId("Mod.Type", "5.1"),
+						null,
+						prov,
+						false)
+						.resolve(
+								vto,
+								set(),
+								Collections.emptyList(),
+								Collections.emptyMap())
+						));
+		return res.get(0).getReferencePath().get(0);
 	}
 }
