@@ -215,6 +215,16 @@ public class TestCommon {
 		assertThat("incorrect exception type", got, instanceOf(expected.getClass()));
 	}
 	
+	public static void assertCloseToNow(final long epochMillis) {
+		final long now = Instant.now().toEpochMilli();
+		assertThat(String.format("time (%s) not within 1000ms of now: %s", epochMillis, now),
+				Math.abs(epochMillis - now) < 1000, is(true));
+	}
+	
+	public static void assertCloseToNow(final Instant creationDate) {
+		assertCloseToNow(creationDate.toEpochMilli());
+	}
+	
 	public static void assertNoTempFilesExist(TempFilesManager tfm)
 			throws Exception {
 		assertNoTempFilesExist(Arrays.asList(tfm));
