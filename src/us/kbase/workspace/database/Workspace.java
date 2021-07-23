@@ -1576,8 +1576,14 @@ public class Workspace {
 						.getObjectChecker(loi, Permission.WRITE)
 						.withOperation((hide ? "" : "un") + "hide objects from")
 						.check();
-		db.setObjectsHidden(new HashSet<ObjectIDResolvedWS>(ws.values()),
-				hide);
+		final Map<ResolvedObjectIDNoVer, Instant> objs = db.setObjectsHidden(
+				new HashSet<>(ws.values()), hide);
+		for (final WorkspaceEventListener l: listeners) {
+			for (final ResolvedObjectIDNoVer o: objs.keySet()) {
+				l.setObjectsHidden(user, o.getWorkspaceIdentifier().getID(), o.getId(), hide,
+						objs.get(o));
+			}
+		}
 	}
 	
 	public void setObjectsDeleted(final WorkspaceUser user,
@@ -1590,7 +1596,7 @@ public class Workspace {
 						.withOperation((delete ? "" : "un") + "delete objects from")
 						.check();
 		final Map<ResolvedObjectIDNoVer, Instant> objs = db.setObjectsDeleted(
-				new HashSet<ObjectIDResolvedWS>(ws.values()), delete);
+				new HashSet<>(ws.values()), delete);
 		for (final WorkspaceEventListener l: listeners) {
 			for (final ResolvedObjectIDNoVer o: objs.keySet()) {
 				l.setObjectDeleted(user, o.getWorkspaceIdentifier().getID(), o.getId(), delete,

@@ -868,6 +868,75 @@ public class WorkspaceListenerTest {
 	}
 	
 	@Test
+	public void hideObjects1Listener() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ObjectIdentifier oi1 = new ObjectIdentifier(wsi, "whee");
+		final ObjectIdentifier oi2 = new ObjectIdentifier(wsi, "whoo");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi, "whee");
+		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi, "whoo");
+		final ResolvedObjectIDNoVer roiv1 = new ResolvedObjectIDNoVer(rwsi, 16, "whee", true);
+		final ResolvedObjectIDNoVer roiv2 = new ResolvedObjectIDNoVer(rwsi, 75, "whoo", true);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		
+		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
+		when(db.setObjectsHidden(set(roi1, roi2), true)).thenReturn(ImmutableMap.of(
+				roiv1, Instant.ofEpochMilli(20000),
+				roiv2, Instant.ofEpochMilli(30000)));
+
+		ws.setObjectsHidden(user, Arrays.asList(oi1, oi2), true);
+
+		verify(l).setObjectsHidden(user, 24, 16, true, Instant.ofEpochMilli(20000));
+		verify(l).setObjectsHidden(user, 24, 75, true, Instant.ofEpochMilli(30000));
+	}
+	
+	@Test
+	public void hideObjects2Listeners() throws Exception {
+		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
+		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
+		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
+		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
+		final ObjectIdentifier oi1 = new ObjectIdentifier(wsi, "whee");
+		final ObjectIdentifier oi2 = new ObjectIdentifier(wsi, "whoo");
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
+		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi, "whee");
+		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi, "whoo");
+		final ResolvedObjectIDNoVer roiv1 = new ResolvedObjectIDNoVer(rwsi, 16, "whee", false);
+		final ResolvedObjectIDNoVer roiv2 = new ResolvedObjectIDNoVer(rwsi, 75, "whoo", false);
+		
+		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		
+		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(db.getPermissions(user, set(rwsi))).thenReturn(
+				PermissionSet.getBuilder(user, new AllUsers('*'))
+						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
+		when(db.setObjectsHidden(set(roi1, roi2), false)).thenReturn(ImmutableMap.of(
+				roiv1, Instant.ofEpochMilli(20000),
+				roiv2, Instant.ofEpochMilli(30000)));
+
+		ws.setObjectsHidden(user, Arrays.asList(oi1, oi2), false);
+
+		verify(l1).setObjectsHidden(user, 24, 16, false, Instant.ofEpochMilli(20000));
+		verify(l1).setObjectsHidden(user, 24, 75, false, Instant.ofEpochMilli(30000));
+		verify(l2).setObjectsHidden(user, 24, 16, false, Instant.ofEpochMilli(20000));
+		verify(l2).setObjectsHidden(user, 24, 75, false, Instant.ofEpochMilli(30000));
+	}
+	
+	@Test
 	public void deleteObjects1Listener() throws Exception {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final TypedObjectValidator tv = mock(TypedObjectValidator.class);

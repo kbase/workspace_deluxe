@@ -129,7 +129,7 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
-		public void setObjectHidden(
+		public void setObjectsHidden(
 				WorkspaceUser user,
 				long workspaceId,
 				long objectId,

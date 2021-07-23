@@ -14,6 +14,10 @@ BACKWARDS INCOMPATIBILITIES:
 * The WorkspaceEventListener interface now includes a setObjectHidden method. Code using this
   interface must be updated to implement this method.
 
+UPDATES:
+
+* The workspace now emits events when an object is hidden or unhidden. See :ref:`kafka_listener`.
+
 VERSION: 0.11.5 (Released 4/27/21)
 ----------------------------------
 
