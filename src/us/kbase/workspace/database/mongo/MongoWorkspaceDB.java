@@ -4,6 +4,7 @@ import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayTo
 import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -139,6 +140,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private final ObjectInfoUtils objutils;
 	
 	private final TempFilesManager tfm;
+	// TODO TEST add more unit tests using the mocked clock 
+	private final Clock clock;
 	
 	private static final String IDX_UNIQ = "unique";
 	private static final String IDX_SPARSE = "sparse";
@@ -221,8 +224,29 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return indexes;
 	}
 	
-	public MongoWorkspaceDB(final DB workspaceDB, final BlobStore blobStore,
+	/** Create a workspace database using MongoDB as a backend.
+	 * @param workspaceDB the MongoDB in which to store data
+	 * @param blobStore the blob store in which to store object data
+	 * @param tfm the temporary files manager
+	 * @throws WorkspaceCommunicationException if the backend cannot be reached
+	 * @throws WorkspaceDBInitializationException if the database cannot be initialized
+	 * @throws CorruptWorkspaceDBException if the database is corrupt.
+	 */
+	public MongoWorkspaceDB(
+			final DB workspaceDB,
+			final BlobStore blobStore,
 			final TempFilesManager tfm)
+			throws WorkspaceCommunicationException,
+			WorkspaceDBInitializationException, CorruptWorkspaceDBException {
+		this(workspaceDB, blobStore, tfm, Clock.systemDefaultZone());
+	}
+	
+	// for tests
+	private MongoWorkspaceDB(
+			final DB workspaceDB,
+			final BlobStore blobStore,
+			final TempFilesManager tfm,
+			final Clock clock)
 			throws WorkspaceCommunicationException,
 			WorkspaceDBInitializationException, CorruptWorkspaceDBException {
 		if (workspaceDB == null || blobStore == null || tfm == null) {
@@ -230,6 +254,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.tfm = tfm;
+		this.clock = clock;
 		wsmongo = workspaceDB;
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
@@ -381,7 +406,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		try {
 			wsmongo.getCollection(COL_WORKSPACES).update(
 					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
-					new BasicDBObject("$set", new BasicDBObject(Fields.WS_MODDATE, new Date())));
+					new BasicDBObject("$set",
+							new BasicDBObject(Fields.WS_MODDATE, Date.from(clock.instant()))));
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
@@ -3162,7 +3188,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Instant time;
 		try {
-			time = Instant.now();
+			time = clock.instant();
 			wsmongo.getCollection(COL_WORKSPACE_OBJS).update(
 					query,
 					new BasicDBObject("$set", new BasicDBObject(Fields.OBJ_DEL, delete)
