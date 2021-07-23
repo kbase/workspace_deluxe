@@ -380,6 +380,38 @@ public class KafkaNotifierFactoryTest {
 	}
 	
 	@Test
+	public void hideObject() throws Exception {
+		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
+		
+		@SuppressWarnings("unchecked")
+		final Future<RecordMetadata> fut = mock(Future.class);
+		
+		when(mocks.client.send(new ProducerRecord<String, Map<String,Object>>("mytopic",
+				MapBuilder.<String, Object>newHashMap()
+						.with("user", "hideuser")
+						.with("wsid", 78L)
+						.with("objid", 3L)
+						.with("ver", null)
+						.with("evtype", "OBJECT_HIDE_STATE_CHANGE")
+						.with("objtype", null)
+						.with("time", 40000L)
+						.with("perm", null)
+						.with("permusers", Collections.emptyList())
+						.build())))
+				.thenReturn(fut);
+
+		mocks.listener.setObjectHidden(
+				new WorkspaceUser("hideuser"),
+				78L,
+				3L,
+				false,
+				Instant.ofEpochMilli(40000));
+		
+		verify(mocks.client).partitionsFor("mytopic");
+		verify(fut).get(35000, TimeUnit.MILLISECONDS);
+	}
+	
+	@Test
 	public void deleteObject() throws Exception {
 		final TestMocks mocks = initTestMocks("mytopic", "localhost:9081");
 		

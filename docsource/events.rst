@@ -7,6 +7,12 @@ saving or copying an object, etc. System administrators can specify event listen
 `Apache Kafka <https://kafka.apache.org/>`_ based event listener is provided (see below), and
 custom listeners can be implemented.
 
+.. warning::
+   Events can contain mutable data such as names, hidden / deletion states, permissions, etc.
+   as a convenience. However, this information is stale as soon as it is emitted, and event
+   failures can occur, so if accurate information is important be sure to pull the latest
+   state from the workspace rather than relying on the data snapshot in the event.
+
 .. _configlistener:
 
 Configure an event listener
@@ -109,6 +115,7 @@ copy all versions         COPY_OBJECT                   objid           No
 revert object             NEW_VERSION                   (1)             No
 rename object             RENAME_OBJECT                 objid           No
 set object un/deleted     OBJECT_DELETE_STATE_CHANGE    objid           No
+set object un/hidden      OBJECT_HIDE_STATE_CHANGE      objid           No
 clone workspace           CLONE_WORKSPACE                               No
 set permission            SET_PERMISSION                perm, permusers Yes
 set global permission     SET_GLOBAL_PERMISSION                         No

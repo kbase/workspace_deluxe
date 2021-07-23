@@ -129,6 +129,17 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 		}
 
 		@Override
+		public void setObjectHidden(
+				WorkspaceUser user,
+				long workspaceId,
+				long objectId,
+				boolean hidden,
+				Instant time) {
+			print(String.format("setObjectHidden %s %s %s %s",
+					workspaceId, objectId, hidden, time));
+		}
+		
+		@Override
 		public void setObjectDeleted(
 				WorkspaceUser user,
 				long workspaceId,
