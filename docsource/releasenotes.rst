@@ -9,7 +9,8 @@ BACKWARDS INCOMPATIBILITIES:
 * The Sample service is no longer supported as a KBase dynamic service, only as a core
   service. As such, the ``sample-service-tag`` configuration key has been removed.
 * Shock is no longer supported as a data backend.
-* The SearchPrototypeEventHandlerFactory has been removed.
+* The SearchPrototypeEventHandlerFactory has been removed. The workspace will not start if the
+  search prototype event handler is configured.
 * The WorkspaceEventListener interface now includes a setObjectHidden method. Code using this
   interface must be updated to implement this method.
 

@@ -3102,14 +3102,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	@Override
-	public void setObjectsHidden(final Set<ObjectIDResolvedWS> objectIDs,
+	public Map<ResolvedObjectIDNoVer, Instant> setObjectsHidden(
+			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean hide)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		//TODO CODE generalize, nearly identical to delete objects
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> ids =
 				resolveObjectIDs(objectIDs);
-		final Map<ResolvedWorkspaceID, List<Long>> toModify =
-				new HashMap<ResolvedWorkspaceID, List<Long>>();
+		final Map<ResolvedWorkspaceID, List<Long>> toModify = new HashMap<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
 			if (!toModify.containsKey(ws)) {
@@ -3117,19 +3117,28 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			toModify.get(ws).add(ids.get(o).getId());
 		}
+		final Map<ResolvedWorkspaceID, Instant> modtimes = new HashMap<>();
 		//Do this by workspace since per mongo docs nested $ors are crappy
 		for (final ResolvedWorkspaceID ws: toModify.keySet()) {
-			setObjectsHidden(ws, toModify.get(ws), hide);
+			modtimes.put(ws, setObjectsHidden(ws, toModify.get(ws), hide));
 		}
+		final Map<ResolvedObjectIDNoVer, Instant> ret = new HashMap<>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
+			final ResolvedObjectID obj = ids.get(o);
+			ret.put(new ResolvedObjectIDNoVer(obj), modtimes.get(ws));
+		}
+		return ret;
 	}
 	
-	private void setObjectsHidden(final ResolvedWorkspaceID ws,
+	private Instant setObjectsHidden(final ResolvedWorkspaceID ws,
 			final List<Long> objectIDs, final boolean hide)
 			throws WorkspaceCommunicationException {
 		//TODO CODE general set field method?
 		if (objectIDs.isEmpty()) {
 			throw new IllegalArgumentException("Object IDs cannot be empty");
 		}
+		final Instant now = clock.instant();
 		try {
 			wsmongo.getCollection(COL_WORKSPACE_OBJS).update(
 					new BasicDBObject(Fields.OBJ_WS_ID, ws.getID())
@@ -3141,6 +3150,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
+		return now;
 	}
 	
 	@Override
@@ -3150,8 +3160,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> ids =
 				resolveObjectIDs(objectIDs, delete, true);
-		final Map<ResolvedWorkspaceID, List<Long>> toModify =
-				new HashMap<ResolvedWorkspaceID, List<Long>>();
+		final Map<ResolvedWorkspaceID, List<Long>> toModify = new HashMap<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
 			final ResolvedObjectID obj = ids.get(o);

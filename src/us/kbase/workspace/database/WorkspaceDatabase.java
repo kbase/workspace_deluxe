@@ -512,9 +512,18 @@ public interface WorkspaceDatabase {
 	public ObjectInfoWithModDate renameObject(ObjectIDResolvedWS object, String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
-	public void setObjectsHidden(Set<ObjectIDResolvedWS> objectIDs,
-			boolean hide) throws NoSuchObjectException,
-			WorkspaceCommunicationException;
+	/** Hide or unhide objects.
+	 * @param objectIDs the objects to hide.
+	 * @param hide true to hide the object, false to unhide.
+	 * @return the resolved objects mapped to the time of hiding.
+	 * @throws NoSuchObjectException if an object doesn't exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs with the storage
+	 * system.
+	 */
+	public Map<ResolvedObjectIDNoVer, Instant> setObjectsHidden(
+			Set<ObjectIDResolvedWS> objectIDs,
+			boolean hide)
+			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	/** Delete or undelete objects.
 	 * @param objectIDs the objects to delete.
