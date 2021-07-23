@@ -40,14 +40,8 @@ handle-manager-token={{ default .Env.handle_manager_token "" }}
 sample-service-url = {{ default .Env.sample_service_url "" }}
 sample-service-administrator-token = {{ default .Env.sample_service_administrator_token "" }}
 
-# configuration options for RESKE
-listeners={{ default .Env.listeners "Search" }}
-
-listener-Search-class={{ default .Env.listener_search_class "us.kbase.workspace.modules.SearchPrototypeEventHandlerFactory" }}
-listener-Search-config-mongohost={{ default .Env.listener_search_config_mongohost "" }}
-listener-Search-config-mongodatabase={{ default .Env.listener_search_config_mongodatabase "search" }}
-listener-Search-config-mongouser={{ default .Env.listener_search_config_mongouser "" }}
-listener-Search-config-mongopwd={{ default .Env.listener_search_config_mongopwd "" }}
+# configuration options for listeners
+listeners={{ default .Env.listeners "Kafka" }}
 
 listener-Kafka-class={{ default .Env.listener_Kafka_class "us.kbase.workspace.modules.KafkaNotifierFactory" }}
 listener-Kafka-config-topic={{ default .Env.listener_Kafka_config_topic "workspaceevents" }}
