@@ -6,12 +6,16 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.set;
+import static us.kbase.common.test.TestCommon.assertCloseToNow;
 
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bson.types.ObjectId;
 import org.junit.AfterClass;
@@ -34,12 +38,14 @@ import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
+import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceSaveObject;
@@ -66,6 +72,7 @@ public class MongoWorkspaceDBTest {
 		System.out.println("Started test mongo instance at localhost:" +
 				MONGO.getServerPort());
 		
+		@SuppressWarnings("resource")
 		final MongoClient mc = new MongoClient("localhost:" + MONGO.getServerPort());
 		MONGO_DB = mc.getDB("test_" + MongoWorkspaceDBTest.class.getSimpleName());
 		
@@ -90,38 +97,18 @@ public class MongoWorkspaceDBTest {
 		
 		final BlobStore bs = mock(BlobStore.class);
 		final TempFilesManager tfm = mock(TempFilesManager.class);
-		final ValidatedTypedObject vto = mock(ValidatedTypedObject.class);
-		
 		final MongoWorkspaceDB db = new MongoWorkspaceDB(MONGO_DB, bs, tfm);
 		
-		db.createWorkspace(new WorkspaceUser("u"), "ws", false, null, new WorkspaceUserMetadata());
+		final WorkspaceUser u = new WorkspaceUser("u");
+		db.createWorkspace(u, "ws", false, null, new WorkspaceUserMetadata());
 		
-		final Provenance p = new Provenance(new WorkspaceUser("u"), new Date(10000));
-		
+		final Provenance p = new Provenance(u, new Date(10000));
 		p.setWorkspaceID(1L);
 		p.addAction(new ProvenanceAction().withCaller("call"));
 		
-		when(vto.getValidationTypeDefId())
-				.thenReturn(new AbsoluteTypeDefId(new TypeDefName("Mod.Type"), 5, 1));
-		when(vto.extractMetadata(16000)).thenReturn(new ExtractedMetadata(Collections.emptyMap()));
-		when(vto.getMD5()).thenReturn(new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
-		when(vto.getRelabeledSize()).thenReturn(22L);
-		
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
-		db.saveObjects(new WorkspaceUser("u"), wsid,
-				Arrays.asList(new WorkspaceSaveObject(
-						new ObjectIDNoWSNoVer("newobj"),
-						new UObject(ImmutableMap.of("foo", "bar")),
-						new TypeDefId("Mod.Type", "5.1"),
-						null,
-						p,
-						false)
-						.resolve(
-								vto,
-								set(),
-								Collections.emptyList(),
-								Collections.emptyMap())
-						));
+		saveTestObject(db, wsid, u, p, "newobj", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
 		
 		final DBObject v = MONGO_DB.getCollection("workspaceObjVersions").findOne();
 		final ObjectId i = (ObjectId) v.get("provenance");
@@ -161,36 +148,17 @@ public class MongoWorkspaceDBTest {
 		// check that older objects without external ID fields in the document don't cause NPEs
 		final BlobStore bs = mock(BlobStore.class);
 		final TempFilesManager tfm = mock(TempFilesManager.class);
-		final ValidatedTypedObject vto = mock(ValidatedTypedObject.class);
-		
 		final MongoWorkspaceDB db = new MongoWorkspaceDB(MONGO_DB, bs, tfm);
 		
-		db.createWorkspace(new WorkspaceUser("u"), "ws", false, null, new WorkspaceUserMetadata());
+		final WorkspaceUser u = new WorkspaceUser("u");
+		db.createWorkspace(u, "ws", false, null, new WorkspaceUserMetadata());
 		
-		final Provenance p = new Provenance(new WorkspaceUser("u"), new Date(10000));
+		final Provenance p = new Provenance(u, new Date(10000));
 		p.setWorkspaceID(1L);
 		
-		when(vto.getValidationTypeDefId())
-				.thenReturn(new AbsoluteTypeDefId(new TypeDefName("Mod.Type"), 5, 1));
-		when(vto.extractMetadata(16000)).thenReturn(new ExtractedMetadata(Collections.emptyMap()));
-		when(vto.getMD5()).thenReturn(new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
-		when(vto.getRelabeledSize()).thenReturn(22L);
-		
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
-		db.saveObjects(new WorkspaceUser("u"), wsid,
-				Arrays.asList(new WorkspaceSaveObject(
-						new ObjectIDNoWSNoVer("newobj"),
-						new UObject(ImmutableMap.of("foo", "bar")),
-						new TypeDefId("Mod.Type", "5.1"),
-						null,
-						p,
-						false)
-						.resolve(
-								vto,
-								set(),
-								Collections.emptyList(),
-								Collections.emptyMap())
-						));
+		saveTestObject(db, wsid, u, p, "newobj", "Mod.Type-5.1",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
 		
 		MONGO_DB.getCollection("workspaceObjVersions").update(
 				new BasicDBObject(),
@@ -209,5 +177,110 @@ public class MongoWorkspaceDBTest {
 				.get(SubsetSelection.EMPTY);
 		assertThat("incorrect data", wod.getSerializedData(), nullValue());
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
+	}
+	
+	@Test
+	public void deleteAndUndeleteObjects() throws Exception {
+		// test deleting objects
+		// doesn't make much sense to split into a test for delete and a test for undelete since
+		// the setup for undelete is basically the delete test
+		// TODO CODE update MWDB to use a mocked clock for times. Then:
+		//           * check the object update times for accuracy
+		//           * check the workspace update times for accuracy
+		//           both of these checks are pointless in a test that runs in milliseconds
+		
+		// setup mocks
+		final BlobStore bs = mock(BlobStore.class);
+		final TempFilesManager tfm = mock(TempFilesManager.class);
+		final MongoWorkspaceDB db = new MongoWorkspaceDB(MONGO_DB, bs, tfm);
+		
+		// create workspaces
+		final WorkspaceUser u = new WorkspaceUser("u");
+		db.createWorkspace(u, "ws1", false, null, new WorkspaceUserMetadata());
+		db.createWorkspace(u, "ws2", false, null, new WorkspaceUserMetadata());
+		
+		// save objects
+		final Provenance p = new Provenance(u);
+		final String type = "Mod.Type-5.1";
+		
+		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
+		saveTestObject(db, wsid, u, p, "newobj", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
+		saveTestObject(db, wsid, u, p, "newobj2", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab", 22L);
+		
+		final ResolvedWorkspaceID wsid2 = new ResolvedWorkspaceID(2, "ws2", false, false);
+		saveTestObject(db, wsid2, u, p, "newobj3", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac", 22L);
+		
+		final ObjectIDResolvedWS oid1 = new ObjectIDResolvedWS(wsid, "newobj");
+		final ObjectIDResolvedWS oid2 = new ObjectIDResolvedWS(wsid, "newobj2");
+		final ObjectIDResolvedWS oid3 = new ObjectIDResolvedWS(wsid2, "newobj3");
+		final Set<ObjectIDResolvedWS> objectIDs = set(oid1, oid2, oid3);
+
+		checkObjectDeletionState(false);
+		
+		deleteOrUndeleteAndCheck(db, objectIDs, true, wsid, wsid2);
+		deleteOrUndeleteAndCheck(db, objectIDs, false, wsid, wsid2);
+	}
+	
+	private void deleteOrUndeleteAndCheck(
+			final MongoWorkspaceDB db,
+			final Set<ObjectIDResolvedWS> objs,
+			final boolean delete,
+			final ResolvedWorkspaceID wsid1,
+			final ResolvedWorkspaceID wsid2)
+			throws Exception {
+		final Map<ResolvedObjectIDNoVer, Instant> ret = db.setObjectsDeleted(objs, delete);
+		for (final Instant time: ret.values()) {
+			assertCloseToNow(time);
+		}
+		assertThat("incorrect objects", ret.keySet(), is(set(
+				new ResolvedObjectIDNoVer(wsid1, 1, "newobj", delete),
+				new ResolvedObjectIDNoVer(wsid1, 2, "newobj2", delete),
+				new ResolvedObjectIDNoVer(wsid2, 1, "newobj3", delete)
+				)));
+		checkObjectDeletionState(delete);
+	}
+	
+	private void checkObjectDeletionState(final boolean deleted) {
+		// welp, it seems there's no way to get the deletion state via the MongoWorkspaceDB api
+		for (final DBObject obj: MONGO_DB.getCollection("workspaceObjects")
+				.find(new BasicDBObject())) {
+			assertThat(String.format("incorrect delete for object %s", obj),
+					obj.get("del"), is(deleted));
+			assertCloseToNow(((Date)obj.get("moddate")).toInstant());
+		}
+	}
+	
+	private Reference saveTestObject(
+			final MongoWorkspaceDB db,
+			final ResolvedWorkspaceID wsid,
+			final WorkspaceUser u,
+			final Provenance prov,
+			final String name,
+			final String absoluteTypeDef,
+			final String md5,
+			final long size)
+			throws Exception {
+		final ValidatedTypedObject vto = mock(ValidatedTypedObject.class);
+		when(vto.getValidationTypeDefId()).thenReturn(
+				AbsoluteTypeDefId.fromAbsoluteTypeString(absoluteTypeDef));
+		when(vto.extractMetadata(16000)).thenReturn(new ExtractedMetadata(Collections.emptyMap()));
+		when(vto.getMD5()).thenReturn(new MD5(md5));
+		when(vto.getRelabeledSize()).thenReturn(size);
+
+		final List<ObjectInformation> res = db.saveObjects(u, wsid,
+				Arrays.asList(new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer(name),
+						new UObject(ImmutableMap.of("foo", "bar")),
+						new TypeDefId("Mod.Type", "5.1"),
+						null,
+						prov,
+						false)
+						.resolve(
+								vto,
+								set(),
+								Collections.emptyList(),
+								Collections.emptyMap())
+						));
+		return res.get(0).getReferencePath().get(0);
 	}
 }
