@@ -243,26 +243,10 @@ public class MongoWorkspaceDBTest {
 				inst(90000)  // update other ws date
 				);
 		
-		// create workspaces
-		final WorkspaceUser u = new WorkspaceUser("u");
-		db.createWorkspace(u, "ws1", false, null, new WorkspaceUserMetadata());
-		db.createWorkspace(u, "ws2", false, null, new WorkspaceUserMetadata());
-		
-		// save objects
-		final Provenance p = new Provenance(u);
-		final String type = "Mod.Type-5.1";
-		
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
-		saveTestObject(db, wsid, u, p, "newobj", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
-		saveTestObject(db, wsid, u, p, "newobj2", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab", 22L);
-		
 		final ResolvedWorkspaceID wsid2 = new ResolvedWorkspaceID(2, "ws2", false, false);
-		saveTestObject(db, wsid2, u, p, "newobj3", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac", 22L);
-		
-		final ObjectIDResolvedWS oid1 = new ObjectIDResolvedWS(wsid, "newobj");
-		final ObjectIDResolvedWS oid2 = new ObjectIDResolvedWS(wsid, "newobj2");
-		final ObjectIDResolvedWS oid3 = new ObjectIDResolvedWS(wsid2, "newobj3");
-		final Set<ObjectIDResolvedWS> objectIDs = set(oid1, oid2, oid3);
+
+		final Set<ObjectIDResolvedWS> objectIDs = setupTestDataForHideDelete(db, wsid, wsid2);
 
 		// don't care about the object times, they're set by the save code
 		checkObjectDeletionState(false, set(), 3);
@@ -287,9 +271,9 @@ public class MongoWorkspaceDBTest {
 		final Map<ResolvedObjectIDNoVer, Instant> ret = db.setObjectsDeleted(objs, delete);
 		// because we're using sets and maps, there's no guarantee in what order the objects and
 		// workspaces will be processed
-		final Map<Long, Instant> wsid2time = new HashMap<>();
+		final Map<ResolvedWorkspaceID, Instant> wsid2time = new HashMap<>();
 		for (final Entry<ResolvedObjectIDNoVer, Instant> e: ret.entrySet()) {
-			final long wsid = e.getKey().getWorkspaceIdentifier().getID();
+			final ResolvedWorkspaceID wsid = e.getKey().getWorkspaceIdentifier();
 			if (wsid2time.containsKey(wsid) && !wsid2time.get(wsid).equals(e.getValue())) {
 				fail("Got two different object delete times for wsid " + wsid);
 			}
@@ -343,6 +327,104 @@ public class MongoWorkspaceDBTest {
 		// check that the number of workspaces is as expected without passing in a count
 		// won't work if the workspaces have the same time
 		assertThat("incorrect workspace count", gotTimes.size(), is(wsTimes.size()));
+	}
+	
+	private Set<ObjectIDResolvedWS> setupTestDataForHideDelete(
+			final MongoWorkspaceDB db,
+			final ResolvedWorkspaceID wsid,
+			final ResolvedWorkspaceID wsid2)
+			throws Exception {
+		// create workspaces
+		final WorkspaceUser u = new WorkspaceUser("u");
+		db.createWorkspace(u, "ws1", false, null, new WorkspaceUserMetadata());
+		db.createWorkspace(u, "ws2", false, null, new WorkspaceUserMetadata());
+		
+		// save objects
+		final Provenance p = new Provenance(u);
+		final String type = "Mod.Type-5.1";
+		
+		saveTestObject(db, wsid, u, p, "newobj", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
+		saveTestObject(db, wsid, u, p, "newobj2", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab", 22L);
+		saveTestObject(db, wsid2, u, p, "newobj3", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac", 22L);
+		
+		final ObjectIDResolvedWS oid1 = new ObjectIDResolvedWS(wsid, "newobj");
+		final ObjectIDResolvedWS oid2 = new ObjectIDResolvedWS(wsid, "newobj2");
+		final ObjectIDResolvedWS oid3 = new ObjectIDResolvedWS(wsid2, "newobj3");
+		final Set<ObjectIDResolvedWS> objectIDs = set(oid1, oid2, oid3);
+		return objectIDs;
+	}
+	
+	@Test
+	public void hideAndUnhideObjects() throws Exception {
+		// a basic happy path test for un/hiding objects
+		// doesn't make much sense to split into a test for hide and a test for unhide since
+		// the setup for unhide is basically the hide test
+		// TODO TEST add deeper un/hide unit tests, including unhappy path. Scan code paths
+		// Most tests are in WorkspaceTest.java which is an integration test
+		
+		// setup mocks
+		final TestMocks mocks = getDBInstance();
+		final MongoWorkspaceDB db = mocks.mdb;
+		when(mocks.clockmock.instant()).thenReturn(
+				inst(10000), // save #1 ws update
+				inst(10000), // save #2 ws update
+				inst(10000), // save #3 ws update
+				inst(20000), // hide objects in one ws
+				inst(40000), // hide objects in other ws
+				inst(60000), // unhide objects in one ws
+				inst(80000)  // unhide objects in other ws
+				);
+		
+		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
+		final ResolvedWorkspaceID wsid2 = new ResolvedWorkspaceID(2, "ws2", false, false);
+
+		final Set<ObjectIDResolvedWS> objectIDs = setupTestDataForHideDelete(db, wsid, wsid2);
+
+		hideOrUnhideAndCheck(db, objectIDs, true, wsid, wsid2, set(inst(20000), inst(40000)));
+		hideOrUnhideAndCheck(db, objectIDs, false, wsid, wsid2, set(inst(60000), inst(80000)));
+	}
+	
+	private void hideOrUnhideAndCheck(
+			final MongoWorkspaceDB db,
+			final Set<ObjectIDResolvedWS> objs,
+			final boolean hide,
+			final ResolvedWorkspaceID wsid1,
+			final ResolvedWorkspaceID wsid2,
+			final Set<Instant> objectTimes)
+			throws Exception {
+		final Map<ResolvedObjectIDNoVer, Instant> ret = db.setObjectsHidden(objs, hide);
+		// because we're using sets and maps, there's no guarantee in what order the objects and
+		// workspaces will be processed
+		final Map<ResolvedWorkspaceID, Instant> wsid2time = new HashMap<>();
+		for (final Entry<ResolvedObjectIDNoVer, Instant> e: ret.entrySet()) {
+			final ResolvedWorkspaceID wsid = e.getKey().getWorkspaceIdentifier();
+			if (wsid2time.containsKey(wsid) && !wsid2time.get(wsid).equals(e.getValue())) {
+				fail("Got two different object hide times for wsid " + wsid);
+			}
+			wsid2time.put(wsid, e.getValue());
+		}
+		assertThat("incorrect times for object update", new HashSet<>(wsid2time.values()),
+				is(objectTimes));
+		assertThat("incorrect objects", ret.keySet(), is(set(
+				new ResolvedObjectIDNoVer(wsid1, 1, "newobj", false),
+				new ResolvedObjectIDNoVer(wsid1, 2, "newobj2", false),
+				new ResolvedObjectIDNoVer(wsid2, 1, "newobj3", false)
+				)));
+		checkObjectHideState(hide, objs.size());
+	}
+	
+	private void checkObjectHideState(
+			final boolean hidden,
+			final int expectedCount) {
+		// welp, it seems there's no way to get the deletion state via the MongoWorkspaceDB api
+		int count = 0;
+		for (final DBObject obj: MONGO_DB.getCollection("workspaceObjects")
+				.find(new BasicDBObject())) {
+			assertThat(String.format("incorrect hide for object %s", obj),
+					obj.get("hide"), is(hidden));
+			count++;
+		}
+		assertThat("incorrect object count", count, is(expectedCount));
 	}
 	
 	private Reference saveTestObject(
