@@ -138,7 +138,7 @@ public interface WorkspaceEventListener {
 	 * @param hidden true if the object was hidden, false if it was unhidden.
 	 * @param time the time the hide event occurred.
 	 */
-	void setObjectHidden(
+	void setObjectsHidden(
 			WorkspaceUser user,
 			long workspaceId,
 			long objectId,

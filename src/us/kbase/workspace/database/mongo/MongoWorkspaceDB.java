@@ -237,7 +237,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final BlobStore blobStore,
 			final TempFilesManager tfm)
 			throws WorkspaceCommunicationException,
-			WorkspaceDBInitializationException, CorruptWorkspaceDBException {
+				WorkspaceDBInitializationException, CorruptWorkspaceDBException {
 		this(workspaceDB, blobStore, tfm, Clock.systemDefaultZone());
 	}
 	
@@ -248,7 +248,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final TempFilesManager tfm,
 			final Clock clock)
 			throws WorkspaceCommunicationException,
-			WorkspaceDBInitializationException, CorruptWorkspaceDBException {
+				WorkspaceDBInitializationException, CorruptWorkspaceDBException {
 		if (workspaceDB == null || blobStore == null || tfm == null) {
 			throw new NullPointerException("No arguments can be null");
 		}

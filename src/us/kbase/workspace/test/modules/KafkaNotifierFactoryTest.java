@@ -400,7 +400,7 @@ public class KafkaNotifierFactoryTest {
 						.build())))
 				.thenReturn(fut);
 
-		mocks.listener.setObjectHidden(
+		mocks.listener.setObjectsHidden(
 				new WorkspaceUser("hideuser"),
 				78L,
 				3L,
