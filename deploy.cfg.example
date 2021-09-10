@@ -79,17 +79,13 @@ backend-region = us-west-1
 # *WARNING* Do not set this to true unless you are absolutely sure of what you are doing.
 backend-trust-all-ssl-certificates = false
 
-# The next three configuration items are for handling workspace objects that link to Shock nodes.
-# The Shock service may or may not be the same as the Shock service used for backend
-# storage. Similarly, the account used to own linked shock nodes may be the same as that
-# used for contacting the Shock backend, but it is strongly advised that different accounts
-# are used so that system administrators can distinguish between core workspace data and
-# linked Shock data.
-# If the bytestream-url is not supplied, attempting to save objects with Shock links will fail,
-# and retrieving objects with shock IDs will contain errors in the returned data JSON.
+# The next three configuration items are for handling workspace objects that link to Blobstore
+# nodes.
+# If the bytestream-url is not supplied, attempting to save objects with Blpbstore links will fail,
+# and retrieving objects with Blobstore IDs will contain errors in the returned data JSON.
 # Like the backend-user configuration item, bytestream-user is checked against bytestream-token
 # as a safety measure.
-# bytestream-token must have administrative privileges for Shock.
+# bytestream-token must have administrative privileges for the Blobstore.
 bytestream-url =
 bytestream-user =
 bytestream-token =
