@@ -1,5 +1,6 @@
 package us.kbase.workspace.database;
 
+import static java.util.Objects.requireNonNull;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -53,26 +54,23 @@ public class ListObjectsParameters {
 			final Collection<WorkspaceIdentifier> wsis) {
 		this.user = user;
 		if (wsis == null || wsis.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Must provide at least one workspace");
+			throw new IllegalArgumentException("Must provide at least one workspace");
 		}
-		this.wsis = Collections.unmodifiableSet(
-				new HashSet<WorkspaceIdentifier>(wsis));
+		this.wsis = Collections.unmodifiableSet(new HashSet<>(wsis));
 		type = null;
 	}
 	
 	/** Create a set of parameters for calling the list objects method as an admin.
 	 * @param wsis the workspaces for which to list objects.
 	 */
-	public ListObjectsParameters(
-			final Collection<WorkspaceIdentifier> wsis) {
+	public ListObjectsParameters(final Collection<WorkspaceIdentifier> wsis) {
 		this.user = null;
 		this.asAdmin = true;
 		if (wsis == null || wsis.isEmpty() || wsis.size() > MAX_WS_AS_ADMIN) {
 			throw new IllegalArgumentException(String.format(
 					"Must provide between 1 and %s workspaces", MAX_WS_AS_ADMIN));
 		}
-		this.wsis = Collections.unmodifiableSet(new HashSet<WorkspaceIdentifier>(wsis));
+		this.wsis = Collections.unmodifiableSet(new HashSet<>(wsis));
 		type = null;
 	}
 	
@@ -81,16 +79,10 @@ public class ListObjectsParameters {
 	 * readable objects will be returned.
 	 * @param type the type of objects to list.
 	 */
-	public ListObjectsParameters(
-			final WorkspaceUser user,
-			final TypeDefId type) {
+	public ListObjectsParameters(final WorkspaceUser user, final TypeDefId type) {
 		this.user = user;
-		if (type == null) {
-			throw new NullPointerException("Type cannot be null");
-		}
-		this.type = type;
-		this.wsis = Collections.unmodifiableSet(
-				new HashSet<WorkspaceIdentifier>());
+		this.type = requireNonNull(type, "Type cannot be null");
+		this.wsis = Collections.unmodifiableSet(new HashSet<>());
 	}
 	
 	/** Create a set of parameters for calling the list objects method.
@@ -105,15 +97,10 @@ public class ListObjectsParameters {
 			final TypeDefId type) {
 		this.user = user;
 		if (wsis == null || wsis.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Must provide at least one workspace");
+			throw new IllegalArgumentException("Must provide at least one workspace");
 		}
-		this.wsis = Collections.unmodifiableSet(
-				new HashSet<WorkspaceIdentifier>(wsis));
-		if (type == null) {
-			throw new NullPointerException("Type cannot be null");
-		}
-		this.type = type;
+		this.wsis = Collections.unmodifiableSet(new HashSet<>(wsis));
+		this.type = requireNonNull(type, "Type cannot be null");
 	}
 	
 	/** Create a set of parameters for calling the list objects method as an admin.
@@ -130,10 +117,7 @@ public class ListObjectsParameters {
 					"Must provide between 1 and %s workspaces", MAX_WS_AS_ADMIN));
 		}
 		this.wsis = Collections.unmodifiableSet(new HashSet<WorkspaceIdentifier>(wsis));
-		if (type == null) {
-			throw new NullPointerException("Type cannot be null");
-		}
-		this.type = type;
+		this.type = requireNonNull(type, "Type cannot be null");
 	}
 
 	/** Get the workspaces to list.
@@ -171,8 +155,7 @@ public class ListObjectsParameters {
 	 * read is passed in, the permission is set to read.
 	 * @return this ListObjectsParameters instance.
 	 */
-	public ListObjectsParameters withMinimumPermission(
-			final Permission minPerm) {
+	public ListObjectsParameters withMinimumPermission(final Permission minPerm) {
 		if (minPerm == null || Permission.READ.compareTo(minPerm) > 0) {
 			this.minPerm = Permission.READ;
 		} else {
@@ -196,8 +179,7 @@ public class ListObjectsParameters {
 	 */
 	public ListObjectsParameters withSavers(final List<WorkspaceUser> savers) {
 		if (savers == null) {
-			this.savers = Collections.unmodifiableList(
-					new LinkedList<WorkspaceUser>());
+			this.savers = Collections.unmodifiableList(new LinkedList<>());
 		} else {
 			this.savers = Collections.unmodifiableList(savers);
 		}
@@ -216,12 +198,10 @@ public class ListObjectsParameters {
 	 * @param meta the metadata. If null, set to an empty map.
 	 * @return this ListObjectsParameters instance.
 	 */
-	public ListObjectsParameters withMetadata(
-			final WorkspaceUserMetadata meta) {
+	public ListObjectsParameters withMetadata(final WorkspaceUserMetadata meta) {
 		if (meta != null) {
 			if (meta.size() > 1) {
-				throw new IllegalArgumentException(
-						"Only one metadata spec allowed");
+				throw new IllegalArgumentException("Only one metadata spec allowed");
 			}
 			this.meta = meta;
 		} else {
@@ -343,8 +323,7 @@ public class ListObjectsParameters {
 	 * @param showOnlyDeleted true if only deleted objects should be listed
 	 * @return this ListObjectsParameters instance.
 	 */
-	public ListObjectsParameters withShowOnlyDeleted(
-			final boolean showOnlyDeleted) {
+	public ListObjectsParameters withShowOnlyDeleted(final boolean showOnlyDeleted) {
 		this.showOnlyDeleted = showOnlyDeleted;
 		return this;
 	}
@@ -360,8 +339,7 @@ public class ListObjectsParameters {
 	 * @param showAllVers true if all versions of objects should be listed
 	 * @return this ListObjectsParameters instance.
 	 */
-	public ListObjectsParameters withShowAllVersions(
-			final boolean showAllVers) {
+	public ListObjectsParameters withShowAllVersions(final boolean showAllVers) {
 		this.showAllVers = showAllVers;
 		return this;
 	}
@@ -398,8 +376,7 @@ public class ListObjectsParameters {
 	 * should be excluded.
 	 * @return this ListObjectsParameters instance.
 	 */
-	public ListObjectsParameters withExcludeGlobal(
-			final boolean excludeGlobal) {
+	public ListObjectsParameters withExcludeGlobal(final boolean excludeGlobal) {
 		this.excludeGlobal = excludeGlobal;
 		return this;
 	}
@@ -433,15 +410,11 @@ public class ListObjectsParameters {
 		return asAdmin;
 	}
 	
-	GetObjectInformationParameters generateParameters(
-			final PermissionSet perms) {
-		if (perms == null) {
-			throw new NullPointerException("perms cannot be null");
-		}
+	GetObjectInformationParameters generateParameters(final PermissionSet perms) {
 		return new GetObjectInformationParameters(
-				perms, type, savers, meta, after, before, minObjectID,
-				maxObjectID, showHidden, showDeleted, showOnlyDeleted,
-				showAllVers, includeMetaData, limit, asAdmin);
+				requireNonNull(perms, "perms cannot be null"), type, savers, meta, after, before,
+				minObjectID, maxObjectID, showHidden, showDeleted, showOnlyDeleted, showAllVers,
+				includeMetaData, limit, asAdmin);
 		
 	}
 }
