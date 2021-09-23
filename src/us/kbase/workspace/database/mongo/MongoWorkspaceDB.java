@@ -1070,17 +1070,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public Map<ResolvedWorkspaceID, Map<User, Permission>> getAllPermissions(
 			final Set<ResolvedWorkspaceID> rwsis)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		final Map<ResolvedWorkspaceID, Map<User, Permission>> res =
-				query.queryPermissions(rwsis, null);
-		final Map<ResolvedWorkspaceID, Map<User, Permission>> ret = 
-				new HashMap<ResolvedWorkspaceID, Map<User, Permission>>();
-		//probably a better way to do this
-		for (final ResolvedWorkspaceID r: res.keySet()) {
-			ret.put((ResolvedWorkspaceID)r, res.get(r)); 
-		}
-		return ret;
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		// TODO CODE error on null or empty input
+		return query.queryPermissions(rwsis, null);
 	}
 	
 	@Override
@@ -1128,21 +1120,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Map<ResolvedWorkspaceID, Map<User, Permission>> userperms;
 		if (user != null) {
-			userperms = query.queryPermissions(rwsis, new HashSet<User>(Arrays.asList(user)),
-					perm, excludeDeletedWorkspaces);
+			userperms = query.queryPermissions(rwsis, user, perm, excludeDeletedWorkspaces);
 		} else {
-			userperms = new HashMap<ResolvedWorkspaceID, Map<User,Permission>>();
+			userperms = new HashMap<>();
 		}
-		final Set<User> allusers = new HashSet<User>(Arrays.asList(ALL_USERS));
 		final Map<ResolvedWorkspaceID, Map<User, Permission>> globalperms;
 		if (excludeGlobalRead || perm.compareTo(Permission.WRITE) >= 0) {
 			if (userperms.isEmpty()) {
-				globalperms = new HashMap<ResolvedWorkspaceID, Map<User,Permission>>();
+				globalperms = new HashMap<>();
 			} else {
-				globalperms = query.queryPermissions(userperms.keySet(), allusers);
+				globalperms = query.queryPermissions(userperms.keySet(), ALL_USERS);
 			}
 		} else {
-			globalperms = query.queryPermissions(rwsis, allusers,
+			globalperms = query.queryPermissions(rwsis, ALL_USERS,
 					Permission.READ, excludeDeletedWorkspaces);
 		}
 		return buildPermissionSet(user, rwsis, userperms, globalperms, includeProvidedWorkspaces);

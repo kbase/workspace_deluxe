@@ -23,6 +23,7 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
@@ -37,7 +38,7 @@ public class QueryMethods {
 	private final String workspaceCollection;
 	private final String objectCollection;
 	private final String versionCollection;
-	private final String workspaceACLCollection;
+	private final DBCollection wsACL;
 	
 	QueryMethods(
 			final DB wsmongo,
@@ -67,7 +68,7 @@ public class QueryMethods {
 		this.workspaceCollection = workspaceCollection;
 		this.objectCollection = objectCollection;
 		this.versionCollection = versionCollection;
-		this.workspaceACLCollection = workspaceACLCollection;
+		this.wsACL = wsmongo.getCollection(workspaceACLCollection);
 	}
 	
 	
@@ -87,11 +88,6 @@ public class QueryMethods {
 
 	String getVersionCollection() {
 		return versionCollection;
-	}
-
-
-	String getWorkspaceACLCollection() {
-		return workspaceACLCollection;
 	}
 
 
@@ -498,30 +494,10 @@ public class QueryMethods {
 		return m;
 	}
 	
-	Map<User, Permission> queryPermissions(
-			final ResolvedWorkspaceID rwsi) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return queryPermissions(rwsi, null);
-	}
-	
-	Map<User, Permission> queryPermissions(
-			final ResolvedWorkspaceID rwsi, final Set<User> users) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final Set<ResolvedWorkspaceID> wsis = new HashSet<ResolvedWorkspaceID>();
-		wsis.add(rwsi);
-		return queryPermissions(wsis, users).get(rwsi);
-	}
-	
 	Map<ResolvedWorkspaceID, Map<User, Permission>> queryPermissions(
-			final Set<ResolvedWorkspaceID> rwsis, final Set<User> users) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return queryPermissions(rwsis, users, Permission.NONE, false);
-	}
-	
-	Map<ResolvedWorkspaceID, Map<User, Permission>> queryPermissions(
-			final Set<User> users, final Permission minPerm) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return queryPermissions(null, users, minPerm, false);
+			final Set<ResolvedWorkspaceID> rwsis, final User user)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return queryPermissions(rwsis, user, Permission.NONE, false);
 	}
 	
 	private final static HashSet<String> PROJ_WS_ID_NAME_LOCK_DEL = 
@@ -530,26 +506,22 @@ public class QueryMethods {
 	
 	Map<ResolvedWorkspaceID, Map<User, Permission>> queryPermissions(
 			final Set<ResolvedWorkspaceID> rwsis,
-			final Set<User> users,
+			final User user,
 			final Permission minPerm,
 			final boolean excludeDeletedWorkspaces)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final DBObject query = new BasicDBObject();
-		final Map<Long, ResolvedWorkspaceID> idToWS = new HashMap<Long, ResolvedWorkspaceID>();
+		final Map<Long, ResolvedWorkspaceID> idToWS = new HashMap<>();
 		if (rwsis != null && rwsis.size() > 0) {
-			final Set<Long> wsids = new HashSet<Long>();
+			final Set<Long> wsids = new HashSet<>();
 			for (final ResolvedWorkspaceID r: rwsis) {
 				idToWS.put(r.getID(), r);
 				wsids.add(r.getID());
 			}
 			query.put(Fields.ACL_WSID, new BasicDBObject("$in", wsids));
 		}
-		if (users != null && users.size() > 0) {
-			final List<String> u = new ArrayList<String>();
-			for (User user: users) {
-				u.add(user.getUser());
-			}
-			query.put(Fields.ACL_USER, new BasicDBObject("$in", u));
+		if (user != null ) {
+			query.put(Fields.ACL_USER, user.getUser());
 		}
 		if (minPerm != null & !Permission.NONE.equals(minPerm)) {
 			query.put(Fields.ACL_PERM, new BasicDBObject("$gte", minPerm.getPermission()));
@@ -560,16 +532,14 @@ public class QueryMethods {
 		proj.put(Fields.ACL_PERM, 1);
 		proj.put(Fields.ACL_WSID, 1);
 		
-		final Map<ResolvedWorkspaceID, Map<User, Permission>> wsidToPerms =
-				new HashMap<ResolvedWorkspaceID, Map<User, Permission>>();
-		final Map<Long, List<DBObject>> noWS = new HashMap<Long, List<DBObject>>();
-		try {
-			final DBCursor res = wsmongo.getCollection(workspaceACLCollection).find(query, proj);
+		final Map<ResolvedWorkspaceID, Map<User, Permission>> wsidToPerms = new HashMap<>();
+		final Map<Long, List<DBObject>> noWS = new HashMap<>();
+		try (final DBCursor res = wsACL.find(query, proj)) {
 			for (final DBObject m: res) {
 				final Long id = (Long) m.get(Fields.ACL_WSID);
 				if (!idToWS.containsKey(id)) {
 					if (!noWS.containsKey(id)) {
-						noWS.put(id, new LinkedList<DBObject>());
+						noWS.put(id, new LinkedList<>());
 					}
 					noWS.get(id).add(m);
 				} else {
@@ -607,10 +577,11 @@ public class QueryMethods {
 
 	private void addPerm(
 			final Map<ResolvedWorkspaceID, Map<User, Permission>> wsidToPerms,
-			final DBObject m, final ResolvedWorkspaceID wsid)
+			final DBObject m,
+			final ResolvedWorkspaceID wsid)
 			throws CorruptWorkspaceDBException {
 		if (!wsidToPerms.containsKey(wsid)) {
-			wsidToPerms.put(wsid, new HashMap<User, Permission>());
+			wsidToPerms.put(wsid, new HashMap<>());
 		}
 		wsidToPerms.get(wsid).put(getUser(
 				(String) m.get(Fields.ACL_USER)),
