@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import us.kbase.workspace.database.GetObjectInformationParameters;
 import us.kbase.workspace.database.ObjectInformation;
@@ -47,14 +48,14 @@ public class ObjectInfoUtils {
 		this.query = requireNonNull(query, "query argument may not be null");
 	}
 	
-	private static final Set<String> FLDS_LIST_OBJ_VER = newHashSet(
+	private static final Set<String> FLDS_LIST_OBJ_VER = Stream.of(
 			Fields.VER_VER, Fields.VER_TYPE, Fields.VER_SAVEDATE,
 			Fields.VER_SAVEDBY, Fields.VER_VER, Fields.VER_CHKSUM,
-			Fields.VER_SIZE, Fields.VER_ID, Fields.VER_WS_ID);
+			Fields.VER_SIZE, Fields.VER_ID, Fields.VER_WS_ID).collect(Collectors.toSet());
 	
-	private static final Set<String> FLDS_LIST_OBJ = newHashSet(
+	private static final Set<String> FLDS_LIST_OBJ = Stream.of(
 			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_HIDE,
-			Fields.OBJ_VCNT, Fields.OBJ_WS_ID);
+			Fields.OBJ_VCNT, Fields.OBJ_WS_ID).collect(Collectors.toSet());
 	
 	List<ObjectInformation> filter(final GetObjectInformationParameters params)
 			throws WorkspaceCommunicationException {
@@ -174,7 +175,8 @@ public class ObjectInfoUtils {
 		}
 		if (!params.getSavers().isEmpty()) {
 			verq.put(Fields.VER_SAVEDBY, new BasicDBObject(
-					"$in", convertWorkspaceUsers(params.getSavers())));
+					"$in", params.getSavers().stream().map(o -> o.getUser())
+							.collect(Collectors.toList())));
 		}
 		if (!params.getMetadata().isEmpty()) {
 			final List<DBObject> andmetaq = new LinkedList<DBObject>();
@@ -369,27 +371,5 @@ public class ObjectInfoUtils {
 			ret.get(wsid).put(objid, o);
 		}
 		return ret;
-	}
-	
-	/* the following methods are duplicated in MongoWorkspaceDB class, but so
-	 * simple not worth worrying about it
-	 */
-	private List<String> convertWorkspaceUsers(
-			final List<WorkspaceUser> owners) {
-		final List<String> own = new ArrayList<>();
-		for (final WorkspaceUser wu: owners) {
-			own.add(wu.getUser());
-		}
-		return own;
-	}
-	
-	//http://stackoverflow.com/questions/2041778/initialize-java-hashset-values-by-construction
-	@SafeVarargs
-	private static <T> Set<T> newHashSet(T... objs) {
-		Set<T> set = new HashSet<T>();
-		for (T o : objs) {
-			set.add(o);
-		}
-		return set;
 	}
 }
