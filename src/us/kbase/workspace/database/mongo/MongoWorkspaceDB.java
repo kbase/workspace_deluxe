@@ -357,27 +357,27 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		} catch (DuplicateKeyException dk) {
 			//ok, the version doc is already there, this isn't the first
 			//startup
-			final DBCursor cur = wsmongo.getCollection(COL_CONFIG)
-					.find(new BasicDBObject(
-							Fields.CONFIG_KEY, Fields.CONFIG_VALUE));
-			if (cur.size() != 1) {
-				throw new CorruptWorkspaceDBException(
-						"Multiple config objects found in the database. " +
-						"This should not happen, something is very wrong.");
-			}
-			final DBObject storedCfg = cur.next();
-			if ((Integer)storedCfg.get(Fields.CONFIG_SCHEMA_VERSION) !=
-					SCHEMA_VERSION) {
-				throw new WorkspaceDBInitializationException(String.format(
-						"Incompatible database schema. Server is v%s, DB is v%s",
-						SCHEMA_VERSION,
-						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
-			}
-			if ((Boolean)storedCfg.get(Fields.CONFIG_UPDATE)) {
-				throw new CorruptWorkspaceDBException(String.format(
-						"The database is in the middle of an update from " +
-						"v%s of the schema. Aborting startup.", 
-						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+			final DBObject query = new BasicDBObject(Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
+			try (final DBCursor cur = wsmongo.getCollection(COL_CONFIG).find(query)) {
+				if (cur.size() != 1) {
+					throw new CorruptWorkspaceDBException(
+							"Multiple config objects found in the database. " +
+							"This should not happen, something is very wrong.");
+				}
+				final DBObject storedCfg = cur.next();
+				if ((Integer)storedCfg.get(Fields.CONFIG_SCHEMA_VERSION) !=
+						SCHEMA_VERSION) {
+					throw new WorkspaceDBInitializationException(String.format(
+							"Incompatible database schema. Server is v%s, DB is v%s",
+							SCHEMA_VERSION,
+							storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+				}
+				if ((Boolean)storedCfg.get(Fields.CONFIG_UPDATE)) {
+					throw new CorruptWorkspaceDBException(String.format(
+							"The database is in the middle of an update from " +
+							"v%s of the schema. Aborting startup.", 
+							storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+				}
 			}
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
@@ -685,9 +685,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final DBObject hint = new BasicDBObject(Fields.OBJ_WS_ID, 1);
 		hint.put(Fields.OBJ_ID, 1);
 		long maxid = 0;
-		try {
-			final DBCursor wsobjects = query.queryCollectionCursor(
-					COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS, hint, -1);
+		try (final DBCursor wsobjects = query.queryCollectionCursor(
+					COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS, hint, -1)) {
 			for (final DBObject o: wsobjects) {
 				final long objid = (Long) o.get(Fields.OBJ_ID);
 				final String name = (String) o.get(Fields.OBJ_NAME);
@@ -2566,10 +2565,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			provIDs.put((ObjectId) vers.get(id).get(Fields.VER_PROV), vers.get(id));
 		}
 		final Map<ObjectId, Provenance> ret = new HashMap<>();
-		try {
-			final DBCursor provs = wsmongo.getCollection(COL_PROVENANCE).find(
-					new BasicDBObject(Fields.MONGO_ID,
-							new BasicDBObject("$in", provIDs.keySet())));
+		final DBObject query = new BasicDBObject(Fields.MONGO_ID,
+				new BasicDBObject("$in", provIDs.keySet()));
+		try (final DBCursor provs = wsmongo.getCollection(COL_PROVENANCE).find(query)) {
 			for (final DBObject dbo: provs) {
 				final ObjectId oid = (ObjectId) dbo.get(Fields.MONGO_ID);
 				// this list is expected to be ordered in the same order as in the incoming
@@ -3254,9 +3252,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Set<WorkspaceUser> getAdmins()
 			throws WorkspaceCommunicationException {
 		final Set<WorkspaceUser> ret = new HashSet<WorkspaceUser>();
-		final DBCursor cur;
-		try {
-			cur = wsmongo.getCollection(COL_ADMINS).find();
+		try (final DBCursor cur = wsmongo.getCollection(COL_ADMINS).find()) {
 			for (final DBObject dbo: cur) {
 				ret.add(new WorkspaceUser((String) dbo.get(Fields.ADMIN_NAME)));
 			}

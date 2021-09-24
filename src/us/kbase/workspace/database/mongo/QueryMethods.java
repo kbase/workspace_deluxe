@@ -443,9 +443,8 @@ public class QueryMethods {
 			throws WorkspaceCommunicationException {
 		final List<Map<String, Object>> result =
 				new ArrayList<Map<String,Object>>();
-		try {
-			final DBCursor im = queryCollectionCursor(
-					collection, query, fields, queryHint, limit);
+		try (final DBCursor im = queryCollectionCursor(
+				collection, query, fields, queryHint, limit)) {
 			for (final DBObject o: im) {
 				result.add(dbObjectToMap(o));
 			}
