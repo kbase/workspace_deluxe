@@ -468,13 +468,12 @@ public class HandleAndShockTest {
 							.withType(HANDLE_TYPE))));
 			fail("saved object with bad handle");
 		} catch (ServerException e) {
-			assertThat("correct exception message", e.getMessage(),
-							is("An error occured while processing IDs: " +
-									"The Handle Service reported that at least one of " +
-									"the handles contained in the objects in this call " +
-									"is not accessible - it may not exist, or the " +
-									"supplied credentials may not own the node, or some " +
-									"other reason. The call cannot complete."));
+			assertThat("correct exception message", e.getMessage(), is(
+					"An error occured while processing IDs: The Handle Service reported that " +
+					"at least one of the handles contained in the objects in this call " +
+					"is not owned by the current user or is not accessible - it may not exist, " +
+					"or the supplied credentials may not own the node, or some " +
+					"other reason. The call cannot complete."));
 		}
 
 		bsc.removeFromNodeAcl(new ShockNodeId(shock_id),
