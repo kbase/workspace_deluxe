@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.Set;
 
 import org.bson.types.ObjectId;
@@ -414,8 +415,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 
-	private static final Set<String> FLDS_CREATE_WS =
-			newHashSet(Fields.WS_DEL, Fields.WS_OWNER);
+	private static final Set<String> FLDS_CREATE_WS = newHashSet(Fields.WS_DEL, Fields.WS_OWNER);
 	
 	@Override
 	public WorkspaceInformation createWorkspace(
@@ -970,11 +970,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//http://stackoverflow.com/questions/2041778/initialize-java-hashset-values-by-construction
 	@SafeVarargs
 	private static <T> Set<T> newHashSet(T... objs) {
-		Set<T> set = new HashSet<T>();
-		for (T o : objs) {
-			set.add(o);
-		}
-		return set;
+		return Stream.of(objs).collect(Collectors.toSet());
 	}
 	
 	@Override
@@ -1325,7 +1321,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final DBObject q = new BasicDBObject(Fields.WS_ID,
 				new BasicDBObject("$in", rwsis.keySet()));
 		if (owners != null && !owners.isEmpty()) {
-			q.put(Fields.WS_OWNER, new BasicDBObject("$in", convertWorkspaceUsers(owners)));
+			q.put(Fields.WS_OWNER, new BasicDBObject(
+					"$in", owners.stream().map(o -> o.getUser()).collect(Collectors.toList())));
 		}
 		if (meta != null && !meta.isEmpty()) {
 			final List<DBObject> andmetaq = new LinkedList<DBObject>();
@@ -1367,14 +1364,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
-	private List<String> convertWorkspaceUsers(final List<WorkspaceUser> owners) {
-		final List<String> own = new ArrayList<String>();
-		for (final WorkspaceUser wu: owners) {
-			own.add(wu.getUser());
-		}
-		return own;
-	}
-	
 	@Override
 	public WorkspaceUser getWorkspaceOwner(final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException,
