@@ -2,6 +2,14 @@ package us.kbase.workspace.database.mongo;
 
 import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayToHash;
 import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_ADMINS;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_WS_CNT;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACES;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_WS_ACLS;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_OBJS;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_VERS;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_PROVENANCE;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_CONFIG;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -117,16 +125,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	// TODO TEST need some lower level tests for this module rather than just integration tests
 
-	public static final String COL_ADMINS = CollectionNames.COL_ADMINS;
-	public static final String COL_WS_CNT = CollectionNames.COL_WS_CNT;
-	public static final String COL_WORKSPACES = CollectionNames.COL_WORKSPACES;
-	public static final String COL_WS_ACLS = CollectionNames.COL_WS_ACLS;
-	public static final String COL_WORKSPACE_OBJS = CollectionNames.COL_WORKSPACE_OBJS;
-	public static final String COL_WORKSPACE_VERS = CollectionNames.COL_WORKSPACE_VERS;
-	public static final String COL_PROVENANCE = CollectionNames.COL_PROVENANCE;
-	public static final String COL_CONFIG = CollectionNames.COL_CONFIG;
 	public static final AllUsers ALL_USERS = Workspace.ALL_USERS;
-	
 
 	//TODO CONFIG this should really be configurable
 	private static final long MAX_PROV_SIZE = 1000000;
@@ -2782,7 +2781,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public List<ObjectInformation> getObjectInformation(
 			final GetObjectInformationParameters params)
 			throws WorkspaceCommunicationException {
-		return objutils.filter(params);
+		return new ObjectLister(wsmongo.getCollection(COL_WORKSPACE_VERS), objutils)
+				.filter(params);
 	}
 
 	private static final Set<String> FLDS_VER_OBJ_HIST = newHashSet(
