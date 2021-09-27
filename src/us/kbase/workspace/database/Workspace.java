@@ -563,8 +563,7 @@ public class Workspace {
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwslist =
 				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wslist));
 		final Map<ResolvedWorkspaceID, Map<User, Permission>> perms =
-				db.getAllPermissions(new HashSet<ResolvedWorkspaceID>(
-						rwslist.values()));
+				db.getAllPermissions(new HashSet<ResolvedWorkspaceID>(rwslist.values()));
 		final List<Map<User, Permission>> ret = new LinkedList<Map<User,Permission>>();
 		for (final WorkspaceIdentifier wsi: wslist) {
 			final ResolvedWorkspaceID rwsi = rwslist.get(wsi);
@@ -1010,8 +1009,7 @@ public class Workspace {
 		return new UserWorkspaceIDs(user, minPerm, workspaceIDs, publicIDs);
 	}
 	
-	public List<ObjectInformation> listObjects(
-			final ListObjectsParameters params)
+	public List<ObjectInformation> listObjects(final ListObjectsParameters params)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 
@@ -1022,6 +1020,9 @@ public class Workspace {
 				params.getMinimumPermission(), params.isExcludeGlobal(), true, params.asAdmin());
 		rw.clear();
 		if (!params.asAdmin()) {
+			// I don't understand why this is here. Seems like the db call above will only
+			// return readable workspaces unless the user is an admin
+			// At some point, but not now, should investigate further and maybe remove
 			for (final WorkspaceIdentifier wsi: params.getWorkspaces()) {
 				PermissionsCheckerFactory.comparePermission(params.getUser(), Permission.READ,
 						pset.getPermission(rwsis.get(wsi)), wsi, "read");

@@ -74,7 +74,7 @@ public class ObjectLister {
 				while (cur.hasNext() && verobjs.size() < querysize) {
 					verobjs.add(QueryMethods.dbObjectToMap(cur.next()));
 				}
-				// this method accesses the DB, so we group calls to it to reduce transport time
+				// this method accesses the DB, so we batch calls to it to reduce transport time
 				final Map<Map<String, Object>, ObjectInformation> objs =
 						infoUtils.generateObjectInfo(pset, verobjs, params.isShowHidden(),
 								params.isShowDeleted(), params.isShowOnlyDeleted(),

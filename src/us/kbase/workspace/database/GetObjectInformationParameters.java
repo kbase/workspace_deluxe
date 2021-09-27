@@ -13,6 +13,8 @@ import us.kbase.typedobj.core.TypeDefId;
  */
 public class GetObjectInformationParameters {
 	
+	// TODO TEST unit tests although this is pretty trivial stuff
+	
 	final private PermissionSet pset;
 	final private TypeDefId type;
 	final private List<WorkspaceUser> savers;

@@ -375,10 +375,11 @@ public class MongoTypeStorage implements TypeStorage {
 			final DBObject whereCondition,
 			final BasicDBObject projection,
 			final Class<T> clazz) {
-		final DBCursor find = col.find(whereCondition, projection);
 		final List<T> data = new LinkedList<>();
-		for (final DBObject dbo: find) {
-			data.add(toObj(dbo, clazz));
+		try (final DBCursor find = col.find(whereCondition, projection)) {
+			for (final DBObject dbo: find) {
+				data.add(toObj(dbo, clazz));
+			}
 		}
 		return data;
 	}
@@ -403,10 +404,11 @@ public class MongoTypeStorage implements TypeStorage {
 			final DBObject whereCondition,
 			final BasicDBObject projection,
 			final TypeReference<T> tr) {
-		final DBCursor find = col.find(whereCondition, projection);
 		final List<T> data = new LinkedList<>();
-		for (final DBObject dbo: find) {
-			data.add(toObj(dbo, tr));
+		try (final DBCursor find = col.find(whereCondition, projection)) {
+			for (final DBObject dbo: find) {
+				data.add(toObj(dbo, tr));
+			}
 		}
 		return data;
 	}
