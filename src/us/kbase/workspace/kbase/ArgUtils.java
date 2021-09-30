@@ -54,6 +54,9 @@ import us.kbase.workspace.database.WorkspaceUser;
  */
 public class ArgUtils {
 	
+	// TODO JAVADOC
+	// TODO TEST unit tests
+	
 	private static Logger getLogger() {
 		return LoggerFactory.getLogger(ArgUtils.class);
 	}
@@ -68,6 +71,7 @@ public class ArgUtils {
 	private final static DateTimeFormatter DATE_FORMATTER =
 			DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZoneUTC();
 	
+	// TODO CODE switch to returning Instant. Used in lots of places so do this later.
 	public static Date chooseDate(
 			final String timestamp,
 			final Long epochInMilliSec,
@@ -83,6 +87,23 @@ public class ArgUtils {
 			return new Date(epochInMilliSec);
 		}
 		return null;
+	}
+	
+	/** Given a string or epoch millisecond timestamp, return an {@link Instant} created from
+	 * the timestamp. Providing both timestamps is an error.
+	 * @param timestamp a string typestamp in ISO8601 format, using the Z timezone designator.
+	 * @param epochInMilliSec the Linux epoch time in milliseconds.
+	 * @param error a string to use if both timestamps are supplied.
+	 * @return the new intant.
+	 * @throws ParseException if the text timestamp cannot be parsed.
+	 */
+	public static Instant chooseInstant(
+			final String timestamp,
+			final Long epochInMilliSec,
+			final String error)
+			throws ParseException {
+		final Date d = chooseDate(timestamp, epochInMilliSec, error);
+		return d == null ? null : d.toInstant();
 	}
 	
 	public static Provenance processProvenance(final WorkspaceUser user,
@@ -164,6 +185,7 @@ public class ArgUtils {
 		return ret;
 	}
 
+	//TODO CODE why does this throw ParseException? 
 	private static Date parseDate(final String date) throws ParseException {
 		if (date == null) {
 			return null;
@@ -314,7 +336,7 @@ public class ArgUtils {
 						.withE2(m.getObjectName())
 						.withE3(m.getTypeString())
 						.withE4(formatDate(m.getSavedDate()))
-						.withE5(new Long(m.getVersion()))
+						.withE5(Long.valueOf(m.getVersion()))
 						.withE6(m.getSavedBy().getUser())
 						.withE7(m.getWorkspaceId())
 						.withE8(m.getWorkspaceName())
@@ -359,7 +381,7 @@ public class ArgUtils {
 					.withE1(m.getObjectName())
 					.withE2(m.getTypeString())
 					.withE3(formatDate(m.getSavedDate()))
-					.withE4(new Long(m.getVersion()))
+					.withE4(Long.valueOf(m.getVersion()))
 					.withE5("") //command is deprecated
 					.withE6(m.getSavedBy().getUser())
 					.withE7(m.getSavedBy().getUser()) //owner is deprecated
@@ -597,7 +619,7 @@ public class ArgUtils {
 				throw new IllegalArgumentException(
 						name + " can be no greater than " + Integer.MAX_VALUE);
 		}
-		return new Long(l).intValue();
+		return Long.valueOf(l).intValue();
 	}
 	
 	public static long checkLong(

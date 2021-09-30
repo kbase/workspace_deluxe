@@ -535,24 +535,6 @@ Listing objects is similar to listing workspaces:
       70,
       None]]
 
-Listing also works by type:
-
-.. code-block:: python
-
-    In [78]: ws.list_objects({'type': 'SimpleObjects.RefObject'})
-    Out[78]: 
-    [[6,
-      u'ref',
-      u'SimpleObjects.RefObject-2.0',
-      u'2015-12-15T03:12:41+0000',
-      1,
-      u'kbasetest',
-      12,
-      u'MyWorkspace',
-      u'44e0ef9dff44c4840ddf77abbfc555bd',
-      52,
-      None]]
-      
 A large number of filters exist for ``list_objects`` - see the :ref:`apidocs`
 for comprehensive coverage. In this example, the list is filtered by the object
 metadata:

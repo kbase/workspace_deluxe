@@ -3038,51 +3038,53 @@ class Workspace(object):
         """
         List objects in one or more workspaces.
         :param params: instance of type "ListObjectsParams" (Parameters for
-           the 'list_objects' function. At least one of the following filters
-           must be provided. It is strongly recommended that the list is
-           restricted to the workspaces of interest, or the results may be
-           very large: list<ws_id> ids - the numerical IDs of the workspaces
-           of interest. list<ws_name> workspaces - the names of the
-           workspaces of interest. type_string type - type of the objects to
-           be listed.  Here, omitting version information will find any
-           objects that match the provided type - e.g. Foo.Bar-0 will match
-           Foo.Bar-0.X where X is any existing version. Only one of each
-           timestamp/epoch pair may be supplied. Optional arguments:
-           permission perm - filter objects by minimum permission level.
-           'None' and 'readable' are ignored. list<username> savedby - filter
-           objects by the user that saved or copied the object. usermeta meta
-           - filter objects by the user supplied metadata. NOTE: only one
-           key/value pair is supported at this time. A full map is provided
-           as input for the possibility for expansion in the future.
-           timestamp after - only return objects that were created after this
-           date. timestamp before - only return objects that were created
-           before this date. epoch after_epoch - only return objects that
-           were created after this date. epoch before_epoch - only return
-           objects that were created before this date. obj_id minObjectID -
-           only return objects with an object id greater or equal to this
-           value. obj_id maxObjectID - only return objects with an object id
-           less than or equal to this value. boolean showDeleted - show
-           deleted objects in workspaces to which the user has write access.
-           boolean showOnlyDeleted - only show deleted objects in workspaces
-           to which the user has write access. boolean showHidden - show
-           hidden objects. boolean showAllVersions - show all versions of
-           each object that match the filters rather than only the most
-           recent version. boolean includeMetadata - include the user
-           provided metadata in the returned object_info. If false (0 or
-           null), the default, the metadata will be null. boolean
-           excludeGlobal - exclude objects in global workspaces. This
-           parameter only has an effect when filtering by types alone. int
-           limit - limit the output to X objects. Default and maximum value
-           is 10000. Limit values < 1 are treated as 10000, the default.) ->
-           structure: parameter "workspaces" of list of type "ws_name" (A
-           string used as a name for a workspace. Any string consisting of
-           alphanumeric characters and "_", ".", or "-" that is not an
-           integer is acceptable. The name may optionally be prefixed with
-           the workspace owner's user name and a colon, e.g.
-           kbasetest:my_workspace.), parameter "ids" of list of type "ws_id"
-           (The unique, permanent numerical ID of a workspace.), parameter
-           "type" of type "type_string" (A type string. Specifies the type
-           and its version in a single string in the format
+           the 'list_objects' function. At least one, and no more than 10000,
+           workspaces musts be specified in one of the two following
+           parameters. It is strongly recommended that the list is restricted
+           to the workspaces of interest, or the results may be very large:
+           list<ws_id> ids - the numerical IDs of the workspaces of interest.
+           list<ws_name> workspaces - the names of the workspaces of
+           interest. Only one of each timestamp/epoch pair may be supplied.
+           Optional arguments: type_string type - type of the objects to be
+           listed.  Here, omitting version information will find any objects
+           that match the provided type - e.g. Foo.Bar-0 will match
+           Foo.Bar-0.X where X is any existing version. permission perm -
+           DEPRECATED, no longer useful. Filter on minimum permission by
+           providing only workspaces with the desired permission levels in
+           the input list(s). list<username> savedby - filter objects by the
+           user that saved or copied the object. usermeta meta - filter
+           objects by the user supplied metadata. NOTE: only one key/value
+           pair is supported at this time. A full map is provided as input
+           for the possibility for expansion in the future. timestamp after -
+           only return objects that were created after this date. timestamp
+           before - only return objects that were created before this date.
+           epoch after_epoch - only return objects that were created after
+           this date. epoch before_epoch - only return objects that were
+           created before this date. obj_id minObjectID - only return objects
+           with an object id greater or equal to this value. obj_id
+           maxObjectID - only return objects with an object id less than or
+           equal to this value. boolean showDeleted - show deleted objects in
+           workspaces to which the user has write access. boolean
+           showOnlyDeleted - only show deleted objects in workspaces to which
+           the user has write access. boolean showHidden - show hidden
+           objects. boolean showAllVersions - show all versions of each
+           object that match the filters rather than only the most recent
+           version. boolean includeMetadata - include the user provided
+           metadata in the returned object_info. If false (0 or null), the
+           default, the metadata will be null. boolean excludeGlobal -
+           DEPRECATED, no longer useful. Filter on global workspaces by
+           excluding them from the input workspace list(s). int limit - limit
+           the output to X objects. Default and maximum value is 10000. Limit
+           values < 1 are treated as 10000, the default.) -> structure:
+           parameter "workspaces" of list of type "ws_name" (A string used as
+           a name for a workspace. Any string consisting of alphanumeric
+           characters and "_", ".", or "-" that is not an integer is
+           acceptable. The name may optionally be prefixed with the workspace
+           owner's user name and a colon, e.g. kbasetest:my_workspace.),
+           parameter "ids" of list of type "ws_id" (The unique, permanent
+           numerical ID of a workspace.), parameter "type" of type
+           "type_string" (A type string. Specifies the type and its version
+           in a single string in the format
            [module].[typename]-[major].[minor]: module - a string. The module
            name of the typespec containing the type. typename - a string. The
            name of the type as assigned by the typedef statement. major - an

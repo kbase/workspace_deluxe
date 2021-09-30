@@ -1015,17 +1015,16 @@ public class Workspace {
 
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				db.resolveWorkspaces(params.getWorkspaces());
-		final HashSet<ResolvedWorkspaceID> rw = new HashSet<ResolvedWorkspaceID>(rwsis.values());
-		final PermissionSet pset = db.getPermissions(params.getUser(), rw,
-				params.getMinimumPermission(), params.isExcludeGlobal(), true, params.asAdmin());
+		final Set<ResolvedWorkspaceID> rw = new HashSet<>(rwsis.values());
+		final PermissionSet pset = db.getPermissions(params.getUser().orElse(null), rw,
+				Permission.READ, false, true, params.asAdmin());
 		rw.clear();
 		if (!params.asAdmin()) {
-			// I don't understand why this is here. Seems like the db call above will only
-			// return readable workspaces unless the user is an admin
-			// At some point, but not now, should investigate further and maybe remove
+			// If a user doesn't have permission to a ws, the above call will merely exclude it
+			// from the results. The actual error gets thrown here.
 			for (final WorkspaceIdentifier wsi: params.getWorkspaces()) {
-				PermissionsCheckerFactory.comparePermission(params.getUser(), Permission.READ,
-						pset.getPermission(rwsis.get(wsi)), wsi, "read");
+				PermissionsCheckerFactory.comparePermission(params.getUser().orElse(null),
+						Permission.READ, pset.getPermission(rwsis.get(wsi)), wsi, "read");
 			}
 		}
 		return db.getObjectInformation(params.generateParameters(pset));

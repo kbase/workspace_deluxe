@@ -97,14 +97,14 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "620e037e2b4967914544bd538c11633ef98162bb";
+    private static final String gitCommitHash = "b9e9f07833892cb726b8e462d4075d0b6691ff95";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 	//TODO DOCS workspace glossary
 
-	private static final String VER = "0.12.0-dev1";
+	private static final String VER = "0.12.0-dev2";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
@@ -899,14 +899,12 @@ public class WorkspaceServer extends JsonServerServlet {
 				TypeDefId.fromTypeString(params.getType());
 		
 		final WorkspaceUser user = wsmeth.getUser(params.getAuth(), authPart);
-		final ListObjectsParameters lop;
-		if (type == null) {
-			lop = new ListObjectsParameters(user, Arrays.asList(wsi));
-		} else {
-			lop = new ListObjectsParameters(user, Arrays.asList(wsi), type);
-		}
-		lop.withShowDeleted(longToBoolean(params.getShowDeletedObject()))
-			.withIncludeMetaData(true);
+		final ListObjectsParameters lop = ListObjectsParameters.getBuilder(Arrays.asList(wsi))
+				.withUser(user)
+				.withType(type)
+				.withShowDeleted(longToBoolean(params.getShowDeletedObject()))
+				.withIncludeMetaData(true)
+				.build();
 		returnVal = objInfoToMetaTuple(ws.listObjects(lop), false);
         //END list_workspace_objects
         return returnVal;

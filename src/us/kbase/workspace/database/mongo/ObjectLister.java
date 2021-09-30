@@ -135,12 +135,12 @@ public class ObjectLister {
 	 */
 	private boolean isObjectIDFiltersOnly(final GetObjectInformationParameters params) {
 		// be really careful about modifying this function. See notes in this file.
-		boolean oidFiltersOnly = params.getAfter() == null;
-		oidFiltersOnly = oidFiltersOnly && params.getBefore() == null;
-		oidFiltersOnly = oidFiltersOnly && params.getMetadata().isEmpty();
-		oidFiltersOnly = oidFiltersOnly && params.getSavers().isEmpty();
-		// must have workspaces specified
-		oidFiltersOnly = oidFiltersOnly && params.getType() == null;
+		boolean oidFiltersOnly = params.getAfter().isEmpty()
+				&& params.getBefore().isEmpty()
+				&& params.getMetadata().isEmpty()
+				&& params.getSavers().isEmpty()
+				// must have workspaces specified
+				&& params.getType().isEmpty();
 		return oidFiltersOnly;
 	}
 
@@ -149,9 +149,9 @@ public class ObjectLister {
 				.map(ws -> ws.getID()).collect(Collectors.toSet());
 		final DBObject verq = new BasicDBObject();
 		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
-		if (params.getType() != null) {
+		if (params.getType().isPresent()) {
 			verq.put(Fields.VER_TYPE, new BasicDBObject(
-					"$regex", "^" + params.getType().getTypePrefix()));
+					"$regex", "^" + params.getType().get().getTypePrefix()));
 		}
 		if (!params.getSavers().isEmpty()) {
 			verq.put(Fields.VER_SAVEDBY, new BasicDBObject("$in", params.getSavers().stream()
@@ -167,13 +167,13 @@ public class ObjectLister {
 			}
 			verq.put("$and", andmetaq); //note more than one entry is untested
 		}
-		if (params.getBefore() != null || params.getAfter() != null) {
+		if (params.getBefore().isPresent() || params.getAfter().isPresent()) {
 			final DBObject d = new BasicDBObject();
-			if (params.getBefore() != null) {
-				d.put("$lt", params.getBefore());
+			if (params.getBefore().isPresent()) {
+				d.put("$lt", params.getBefore().get());
 			}
-			if (params.getAfter() != null) {
-				d.put("$gt", params.getAfter());
+			if (params.getAfter().isPresent()) {
+				d.put("$gt", params.getAfter().get());
 			}
 			verq.put(Fields.VER_SAVEDATE, d);
 		}

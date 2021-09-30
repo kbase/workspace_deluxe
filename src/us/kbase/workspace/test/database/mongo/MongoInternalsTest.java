@@ -49,7 +49,6 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.test.DummyValidatedTypedObject;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
-import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -261,14 +260,9 @@ public class MongoInternalsTest {
 				fac);
 		final ObjectIdentifier clnobj = new ObjectIdentifier(cloning, 1);
 		
-		final DBObject cloneunset = new BasicDBObject();
-		cloneunset.put("name", "");
-		cloneunset.put("moddate", "");
-		final DBObject update = new BasicDBObject(
-				"$set", new BasicDBObject("cloning", true));
-		update.put("$unset", cloneunset);
-		db.getCollection("workspaces").update(
-				new BasicDBObject("ws", 2), update);
+		final DBObject update = new BasicDBObject("$set", new BasicDBObject("cloning", true))
+				.append("$unset", new BasicDBObject("name", "").append("moddate", ""));
+		db.getCollection("workspaces").update(new BasicDBObject("ws", 2), update);
 		
 		final NoSuchWorkspaceException noWSExcp = new NoSuchWorkspaceException(
 				"No workspace with id 2 exists", cloning);
@@ -317,16 +311,9 @@ public class MongoInternalsTest {
 		//test get ws desc
 		WorkspaceTester.failGetWorkspaceDesc(ws, user1, cloning, noWSExcp);
 		
-		// test list objects - both direct fail and ignoring objects in
-		// cloning workspaces
+		// test list objects
 		WorkspaceTester.failListObjects(ws, user1, Arrays.asList(std, cloning),
 				null, noWSExcp);
-		
-		final List<ObjectInformation> listobj = ws.listObjects(
-				new ListObjectsParameters(user1, SAFE_TYPE));
-		assertThat("listed object count incorrect", listobj.size(), is(1));
-		assertThat("listed obj ws id incorrect",
-				listobj.get(0).getWorkspaceId(), is(1L));
 		
 		// test obj rename
 		WorkspaceTester.failObjRename(ws, user1, clnobj, "foo", noObjExcp);
@@ -715,7 +702,7 @@ public class MongoInternalsTest {
 		Method setWsid = p.getClass().getDeclaredMethod("setWorkspaceID",
 				Long.class);
 		setWsid.setAccessible(true);
-		setWsid.invoke(p, new Long(wsid));
+		setWsid.invoke(p, Long.valueOf(wsid));
 	}
 	
 	@Test
