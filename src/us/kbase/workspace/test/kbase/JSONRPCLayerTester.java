@@ -1827,16 +1827,16 @@ public class JSONRPCLayerTester {
 		@SuppressWarnings("unchecked")
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> ret =
 				new Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>()
-				.withE1(new Long((Integer) got.get(0)))
+				.withE1(Long.valueOf((Integer) got.get(0)))
 				.withE2((String) got.get(1))
 				.withE3((String) got.get(2))
 				.withE4((String) got.get(3))
-				.withE5(new Long((Integer) got.get(4)))
+				.withE5(Long.valueOf((Integer) got.get(4)))
 				.withE6((String) got.get(5))
-				.withE7(new Long((Integer) got.get(6)))
+				.withE7(Long.valueOf((Integer) got.get(6)))
 				.withE8((String) got.get(7))
 				.withE9((String) got.get(8))
-				.withE10(new Long((Integer) got.get(9)))
+				.withE10(Long.valueOf((Integer) got.get(9)))
 				.withE11((Map<String, String>) got.get(10));
 		return ret;
 	}
@@ -1846,11 +1846,11 @@ public class JSONRPCLayerTester {
 		@SuppressWarnings("unchecked")
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> ret =
 				new Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>()
-				.withE1(new Long((Integer) got.get(0)))
+				.withE1(Long.valueOf((Integer) got.get(0)))
 				.withE2((String) got.get(1))
 				.withE3((String) got.get(2))
 				.withE4((String) got.get(3))
-				.withE5(new Long((Integer) got.get(4)))
+				.withE5(Long.valueOf((Integer) got.get(4)))
 				.withE6((String) got.get(5))
 				.withE7((String) got.get(6))
 				.withE8((String) got.get(7))

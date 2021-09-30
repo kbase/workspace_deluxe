@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
@@ -2609,8 +2612,21 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"Workspace name foo:bar:listObjs1 may only contain one : delimiter");
 		failListObjects(Arrays.asList("listObjs1fake"), Arrays.asList(info2.getE1()), anotherType, null, null, 1L, 1L, 1L, 1L,
 				"No workspace with name listObjs1fake exists");
-		failListObjects(new ArrayList<String>(), new ArrayList<Long>(), null, null, null, 1L, 1L, 1L, 1L,
-				"At least one and no more than 10000 workspaces must be specified");
+		
+		// test with illegal numbers of workspaces
+		final String err = "At least one and no more than 10000 workspaces must be specified";
+		failListObjects(null, null, null, null, null, 1L, 1L, 1L, 1L, err);
+		failListObjects(Collections.emptyList(), Collections.emptyList(),
+				null, null, null, 1L, 1L, 1L, 1L, err);
+		final List<String> ws = IntStream.range(1, 5002).mapToObj(i -> "a" + i)
+				.collect(Collectors.toList());
+		final List<Long> longs = LongStream.range(1, 5001).mapToObj(i -> i)
+				.collect(Collectors.toList());
+		failListObjects(ws, longs, null, null, null, 1L, 1L, 1L, 1L, err);
+		ws.remove(ws.size() - 1);
+		longs.add(7000L);
+		failListObjects(ws, longs, null, null, null, 1L, 1L, 1L, 1L, err);
+		
 		meta.put("this should", "force a fail");
 		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(1L), null, null, meta, 1L, 1L, 1L, 1L,
 				"Only one metadata spec allowed");
@@ -3836,11 +3852,26 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 
 	@Test
-	public void adminListObjectsWithoutUserFail() throws Exception {
+	public void adminListObjectsFailOnWorkspaceCounts() throws Exception {
+		adminListObjectsFail(null, null);
+		adminListObjectsFail(Collections.emptyList(), Collections.emptyList());
+		
+		final List<String> ws = IntStream.range(1, 5002).mapToObj(i -> "a" + i)
+				.collect(Collectors.toList());
+		final List<Long> longs = LongStream.range(1, 5001).mapToObj(i -> i)
+				.collect(Collectors.toList());
+		adminListObjectsFail(ws, longs);
+		ws.remove(ws.size() - 1);
+		longs.add(7000L);
+		adminListObjectsFail(ws, longs);
+	}
+	
+	private void adminListObjectsFail(final List<String> ws, final List<Long> ids)
+			throws Exception {
 		try {
 			CLIENT2.administer(new UObject(ImmutableMap.of(
 					"command", "listObjects",
-					"params", new ListObjectsParams().withType(SAFE_TYPE))));
+					"params", new ListObjectsParams().withWorkspaces(ws).withIds(ids))));
 			fail("expected exception");
 		} catch (ServerException e) {
 			assertThat("incorrect exception", e.getMessage(), is(
