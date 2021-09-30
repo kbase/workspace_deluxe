@@ -53,7 +53,7 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsa
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.CopyResult;
-import us.kbase.workspace.database.GetObjectInformationParameters;
+import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInfoWithModDate;
@@ -2766,7 +2766,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public List<ObjectInformation> getObjectInformation(
-			final GetObjectInformationParameters params)
+			final ResolvedListObjectParameters params)
 			throws WorkspaceCommunicationException {
 		return new ObjectLister(wsmongo.getCollection(COL_WORKSPACE_VERS), objutils)
 				.filter(params);

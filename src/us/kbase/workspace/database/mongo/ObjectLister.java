@@ -18,7 +18,7 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
-import us.kbase.workspace.database.GetObjectInformationParameters;
+import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
@@ -41,7 +41,7 @@ public class ObjectLister {
 			Fields.VER_SAVEDBY, Fields.VER_VER, Fields.VER_CHKSUM,
 			Fields.VER_SIZE, Fields.VER_ID, Fields.VER_WS_ID).collect(Collectors.toSet());
 	
-	List<ObjectInformation> filter(final GetObjectInformationParameters params)
+	List<ObjectInformation> filter(final ResolvedListObjectParameters params)
 			throws WorkspaceCommunicationException {
 		/* Could make this method more efficient by doing different queries
 		 * based on the filters. If there's no filters except the workspace,
@@ -96,7 +96,7 @@ public class ObjectLister {
 		return ret;
 	}
 	
-	private DBObject buildProjection(final GetObjectInformationParameters params) {
+	private DBObject buildProjection(final ResolvedListObjectParameters params) {
 		final DBObject projection = new BasicDBObject();
 		FLDS_LIST_OBJ_VER.forEach(field -> projection.put(field, 1));
 		if (params.isIncludeMetaData()) {
@@ -117,7 +117,7 @@ public class ObjectLister {
 	 * dangerous to add the sort, since that forces the optimizer to use the ws/obj/ver index
 	 * (which could return a huge number of results and really slow down the query).
 	 */
-	private DBObject buildSortSpec(final GetObjectInformationParameters params) {
+	private DBObject buildSortSpec(final ResolvedListObjectParameters params) {
 		final DBObject sort = new BasicDBObject();
 		if (isObjectIDFiltersOnly(params)) {
 			sort.put(Fields.VER_WS_ID, 1);
@@ -133,7 +133,7 @@ public class ObjectLister {
 	 * the type filter.
 	 * @return true if no filters other than the object ID filters are set.
 	 */
-	private boolean isObjectIDFiltersOnly(final GetObjectInformationParameters params) {
+	private boolean isObjectIDFiltersOnly(final ResolvedListObjectParameters params) {
 		// be really careful about modifying this function. See notes in this file.
 		boolean oidFiltersOnly = !params.getAfter().isPresent()
 				&& !params.getBefore().isPresent()
@@ -144,7 +144,7 @@ public class ObjectLister {
 		return oidFiltersOnly;
 	}
 
-	private DBObject buildQuery(final GetObjectInformationParameters params) {
+	private DBObject buildQuery(final ResolvedListObjectParameters params) {
 		final Set<Long> ids = params.getPermissionSet().getWorkspaces().stream()
 				.map(ws -> ws.getID()).collect(Collectors.toSet());
 		final DBObject verq = new BasicDBObject();

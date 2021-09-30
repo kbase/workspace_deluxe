@@ -23,7 +23,10 @@ import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.test.MapBuilder;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ListObjectsParameters;
+import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
+import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
@@ -38,6 +41,31 @@ public class ListObjectParametersTest {
 		assertThat("incorrect workspaces", p.getWorkspaces(),
 				is(new HashSet<>(Arrays.asList(new WorkspaceIdentifier("foo")))));
 		assertThat("incorrect user", p.getUser(), is(Optional.empty()));
+		assertThat("incorrect type", p.getType(), is(Optional.empty()));
+		assertThat("incorrect savers", p.getSavers(), is(Collections.emptyList()));
+		assertThat("incorrect meta", p.getMetadata(), is(new WorkspaceUserMetadata()));
+		assertThat("incorrect after", p.getAfter(), is(Optional.empty()));
+		assertThat("incorrect before", p.getBefore(), is(Optional.empty()));
+		assertThat("incorrect minObject", p.getMinObjectID(), is(-1L));
+		assertThat("incorrect maxObject", p.getMaxObjectID(), is(-1L));
+		assertThat("incorrect hidden", p.isShowHidden(), is(false));
+		assertThat("incorrect deleted", p.isShowDeleted(), is(false));
+		assertThat("incorrect only deleted", p.isShowOnlyDeleted(), is(false));
+		assertThat("incorrect all vers", p.isShowAllVersions(), is(false));
+		assertThat("incorrect include meta", p.isIncludeMetaData(), is(false));
+		assertThat("incorrect as admin", p.asAdmin(), is(false));
+		assertThat("incorrect limit", p.getLimit(), is(10000));
+	}
+	
+	@Test
+	public void resolveMinimal() {
+		final PermissionSet ps = PermissionSet.getBuilder(
+				new WorkspaceUser("foo"), new AllUsers('*')).build();
+		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
+				Arrays.asList(new WorkspaceIdentifier("foo"))).build().resolve(ps);
+
+		assertThat("incorrect permissions", p.getPermissionSet(), is(PermissionSet.getBuilder(
+				new WorkspaceUser("foo"), new AllUsers('*')).build()));
 		assertThat("incorrect type", p.getType(), is(Optional.empty()));
 		assertThat("incorrect savers", p.getSavers(), is(Collections.emptyList()));
 		assertThat("incorrect meta", p.getMetadata(), is(new WorkspaceUserMetadata()));
@@ -78,6 +106,52 @@ public class ListObjectParametersTest {
 
 		assertThat("incorrect workspaces", p.getWorkspaces(), is(new HashSet<>(in)));
 		assertThat("incorrect user", p.getUser(), is(Optional.of(new WorkspaceUser("bar"))));
+		assertThat("incorrect type", p.getType(), is(Optional.of(new TypeDefId("Module.Type"))));
+		assertThat("incorrect savers", p.getSavers(), is(
+				Arrays.asList(new WorkspaceUser("hey"), new WorkspaceUser("mom"))));
+		assertThat("incorrect meta", p.getMetadata(), is(
+				new WorkspaceUserMetadata(ImmutableMap.of("whoo", "yay"))));
+		assertThat("incorrect after", p.getAfter(), is(Optional.of(Instant.ofEpochMilli(20000))));
+		assertThat("incorrect before", p.getBefore(), is(
+				Optional.of(Instant.ofEpochMilli(30000))));
+		assertThat("incorrect minObject", p.getMinObjectID(), is(56L));
+		assertThat("incorrect maxObject", p.getMaxObjectID(), is(90L));
+		assertThat("incorrect hidden", p.isShowHidden(), is(true));
+		assertThat("incorrect deleted", p.isShowDeleted(), is(true));
+		assertThat("incorrect only deleted", p.isShowOnlyDeleted(), is(true));
+		assertThat("incorrect all vers", p.isShowAllVersions(), is(true));
+		assertThat("incorrect include meta", p.isIncludeMetaData(), is(true));
+		assertThat("incorrect as admin", p.asAdmin(), is(true));
+		assertThat("incorrect limit", p.getLimit(), is(78));
+	}
+	
+	@Test
+	public void resolveMaximal() throws Exception {
+		final PermissionSet ps = PermissionSet.getBuilder(
+				new WorkspaceUser("foo"), new AllUsers('*')).build();
+		final List<WorkspaceIdentifier> in = IntStream.range(1, 10001)
+				.mapToObj(i -> new WorkspaceIdentifier(i)).collect(Collectors.toList());
+		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(in)
+				.withUser(new WorkspaceUser("bar"))
+				.withType(new TypeDefId("Module.Type"))
+				.withSavers(Arrays.asList(new WorkspaceUser("hey"), new WorkspaceUser("mom")))
+				.withMetadata(new WorkspaceUserMetadata(ImmutableMap.of("whoo", "yay")))
+				.withAfter(Instant.ofEpochMilli(20000))
+				.withBefore(Instant.ofEpochMilli(30000))
+				.withMinObjectID(56)
+				.withMaxObjectID(90)
+				.withShowHidden(true)
+				.withShowDeleted(true)
+				.withShowOnlyDeleted(true)
+				.withShowAllVersions(true)
+				.withIncludeMetaData(true)
+				.withAsAdmin(true)
+				.withLimit(78)
+				.build()
+				.resolve(ps);
+
+		assertThat("incorrect permissions", p.getPermissionSet(), is(PermissionSet.getBuilder(
+				new WorkspaceUser("foo"), new AllUsers('*')).build()));
 		assertThat("incorrect type", p.getType(), is(Optional.of(new TypeDefId("Module.Type"))));
 		assertThat("incorrect savers", p.getSavers(), is(
 				Arrays.asList(new WorkspaceUser("hey"), new WorkspaceUser("mom"))));
@@ -215,6 +289,17 @@ public class ListObjectParametersTest {
 	}
 
 	@Test
+	public void resolveFail() throws Exception {
+		try {
+			ListObjectsParameters.getBuilder(Arrays.asList(new WorkspaceIdentifier(1))).build()
+					.resolve(null);
+			fail("expected exception");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, new NullPointerException("perms cannot be null"));
+		}
+	}
+	
+	@Test
 	public void immutabilty() throws Exception {
 		// note WorkspaceMetaData is not immutable
 		final List<WorkspaceIdentifier> wsis = new ArrayList<>(
@@ -243,6 +328,17 @@ public class ListObjectParametersTest {
 		// test that the default and null savers list are also immutable
 		immutableSavers(ListObjectsParameters.getBuilder(wsis).build());
 		immutableSavers(ListObjectsParameters.getBuilder(wsis).withSavers(null).build());
+		
+		// test the resolved params are immutable, again WSMetadata is mutable
+		try {
+			ListObjectsParameters.getBuilder(wsis).withSavers(savers).build()
+					.resolve(PermissionSet.getBuilder(
+							new WorkspaceUser("u"), new AllUsers('*')).build())
+					.getSavers().add(new WorkspaceUser("v"));
+			fail("expected exception");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, new UnsupportedOperationException());
+		}
 	}
 	
 	private void immutableSavers(final ListObjectsParameters p) {
