@@ -16,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: ListObjectsParams</p>
  * <pre>
  * Parameters for the 'list_objects' function.
- *                 At least one, and no more than 10000, workspaces musts be specified in one of the
+ *                 At least one, and no more than 10000, workspaces must be specified in one of the
  *                 two following parameters. It is strongly recommended that the list is restricted to
  *                 the workspaces of interest, or the results may be very large:
  *                 list<ws_id> ids - the numerical IDs of the workspaces of interest.

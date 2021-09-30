@@ -97,7 +97,7 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "b9e9f07833892cb726b8e462d4075d0b6691ff95";
+    private static final String gitCommitHash = "2b31e92a5810e610b9a43d516355a4436db11b82";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
