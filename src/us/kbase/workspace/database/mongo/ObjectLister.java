@@ -135,12 +135,12 @@ public class ObjectLister {
 	 */
 	private boolean isObjectIDFiltersOnly(final GetObjectInformationParameters params) {
 		// be really careful about modifying this function. See notes in this file.
-		boolean oidFiltersOnly = params.getAfter().isEmpty()
-				&& params.getBefore().isEmpty()
+		boolean oidFiltersOnly = !params.getAfter().isPresent()
+				&& !params.getBefore().isPresent()
 				&& params.getMetadata().isEmpty()
 				&& params.getSavers().isEmpty()
 				// must have workspaces specified
-				&& params.getType().isEmpty();
+				&& !params.getType().isPresent();
 		return oidFiltersOnly;
 	}
 
