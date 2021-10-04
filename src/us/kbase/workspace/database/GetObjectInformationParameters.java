@@ -1,7 +1,8 @@
 package us.kbase.workspace.database;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import us.kbase.typedobj.core.TypeDefId;
 
@@ -16,11 +17,11 @@ public class GetObjectInformationParameters {
 	// TODO TEST unit tests although this is pretty trivial stuff
 	
 	final private PermissionSet pset;
-	final private TypeDefId type;
+	final private Optional<TypeDefId> type;
 	final private List<WorkspaceUser> savers;
 	final private WorkspaceUserMetadata meta;
-	final private Date after;
-	final private Date before;
+	final private Optional<Instant> after;
+	final private Optional<Instant> before;
 	final private long minObjectID;
 	final private long maxObjectID;
 	final private boolean showHidden;
@@ -33,11 +34,11 @@ public class GetObjectInformationParameters {
 	
 	GetObjectInformationParameters(
 			final PermissionSet pset,
-			final TypeDefId type,
+			final Optional<TypeDefId> type,
 			final List<WorkspaceUser> savers,
 			final WorkspaceUserMetadata meta,
-			final Date after,
-			final Date before,
+			final Optional<Instant> after,
+			final Optional<Instant> before,
 			final long minObjectID,
 			final long maxObjectID,
 			final boolean showHidden,
@@ -76,7 +77,7 @@ public class GetObjectInformationParameters {
 	/** Get the type of objects to list.
 	 * @return the type of objects to list.
 	 */
-	public TypeDefId getType() {
+	public Optional<TypeDefId> getType() {
 		return type;
 	}
 
@@ -99,7 +100,7 @@ public class GetObjectInformationParameters {
 	 * listed.
 	 * @return the date. May be null.
 	 */
-	public Date getAfter() {
+	public Optional<Instant> getAfter() {
 		return after;
 	}
 
@@ -107,7 +108,7 @@ public class GetObjectInformationParameters {
 	 * listed.
 	 * @return the date. May be null.
 	 */
-	public Date getBefore() {
+	public Optional<Instant> getBefore() {
 		return before;
 	}
 

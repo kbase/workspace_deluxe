@@ -1318,21 +1318,21 @@ module Workspace {
 	
 	/* Parameters for the 'list_objects' function.
 
-		At least one of the following filters must be provided. It is strongly
-		recommended that the list is restricted to the workspaces of interest,
-		or the results may be very large:
+		At least one, and no more than 10000, workspaces must be specified in one of the
+		two following parameters. It is strongly recommended that the list is restricted to
+		the workspaces of interest, or the results may be very large:
 		list<ws_id> ids - the numerical IDs of the workspaces of interest.
 		list<ws_name> workspaces - the names of the workspaces of interest.
-		type_string type - type of the objects to be listed.  Here, omitting
-			version information will find any objects that match the provided
-			type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
-			existing version.
 		
 		Only one of each timestamp/epoch pair may be supplied.
 		
 		Optional arguments:
-		permission perm - filter objects by minimum permission level. 'None'
-			and 'readable' are ignored.
+		type_string type - type of the objects to be listed.  Here, omitting
+			version information will find any objects that match the provided
+			type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
+			existing version.
+		permission perm - DEPRECATED, no longer useful. Filter on minimum permission by providing
+			only workspaces with the desired permission levels in the input list(s).
 		list<username> savedby - filter objects by the user that saved or
 			copied the object.
 		usermeta meta - filter objects by the user supplied metadata. NOTE:
@@ -1361,8 +1361,8 @@ module Workspace {
 		boolean includeMetadata - include the user provided metadata in the
 			returned object_info. If false (0 or null), the default, the
 			metadata will be null.
-		boolean excludeGlobal - exclude objects in global workspaces. This
-			parameter only has an effect when filtering by types alone.
+		boolean excludeGlobal - DEPRECATED, no longer useful. Filter on global workspaces by
+			excluding them from the input workspace list(s).
 		int limit - limit the output to X objects. Default and maximum value
 			is 10000. Limit values < 1 are treated as 10000, the default.
 		

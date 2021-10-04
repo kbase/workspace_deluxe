@@ -6,6 +6,10 @@ VERSION: 0.12.0 (Released TBD)
 
 BACKWARDS INCOMPATIBILITIES:
 
+* ``list_objects`` now requires that at least one and no more than 10000 workspaces are
+  specified.
+* As such, the ``excludeGlobal`` and ``perm`` parameters no longer have any use and are
+  deprecated. 
 * The Sample service is no longer supported as a KBase dynamic service, only as a core
   service. As such, the ``sample-service-tag`` configuration key has been removed.
 * Shock is no longer supported as a data backend.

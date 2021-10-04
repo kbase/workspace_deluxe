@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
@@ -92,7 +95,7 @@ import com.google.common.collect.ImmutableMap;
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
-	private static final String VER = "0.12.0-dev1";
+	private static final String VER = "0.12.0-dev2";
 
 	@Test
 	public void ver() throws Exception {
@@ -2492,6 +2495,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withNewPermission("a").withUsers(Arrays.asList(USER1)));
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjsGlobal")
 				.withGlobalread("r"));
+		
+		List<String> allws = Arrays.asList("listObjs1", "listObjs2", "listObjsread",
+				"listObjswrite", "listObjsadmin", "listObjsGlobal");
 
 
 		Map<String, String> meta = new HashMap<String, String>();
@@ -2538,6 +2544,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
 				.withMeta(meta).withType(anotherType).withName("global")))).get(0);
 
+		// holy shit these tests are unreadable
 		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, std2, hidden, deleted), false);
 		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, null, 1L, 1L, 0L,
@@ -2554,49 +2561,35 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				Arrays.asList(hidden, deleted), false);
 		checkListObjects(Arrays.asList("listObjs1", "listObjs2"), new ArrayList<Long>(), null, null, null, null, 1L, 1L, 0L, 1L, 0L, 0L,
 				Arrays.asList(std1, std2, hidden, deleted), true);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-
-		//exclude global ws
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null, null, 1L, 1L, 0L, 1L, 1L, 1L,
-				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable), false);
 
 		//user filtering
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null,
 				new ArrayList<String>(), null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null,
 				Arrays.asList(USER1, USER2), null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null,
 				Arrays.asList(USER1), null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, deleted), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null,
 				Arrays.asList(USER2), null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(readable, writeable, adminable, global), false);
 
-		//perms testing
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "n", null, null, 1L, 1L, 0L, 1L, 1L, 0L,
-				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "r", null, null, 1L, 1L, 0L, 1L, 1L, 0L,
-				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "w", null, null, 1L, 1L, 0L, 1L, 1L, 0L,
-				Arrays.asList(std1, hidden, deleted, writeable, adminable), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "a", null, null, 1L, 1L, 0L, 1L, 1L, 0L,
-				Arrays.asList(std1, hidden, deleted, adminable), false);
-
 		//meta data testing
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null, null,
 				new HashMap<String, String>(), 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null, null,
 				meta, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, readable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null, null,
 				meta2, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(deleted, writeable, adminable), false);
 
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType2, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType2, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std2), false);
 		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1(), info1.getE1()), null, null, null, null, null, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, std2, deleted), false);
@@ -2619,20 +2612,29 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"Workspace name foo:bar:listObjs1 may only contain one : delimiter");
 		failListObjects(Arrays.asList("listObjs1fake"), Arrays.asList(info2.getE1()), anotherType, null, null, 1L, 1L, 1L, 1L,
 				"No workspace with name listObjs1fake exists");
-		failListObjects(new ArrayList<String>(), new ArrayList<Long>(), null, null, null, 1L, 1L, 1L, 1L,
-				"At least one filter must be specified.");
-		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(1L), null, "x", null, 1L, 1L, 1L, 1L,
-				"No such permission: x");
+		
+		// test with illegal numbers of workspaces
+		final String err = "At least one and no more than 10000 workspaces must be specified";
+		failListObjects(null, null, null, null, null, 1L, 1L, 1L, 1L, err);
+		failListObjects(Collections.emptyList(), Collections.emptyList(),
+				null, null, null, 1L, 1L, 1L, 1L, err);
+		final List<String> ws = IntStream.range(1, 5002).mapToObj(i -> "a" + i)
+				.collect(Collectors.toList());
+		final List<Long> longs = LongStream.range(1, 5001).mapToObj(i -> i)
+				.collect(Collectors.toList());
+		failListObjects(ws, longs, null, null, null, 1L, 1L, 1L, 1L, err);
+		ws.remove(ws.size() - 1);
+		longs.add(7000L);
+		failListObjects(ws, longs, null, null, null, 1L, 1L, 1L, 1L, err);
+		
 		meta.put("this should", "force a fail");
 		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(1L), null, null, meta, 1L, 1L, 1L, 1L,
 				"Only one metadata spec allowed");
 
 		compareObjectInfo(CLIENT1.getObjectHistory(
-				new ObjectIdentity().withRef("listObjs1/std")),
-						Arrays.asList(std1, std2));
+				new ObjectIdentity().withRef("listObjs1/std")), Arrays.asList(std1, std2));
 		compareObjectInfo(CLIENT1.getObjectHistory(
-				new ObjectIdentity().withRef("listObjs2/hidden/1")),
-						Arrays.asList(hidden));
+				new ObjectIdentity().withRef("listObjs2/hidden/1")), Arrays.asList(hidden));
 
 		try {
 			CLIENT1.getObjectHistory(new ObjectIdentity().withRef("listObjs1/hidden/1/3"));
@@ -3850,15 +3852,30 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 
 	@Test
-	public void adminListObjectsWithoutUserFail() throws Exception {
+	public void adminListObjectsFailOnWorkspaceCounts() throws Exception {
+		adminListObjectsFail(null, null);
+		adminListObjectsFail(Collections.emptyList(), Collections.emptyList());
+		
+		final List<String> ws = IntStream.range(1, 5002).mapToObj(i -> "a" + i)
+				.collect(Collectors.toList());
+		final List<Long> longs = LongStream.range(1, 5001).mapToObj(i -> i)
+				.collect(Collectors.toList());
+		adminListObjectsFail(ws, longs);
+		ws.remove(ws.size() - 1);
+		longs.add(7000L);
+		adminListObjectsFail(ws, longs);
+	}
+	
+	private void adminListObjectsFail(final List<String> ws, final List<Long> ids)
+			throws Exception {
 		try {
 			CLIENT2.administer(new UObject(ImmutableMap.of(
 					"command", "listObjects",
-					"params", new ListObjectsParams().withType(SAFE_TYPE))));
+					"params", new ListObjectsParams().withWorkspaces(ws).withIds(ids))));
 			fail("expected exception");
 		} catch (ServerException e) {
-			assertThat("incorrect exception", e.getMessage(), is("When listing objects as an " +
-					"admin at least one target workspace must be provided"));
+			assertThat("incorrect exception", e.getMessage(), is(
+					"At least one and no more than 10000 workspaces must be specified"));
 		}
 	}
 

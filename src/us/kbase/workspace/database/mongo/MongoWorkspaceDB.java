@@ -1114,8 +1114,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean includeProvidedWorkspaces)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (perm == null || Permission.NONE.equals(perm)) {
-			throw new IllegalArgumentException(
-					"Permission cannot be null or NONE");
+			throw new IllegalArgumentException("Permission cannot be null or NONE");
 		}
 		final Map<ResolvedWorkspaceID, Map<User, Permission>> userperms;
 		if (user != null) {

@@ -1869,8 +1869,8 @@ public class WorkspaceTester {
 			int limit, int minid, int maxid, Set<Long> exlude) 
 			throws Exception {
 		List<ObjectInformation> res = ws.listObjects(
-				new ListObjectsParameters(user, Arrays.asList(wsi))
-				.withLimit(limit));
+				ListObjectsParameters.getBuilder(Arrays.asList(wsi))
+						.withUser(user).withLimit(limit).build());
 		assertThat("correct number of objects returned", res.size(),
 				is(maxid - minid + 1 - exlude.size()));
 		for (ObjectInformation oi: res) {
@@ -1920,8 +1920,8 @@ public class WorkspaceTester {
 			final Map<String, String> meta,
 			final Exception e) {
 		try {
-			ws.listObjects(new ListObjectsParameters(user, wsis)
-					.withMetadata(new WorkspaceUserMetadata(meta)));
+			ws.listObjects(ListObjectsParameters.getBuilder(wsis)
+					.withUser(user).withMetadata(new WorkspaceUserMetadata(meta)).build());
 			fail("listed obj when should fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);

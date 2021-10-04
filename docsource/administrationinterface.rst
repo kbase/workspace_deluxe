@@ -147,8 +147,7 @@ removeModuleOwnership           no
 #. The user permission is always returned as 'none'.
 #. Parameters are as get_object_info3.
 #. Parameters are as get_objects2.
-#. If omitted, returns all objects requested, but at least one and no more than 1000 workspaces
-   must be specified.
+#. If omitted, returns all objects requested.
 #. Parameters are as delete_workspace.
 
 Example usage:
