@@ -20,7 +20,7 @@ import us.kbase.workspace.database.PermissionSet.Builder;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceUser;
 
-public class PermissionsSetTest {
+public class PermissionSetTest {
 	
 	private static final ResolvedWorkspaceID RWSID1 =
 			new ResolvedWorkspaceID(1, "someworkspace1", false, false);
