@@ -29,6 +29,7 @@ public class ListObjectsParameters {
 	private final Optional<TypeDefId> type;
 	private final List<WorkspaceUser> savers;
 	private final WorkspaceUserMetadata meta;
+	private final RefLimit startFrom;
 	private final Optional<Instant> after;
 	private final Optional<Instant> before;
 	private final long minObjectID;
@@ -47,6 +48,7 @@ public class ListObjectsParameters {
 			final Optional<TypeDefId> type,
 			final List<WorkspaceUser> savers,
 			final WorkspaceUserMetadata meta,
+			final RefLimit startFrom,
 			final Optional<Instant> after,
 			final Optional<Instant> before,
 			final long minObjectID,
@@ -63,6 +65,7 @@ public class ListObjectsParameters {
 		this.type = type;
 		this.savers = savers;
 		this.meta = meta;
+		this.startFrom = startFrom;
 		this.after = after;
 		this.before = before;
 		this.minObjectID = minObjectID;
@@ -111,6 +114,14 @@ public class ListObjectsParameters {
 	public WorkspaceUserMetadata getMetadata() {
 		return meta;
 	}
+	
+	/** Get the position from which listing objects should begin. Allows paging through lists
+	 * of objects.
+	 * @return the position.
+	 */
+	public RefLimit getStartFrom() {
+		return startFrom;
+	}
 
 	/** Get the date that specifies the earliest record that should be
 	 * listed.
@@ -136,7 +147,7 @@ public class ListObjectsParameters {
 	}
 
 	/** Get the maximum object ID for objects that should be listed.
-	 * @return the maxium object ID.
+	 * @return the maximum object ID.
 	 */
 	public long getMaxObjectID() {
 		return maxObjectID;
@@ -193,39 +204,42 @@ public class ListObjectsParameters {
 	
 	public ResolvedListObjectParameters resolve(final PermissionSet perms) {
 		return new ResolvedListObjectParameters(
-				requireNonNull(perms, "perms cannot be null"), type, savers, meta, after, before,
-				minObjectID, maxObjectID, showHidden, showDeleted, showOnlyDeleted, showAllVers,
-				includeMetaData, limit, asAdmin);
+				requireNonNull(perms, "perms cannot be null"), type, savers, meta, startFrom,
+				after, before, minObjectID, maxObjectID,
+				showHidden, showDeleted, showOnlyDeleted, showAllVers, includeMetaData,
+				limit, asAdmin);
 		
 	}
 	
-	/** Parameters for listing objects resolved with workspace permissions for the user.
-	 * @author crushingismybusiness
-	 *
-	 */
+	/** Parameters for listing objects resolved with workspace permissions for the user. */
 	public static class ResolvedListObjectParameters {
 		
-		final private PermissionSet pset;
-		final private Optional<TypeDefId> type;
-		final private List<WorkspaceUser> savers;
-		final private WorkspaceUserMetadata meta;
-		final private Optional<Instant> after;
-		final private Optional<Instant> before;
-		final private long minObjectID;
-		final private long maxObjectID;
-		final private boolean showHidden;
-		final private boolean showDeleted;
-		final private boolean showOnlyDeleted;
-		final private boolean showAllVers;
-		final private boolean includeMetaData;
-		final private boolean asAdmin;
-		final private int limit;
+		private final PermissionSet pset;
+		private final Optional<TypeDefId> type;
+		private final List<WorkspaceUser> savers;
+		private final WorkspaceUserMetadata meta;
+		// TODO NOW_PAGING implement paging in mongo layer, add type/upa index
+		// TODO NOW_PAGING add to spec and transform ref string to Reference, allowing missing fields
+		// TODO NOW_PAGING add paging documentation
+		private final RefLimit startFrom;
+		private final Optional<Instant> after;
+		private final Optional<Instant> before;
+		private final long minObjectID;
+		private final long maxObjectID;
+		private final boolean showHidden;
+		private final boolean showDeleted;
+		private final boolean showOnlyDeleted;
+		private final boolean showAllVers;
+		private final boolean includeMetaData;
+		private final boolean asAdmin;
+		private final int limit;
 		
 		private ResolvedListObjectParameters(
 				final PermissionSet pset,
 				final Optional<TypeDefId> type,
 				final List<WorkspaceUser> savers,
 				final WorkspaceUserMetadata meta,
+				final RefLimit startFrom,
 				final Optional<Instant> after,
 				final Optional<Instant> before,
 				final long minObjectID,
@@ -241,6 +255,7 @@ public class ListObjectsParameters {
 			this.type = type;
 			this.savers = savers;
 			this.meta = meta;
+			this.startFrom = startFrom;
 			this.after = after;
 			this.before = before;
 			this.minObjectID = minObjectID;
@@ -283,6 +298,14 @@ public class ListObjectsParameters {
 		public WorkspaceUserMetadata getMetadata() {
 			return meta;
 		}
+		
+		/** Get the position from which listing objects should begin. Allows paging through lists
+		 * of objects.
+		 * @return the position.
+		 */
+		public RefLimit getStartFrom() {
+			return startFrom;
+		}
 
 		/** Get the date that specifies the earliest record that should be
 		 * listed.
@@ -308,7 +331,7 @@ public class ListObjectsParameters {
 		}
 
 		/** Get the maximum object ID for objects that should be listed.
-		 * @return the maxium object ID.
+		 * @return the maximum object ID.
 		 */
 		public long getMaxObjectID() {
 			return maxObjectID;
@@ -373,9 +396,7 @@ public class ListObjectsParameters {
 		return new Builder(wsis);
 	}
 	
-	/** A builder for {@link ListObjectsParameters}.
-	 *
-	 */
+	/** A builder for {@link ListObjectsParameters}. */
 	public static class Builder {
 		
 		private static final String ERRSTR = String.format(
@@ -386,6 +407,7 @@ public class ListObjectsParameters {
 		private Optional<TypeDefId> type = Optional.empty();
 		private List<WorkspaceUser> savers = Arrays.asList(); // immutable
 		private WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
+		private RefLimit startFrom = RefLimit.buildEmpty();
 		private Optional<Instant> after = Optional.empty();
 		private Optional<Instant> before = Optional.empty();
 		private long minObjectID = -1;
@@ -461,6 +483,17 @@ public class ListObjectsParameters {
 			} else {
 				this.meta = new WorkspaceUserMetadata();
 			}
+			return this;
+		}
+		
+		/** Set the position, inclusive, from where objects should be listed.
+		 * If this parameter is set, metadata, savers, min/max object IDs, and timestamps
+		 * cannot be set as filters.
+		 * @param start the position from where listing objects should start.
+		 * @return this builder.
+		 */
+		public Builder withStartFrom(final RefLimit start) {
+			this.startFrom = start == null? RefLimit.buildEmpty() : start;
 			return this;
 		}
 		
@@ -564,9 +597,17 @@ public class ListObjectsParameters {
 		}
 		
 		public ListObjectsParameters build() {
+			if (startFrom.isPresent() && (
+					!savers.isEmpty() || !meta.isEmpty() ||
+					after.isPresent() || before.isPresent() ||
+					minObjectID > 1 || maxObjectID > 0)) {
+				throw new IllegalArgumentException("If a starting reference for paging is " +
+					"provided, metadata, savers, min/max object IDs, and timestamps cannot " +
+					"be set as filters.");
+			}
 			// throw an error if min obj id > max obj id?
 			// throw an error if after > before?
-			return new ListObjectsParameters(wsis, user, type, savers, meta,
+			return new ListObjectsParameters(wsis, user, type, savers, meta, startFrom,
 					after, before, minObjectID, maxObjectID,
 					showHidden, showDeleted, showOnlyDeleted, showAllVers,
 					includeMetaData, asAdmin, limit);
