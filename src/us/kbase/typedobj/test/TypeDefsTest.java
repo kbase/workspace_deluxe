@@ -37,8 +37,7 @@ public class TypeDefsTest {
 		checkTypeDefName(str255 + "a", "bar", "Module name size is > 255 bytes");
 		checkTypeDefName("foo", str255 + "a", "Type name size is > 255 bytes");
 		TypeDefName wst = new TypeDefName("foo", "bar");
-		@SuppressWarnings("unused")
-		TypeDefName wst2 = new TypeDefName(str255, str255); //should work
+		new TypeDefName(str255, str255); //should work
 		checkTypeId(null, null, null, "Type cannot be null");
 		checkTypeId(null, 1, null, "Type cannot be null");
 		checkTypeId(null, 1, 0, "Type cannot be null");

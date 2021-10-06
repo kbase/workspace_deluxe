@@ -1,6 +1,9 @@
 package us.kbase.typedobj.core;
 
 public class AbsoluteTypeDefId extends TypeDefId {
+	
+	// TODO JAVADOC
+	// TODO TEST clean up and complete tests. 
 
 	public AbsoluteTypeDefId(final TypeDefName type, final int majorVersion,
 			final int minorVersion) {
@@ -8,6 +11,7 @@ public class AbsoluteTypeDefId extends TypeDefId {
 	}
 
 	public AbsoluteTypeDefId(final TypeDefName type, final MD5 md5) {
+		// TODO CODE there should probably be different classes for MD5 and standard types
 		super(type, md5);
 	}
 
@@ -45,6 +49,13 @@ public class AbsoluteTypeDefId extends TypeDefId {
 	
 	public static AbsoluteTypeDefId fromAbsoluteTypeString(final String type) {
 		return fromTypeId(TypeDefId.fromTypeString(type));
+	}
+	
+	/** Get the type string including the major version, e.g. Module.Type-1.
+	 * @return the type string
+	 */
+	public String getTypeStringMajorVersion() {
+		return type.getTypeString() + TYPE_VER_SEP + majorVersion;
 	}
 	
 	@Override
