@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Permission;
@@ -34,6 +35,36 @@ public class PermissionSetTest {
 			new ResolvedWorkspaceID(5, "someworkspace5", false, false);
 	private static final ResolvedWorkspaceID RWSID6 =
 			new ResolvedWorkspaceID(6, "someworkspace6", false, false);
+	
+	@Test
+	public void equals() throws Exception {
+		EqualsVerifier.forClass(PermissionSet.class).usingGetClass().verify();
+		
+		// test equality on internal Perms class
+		final WorkspaceUser u = new WorkspaceUser("u");
+		final AllUsers a = new AllUsers('*');
+		final ResolvedWorkspaceID w = new ResolvedWorkspaceID(1, "a", false, false);
+		
+		final PermissionSet p1 = PermissionSet.getBuilder(u, a)
+				.withWorkspace(w, Permission.WRITE, Permission.READ).build();
+		
+		PermissionSet p2 = PermissionSet.getBuilder(u, a)
+				.withWorkspace(w, Permission.WRITE, Permission.READ).build();
+		assertThat("incorrect set", p1, is(p2));
+
+		p2 = PermissionSet.getBuilder(u, a)
+				.withWorkspace(w, Permission.ADMIN, Permission.READ).build();
+		assertThat("incorrect equality", p1.equals(p2), is(false));
+		
+		p2 = PermissionSet.getBuilder(u, a)
+				.withWorkspace(w, Permission.WRITE, Permission.NONE).build();
+		assertThat("incorrect equality", p1.equals(p2), is(false));
+		
+		// no perms uses the same instance of Perms class
+		final PermissionSet p3 = PermissionSet.getBuilder(u, a).withUnreadableWorkspace(w).build();
+		final PermissionSet p4 = PermissionSet.getBuilder(u, a).withUnreadableWorkspace(w).build();
+		assertThat("incorrect set", p3, is(p4));
+	}
 	
 	@Test
 	public void buildEmpty() {
