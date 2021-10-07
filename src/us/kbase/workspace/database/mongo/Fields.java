@@ -54,7 +54,12 @@ public class Fields {
 	public static final String VER_PROV = "provenance";
 	public static final String VER_REF = "refs";
 	public static final String VER_PROVREF = "provrefs";
-	public static final String VER_TYPE = "type";
+	// the full type string, e.g. Module.Type-3.4
+	public static final String VER_TYPE_FULL = "type";
+	// the type string with the major version, e.g. Module.Type-3
+	public static final String VER_TYPE_WITH_MAJOR_VERSION = "tymaj";
+	// the type name only as a type string, e.g. Module.Type
+	public static final String VER_TYPE_NAME = "tyname";
 	public static final String VER_SIZE = "size";
 	public static final String VER_RVRT = "revert";
 	public static final String VER_META = "meta";

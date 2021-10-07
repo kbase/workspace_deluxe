@@ -1,11 +1,11 @@
 package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -74,7 +74,6 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
-import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
@@ -85,7 +84,7 @@ import us.kbase.workspace.test.workspace.WorkspaceTester;
 import com.google.common.base.Optional;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
-import com.mongodb.DBCursor;
+import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
@@ -103,6 +102,8 @@ public class MongoInternalsTest {
 	
 	public static final TypeDefId SAFE_TYPE =
 			new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
+	public static final TypeDefId OTHER_TYPE_NO_VER = new TypeDefId(
+			new TypeDefName("SomeModule", "OtherType"));
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -134,8 +135,17 @@ public class MongoInternalsTest {
 		types.requestModuleRegistration(foo, "SomeModule");
 		types.resolveModuleRegistration("SomeModule", true);
 		types.compileNewTypeSpec(foo, 
-				"module SomeModule {/* @optional thing */ typedef structure {string thing;} AType;};",
-				Arrays.asList("AType"), null, null, false, null);
+				"module SomeModule {" +
+				"    /* @optional thing */" +
+				"    typedef structure {" +
+				"        string thing;" +
+				"    } AType;" +
+				"    /* @optional thing */" +
+				"    typedef structure {" +
+				"        string thing;" +
+				"    } OtherType;" +
+				"};",
+				Arrays.asList("AType", "OtherType"), null, null, false, null);
 		types.releaseTypes(foo, "SomeModule");
 	}
 	
@@ -552,89 +562,6 @@ public class MongoInternalsTest {
 		createClonedWorkspace.setAccessible(true);
 		createClonedWorkspace.invoke(mwdb, foo, wsname, global, desc,
 				inmeta, true);
-	}
-	
-	@Test
-	public void startUpAndCheckConfigDoc() throws Exception {
-		final DB db = mongoClient.getDB("startUpAndCheckConfigDoc");
-		TempFilesManager tfm = new TempFilesManager(
-				new File(TestCommon.getTempDir()));
-		new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
-		
-		DBCursor c = db.getCollection("config").find();
-		assertThat("Only one config doc", c.size(), is(1));
-		DBObject cd = c.next();
-		assertThat("correct config key & value", (String)cd.get("config"),
-				is("config"));
-		assertThat("not in update", (Boolean)cd.get("inupdate"), is(false));
-		assertThat("schema v1", (Integer)cd.get("schemaver"), is(1));
-		
-		//check startup works with the config object in place
-		MongoWorkspaceDB m = new MongoWorkspaceDB(
-				db,  new GridFSBlobStore(db), tfm);
-		WorkspaceInformation ws = m.createWorkspace(
-				new WorkspaceUser("foo"), "bar", false, null,
-				new WorkspaceUserMetadata());
-		assertThat("check a ws field", ws.getName(), is("bar"));
-		
-	}
-	
-	@Test
-	public void startUpWith2ConfigDocs() throws Exception {
-		final DB db = mongoClient.getDB("startUpWith2ConfigDocs");
-		
-		final Map<String, Object> m = new HashMap<String, Object>();
-		m.put("config", "config");
-		m.put("inupdate", false);
-		m.put("schemaver", 1);
-		
-		db.getCollection("config").insert(Arrays.asList(
-				(DBObject) new BasicDBObject(m), new BasicDBObject(m)));
-		
-		failMongoWSStart(db, new CorruptWorkspaceDBException(
-				"Found duplicate index keys in the database, " +
-						"aborting startup"));
-	}
-	
-	@Test
-	public void startUpWithBadSchemaVersion() throws Exception {
-		final DB db = mongoClient.getDB("startUpWithBadSchemaVersion");
-		
-		final DBObject cfg = new BasicDBObject("config", "config");
-		cfg.put("inupdate", false);
-		cfg.put("schemaver", 4);
-		
-		db.getCollection("config").insert(cfg);
-		
-		failMongoWSStart(db, new WorkspaceDBInitializationException(
-				"Incompatible database schema. Server is v1, DB is v4"));
-	}
-	
-	@Test
-	public void startUpWithUpdateInProgress() throws Exception {
-		final DB db = mongoClient.getDB("startUpWithUpdateInProgress");
-		
-		final DBObject cfg = new BasicDBObject("config", "config");
-		cfg.put("inupdate", true);
-		cfg.put("schemaver", 1);
-		
-		db.getCollection("config").insert(cfg);
-		
-		failMongoWSStart(db, new CorruptWorkspaceDBException(
-				"The database is in the middle of an update from v1 of the " +
-				"schema. Aborting startup."));
-	}
-
-	private void failMongoWSStart(final DB db, final Exception exp)
-			throws Exception {
-		TempFilesManager tfm = new TempFilesManager(
-				new File(TestCommon.getTempDir()));
-		try {
-			new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
-			fail("started mongo with bad config");
-		} catch (Exception e) {
-			assertExceptionCorrect(e, exp);
-		}
 	}
 	
 	@Test
@@ -1145,7 +1072,7 @@ public class MongoInternalsTest {
 		ws.saveObjects(userfoo, dates, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), new UObject(data),
 						SAFE_TYPE, null, new Provenance(userfoo), false)),
-						fac);
+				fac);
 		Date orig = getDate(wsid, 1);
 		ws.copyObject(userfoo, new ObjectIdentifier(dates, "orig"),
 				new ObjectIdentifier(dates, "copy"));
@@ -1185,4 +1112,112 @@ public class MongoInternalsTest {
 		int onemin = 1000 * 60;
 		assertTrue("date is recent", now.getTime() - orig.getTime() < onemin);
 	}
+	
+	private void typeFieldsSetUp() throws Exception {
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("typefields");
+		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
+		
+		final Map<String, Object> data = new HashMap<>();
+		ws.saveObjects(user, wsi, Arrays.asList(
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), new UObject(data),
+						SAFE_TYPE, null, new Provenance(user), false),
+				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig2"), new UObject(data),
+						OTHER_TYPE_NO_VER, null, new Provenance(user), false)),
+				fac);
+	}
+	
+	private void typeFieldsSetUpForCloneRevertAndCopy() throws Exception {
+		typeFieldsSetUp();
+		final DBCollection col = db.getCollection("workspaceObjVersions");
+		
+		// remove the 2 internal type fields from one of the objects
+		final DBObject query = new BasicDBObject("id", 1);
+		final DBObject update = new BasicDBObject("$unset",
+				new BasicDBObject("tymaj", "").append("tyname", ""));
+		final DBObject ret = col.findAndModify(query, null, null, false, update, true, false);
+		
+		// check the altered object is as expected
+		assertThat("incorrect type", ret.get("type"), is("SomeModule.AType-0.1"));
+		assertThat("incorrect type maj", ret.get("tymaj"), is(nullValue()));
+		assertThat("incorrect type name", ret.get("tyname"), is(nullValue()));
+	}
+
+	private void checkTypeFields(final int wsid, final int id1, final int id2) {
+		checkTypeFields(wsid, id1, id2, 1, 1);
+	}
+	
+	private void checkTypeFields(
+			final int wsid, final int id1, final int id2, final int ver1, final int ver2) {
+		final DBCollection col = db.getCollection("workspaceObjVersions");
+		final DBObject obj1 = col.findOne(
+				new BasicDBObject("ws", wsid).append("id", id1).append("ver", ver1));
+		final DBObject obj2 = col.findOne(
+				new BasicDBObject("ws", wsid).append("id", id2).append("ver", ver2));
+		
+		assertThat("incorrect type", obj1.get("type"), is("SomeModule.AType-0.1"));
+		assertThat("incorrect type maj", obj1.get("tymaj"), is("SomeModule.AType-0"));
+		assertThat("incorrect type name", obj1.get("tyname"), is("SomeModule.AType"));
+		
+		assertThat("incorrect type", obj2.get("type"), is("SomeModule.OtherType-1.0"));
+		assertThat("incorrect type maj", obj2.get("tymaj"), is("SomeModule.OtherType-1"));
+		assertThat("incorrect type name", obj2.get("tyname"), is("SomeModule.OtherType"));
+	}
+
+	@Test
+	public void typeFieldsOnSaveObjects() throws Exception {
+		/* Test that the type fields are set up correctly when saving objects. 
+		 * 2/3 fields are internal only and not exposed in the API as they're for indexing/
+		 * query purposes only.
+		 */
+		typeFieldsSetUp();
+		checkTypeFields(1, 1, 2);
+	}
+
+	@Test
+	public void typeFieldsOnCopiedObjects() throws Exception {
+		/* Test that the 3 type fields are copied correctly, even when 2/3 fields aren't
+		 * present on the original object.
+		 */
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("typefields");
+		
+		typeFieldsSetUpForCloneRevertAndCopy();
+
+		ws.copyObject(user, new ObjectIdentifier(wsi, 1), new ObjectIdentifier(wsi, "new1"));
+		ws.copyObject(user, new ObjectIdentifier(wsi, 2), new ObjectIdentifier(wsi, "new2"));
+		checkTypeFields(1, 3, 4);
+	}
+	
+	@Test
+	public void typeFieldsOnRevertedObjects() throws Exception {
+		/* Test that the 3 type fields are reverted correctly, even when 2/3 fields aren't
+		 * present on the original object.
+		 */
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("typefields");
+		
+		typeFieldsSetUpForCloneRevertAndCopy();
+		
+		ws.revertObject(user, new ObjectIdentifier(wsi, 1));
+		ws.revertObject(user, new ObjectIdentifier(wsi, 2));
+
+		checkTypeFields(1, 1, 2, 2, 2);
+	}
+	
+	@Test
+	public void typeFieldsOnClone() throws Exception {
+		/* Test that the 3 type fields are copied correctly on a workspace clone, even when
+		 * 2/3 fields aren't present on the original object.
+		 */
+		final WorkspaceUser user = new WorkspaceUser("foo");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("typefields");
+		
+		typeFieldsSetUpForCloneRevertAndCopy();
+		
+		ws.cloneWorkspace(user, wsi, "typefields2", false, null, null, null);
+
+		checkTypeFields(2, 1, 2);
+	}
+
 }

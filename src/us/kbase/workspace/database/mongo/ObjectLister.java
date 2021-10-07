@@ -37,7 +37,7 @@ public class ObjectLister {
 	}
 	
 	private static final Set<String> FLDS_LIST_OBJ_VER = Stream.of(
-			Fields.VER_VER, Fields.VER_TYPE, Fields.VER_SAVEDATE,
+			Fields.VER_VER, Fields.VER_TYPE_FULL, Fields.VER_SAVEDATE,
 			Fields.VER_SAVEDBY, Fields.VER_VER, Fields.VER_CHKSUM,
 			Fields.VER_SIZE, Fields.VER_ID, Fields.VER_WS_ID).collect(Collectors.toSet());
 	
@@ -150,7 +150,7 @@ public class ObjectLister {
 		final DBObject verq = new BasicDBObject();
 		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
 		if (params.getType().isPresent()) {
-			verq.put(Fields.VER_TYPE, new BasicDBObject(
+			verq.put(Fields.VER_TYPE_FULL, new BasicDBObject(
 					"$regex", "^" + params.getType().get().getTypePrefix()));
 		}
 		if (!params.getSavers().isEmpty()) {
