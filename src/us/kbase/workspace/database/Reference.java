@@ -47,7 +47,7 @@ public class Reference implements RemappedId {
 		version = oi.getVersion();
 	}
 
-	/** Returns the ID of the workspac for this object.
+	/** Returns the ID of the workspace for this object.
 	 * @return the workspace ID.
 	 */
 	public long getWorkspaceID() {
