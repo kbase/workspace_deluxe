@@ -11,6 +11,7 @@ import com.google.common.base.Optional;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
+import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -543,7 +544,7 @@ public interface WorkspaceDatabase {
 	 * @param wsid the workspace ID.
 	 * @param delete true to delete the workspace, false to undelete it.
 	 * @return the workspace modification time.
-	 * @throws WorkspaceCommunicationException
+	 * @throws WorkspaceCommunicationException if a communication exception occurs.
 	 */
 	public Instant setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
 			throws WorkspaceCommunicationException;
@@ -557,8 +558,13 @@ public interface WorkspaceDatabase {
 	public WorkspaceUser getWorkspaceOwner(ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	/** Get information about objects in a set of workspaces
+	 * @param params the parameters for getting the objects.
+	 * @return the object information
+	 * @throws WorkspaceCommunicationException if a communication exception occurs.
+	 */
 	public List<ObjectInformation> getObjectInformation(
-			GetObjectInformationParameters perms)
+			ResolvedListObjectParameters params)
 			throws WorkspaceCommunicationException;
 
 	/** Verify that a set of objects exist in the database and are not in

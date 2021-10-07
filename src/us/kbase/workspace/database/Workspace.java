@@ -1027,7 +1027,7 @@ public class Workspace {
 						Permission.READ, pset.getPermission(rwsis.get(wsi)), wsi, "read");
 			}
 		}
-		return db.getObjectInformation(params.generateParameters(pset));
+		return db.getObjectInformation(params.resolve(pset));
 	}
 	
 	public List<WorkspaceObjectData> getObjects(
