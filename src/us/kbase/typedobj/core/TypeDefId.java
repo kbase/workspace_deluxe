@@ -191,6 +191,17 @@ public class TypeDefId {
 		return t;
 	}
 	
+	/** Get the type string including the major version, e.g. Module.Type-1.
+	 * @return the type string
+	 * @throws IllegalStateException if the major version is not present.
+	 */
+	public String getTypeStringMajorVersion() {
+		if (majorVersion == null) {
+			throw new IllegalStateException("The major type version is not present");
+		}
+		return type.getTypeString() + TYPE_VER_SEP + majorVersion;
+	}
+	
 	public String getVerString() {
 		if (majorVersion == null) {
 			if (md5 != null) {

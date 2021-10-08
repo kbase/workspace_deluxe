@@ -16,7 +16,7 @@ import us.kbase.typedobj.core.TypeDefName;
  * 
  */
 
-public class AbsoluteTypeDefTest {
+public class AbsoluteTypeDefIdTest {
 
 	@Test
 	public void getTypeStringMajorVersion() throws Exception {

@@ -51,13 +51,6 @@ public class AbsoluteTypeDefId extends TypeDefId {
 		return fromTypeId(TypeDefId.fromTypeString(type));
 	}
 	
-	/** Get the type string including the major version, e.g. Module.Type-1.
-	 * @return the type string
-	 */
-	public String getTypeStringMajorVersion() {
-		return type.getTypeString() + TYPE_VER_SEP + majorVersion;
-	}
-	
 	@Override
 	public String toString() {
 		return "AbsoluteTypeDefId [type=" + type + ", majorVersion=" +
