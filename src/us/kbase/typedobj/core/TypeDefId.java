@@ -13,7 +13,11 @@ public class TypeDefId {
 	protected final TypeDefName type;
 	protected final Integer majorVersion;
 	protected final Integer minorVersion;
+	// TODO CODE there should probably be different classes for MD5 and standard types
 	protected final MD5 md5;
+	
+	// TODO JAVADOC
+	// TODO TEST clean up and complete tests. 
 
 	public TypeDefId(final TypeDefName type, final int majorVersion,
 			final int minorVersion) {

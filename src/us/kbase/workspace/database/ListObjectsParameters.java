@@ -218,9 +218,13 @@ public class ListObjectsParameters {
 		private final Optional<TypeDefId> type;
 		private final List<WorkspaceUser> savers;
 		private final WorkspaceUserMetadata meta;
-		// TODO NOW_PAGING implement paging in mongo layer, add type/upa index
+		// TODO NOW_PAGING add new fields and indexes
+		// TODO NOW_PAGING test clone, copy, and save objects with new fields
+		// TODO NOW_PAGING implement paging in mongo layer
 		// TODO NOW_PAGING add to spec and transform ref string to Reference, allowing missing fields
 		// TODO NOW_PAGING add paging documentation
+		// TODO NOW_PAGING add update script to add new fields to old records
+		// TODO NOW_PAGING add documentation for update script
 		private final RefLimit startFrom;
 		private final Optional<Instant> after;
 		private final Optional<Instant> before;
