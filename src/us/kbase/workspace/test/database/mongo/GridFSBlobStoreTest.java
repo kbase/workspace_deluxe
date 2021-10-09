@@ -38,7 +38,6 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 
 public class GridFSBlobStoreTest {
 	
-	
 	private static GridFSBlobStore gfsb;
 	private static GridFS gfs;
 	private static MongoController mongo;

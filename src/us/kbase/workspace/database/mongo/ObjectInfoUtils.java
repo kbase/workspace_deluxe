@@ -135,7 +135,7 @@ public class ObjectInfoUtils {
 		return new ObjectInformation(
 				objid,
 				name,
-				(String) ver.get(Fields.VER_TYPE),
+				(String) ver.get(Fields.VER_TYPE_FULL),
 				(Date) ver.get(Fields.VER_SAVEDATE),
 				(Integer) ver.get(Fields.VER_VER),
 				new WorkspaceUser((String) ver.get(Fields.VER_SAVEDBY)),

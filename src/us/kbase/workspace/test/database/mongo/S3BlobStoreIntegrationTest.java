@@ -40,6 +40,8 @@ import us.kbase.workspace.test.controllers.minio.MinioController;
 
 public class S3BlobStoreIntegrationTest {
 	
+	// TODO TEST test that indexes are correct
+	
 	// probably some way to make the individual tests run on the 3 different store setups.
 	// tests are very similar
 	// parameterized tests are crappy because eclipse can't run a single test anymore for
