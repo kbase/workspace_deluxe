@@ -167,8 +167,8 @@ public class ObjectLister {
 	}
 
 	private DBObject buildQuery(final ResolvedListObjectParameters params) {
-		final Set<Long> ids = params.getPermissionSet().getWorkspaces().stream()
-				.map(ws -> ws.getID()).sorted().collect(Collectors.toSet());
+		final List<Long> ids = params.getPermissionSet().getWorkspaces().stream()
+				.map(ws -> ws.getID()).distinct().sorted().collect(Collectors.toList());
 		final DBObject verq = new BasicDBObject();
 		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
 		if (params.getType().isPresent()) {
