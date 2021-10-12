@@ -3,6 +3,7 @@ package us.kbase.workspace.database.mongo;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,19 +19,24 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
+/** A helper class for listing workspace objects based on a set of filters. Depends
+ * on {@link MongoWorkspaceDB} setting up indexes correctly.
+ */
 public class ObjectLister {
-	
-	//TODO TEST unit tests
-	//TODO JAVADOC
 	
 	private final DBCollection verCol;
 	private final ObjectInfoUtils infoUtils;
 	
+	/** Create the lister.
+	 * @param verCol the MongoDB collection storing workspace object version information.
+	 * @param infoUtils an instance of the objects informational utilities class.
+	 */
 	public ObjectLister(final DBCollection verCol, final ObjectInfoUtils infoUtils) {
 		this.verCol = requireNonNull(verCol, "verCol cannot be null");
 		this.infoUtils = requireNonNull(infoUtils, "infoUtils cannot be null");
@@ -38,10 +44,18 @@ public class ObjectLister {
 	
 	private static final Set<String> FLDS_LIST_OBJ_VER = Stream.of(
 			Fields.VER_VER, Fields.VER_TYPE_FULL, Fields.VER_SAVEDATE,
-			Fields.VER_SAVEDBY, Fields.VER_VER, Fields.VER_CHKSUM,
-			Fields.VER_SIZE, Fields.VER_ID, Fields.VER_WS_ID).collect(Collectors.toSet());
+			Fields.VER_SAVEDBY, Fields.VER_CHKSUM, Fields.VER_SIZE,
+			Fields.VER_ID, Fields.VER_WS_ID).collect(Collectors.toSet());
 	
-	List<ObjectInformation> filter(final ResolvedListObjectParameters params)
+	/** List objects as per the given parameters.
+	 * Objects will be sorted by the workspace, object and version numbers, with descending
+	 * versions, if the metadata, savers, and timestamp filters are not supplied. If those
+	 * filters are supplied sort behavior is undefined.
+	 * @param params the parameters for listing objects.
+	 * @return the list of objects.
+	 * @throws WorkspaceCommunicationException if the database could not be contacted.
+	 */
+	public List<ObjectInformation> filter(final ResolvedListObjectParameters params)
 			throws WorkspaceCommunicationException {
 		/* Could make this method more efficient by doing different queries
 		 * based on the filters. If there's no filters except the workspace,
@@ -50,13 +64,15 @@ public class ObjectLister {
 		 * recent versions for the remaining objects. For now, just go
 		 * with a dumb general method and add smarter heuristics as needed.
 		 */
-		
 		// if the limit = 1 don't want to keep querying for 1 object
 		// until one is found that's not deleted/hidden/early version
-		final int querysize = params.getLimit() < 100 ? 100 : params.getLimit();
+		final int querysize = requireNonNull(params, "params cannot be null")
+				.getLimit() < 100 ? 100 : params.getLimit();
+		// TODO CODE experiment with max size for querysize, 10K might slow things down. 1K?
 		final PermissionSet pset = params.getPermissionSet();
+		final List<ObjectInformation> ret = new LinkedList<>();
 		if (pset.isEmpty()) {
-			return new LinkedList<>();
+			return ret;
 		}
 		final DBObject verq = buildQuery(params);
 		final DBObject projection = buildProjection(params);
@@ -65,12 +81,11 @@ public class ObjectLister {
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
 		//were saved yet
-		
-		final List<ObjectInformation> ret = new LinkedList<>();
 		try (final DBCursor cur = verCol.find(verq, projection)) {
 			cur.sort(sort);
+			final List<Map<String, Object>> verobjs = new ArrayList<>(querysize);
 			while (cur.hasNext() && ret.size() < params.getLimit()) {
-				final List<Map<String, Object>> verobjs = new ArrayList<>();
+				verobjs.clear();
 				while (cur.hasNext() && verobjs.size() < querysize) {
 					verobjs.add(QueryMethods.dbObjectToMap(cur.next()));
 				}
@@ -80,7 +95,7 @@ public class ObjectLister {
 								params.isShowDeleted(), params.isShowOnlyDeleted(),
 								params.isShowAllVersions(), params.asAdmin()
 								);
-				//maintain the ordering 
+				//maintain the ordering from Mongo
 				final Iterator<Map<String, Object>> veriter = verobjs.iterator();
 				while (veriter.hasNext() && ret.size() < params.getLimit()) {
 					final Map<String, Object> v = veriter.next();
@@ -119,7 +134,18 @@ public class ObjectLister {
 	 */
 	private DBObject buildSortSpec(final ResolvedListObjectParameters params) {
 		final DBObject sort = new BasicDBObject();
-		if (isObjectIDFiltersOnly(params)) {
+		if (isSafeForUPASort(params)) {
+			if (params.getType().isPresent()) {
+				final TypeDefId t = params.getType().get();
+				// TODO CODE use optionals for typedefid versions
+				if (t.getMinorVersion() != null) {
+					sort.put(Fields.VER_TYPE_FULL, 1);
+				} else if (t.getMajorVersion() != null) {
+					sort.put(Fields.VER_TYPE_WITH_MAJOR_VERSION, 1);
+				} else {
+					sort.put(Fields.VER_TYPE_NAME, 1);
+				}
+			}
 			sort.put(Fields.VER_WS_ID, 1);
 			sort.put(Fields.VER_ID, 1);
 			sort.put(Fields.VER_VER, -1);
@@ -127,31 +153,33 @@ public class ObjectLister {
 		return sort;
 	}
 	
-	/* Check if there are no filters set other than the object ID filters. The object ID filters
-	 * may or may not be set.
-	 * The other filters are the two date filters, the metadata filter, the savers filter, and
-	 * the type filter.
+	/* Check if there are no filters set other than the object ID and type filters. The object ID
+	 * and type filters may or may not be set.
+	 * The other filters are the two date filters, the metadata filter, and the savers filter.
 	 * @return true if no filters other than the object ID filters are set.
 	 */
-	private boolean isObjectIDFiltersOnly(final ResolvedListObjectParameters params) {
+	private boolean isSafeForUPASort(final ResolvedListObjectParameters params) {
 		// be really careful about modifying this function. See notes in this file.
-		boolean oidFiltersOnly = !params.getAfter().isPresent()
+		return !params.getAfter().isPresent()
 				&& !params.getBefore().isPresent()
 				&& params.getMetadata().isEmpty()
-				&& params.getSavers().isEmpty()
-				// must have workspaces specified
-				&& !params.getType().isPresent();
-		return oidFiltersOnly;
+				&& params.getSavers().isEmpty();
 	}
 
 	private DBObject buildQuery(final ResolvedListObjectParameters params) {
 		final Set<Long> ids = params.getPermissionSet().getWorkspaces().stream()
-				.map(ws -> ws.getID()).collect(Collectors.toSet());
+				.map(ws -> ws.getID()).sorted().collect(Collectors.toSet());
 		final DBObject verq = new BasicDBObject();
 		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
 		if (params.getType().isPresent()) {
-			verq.put(Fields.VER_TYPE_FULL, new BasicDBObject(
-					"$regex", "^" + params.getType().get().getTypePrefix()));
+			final TypeDefId t = params.getType().get();
+			if (t.getMinorVersion() != null) {
+				verq.put(Fields.VER_TYPE_FULL, t.getTypeString());
+			} else if (t.getMajorVersion() != null) {
+				verq.put(Fields.VER_TYPE_WITH_MAJOR_VERSION, t.getTypeString());
+			} else {
+				verq.put(Fields.VER_TYPE_NAME, t.getTypeString());
+			}
 		}
 		if (!params.getSavers().isEmpty()) {
 			verq.put(Fields.VER_SAVEDBY, new BasicDBObject("$in", params.getSavers().stream()
@@ -169,11 +197,14 @@ public class ObjectLister {
 		}
 		if (params.getBefore().isPresent() || params.getAfter().isPresent()) {
 			final DBObject d = new BasicDBObject();
+			// TODO CODE remove date conversion at some point
+			// not quite sure what's going on here, but Instants work fine for the integration
+			// tests, but fail for unit tests with Mockito. Maybe needs a client bump. Later.
 			if (params.getBefore().isPresent()) {
-				d.put("$lt", params.getBefore().get());
+				d.put("$lt", Date.from(params.getBefore().get()));
 			}
 			if (params.getAfter().isPresent()) {
-				d.put("$gt", params.getAfter().get());
+				d.put("$gt", Date.from(params.getAfter().get()));
 			}
 			verq.put(Fields.VER_SAVEDATE, d);
 		}

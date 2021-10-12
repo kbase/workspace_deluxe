@@ -38,7 +38,7 @@ public class ObjectInfoUtils {
 	
 	private final QueryMethods query;
 	
-	ObjectInfoUtils(final QueryMethods query) {
+	public ObjectInfoUtils(final QueryMethods query) {
 		this.query = requireNonNull(query, "query argument may not be null");
 	}
 	
@@ -46,7 +46,7 @@ public class ObjectInfoUtils {
 			Fields.OBJ_ID, Fields.OBJ_NAME, Fields.OBJ_DEL, Fields.OBJ_HIDE,
 			Fields.OBJ_VCNT, Fields.OBJ_WS_ID).collect(Collectors.toSet());
 	
-	Map<Map<String, Object>, ObjectInformation> generateObjectInfo(
+	public Map<Map<String, Object>, ObjectInformation> generateObjectInfo(
 			final PermissionSet pset,
 			final List<Map<String, Object>> verobjs,
 			final boolean includeHidden,
