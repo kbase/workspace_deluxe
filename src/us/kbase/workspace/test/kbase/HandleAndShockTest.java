@@ -6,7 +6,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
-import us.kbase.workspace.test.kbase.JSONRPCLayerTester.ServerThread;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -69,6 +68,7 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.kbase.HandleIdHandlerFactory;
+import us.kbase.workspace.test.WorkspaceServerThread;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 import us.kbase.workspace.test.controllers.minio.MinioController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
@@ -341,7 +341,7 @@ public class HandleAndShockTest {
 
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer server = new WorkspaceServer();
-		new ServerThread(server).start();
+		new WorkspaceServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
 			Thread.sleep(1000);

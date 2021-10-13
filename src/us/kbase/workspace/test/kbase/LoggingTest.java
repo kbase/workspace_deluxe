@@ -48,7 +48,7 @@ import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
-import us.kbase.workspace.test.kbase.JSONRPCLayerTester.ServerThread;
+import us.kbase.workspace.test.WorkspaceServerThread;
 
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
@@ -209,7 +209,7 @@ public class LoggingTest {
 
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer server = new WorkspaceServer();
-		new ServerThread(server).start();
+		new WorkspaceServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
 			Thread.sleep(1000);
