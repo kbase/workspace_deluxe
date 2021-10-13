@@ -76,6 +76,7 @@ import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
+import us.kbase.workspace.test.WorkspaceServerThread;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -165,23 +166,6 @@ public class JSONRPCLayerTester {
 	
 	private static List<TempFilesManager> TFMS =
 			new LinkedList<TempFilesManager>();
-	
-	protected static class ServerThread extends Thread {
-		private WorkspaceServer server;
-		
-		protected ServerThread(WorkspaceServer server) {
-			this.server = server;
-		}
-		
-		public void run() {
-			try {
-				server.startupServer();
-			} catch (Exception e) {
-				System.err.println("Can't start server:");
-				e.printStackTrace();
-			}
-		}
-	}
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -451,7 +435,7 @@ public class JSONRPCLayerTester {
 				.withMaxIncomingDataMemoryUsage(24)
 				.withMaxReturnedDataMemoryUsage(24).build());
 		TFMS.add(server.getTempFilesManager());
-		new ServerThread(server).start();
+		new WorkspaceServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
 			Thread.sleep(1000);
