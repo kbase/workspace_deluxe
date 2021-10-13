@@ -9,7 +9,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -135,17 +137,7 @@ public class ObjectLister {
 	private DBObject buildSortSpec(final ResolvedListObjectParameters params) {
 		final DBObject sort = new BasicDBObject();
 		if (isSafeForUPASort(params)) {
-			if (params.getType().isPresent()) {
-				final TypeDefId t = params.getType().get();
-				// TODO CODE use optionals for typedefid versions
-				if (t.getMinorVersion() != null) {
-					sort.put(Fields.VER_TYPE_FULL, 1);
-				} else if (t.getMajorVersion() != null) {
-					sort.put(Fields.VER_TYPE_WITH_MAJOR_VERSION, 1);
-				} else {
-					sort.put(Fields.VER_TYPE_NAME, 1);
-				}
-			}
+			addTypeField(sort, params.getType(), () -> 1);
 			sort.put(Fields.VER_WS_ID, 1);
 			sort.put(Fields.VER_ID, 1);
 			sort.put(Fields.VER_VER, -1);
@@ -165,22 +157,29 @@ public class ObjectLister {
 				&& params.getMetadata().isEmpty()
 				&& params.getSavers().isEmpty();
 	}
+	
+	private void addTypeField(
+			final DBObject toBeModified,
+			final Optional<TypeDefId> type,
+			final Supplier<Object> value) {
+		if (type.isPresent()) {
+			// TODO CODE use optionals for typedefid versions
+			if (type.get().getMinorVersion() != null) {
+				toBeModified.put(Fields.VER_TYPE_FULL, value.get());
+			} else if (type.get().getMajorVersion() != null) {
+				toBeModified.put(Fields.VER_TYPE_WITH_MAJOR_VERSION, value.get());
+			} else {
+				toBeModified.put(Fields.VER_TYPE_NAME, value.get());
+			}
+		}
+	}
 
 	private DBObject buildQuery(final ResolvedListObjectParameters params) {
 		final List<Long> ids = params.getPermissionSet().getWorkspaces().stream()
 				.map(ws -> ws.getID()).distinct().sorted().collect(Collectors.toList());
 		final DBObject verq = new BasicDBObject();
 		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
-		if (params.getType().isPresent()) {
-			final TypeDefId t = params.getType().get();
-			if (t.getMinorVersion() != null) {
-				verq.put(Fields.VER_TYPE_FULL, t.getTypeString());
-			} else if (t.getMajorVersion() != null) {
-				verq.put(Fields.VER_TYPE_WITH_MAJOR_VERSION, t.getTypeString());
-			} else {
-				verq.put(Fields.VER_TYPE_NAME, t.getTypeString());
-			}
-		}
+		addTypeField(verq, params.getType(), () -> params.getType().get().getTypeString());
 		if (!params.getSavers().isEmpty()) {
 			verq.put(Fields.VER_SAVEDBY, new BasicDBObject("$in", params.getSavers().stream()
 					.map(s -> s.getUser()).collect(Collectors.toList())));
