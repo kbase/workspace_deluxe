@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -139,7 +138,6 @@ public class WorkspaceTester {
 	
 	private static MongoController mongo = null;
 	private static MinioController minio = null;
-	private static AuthController auth = null;
 	protected static TempFilesManager tfm;
 	
 	protected static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
@@ -187,9 +185,6 @@ public class WorkspaceTester {
 		if (minio != null) {
 			minio.destroy(TestCommon.getDeleteTempFiles());
 		}
-		if (auth != null) {
-			auth.destroy(TestCommon.getDeleteTempFiles());
-		}
 		if (mongo != null) {
 			mongo.destroy(TestCommon.getDeleteTempFiles());
 		}
@@ -226,16 +221,6 @@ public class WorkspaceTester {
 			System.out.println("Using Mongo temp dir " + mongo.getTempDir());
 			System.out.println("Started test mongo instance at localhost:" +
 					mongo.getServerPort());
-		}
-		if (auth == null) {
-			final String dbname = WorkspaceTester.class.getSimpleName() + "Auth";
-			auth = new AuthController(
-					TestCommon.getJarsDir(),
-					"localhost:" + mongo.getServerPort(),
-					dbname,
-					Paths.get(TestCommon.getTempDir()));
-			final URL authURL = new URL("http://localhost:" + auth.getServerPort() + "/testmode");
-			System.out.println("started auth server at " + authURL);
 		}
 		if (!CONFIGS.containsKey(config)) {
 			final DB wsdb = new MongoClient("localhost:" + mongo.getServerPort())
