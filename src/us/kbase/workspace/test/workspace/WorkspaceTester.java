@@ -6,8 +6,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE_0_1;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE_1_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE_2_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_0_1;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_1_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_2_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_2_1;
 
 import java.io.File;
 import java.io.IOException;
@@ -146,20 +152,13 @@ public class WorkspaceTester {
 	protected static final WorkspaceUser CUSER = new WorkspaceUser("c");
 	protected static final AllUsers STARUSER = new AllUsers('*');
 	
-	protected static final TypeDefId SAFE_TYPE1 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
-	protected static final TypeDefId SAFE_TYPE2 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 0, 1);
-	protected static final TypeDefId SAFE_TYPE1_10 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType"), 1, 0);
-	protected static final TypeDefId SAFE_TYPE2_10 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 1, 0);
-	protected static final TypeDefId SAFE_TYPE1_20 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType"), 2, 0);
-	protected static final TypeDefId SAFE_TYPE2_20 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 0);
-	protected static final TypeDefId SAFE_TYPE2_21 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 1);
+	protected static final TypeDefId SAFE_TYPE1 = ATYPE_0_1;
+	protected static final TypeDefId SAFE_TYPE2 = ATYPE2_0_1;
+	protected static final TypeDefId SAFE_TYPE1_10 = ATYPE_1_0;
+	protected static final TypeDefId SAFE_TYPE2_10 = ATYPE2_1_0;
+	protected static final TypeDefId SAFE_TYPE1_20 = ATYPE_2_0;
+	protected static final TypeDefId SAFE_TYPE2_20 = ATYPE2_2_0;
+	protected static final TypeDefId SAFE_TYPE2_21 = ATYPE2_2_1;
 	
 	protected static final TypeDefId REF_TYPE =
 			new TypeDefId(new TypeDefName("CopyRev", "RefType"), 0, 1);
