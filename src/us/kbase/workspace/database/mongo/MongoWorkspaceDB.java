@@ -2254,6 +2254,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						.get(Fields.VER_SIZE);
 			}
 		}
+		// TODO CODE just pass constant into the constructor or method call
+		// vs. including the whole class
 		if (size + usedDataAllocation > rescfg.getMaxReturnedDataSize()) {
 			throw new IllegalArgumentException(String.format(
 					"Too much data requested from the workspace at once; " +

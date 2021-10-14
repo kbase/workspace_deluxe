@@ -6,8 +6,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE_0_1;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE_1_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE_2_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_0_1;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_1_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_2_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_2_1;
 
 import java.io.File;
 import java.io.IOException;
@@ -146,20 +152,13 @@ public class WorkspaceTester {
 	protected static final WorkspaceUser CUSER = new WorkspaceUser("c");
 	protected static final AllUsers STARUSER = new AllUsers('*');
 	
-	protected static final TypeDefId SAFE_TYPE1 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
-	protected static final TypeDefId SAFE_TYPE2 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 0, 1);
-	protected static final TypeDefId SAFE_TYPE1_10 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType"), 1, 0);
-	protected static final TypeDefId SAFE_TYPE2_10 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 1, 0);
-	protected static final TypeDefId SAFE_TYPE1_20 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType"), 2, 0);
-	protected static final TypeDefId SAFE_TYPE2_20 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 0);
-	protected static final TypeDefId SAFE_TYPE2_21 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 1);
+	protected static final TypeDefId SAFE_TYPE1 = ATYPE_0_1;
+	protected static final TypeDefId SAFE_TYPE2 = ATYPE2_0_1;
+	protected static final TypeDefId SAFE_TYPE1_10 = ATYPE_1_0;
+	protected static final TypeDefId SAFE_TYPE2_10 = ATYPE2_1_0;
+	protected static final TypeDefId SAFE_TYPE1_20 = ATYPE_2_0;
+	protected static final TypeDefId SAFE_TYPE2_20 = ATYPE2_2_0;
+	protected static final TypeDefId SAFE_TYPE2_21 = ATYPE2_2_1;
 	
 	protected static final TypeDefId REF_TYPE =
 			new TypeDefId(new TypeDefName("CopyRev", "RefType"), 0, 1);
@@ -176,6 +175,7 @@ public class WorkspaceTester {
 				{"mongoUseFile", "mongo", 1},
 				{"minio", "minio", null}
 		});
+		// tf? nothing's happened to change the memory usage
 		printMem("*** startup complete ***");
 		return tests;
 	}
@@ -283,12 +283,10 @@ public class WorkspaceTester {
 			final Integer maxMemoryUsePerCall)
 			throws Exception {
 		
-		tfm = new TempFilesManager(
-				new File(TestCommon.getTempDir()));
+		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		tfm.cleanup();
 		
-		final DB tdb = new MongoClient("localhost:" + mongo.getServerPort())
-				.getDB(DB_TYPE_NAME);
+		final DB tdb = db.getSisterDB(DB_TYPE_NAME);
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		final TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
@@ -306,49 +304,9 @@ public class WorkspaceTester {
 		return new WSandTypes(work, t);
 	}
 		
-	private void installSpecs(Types t) throws Exception {
-		//make a general spec that tests that don't worry about typechecking can use
+	private void installSpecs(final Types t) throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
-		//simple spec
-		t.requestModuleRegistration(foo, "SomeModule");
-		t.resolveModuleRegistration("SomeModule", true);
-		t.compileNewTypeSpec(foo, 
-				"module SomeModule {" +
-					"/* @optional thing */" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType;" +
-					"/* @optional thing */" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType2;" +
-				"};",
-				Arrays.asList("AType", "AType2"), null, null, false, null);
-		t.releaseTypes(foo, "SomeModule");
-		t.compileNewTypeSpec(foo, 
-				"module SomeModule {" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType;" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType2;" +
-				"};",
-				null, null, null, false, null);
-		t.releaseTypes(foo, "SomeModule");
-		t.compileNewTypeSpec(foo, 
-				"module SomeModule {" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType;" +
-					"/* @optional thing2 */" +
-					"typedef structure {" +
-						"string thing;" +
-						"string thing2;" +
-					"} AType2;" +
-				"};",
-				null, null, null, false, null);
-		t.releaseTypes(foo, "SomeModule");
+		WorkspaceTestCommon.installBasicSpecs(foo, t);
 		
 		//spec that simply references another object
 		final String specRefType =
