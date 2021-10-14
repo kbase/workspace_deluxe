@@ -176,6 +176,7 @@ public class WorkspaceTester {
 				{"mongoUseFile", "mongo", 1},
 				{"minio", "minio", null}
 		});
+		// tf? nothing's happened to change the memory usage
 		printMem("*** startup complete ***");
 		return tests;
 	}
@@ -283,12 +284,10 @@ public class WorkspaceTester {
 			final Integer maxMemoryUsePerCall)
 			throws Exception {
 		
-		tfm = new TempFilesManager(
-				new File(TestCommon.getTempDir()));
+		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		tfm.cleanup();
 		
-		final DB tdb = new MongoClient("localhost:" + mongo.getServerPort())
-				.getDB(DB_TYPE_NAME);
+		final DB tdb = db.getSisterDB(DB_TYPE_NAME);
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		final TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
@@ -306,49 +305,9 @@ public class WorkspaceTester {
 		return new WSandTypes(work, t);
 	}
 		
-	private void installSpecs(Types t) throws Exception {
-		//make a general spec that tests that don't worry about typechecking can use
+	private void installSpecs(final Types t) throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
-		//simple spec
-		t.requestModuleRegistration(foo, "SomeModule");
-		t.resolveModuleRegistration("SomeModule", true);
-		t.compileNewTypeSpec(foo, 
-				"module SomeModule {" +
-					"/* @optional thing */" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType;" +
-					"/* @optional thing */" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType2;" +
-				"};",
-				Arrays.asList("AType", "AType2"), null, null, false, null);
-		t.releaseTypes(foo, "SomeModule");
-		t.compileNewTypeSpec(foo, 
-				"module SomeModule {" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType;" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType2;" +
-				"};",
-				null, null, null, false, null);
-		t.releaseTypes(foo, "SomeModule");
-		t.compileNewTypeSpec(foo, 
-				"module SomeModule {" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType;" +
-					"/* @optional thing2 */" +
-					"typedef structure {" +
-						"string thing;" +
-						"string thing2;" +
-					"} AType2;" +
-				"};",
-				null, null, null, false, null);
-		t.releaseTypes(foo, "SomeModule");
+		WorkspaceTestCommon.installBasicSpecs(foo, t);
 		
 		//spec that simply references another object
 		final String specRefType =
