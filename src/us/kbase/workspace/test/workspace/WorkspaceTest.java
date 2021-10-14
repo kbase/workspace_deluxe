@@ -97,6 +97,25 @@ import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
+/* Tests for the workspace class and all its dependencies. These tests are parameterized
+ * by the superclass and each test is run 3 times against different backends and with different
+ * memory use strategies. For many of the tests, these parameters make no difference
+ * and running them 3 times is wasteful.
+ * 
+ * This entire test class should be dissected as follows:
+ * 1) The bulk of the testing should be newly written unit tests in WorkspaceUnitTest.
+ * 2) Integration tests that don't need to be run 3 times each (e.g. don't involve saving /
+ *    getting objects - and probably a lot of those don't need to be run 3 times each either)
+ *    should be moved to WorkspaceIntegrationWithGridFSTest and rewritten.
+ * 3) The remaining integration tests should stay here and this file should be renamed to
+ *    WorkspaceIntegrationMultiBackendTest. 
+ *
+ * Virtually all the tests in this class need to be rewritten as part of the dissection above
+ * to be much smaller, more readable, and easier to understand. The current tests are often
+ * waaaaaaay too long.
+ * 
+ * Also this class is 8k lines long, wtf
+ */
 public class WorkspaceTest extends WorkspaceTester {
 
 	public WorkspaceTest(String config, String backend,
