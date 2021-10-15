@@ -25,6 +25,7 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.RefLimit;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
 /** A helper class for listing workspace objects based on a set of filters. Depends
@@ -79,11 +80,15 @@ public class ObjectLister {
 		final DBObject verq = buildQuery(params);
 		final DBObject projection = buildProjection(params);
 		final DBObject sort = buildSortSpec(params);
+		final DBObject startFrom = buildStartFromSpec(params);
 		
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
 		//were saved yet
 		try (final DBCursor cur = verCol.find(verq, projection)) {
+			if (!startFrom.keySet().isEmpty()) {
+				cur.hint(sort).min(startFrom);  // hint for a min will be required in MDB 4.2
+			}
 			cur.sort(sort);
 			final List<Map<String, Object>> verobjs = new ArrayList<>(querysize);
 			while (cur.hasNext() && ret.size() < params.getLimit()) {
@@ -156,6 +161,19 @@ public class ObjectLister {
 				&& !params.getBefore().isPresent()
 				&& params.getMetadata().isEmpty()
 				&& params.getSavers().isEmpty();
+	}
+	
+	private DBObject buildStartFromSpec(final ResolvedListObjectParameters params) {
+		final BasicDBObject start = new BasicDBObject();
+		final RefLimit s = params.getStartFrom();
+		if (s.isPresent()) { // implies isSafeForUPASort is true
+			addTypeField(start, params.getType(), () -> params.getType().get().getTypeString());
+			start.append(Fields.VER_WS_ID, s.getWorkspaceID().get());
+			start.append(Fields.VER_ID, s.getObjectID().isPresent() ? s.getObjectID().get() : 1);
+			start.append(Fields.VER_VER,  // there better not be > 2B versions of an object
+					s.getVersion().isPresent() ? s.getVersion().get() : Integer.MAX_VALUE);
+		}
+		return start;
 	}
 	
 	private void addTypeField(
