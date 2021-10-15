@@ -22,6 +22,10 @@ public class WorkspaceTestCommon {
 	
 	// this data will pass typechecking for any type created in installBasicSpecs
 	public static final Map<String, String> SAFE_DATA = ImmutableMap.of("thing", "foo");
+	// the workspace checksum for SAFE_DATA
+	public static final String SAFE_DATA_MD5 = "c7ae2c419da6d603fc280b3cd88db7f3";
+	// the size in bytes of the JSON serialized SAFE_DATA
+	public static final int SAFE_DATA_SIZE = 15;
 	
 	// types created by installBasicSpecs
 	public static final TypeDefName ATYPE = new TypeDefName("SomeModule.AType");
