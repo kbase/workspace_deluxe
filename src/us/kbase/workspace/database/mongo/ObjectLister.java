@@ -169,7 +169,7 @@ public class ObjectLister {
 		if (s.isPresent()) { // implies isSafeForUPASort is true
 			addTypeField(start, params.getType(), () -> params.getType().get().getTypeString());
 			start.append(Fields.VER_WS_ID, s.getWorkspaceID().get());
-			start.append(Fields.VER_ID, s.getObjectID().isPresent() ? s.getObjectID().get() : 1);
+			start.append(Fields.VER_ID, s.getObjectID().isPresent() ? s.getObjectID().get() : 1L);
 			start.append(Fields.VER_VER,  // there better not be > 2B versions of an object
 					s.getVersion().isPresent() ? s.getVersion().get() : Integer.MAX_VALUE);
 		}
