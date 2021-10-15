@@ -215,7 +215,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 	}
 	
 	@Test
-	public void sortWithVersionsNoTypeFilterAndNoObjectRange() throws Exception {
+	public void sortWithVersions() throws Exception {
 		setUpTypeSort();
 		
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
@@ -245,7 +245,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 	}
 	
 	@Test
-	public void sortWithVersionsNoTypeFilterWithObjectRange() throws Exception {
+	public void sortWithVersionsWithObjectRange() throws Exception {
 		setUpTypeSort();
 		
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
@@ -267,7 +267,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 	}
 	
 	@Test
-	public void sortWithNoVersionsNoTypeFilterAndNoObjectRange() throws Exception {
+	public void sortWithNoVersions() throws Exception {
 		setUpTypeSort();
 		
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
@@ -289,7 +289,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 	}
 	
 	@Test
-	public void sortWithNoVersionsNoTypeFilterWithObjectRange() throws Exception {
+	public void sortWithNoVersionsWithObjectRange() throws Exception {
 		setUpTypeSort();
 		
 		final ListObjectsParameters p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
@@ -309,7 +309,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 	}
 	
 	@Test
-	public void sortWithVersionsFullTypeFilterAndNoObjectRange() throws Exception {
+	public void sortWithVersionsFullTypeFilter() throws Exception {
 		setUpTypeSort();
 		
 		final Builder p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
@@ -365,7 +365,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 	}
 	
 	@Test
-	public void sortWithoutVersionsFullTypeFilterAndNoObjectRange() throws Exception {
+	public void sortWithoutVersionsFullTypeFilter() throws Exception {
 		setUpTypeSort();
 		
 		final Builder p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
@@ -410,7 +410,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 		
 
 	@Test
-	public void sortWithVersionsMajorVersionTypeFilterAndNoObjectRange() throws Exception {
+	public void sortWithVersionsMajorVersionTypeFilter() throws Exception {
 		setUpTypeSort();
 		
 		final Builder p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
@@ -464,7 +464,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 	}
 	
 	@Test
-	public void sortWithNoVersionsMajorVersionTypeFilterAndNoObjectRange() throws Exception {
+	public void sortWithNoVersionsMajorVersionTypeFilter() throws Exception {
 		setUpTypeSort();
 		
 		final Builder p = ListObjectsParameters.getBuilder(Arrays.asList(WS1, WS2))
@@ -508,7 +508,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 	}
 	
 	@Test
-	public void sortWithVersionsTypeNameFilterAndNoObjectRange() throws Exception {
+	public void sortWithVersionsTypeNameFilter() throws Exception {
 		// don't really think no version / object limit versions of this test are needed
 		setUpTypeSort();
 		

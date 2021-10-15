@@ -460,7 +460,7 @@ public class ObjectListerTest {
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
 		
-		// case 8: start from fully specified and a name only type
+		// case 7: start from fully specified and a name only type
 		p = lob.withStartFrom(RefLimit.build(64L, 128L, 256))
 				.withType(TypeDefId.fromTypeString("Mod.Type")).build().resolve(pset);
 		expectedQuery.append("tyname", "Mod.Type").remove("tymaj");
