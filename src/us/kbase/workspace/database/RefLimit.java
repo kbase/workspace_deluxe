@@ -50,6 +50,51 @@ public class RefLimit {
 		final RefLimit rl = new RefLimit(wsid, objid, ver);
 		return rl.isEmpty() ? EMPTY: rl;
 	}
+	
+	/** Create a limit from a refstring in the format 'workspace ID / object ID / version', e.g.
+	 * 655/34/7. Nulls and empty strings result in an empty limit. The version may be omitted, and
+	 * the object ID may be omitted if the version is omitted. If a '/' separator is present
+	 * the next integer must be present - in other words "7/" is an error.
+	 * @param refstring the ref string to process.
+	 * @return the limit.
+	 * @throws IllegalArgumentException if there are more than 2 separators or there is no
+	 * number after a separator.
+	 */
+	public static RefLimit fromRefString(final String refstring) {
+		if (refstring == null || refstring.strip().isEmpty()) {
+			return EMPTY;
+		}
+		final String[] parts = refstring.split("/");
+		if (parts.length > 3) {
+			throw new IllegalArgumentException(
+					"Illegal reference string, expected no more than 2 separators: " + refstring);
+		}
+		final Long ws = parseLong(parts[0].strip(), refstring, "workspace ID");
+		Long id = null;
+		Integer ver = null;
+		if (parts.length > 1) {
+			id = parseLong(parts[1].strip(), refstring, "object ID");
+		}
+		if (parts.length > 2) {
+			final Long lver = parseLong(parts[2].strip(), refstring, "version");
+			// let's just hope that we never hit 9 quintillion workspaces or objects in a workspace
+			ver = lver > Integer.MAX_VALUE ? Integer.MAX_VALUE : lver.intValue();
+		}
+		return new RefLimit(ws, id, ver);
+	}
+
+	private static Long parseLong(
+			final String putativeNum,
+			final String refstring,
+			final String name) {
+		try {
+			return Long.parseLong(putativeNum);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException(String.format(
+					"Illegal integer %s in reference string %s: %s",
+					name, refstring, putativeNum));
+		}
+	}
 
 	/** Get the limit for the workspace ID, if any.
 	 * @return the workspace ID
