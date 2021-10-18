@@ -3060,31 +3060,41 @@ class Workspace(object):
            before - only return objects that were created before this date.
            epoch after_epoch - only return objects that were created after
            this date. epoch before_epoch - only return objects that were
-           created before this date. obj_id minObjectID - only return objects
-           with an object id greater or equal to this value. obj_id
-           maxObjectID - only return objects with an object id less than or
-           equal to this value. boolean showDeleted - show deleted objects in
-           workspaces to which the user has write access. boolean
-           showOnlyDeleted - only show deleted objects in workspaces to which
-           the user has write access. boolean showHidden - show hidden
-           objects. boolean showAllVersions - show all versions of each
-           object that match the filters rather than only the most recent
-           version. boolean includeMetadata - include the user provided
-           metadata in the returned object_info. If false (0 or null), the
-           default, the metadata will be null. boolean excludeGlobal -
-           DEPRECATED, no longer useful. Filter on global workspaces by
-           excluding them from the input workspace list(s). int limit - limit
-           the output to X objects. Default and maximum value is 10000. Limit
-           values < 1 are treated as 10000, the default.) -> structure:
-           parameter "workspaces" of list of type "ws_name" (A string used as
-           a name for a workspace. Any string consisting of alphanumeric
-           characters and "_", ".", or "-" that is not an integer is
-           acceptable. The name may optionally be prefixed with the workspace
-           owner's user name and a colon, e.g. kbasetest:my_workspace.),
-           parameter "ids" of list of type "ws_id" (The unique, permanent
-           numerical ID of a workspace.), parameter "type" of type
-           "type_string" (A type string. Specifies the type and its version
-           in a single string in the format
+           created before this date. string startfrom - a reference-like
+           string that determines where the list of objects will begin. It
+           takes the form X/Y/Z, where X is the workspace ID, Y the object
+           ID, and Z the version. The version may be omitted, and the object
+           ID omitted if the version is also omitted. After a '/' separator
+           either an integer or no characters at all, including whitespace,
+           may occur. Whitespace strings are ignored. If startfrom is
+           provided, after, before, after_epoch, before_epoch, savedby, meta,
+           minObjectID, and maxObjectID may not be provided. Only objects
+           that are ordered after the reference, inclusive, will be included
+           in the result, and the resulting list will be sorted by reference.
+           obj_id minObjectID - only return objects with an object id greater
+           or equal to this value. obj_id maxObjectID - only return objects
+           with an object id less than or equal to this value. boolean
+           showDeleted - show deleted objects in workspaces to which the user
+           has write access. boolean showOnlyDeleted - only show deleted
+           objects in workspaces to which the user has write access. boolean
+           showHidden - show hidden objects. boolean showAllVersions - show
+           all versions of each object that match the filters rather than
+           only the most recent version. boolean includeMetadata - include
+           the user provided metadata in the returned object_info. If false
+           (0 or null), the default, the metadata will be null. boolean
+           excludeGlobal - DEPRECATED, no longer useful. Filter on global
+           workspaces by excluding them from the input workspace list(s). int
+           limit - limit the output to X objects. Default and maximum value
+           is 10000. Limit values < 1 are treated as 10000, the default.) ->
+           structure: parameter "workspaces" of list of type "ws_name" (A
+           string used as a name for a workspace. Any string consisting of
+           alphanumeric characters and "_", ".", or "-" that is not an
+           integer is acceptable. The name may optionally be prefixed with
+           the workspace owner's user name and a colon, e.g.
+           kbasetest:my_workspace.), parameter "ids" of list of type "ws_id"
+           (The unique, permanent numerical ID of a workspace.), parameter
+           "type" of type "type_string" (A type string. Specifies the type
+           and its version in a single string in the format
            [module].[typename]-[major].[minor]: module - a string. The module
            name of the typespec containing the type. typename - a string. The
            name of the type as assigned by the typedef statement. major - an
@@ -3115,18 +3125,19 @@ class Workspace(object):
            time)), parameter "after_epoch" of type "epoch" (A Unix epoch (the
            time since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter
            "before_epoch" of type "epoch" (A Unix epoch (the time since
-           00:00:00 1/1/1970 UTC) in milliseconds.), parameter "minObjectID"
-           of type "obj_id" (The unique, permanent numerical ID of an
-           object.), parameter "maxObjectID" of type "obj_id" (The unique,
-           permanent numerical ID of an object.), parameter "showDeleted" of
-           type "boolean" (A boolean. 0 = false, other = true.), parameter
-           "showOnlyDeleted" of type "boolean" (A boolean. 0 = false, other =
-           true.), parameter "showHidden" of type "boolean" (A boolean. 0 =
-           false, other = true.), parameter "showAllVersions" of type
+           00:00:00 1/1/1970 UTC) in milliseconds.), parameter "startfrom" of
+           String, parameter "minObjectID" of type "obj_id" (The unique,
+           permanent numerical ID of an object.), parameter "maxObjectID" of
+           type "obj_id" (The unique, permanent numerical ID of an object.),
+           parameter "showDeleted" of type "boolean" (A boolean. 0 = false,
+           other = true.), parameter "showOnlyDeleted" of type "boolean" (A
+           boolean. 0 = false, other = true.), parameter "showHidden" of type
            "boolean" (A boolean. 0 = false, other = true.), parameter
-           "includeMetadata" of type "boolean" (A boolean. 0 = false, other =
-           true.), parameter "excludeGlobal" of type "boolean" (A boolean. 0
-           = false, other = true.), parameter "limit" of Long
+           "showAllVersions" of type "boolean" (A boolean. 0 = false, other =
+           true.), parameter "includeMetadata" of type "boolean" (A boolean.
+           0 = false, other = true.), parameter "excludeGlobal" of type
+           "boolean" (A boolean. 0 = false, other = true.), parameter "limit"
+           of Long
         :returns: instance of list of type "object_info" (Information about
            an object, including user provided metadata. obj_id objid - the
            numerical id of the object. obj_name name - the name of the

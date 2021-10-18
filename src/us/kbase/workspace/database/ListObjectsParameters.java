@@ -218,7 +218,6 @@ public class ListObjectsParameters {
 		private final Optional<TypeDefId> type;
 		private final List<WorkspaceUser> savers;
 		private final WorkspaceUserMetadata meta;
-		// TODO NOW_PAGING add to spec and transform ref string to Reference, allowing missing fields
 		// TODO NOW_PAGING add paging documentation
 		// TODO NOW_PAGING add update script to add new fields to old records
 		// TODO NOW_PAGING add documentation for update script

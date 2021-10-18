@@ -45,6 +45,17 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         date.
  *                 epoch before_epoch - only return objects that were created before this
  *                         date.
+ *                 string startfrom - a reference-like string that determines where the
+ *                         list of objects will begin. It takes the form X/Y/Z, where X is
+ *                         the workspace ID, Y the object ID, and Z the version. The version
+ *                         may be omitted, and the object ID omitted if the version is also
+ *                         omitted. After a '/' separator either an integer or no characters
+ *                         at all, including whitespace, may occur. Whitespace strings are
+ *                         ignored. If startfrom is provided, after, before,
+ *                         after_epoch, before_epoch, savedby, meta, minObjectID, and
+ *                         maxObjectID may not be provided. Only objects that are ordered
+ *                         after the reference, inclusive, will be included in the
+ *                         result, and the resulting list will be sorted by reference.
  *                 obj_id minObjectID - only return objects with an object id greater or
  *                         equal to this value.
  *                 obj_id maxObjectID - only return objects with an object id less than or
@@ -79,6 +90,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "before",
     "after_epoch",
     "before_epoch",
+    "startfrom",
     "minObjectID",
     "maxObjectID",
     "showDeleted",
@@ -111,6 +123,8 @@ public class ListObjectsParams {
     private java.lang.Long afterEpoch;
     @JsonProperty("before_epoch")
     private java.lang.Long beforeEpoch;
+    @JsonProperty("startfrom")
+    private java.lang.String startfrom;
     @JsonProperty("minObjectID")
     private java.lang.Long minObjectID;
     @JsonProperty("maxObjectID")
@@ -281,6 +295,21 @@ public class ListObjectsParams {
         return this;
     }
 
+    @JsonProperty("startfrom")
+    public java.lang.String getStartfrom() {
+        return startfrom;
+    }
+
+    @JsonProperty("startfrom")
+    public void setStartfrom(java.lang.String startfrom) {
+        this.startfrom = startfrom;
+    }
+
+    public ListObjectsParams withStartfrom(java.lang.String startfrom) {
+        this.startfrom = startfrom;
+        return this;
+    }
+
     @JsonProperty("minObjectID")
     public java.lang.Long getMinObjectID() {
         return minObjectID;
@@ -428,7 +457,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", afterEpoch=")+ afterEpoch)+", beforeEpoch=")+ beforeEpoch)+", minObjectID=")+ minObjectID)+", maxObjectID=")+ maxObjectID)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", afterEpoch=")+ afterEpoch)+", beforeEpoch=")+ beforeEpoch)+", startfrom=")+ startfrom)+", minObjectID=")+ minObjectID)+", maxObjectID=")+ maxObjectID)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
