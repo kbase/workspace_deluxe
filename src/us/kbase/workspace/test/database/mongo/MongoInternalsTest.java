@@ -1,7 +1,6 @@
 package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -1127,22 +1126,6 @@ public class MongoInternalsTest {
 				fac);
 	}
 	
-	private void typeFieldsSetUpForCloneRevertAndCopy() throws Exception {
-		typeFieldsSetUp();
-		final DBCollection col = db.getCollection("workspaceObjVersions");
-		
-		// remove the 2 internal type fields from one of the objects
-		final DBObject query = new BasicDBObject("id", 1);
-		final DBObject update = new BasicDBObject("$unset",
-				new BasicDBObject("tymaj", "").append("tyname", ""));
-		final DBObject ret = col.findAndModify(query, null, null, false, update, true, false);
-		
-		// check the altered object is as expected
-		assertThat("incorrect type", ret.get("type"), is("SomeModule.AType-0.1"));
-		assertThat("incorrect type maj", ret.get("tymaj"), is(nullValue()));
-		assertThat("incorrect type name", ret.get("tyname"), is(nullValue()));
-	}
-
 	private void checkTypeFields(final int wsid, final int id1, final int id2) {
 		checkTypeFields(wsid, id1, id2, 1, 1);
 	}
@@ -1155,20 +1138,24 @@ public class MongoInternalsTest {
 		final DBObject obj2 = col.findOne(
 				new BasicDBObject("ws", wsid).append("id", id2).append("ver", ver2));
 		
-		assertThat("incorrect type", obj1.get("type"), is("SomeModule.AType-0.1"));
-		assertThat("incorrect type maj", obj1.get("tymaj"), is("SomeModule.AType-0"));
 		assertThat("incorrect type name", obj1.get("tyname"), is("SomeModule.AType"));
+		assertThat("incorrect type maj", obj1.get("tymaj"), is(0));
+		assertThat("incorrect type maj", obj1.get("tymin"), is(1));
+		// still present for rollbacks only
+		assertThat("incorrect type", obj1.get("type"), is("SomeModule.AType-0.1"));
 		
 		assertThat("incorrect type", obj2.get("type"), is("SomeModule.OtherType-1.0"));
-		assertThat("incorrect type maj", obj2.get("tymaj"), is("SomeModule.OtherType-1"));
+		assertThat("incorrect type maj", obj2.get("tymaj"), is(1));
+		assertThat("incorrect type maj", obj2.get("tymin"), is(0));
+		// still present for rollbacks only
 		assertThat("incorrect type name", obj2.get("tyname"), is("SomeModule.OtherType"));
 	}
 
 	@Test
 	public void typeFieldsOnSaveObjects() throws Exception {
 		/* Test that the type fields are set up correctly when saving objects. 
-		 * 2/3 fields are internal only and not exposed in the API as they're for indexing/
-		 * query purposes only.
+		 * The old 'type' field is internal only and not exposed in the API as it's only
+		 * present for rollbacks.
 		 */
 		typeFieldsSetUp();
 		checkTypeFields(1, 1, 2);
@@ -1176,13 +1163,11 @@ public class MongoInternalsTest {
 
 	@Test
 	public void typeFieldsOnCopiedObjects() throws Exception {
-		/* Test that the 3 type fields are copied correctly, even when 2/3 fields aren't
-		 * present on the original object.
-		 */
+		/* Test that the 4 type fields are copied correctly */
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("typefields");
 		
-		typeFieldsSetUpForCloneRevertAndCopy();
+		typeFieldsSetUp();
 
 		ws.copyObject(user, new ObjectIdentifier(wsi, 1), new ObjectIdentifier(wsi, "new1"));
 		ws.copyObject(user, new ObjectIdentifier(wsi, 2), new ObjectIdentifier(wsi, "new2"));
@@ -1191,13 +1176,11 @@ public class MongoInternalsTest {
 	
 	@Test
 	public void typeFieldsOnRevertedObjects() throws Exception {
-		/* Test that the 3 type fields are reverted correctly, even when 2/3 fields aren't
-		 * present on the original object.
-		 */
+		/* Test that the 4 type fields are reverted correctly */
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("typefields");
 		
-		typeFieldsSetUpForCloneRevertAndCopy();
+		typeFieldsSetUp();
 		
 		ws.revertObject(user, new ObjectIdentifier(wsi, 1));
 		ws.revertObject(user, new ObjectIdentifier(wsi, 2));
@@ -1207,13 +1190,11 @@ public class MongoInternalsTest {
 	
 	@Test
 	public void typeFieldsOnClone() throws Exception {
-		/* Test that the 3 type fields are copied correctly on a workspace clone, even when
-		 * 2/3 fields aren't present on the original object.
-		 */
+		/* Test that the 4 type fields are copied correctly on a workspace clone */
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("typefields");
 		
-		typeFieldsSetUpForCloneRevertAndCopy();
+		typeFieldsSetUp();
 		
 		ws.cloneWorkspace(user, wsi, "typefields2", false, null, null, null);
 

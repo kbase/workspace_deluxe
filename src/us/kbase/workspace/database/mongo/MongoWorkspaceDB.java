@@ -41,6 +41,7 @@ import us.kbase.typedobj.core.ExtractedMetadata;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReferenceType;
@@ -193,11 +194,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsVer.add(idxSpec(Fields.VER_WS_ID, 1, Fields.VER_ID, 1, Fields.VER_VER, -1, IDX_UNIQ));
 		//find versions per type and sort descending on version
 		wsVer.add(idxSpec(
-				Fields.VER_TYPE_FULL, 1,
+				Fields.VER_TYPE_NAME, 1, Fields.VER_TYPE_MAJOR_VERSION, 1,
+				Fields.VER_TYPE_MINOR_VERSION, 1,
 				Fields.VER_WS_ID, 1, Fields.VER_ID, 1, Fields.VER_VER, -1));
 		//find versions per type with major version and sort descending on version
 		wsVer.add(idxSpec(
-				Fields.VER_TYPE_WITH_MAJOR_VERSION, 1,
+				Fields.VER_TYPE_NAME, 1, Fields.VER_TYPE_MAJOR_VERSION, 1,
 				Fields.VER_WS_ID, 1, Fields.VER_ID, 1, Fields.VER_VER, -1));
 		//find versions per type name only and sort descending on version
 		wsVer.add(idxSpec(
@@ -328,6 +330,42 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.append(field2, ascendingSort2)
 					.append(field3, ascendingSort3)
 					.append(field4, ascendingSort4),
+				getIndexOptions(options));
+	}
+	
+	// ew. Not sure how to make this less gross though.
+	private static IndexSpecification idxSpec(
+			final String field1, final int ascendingSort1,
+			final String field2, final int ascendingSort2,
+			final String field3, final int ascendingSort3,
+			final String field4, final int ascendingSort4,
+			final String field5, final int ascendingSort5,
+			final String... options) {
+		return new IndexSpecification(
+				new BasicDBObject(field1, ascendingSort1)
+					.append(field2, ascendingSort2)
+					.append(field3, ascendingSort3)
+					.append(field4, ascendingSort4)
+					.append(field5, ascendingSort5),
+				getIndexOptions(options));
+	}
+	
+	// ew. Not sure how to make this less gross though.
+	private static IndexSpecification idxSpec(
+			final String field1, final int ascendingSort1,
+			final String field2, final int ascendingSort2,
+			final String field3, final int ascendingSort3,
+			final String field4, final int ascendingSort4,
+			final String field5, final int ascendingSort5,
+			final String field6, final int ascendingSort6,
+			final String... options) {
+		return new IndexSpecification(
+				new BasicDBObject(field1, ascendingSort1)
+					.append(field2, ascendingSort2)
+					.append(field3, ascendingSort3)
+					.append(field4, ascendingSort4)
+					.append(field5, ascendingSort5)
+					.append(field6, ascendingSort6),
 				getIndexOptions(options));
 	}
 	
@@ -843,8 +881,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final Set<String> FLDS_VER_COPYOBJ = newHashSet(
-			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
-			Fields.VER_TYPE_FULL, Fields.VER_TYPE_WITH_MAJOR_VERSION, Fields.VER_TYPE_NAME,
+			// include full type name for rollback purposes, remove later
+			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER, Fields.VER_TYPE_FULL,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
 			Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_PROV, Fields.VER_REF, Fields.VER_PROVREF,
 			Fields.VER_COPIED, Fields.VER_META, Fields.VER_EXT_IDS);
@@ -1482,16 +1521,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
 		final Map<String, Object> version = new HashMap<String, Object>();
+		final AbsoluteTypeDefId t = pkg.wo.getRep().getValidationTypeDefId();
 		version.put(Fields.VER_SAVEDBY, user.getUser());
 		version.put(Fields.VER_CHKSUM, pkg.wo.getRep().getMD5().getMD5());
 		version.put(Fields.VER_META, metaHashToMongoArray(pkg.wo.getUserMeta().getMetadata()));
 		version.put(Fields.VER_REF, pkg.refs);
 		version.put(Fields.VER_PROVREF, pkg.provrefs);
 		version.put(Fields.VER_PROV, pkg.provid);
-		// the other two type fields are added in saveObjectVersions to catch clones & copies
-		// of documents that may not have the fields.
-		version.put(Fields.VER_TYPE_FULL,
-				pkg.wo.getRep().getValidationTypeDefId().getTypeString());
+		version.put(Fields.VER_TYPE_NAME, t.getType().getTypeString());
+		version.put(Fields.VER_TYPE_MAJOR_VERSION, t.getMajorVersion());
+		version.put(Fields.VER_TYPE_MINOR_VERSION, t.getMinorVersion());
+		// TODO CODE this field is here to allow for rollbacks from v0.12.0. remove later.
+		version.put(Fields.VER_TYPE_FULL, t.getTypeString());
 		version.put(Fields.VER_SIZE, pkg.wo.getRep().getRelabeledSize());
 		version.put(Fields.VER_RVRT, null);
 		version.put(Fields.VER_COPIED, null);
@@ -1581,14 +1622,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			v.put(Fields.VER_WS_ID, wsid.getID());
 			v.put(Fields.VER_ID, objectid);
 			v.put(Fields.VER_VER, ver++);
-			if (!v.containsKey(Fields.VER_TYPE_NAME)) {
-				// add additional, internal types fields to new data and ensure that all type
-				// fields are filled out on a copy or clone of old data
-				final AbsoluteTypeDefId t = AbsoluteTypeDefId.fromAbsoluteTypeString(
-						(String)v.get(Fields.VER_TYPE_FULL));
-				v.put(Fields.VER_TYPE_NAME, t.getType().getTypeString());
-				v.put(Fields.VER_TYPE_WITH_MAJOR_VERSION, t.getTypeStringMajorVersion());
-			}
 			final DBObject d = new BasicDBObject();
 			for (final Entry<String, Object> e: v.entrySet()) {
 				d.put(e.getKey(), e.getValue());
@@ -2149,7 +2182,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private static final Set<String> FLDS_VER_GET_OBJECT = newHashSet(
-			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE_FULL,
+			Fields.VER_VER, Fields.VER_META,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV,
 			Fields.VER_PROVREF, Fields.VER_REF, Fields.VER_EXT_IDS,
@@ -2501,8 +2535,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private static final Set<String> FLDS_GETREFOBJ = newHashSet(
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
-			Fields.VER_VER, Fields.VER_TYPE_FULL, Fields.VER_META,
-			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
+			Fields.VER_META, Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_PROVREF, Fields.VER_REF);
 	
@@ -2737,7 +2771,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private static final Set<String> FLDS_VER_TYPE = newHashSet(
-			Fields.VER_TYPE_FULL, Fields.VER_VER);
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
+			Fields.VER_VER);
 	
 	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
 			final Set<ObjectIDResolvedWS> objectIDs,
@@ -2755,8 +2790,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ResolvedObjectID roi = oids.get(o);
 			final Map<String, Object> v = vers.get(roi);
 			if (v != null) {
-				ret.put(o, new TypeAndReference(AbsoluteTypeDefId.fromAbsoluteTypeString(
-								(String) v.get(Fields.VER_TYPE_FULL)),
+				ret.put(o, new TypeAndReference(
+						new AbsoluteTypeDefId(
+								new TypeDefName((String) v.get(Fields.VER_TYPE_NAME)),
+								(int) v.get(Fields.VER_TYPE_MAJOR_VERSION),
+								(int) v.get(Fields.VER_TYPE_MINOR_VERSION)),
 						new Reference(roi.getWorkspaceIdentifier().getID(), roi.getId(),
 								(Integer) v.get(Fields.VER_VER))));
 			}
@@ -2819,7 +2857,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private static final Set<String> FLDS_VER_OBJ_HIST = newHashSet(
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
-			Fields.VER_TYPE_FULL, Fields.VER_CHKSUM, Fields.VER_SIZE,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
+			Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_META, Fields.VER_SAVEDATE, Fields.VER_SAVEDBY);
 	
 	@Override
@@ -2842,7 +2881,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final Set<String> FLDS_VER_META = newHashSet(
-			Fields.VER_VER, Fields.VER_TYPE_FULL,
+			Fields.VER_VER,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE);
 	

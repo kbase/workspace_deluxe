@@ -55,11 +55,14 @@ public class Fields {
 	public static final String VER_REF = "refs";
 	public static final String VER_PROVREF = "provrefs";
 	// the full type string, e.g. Module.Type-3.4
+	// TODO CODE kept to allow for rollbacks, but unused at this point. remove in future
 	public static final String VER_TYPE_FULL = "type";
-	// the type string with the major version, e.g. Module.Type-3
-	public static final String VER_TYPE_WITH_MAJOR_VERSION = "tymaj";
 	// the type name only as a type string, e.g. Module.Type
 	public static final String VER_TYPE_NAME = "tyname";
+	// the major version of the type, e.g. 3
+	public static final String VER_TYPE_MAJOR_VERSION = "tymaj";
+	// the minor version of the type, e.g. 4
+	public static final String VER_TYPE_MINOR_VERSION = "tymin";
 	public static final String VER_SIZE = "size";
 	public static final String VER_RVRT = "revert";
 	public static final String VER_META = "meta";

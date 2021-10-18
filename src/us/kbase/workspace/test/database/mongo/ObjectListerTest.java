@@ -53,7 +53,7 @@ import us.kbase.workspace.database.mongo.ObjectLister;
 
 public class ObjectListerTest {
 	
-	private static final String TYPE_3_1 = "Mod.Type-3.1";
+	private static final String TYPE_3_2 = "Mod.Type-3.2";
 	private static final String SHTTY_MD5 = "thisshouldbeaMD5";
 	private static final ResolvedWorkspaceID WSID_1 = new ResolvedWorkspaceID(
 			5, "foo", false, false);
@@ -61,7 +61,9 @@ public class ObjectListerTest {
 	private static DBObject makeDBObject(final int id) {
 		return new BasicDBObject()
 				.append("ver", 7)
-				.append("type", TYPE_3_1)
+				.append("tyname", "Mod.Type")
+				.append("tymaj", 3)
+				.append("tymin", 2)
 				.append("savedate", Date.from(inst(10000)))
 				.append("savedby", "someguy")
 				.append("chksum", SHTTY_MD5)
@@ -73,7 +75,9 @@ public class ObjectListerTest {
 	private static Map<String, Object> makeMapObject(final int id) {
 		return MapBuilder.<String,Object>newHashMap()
 				.with("ver", 7)
-				.with("type", TYPE_3_1)
+				.with("tyname", "Mod.Type")
+				.with("tymaj", 3)
+				.with("tymin", 2)
 				.with("savedate", Date.from(inst(10000)))
 				.with("savedby", "someguy")
 				.with("chksum", SHTTY_MD5)
@@ -85,7 +89,7 @@ public class ObjectListerTest {
 	
 	private static ObjectInformation makeObjInfo(final int id) {
 		return new ObjectInformation(
-				id, "thing", TYPE_3_1, Date.from(inst(10000)), 7,
+				id, "thing", TYPE_3_2, Date.from(inst(10000)), 7,
 				new WorkspaceUser("someguy"), WSID_1, SHTTY_MD5, 3L, null);
 	}
 	
@@ -144,7 +148,8 @@ public class ObjectListerTest {
 	
 	private DBObject getProjection(final boolean includeMeta) {
 		final BasicDBObject p = new BasicDBObject();
-		Stream.of("ver", "type", "savedate", "savedby", "chksum", "size", "id", "ws")
+		Stream.of("ver", "tyname", "tymaj", "tymin", "savedate", "savedby", "chksum", "size",
+				"id", "ws")
 				.forEach(s -> p.append(s, 1));
 		
 		if (includeMeta) {
@@ -374,7 +379,7 @@ public class ObjectListerTest {
 				.withMinObjectID(5)
 				.withMaxObjectID(78)
 				.withSavers(Arrays.asList(new WorkspaceUser("a"), new WorkspaceUser("b")))
-				.withType(TypeDefId.fromTypeString(TYPE_3_1))
+				.withType(TypeDefId.fromTypeString(TYPE_3_2))
 				.withMetadata(new WorkspaceUserMetadata(ImmutableMap.of("6", "7")))
 				.withShowAllVersions(true)
 				.withShowHidden(true)
@@ -387,7 +392,7 @@ public class ObjectListerTest {
 		
 		final DBObject expectedQuery = new BasicDBObject(
 				"ws", new BasicDBObject("$in", Arrays.asList(2L, 5L)))
-				.append("type", TYPE_3_1)
+				.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2)
 				.append("savedby", new BasicDBObject("$in", Arrays.asList("a", "b")))
 				.append("$and", Arrays.asList(new BasicDBObject("meta",
 						new BasicDBObject("k", "6").append("v", "7"))))
@@ -440,11 +445,11 @@ public class ObjectListerTest {
 		
 		// case 5: start from wsid only and a full type
 		p = lob.withStartFrom(RefLimit.build(32L, null, null))
-				.withType(TypeDefId.fromTypeString(TYPE_3_1)).build().resolve(pset);
-		expectedQuery.put("type", TYPE_3_1);
-		expectedSort = new BasicDBObject("type", 1)
+				.withType(TypeDefId.fromTypeString(TYPE_3_2)).build().resolve(pset);
+		expectedQuery.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2);
+		expectedSort = new BasicDBObject("tyname", 1).append("tymaj", 1).append("tymin", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
-		expectedMin = new BasicDBObject("type", TYPE_3_1)
+		expectedMin = new BasicDBObject("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2)
 				.append("ws", 32L).append("id", 1L).append("ver", Integer.MAX_VALUE);
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
@@ -452,10 +457,10 @@ public class ObjectListerTest {
 		// case 6: start from wsid & objid and a major version type
 		p = lob.withStartFrom(RefLimit.build(1L, 1L, null))
 				.withType(TypeDefId.fromTypeString("Mod.Type-3")).build().resolve(pset);
-		expectedQuery.append("tymaj", "Mod.Type-3").remove("type");
-		expectedSort = new BasicDBObject("tymaj", 1)
+		expectedQuery.remove("tymin");
+		expectedSort = new BasicDBObject("tyname", 1).append("tymaj", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
-		expectedMin = new BasicDBObject("tymaj", "Mod.Type-3")
+		expectedMin = new BasicDBObject("tyname", "Mod.Type").append("tymaj", 3)
 				.append("ws", 1L).append("id", 1L).append("ver", Integer.MAX_VALUE);
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
@@ -463,7 +468,7 @@ public class ObjectListerTest {
 		// case 7: start from fully specified and a name only type
 		p = lob.withStartFrom(RefLimit.build(64L, 128L, 256))
 				.withType(TypeDefId.fromTypeString("Mod.Type")).build().resolve(pset);
-		expectedQuery.append("tyname", "Mod.Type").remove("tymaj");
+		expectedQuery.remove("tymaj");
 		expectedSort = new BasicDBObject("tyname", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		expectedMin = new BasicDBObject("tyname", "Mod.Type")
@@ -597,13 +602,14 @@ public class ObjectListerTest {
 		
 		// case 1: a type based sort is applied, unlike the following cases
 		ResolvedListObjectParameters p = lop
-				.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3, 1)).build().resolve(pset);
+				.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3, 2)).build().resolve(pset);
 		
 		BasicDBObject expectedQuery = new BasicDBObject(
 				"ws", new BasicDBObject("$in", Arrays.asList(5L)))
-				.append("type", TYPE_3_1)
+				.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2)
 				.append("id", new BasicDBObject("$gte", 7L).append("$lte", 70L));
-		DBObject expectedSort = new BasicDBObject("type", 1)
+		DBObject expectedSort = new BasicDBObject("tyname", 1)
+				.append("tymaj", 1).append("tymin", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, true);
 		
@@ -616,8 +622,7 @@ public class ObjectListerTest {
 		p = lop.withAfter(null).withBefore(inst(90000))
 				.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3)).build().resolve(pset);
 		expectedQuery.append("savedate", new BasicDBObject("$lt", Date.from(inst(90000))))
-				.append("tymaj", "Mod.Type-3")
-				.removeField("type");
+				.removeField("tymin");
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 		
 		// case 4: meta
@@ -665,17 +670,18 @@ public class ObjectListerTest {
 		
 		BasicDBObject expectedQuery = new BasicDBObject(
 				"ws", new BasicDBObject("$in", Arrays.asList(5L)))
-				.append("type", TYPE_3_1)
+				.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 1)
 				.append("id", new BasicDBObject("$gte", 7L).append("$lte", 70L));
-		DBObject expectedSort = new BasicDBObject("type", 1)
+		DBObject expectedSort = new BasicDBObject("tyname", 1)
+				.append("tymaj", 1).append("tymin", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, true);
 		
 		// case 2: major version
 		p = lop.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3)).build().resolve(pset);
-		expectedQuery.append("tymaj", "Mod.Type-3").removeField("type");
+		expectedQuery.removeField("tymin");
 		// for sorts the order of insertion matters
-		expectedSort = new BasicDBObject("tymaj", 1)
+		expectedSort = new BasicDBObject("tyname", 1).append("tymaj", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, true);
 
