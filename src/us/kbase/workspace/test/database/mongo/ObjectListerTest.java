@@ -3,7 +3,9 @@ package us.kbase.workspace.test.database.mongo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
@@ -41,6 +43,7 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.RefLimit;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceUser;
@@ -267,13 +270,24 @@ public class ObjectListerTest {
 			// 0 - 5 = meta, hidden, del, only del, versions, admin
 			final BitSet boolopts)
 			throws Exception {
-		/* Completes the test for cases where no sorts are active and all boolean parameters
-		 * are false
-		 */
+		completeSimpleFilterTest(
+				pset, p, expectedQuery, expectedSort, boolopts, new BasicDBObject());
+	}
+	
+	private void completeSimpleFilterTest(
+			final PermissionSet pset,
+			final ResolvedListObjectParameters p,
+			final DBObject expectedQuery,
+			final DBObject expectedSort,
+			// 0 - 5 = meta, hidden, del, only del, versions, admin
+			final BitSet boolopts,
+			final DBObject startFrom)
+			throws Exception {
 		final Mocks m = getMocks();
 		final DBCursor cur = mock(DBCursor.class);
 		when(m.col.find(expectedQuery, getProjection(boolopts.get(0)))).thenReturn(cur);
 		when(cur.hasNext()).thenReturn(true, true, false);
+		when(cur.hint(any(DBObject.class))).thenReturn(cur); // mock fluent interface
 		
 		// if include meta is true, all these object representations should include metadata.
 		// however, the code doesn't actually know what's going on beyond setting up the
@@ -294,6 +308,13 @@ public class ObjectListerTest {
 		
 		assertThat("incorrect objects", ret, is(Arrays.asList(OBJ_INFO_1)));
 		
+		if (!startFrom.keySet().isEmpty()) {
+			verify(cur).hint(expectedSort);
+			verify(cur).min(startFrom);
+		} else {
+			verify(cur, never()).hint(any(DBObject.class));
+			verify(cur, never()).min(any(DBObject.class));
+		}
 		verify(cur).sort(expectedSort);
 	}
 	
@@ -376,6 +397,80 @@ public class ObjectListerTest {
 				.append("id", new BasicDBObject("$gte", 5L).append("$lte", 78L));
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
+	}
+	
+	@Test
+	public void filterWithStartFrom() throws Exception {
+		// test filtering starting from a reference
+		final BitSet bs = new BitSet(); // all false
+		final PermissionSet pset = PermissionSet.getBuilder(new WorkspaceUser("foo"), AU)
+				.withWorkspace(WSID_1, Permission.READ, Permission.NONE)
+				.build();
+		final Builder lob = ListObjectsParameters.getBuilder(
+				Arrays.asList(new WorkspaceIdentifier(5)));
+		
+		// case 1: no start from, no type
+		ResolvedListObjectParameters p = lob.build().resolve(pset);
+		
+		final BasicDBObject expectedQuery = new BasicDBObject(
+				"ws", new BasicDBObject("$in", Arrays.asList(5L)));
+		DBObject expectedSort = new BasicDBObject("ws", 1).append("id", 1).append("ver", -1);
+		
+		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, new BasicDBObject());
+		
+		// case 2: start from, wsid only
+		p = lob.withStartFrom(RefLimit.build(3L, null, null)).build().resolve(pset);
+		DBObject expectedMin = new BasicDBObject("ws", 3L).append("id", 1L)
+				.append("ver", Integer.MAX_VALUE);
+		
+		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
+		
+		// case 3: start from, wsid & objid
+		p = lob.withStartFrom(RefLimit.build(24L, 108L, null)).build().resolve(pset);
+		expectedMin = new BasicDBObject("ws", 24L).append("id", 108L)
+				.append("ver", Integer.MAX_VALUE);
+		
+		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
+		
+		// case 4: start from fully specified
+		p = lob.withStartFrom(RefLimit.build(24L, 108L, 7)).build().resolve(pset);
+		expectedMin = new BasicDBObject("ws", 24L).append("id", 108L).append("ver", 7);
+		
+		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
+		
+		// case 5: start from wsid only and a full type
+		p = lob.withStartFrom(RefLimit.build(32L, null, null))
+				.withType(TypeDefId.fromTypeString(TYPE_3_1)).build().resolve(pset);
+		expectedQuery.put("type", TYPE_3_1);
+		expectedSort = new BasicDBObject("type", 1)
+				.append("ws", 1).append("id", 1).append("ver", -1);
+		expectedMin = new BasicDBObject("type", TYPE_3_1)
+				.append("ws", 32L).append("id", 1L).append("ver", Integer.MAX_VALUE);
+		
+		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
+		
+		// case 6: start from wsid & objid and a major version type
+		p = lob.withStartFrom(RefLimit.build(1L, 1L, null))
+				.withType(TypeDefId.fromTypeString("Mod.Type-3")).build().resolve(pset);
+		expectedQuery.append("tymaj", "Mod.Type-3").remove("type");
+		expectedSort = new BasicDBObject("tymaj", 1)
+				.append("ws", 1).append("id", 1).append("ver", -1);
+		expectedMin = new BasicDBObject("tymaj", "Mod.Type-3")
+				.append("ws", 1L).append("id", 1L).append("ver", Integer.MAX_VALUE);
+		
+		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
+		
+		// case 7: start from fully specified and a name only type
+		p = lob.withStartFrom(RefLimit.build(64L, 128L, 256))
+				.withType(TypeDefId.fromTypeString("Mod.Type")).build().resolve(pset);
+		expectedQuery.append("tyname", "Mod.Type").remove("tymaj");
+		expectedSort = new BasicDBObject("tyname", 1)
+				.append("ws", 1).append("id", 1).append("ver", -1);
+		expectedMin = new BasicDBObject("tyname", "Mod.Type")
+				.append("ws", 64L).append("id", 128L).append("ver", 256);
+		
+		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
+		
 	}
 	
 	@Test
