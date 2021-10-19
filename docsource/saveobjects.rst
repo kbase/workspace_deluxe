@@ -498,7 +498,7 @@ fail:
     MyWorkspace/simple in this object is not allowed - allowed types are
     [SimpleObjects.SimplerObject] at /r
 
-
+.. _listobjects:
 
 List objects
 ------------
