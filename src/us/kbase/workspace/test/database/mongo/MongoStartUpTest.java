@@ -7,11 +7,14 @@ import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 import static us.kbase.common.test.TestCommon.set;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -43,6 +46,9 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 
 /** Test that Mongo starts up correctly with the correct indexes and configuration document
  * Test that Mongo correctly fails to start up when the configuration document is incorrect.
+ * 
+ * Note that creating all the indexes currently takes ~2s, so the tests that create indexes
+ * are slow. 
  *
  */
 public class MongoStartUpTest {
@@ -86,8 +92,6 @@ public class MongoStartUpTest {
 	public void clearDB() throws Exception {
 		TestCommon.destroyDB(db);
 	}
-	
-	// TODO TEST each one of the startup tests takes 2 seconds. What's taking so long? Indexes?
 	
 	@Test
 	public void startUpAndCheckConfigDoc() throws Exception {
@@ -149,7 +153,7 @@ public class MongoStartUpTest {
 		
 		db.getCollection("config").insert(cfg);
 		
-		failMongoWSStart(db, new CorruptWorkspaceDBException(
+		failMongoWSStart(db, new WorkspaceDBInitializationException(
 				"The database is in the middle of an update from v1 of the " +
 				"schema. Aborting startup."));
 	}
@@ -163,6 +167,110 @@ public class MongoStartUpTest {
 		} catch (Exception e) {
 			assertExceptionCorrect(e, exp);
 		}
+	}
+	
+	
+	private Optional<Integer> invokeCheckExtantConfigAndGetVersion(
+			final DB db,
+			final boolean allowNoConfig,
+			final boolean skipVersionCheck)
+			throws Exception {
+		final Method m = MongoWorkspaceDB.class.getDeclaredMethod(
+				"checkExtantConfigAndGetVersion", DB.class, boolean.class, boolean.class);
+		m.setAccessible(true);
+		@SuppressWarnings("unchecked")
+		final Optional<Integer> ver = (Optional<Integer>) m.invoke(
+				null, db, allowNoConfig, skipVersionCheck);
+		return ver;
+	}
+	
+	private void failCheckExtantConfigAndGetVersion(
+			final DB db,
+			final boolean allowNoConfig,
+			final boolean skipVersionCheck,
+			final Exception expected)
+			throws Exception{
+		try {
+			invokeCheckExtantConfigAndGetVersion(db, allowNoConfig, skipVersionCheck);
+			fail("expected exception");
+		} catch (InvocationTargetException got) {
+			TestCommon.assertExceptionCorrect(got.getCause(), expected);
+		}
+	}
+	
+	@Test
+	public void checkExtantConfig() throws Exception {
+		final DB db = mongoClient.getDB("checkExtantConfig");
+		
+		db.getCollection("config").insert(new BasicDBObject("config", "config")
+				.append("inupdate", false).append("schemaver", 1));
+		
+		Optional<Integer> ver = invokeCheckExtantConfigAndGetVersion(db, false, false);
+		assertThat("incorrect version", ver, is(Optional.of(1)));
+		invokeCheckExtantConfigAndGetVersion(db, true, false); // coverage
+		assertThat("incorrect version", ver, is(Optional.of(1)));
+	}
+	
+	@Test
+	public void checkExtantConfigWithNoDocument() throws Exception {
+		final DB db = mongoClient.getDB("checkExtantConfigWithNoDocument");
+		
+		// pass case
+		final Optional<Integer> ver = invokeCheckExtantConfigAndGetVersion(db, true, false);
+		assertThat("incorrect version", ver, is(Optional.empty()));
+		
+		// fail case
+		final String err = "0 config object(s) found in the database. " +
+				"This should not happen, something is very wrong.";
+		failCheckExtantConfigAndGetVersion(
+				db, false, false, new CorruptWorkspaceDBException(err));
+	}
+	
+	@Test
+	public void checkExtantConfigWithTwoDocumentsFail() throws Exception {
+		final String err = "2 config object(s) found in the database. " +
+				"This should not happen, something is very wrong.";
+		final DB db = mongoClient.getDB("checkExtantConfigWithTwoDocumentsFail");
+		
+		final Map<String, Object> m = new HashMap<String, Object>();
+		m.put("config", "config");
+		m.put("inupdate", false);
+		m.put("schemaver", 1);
+		db.getCollection("config").insert(Arrays.asList(
+				new BasicDBObject(m), new BasicDBObject(m)));
+		
+		failCheckExtantConfigAndGetVersion(
+				db, false, false, new CorruptWorkspaceDBException(err));
+	}
+	
+	@Test
+	public void checkExtantConfigWithBadSchemaVersion() throws Exception {
+		final DB db = mongoClient.getDB("checkExtantConfigWithBadSchemaVersion");
+		
+		db.getCollection("config").insert(new BasicDBObject("config", "config")
+				.append("inupdate", false).append("schemaver", 100));
+		
+		// pass case
+		Optional<Integer> ver = invokeCheckExtantConfigAndGetVersion(db, false, true);
+		assertThat("incorrect version", ver, is(Optional.of(100)));
+		
+		// fail case
+		final String err = "Incompatible database schema. Server is v1, DB is v100";
+		failCheckExtantConfigAndGetVersion(
+				db, false, false, new WorkspaceDBInitializationException(err));
+	}
+	
+	@Test
+	public void checkExtantConfigInUpdate() throws Exception {
+		final DB db = mongoClient.getDB("checkExtantConfigInUpdate");
+		
+		db.getCollection("config").insert(new BasicDBObject("config", "config")
+				.append("inupdate", true).append("schemaver", 1));
+		
+		final String err = "The database is in the middle of an update from v1 of the schema. " +
+				"Aborting startup.";
+		failCheckExtantConfigAndGetVersion(
+				db, false, false, new WorkspaceDBInitializationException(err));
 	}
 	
 	@Test
@@ -189,11 +297,28 @@ public class MongoStartUpTest {
 		assertThat("incorrect collection names", names, is(expected));
 	}
 	
-	@Test
-	public void indexesConfig() {
+	// test index creation calling the static method rather than constructing the mongo ws db
+	// object
+	private void createIndexes(final String dbname) throws Exception {
+		final DB wsdb = mongoClient.getDB(dbname);
+		final Method method = MongoWorkspaceDB.class.getDeclaredMethod("ensureIndexes", DB.class);
+		method.setAccessible(true);
+		method.invoke(null, wsdb);
+	}
+	
+	private Set<Document> getIndexes(final MongoDatabase db, final String collection) {
 		final Set<Document> indexes = new HashSet<>();
-		db.getCollection("config").listIndexes().forEach((Consumer<Document>) indexes::add);
-		assertThat("incorrect indexes", indexes, is(set(
+		db.getCollection(collection).listIndexes().forEach((Consumer<Document>) indexes::add);
+		return indexes;
+	}
+	
+	private void setNamespace(final Set<Document> toBeModified, final String namespace) {
+		toBeModified.forEach(d -> d.append("ns", namespace));
+	}
+	
+	@Test
+	public void indexesConfig() throws Exception {
+		final Set<Document> expectedIndexes = set(
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("config", 1))
@@ -203,14 +328,18 @@ public class MongoStartUpTest {
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
 						.append("ns", "MongoStartUpTest.config")
-				)));
+				);
+		assertThat("incorrect indexes", getIndexes(db, "config"), is(expectedIndexes));
+		
+		final MongoDatabase wsdb = mongoClient.getDatabase("indexesConfig");
+		createIndexes("indexesConfig");
+		setNamespace(expectedIndexes, "indexesConfig.config");
+		assertThat("incorrect indexes", getIndexes(wsdb, "config"), is(expectedIndexes));
 	}
 	
 	@Test
-	public void indexesWorkspaces() {
-		final Set<Document> indexes = new HashSet<>();
-		db.getCollection("workspaces").listIndexes().forEach((Consumer<Document>) indexes::add);
-		assertThat("incorrect indexes", indexes, is(set(
+	public void indexesWorkspaces() throws Exception {
+		final Set<Document> expectedIndexes = set(
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("ws", 1))
@@ -235,14 +364,18 @@ public class MongoStartUpTest {
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
 						.append("ns", "MongoStartUpTest.workspaces")
-				)));
+				);
+		assertThat("incorrect indexes", getIndexes(db, "workspaces"), is(expectedIndexes));
+		
+		final MongoDatabase wsdb = mongoClient.getDatabase("indexesWorkspaces");
+		createIndexes("indexesWorkspaces");
+		setNamespace(expectedIndexes, "indexesWorkspaces.workspaces");
+		assertThat("incorrect indexes", getIndexes(wsdb, "workspaces"), is(expectedIndexes));
 	}
 	
 	@Test
-	public void indexesWorkspaceACLs() {
-		final Set<Document> indexes = new HashSet<>();
-		db.getCollection("workspaceACLs").listIndexes().forEach((Consumer<Document>) indexes::add);
-		assertThat("incorrect indexes", indexes, is(set(
+	public void indexesWorkspaceACLs() throws Exception {
+		final Set<Document> expectedIndexes = set(
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("id", 1).append("user", 1).append("perm", 1))
@@ -256,15 +389,18 @@ public class MongoStartUpTest {
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
 						.append("ns", "MongoStartUpTest.workspaceACLs")
-				)));
+				);
+		assertThat("incorrect indexes", getIndexes(db, "workspaceACLs"), is(expectedIndexes));
+		
+		final MongoDatabase wsdb = mongoClient.getDatabase("indexesWorkspaceACLs");
+		createIndexes("indexesWorkspaceACLs");
+		setNamespace(expectedIndexes, "indexesWorkspaceACLs.workspaceACLs");
+		assertThat("incorrect indexes", getIndexes(wsdb, "workspaceACLs"), is(expectedIndexes));
 	}
 	
 	@Test
-	public void indexesWorkspaceObjects() {
-		final Set<Document> indexes = new HashSet<>();
-		db.getCollection("workspaceObjects").listIndexes()
-				.forEach((Consumer<Document>) indexes::add);
-		assertThat("incorrect indexes", indexes, is(set(
+	public void indexesWorkspaceObjects() throws Exception {
+		final Set<Document> expectedIndexes = set(
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("ws", 1).append("name", 1))
@@ -287,15 +423,18 @@ public class MongoStartUpTest {
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
 						.append("ns", "MongoStartUpTest.workspaceObjects")
-				)));
+				);
+		assertThat("incorrect indexes", getIndexes(db, "workspaceObjects"), is(expectedIndexes));
+		
+		final MongoDatabase wsdb = mongoClient.getDatabase("indexesWorkspaceObjects");
+		createIndexes("indexesWorkspaceObjects");
+		setNamespace(expectedIndexes, "indexesWorkspaceObjects.workspaceObjects");
+		assertThat("incorrect indexes", getIndexes(wsdb, "workspaceObjects"), is(expectedIndexes));
 	}
 	
 	@Test
-	public void indexesWorkspaceObjectVersions() {
-		final Set<Document> indexes = new HashSet<>();
-		db.getCollection("workspaceObjVersions").listIndexes()
-				.forEach((Consumer<Document>) indexes::add);
-		assertThat("incorrect indexes", indexes, is(set(
+	public void indexesWorkspaceObjectVersions() throws Exception {
+		final Set<Document> expectedIndexes = set(
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("ws", 1).append("id", 1).append("ver", 1))
@@ -353,14 +492,20 @@ public class MongoStartUpTest {
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
 						.append("ns", "MongoStartUpTest.workspaceObjVersions")
-				)));
+				);
+		assertThat("incorrect indexes", getIndexes(db, "workspaceObjVersions"),
+				is(expectedIndexes));
+		
+		final MongoDatabase wsdb = mongoClient.getDatabase("indexesWorkspaceObjectVersions");
+		createIndexes("indexesWorkspaceObjectVersions");
+		setNamespace(expectedIndexes, "indexesWorkspaceObjectVersions.workspaceObjVersions");
+		assertThat("incorrect indexes", getIndexes(wsdb, "workspaceObjVersions"),
+				is(expectedIndexes));
 	}
 	
 	@Test
-	public void indexesAdmins() {
-		final Set<Document> indexes = new HashSet<>();
-		db.getCollection("admins").listIndexes().forEach((Consumer<Document>) indexes::add);
-		assertThat("incorrect indexes", indexes, is(set(
+	public void indexesAdmins() throws Exception {
+		final Set<Document> expectedIndexes = set(
 				new Document("v", INDEX_VER)
 						.append("unique", true)
 						.append("key", new Document("user", 1))
@@ -370,7 +515,13 @@ public class MongoStartUpTest {
 						.append("key", new Document("_id", 1))
 						.append("name", "_id_")
 						.append("ns", "MongoStartUpTest.admins")
-				)));
+				);
+		assertThat("incorrect indexes", getIndexes(db, "admins"), is(expectedIndexes));
+		
+		final MongoDatabase wsdb = mongoClient.getDatabase("indexesAdmins");
+		createIndexes("indexesAdmins");
+		setNamespace(expectedIndexes, "indexesAdmins.admins");
+		assertThat("incorrect indexes", getIndexes(wsdb, "admins"), is(expectedIndexes));
 	}
 	
 }

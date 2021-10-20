@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -37,7 +38,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.zafarkhaja.semver.Version;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
@@ -947,7 +947,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//basic test
 		WorkspaceInformation wsinfo =
-				ws.setWorkspaceOwner(u1, wsi, u2, Optional.<String>absent(), false);
+				ws.setWorkspaceOwner(u1, wsi, u2, Optional.empty(), false);
 		checkWSInfo(wsinfo, u2, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 		Map<User, Permission> pexp = new HashMap<User, Permission>();
 		pexp.put(u1, Permission.ADMIN);
@@ -955,36 +955,36 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("permissions correct", ws.getPermissions(
 				u2, Arrays.asList(wsi)).get(0), is (pexp));
 		
-		failSetWorkspaceOwner(null, wsi, u2, Optional.<String>absent(), true,
+		failSetWorkspaceOwner(null, wsi, u2, Optional.empty(), true,
 				new IllegalArgumentException("bar already owns workspace wsfoo"));
-		failSetWorkspaceOwner(u2, wsi, u2, Optional.<String>absent(), false,
+		failSetWorkspaceOwner(u2, wsi, u2, Optional.empty(), false,
 				new IllegalArgumentException("bar already owns workspace wsfoo"));
 		
-		failSetWorkspaceOwner(null, wsi, null, Optional.<String>absent(), true,
+		failSetWorkspaceOwner(null, wsi, null, Optional.empty(), true,
 				new NullPointerException("newUser cannot be null"));
-		failSetWorkspaceOwner(u2, wsi, null, Optional.<String>absent(), false,
+		failSetWorkspaceOwner(u2, wsi, null, Optional.empty(), false,
 				new NullPointerException("newUser cannot be null"));
 		
 		failSetWorkspaceOwner(u1, wsi, u2, null, false, new NullPointerException("newName"));
 		
-		failSetWorkspaceOwner(null, null, u1, Optional.<String>absent(), true,
+		failSetWorkspaceOwner(null, null, u1, Optional.empty(), true,
 				new NullPointerException("wsi cannot be null"));
-		failSetWorkspaceOwner(u2, null, u1, Optional.<String>absent(), false,
+		failSetWorkspaceOwner(u2, null, u1, Optional.empty(), false,
 				new NullPointerException("wsi cannot be null"));
 		
 		WorkspaceIdentifier fake = new WorkspaceIdentifier("wsfoofake");
-		failSetWorkspaceOwner(null, fake, u2, Optional.<String>absent(), true,
+		failSetWorkspaceOwner(null, fake, u2, Optional.empty(), true,
 				new NoSuchWorkspaceException("No workspace with name wsfoofake exists", fake));
-		failSetWorkspaceOwner(u2, fake, u2, Optional.<String>absent(), false,
+		failSetWorkspaceOwner(u2, fake, u2, Optional.empty(), false,
 				new NoSuchWorkspaceException("No workspace with name wsfoofake exists", fake));
 		
-		failSetWorkspaceOwner(null, wsi, u1, Optional.<String>absent(), false,
+		failSetWorkspaceOwner(null, wsi, u1, Optional.empty(), false,
 				new WorkspaceAuthorizationException("Anonymous users may not change the owner of workspace wsfoo"));
-		failSetWorkspaceOwner(u1, wsi, u1, Optional.<String>absent(), false,
+		failSetWorkspaceOwner(u1, wsi, u1, Optional.empty(), false,
 				new WorkspaceAuthorizationException("User foo may not change the owner of workspace wsfoo"));
 		
 		//test as admin
-		wsinfo = ws.setWorkspaceOwner(null, wsi, u1, Optional.<String>absent(), true);
+		wsinfo = ws.setWorkspaceOwner(null, wsi, u1, Optional.empty(), true);
 		checkWSInfo(wsinfo, u1, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 		pexp.put(u1, Permission.OWNER);
 		pexp.put(u2, Permission.ADMIN);
@@ -1013,7 +1013,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"the user name foo prior to the : delimiter"));
 		
 		//test auto rename of workspace
-		wsinfo = ws.setWorkspaceOwner(u2, wsi, u1, Optional.<String>absent(), false);
+		wsinfo = ws.setWorkspaceOwner(u2, wsi, u1, Optional.empty(), false);
 		wsi = new WorkspaceIdentifier("foo:wsfoo");
 		checkWSInfo(wsinfo, u1, wsi.getName(), 0L, Permission.OWNER, false, "unlocked", mt);
 		

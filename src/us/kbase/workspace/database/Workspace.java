@@ -17,10 +17,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.google.common.base.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -402,7 +402,7 @@ public class Workspace {
 		} else {
 			new WorkspaceIdentifier(newName.get(), newUser); //checks for illegal names
 			if (newName.get().equals(rwsi.getName())) {
-				newName = Optional.absent(); // no need to change name
+				newName = Optional.empty(); // no need to change name
 			}
 		}
 		final Instant time = db.setWorkspaceOwner(rwsi, owner, newUser, newName);

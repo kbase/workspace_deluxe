@@ -18,11 +18,11 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.service.UObject;
@@ -623,12 +623,12 @@ public class WorkspaceListenerTest {
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
 		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
-		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.absent()))
+		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.empty()))
 				.thenReturn(Instant.ofEpochMilli(30000));
 		
-		ws.setWorkspaceOwner(user, wsi, newUser, Optional.absent(), false);
+		ws.setWorkspaceOwner(user, wsi, newUser, Optional.empty(), false);
 
-		verify(l).setWorkspaceOwner(user, 24L, newUser, Optional.absent(),
+		verify(l).setWorkspaceOwner(user, 24L, newUser, Optional.empty(),
 				Instant.ofEpochMilli(30000));
 	}
 	
@@ -649,12 +649,12 @@ public class WorkspaceListenerTest {
 		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
 		when(db.getWorkspaceOwner(rwsi)).thenReturn(user);
 		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
-		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.absent()))
+		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.empty()))
 				.thenReturn(Instant.ofEpochMilli(30000));
 		
-		ws.setWorkspaceOwner(null, wsi, newUser, Optional.absent(), true);
+		ws.setWorkspaceOwner(null, wsi, newUser, Optional.empty(), true);
 
-		verify(l).setWorkspaceOwner(null, 24L, newUser, Optional.absent(),
+		verify(l).setWorkspaceOwner(null, 24L, newUser, Optional.empty(),
 				Instant.ofEpochMilli(30000));
 	}
 	
@@ -682,7 +682,7 @@ public class WorkspaceListenerTest {
 		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.of("bar:foobar")))
 				.thenReturn(Instant.ofEpochMilli(30000));
 		
-		ws.setWorkspaceOwner(user, wsi, newUser, Optional.absent(), false);
+		ws.setWorkspaceOwner(user, wsi, newUser, Optional.empty(), false);
 
 		verify(l1).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
