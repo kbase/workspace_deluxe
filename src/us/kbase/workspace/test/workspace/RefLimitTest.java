@@ -159,14 +159,20 @@ public class RefLimitTest {
 				"Illegal integer workspace ID in reference string    /  : "));
 		failFromRefString(" myws /  ", new IllegalArgumentException(
 				"Illegal integer workspace ID in reference string  myws /  : myws"));
+		failFromRefString(" 3.2 /  ", new IllegalArgumentException(
+				"Illegal integer workspace ID in reference string  3.2 /  : 3.2"));
 		failFromRefString(" 1 /  ", new IllegalArgumentException(
 				"Illegal integer object ID in reference string  1 /  : "));
 		failFromRefString(" 1 /  myobj   / ", new IllegalArgumentException(
 				"Illegal integer object ID in reference string  1 /  myobj   / : myobj"));
+		failFromRefString(" 1 /  42.42   / ", new IllegalArgumentException(
+				"Illegal integer object ID in reference string  1 /  42.42   / : 42.42"));
 		failFromRefString(" 1 /  2   / ", new IllegalArgumentException(
 				"Illegal integer version in reference string  1 /  2   / : "));
 		failFromRefString(" 1 /  2   / thingy", new IllegalArgumentException(
 				"Illegal integer version in reference string  1 /  2   / thingy: thingy"));
+		failFromRefString(" 1 /  2   / 3.1416", new IllegalArgumentException(
+				"Illegal integer version in reference string  1 /  2   / 3.1416: 3.1416"));
 		failFromRefString(" 1 /  2   / 3 / 4", new IllegalArgumentException(
 				"Illegal reference string, expected no more than 2 separators: " +
 				" 1 /  2   / 3 / 4"));
