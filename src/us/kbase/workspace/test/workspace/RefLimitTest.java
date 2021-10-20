@@ -6,11 +6,14 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import us.kbase.common.test.MapBuilder;
 import us.kbase.workspace.database.RefLimit;
 
 public class RefLimitTest {
@@ -121,8 +124,66 @@ public class RefLimitTest {
 		} catch (Exception got) {
 			assertExceptionCorrect(got, expected);
 		}
-		
 	}
 
-
+	@Test
+	public void fromRefString() throws Exception {
+		final Map<String, RefLimit> testCases = MapBuilder.<String, RefLimit>newHashMap()
+				.with(null, RefLimit.buildEmpty())
+				.with("   \t   ", RefLimit.buildEmpty())
+				.with("   0   ", RefLimit.buildEmpty())
+				.with("   -1   ", RefLimit.buildEmpty())
+				.with("   1   ", RefLimit.build(1L, null, null))
+				.with("   6   ", RefLimit.build(6L, null, null))
+				.with("   6   /", RefLimit.build(6L, null, null))
+				.with("   6 / 0  ", RefLimit.build(6L, null, null))
+				.with("   6 / -1  ", RefLimit.build(6L, null, null))
+				.with("   6 / 1  ", RefLimit.build(6L, 1L, null))
+				.with("   6 /  \t  24  ", RefLimit.build(6L, 24L, null))
+				.with("   6 / 24   /", RefLimit.build(6L, 24L, null))
+				.with("   6 / 24   / 0  ", RefLimit.build(6L, 24L, null))
+				.with("   6 / 24   / -1  ", RefLimit.build(6L, 24L, null))
+				.with("   6 / 24   /  \t 89  ", RefLimit.build(6L, 24L, 89))
+				.with("   6 / 24   /  \t 3000000000  ", RefLimit.build(6L, 24L, Integer.MAX_VALUE))
+				.build();
+		
+		for (final Entry<String, RefLimit> e: testCases.entrySet()) {
+			assertThat("incorrect ref limit from string " + e.getKey(),
+					RefLimit.fromRefString(e.getKey()), is(e.getValue()));
+		}
+	}
+	
+	@Test
+	public void fromRefStringFail() throws Exception {
+		failFromRefString("   /  ", new IllegalArgumentException(
+				"Illegal integer workspace ID in reference string    /  : "));
+		failFromRefString(" myws /  ", new IllegalArgumentException(
+				"Illegal integer workspace ID in reference string  myws /  : myws"));
+		failFromRefString(" 3.2 /  ", new IllegalArgumentException(
+				"Illegal integer workspace ID in reference string  3.2 /  : 3.2"));
+		failFromRefString(" 1 /  ", new IllegalArgumentException(
+				"Illegal integer object ID in reference string  1 /  : "));
+		failFromRefString(" 1 /  myobj   / ", new IllegalArgumentException(
+				"Illegal integer object ID in reference string  1 /  myobj   / : myobj"));
+		failFromRefString(" 1 /  42.42   / ", new IllegalArgumentException(
+				"Illegal integer object ID in reference string  1 /  42.42   / : 42.42"));
+		failFromRefString(" 1 /  2   / ", new IllegalArgumentException(
+				"Illegal integer version in reference string  1 /  2   / : "));
+		failFromRefString(" 1 /  2   / thingy", new IllegalArgumentException(
+				"Illegal integer version in reference string  1 /  2   / thingy: thingy"));
+		failFromRefString(" 1 /  2   / 3.1416", new IllegalArgumentException(
+				"Illegal integer version in reference string  1 /  2   / 3.1416: 3.1416"));
+		failFromRefString(" 1 /  2   / 3 / 4", new IllegalArgumentException(
+				"Illegal reference string, expected no more than 2 separators: " +
+				" 1 /  2   / 3 / 4"));
+	}
+	
+	private void failFromRefString(final String ref, final Exception expected) {
+		try {
+			RefLimit.fromRefString(ref);
+			fail("expected exception");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, expected);
+		}
+	}
 }
