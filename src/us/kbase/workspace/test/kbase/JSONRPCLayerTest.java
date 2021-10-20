@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -39,7 +40,6 @@ import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
-import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
@@ -92,6 +92,8 @@ import com.google.common.collect.ImmutableMap;
  * {@link us.kbase.workspace.test.workspaces.WorkspaceTest} handles that. This means
  * that only one backend (the simplest gridFS backend) is tested here, while WorkspaceTest
  * tests all backends and {@link us.kbase.workspace.database.WorkspaceDatabase} implementations.
+ * 
+ * Many of these tests are far too long and should be rewritten.
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
@@ -1196,7 +1198,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					.withType(type));
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, expected);
+			assertExceptionCorrect(got, expected);
 		}
 		try {
 			cli.saveObjects(new SaveObjectsParams()
@@ -1207,7 +1209,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 							.withType(type))));
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, expected);
+			assertExceptionCorrect(got, expected);
 		}
 	}
 
@@ -2798,6 +2800,100 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						oi.getE1(), minIDexpected, maxIDexpected));
 			}
 		}
+	}
+	
+	private class TstObjInfo {
+		private long wsid;
+		private long objid;
+		private long ver;
+
+		public TstObjInfo(long wsid, long objid, int ver) {
+			this.wsid = wsid;
+			this.objid = objid;
+			this.ver = ver;
+		}
+
+		@Override
+		public String toString() {
+			return "TstObjInfo [wsid=" + wsid + ", objid=" + objid + ", ver=" + ver + "]";
+		}
+	}
+	
+	@Test
+	public void listObjectsWithStartFrom() throws Exception {
+		// This only tests that the start from parameter is passed correctly to the backend.
+		// The various interactions with other parameters are tested in the workspace tests
+		final String ws1 = "listObjectsWithStartFrom1";
+		final String ws2 = "listObjectsWithStartFrom2";
+		final UObject d = new UObject(new HashMap<String, String>());
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws1));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws2));
+		
+		List<ObjectSaveData> objs = new LinkedList<ObjectSaveData>();
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o1"));
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o2"));
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o3"));
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o3"));  // v2
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o1"));  // v2
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws1).withObjects(objs));
+		
+		objs.clear();
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o1"));
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws2).withObjects(objs));
+		
+		final ListObjectsParams lop = new ListObjectsParams().withIds(Arrays.asList(1L, 2L))
+				.withShowAllVersions(1L);
+		
+		final List<TstObjInfo> expected = Arrays.asList(
+				new TstObjInfo(1, 1, 2),
+				new TstObjInfo(1, 1, 1),
+				new TstObjInfo(1, 2, 1),
+				new TstObjInfo(1, 3, 2),
+				new TstObjInfo(1, 3, 1),
+				new TstObjInfo(2, 1, 1)
+				);
+		
+		checkStartFrom(lop.withStartfrom(null), expected);
+		checkStartFrom(lop.withStartfrom("   \t    "), expected);
+		checkStartFrom(lop.withStartfrom("0"), expected);
+		checkStartFrom(lop.withStartfrom("0/0"), expected);
+		checkStartFrom(lop.withStartfrom("0/0/0"), expected);
+		checkStartFrom(lop.withStartfrom("1"), expected);
+		checkStartFrom(lop.withStartfrom("1/1"), expected);
+		checkStartFrom(lop.withStartfrom("1/1/2"), expected);
+		checkStartFrom(lop.withStartfrom("2"), expected.subList(5, 6));
+		checkStartFrom(lop.withStartfrom("2/1/"), expected.subList(5, 6));
+		checkStartFrom(lop.withStartfrom("2/1/1"), expected.subList(5, 6));
+		checkStartFrom(lop.withStartfrom("1/1/1"), expected.subList(1, 6));
+		checkStartFrom(lop.withStartfrom("1/2/2"), expected.subList(2, 6));
+		checkStartFrom(lop.withStartfrom("1/3/1"), expected.subList(4, 6));
+	}
+	
+	@Test
+	public void listObjectsWithStartFromFail() throws Exception {
+		// test a non-exhaustive set of error conditions.
+		final ListObjectsParams lop = new ListObjectsParams().withIds(Arrays.asList(1L));
+		failListObjects(lop.withStartfrom("foo"),
+				 "Illegal integer workspace ID in reference string foo: foo");
+		failListObjects(lop.withStartfrom("1/2/  "),
+				"Illegal integer version in reference string 1/2/  : ");
+		failListObjects(lop.withStartfrom("1/2/").withAfterEpoch(10000L),
+				"If a starting reference for paging is provided, metadata, savers, " +
+				"min/max object IDs, and timestamps cannot be set as filters.");
+	}
+
+	private void checkStartFrom(final ListObjectsParams lop, final List<TstObjInfo> expected)
+			throws Exception {
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> res = CLIENT1.listObjects(lop);
+		for (int i = 0; i < expected.size(); i++) {
+			final TstObjInfo info = expected.get(i);
+			assertThat("incorrect wsid for case " + info, res.get(i).getE7(), is(info.wsid));
+			assertThat("incorrect objid for case " + info, res.get(i).getE1(), is(info.objid));
+			assertThat("incorrect ver for case " + info, res.get(i).getE5(), is(info.ver));
+		}
+		assertThat("incorrect object count", res.size(), is(expected.size()));
 	}
 
 	@Test

@@ -70,6 +70,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.RefLimit;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.UserWorkspaceIDs;
@@ -596,6 +597,7 @@ public class WorkspaceServerMethods {
 				.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
 				.withAfter(after)
 				.withBefore(before)
+				.withStartFrom(RefLimit.fromRefString(params.getStartfrom()))
 				.withMinObjectID(checkLong(params.getMinObjectID(), -1))
 				.withMaxObjectID(checkLong(params.getMaxObjectID(), -1))
 				.withShowHidden(longToBoolean(params.getShowHidden()))

@@ -1347,6 +1347,17 @@ module Workspace {
 			date.
 		epoch before_epoch - only return objects that were created before this
 			date.
+		string startfrom - a reference-like string that determines where the
+			list of objects will begin. It takes the form X/Y/Z, where X is
+			the workspace ID, Y the object ID, and Z the version. The version
+			may be omitted, and the object ID omitted if the version is also
+			omitted. After a '/' separator either an integer or no characters
+			at all, including whitespace, may occur. Whitespace strings are
+			ignored. If startfrom is provided, after, before,
+			after_epoch, before_epoch, savedby, meta, minObjectID, and
+			maxObjectID may not be provided. Only objects that are ordered
+			after the reference, inclusive, will be included in the
+			result, and the resulting list will be sorted by reference.
 		obj_id minObjectID - only return objects with an object id greater or
 			equal to this value.
 		obj_id maxObjectID - only return objects with an object id less than or
@@ -1365,7 +1376,6 @@ module Workspace {
 			excluding them from the input workspace list(s).
 		int limit - limit the output to X objects. Default and maximum value
 			is 10000. Limit values < 1 are treated as 10000, the default.
-		
 	*/
 	typedef structure {
 		list<ws_name> workspaces;
@@ -1378,6 +1388,7 @@ module Workspace {
 		timestamp before;
 		epoch after_epoch;
 		epoch before_epoch;
+		string startfrom;
 		obj_id minObjectID;
 		obj_id maxObjectID;
 		boolean showDeleted;

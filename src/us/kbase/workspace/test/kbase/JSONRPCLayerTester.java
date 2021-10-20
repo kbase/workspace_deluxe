@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.io.File;
 import java.io.IOException;
@@ -1538,16 +1539,21 @@ public class JSONRPCLayerTester {
 			String type, String perm, Map<String, String> meta, Long showHidden,
 			Long showDeleted, Long allVers, Long includeMeta, long limit, String exp)
 			throws Exception {
-		try {
-			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
+		failListObjects(new ListObjectsParams().withWorkspaces(wsnames)
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
 					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
 					.withIncludeMetadata(includeMeta).withPerm(perm).withMeta(meta)
-					.withLimit(limit));
+					.withLimit(limit),
+					exp);
+	}
+	
+	protected void failListObjects(final ListObjectsParams lop, final String expected)
+			throws Exception {
+		try {
+			CLIENT1.listObjects(lop);
 			fail("listed objects with bad params");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exp));
+		} catch (Exception se) {
+			assertExceptionCorrect(se, new ServerException(expected, 1, "foo"));
 		}
 	}
 
