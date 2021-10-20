@@ -54,7 +54,7 @@ public class RefLimit {
 	/** Create a limit from a refstring in the format 'workspace ID / object ID / version', e.g.
 	 * 655/34/7. Nulls and empty strings result in an empty limit. The version may be omitted, and
 	 * the object ID may be omitted if the version is omitted. If a '/' separator is present
-	 * the either the next integer must be present or no characters, including whitespace, may
+	 * then either the next integer must be present or no characters, including whitespace, may
 	 * be present - in other words "7/ " is an error.
 	 * @param refstring the ref string to process.
 	 * @return the limit.
