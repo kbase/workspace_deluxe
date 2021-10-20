@@ -54,14 +54,16 @@ public class RefLimit {
 	/** Create a limit from a refstring in the format 'workspace ID / object ID / version', e.g.
 	 * 655/34/7. Nulls and empty strings result in an empty limit. The version may be omitted, and
 	 * the object ID may be omitted if the version is omitted. If a '/' separator is present
-	 * the next integer must be present - in other words "7/" is an error.
+	 * the either the next integer must be present or no characters, including whitespace, may
+	 * be present - in other words "7/ " is an error.
 	 * @param refstring the ref string to process.
 	 * @return the limit.
-	 * @throws IllegalArgumentException if there are more than 2 separators or there is no
-	 * number after a separator.
+	 * @throws IllegalArgumentException if there are more than 2 separators or there are
+	 * characters but no number after a separator.
 	 */
 	public static RefLimit fromRefString(final String refstring) {
-		if (refstring == null || refstring.strip().isEmpty()) {
+		// TODO CODE after switching completely to java 11, swap .trim() for .strip() globally
+		if (refstring == null || refstring.trim().isEmpty()) {
 			return EMPTY;
 		}
 		final String[] parts = refstring.split("/");
@@ -69,14 +71,14 @@ public class RefLimit {
 			throw new IllegalArgumentException(
 					"Illegal reference string, expected no more than 2 separators: " + refstring);
 		}
-		final Long ws = parseLong(parts[0].strip(), refstring, "workspace ID");
+		final Long ws = parseLong(parts[0].trim(), refstring, "workspace ID");
 		Long id = null;
 		Integer ver = null;
 		if (parts.length > 1) {
-			id = parseLong(parts[1].strip(), refstring, "object ID");
+			id = parseLong(parts[1].trim(), refstring, "object ID");
 		}
 		if (parts.length > 2) {
-			final Long lver = parseLong(parts[2].strip(), refstring, "version");
+			final Long lver = parseLong(parts[2].trim(), refstring, "version");
 			// let's just hope that we never hit 9 quintillion workspaces or objects in a workspace
 			ver = lver > Integer.MAX_VALUE ? Integer.MAX_VALUE : lver.intValue();
 		}
