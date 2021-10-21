@@ -19,30 +19,12 @@ about workspaces and :ref:`listobjects` for information about the ``list_objects
 There are currently two ways to page through workspace data - via object ID limits, and via
 reference limit.
 
-Parameters to avoid when paging
--------------------------------
-
-Several parameters should be avoided when using the ``list_objects`` command to page
-through data:
-
-* Any of the time stamps (``after``, ``before``, ``after_epoch``, and ``before_epoch``)
-* ``savedby``
-* ``meta``
-
-The parameters are allowed, but strongly discouraged, when paging via object ID limits. Depending
-on the parameter set and the data to be listed, they may slow down the listing substantially,
-and may cause the data not to be sorted (see below).
-
-When paging via reference limit, these parameter are not allowed at all, and specifying a
-reference limit (the ``startfrom`` parameter) and one of the parameters above will cause an
-error. Additionally, the object ID limits (``minObjectID`` and ``maxObjectID``) are not allowed
-and including them will cause an error.
-
 Sort order
 ----------
 
-When paging by reference limit and when paging via object ID limits without including any of
-the parameters to avoid listed above, data will be sorted by:
+When paging via the two methods mentioned above, the objects are returned in a specific sort
+order (but see the notes about ill-advised ``list_objects`` parameters in
+:ref:`paging_object_id_limits`):
 
 1. the workspace ID, ascending
 2. the object ID, ascending
@@ -62,6 +44,8 @@ each set of objects returned depends on the reference of the last object in the 
 Paging by reference works well for any number of workspaces and when all object versions are
 required. The drawback is that data from the prior set of objects is required to get the next set.
 
+.. _paging_object_id_limits:
+
 Paging by object ID limits
 --------------------------
 
@@ -77,6 +61,16 @@ there may be duplicated objects in subsequent ``list_objects`` calls.
 
 Specifying that all object versions should be included in the results is not recommended, as
 the ``limit`` may be exceeded, and any excess objects will not be returned in the set.
+
+Several parameters should be avoided when using the ``list_objects`` command to page
+through data with object ID limits:
+
+* Any of the time stamps (``after``, ``before``, ``after_epoch``, and ``before_epoch``)
+* ``savedby``
+* ``meta``
+
+Depending on the parameter set and the data to be listed, including any of these parameters
+may slow down the data lookup substantially and may cause the data not to be sorted.
 
 The following example shows how to page through a large workspace <= 10,000 objects at a time:
 
@@ -113,6 +107,14 @@ smallest workspace ID from the set of workspaces submitted to the ``list_objects
 the object ID of the starting object of interest (often 1). Construct the ``startfrom`` parameter
 from the last object in the list of returned objects, and decrement the version. If the
 resulting version is 0, increment the object ID and omit the version from the ``startfrom`` string.
+
+The following ``list_objects`` parameters are incompatible with the ``startfrom`` parameter
+and will cause an error to be returned if used:
+
+* Any of the time stamps (``after``, ``before``, ``after_epoch``, and ``before_epoch``)
+* ``savedby``
+* ``meta``
+* object ID limits (``minObjectID`` and ``maxObjectID``)
 
 The following example shows how the paging proceeds, using a very small limit for clarity:
 
