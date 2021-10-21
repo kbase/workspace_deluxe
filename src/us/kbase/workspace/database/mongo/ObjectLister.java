@@ -9,7 +9,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -46,8 +45,9 @@ public class ObjectLister {
 	}
 	
 	private static final Set<String> FLDS_LIST_OBJ_VER = Stream.of(
-			Fields.VER_VER, Fields.VER_TYPE_FULL, Fields.VER_SAVEDATE,
-			Fields.VER_SAVEDBY, Fields.VER_CHKSUM, Fields.VER_SIZE,
+			Fields.VER_VER,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
+			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY, Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_ID, Fields.VER_WS_ID).collect(Collectors.toSet());
 	
 	/** List objects as per the given parameters.
@@ -142,7 +142,7 @@ public class ObjectLister {
 	private DBObject buildSortSpec(final ResolvedListObjectParameters params) {
 		final DBObject sort = new BasicDBObject();
 		if (isSafeForUPASort(params)) {
-			addTypeField(sort, params.getType(), () -> 1);
+			addTypeFields(sort, params.getType(), true);
 			sort.put(Fields.VER_WS_ID, 1);
 			sort.put(Fields.VER_ID, 1);
 			sort.put(Fields.VER_VER, -1);
@@ -167,7 +167,7 @@ public class ObjectLister {
 		final BasicDBObject start = new BasicDBObject();
 		final RefLimit s = params.getStartFrom();
 		if (s.isPresent()) { // implies isSafeForUPASort is true
-			addTypeField(start, params.getType(), () -> params.getType().get().getTypeString());
+			addTypeFields(start, params.getType(), false);
 			start.append(Fields.VER_WS_ID, s.getWorkspaceID().get());
 			start.append(Fields.VER_ID, s.getObjectID().isPresent() ? s.getObjectID().get() : 1L);
 			start.append(Fields.VER_VER,  // there better not be > 2B versions of an object
@@ -176,18 +176,21 @@ public class ObjectLister {
 		return start;
 	}
 	
-	private void addTypeField(
+	private void addTypeFields(
 			final DBObject toBeModified,
 			final Optional<TypeDefId> type,
-			final Supplier<Object> value) {
+			final boolean sort) {
 		if (type.isPresent()) {
+			toBeModified.put(Fields.VER_TYPE_NAME,
+					sort ? 1 : type.get().getType().getTypeString());
 			// TODO CODE use optionals for typedefid versions
+			if (type.get().getMajorVersion() != null) {
+				toBeModified.put(Fields.VER_TYPE_MAJOR_VERSION,
+						sort ? 1 : type.get().getMajorVersion());
+			}
 			if (type.get().getMinorVersion() != null) {
-				toBeModified.put(Fields.VER_TYPE_FULL, value.get());
-			} else if (type.get().getMajorVersion() != null) {
-				toBeModified.put(Fields.VER_TYPE_WITH_MAJOR_VERSION, value.get());
-			} else {
-				toBeModified.put(Fields.VER_TYPE_NAME, value.get());
+				toBeModified.put(Fields.VER_TYPE_MINOR_VERSION,
+						sort ? 1 : type.get().getMinorVersion());
 			}
 		}
 	}
@@ -197,7 +200,7 @@ public class ObjectLister {
 				.map(ws -> ws.getID()).distinct().sorted().collect(Collectors.toList());
 		final DBObject verq = new BasicDBObject();
 		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
-		addTypeField(verq, params.getType(), () -> params.getType().get().getTypeString());
+		addTypeFields(verq, params.getType(), false);
 		if (!params.getSavers().isEmpty()) {
 			verq.put(Fields.VER_SAVEDBY, new BasicDBObject("$in", params.getSavers().stream()
 					.map(s -> s.getUser()).collect(Collectors.toList())));

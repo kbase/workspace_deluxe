@@ -307,19 +307,20 @@ public class MongoStartUpTest {
 						.append("name", "ws_1_id_1_ver_-1")
 						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
 				new Document("v", INDEX_VER)
-						.append("key", new Document("type", 1).append("ws", 1).append("id", 1)
-								.append("ver", -1))
-						.append("name", "type_1_ws_1_id_1_ver_-1")
+						.append("key", new Document("tyname", 1)
+								.append("tymaj", 1).append("tymin", 1)
+								.append("ws", 1).append("id", 1).append("ver", -1))
+						.append("name", "tyname_1_tymaj_1_tymin_1_ws_1_id_1_ver_-1")
 						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
 				new Document("v", INDEX_VER)
-						.append("key", new Document("tyname", 1).append("ws", 1).append("id", 1)
-								.append("ver", -1))
+						.append("key", new Document("tyname", 1).append("tymaj", 1)
+								.append("ws", 1).append("id", 1).append("ver", -1))
+						.append("name", "tyname_1_tymaj_1_ws_1_id_1_ver_-1")
+						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
+				new Document("v", INDEX_VER)
+						.append("key", new Document("tyname", 1)
+								.append("ws", 1).append("id", 1).append("ver", -1))
 						.append("name", "tyname_1_ws_1_id_1_ver_-1")
-						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
-				new Document("v", INDEX_VER)
-						.append("key", new Document("tymaj", 1).append("ws", 1).append("id", 1)
-								.append("ver", -1))
-						.append("name", "tymaj_1_ws_1_id_1_ver_-1")
 						.append("ns", "MongoStartUpTest.workspaceObjVersions"),
 				new Document("v", INDEX_VER)
 						.append("key", new Document("provenance", 1))

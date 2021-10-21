@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
@@ -132,10 +134,14 @@ public class ObjectInfoUtils {
 		@SuppressWarnings("unchecked")
 		final List<Map<String, String>> meta =
 				(List<Map<String, String>>) ver.get(Fields.VER_META);
+		final TypeDefId type = new TypeDefId(
+				new TypeDefName((String) ver.get(Fields.VER_TYPE_NAME)),
+				(int) ver.get(Fields.VER_TYPE_MAJOR_VERSION),
+				(int) ver.get(Fields.VER_TYPE_MINOR_VERSION));
 		return new ObjectInformation(
 				objid,
 				name,
-				(String) ver.get(Fields.VER_TYPE_FULL),
+				type.getTypeString(),
 				(Date) ver.get(Fields.VER_SAVEDATE),
 				(Integer) ver.get(Fields.VER_VER),
 				new WorkspaceUser((String) ver.get(Fields.VER_SAVEDBY)),
