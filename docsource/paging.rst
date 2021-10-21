@@ -55,8 +55,8 @@ Object ID versus reference limits
 ---------------------------------
 
 Paging by object ID limits works well for paging through data in a single workspace where only
-the most recent version of each object is required. Its advantage over reference based paging
-is that any range of object IDs can be accessed at any time, whereas in reference based paging
+the most recent version of each object is required. Its advantage over reference-based paging
+is that any range of object IDs can be accessed at any time, whereas in reference-based paging
 each set of objects returned depends on the reference of the last object in the prior set.
 
 Paging by reference works well for any number of workspaces and when all object versions are
