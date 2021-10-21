@@ -3,16 +3,16 @@
 Paging workspace objects
 ========================
 
-Workspaces can contain many objects, and the ``list_objects`` command returns a maximum of
-10000 ``object_info`` data structures (referred to as objects from now on) at a time. This
+Workspaces can contain many objects, but the ``list_objects`` command returns a maximum of
+10,000 ``object_info`` data structures (referred to as objects from now on) at a time. This
 section of the documentation discusses how to handle the case where access to large amounts
 of data is required.
 
-If it is reasonable to expect that a ``list_objects`` command will return no more than 10000
+If it is reasonable to expect that a ``list_objects`` command will return no more than 10,000
 objects then paging doesn't need to be considered. For example if the command only encompasses
 one workspace, only the most recent version of each object is required, and the ``max_objid``
 field in the workspace information returned by various API methods (for example
-``get_workspace_info``) is no more than 10000, then a single ``list_objects`` command can return
+``get_workspace_info``) is no more than 10,000, then a single ``list_objects`` command can return
 all the data requested. See :ref:`workspaces` for more information about getting information
 about workspaces and :ref:`listobjects` for information about the ``list_objects`` command.
 
@@ -67,7 +67,7 @@ Paging by object ID limits
 
 To page by object ID limits, provide the ``minObjectID`` and ``maxObjectID`` parameters
 to limit the object IDs, and thus the number of objects, returned in the result. Both parameters
-are inclusive. ``maxObjectID - minObjectID`` should always be <= 10000. Setting a smaller
+are inclusive. ``maxObjectID - minObjectID`` should always be <= 10,000. Setting a smaller
 ``limit`` can be done by specifying object ID parameters with a smaller difference.
 
 Note that by default, hidden and deleted objects will not be returned in the set of objects.
@@ -78,7 +78,7 @@ there may be duplicated objects in subsequent ``list_objects`` calls.
 Specifying that all object versions should be included in the results is not recommended, as
 the ``limit`` may be exceeded, and any excess objects will not be returned in the set.
 
-The following example shows how to page through a large workspace <=10000 objects at a time:
+The following example shows how to page through a large workspace <= 10,000 objects at a time:
 
 .. code-block:: python
 
@@ -104,7 +104,7 @@ Paging by reference limit
 -------------------------
 
 To page by a reference limit, provide the ``startfrom`` parameter and optionally a ``limit``
-if less than 10000 objects should be returned at a time. Paging with a reference limit is useful
+if less than 10,000 objects should be returned at a time. Paging with a reference limit is useful
 for paging through multiple workspaces or object versions. The ``startfrom`` parameter looks
 like a workspace object reference of the form ``X/Y/Z`` where ``X`` is the integer workspace ID,
 ``Y`` the integer object ID, and ``Z`` the version. The version may be omitted, and and object ID
