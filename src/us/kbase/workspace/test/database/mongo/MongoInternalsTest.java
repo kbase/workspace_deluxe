@@ -20,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -80,7 +81,6 @@ import us.kbase.workspace.database.mongo.ObjectSavePackage;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
-import com.google.common.base.Optional;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;

@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -35,7 +36,6 @@ import org.mockito.ArgumentMatcher;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableMap;
 
@@ -551,7 +551,7 @@ public class WorkspaceAdministrationTest {
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
 		when(mocks.ws.setWorkspaceOwner(
 				// really ws will throw an exception if a null user is passed
-				null, new WorkspaceIdentifier(3), null, Optional.absent(), true))
+				null, new WorkspaceIdentifier(3), null, Optional.empty(), true))
 				.thenReturn(WorkspaceInformation.getBuilder()
 						.withID(3)
 						.withName("na")

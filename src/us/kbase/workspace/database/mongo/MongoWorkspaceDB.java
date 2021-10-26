@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -98,7 +99,6 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
 import com.mongodb.BasicDBObject;
 import com.mongodb.CommandResult;
 import com.mongodb.DB;
@@ -113,14 +113,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	/* NOTES ON SHARDING:
 	 * - workspace cannot be sharded as it requires unique indexes on id and name. It's
 	 *   extremely unlikely to get big enough to require sharding though. The WSobject & ver
-	 *   collections are 2-3 orderes of magnitude larger in prod.
+	 *   collections are 2-3 orders of magnitude larger in prod.
 	 * - WS ACLs could be sharded on a hashed WSID, but probably not necessary.
 	 * - WS objects could be sharded on a hashed WSID. This means that large workspaces would
 	 *   exist entirely on one shard, unfortunately, but that index must be unique.
-	 * - WS object verisons could be sharded on a hashed WSID or combined WSID/Object ID. The
+	 * - WS object versions could be sharded on a hashed WSID or combined WSID/Object ID. The
 	 *   latter would split objects between shards, but all the versions for a particular object
 	 *   would remain on one shard. Again, the WSID/Object ID index must be unique.
-	 * - Provedence could be sharded on the (hashed?) Mongo Object ID.
+	 * - Provenance could be sharded on the (hashed?) Mongo Object ID.
 	 * - Admins and configs are tiny.
 	 */
 	
@@ -130,7 +130,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	//TODO CONFIG this should really be configurable
 	private static final long MAX_PROV_SIZE = 1000000;
-	private static final int SCHEMA_VERSION = 1;
+	
+	/** The expected version of the database schema. */
+	public static final int SCHEMA_VERSION = 1;
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
@@ -147,7 +149,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String IDX_UNIQ = "unique";
 	private static final String IDX_SPARSE = "sparse";
 	
-	private HashMap<String, List<IndexSpecification>> getIndexSpecs() {
+	private static HashMap<String, List<IndexSpecification>> getIndexSpecs() {
 		// should probably rework this and the index spec class
 		//hardcoded indexes
 		final HashMap<String, List<IndexSpecification>> indexes = new HashMap<>();
@@ -273,8 +275,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		objutils = new ObjectInfoUtils(query);
 		blob = blobStore;
 		//TODO DBCONSIST check a few random types and make sure they exist
-		ensureIndexes();
-		checkConfig();
+		ensureIndexes(wsmongo);
+		checkConfig(wsmongo);
 	}
 	
 	private static class IndexSpecification {
@@ -409,52 +411,67 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return tfm;
 	}
 	
-	private void checkConfig() throws WorkspaceCommunicationException,
+	private static void checkConfig(final DB wsdb) throws WorkspaceCommunicationException,
 			WorkspaceDBInitializationException, CorruptWorkspaceDBException {
 		final DBObject cfg = new BasicDBObject(
 				Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
 		cfg.put(Fields.CONFIG_UPDATE, false);
 		cfg.put(Fields.CONFIG_SCHEMA_VERSION, SCHEMA_VERSION);
 		try {
-			wsmongo.getCollection(COL_CONFIG).insert(cfg);
+			wsdb.getCollection(COL_CONFIG).insert(cfg);
 		} catch (DuplicateKeyException dk) {
 			//ok, the version doc is already there, this isn't the first
 			//startup
-			final DBObject query = new BasicDBObject(Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
-			try (final DBCursor cur = wsmongo.getCollection(COL_CONFIG).find(query)) {
-				if (cur.size() != 1) {
-					throw new CorruptWorkspaceDBException(
-							"Multiple config objects found in the database. " +
-							"This should not happen, something is very wrong.");
-				}
-				final DBObject storedCfg = cur.next();
-				if ((Integer)storedCfg.get(Fields.CONFIG_SCHEMA_VERSION) !=
-						SCHEMA_VERSION) {
-					throw new WorkspaceDBInitializationException(String.format(
-							"Incompatible database schema. Server is v%s, DB is v%s",
-							SCHEMA_VERSION,
-							storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
-				}
-				if ((Boolean)storedCfg.get(Fields.CONFIG_UPDATE)) {
-					throw new CorruptWorkspaceDBException(String.format(
-							"The database is in the middle of an update from " +
-							"v%s of the schema. Aborting startup.", 
-							storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
-				}
+			checkExtantConfigAndGetVersion(wsdb, false, false);
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(
+					"There was a problem communicating with the database", me);
+		}
+	}
+
+	static Optional<Integer> checkExtantConfigAndGetVersion(
+			final DB wsdb,
+			final boolean allowNoConfig,
+			final boolean skipVersionCheck)
+			throws CorruptWorkspaceDBException, WorkspaceDBInitializationException,
+				WorkspaceCommunicationException {
+		final DBObject query = new BasicDBObject(Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
+		try (final DBCursor cur = wsdb.getCollection(COL_CONFIG).find(query)) {
+			if (allowNoConfig && cur.size() == 0) {
+				return Optional.empty();
 			}
+			if (cur.size() != 1) {
+				throw new CorruptWorkspaceDBException(String.format(
+						"%s config object(s) found in the database. " +
+						"This should not happen, something is very wrong.", cur.size()));
+			}
+			final DBObject storedCfg = cur.next();
+			final Integer schemaVer = (Integer)storedCfg.get(Fields.CONFIG_SCHEMA_VERSION);
+			if (!skipVersionCheck && schemaVer != SCHEMA_VERSION) {
+				throw new WorkspaceDBInitializationException(String.format(
+						"Incompatible database schema. Server is v%s, DB is v%s",
+						SCHEMA_VERSION,
+						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+			}
+			if ((Boolean)storedCfg.get(Fields.CONFIG_UPDATE)) {
+				throw new WorkspaceDBInitializationException(String.format(
+						"The database is in the middle of an update from " +
+						"v%s of the schema. Aborting startup.", 
+						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+			}
+			return Optional.of(schemaVer);
 		} catch (MongoException me) {
 			throw new WorkspaceCommunicationException(
 					"There was a problem communicating with the database", me);
 		}
 	}
 	
-	private void ensureIndexes() throws CorruptWorkspaceDBException {
+	static void ensureIndexes(final DB wsdb) throws CorruptWorkspaceDBException {
 		final HashMap<String, List<IndexSpecification>> indexes = getIndexSpecs();
 		for (final String col: indexes.keySet()) {
-//			wsmongo.getCollection(col).resetIndexCache();
 			for (final IndexSpecification index: indexes.get(col)) {
 				try {
-					wsmongo.getCollection(col).createIndex(index.index, index.options);
+					wsdb.getCollection(col).createIndex(index.index, index.options);
 				} catch (DuplicateKeyException dk) {
 					throw new CorruptWorkspaceDBException(
 							"Found duplicate index keys in the database, " +

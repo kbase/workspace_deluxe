@@ -2,8 +2,7 @@ package us.kbase.workspace.listener;
 
 import java.time.Instant;
 import java.util.List;
-
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
