@@ -45,7 +45,7 @@ public class GetObjectsMongoWSDB {
 		
 		final BlobStore blob = new GridFSBlobStore(db);
 		final TempFilesManager tfm = new TempFilesManager(new File("temp_getobjmongoWS"));
-		final MongoWorkspaceDB mws = new MongoWorkspaceDB(db, blob, tfm);
+		final MongoWorkspaceDB mws = new MongoWorkspaceDB(db, blob);
 		
 		final ResolvedWorkspaceID rwsi = mws.resolveWorkspace(new WorkspaceIdentifier(WORKSPACE));
 		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(

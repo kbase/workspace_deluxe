@@ -93,36 +93,31 @@ public class Workspace {
 	private final WorkspaceDatabase db;
 	private ResourceUsageConfiguration rescfg;
 	private final TypedObjectValidator validator;
+	private final TempFilesManager tfm;
 	private final List<WorkspaceEventListener> listeners;
 	private int maximumObjectSearchCount;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
-			final TypedObjectValidator validator) {
-		this(db, cfg, validator, Collections.emptyList());
+			final TypedObjectValidator validator,
+			final TempFilesManager tfm) {
+		this(db, cfg, validator, tfm, Collections.emptyList());
 	}
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
 			final TypedObjectValidator validator,
+			final TempFilesManager tfm,
 			final List<WorkspaceEventListener> listeners) {
-		if (db == null) {
-			throw new NullPointerException("db cannot be null");
-		}
-		if (cfg == null) {
-			throw new NullPointerException("cfg cannot be null");
-		}
-		if (validator == null) {
-			throw new NullPointerException("validator cannot be null");
-		}
+		this.db = requireNonNull(db, "db");
+		rescfg = requireNonNull(cfg, "cfg");
+		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
+		this.validator = requireNonNull(validator, "validator");
+		this.tfm = requireNonNull(tfm, "tfm");
 		nonNull(listeners, "listeners");
 		noNulls(listeners, "null item in listeners");
-		this.db = db;
-		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
-		this.validator = validator;
-		rescfg = cfg;
 		this.listeners = Collections.unmodifiableList(listeners);
 		db.setResourceUsageConfiguration(rescfg);
 		this.maximumObjectSearchCount = MAX_OBJECT_SEARCH_COUNT_DEFAULT;
@@ -153,7 +148,7 @@ public class Workspace {
 	}
 	
 	public TempFilesManager getTempFilesManager() {
-		return db.getTempFilesManager();
+		return tfm;
 	}
 	
 	public List<DependencyStatus> status() {
@@ -1181,7 +1176,7 @@ public class Workspace {
 					 * originals will then be discarded
 					 */
 					rescfg.getMaxReturnedDataSize() * 2L,
-					db.getTempFilesManager());
+					tfm);
 		}
 	}
 

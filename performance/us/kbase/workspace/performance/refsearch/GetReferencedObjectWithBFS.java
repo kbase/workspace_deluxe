@@ -98,9 +98,9 @@ public class GetReferencedObjectWithBFS {
 		
 		final TypeDefinitionDB typeDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		final TypedObjectValidator val = new TypedObjectValidator(new LocalTypeProvider(typeDB));
-		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(WSDB, new GridFSBlobStore(WSDB), tfm);
+		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(WSDB, new GridFSBlobStore(WSDB));
 		
-		WS = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
+		WS = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val, tfm);
 		WS.setMaximumObjectSearchCount(10000000);
 		installTypes(new Types(typeDB));
 		if (DO_LINEAR) {

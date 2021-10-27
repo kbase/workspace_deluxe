@@ -8,7 +8,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import us.kbase.typedobj.core.SubsetSelection;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -605,8 +604,6 @@ public interface WorkspaceDatabase {
 	public void addAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException;
 	
-	public TempFilesManager getTempFilesManager();
-
 	public void setResourceUsageConfiguration(
 			ResourceUsageConfiguration rescfg);
 	
