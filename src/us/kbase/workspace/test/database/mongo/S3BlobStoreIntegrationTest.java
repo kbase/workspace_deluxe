@@ -18,8 +18,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
@@ -52,7 +52,7 @@ public class S3BlobStoreIntegrationTest {
 	//signed certs
 	private static S3BlobStore s3bsTrustCerts;
 	private static S3ClientWithPresign s3client;
-	private static DB mongo;
+	private static MongoDatabase mongo;
 	private static MinioController minio;
 	private static MongoController mongoCon;
 	private static TempFilesManager tfm;
@@ -72,8 +72,9 @@ public class S3BlobStoreIntegrationTest {
 		System.out.println("Started mongo server at localhost:" + mongoCon.getServerPort());
 		
 		String mongohost = "localhost:" + mongoCon.getServerPort();
+		@SuppressWarnings("resource")
 		MongoClient mongoClient = new MongoClient(mongohost);
-		mongo = mongoClient.getDB("MinioBackendTest");
+		mongo = mongoClient.getDatabase("MinioBackendTest");
 
 		minio = new MinioController(
 				TestCommon.getMinioExe(),

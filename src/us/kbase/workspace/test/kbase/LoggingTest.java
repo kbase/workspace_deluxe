@@ -50,8 +50,8 @@ import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.test.WorkspaceServerThread;
 
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 /** Tests application logging only - not the standard logging that comes with
  * JsonServerServlet.
@@ -236,8 +236,9 @@ public class LoggingTest {
 	@Before
 	public void clearDB() throws Exception {
 		logout.reset();
-		final DB wsdb1 = new MongoClient("localhost:" + mongo.getServerPort())
-				.getDB(DB_WS_NAME);
+		@SuppressWarnings("resource")
+		final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
+		final MongoDatabase wsdb1 = mcli.getDatabase(DB_WS_NAME);
 		TestCommon.destroyDB(wsdb1);
 	}
 	

@@ -16,12 +16,12 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 import com.mongodb.MongoException;
 import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoDatabase;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthConfig;
@@ -251,13 +251,13 @@ public class InitWorkspaceServer {
 			throws WorkspaceInitException {
 		
 		final WorkspaceDependencies deps = new WorkspaceDependencies();
-		//TODO CODE update to new mongo APIs
-		final DB db = buildMongo(cfg, cfg.getDBname()).getDB(cfg.getDBname());
+		final MongoDatabase db = buildMongo(cfg, cfg.getDBname()).getDatabase(cfg.getDBname());
 		
 		final BlobStore bs = setupBlobStore(db, cfg, auth);
 		
 		// see https://jira.mongodb.org/browse/JAVA-2656
-		final DB typeDB = buildMongo(cfg, cfg.getTypeDBName()).getDB(cfg.getTypeDBName());
+		final MongoDatabase typeDB = buildMongo(cfg, cfg.getTypeDBName())
+				.getDatabase(cfg.getTypeDBName());
 		
 		try {
 			deps.typeDB = new TypeDefinitionDB(new MongoTypeStorage(typeDB));
@@ -440,7 +440,7 @@ public class InitWorkspaceServer {
 	}
 
 	private static BlobStore setupBlobStore(
-			final DB db,
+			final MongoDatabase db,
 			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {

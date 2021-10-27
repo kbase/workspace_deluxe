@@ -23,14 +23,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.bson.Document;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 
 import us.kbase.common.test.MapBuilder;
 import us.kbase.typedobj.core.TypeDefId;
@@ -58,8 +58,8 @@ public class ObjectListerTest {
 	private static final ResolvedWorkspaceID WSID_1 = new ResolvedWorkspaceID(
 			5, "foo", false, false);
 	
-	private static DBObject makeDBObject(final int id) {
-		return new BasicDBObject()
+	private static Document makeDBObject(final int id) {
+		return new Document()
 				.append("ver", 7)
 				.append("tyname", "Mod.Type")
 				.append("tymaj", 3)
@@ -94,44 +94,48 @@ public class ObjectListerTest {
 	}
 	
 	// start is inclusive, end is exclusive
-	private static DBObject[] makeDBObjs(final int start, final int end) {
-		return IntStream.range(start, end).mapToObj(i -> makeDBObject(i)).toArray(DBObject[]::new);
+	private static Document[] makeDBObjs(final int start, final int end) {
+		return IntStream.range(start, end).mapToObj(i -> makeDBObject(i)).toArray(Document[]::new);
 	}
 
 	private static final Map<String, Object> OBJ_MAP_1 = makeMapObject(24);
-	private static final DBObject OBJ_DB_1 = makeDBObject(24);
+	private static final Document OBJ_DB_1 = makeDBObject(24);
 	private static final ObjectInformation OBJ_INFO_1 = makeObjInfo(24);
 	
 	private final AllUsers AU = new AllUsers('*');
 	
 	private class Mocks {
-		public final DBCollection col;
+		public final MongoCollection<Document> col;
 		public final ObjectInfoUtils infoutils;
 		public final ObjectLister lister;
+		public final FindIterable<Document> cur;
+		public final MongoCursor<Document> mcur;
 
-		public Mocks(DBCollection col, ObjectInfoUtils infoutils, ObjectLister lister) {
+		public Mocks() {
+			@SuppressWarnings("unchecked")
+			final MongoCollection<Document> col = mock(MongoCollection.class);
 			this.col = col;
-			this.infoutils = infoutils;
-			this.lister = lister;
+			infoutils = mock(ObjectInfoUtils.class);
+			lister = new ObjectLister(col, infoutils);
+			@SuppressWarnings("unchecked")
+			final FindIterable<Document> cur = mock(FindIterable.class);
+			this.cur = cur;
+			@SuppressWarnings("unchecked")
+			final MongoCursor<Document> mcur = mock(MongoCursor.class);
+			this.mcur = mcur;
 		}
-	}
-	
-	private Mocks getMocks() {
-		final DBCollection col = mock(DBCollection.class);
-		final ObjectInfoUtils oiu = mock(ObjectInfoUtils.class);
-		return new Mocks(col, oiu, new ObjectLister(col, oiu));
 	}
 	
 	@Test
 	public void constructFail() throws Exception {
-		final Mocks m = getMocks();
+		final Mocks m = new Mocks();
 		
 		failConstruct(null, m.infoutils, new NullPointerException("verCol cannot be null"));
 		failConstruct(m.col, null, new NullPointerException("infoUtils cannot be null"));
 	}
 	
 	private void failConstruct(
-			final DBCollection col,
+			final MongoCollection<Document> col,
 			final ObjectInfoUtils oiu,
 			final Exception expected) {
 		try {
@@ -142,12 +146,12 @@ public class ObjectListerTest {
 		}
 	}
 	
-	private DBObject getProjection() {
+	private Document getProjection() {
 		return getProjection(false);
 	}
 	
-	private DBObject getProjection(final boolean includeMeta) {
-		final BasicDBObject p = new BasicDBObject();
+	private Document getProjection(final boolean includeMeta) {
+		final Document p = new Document();
 		Stream.of("ver", "tyname", "tymaj", "tymin", "savedate", "savedby", "chksum", "size",
 				"id", "ws")
 				.forEach(s -> p.append(s, 1));
@@ -160,12 +164,12 @@ public class ObjectListerTest {
 	
 	@Test
 	public void filterFailNull() throws Exception {
-		filterFail(getMocks().lister, null, new NullPointerException("params cannot be null"));
+		filterFail(new Mocks().lister, null, new NullPointerException("params cannot be null"));
 	}
 	
 	@Test
 	public void filterFailException() throws Exception {
-		final Mocks m = getMocks();
+		final Mocks m = new Mocks();
 		
 		final ResolvedWorkspaceID wsid = WSID_1;
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
@@ -176,11 +180,10 @@ public class ObjectListerTest {
 						.build());
 		
 		
-		final DBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)));
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)));
 		
-		when(m.col.find(expectedQuery, getProjection()))
-				.thenThrow(new MongoException("ah creahp"));
+		when(m.col.find(expectedQuery)).thenThrow(new MongoException("ah creahp"));
 		
 		filterFail(m.lister, p, new WorkspaceCommunicationException(
 				"There was a problem communicating with the database"));
@@ -205,13 +208,13 @@ public class ObjectListerTest {
 				.build()
 				.resolve(PermissionSet.getBuilder(new WorkspaceUser("foo"), AU).build());
 		
-		assertThat("incorrect objs", getMocks().lister.filter(p), is(Collections.emptyList()));
+		assertThat("incorrect objs", new Mocks().lister.filter(p), is(Collections.emptyList()));
 	}
 	
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
-			final DBObject expectedQuery)
+			final Document expectedQuery)
 			throws Exception {
 		completeSimpleFilterTest(pset, p, expectedQuery, false);
 	}
@@ -219,7 +222,7 @@ public class ObjectListerTest {
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
-			final DBObject expectedQuery,
+			final Document expectedQuery,
 			final boolean basicSort)
 			throws Exception {
 		completeSimpleFilterTest(pset, p, expectedQuery, basicSort, false);
@@ -228,11 +231,11 @@ public class ObjectListerTest {
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
-			final DBObject expectedQuery,
+			final Document expectedQuery,
 			final boolean basicSort,
 			final boolean boolopts)
 			throws Exception {
-		final BasicDBObject sort = new BasicDBObject();
+		final Document sort = new Document();
 		if (basicSort) {
 			sort.append("ws", 1).append("id",  1).append("ver", -1);
 		}
@@ -242,8 +245,8 @@ public class ObjectListerTest {
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
-			final DBObject expectedQuery,
-			final DBObject expectedSort,
+			final Document expectedQuery,
+			final Document expectedSort,
 			final boolean boolopts)
 			throws Exception {
 		final BitSet bs = new BitSet(6);
@@ -256,11 +259,11 @@ public class ObjectListerTest {
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
-			final DBObject expectedQuery,
+			final Document expectedQuery,
 			final boolean basicSort,
 			final BitSet boolopts)
 			throws Exception {
-		final BasicDBObject sort = new BasicDBObject();
+		final Document sort = new Document();
 		if (basicSort) {
 			sort.append("ws", 1).append("id",  1).append("ver", -1);
 		}
@@ -270,34 +273,35 @@ public class ObjectListerTest {
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
-			final DBObject expectedQuery,
-			final DBObject expectedSort,
+			final Document expectedQuery,
+			final Document expectedSort,
 			// 0 - 5 = meta, hidden, del, only del, versions, admin
 			final BitSet boolopts)
 			throws Exception {
 		completeSimpleFilterTest(
-				pset, p, expectedQuery, expectedSort, boolopts, new BasicDBObject());
+				pset, p, expectedQuery, expectedSort, boolopts, new Document());
 	}
 	
 	private void completeSimpleFilterTest(
 			final PermissionSet pset,
 			final ResolvedListObjectParameters p,
-			final DBObject expectedQuery,
-			final DBObject expectedSort,
+			final Document expectedQuery,
+			final Document expectedSort,
 			// 0 - 5 = meta, hidden, del, only del, versions, admin
 			final BitSet boolopts,
-			final DBObject startFrom)
+			final Document startFrom)
 			throws Exception {
-		final Mocks m = getMocks();
-		final DBCursor cur = mock(DBCursor.class);
-		when(m.col.find(expectedQuery, getProjection(boolopts.get(0)))).thenReturn(cur);
-		when(cur.hasNext()).thenReturn(true, true, false);
-		when(cur.hint(any(DBObject.class))).thenReturn(cur); // mock fluent interface
+		final Mocks m = new Mocks();
+		when(m.col.find(expectedQuery)).thenReturn(m.cur);
+		when(m.cur.projection(getProjection(boolopts.get(0)))).thenReturn(m.cur);
+		when(m.cur.iterator()).thenReturn(m.mcur);
+		when(m.cur.hint(expectedSort)).thenReturn(m.cur); // mock fluent interface
+		when(m.mcur.hasNext()).thenReturn(true, true, false);
 		
 		// if include meta is true, all these object representations should include metadata.
 		// however, the code doesn't actually know what's going on beyond setting up the
 		// mongo projection, so not really worth the bother.
-		when(cur.next()).thenReturn(OBJ_DB_1);
+		when(m.mcur.next()).thenReturn(OBJ_DB_1);
 		
 		when(m.infoutils.generateObjectInfo(
 				pset,
@@ -314,19 +318,17 @@ public class ObjectListerTest {
 		assertThat("incorrect objects", ret, is(Arrays.asList(OBJ_INFO_1)));
 		
 		if (!startFrom.keySet().isEmpty()) {
-			verify(cur).hint(expectedSort);
-			verify(cur).min(startFrom);
+			verify(m.cur).min(startFrom);
 		} else {
-			verify(cur, never()).hint(any(DBObject.class));
-			verify(cur, never()).min(any(DBObject.class));
+			verify(m.cur, never()).hint(any(Document.class));
+			verify(m.cur, never()).min(any(Document.class));
 		}
-		verify(cur).sort(expectedSort);
+		verify(m.cur).sort(expectedSort);
 	}
 	
 	@Test
 	public void filterWithNoResults() throws Exception {
-		final Mocks m = getMocks();
-		final DBCursor cur = mock(DBCursor.class);
+		final Mocks m = new Mocks();
 		
 		final ResolvedWorkspaceID wsid = WSID_1;
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
@@ -337,16 +339,18 @@ public class ObjectListerTest {
 						.build());
 		
 		
-		final DBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)));
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)));
 		
-		when(m.col.find(expectedQuery, getProjection())).thenReturn(cur);
-		when(cur.hasNext()).thenReturn(false);
+		when(m.col.find(expectedQuery)).thenReturn(m.cur);
+		when(m.cur.projection(getProjection())).thenReturn(m.cur);
+		when(m.cur.iterator()).thenReturn(m.mcur);
+		when(m.mcur.hasNext()).thenReturn(false);
 		
 		final List<ObjectInformation> ret = m.lister.filter(p);
 		assertThat("incorrect objects", ret, is(Collections.emptyList()));
 		
-		verify(cur).sort(new BasicDBObject("ws", 1).append("id",  1).append("ver", -1));
+		verify(m.cur).sort(new Document("ws", 1).append("id",  1).append("ver", -1));
 	}
 	
 	@Test
@@ -358,8 +362,8 @@ public class ObjectListerTest {
 				Arrays.asList(new WorkspaceIdentifier(5))).build()
 				.resolve(pset);
 		
-		final DBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)));
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)));
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, true);
 	}
@@ -390,16 +394,16 @@ public class ObjectListerTest {
 				.build()
 				.resolve(pset);
 		
-		final DBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(2L, 5L)))
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(2L, 5L)))
 				.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2)
-				.append("savedby", new BasicDBObject("$in", Arrays.asList("a", "b")))
-				.append("$and", Arrays.asList(new BasicDBObject("meta",
-						new BasicDBObject("k", "6").append("v", "7"))))
+				.append("savedby", new Document("$in", Arrays.asList("a", "b")))
+				.append("$and", Arrays.asList(new Document("meta",
+						new Document("k", "6").append("v", "7"))))
 				.append("savedate",
-						new BasicDBObject("$gt", Date.from(inst(40000)))
+						new Document("$gt", Date.from(inst(40000)))
 								.append("$lt", Date.from(inst(80000))))
-				.append("id", new BasicDBObject("$gte", 5L).append("$lte", 78L));
+				.append("id", new Document("$gte", 5L).append("$lte", 78L));
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 	}
@@ -417,29 +421,29 @@ public class ObjectListerTest {
 		// case 1: no start from, no type
 		ResolvedListObjectParameters p = lob.build().resolve(pset);
 		
-		final BasicDBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)));
-		DBObject expectedSort = new BasicDBObject("ws", 1).append("id", 1).append("ver", -1);
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)));
+		Document expectedSort = new Document("ws", 1).append("id", 1).append("ver", -1);
 		
-		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, new BasicDBObject());
+		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, new Document());
 		
 		// case 2: start from, wsid only
 		p = lob.withStartFrom(RefLimit.build(3L, null, null)).build().resolve(pset);
-		DBObject expectedMin = new BasicDBObject("ws", 3L).append("id", 1L)
+		Document expectedMin = new Document("ws", 3L).append("id", 1L)
 				.append("ver", Integer.MAX_VALUE);
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
 		
 		// case 3: start from, wsid & objid
 		p = lob.withStartFrom(RefLimit.build(24L, 108L, null)).build().resolve(pset);
-		expectedMin = new BasicDBObject("ws", 24L).append("id", 108L)
+		expectedMin = new Document("ws", 24L).append("id", 108L)
 				.append("ver", Integer.MAX_VALUE);
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
 		
 		// case 4: start from fully specified
 		p = lob.withStartFrom(RefLimit.build(24L, 108L, 7)).build().resolve(pset);
-		expectedMin = new BasicDBObject("ws", 24L).append("id", 108L).append("ver", 7);
+		expectedMin = new Document("ws", 24L).append("id", 108L).append("ver", 7);
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
 		
@@ -447,9 +451,9 @@ public class ObjectListerTest {
 		p = lob.withStartFrom(RefLimit.build(32L, null, null))
 				.withType(TypeDefId.fromTypeString(TYPE_3_2)).build().resolve(pset);
 		expectedQuery.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2);
-		expectedSort = new BasicDBObject("tyname", 1).append("tymaj", 1).append("tymin", 1)
+		expectedSort = new Document("tyname", 1).append("tymaj", 1).append("tymin", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
-		expectedMin = new BasicDBObject("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2)
+		expectedMin = new Document("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2)
 				.append("ws", 32L).append("id", 1L).append("ver", Integer.MAX_VALUE);
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
@@ -458,9 +462,9 @@ public class ObjectListerTest {
 		p = lob.withStartFrom(RefLimit.build(1L, 1L, null))
 				.withType(TypeDefId.fromTypeString("Mod.Type-3")).build().resolve(pset);
 		expectedQuery.remove("tymin");
-		expectedSort = new BasicDBObject("tyname", 1).append("tymaj", 1)
+		expectedSort = new Document("tyname", 1).append("tymaj", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
-		expectedMin = new BasicDBObject("tyname", "Mod.Type").append("tymaj", 3)
+		expectedMin = new Document("tyname", "Mod.Type").append("tymaj", 3)
 				.append("ws", 1L).append("id", 1L).append("ver", Integer.MAX_VALUE);
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
@@ -469,9 +473,9 @@ public class ObjectListerTest {
 		p = lob.withStartFrom(RefLimit.build(64L, 128L, 256))
 				.withType(TypeDefId.fromTypeString("Mod.Type")).build().resolve(pset);
 		expectedQuery.remove("tymaj");
-		expectedSort = new BasicDBObject("tyname", 1)
+		expectedSort = new Document("tyname", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
-		expectedMin = new BasicDBObject("tyname", "Mod.Type")
+		expectedMin = new Document("tyname", "Mod.Type")
 				.append("ws", 64L).append("id", 128L).append("ver", 256);
 		
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, bs, expectedMin);
@@ -492,11 +496,11 @@ public class ObjectListerTest {
 				.build()
 				.resolve(pset);
 		
-		final DBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)))
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)))
 				.append("savedate",
-						new BasicDBObject("$gt", Date.from(inst(40000))))
-				.append("id", new BasicDBObject("$gte", 5L));
+						new Document("$gt", Date.from(inst(40000))))
+				.append("id", new Document("$gte", 5L));
 		
 		completeSimpleFilterTest(pset, p, expectedQuery);
 	}
@@ -515,11 +519,11 @@ public class ObjectListerTest {
 				.build()
 				.resolve(pset);
 		
-		final DBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)))
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)))
 				.append("savedate",
-						new BasicDBObject("$lt", Date.from(inst(80000))))
-				.append("id", new BasicDBObject("$lte", 70L));
+						new Document("$lt", Date.from(inst(80000))))
+				.append("id", new Document("$lte", 70L));
 		
 		completeSimpleFilterTest(pset, p, expectedQuery);
 	}
@@ -548,34 +552,34 @@ public class ObjectListerTest {
 		// case 1: basic sort is applied, unlike the following cases
 		ResolvedListObjectParameters p = lop.build().resolve(pset);
 		
-		final DBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)))
-				.append("id", new BasicDBObject("$gte", 7L).append("$lte", 70L));
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)))
+				.append("id", new Document("$gte", 7L).append("$lte", 70L));
 		completeSimpleFilterTest(pset, p, expectedQuery, true, true);
 				
 		// case 2: after
 		p = lop.withAfter(inst(50000)).build().resolve(pset);
-		expectedQuery.put("savedate", new BasicDBObject("$gt", Date.from(inst(50000))));
+		expectedQuery.put("savedate", new Document("$gt", Date.from(inst(50000))));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 		
 		// case 3: before
 		p = lop.withAfter(null).withBefore(inst(90000)).build().resolve(pset);
-		expectedQuery.put("savedate", new BasicDBObject("$lt", Date.from(inst(90000))));
+		expectedQuery.put("savedate", new Document("$lt", Date.from(inst(90000))));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 		
 		// case 4: meta
 		p = lop.withBefore(null).withMetadata(new WorkspaceUserMetadata(ImmutableMap.of("x", "y")))
 				.build().resolve(pset);
-		expectedQuery.removeField("savedate");
-		expectedQuery.put("$and", Arrays.asList(new BasicDBObject("meta",
-				new BasicDBObject("k", "x").append("v", "y"))));
+		expectedQuery.remove("savedate");
+		expectedQuery.put("$and", Arrays.asList(new Document("meta",
+				new Document("k", "x").append("v", "y"))));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 		
 		// case 5: savers
 		p = lop.withMetadata(null).withSavers(Arrays.asList(new WorkspaceUser("z")))
 				.build().resolve(pset);
-		expectedQuery.removeField("$and");
-		expectedQuery.put("savedby", new BasicDBObject("$in", Arrays.asList("z")));
+		expectedQuery.remove("$and");
+		expectedQuery.put("savedby", new Document("$in", Arrays.asList("z")));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 	}
 	
@@ -604,42 +608,42 @@ public class ObjectListerTest {
 		ResolvedListObjectParameters p = lop
 				.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3, 2)).build().resolve(pset);
 		
-		BasicDBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)))
+		Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)))
 				.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 2)
-				.append("id", new BasicDBObject("$gte", 7L).append("$lte", 70L));
-		DBObject expectedSort = new BasicDBObject("tyname", 1)
+				.append("id", new Document("$gte", 7L).append("$lte", 70L));
+		Document expectedSort = new Document("tyname", 1)
 				.append("tymaj", 1).append("tymin", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, true);
 		
 		// case 2: after
 		p = lop.withAfter(inst(50000)).build().resolve(pset);
-		expectedQuery.put("savedate", new BasicDBObject("$gt", Date.from(inst(50000))));
+		expectedQuery.put("savedate", new Document("$gt", Date.from(inst(50000))));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 		
 		// case 3: before
 		p = lop.withAfter(null).withBefore(inst(90000))
 				.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3)).build().resolve(pset);
-		expectedQuery.append("savedate", new BasicDBObject("$lt", Date.from(inst(90000))))
-				.removeField("tymin");
+		expectedQuery.append("savedate", new Document("$lt", Date.from(inst(90000))))
+				.remove("tymin");
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 		
 		// case 4: meta
 		p = lop.withBefore(null).withMetadata(new WorkspaceUserMetadata(ImmutableMap.of("x", "y")))
 				.withType(new TypeDefId(new TypeDefName("Mod.Type"))).build().resolve(pset);
-		expectedQuery.append("$and", Arrays.asList(new BasicDBObject("meta",
-				new BasicDBObject("k", "x").append("v", "y"))))
+		expectedQuery.append("$and", Arrays.asList(new Document("meta",
+				new Document("k", "x").append("v", "y"))))
 				.append("tyname", "Mod.Type")
-				.removeField("savedate");
-		expectedQuery.removeField("tymaj");
+				.remove("savedate");
+		expectedQuery.remove("tymaj");
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 		
 		// case 5: savers
 		p = lop.withMetadata(null).withSavers(Arrays.asList(new WorkspaceUser("z")))
 				.build().resolve(pset);
-		expectedQuery.removeField("$and");
-		expectedQuery.put("savedby", new BasicDBObject("$in", Arrays.asList("z")));
+		expectedQuery.remove("$and");
+		expectedQuery.put("savedby", new Document("$in", Arrays.asList("z")));
 		completeSimpleFilterTest(pset, p, expectedQuery, false, true);
 	}
 	
@@ -668,28 +672,28 @@ public class ObjectListerTest {
 		ResolvedListObjectParameters p = lop
 				.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3, 1)).build().resolve(pset);
 		
-		BasicDBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)))
+		Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)))
 				.append("tyname", "Mod.Type").append("tymaj", 3).append("tymin", 1)
-				.append("id", new BasicDBObject("$gte", 7L).append("$lte", 70L));
-		DBObject expectedSort = new BasicDBObject("tyname", 1)
+				.append("id", new Document("$gte", 7L).append("$lte", 70L));
+		Document expectedSort = new Document("tyname", 1)
 				.append("tymaj", 1).append("tymin", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, true);
 		
 		// case 2: major version
 		p = lop.withType(new TypeDefId(new TypeDefName("Mod.Type"), 3)).build().resolve(pset);
-		expectedQuery.removeField("tymin");
+		expectedQuery.remove("tymin");
 		// for sorts the order of insertion matters
-		expectedSort = new BasicDBObject("tyname", 1).append("tymaj", 1)
+		expectedSort = new Document("tyname", 1).append("tymaj", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, true);
 
 		// case 3: no versions
 		p = lop.withType(new TypeDefId(new TypeDefName("Mod.Type"))).build().resolve(pset);
-		expectedQuery.append("tyname", "Mod.Type").removeField("tymaj");
+		expectedQuery.append("tyname", "Mod.Type").remove("tymaj");
 		// for sorts the order of insertion matters
-		expectedSort = new BasicDBObject("tyname", 1)
+		expectedSort = new Document("tyname", 1)
 				.append("ws", 1).append("id", 1).append("ver", -1);
 		completeSimpleFilterTest(pset, p, expectedQuery, expectedSort, true);
 	}
@@ -704,8 +708,8 @@ public class ObjectListerTest {
 		final Builder lop = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5)));
 		
-		final BasicDBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)));
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)));
 		
 		// note that the metadata boolean is not passed to the object info instance and is
 		// tested elsewhere
@@ -754,15 +758,16 @@ public class ObjectListerTest {
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5))).build().resolve(pset);
 		
-		final BasicDBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)));
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)));
 		
-		final Mocks m = getMocks();
-		final DBCursor cur = mock(DBCursor.class);
-		when(m.col.find(expectedQuery, getProjection())).thenReturn(cur);
-		when(cur.hasNext()).thenReturn(true, true, true, true, true, false);
-		
-		when(cur.next()).thenReturn(
+		final Mocks m = new Mocks();
+		when(m.col.find(expectedQuery)).thenReturn(m.cur);
+		when(m.cur.projection(getProjection())).thenReturn(m.cur);
+		when(m.cur.iterator()).thenReturn(m.mcur);
+
+		when(m.mcur.hasNext()).thenReturn(true, true, true, true, true, false);
+		when(m.mcur.next()).thenReturn(
 				makeDBObject(7), makeDBObject(8), makeDBObject(9), makeDBObject(10));
 		
 		when(m.infoutils.generateObjectInfo(
@@ -785,7 +790,7 @@ public class ObjectListerTest {
 		assertThat("incorrect objects", ret, is(Arrays.asList(
 				makeObjInfo(7), makeObjInfo(9), makeObjInfo(10))));
 		
-		verify(cur).sort(new BasicDBObject("ws", 1).append("id",  1).append("ver", -1));
+		verify(m.cur).sort(new Document("ws", 1).append("id",  1).append("ver", -1));
 	}
 	
 	@Test
@@ -799,15 +804,16 @@ public class ObjectListerTest {
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5))).withLimit(1).build().resolve(pset);
 		
-		final BasicDBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)));
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)));
 		
-		final Mocks m = getMocks();
-		final DBCursor cur = mock(DBCursor.class);
-		when(m.col.find(expectedQuery, getProjection())).thenReturn(cur);
-		when(cur.hasNext()).thenReturn(true);
-		
-		when(cur.next()).thenReturn(makeDBObject(45), makeDBObjs(46, 200));
+		final Mocks m = new Mocks();
+		when(m.col.find(expectedQuery)).thenReturn(m.cur);
+		when(m.cur.projection(getProjection())).thenReturn(m.cur);
+		when(m.cur.iterator()).thenReturn(m.mcur);
+
+		when(m.mcur.hasNext()).thenReturn(true);
+		when(m.mcur.next()).thenReturn(makeDBObject(45), makeDBObjs(46, 200));
 		
 		when(m.infoutils.generateObjectInfo(
 				pset,
@@ -828,7 +834,7 @@ public class ObjectListerTest {
 		
 		assertThat("incorrect objects", ret, is(Arrays.asList(makeObjInfo(72))));
 		
-		verify(cur).sort(new BasicDBObject("ws", 1).append("id",  1).append("ver", -1));
+		verify(m.cur).sort(new Document("ws", 1).append("id",  1).append("ver", -1));
 	}
 	
 	@Test
@@ -842,15 +848,16 @@ public class ObjectListerTest {
 		final ResolvedListObjectParameters p = ListObjectsParameters.getBuilder(
 				Arrays.asList(new WorkspaceIdentifier(5))).withLimit(150).build().resolve(pset);
 		
-		final BasicDBObject expectedQuery = new BasicDBObject(
-				"ws", new BasicDBObject("$in", Arrays.asList(5L)));
+		final Document expectedQuery = new Document(
+				"ws", new Document("$in", Arrays.asList(5L)));
 		
-		final Mocks m = getMocks();
-		final DBCursor cur = mock(DBCursor.class);
-		when(m.col.find(expectedQuery, getProjection())).thenReturn(cur);
-		when(cur.hasNext()).thenReturn(true);
+		final Mocks m = new Mocks();
 		
-		when(cur.next()).thenReturn(makeDBObject(40), makeDBObjs(41, 500));
+		when(m.col.find(expectedQuery)).thenReturn(m.cur);
+		when(m.cur.projection(getProjection())).thenReturn(m.cur);
+		when(m.cur.iterator()).thenReturn(m.mcur);
+		when(m.mcur.hasNext()).thenReturn(true);
+		when(m.mcur.next()).thenReturn(makeDBObject(40), makeDBObjs(41, 500));
 		
 		final Map<Map<String, Object>, ObjectInformation> retmap = new HashMap<>();
 		IntStream.range(40, 80).forEach(i -> retmap.put(makeMapObject(i), makeObjInfo(i)));
@@ -891,7 +898,6 @@ public class ObjectListerTest {
 		
 		assertThat("incorrect objects", ret, is(expected));
 		
-		verify(cur).sort(new BasicDBObject("ws", 1).append("id",  1).append("ver", -1));
+		verify(m.cur).sort(new Document("ws", 1).append("id",  1).append("ver", -1));
 	}
-
 }

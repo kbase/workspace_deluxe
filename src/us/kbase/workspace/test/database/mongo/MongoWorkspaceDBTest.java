@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -31,10 +32,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
@@ -67,7 +66,7 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 public class MongoWorkspaceDBTest {
 
 	private static MongoController MONGO;
-	private static DB MONGO_DB;
+	private static MongoDatabase MONGO_DB;
 	
 	@BeforeClass
 	public static void setup() throws Exception {
@@ -81,7 +80,7 @@ public class MongoWorkspaceDBTest {
 		
 		@SuppressWarnings("resource")
 		final MongoClient mc = new MongoClient("localhost:" + MONGO.getServerPort());
-		MONGO_DB = mc.getDB("test_" + MongoWorkspaceDBTest.class.getSimpleName());
+		MONGO_DB = mc.getDatabase("test_" + MongoWorkspaceDBTest.class.getSimpleName());
 		
 	}
 	
@@ -124,7 +123,7 @@ public class MongoWorkspaceDBTest {
 		final Clock clock = mock(Clock.class);
 		final Constructor<MongoWorkspaceDB> con =
 				MongoWorkspaceDB.class.getDeclaredConstructor(
-						DB.class, BlobStore.class, TempFilesManager.class, Clock.class);
+						MongoDatabase.class, BlobStore.class, TempFilesManager.class, Clock.class);
 		con.setAccessible(true);
 		final MongoWorkspaceDB mdb = con.newInstance(MONGO_DB, bs, tfm, clock);
 		return new TestMocks(mdb, bs, tfm, clock);
@@ -149,11 +148,11 @@ public class MongoWorkspaceDBTest {
 		saveTestObject(db, wsid, u, p, "newobj", "Mod.Type-5.1",
 				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
 		
-		final DBObject v = MONGO_DB.getCollection("workspaceObjVersions").findOne();
+		final Document v = MONGO_DB.getCollection("workspaceObjVersions").find().first();
 		final ObjectId i = (ObjectId) v.get("provenance");
-		MONGO_DB.getCollection("provenance").update(
-				new BasicDBObject("_id", i),
-				new BasicDBObject("$set", new BasicDBObject("actions.0.externalData", null)
+		MONGO_DB.getCollection("provenance").updateOne(
+				new Document("_id", i),
+				new Document("$set", new Document("actions.0.externalData", null)
 						.append("wsid", null)
 						.append("actions.0.subActions", null)
 						.append("actions.0.custom", null)
@@ -199,9 +198,9 @@ public class MongoWorkspaceDBTest {
 		saveTestObject(db, wsid, u, p, "newobj", "Mod.Type-5.1",
 				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
 		
-		MONGO_DB.getCollection("workspaceObjVersions").update(
-				new BasicDBObject(),
-				new BasicDBObject("$unset", new BasicDBObject(Fields.VER_EXT_IDS, "")));
+		MONGO_DB.getCollection("workspaceObjVersions").updateOne(
+				new Document(),
+				new Document("$unset", new Document(Fields.VER_EXT_IDS, "")));
 		
 		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> res =
 				db.getObjects(
@@ -297,8 +296,7 @@ public class MongoWorkspaceDBTest {
 		// welp, it seems there's no way to get the deletion state via the MongoWorkspaceDB api
 		int count = 0;
 		final Map<Long, Instant> wsid2time = new HashMap<>();
-		for (final DBObject obj: MONGO_DB.getCollection("workspaceObjects")
-				.find(new BasicDBObject())) {
+		for (final Document obj: MONGO_DB.getCollection("workspaceObjects").find(new Document())) {
 			assertThat(String.format("incorrect delete for object %s", obj),
 					obj.get("del"), is(deleted));
 			if (!objectTimes.isEmpty()) {
@@ -318,8 +316,7 @@ public class MongoWorkspaceDBTest {
 	
 	private void checkWorkspaceUpdateTimes(final Set<Instant> wsTimes) {
 		final List<Instant> gotTimes = new ArrayList<>();
-		for (final DBObject obj: MONGO_DB.getCollection("workspaces")
-				.find(new BasicDBObject())) {
+		for (final Document obj: MONGO_DB.getCollection("workspaces").find(new Document())) {
 			final Instant date = ((Date)obj.get("moddate")).toInstant();
 			gotTimes.add(date);
 		}
@@ -418,8 +415,7 @@ public class MongoWorkspaceDBTest {
 			final int expectedCount) {
 		// welp, it seems there's no way to get the deletion state via the MongoWorkspaceDB api
 		int count = 0;
-		for (final DBObject obj: MONGO_DB.getCollection("workspaceObjects")
-				.find(new BasicDBObject())) {
+		for (final Document obj: MONGO_DB.getCollection("workspaceObjects").find(new Document())) {
 			assertThat(String.format("incorrect hide for object %s", obj),
 					obj.get("hide"), is(hidden));
 			count++;

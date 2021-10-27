@@ -12,8 +12,8 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 public class PlainJavaTiming {
 	private static final String WORKSPACE = "TestObjs";
@@ -27,8 +27,9 @@ public class PlainJavaTiming {
 			throw new IllegalArgumentException("no token in args");
 		}
 		
+		@SuppressWarnings("resource")
 		final MongoClient mc = new MongoClient();
-		final DB db = mc.getDB(WS_DB);
+		final MongoDatabase db = mc.getDatabase(WS_DB);
 		final List<String> md5s = getMD5s(db, WORKSPACE);
 		
 		final List<String> nodes = getShockNodes(db, md5s);

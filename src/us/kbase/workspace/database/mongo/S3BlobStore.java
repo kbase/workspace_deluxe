@@ -8,12 +8,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.bson.Document;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.UpdateOptions;
 
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkException;
@@ -56,9 +57,7 @@ public class S3BlobStore implements BlobStore {
 		UUID randomUUID();
 	}
 	
-	private static final String IDX_UNIQ = "unique";
-	
-	private final DBCollection col;
+	private final MongoCollection<Document> col;
 	private final S3ClientWithPresign s3;
 	private final String bucket;
 	private final UUIDGen uuidGen;
@@ -71,7 +70,7 @@ public class S3BlobStore implements BlobStore {
 	 * @throws IllegalArgumentException if the bucket name is illegal.
 	 */
 	public S3BlobStore(
-			final DBCollection mongoCollection,
+			final MongoCollection<Document> mongoCollection,
 			final S3ClientWithPresign s3,
 			final String bucket)
 			throws BlobStoreCommunicationException, IllegalArgumentException {
@@ -85,10 +84,10 @@ public class S3BlobStore implements BlobStore {
 	
 	/** This constructor is to be used only for unit testing, as it allows mocking the UUID
 	 * generator. It is otherwise equivalent to
-	 * {@link #S3BlobStore(DBCollection, S3ClientWithPresign, String)}.
+	 * {@link #S3BlobStore(MongoCollection, S3ClientWithPresign, String)}.
 	 */
 	public S3BlobStore(
-			final DBCollection mongoCollection,
+			final MongoCollection<Document> mongoCollection,
 			final S3ClientWithPresign s3,
 			final String bucket,
 			final UUIDGen uuidGen)
@@ -97,8 +96,7 @@ public class S3BlobStore implements BlobStore {
 		this.col = requireNonNull(mongoCollection, "mongoCollection");
 		this.s3 = requireNonNull(s3, "s3");
 		this.bucket = checkBucketName(bucket);
-		this.col.createIndex(new BasicDBObject(Fields.S3_CHKSUM, 1),
-				new BasicDBObject(IDX_UNIQ, 1));
+		this.col.createIndex(new Document(Fields.S3_CHKSUM, 1), new IndexOptions().unique(true));
 		try {
 			s3.getClient().createBucket(CreateBucketRequest.builder().bucket(this.bucket).build());
 		} catch (BucketAlreadyOwnedByYouException e) {
@@ -166,13 +164,14 @@ public class S3BlobStore implements BlobStore {
 			throw new BlobStoreCommunicationException(
 					"Error stating S3 object: " + e.getMessage(), e);
 		}
-		final DBObject dbo = new BasicDBObject(Fields.S3_CHKSUM, md5.getMD5())
-				.append(Fields.S3_KEY, key)
-				.append(Fields.S3_SORTED, sorted);
 		try {
 			//possible that this was inserted just prior to saving the object
 			//so do update vs. insert since the data must be the same
-			col.update(new BasicDBObject(Fields.S3_CHKSUM, md5.getMD5()), dbo, true, false);
+			col.updateOne(
+					new Document(Fields.S3_CHKSUM, md5.getMD5()),
+					new Document("$set", new Document(Fields.S3_KEY, key)
+							.append(Fields.S3_SORTED, sorted)),
+					new UpdateOptions().upsert(true));
 		} catch (MongoException me) {
 			throw new BlobStoreCommunicationException(
 					"Could not write to the mongo database", me);
@@ -184,10 +183,10 @@ public class S3BlobStore implements BlobStore {
 		return m.substring(0, 2) + "/" + m.substring(2, 4) + "/" + m.substring(4, 6) + "/" + m;
 	}
 	
-	private DBObject getBlobEntry(final MD5 md5)
+	private Document getBlobEntry(final MD5 md5)
 			throws BlobStoreCommunicationException, NoSuchBlobException {
 		try {
-			final DBObject ret = col.findOne(new BasicDBObject(Fields.S3_CHKSUM, md5.getMD5()));
+			final Document ret = col.find(new Document(Fields.S3_CHKSUM, md5.getMD5())).first();
 			if (ret == null) {
 				throw new NoSuchBlobException("No blob saved with chksum " + md5.getMD5());
 			}
@@ -203,9 +202,9 @@ public class S3BlobStore implements BlobStore {
 			throws BlobStoreAuthorizationException, BlobStoreCommunicationException,
 				NoSuchBlobException, FileCacheLimitExceededException, FileCacheIOException {
 		requireNonNull(bafcMan, "bafcMan");
-		final DBObject entry = getBlobEntry(requireNonNull(md5, "md5"));
-		final boolean sorted = (Boolean)entry.get(Fields.S3_SORTED);
-		final String key = (String)entry.get(Fields.S3_KEY);
+		final Document entry = getBlobEntry(requireNonNull(md5, "md5"));
+		final boolean sorted = entry.getBoolean(Fields.S3_SORTED);
+		final String key = entry.getString(Fields.S3_KEY);
 		try (final ResponseInputStream<GetObjectResponse> obj = s3.getClient().getObject(
 				GetObjectRequest.builder()
 					.bucket(bucket)
@@ -233,14 +232,14 @@ public class S3BlobStore implements BlobStore {
 	@Override
 	public void removeBlob(final MD5 md5)
 			throws BlobStoreAuthorizationException, BlobStoreCommunicationException {
-		final DBObject entry;
+		final Document entry;
 		try {
 			entry = getBlobEntry(requireNonNull(md5, "md5"));
 		} catch (NoSuchBlobException nb) {
 			return; //already gone
 		}
 		try {
-			col.remove(new BasicDBObject(Fields.S3_CHKSUM, md5.getMD5()));
+			col.deleteOne(new Document(Fields.S3_CHKSUM, md5.getMD5()));
 		} catch (MongoException e) {
 			throw new BlobStoreCommunicationException(
 					"Could not write to the mongo database", e);

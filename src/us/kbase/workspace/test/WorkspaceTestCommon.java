@@ -1,12 +1,9 @@
 package us.kbase.workspace.test;
 
-import static us.kbase.common.test.TestCommon.destroyDB;
-
 import java.util.Arrays;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.DB;
 
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
@@ -14,11 +11,6 @@ import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.WorkspaceUser;
 
 public class WorkspaceTestCommon {
-	
-	public static void destroyWSandTypeDBs(DB mdb, String typedb) {
-		destroyDB(mdb);
-		destroyDB(mdb.getSisterDB(typedb));
-	}
 	
 	// this data will pass typechecking for any type created in installBasicSpecs
 	public static final Map<String, String> SAFE_DATA = ImmutableMap.of("thing", "foo");

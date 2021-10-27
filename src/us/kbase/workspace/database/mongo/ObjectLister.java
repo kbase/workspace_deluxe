@@ -14,11 +14,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
+import org.bson.Document;
+
 import com.mongodb.MongoException;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
@@ -32,14 +33,16 @@ import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
  */
 public class ObjectLister {
 	
-	private final DBCollection verCol;
+	private final MongoCollection<Document> verCol;
 	private final ObjectInfoUtils infoUtils;
 	
 	/** Create the lister.
 	 * @param verCol the MongoDB collection storing workspace object version information.
 	 * @param infoUtils an instance of the objects informational utilities class.
 	 */
-	public ObjectLister(final DBCollection verCol, final ObjectInfoUtils infoUtils) {
+	public ObjectLister(
+			final MongoCollection<Document> verCol,
+			final ObjectInfoUtils infoUtils) {
 		this.verCol = requireNonNull(verCol, "verCol cannot be null");
 		this.infoUtils = requireNonNull(infoUtils, "infoUtils cannot be null");
 	}
@@ -77,19 +80,21 @@ public class ObjectLister {
 		if (pset.isEmpty()) {
 			return ret;
 		}
-		final DBObject verq = buildQuery(params);
-		final DBObject projection = buildProjection(params);
-		final DBObject sort = buildSortSpec(params);
-		final DBObject startFrom = buildStartFromSpec(params);
+		final Document verq = buildQuery(params);
+		final Document projection = buildProjection(params);
+		final Document sort = buildSortSpec(params);
+		final Document startFrom = buildStartFromSpec(params);
 		
 		//querying on versions directly so no need to worry about race 
 		//condition where the workspace object was saved but no versions
 		//were saved yet
-		try (final DBCursor cur = verCol.find(verq, projection)) {
+		try {
+			final FindIterable<Document> fi = verCol.find(verq).projection(projection);
 			if (!startFrom.keySet().isEmpty()) {
-				cur.hint(sort).min(startFrom);  // hint for a min will be required in MDB 4.2
+				fi.hint(sort).min(startFrom);  // hint for a min will be required in MDB 4.2
 			}
-			cur.sort(sort);
+			fi.sort(sort);
+			final MongoCursor<Document> cur = fi.iterator();
 			final List<Map<String, Object>> verobjs = new ArrayList<>(querysize);
 			while (cur.hasNext() && ret.size() < params.getLimit()) {
 				verobjs.clear();
@@ -118,8 +123,8 @@ public class ObjectLister {
 		return ret;
 	}
 	
-	private DBObject buildProjection(final ResolvedListObjectParameters params) {
-		final DBObject projection = new BasicDBObject();
+	private Document buildProjection(final ResolvedListObjectParameters params) {
+		final Document projection = new Document();
 		FLDS_LIST_OBJ_VER.forEach(field -> projection.put(field, 1));
 		if (params.isIncludeMetaData()) {
 			projection.put(Fields.VER_META, 1);
@@ -139,8 +144,8 @@ public class ObjectLister {
 	 * dangerous to add the sort, since that forces the optimizer to use the ws/obj/ver index
 	 * (which could return a huge number of results and really slow down the query).
 	 */
-	private DBObject buildSortSpec(final ResolvedListObjectParameters params) {
-		final DBObject sort = new BasicDBObject();
+	private Document buildSortSpec(final ResolvedListObjectParameters params) {
+		final Document sort = new Document();
 		if (isSafeForUPASort(params)) {
 			addTypeFields(sort, params.getType(), true);
 			sort.put(Fields.VER_WS_ID, 1);
@@ -163,8 +168,8 @@ public class ObjectLister {
 				&& params.getSavers().isEmpty();
 	}
 	
-	private DBObject buildStartFromSpec(final ResolvedListObjectParameters params) {
-		final BasicDBObject start = new BasicDBObject();
+	private Document buildStartFromSpec(final ResolvedListObjectParameters params) {
+		final Document start = new Document();
 		final RefLimit s = params.getStartFrom();
 		if (s.isPresent()) { // implies isSafeForUPASort is true
 			addTypeFields(start, params.getType(), false);
@@ -177,7 +182,7 @@ public class ObjectLister {
 	}
 	
 	private void addTypeFields(
-			final DBObject toBeModified,
+			final Document toBeModified,
 			final Optional<TypeDefId> type,
 			final boolean sort) {
 		if (type.isPresent()) {
@@ -195,28 +200,28 @@ public class ObjectLister {
 		}
 	}
 
-	private DBObject buildQuery(final ResolvedListObjectParameters params) {
+	private Document buildQuery(final ResolvedListObjectParameters params) {
 		final List<Long> ids = params.getPermissionSet().getWorkspaces().stream()
 				.map(ws -> ws.getID()).distinct().sorted().collect(Collectors.toList());
-		final DBObject verq = new BasicDBObject();
-		verq.put(Fields.VER_WS_ID, new BasicDBObject("$in", ids));
+		final Document verq = new Document();
+		verq.put(Fields.VER_WS_ID, new Document("$in", ids));
 		addTypeFields(verq, params.getType(), false);
 		if (!params.getSavers().isEmpty()) {
-			verq.put(Fields.VER_SAVEDBY, new BasicDBObject("$in", params.getSavers().stream()
+			verq.put(Fields.VER_SAVEDBY, new Document("$in", params.getSavers().stream()
 					.map(s -> s.getUser()).collect(Collectors.toList())));
 		}
 		if (!params.getMetadata().isEmpty()) {
-			final List<DBObject> andmetaq = new LinkedList<DBObject>();
+			final List<Document> andmetaq = new LinkedList<>();
 			for (final Entry<String, String> e: params.getMetadata().getMetadata().entrySet()) {
-				final DBObject mentry = new BasicDBObject();
+				final Document mentry = new Document();
 				mentry.put(Fields.META_KEY, e.getKey());
 				mentry.put(Fields.META_VALUE, e.getValue());
-				andmetaq.add(new BasicDBObject(Fields.VER_META, mentry));
+				andmetaq.add(new Document(Fields.VER_META, mentry));
 			}
 			verq.put("$and", andmetaq); //note more than one entry is untested
 		}
 		if (params.getBefore().isPresent() || params.getAfter().isPresent()) {
-			final DBObject d = new BasicDBObject();
+			final Document d = new Document();
 			// TODO CODE remove date conversion at some point
 			// not quite sure what's going on here, but Instants work fine for the integration
 			// tests, but fail for unit tests with Mockito. Maybe needs a client bump. Later.
@@ -229,7 +234,7 @@ public class ObjectLister {
 			verq.put(Fields.VER_SAVEDATE, d);
 		}
 		if (params.getMinObjectID() > 1 || params.getMaxObjectID() > 0) {
-			final DBObject id = new BasicDBObject();
+			final Document id = new Document();
 			if (params.getMinObjectID() > 1) {
 				id.put("$gte", params.getMinObjectID());
 			}

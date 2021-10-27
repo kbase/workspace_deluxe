@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.bson.Document;
+
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ObjectInformation;
@@ -23,9 +25,6 @@ import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
-
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 
 /** A collection of utility methods mainly for generating ObjectInfomation
  * objects from mongo records.
@@ -68,13 +67,13 @@ public class ObjectInfoUtils {
 		final Map<Long, Set<Long>> verdata = getObjectIDsFromVersions(verobjs);
 		//TODO PERFORMANCE This $or query might be better as multiple individual queries, test
 		// e.g. one workspace per query
-		final List<DBObject> orquery = new LinkedList<>();
+		final List<Document> orquery = new LinkedList<>();
 		for (final Long wsid: verdata.keySet()) {
-			final DBObject query = new BasicDBObject(Fields.VER_WS_ID, wsid);
-			query.put(Fields.VER_ID, new BasicDBObject("$in", verdata.get(wsid)));
+			final Document query = new Document(Fields.VER_WS_ID, wsid);
+			query.put(Fields.VER_ID, new Document("$in", verdata.get(wsid)));
 			orquery.add(query);
 		}
-		final DBObject objq = new BasicDBObject("$or", orquery);
+		final Document objq = new Document("$or", orquery);
 		//could include / exclude hidden and deleted objects here? Given reports are hidden
 		// and a large chunk of the objects might make sense
 		//we're querying with known versions, so there's no need to exclude
@@ -151,14 +150,15 @@ public class ObjectInfoUtils {
 				meta == null ? null : new UncheckedUserMetadata(metaMongoArrayToHash(meta)));
 	}
 	
+	// TODO CODE not clear if this is still necessary with Document vs DBObject
 	static Map<String, String> metaMongoArrayToHash(
 			final List<? extends Object> meta) {
 		final Map<String, String> ret = new HashMap<>();
 		if (meta != null) {
 			for (final Object o: meta) {
 				//frigging mongo
-				if (o instanceof DBObject) {
-					final DBObject dbo = (DBObject) o;
+				if (o instanceof Document) {
+					final Document dbo = (Document) o;
 					ret.put((String) dbo.get(Fields.META_KEY),
 							(String) dbo.get(Fields.META_VALUE));
 				} else {

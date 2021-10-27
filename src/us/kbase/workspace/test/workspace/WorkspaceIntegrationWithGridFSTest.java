@@ -31,8 +31,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -106,13 +106,16 @@ public class WorkspaceIntegrationWithGridFSTest {
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		System.out.println("Started test mongo instance at localhost: " + MONGO.getServerPort());
 		
-		final DB wsdb = new MongoClient("localhost:" + MONGO.getServerPort()).getDB(WS_DB);
-		WorkspaceTestCommon.destroyWSandTypeDBs(wsdb, TYPE_DB);
+		@SuppressWarnings("resource")
+		final MongoClient mcli = new MongoClient("localhost:" + MONGO.getServerPort());
+		final MongoDatabase wsdb = mcli.getDatabase(WS_DB);
+		final MongoDatabase tdb = mcli.getDatabase(TYPE_DB);
+		TestCommon.destroyDB(wsdb);
+		TestCommon.destroyDB(tdb);
 		TFM = new TempFilesManager(new File(TestCommon.getTempDir()));
 		TFM.cleanup();
 		
-		final TypeDefinitionDB typeDB = new TypeDefinitionDB(
-				new MongoTypeStorage(wsdb.getSisterDB(TYPE_DB)));
+		final TypeDefinitionDB typeDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		final TypedObjectValidator val = new TypedObjectValidator(new LocalTypeProvider(typeDB));
 		WORK = new Workspace(
 				new MongoWorkspaceDB(wsdb, new GridFSBlobStore(wsdb), TFM),

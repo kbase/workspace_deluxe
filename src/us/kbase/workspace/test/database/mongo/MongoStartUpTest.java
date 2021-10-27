@@ -24,11 +24,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.test.TestCommon;
@@ -72,7 +69,7 @@ public class MongoStartUpTest {
 		TestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();
 		mongoClient = new MongoClient(mongohost);
-		final DB mdb = mongoClient.getDB("MongoStartUpTest");
+		final MongoDatabase mdb = mongoClient.getDatabase("MongoStartUpTest");
 		db = mongoClient.getDatabase("MongoStartUpTest");
 		
 		TestCommon.destroyDB(mdb);
@@ -95,16 +92,16 @@ public class MongoStartUpTest {
 	
 	@Test
 	public void startUpAndCheckConfigDoc() throws Exception {
-		final DB db = mongoClient.getDB("startUpAndCheckConfigDoc");
+		final MongoDatabase db = mongoClient.getDatabase("startUpAndCheckConfigDoc");
 		TempFilesManager tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
 		
-		DBCursor c = db.getCollection("config").find();
-		assertThat("Only one config doc", c.size(), is(1));
-		DBObject cd = c.next();
+		final MongoCursor<Document> c = db.getCollection("config").find().iterator();
+		final Document cd = c.next();
 		assertThat("correct config key & value", (String)cd.get("config"), is("config"));
 		assertThat("not in update", (Boolean)cd.get("inupdate"), is(false));
 		assertThat("schema v1", (Integer)cd.get("schemaver"), is(1));
+		assertThat("Only one config doc", c.hasNext(), is(false));
 		
 		//check startup works with the config object in place
 		MongoWorkspaceDB m = new MongoWorkspaceDB(db,  new GridFSBlobStore(db), tfm);
@@ -115,15 +112,14 @@ public class MongoStartUpTest {
 	
 	@Test
 	public void startUpWith2ConfigDocs() throws Exception {
-		final DB db = mongoClient.getDB("startUpWith2ConfigDocs");
+		final MongoDatabase db = mongoClient.getDatabase("startUpWith2ConfigDocs");
 		
 		final Map<String, Object> m = new HashMap<String, Object>();
 		m.put("config", "config");
 		m.put("inupdate", false);
 		m.put("schemaver", 1);
 		
-		db.getCollection("config").insert(Arrays.asList(
-				new BasicDBObject(m), new BasicDBObject(m)));
+		db.getCollection("config").insertMany(Arrays.asList(new Document(m), new Document(m)));
 		
 		failMongoWSStart(db, new CorruptWorkspaceDBException(
 				"Found duplicate index keys in the database, aborting startup"));
@@ -131,13 +127,13 @@ public class MongoStartUpTest {
 	
 	@Test
 	public void startUpWithBadSchemaVersion() throws Exception {
-		final DB db = mongoClient.getDB("startUpWithBadSchemaVersion");
+		final MongoDatabase db = mongoClient.getDatabase("startUpWithBadSchemaVersion");
 		
-		final DBObject cfg = new BasicDBObject("config", "config");
+		final Document cfg = new Document("config", "config");
 		cfg.put("inupdate", false);
 		cfg.put("schemaver", 4);
 		
-		db.getCollection("config").insert(cfg);
+		db.getCollection("config").insertOne(cfg);
 		
 		failMongoWSStart(db, new WorkspaceDBInitializationException(
 				"Incompatible database schema. Server is v1, DB is v4"));
@@ -145,20 +141,20 @@ public class MongoStartUpTest {
 	
 	@Test
 	public void startUpWithUpdateInProgress() throws Exception {
-		final DB db = mongoClient.getDB("startUpWithUpdateInProgress");
+		final MongoDatabase db = mongoClient.getDatabase("startUpWithUpdateInProgress");
 		
-		final DBObject cfg = new BasicDBObject("config", "config");
+		final Document cfg = new Document("config", "config");
 		cfg.put("inupdate", true);
 		cfg.put("schemaver", 1);
 		
-		db.getCollection("config").insert(cfg);
+		db.getCollection("config").insertOne(cfg);
 		
 		failMongoWSStart(db, new WorkspaceDBInitializationException(
 				"The database is in the middle of an update from v1 of the " +
 				"schema. Aborting startup."));
 	}
 
-	private void failMongoWSStart(final DB db, final Exception exp)
+	private void failMongoWSStart(final MongoDatabase db, final Exception exp)
 			throws Exception {
 		TempFilesManager tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		try {
@@ -171,12 +167,15 @@ public class MongoStartUpTest {
 	
 	
 	private Optional<Integer> invokeCheckExtantConfigAndGetVersion(
-			final DB db,
+			final MongoDatabase db,
 			final boolean allowNoConfig,
 			final boolean skipVersionCheck)
 			throws Exception {
 		final Method m = MongoWorkspaceDB.class.getDeclaredMethod(
-				"checkExtantConfigAndGetVersion", DB.class, boolean.class, boolean.class);
+				"checkExtantConfigAndGetVersion",
+				MongoDatabase.class,
+				boolean.class,
+				boolean.class);
 		m.setAccessible(true);
 		@SuppressWarnings("unchecked")
 		final Optional<Integer> ver = (Optional<Integer>) m.invoke(
@@ -185,7 +184,7 @@ public class MongoStartUpTest {
 	}
 	
 	private void failCheckExtantConfigAndGetVersion(
-			final DB db,
+			final MongoDatabase db,
 			final boolean allowNoConfig,
 			final boolean skipVersionCheck,
 			final Exception expected)
@@ -200,9 +199,9 @@ public class MongoStartUpTest {
 	
 	@Test
 	public void checkExtantConfig() throws Exception {
-		final DB db = mongoClient.getDB("checkExtantConfig");
+		final MongoDatabase db = mongoClient.getDatabase("checkExtantConfig");
 		
-		db.getCollection("config").insert(new BasicDBObject("config", "config")
+		db.getCollection("config").insertOne(new Document("config", "config")
 				.append("inupdate", false).append("schemaver", 1));
 		
 		Optional<Integer> ver = invokeCheckExtantConfigAndGetVersion(db, false, false);
@@ -213,14 +212,14 @@ public class MongoStartUpTest {
 	
 	@Test
 	public void checkExtantConfigWithNoDocument() throws Exception {
-		final DB db = mongoClient.getDB("checkExtantConfigWithNoDocument");
+		final MongoDatabase db = mongoClient.getDatabase("checkExtantConfigWithNoDocument");
 		
 		// pass case
 		final Optional<Integer> ver = invokeCheckExtantConfigAndGetVersion(db, true, false);
 		assertThat("incorrect version", ver, is(Optional.empty()));
 		
 		// fail case
-		final String err = "0 config object(s) found in the database. " +
+		final String err = "No config object found in the database. " +
 				"This should not happen, something is very wrong.";
 		failCheckExtantConfigAndGetVersion(
 				db, false, false, new CorruptWorkspaceDBException(err));
@@ -228,16 +227,15 @@ public class MongoStartUpTest {
 	
 	@Test
 	public void checkExtantConfigWithTwoDocumentsFail() throws Exception {
-		final String err = "2 config object(s) found in the database. " +
+		final String err = "> 1 config objects found in the database. " +
 				"This should not happen, something is very wrong.";
-		final DB db = mongoClient.getDB("checkExtantConfigWithTwoDocumentsFail");
+		final MongoDatabase db = mongoClient.getDatabase("checkExtantConfigWithTwoDocumentsFail");
 		
 		final Map<String, Object> m = new HashMap<String, Object>();
 		m.put("config", "config");
 		m.put("inupdate", false);
 		m.put("schemaver", 1);
-		db.getCollection("config").insert(Arrays.asList(
-				new BasicDBObject(m), new BasicDBObject(m)));
+		db.getCollection("config").insertMany(Arrays.asList(new Document(m), new Document(m)));
 		
 		failCheckExtantConfigAndGetVersion(
 				db, false, false, new CorruptWorkspaceDBException(err));
@@ -245,9 +243,9 @@ public class MongoStartUpTest {
 	
 	@Test
 	public void checkExtantConfigWithBadSchemaVersion() throws Exception {
-		final DB db = mongoClient.getDB("checkExtantConfigWithBadSchemaVersion");
+		final MongoDatabase db = mongoClient.getDatabase("checkExtantConfigWithBadSchemaVersion");
 		
-		db.getCollection("config").insert(new BasicDBObject("config", "config")
+		db.getCollection("config").insertOne(new Document("config", "config")
 				.append("inupdate", false).append("schemaver", 100));
 		
 		// pass case
@@ -262,9 +260,9 @@ public class MongoStartUpTest {
 	
 	@Test
 	public void checkExtantConfigInUpdate() throws Exception {
-		final DB db = mongoClient.getDB("checkExtantConfigInUpdate");
+		final MongoDatabase db = mongoClient.getDatabase("checkExtantConfigInUpdate");
 		
-		db.getCollection("config").insert(new BasicDBObject("config", "config")
+		db.getCollection("config").insertOne(new Document("config", "config")
 				.append("inupdate", true).append("schemaver", 1));
 		
 		final String err = "The database is in the middle of an update from v1 of the schema. " +
@@ -285,11 +283,7 @@ public class MongoStartUpTest {
 				"workspaceObjects",
 				"workspaceObjVersions",
 				// "provenance", no provenance collection because no created indexes
-				"admins",
-				// fs.* because we're using GridFS backend.
-				// Other backends should check their own indexes
-				"fs.files",
-				"fs.chunks"
+				"admins"
 				);
 		// this is annoying. MongoIterator has two forEach methods with different signatures
 		// and so which one to call is ambiguous for lambda expressions.
@@ -300,8 +294,9 @@ public class MongoStartUpTest {
 	// test index creation calling the static method rather than constructing the mongo ws db
 	// object
 	private void createIndexes(final String dbname) throws Exception {
-		final DB wsdb = mongoClient.getDB(dbname);
-		final Method method = MongoWorkspaceDB.class.getDeclaredMethod("ensureIndexes", DB.class);
+		final MongoDatabase wsdb = mongoClient.getDatabase(dbname);
+		final Method method = MongoWorkspaceDB.class.getDeclaredMethod(
+				"ensureIndexes", MongoDatabase.class);
 		method.setAccessible(true);
 		method.invoke(null, wsdb);
 	}

@@ -82,8 +82,8 @@ import us.kbase.workspace.test.WorkspaceServerThread;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -472,12 +472,11 @@ public class JSONRPCLayerTester {
 	}
 	@Before
 	public void clearDB() throws Exception {
-		final DB wsdb1 = new MongoClient("localhost:" + mongo.getServerPort())
-				.getDB(DB_WS_NAME_1);
-		final DB wsdb2 = new MongoClient("localhost:" + mongo.getServerPort())
-				.getDB(DB_WS_NAME_2);
-		final DB wsdb3 = new MongoClient("localhost:" + mongo.getServerPort())
-				.getDB(DB_WS_NAME_AUTH2_ADMINS);
+		@SuppressWarnings("resource")
+		final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
+		final MongoDatabase wsdb1 = mcli.getDatabase(DB_WS_NAME_1);
+		final MongoDatabase wsdb2 = mcli.getDatabase(DB_WS_NAME_2);
+		final MongoDatabase wsdb3 = mcli.getDatabase(DB_WS_NAME_AUTH2_ADMINS);
 		TestCommon.destroyDB(wsdb1);
 		TestCommon.destroyDB(wsdb2);
 		TestCommon.destroyDB(wsdb3);

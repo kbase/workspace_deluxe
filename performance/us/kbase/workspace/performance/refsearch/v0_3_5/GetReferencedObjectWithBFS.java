@@ -12,7 +12,7 @@ import java.util.UUID;
 
 import org.slf4j.LoggerFactory;
 
-import us.kbase.common.mongo.GetMongoDB;
+import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -34,11 +34,11 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 //import us.kbase.workspace.database.mongo.GridFSBlobStore;
 //import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 /** 
  * NOTE: This code is provided only as a reference - it was written against a much older version of
@@ -73,7 +73,7 @@ public class GetReferencedObjectWithBFS {
 					new TypeDefName(MOD_NAME_STR, REF_TYPE_STR), 1, 0);
 	
 	private static Workspace WS;
-	private static DB WSDB;
+	private static MongoDatabase WSDB;
 
 	public static void main(String[] args) throws Exception {
 		final Logger rootLogger = ((Logger) LoggerFactory.getLogger(
@@ -86,10 +86,12 @@ public class GetReferencedObjectWithBFS {
 				USE_WIRED_TIGER);
 		System.out.println("Using Mongo temp dir " + mongo.getTempDir());
 		System.out.println("Mongo port: " + mongo.getServerPort());
-		WSDB = GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-				"GetReferencedObjectBFSTest");
-		WorkspaceTestCommon.destroyWSandTypeDBs(WSDB,
-				"GetReferencedObjectBFSTest_types");
+		@SuppressWarnings("resource")
+		final MongoClient mc = new MongoClient("localhost:" + mongo.getServerPort());
+		WSDB = mc.getDatabase("GetReferencedObjectBFSTest");
+		final MongoDatabase tdb = mc.getDatabase("GetReferencedObjectBFSTest_types");
+		TestCommon.destroyDB(WSDB);
+		TestCommon.destroyDB(tdb);
 		
 		TempFilesManager tfm = new TempFilesManager(
 				new File(TEMP_DIR));
