@@ -24,14 +24,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
+import org.bson.Document;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoDatabase;
 
 /** Q&D Utility to run a Shock server for the purposes of testing from
  * Java.
@@ -101,7 +100,7 @@ public class ShockController {
 		generateConfig(SHOCK_CONFIG, context, shockcfg);
 		
 		final MongoClient mc = buildMongo(mongohost, shockMongoDBname, mongouser, mongopwd);
-		final DB shockDB = mc.getDB(shockMongoDBname);
+		final MongoDatabase shockDB = mc.getDatabase(shockMongoDBname);
 		
 		setupWorkarounds(shockDB, adminUser, knownVersion);
 
@@ -129,8 +128,10 @@ public class ShockController {
 		}
 	}
 	
-	private void setupWorkarounds(DB shockDB, String adminUser,
-			String version) {
+	private void setupWorkarounds(
+			final MongoDatabase shockDB,
+			final String adminUser,
+			final String version) {
 		if ("0.8.23".equals(version)) {
 			// the version of 0.8.23 above actually works fine without this,
 			// but it's a few commits beyond the actual 0.8.23 tag, so if the
@@ -147,25 +148,28 @@ public class ShockController {
 		}
 	}
 	
-	private void addAdminUser(DB shockDB, String adminUser) {
-		final DBObject a = new BasicDBObject("username", adminUser);
+	private void addAdminUser(final MongoDatabase shockDB, final String adminUser) {
+		final Document a = new Document("username", adminUser);
 		a.put("uuid", "095abbb0-07cc-43b3-8fd9-98edfb2541be");
 		a.put("fullname", "");
 		a.put("email", "");
 		a.put("password", "");
 		a.put("shock_admin", true);
-		shockDB.getCollection("Users").save(a);
+		shockDB.getCollection("Users").insertOne(a);
 	}
 
-	private void setCollectionVersions(DB shockDB, int nodever,
-			int aclver, int authver) {
-		final DBObject n = new BasicDBObject("name", "Node");
+	private void setCollectionVersions(
+			final MongoDatabase shockDB,
+			int nodever,
+			int aclver,
+			int authver) {
+		final Document n = new Document("name", "Node");
 		n.put("version", nodever);
-		final DBObject acl = new BasicDBObject("name", "ACL");
+		final Document acl = new Document("name", "ACL");
 		acl.put("version", aclver);
-		final DBObject auth = new BasicDBObject("name", "Auth");
+		final Document auth = new Document("name", "Auth");
 		auth.put("version", authver);
-		shockDB.getCollection("Versions").insert(Arrays.asList(n, acl, auth));
+		shockDB.getCollection("Versions").insertMany(Arrays.asList(n, acl, auth));
 	}
 
 	/** Returns the Shock version supplied in the constructor *if* the version

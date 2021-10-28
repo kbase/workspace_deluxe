@@ -113,7 +113,7 @@ public class DetailedValidationTest {
 		prepareDb();
 		Object [][] instanceInfo = new Object[resources.size()][1];
 		for(int k=0; k<resources.size(); k++) {
-			instanceInfo[k][0] = new Integer(k);
+			instanceInfo[k][0] = k;
 		}
 		
 		return Arrays.asList(instanceInfo);

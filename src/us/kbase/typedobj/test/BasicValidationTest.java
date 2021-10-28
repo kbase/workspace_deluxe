@@ -127,12 +127,12 @@ public class BasicValidationTest {
 		prepareDb();
 		Object [][] instanceInfo = new Object[validInstanceResources.size()+invalidInstanceResources.size()][2];
 		for(int k=0; k<validInstanceResources.size(); k++) {
-			instanceInfo[k][0] = new Integer(k);
-			instanceInfo[k][1] = new Boolean(true);
+			instanceInfo[k][0] = k;
+			instanceInfo[k][1] = true;
 		}
 		for(int k=0; k<invalidInstanceResources.size(); k++) {
-			instanceInfo[k+validInstanceResources.size()][0] = new Integer(k);
-			instanceInfo[k+validInstanceResources.size()][1] = new Boolean(false);
+			instanceInfo[k+validInstanceResources.size()][0] = k;
+			instanceInfo[k+validInstanceResources.size()][1] = false;
 		}
 		
 		return Arrays.asList(instanceInfo);
