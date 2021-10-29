@@ -33,7 +33,7 @@ Release checklist
 
   * Use a semantic version in the format ``X.Y.Z``.
 
-* Update the version in the generated server java file
+* Update the version in the ``us.kbase.workspace.version.WorkspaceVersion``
 
   * Use a semantic version in the format ``X.Y.Z-devA``,  where ``X.Y.Z`` is the
     semantic version and ``A`` is the incremental dev version.
@@ -41,7 +41,7 @@ Release checklist
 * Update release notes
 * Update documentation if necessary.
 * Ensure tests cover changes. Add new tests if necessary.
-* Run tests against supported versions of MongoDB and Shock.
+* Run tests against supported versions of MongoDB and dependencies.
 * Merge the feature branch or fork branch to ``develop``.
 * Tag the release in git with the new dev version.
 * When satisfied with CI testing (work with devops here):

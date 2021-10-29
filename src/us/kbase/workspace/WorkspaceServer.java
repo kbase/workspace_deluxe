@@ -29,6 +29,7 @@ import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
 import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifiers;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
+import static us.kbase.workspace.version.WorkspaceVersion.VERSION;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -104,7 +105,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO INIT timestamps for startup script
 	//TODO DOCS workspace glossary
 
-	private static final String VER = "0.12.0-dev3";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
@@ -244,7 +244,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public String ver(RpcContext jsonRpcContext) throws Exception {
         String returnVal = null;
         //BEGIN ver
-		returnVal = VER;
+		returnVal = VERSION;
         //END ver
         return returnVal;
     }
@@ -1708,7 +1708,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal.put("state", ok ? "OK" : "Fail");
 		returnVal.put("message", ok ? "OK" : "Dependency failure");
 		returnVal.put("dependencies", dstate);
-		returnVal.put("version", VER);
+		returnVal.put("version", VERSION);
 		returnVal.put("git_url", GIT);
 		returnVal.put("freemem", Runtime.getRuntime().freeMemory());
 		returnVal.put("totalmem", Runtime.getRuntime().totalMemory());
