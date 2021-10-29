@@ -95,7 +95,7 @@ public class Common {
 		for (final String md5: md5s) {
 			final Document node = db.getCollection(InitConstants.COL_SHOCK_NODES)
 					.find(new Document(Fields.SHOCK_CHKSUM, md5)).first();
-			nodes.add( node.getString(Fields.SHOCK_NODE));
+			nodes.add(node.getString(Fields.SHOCK_NODE));
 		}
 		System.out.println("Time to get nodes: " +
 				(System.nanoTime() - startNodes) / 1000000000.0);

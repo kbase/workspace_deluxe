@@ -486,7 +486,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			for (final IndexSpecification index: indexes.get(col)) {
 				try {
 					wsdb.getCollection(col).createIndex(index.index, index.options);
-					// this seems to be the 1 *&)&*)* place where DKE is still used
+					// this seems to be the 1 f*&)&*)*ing place where DKE is still used
 				} catch (DuplicateKeyException dk) {
 					throw new CorruptWorkspaceDBException(
 							"Found duplicate index keys in the database, " +

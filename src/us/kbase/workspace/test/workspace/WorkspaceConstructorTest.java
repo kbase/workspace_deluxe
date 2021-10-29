@@ -22,7 +22,7 @@ import us.kbase.workspace.listener.WorkspaceEventListener;
 public class WorkspaceConstructorTest {
 
 	@Test
-	public void construct3() throws Exception {
+	public void construct4() throws Exception {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
 		final TempFilesManager tfm = mock(TempFilesManager.class);
@@ -40,7 +40,7 @@ public class WorkspaceConstructorTest {
 	}
 	
 	@Test
-	public void construct4() throws Exception {
+	public void construct5() throws Exception {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
 		final TempFilesManager tfm = mock(TempFilesManager.class);
@@ -86,8 +86,8 @@ public class WorkspaceConstructorTest {
 		failConstruct(null, cfg, tv, tfm, l, new NullPointerException("db"));
 		failConstruct(db, null, tv, tfm, l, new NullPointerException("cfg"));
 		failConstruct(db, cfg, null, tfm, l, new NullPointerException("validator"));
-		failConstruct(db, cfg, tv, tfm, null, new NullPointerException("listeners"));
 		failConstruct(db, cfg, tv, null, l, new NullPointerException("tfm"));
+		failConstruct(db, cfg, tv, tfm, null, new NullPointerException("listeners"));
 		failConstruct(db, cfg, tv, tfm, Arrays.asList(wel, null),
 				new NullPointerException("null item in listeners"));
 	}
