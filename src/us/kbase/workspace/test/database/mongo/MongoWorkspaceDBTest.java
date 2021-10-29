@@ -9,9 +9,7 @@ import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.common.test.TestCommon.set;
 
-import java.lang.reflect.Constructor;
 import java.nio.file.Paths;
-import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,7 +40,6 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ExtractedMetadata;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -57,7 +54,6 @@ import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
-import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 
@@ -97,43 +93,11 @@ public class MongoWorkspaceDBTest {
 		TestCommon.destroyDB(MONGO_DB);
 	}
 	
-	private class TestMocks {
-		public final MongoWorkspaceDB mdb;
-		@SuppressWarnings("unused")
-		public final BlobStore bsmock;
-		@SuppressWarnings("unused")
-		public final TempFilesManager tfmmock;
-		public final Clock clockmock;
-		
-		public TestMocks(
-				final MongoWorkspaceDB mdb,
-				final BlobStore bsmock,
-				final TempFilesManager tfmmock,
-				final Clock clockmock) {
-			this.mdb = mdb;
-			this.bsmock = bsmock;
-			this.tfmmock = tfmmock;
-			this.clockmock = clockmock;
-		}
-	}
-	
-	private TestMocks getDBInstance() throws Exception {
-		final BlobStore bs = mock(BlobStore.class);
-		final TempFilesManager tfm = mock(TempFilesManager.class);
-		final Clock clock = mock(Clock.class);
-		final Constructor<MongoWorkspaceDB> con =
-				MongoWorkspaceDB.class.getDeclaredConstructor(
-						MongoDatabase.class, BlobStore.class, TempFilesManager.class, Clock.class);
-		con.setAccessible(true);
-		final MongoWorkspaceDB mdb = con.newInstance(MONGO_DB, bs, tfm, clock);
-		return new TestMocks(mdb, bs, tfm, clock);
-	}
-	
 	@Test
 	public void getProvenanceWithNullFields() throws Exception {
 		// check that older provenance records with missing fields don't throw NPEs.
 		
-		final TestMocks mocks = getDBInstance();
+		final PartialMock mocks = new PartialMock(MONGO_DB);
 		when(mocks.clockmock.instant()).thenReturn(Instant.now());
 		final MongoWorkspaceDB db = mocks.mdb;
 		
@@ -184,7 +148,7 @@ public class MongoWorkspaceDBTest {
 	@Test
 	public void getObjectWithoutExternalIDsField() throws Exception {
 		// check that older objects without external ID fields in the document don't cause NPEs
-		final TestMocks mocks = getDBInstance();
+		final PartialMock mocks = new PartialMock(MONGO_DB);
 		when(mocks.clockmock.instant()).thenReturn(Instant.now());
 		final MongoWorkspaceDB db = mocks.mdb;
 		
@@ -226,7 +190,7 @@ public class MongoWorkspaceDBTest {
 		// Most tests are in WorkspaceTest.java which is an integration test
 		
 		// setup mocks
-		final TestMocks mocks = getDBInstance();
+		final PartialMock mocks = new PartialMock(MONGO_DB);
 		final MongoWorkspaceDB db = mocks.mdb;
 		when(mocks.clockmock.instant()).thenReturn(
 				inst(10000), // save #1 ws update
@@ -360,7 +324,7 @@ public class MongoWorkspaceDBTest {
 		// Most tests are in WorkspaceTest.java which is an integration test
 		
 		// setup mocks
-		final TestMocks mocks = getDBInstance();
+		final PartialMock mocks = new PartialMock(MONGO_DB);
 		final MongoWorkspaceDB db = mocks.mdb;
 		when(mocks.clockmock.instant()).thenReturn(
 				inst(10000), // save #1 ws update
