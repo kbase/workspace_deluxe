@@ -137,7 +137,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final long MAX_PROV_SIZE = 1000000;
 	
 	/** The expected version of the database schema. */
-	public static final int SCHEMA_VERSION = 1;
+	public static final int SCHEMA_VERSION = 2;
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	

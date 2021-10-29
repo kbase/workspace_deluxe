@@ -194,6 +194,16 @@ public class TestCommon {
 		}
 	}
 	
+	
+	/** Get the name of a method in the stack.
+	 * @param index determines which method to get. 1 = the method calling this method,
+	 * 2 = the method calling that method, etc.
+	 * @return the method name.
+	 */
+	public static String getMethodName(final int index) {
+		return new Throwable().getStackTrace()[index].getMethodName();
+	}
+	
 	public static void assertExceptionCorrect(
 			final Throwable got,
 			final Throwable expected) {
@@ -205,15 +215,24 @@ public class TestCommon {
 	}
 	
 	public static void assertCloseToNow(final long epochMillis) {
+		assertCloseToNow(epochMillis, 1000);
+	}
+	
+	public static void assertCloseToNow(final long epochMillis, final int rangeMillis) {
 		final long now = Instant.now().toEpochMilli();
-		assertThat(String.format("time (%s) not within 1000ms of now: %s", epochMillis, now),
-				Math.abs(epochMillis - now) < 1000, is(true));
+		assertThat(String.format("time (%s) not within %sms of now: %s",
+				epochMillis, rangeMillis, now),
+				Math.abs(epochMillis - now) < rangeMillis, is(true));
 	}
 	
 	public static void assertCloseToNow(final Instant creationDate) {
 		assertCloseToNow(creationDate.toEpochMilli());
 	}
 	
+	public static void assertCloseToNow(final Instant creationDate, final int rangeMillis) {
+		assertCloseToNow(creationDate.toEpochMilli(), rangeMillis);
+	}
+
 	public static void assertNoTempFilesExist(TempFilesManager tfm)
 			throws Exception {
 		assertNoTempFilesExist(Arrays.asList(tfm));

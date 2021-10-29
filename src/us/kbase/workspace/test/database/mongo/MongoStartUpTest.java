@@ -96,7 +96,7 @@ public class MongoStartUpTest {
 		final Document cd = c.next();
 		assertThat("correct config key & value", (String)cd.get("config"), is("config"));
 		assertThat("not in update", (Boolean)cd.get("inupdate"), is(false));
-		assertThat("schema v1", (Integer)cd.get("schemaver"), is(1));
+		assertThat("schema ver", (Integer)cd.get("schemaver"), is(2));
 		assertThat("Only one config doc", c.hasNext(), is(false));
 		
 		//check startup works with the config object in place
@@ -113,7 +113,7 @@ public class MongoStartUpTest {
 		final Map<String, Object> m = new HashMap<String, Object>();
 		m.put("config", "config");
 		m.put("inupdate", false);
-		m.put("schemaver", 1);
+		m.put("schemaver", 2);
 		
 		db.getCollection("config").insertMany(Arrays.asList(new Document(m), new Document(m)));
 		
@@ -127,12 +127,12 @@ public class MongoStartUpTest {
 		
 		final Document cfg = new Document("config", "config");
 		cfg.put("inupdate", false);
-		cfg.put("schemaver", 4);
+		cfg.put("schemaver", 50);
 		
 		db.getCollection("config").insertOne(cfg);
 		
 		failMongoWSStart(db, new WorkspaceDBInitializationException(
-				"Incompatible database schema. Server is v1, DB is v4"));
+				"Incompatible database schema. Server is v2, DB is v50"));
 	}
 	
 	@Test
@@ -141,12 +141,12 @@ public class MongoStartUpTest {
 		
 		final Document cfg = new Document("config", "config");
 		cfg.put("inupdate", true);
-		cfg.put("schemaver", 1);
+		cfg.put("schemaver", 2);
 		
 		db.getCollection("config").insertOne(cfg);
 		
 		failMongoWSStart(db, new WorkspaceDBInitializationException(
-				"The database is in the middle of an update from v1 of the " +
+				"The database is in the middle of an update from v2 of the " +
 				"schema. Aborting startup."));
 	}
 
@@ -197,12 +197,12 @@ public class MongoStartUpTest {
 		final MongoDatabase db = mongoClient.getDatabase("checkExtantConfig");
 		
 		db.getCollection("config").insertOne(new Document("config", "config")
-				.append("inupdate", false).append("schemaver", 1));
+				.append("inupdate", false).append("schemaver", 2));
 		
 		Optional<Integer> ver = invokeCheckExtantConfigAndGetVersion(db, false, false);
-		assertThat("incorrect version", ver, is(Optional.of(1)));
+		assertThat("incorrect version", ver, is(Optional.of(2)));
 		invokeCheckExtantConfigAndGetVersion(db, true, false); // coverage
-		assertThat("incorrect version", ver, is(Optional.of(1)));
+		assertThat("incorrect version", ver, is(Optional.of(2)));
 	}
 	
 	@Test
@@ -229,7 +229,7 @@ public class MongoStartUpTest {
 		final Map<String, Object> m = new HashMap<String, Object>();
 		m.put("config", "config");
 		m.put("inupdate", false);
-		m.put("schemaver", 1);
+		m.put("schemaver", 2);
 		db.getCollection("config").insertMany(Arrays.asList(new Document(m), new Document(m)));
 		
 		failCheckExtantConfigAndGetVersion(
@@ -248,7 +248,7 @@ public class MongoStartUpTest {
 		assertThat("incorrect version", ver, is(Optional.of(100)));
 		
 		// fail case
-		final String err = "Incompatible database schema. Server is v1, DB is v100";
+		final String err = "Incompatible database schema. Server is v2, DB is v100";
 		failCheckExtantConfigAndGetVersion(
 				db, false, false, new WorkspaceDBInitializationException(err));
 	}
@@ -258,9 +258,9 @@ public class MongoStartUpTest {
 		final MongoDatabase db = mongoClient.getDatabase("checkExtantConfigInUpdate");
 		
 		db.getCollection("config").insertOne(new Document("config", "config")
-				.append("inupdate", true).append("schemaver", 1));
+				.append("inupdate", true).append("schemaver", 2));
 		
-		final String err = "The database is in the middle of an update from v1 of the schema. " +
+		final String err = "The database is in the middle of an update from v2 of the schema. " +
 				"Aborting startup.";
 		failCheckExtantConfigAndGetVersion(
 				db, false, false, new WorkspaceDBInitializationException(err));
