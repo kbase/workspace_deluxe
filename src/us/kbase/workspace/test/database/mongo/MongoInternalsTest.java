@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bson.Document;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -78,18 +79,15 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
 public class MongoInternalsTest {
 	
-	private static DB db;
+	private static MongoDatabase db;
 	private static MongoWorkspaceDB mwdb;
 	private static Workspace ws;
 	private static Types types;
@@ -114,14 +112,14 @@ public class MongoInternalsTest {
 		TestCommon.stfuLoggers();
 		String mongohost = "localhost:" + mongo.getServerPort();
 		mongoClient = new MongoClient(mongohost);
-		db = mongoClient.getDB("MongoInternalsTest");
-		String typedb = "MongoInternalsTest_types";
-		WorkspaceTestCommon.destroyWSandTypeDBs(db, typedb);
+		db = mongoClient.getDatabase("MongoInternalsTest");
+		final MongoDatabase tdb = mongoClient.getDatabase("MongoInternalsTest_types");
+		TestCommon.destroyDB(db);
+		TestCommon.destroyDB(tdb);
 		
 		TempFilesManager tfm = new TempFilesManager(
 				new File(TestCommon.getTempDir()));
-		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
-				new MongoTypeStorage(mongoClient.getDB(typedb)));
+		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
 		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
@@ -269,9 +267,9 @@ public class MongoInternalsTest {
 				fac);
 		final ObjectIdentifier clnobj = new ObjectIdentifier(cloning, 1);
 		
-		final DBObject update = new BasicDBObject("$set", new BasicDBObject("cloning", true))
-				.append("$unset", new BasicDBObject("name", "").append("moddate", ""));
-		db.getCollection("workspaces").update(new BasicDBObject("ws", 2), update);
+		final Document update = new Document("$set", new Document("cloning", true))
+				.append("$unset", new Document("name", "").append("moddate", ""));
+		db.getCollection("workspaces").updateOne(new Document("ws", 2), update);
 		
 		final NoSuchWorkspaceException noWSExcp = new NoSuchWorkspaceException(
 				"No workspace with id 2 exists", cloning);
@@ -450,8 +448,7 @@ public class MongoInternalsTest {
 			final Map<String, String> meta,
 			final boolean globalRead,
 			final boolean complete) {
-		DBObject ws = db.getCollection("workspaces").findOne(
-				new BasicDBObject("ws", id));
+		final Document ws = db.getCollection("workspaces").find(new Document("ws", id)).first();
 		assertThat("name was set incorrectly", (String) ws.get("name"),
 				is((String) name));
 		assertThat("owner set incorrectly", (String) ws.get("owner"),
@@ -485,9 +482,9 @@ public class MongoInternalsTest {
 			final boolean globalRead,
 			final boolean complete) {
 		final Set<Map<String, Object>> acls = new HashSet<>();
-		for (final DBObject acl: db.getCollection("workspaceACLs")
-				.find(new BasicDBObject("id", id))) {
+		for (final Document acl: db.getCollection("workspaceACLs").find(new Document("id", id))) {
 			/* fucking LazyBSONObjects, what the hell was mongo thinking */
+			// ^ this comment might be moot with the switch to Document
 			Map<String, Object> a = new HashMap<>();
 			for (final String k: acl.keySet()) {
 				if (!k.equals("_id")) { //mongo id
@@ -515,16 +512,17 @@ public class MongoInternalsTest {
 	}
 
 	private void assertCloneWSMetadataCorrect(
-			final DBObject ws,
+			final Document ws,
 			final Map<String, String> meta) {
 		final Set<Map<String, String>> gotmeta = new HashSet<>();
 		/* for some reason sometimes (but not always) get a LazyBsonList here
-		 * which doesn't support listIterator which equals uses, but this seems
+		 * which doesn't support listIterator which equals() uses, but this seems
 		 * to fix it. Doesn't support toMap() either.
 		 */
+		// ^ this comment might be moot with the switch to Document.
 		@SuppressWarnings("unchecked")
-		final List<DBObject> shittymeta = (List<DBObject>) ws.get("meta");
-		for (DBObject o: shittymeta) {
+		final List<Document> shittymeta = (List<Document>) ws.get("meta");
+		for (Document o: shittymeta) {
 			final Map<String, String> shittymetainner =
 					new HashMap<String, String>();
 			for (String k: o.keySet()) {
@@ -718,9 +716,9 @@ public class MongoInternalsTest {
 		//set the version to 1 in the workspace object. This state can
 		//occur if a get happens between the increment and the save of the
 		//version, although it's really rare
-		db.getCollection("workspaceObjects").update(
-				new BasicDBObject("id", 1).append("ws", rwsi.getID()),
-				new BasicDBObject("$inc", new BasicDBObject("numver", 1)));
+		db.getCollection("workspaceObjects").updateOne(
+				new Document("id", 1).append("ws", rwsi.getID()),
+				new Document("$inc", new Document("numver", 1)));
 		
 		mwdb.cloneWorkspace(user, rwsi, wsi3.getName(), false, null,
 				new WorkspaceUserMetadata(), null);
@@ -926,8 +924,8 @@ public class MongoInternalsTest {
 
 	private void checkRefCounts(long wsid, int[][] expected, int factor) {
 		for (int i = 1; i < 5; i++) {
-			final DBObject obj = db.getCollection("workspaceObjects")
-					.findOne(new BasicDBObject("ws", wsid).append("id", i));
+			final Document obj = db.getCollection("workspaceObjects")
+					.find(new Document("ws", wsid).append("id", i)).first();
 			@SuppressWarnings("unchecked")
 			List<Integer> refcnts = (List<Integer>) obj.get("refcnt");
 			for (int j = 0; j < 4; j++) {
@@ -982,14 +980,14 @@ public class MongoInternalsTest {
 		checkRefCntInit(wsid, 3, 1);
 		checkRefCntInit(wsid, 4, 4);
 		
-		List<DBObject> objverlist = iterToList(db.getCollection("workspaceObjVersions")
-				.find(new BasicDBObject("ws", wsid).append("id", 3)));
+		List<Document> objverlist = iterToList(db.getCollection("workspaceObjVersions")
+				.find(new Document("ws", wsid).append("id", 3)));
 		assertThat("Only copied version once", objverlist.size(), is(1));
-		DBObject objver = (DBObject) objverlist.get(0);
+		Document objver = objverlist.get(0);
 		assertThat("correct copy location", (String) objver.get("copied"), is(wsid + "/2/2"));
 		
-		List<DBObject> objverlist2 = iterToList(db.getCollection("workspaceObjVersions")
-				.find(new BasicDBObject("ws", wsid).append("id", 4)));
+		List<Document> objverlist2 = iterToList(db.getCollection("workspaceObjVersions")
+				.find(new Document("ws", wsid).append("id", 4)));
 		assertThat("Correct version count", 4, is(objverlist2.size()));
 		Map<Integer, String> cpexpec = new HashMap<Integer, String>();
 		Map<Integer, Integer> revexpec = new HashMap<Integer, Integer>();
@@ -1001,7 +999,7 @@ public class MongoInternalsTest {
 		revexpec.put(2, null);
 		revexpec.put(3, null);
 		revexpec.put(4, 2);
-		for (final DBObject m: objverlist2) {
+		for (final Document m: objverlist2) {
 			int ver = (Integer) m.get("ver");
 			assertThat("copy pointer ok", (String) m.get("copied"), is(cpexpec.get(ver)));
 			assertThat("revert pointer ok", (Integer) m.get("revert"), is(revexpec.get(ver)));
@@ -1014,14 +1012,14 @@ public class MongoInternalsTest {
 		checkRefCntInit(wsid2, 3, 1);
 		checkRefCntInit(wsid2, 4, 4);
 		
-		List<DBObject> objverlist3 = iterToList(db.getCollection("workspaceObjVersions")
-				.find(new BasicDBObject("ws", wsid2).append("id", 3)));
+		List<Document> objverlist3 = iterToList(db.getCollection("workspaceObjVersions")
+				.find(new Document("ws", wsid2).append("id", 3)));
 		assertThat("Only copied version once", objverlist.size(), is(1));
-		DBObject objver3 = (DBObject) objverlist3.get(0);
+		Document objver3 = objverlist3.get(0);
 		assertThat("correct copy location", (String) objver3.get("copied"), is(wsid + "/3/1"));
 		
-		List<DBObject> objverlist4 = iterToList(db.getCollection("workspaceObjVersions")
-				.find(new BasicDBObject("ws", wsid2).append("id", 4)));
+		List<Document> objverlist4 = iterToList(db.getCollection("workspaceObjVersions")
+				.find(new Document("ws", wsid2).append("id", 4)));
 		assertThat("Correct version count", 4, is(objverlist4.size()));
 		Map<Integer, String> cpexpec2 = new HashMap<Integer, String>();
 		Map<Integer, Integer> revexpec2 = new HashMap<Integer, Integer>();
@@ -1033,7 +1031,7 @@ public class MongoInternalsTest {
 		revexpec2.put(2, null);
 		revexpec2.put(3, null);
 		revexpec2.put(4, null);
-		for (final DBObject m: objverlist4) {
+		for (final Document m: objverlist4) {
 			int ver = (Integer) m.get("ver");
 			assertThat("copy pointer ok", (String) m.get("copied"), is(cpexpec2.get(ver)));
 			assertThat("revert pointer ok", (Integer) m.get("revert"), is(revexpec2.get(ver)));
@@ -1041,8 +1039,8 @@ public class MongoInternalsTest {
 	}
 
 	private void checkRefCntInit(long wsid, int objid, int vers) {
-		List<DBObject> objlist = iterToList(db.getCollection("workspaceObjects")
-				.find(new BasicDBObject("ws", wsid).append("id", objid)));
+		List<Document> objlist = iterToList(db.getCollection("workspaceObjects")
+				.find(new Document("ws", wsid).append("id", objid)));
 		assertThat("Only one object per id", objlist.size(), is(1));
 		@SuppressWarnings("unchecked")
 		List<Integer> refcnts = (List<Integer>) objlist.get(0).get("refcnt");
@@ -1101,8 +1099,8 @@ public class MongoInternalsTest {
 	}
 
 	private Date getDate(long wsid, int id) {
-		final DBObject obj = db.getCollection("workspaceObjects")
-				.findOne(new BasicDBObject("ws", wsid).append("id", id));
+		final Document obj = db.getCollection("workspaceObjects")
+				.find(new Document("ws", wsid).append("id", id)).first();
 		return (Date) obj.get("moddate");
 	}
 
@@ -1132,11 +1130,11 @@ public class MongoInternalsTest {
 	
 	private void checkTypeFields(
 			final int wsid, final int id1, final int id2, final int ver1, final int ver2) {
-		final DBCollection col = db.getCollection("workspaceObjVersions");
-		final DBObject obj1 = col.findOne(
-				new BasicDBObject("ws", wsid).append("id", id1).append("ver", ver1));
-		final DBObject obj2 = col.findOne(
-				new BasicDBObject("ws", wsid).append("id", id2).append("ver", ver2));
+		final MongoCollection<Document> col = db.getCollection("workspaceObjVersions");
+		final Document obj1 = col.find(
+				new Document("ws", wsid).append("id", id1).append("ver", ver1)).first();
+		final Document obj2 = col.find(
+				new Document("ws", wsid).append("id", id2).append("ver", ver2)).first();
 		
 		assertThat("incorrect type name", obj1.get("tyname"), is("SomeModule.AType"));
 		assertThat("incorrect type maj", obj1.get("tymaj"), is(0));

@@ -97,8 +97,8 @@ import software.amazon.awssdk.regions.Region;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
@@ -223,17 +223,20 @@ public class WorkspaceTester {
 					mongo.getServerPort());
 		}
 		if (!CONFIGS.containsKey(config)) {
-			final DB wsdb = new MongoClient("localhost:" + mongo.getServerPort())
-					.getDB(DB_WS_NAME);
-			WorkspaceTestCommon.destroyWSandTypeDBs(wsdb, DB_TYPE_NAME);
+			@SuppressWarnings("resource")
+			final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
+			final MongoDatabase wsdb = mcli.getDatabase(DB_WS_NAME);
+			final MongoDatabase tdb = mcli.getDatabase(DB_TYPE_NAME);
+			TestCommon.destroyDB(wsdb);
+			TestCommon.destroyDB(tdb);
 			System.out.println("Starting test suite with parameters:");
 			System.out.println(String.format(
 					"\tConfig: %s, Backend: %s, MaxMemPerCall: %s",
 					config, backend, maxMemoryUsePerCall));
 			if("mongo".equals(backend)) {
-				CONFIGS.put(config, setUpMongo(wsdb, maxMemoryUsePerCall));
+				CONFIGS.put(config, setUpMongo(wsdb, tdb, maxMemoryUsePerCall));
 			} else if ("minio".equals(backend)) {
-				CONFIGS.put(config, setUpMinio(wsdb, maxMemoryUsePerCall));
+				CONFIGS.put(config, setUpMinio(wsdb, tdb, maxMemoryUsePerCall));
 			} else {
 				throw new TestException("Unknown backend: " + config);
 			}
@@ -252,11 +255,18 @@ public class WorkspaceTester {
 		}
 	}
 	
-	private WSandTypes setUpMongo(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
-		return setUpWorkspaces(wsdb, new GridFSBlobStore(wsdb), maxMemoryUsePerCall);
+	private WSandTypes setUpMongo(
+			final MongoDatabase wsdb,
+			final MongoDatabase tdb,
+			final Integer maxMemoryUsePerCall)
+			throws Exception {
+		return setUpWorkspaces(wsdb, tdb, new GridFSBlobStore(wsdb), maxMemoryUsePerCall);
 	}
 	
-	private WSandTypes setUpMinio(final DB wsdb, final Integer maxMemoryUsePerCall)
+	private WSandTypes setUpMinio(
+			final MongoDatabase wsdb,
+			final MongoDatabase tdb,
+			final Integer maxMemoryUsePerCall)
 			throws Exception {
 		if (minio == null) {
 			minio = new MinioController(
@@ -274,11 +284,12 @@ public class WorkspaceTester {
 				Region.of("us-west-1"),
 				false);
 		final BlobStore bs = new S3BlobStore(wsdb.getCollection("s3_map"), cli, "test-bucket");
-		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
+		return setUpWorkspaces(wsdb, tdb, bs, maxMemoryUsePerCall);
 	}
 	
 	private WSandTypes setUpWorkspaces(
-			final DB db,
+			final MongoDatabase wsdb,
+			final MongoDatabase tdb,
 			final BlobStore bs,
 			final Integer maxMemoryUsePerCall)
 			throws Exception {
@@ -286,11 +297,10 @@ public class WorkspaceTester {
 		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		tfm.cleanup();
 		
-		final DB tdb = db.getSisterDB(DB_TYPE_NAME);
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		final TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
-		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, bs, tfm);
+		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(wsdb, bs, tfm);
 		final Workspace work = new Workspace(
 				mwdb, new ResourceUsageConfigurationBuilder().build(), val);
 		final Types t = new Types(typeDefDB);

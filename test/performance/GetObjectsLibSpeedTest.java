@@ -19,9 +19,9 @@ import org.nocrala.tools.texttablefmt.Table;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
-import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.LocalTypeProvider;
@@ -76,9 +76,11 @@ public class GetObjectsLibSpeedTest {
 		TempFilesManager tfm = new TempFilesManager(
 				new File(TestCommon.getTempDir()));
 		
-		DB db = GetMongoDB.getDB(mongohost, wsDB);
+		@SuppressWarnings("resource")
+		final MongoClient mc = new MongoClient(mongohost);
+		final MongoDatabase db = mc.getDatabase(wsDB);
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(
-				GetMongoDB.getDB(mongohost, typeDB)));
+				mc.getDatabase(typeDB)));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
 		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);

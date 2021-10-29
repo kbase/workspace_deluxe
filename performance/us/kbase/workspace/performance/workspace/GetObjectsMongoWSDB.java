@@ -9,8 +9,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -39,8 +39,9 @@ public class GetObjectsMongoWSDB {
 			throw new IllegalArgumentException("no token in args");
 		}
 		
+		@SuppressWarnings("resource")
 		final MongoClient mc = new MongoClient();
-		final DB db = mc.getDB(WS_DB);
+		final MongoDatabase db = mc.getDatabase(WS_DB);
 		
 		final BlobStore blob = new GridFSBlobStore(db);
 		final TempFilesManager tfm = new TempFilesManager(new File("temp_getobjmongoWS"));

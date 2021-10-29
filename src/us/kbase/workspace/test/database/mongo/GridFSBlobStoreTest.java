@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -12,17 +13,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.io.IOUtils;
+import org.bson.BsonString;
+import org.bson.Document;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.github.zafarkhaja.semver.Version;
-import com.mongodb.DB;
+import com.google.common.collect.ImmutableMap;
 import com.mongodb.MongoClient;
-import com.mongodb.gridfs.GridFS;
-import com.mongodb.gridfs.GridFSInputFile;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.gridfs.GridFSBucket;
+import com.mongodb.client.gridfs.GridFSBuckets;
+import com.mongodb.client.gridfs.model.GridFSUploadOptions;
 
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
@@ -39,7 +46,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
 public class GridFSBlobStoreTest {
 	
 	private static GridFSBlobStore gfsb;
-	private static GridFS gfs;
+	private static GridFSBucket gfs;
 	private static MongoController mongo;
 	private static TempFilesManager tfm;
 	
@@ -54,9 +61,10 @@ public class GridFSBlobStoreTest {
 		System.out.println("Using Mongo temp dir " +
 				mongo.getTempDir());
 		TestCommon.stfuLoggers();
-		MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
-		DB db = mongoClient.getDB("GridFSBackendTest");
-		gfs = new GridFS(db);
+		@SuppressWarnings("resource")
+		final MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
+		final MongoDatabase db = mongoClient.getDatabase("GridFSBackendTest");
+		gfs = GridFSBuckets.create(db);
 		gfsb = new GridFSBlobStore(db);
 		
 	}
@@ -65,6 +73,16 @@ public class GridFSBlobStoreTest {
 	public static void tearDownClass() throws Exception {
 		if (mongo != null) {
 			mongo.destroy(TestCommon.getDeleteTempFiles());
+		}
+	}
+	
+	@Test
+	public void failConstruct() throws Exception {
+		try {
+			new GridFSBlobStore(null);
+			fail("expected exception");
+		} catch (Exception got) {
+			assertExceptionCorrect(got, new NullPointerException("db"));
 		}
 	}
 	
@@ -86,20 +104,36 @@ public class GridFSBlobStoreTest {
 	}
 	
 	@Test
-	public void dataWithoutSortMarker() throws Exception {
-		String s = "pootypoot";
-		final GridFSInputFile gif = gfs.createFile(s.getBytes("UTF-8"));
-		MD5 md5 = new MD5(a32);
-		gif.setId(md5.getMD5());
-		gif.setFilename(md5.getMD5());
-		gif.save();
+	public void sortMarker() throws Exception {
+		// Tests various ways the sort marker might be represented.
+		// The first two cases should never really happen in practice unless the
+		// v0.12.0+ workspace is started on old data with a GridFS backend, in which case
+		// the first case is possible (and sort will always be false whether the data is sorted
+		// or not).
+		// The second case should never ever happen but we test because why not
+		final Map<GridFSUploadOptions, Boolean> testCases = ImmutableMap.of(
+				new GridFSUploadOptions(), false,
+				new GridFSUploadOptions().metadata(new Document()), false,
+				new GridFSUploadOptions().metadata(new Document("sorted", false)), false,
+				new GridFSUploadOptions().metadata(new Document("sorted", true)), true
+				);
 		
-		ByteArrayFileCache d = gfsb.getBlob(md5, 
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
-		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
-		String returned = IOUtils.toString(d.getJSON());
-		assertThat("Didn't get same data back from store", returned, is(s));
-		gfsb.removeBlob(md5);
+		final String s = "pootypoot";
+		final MD5 md5 = new MD5(a32);
+		for (final Entry<GridFSUploadOptions, Boolean> tcase: testCases.entrySet()) {
+			gfs.uploadFromStream(
+					new BsonString(md5.getMD5()),
+					md5.getMD5(),
+					new ByteArrayInputStream(s.getBytes("UTF-8")),
+					tcase.getKey());
+			
+			final ByteArrayFileCache d = gfsb.getBlob(md5,
+					new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
+			assertThat("data returned marked as unsorted", d.isSorted(), is(tcase.getValue()));
+			final String returned = IOUtils.toString(d.getJSON());
+			assertThat("Didn't get same data back from store", returned, is(s));
+			gfsb.removeBlob(md5);
+		}
 	}
 	
 	private static class StringRestreamable implements Restreamable {

@@ -29,8 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
 import com.mongodb.client.MongoDatabase;
 
 import ch.qos.logback.classic.Level;
@@ -185,15 +183,6 @@ public class TestCommon {
 	
 	public static boolean useWiredTigerEngine() {
 		return "true".equals(getTestProperty(MONGO_USE_WIRED_TIGER));
-	}
-	
-	public static void destroyDB(final DB db) {
-		for (String name: db.getCollectionNames()) {
-			if (!name.startsWith("system.")) {
-				// dropping collection also drops indexes
-				db.getCollection(name).remove(new BasicDBObject());
-			}
-		}
 	}
 	
 	public static void destroyDB(final MongoDatabase db) {

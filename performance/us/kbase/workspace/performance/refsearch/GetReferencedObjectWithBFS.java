@@ -12,7 +12,6 @@ import java.util.UUID;
 
 import org.slf4j.LoggerFactory;
 
-import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
@@ -37,11 +36,11 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.test.WorkspaceTestCommon;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 /** 
  * Code for testing the performance cost of performing a BFS up the reference
@@ -74,7 +73,7 @@ public class GetReferencedObjectWithBFS {
 			new TypeDefName(MOD_NAME_STR, REF_TYPE_STR), 1, 0);
 	
 	private static Workspace WS;
-	private static DB WSDB;
+	private static MongoDatabase WSDB;
 
 	public static void main(String[] args) throws Exception {
 		final Logger rootLogger = ((Logger) LoggerFactory.getLogger(
@@ -87,15 +86,17 @@ public class GetReferencedObjectWithBFS {
 				USE_WIRED_TIGER);
 		System.out.println("Using Mongo temp dir " + mongo.getTempDir());
 		System.out.println("Mongo port: " + mongo.getServerPort());
-		WSDB = GetMongoDB.getDB("localhost:" + mongo.getServerPort(), DB_WS);
-		WorkspaceTestCommon.destroyWSandTypeDBs(WSDB, DB_TYPES);
+		@SuppressWarnings("resource")
+		final MongoClient mc = new MongoClient("localhost:" + mongo.getServerPort());
+		WSDB = mc.getDatabase(DB_WS);
+		final MongoDatabase tdb = mc.getDatabase(DB_TYPES);
+		TestCommon.destroyDB(WSDB);
+		TestCommon.destroyDB(tdb);
 		
 		final TempFilesManager tfm = new TempFilesManager(new File(TEMP_DIR));
 		tfm.cleanup();
 		
-		final TypeDefinitionDB typeDB = new TypeDefinitionDB(new MongoTypeStorage(
-				GetMongoDB.getDB("localhost:" + mongo.getServerPort(),
-						"GetReferencedObjectBFSTest_types")));
+		final TypeDefinitionDB typeDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		final TypedObjectValidator val = new TypedObjectValidator(new LocalTypeProvider(typeDB));
 		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(WSDB, new GridFSBlobStore(WSDB), tfm);
 		

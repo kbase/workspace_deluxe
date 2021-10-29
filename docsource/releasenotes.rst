@@ -17,6 +17,12 @@ BACKWARDS INCOMPATIBILITIES:
   search prototype event handler is configured.
 * The WorkspaceEventListener interface now includes a setObjectHidden method. Code using this
   interface must be updated to implement this method.
+* The MongoDB driver API has been updated from the 2.X driver legacy interface to
+  the new interface introduced in the 3.0 driver. This change is invisible other than the
+  ``sorted`` key in ``GridFS`` file documents has been moved to the new ``metadata``
+  field from the root of the document. Since the ``GridFS`` backend is not recommended for
+  production use and no known productions installations exist, a schema updater for the GridFS
+  backend is not provided.
 
 UPDATES:
 

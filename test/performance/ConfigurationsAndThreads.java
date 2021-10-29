@@ -22,10 +22,10 @@ import org.nocrala.tools.texttablefmt.Table;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.MongoClient;
 
 import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
-import us.kbase.common.mongo.GetMongoDB;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
@@ -103,6 +103,7 @@ public class ConfigurationsAndThreads {
 	
 	private static final ObjectMapper MAP = new ObjectMapper(); 
 	
+	private static MongoClient MC;
 	private static byte[] data;
 	private static JsonNode jsonData;
 	private static Map<String, Object> mapData;
@@ -149,8 +150,11 @@ public class ConfigurationsAndThreads {
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, user, null);
 		//NOTE this setup is just to make it compile, not tested yet
+		@SuppressWarnings("resource")
+		final MongoClient mc = new MongoClient(MONGO_HOST);
+		MC = mc;
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
-				new MongoTypeStorage(GetMongoDB.getDB(MONGO_HOST, TYPE_DB)));
+				new MongoTypeStorage(MC.getDatabase(TYPE_DB)));
 		
 		Types types = new Types(typeDefDB);
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -360,7 +364,7 @@ public class ConfigurationsAndThreads {
 		
 		public void initialize(int writes, int id) throws Exception {
 			Random rand = new Random();
-			this.gfsb = new GridFSBlobStore(GetMongoDB.getDB(MONGO_HOST, MONGO_DB));
+			this.gfsb = new GridFSBlobStore(MC.getDatabase(MONGO_DB));
 			for (int i = 0; i < writes; i++) {
 				byte[] r = new byte[16]; //128 bit
 				rand.nextBytes(r);
