@@ -4,7 +4,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.common.test.TestCommon.set;
@@ -12,7 +11,6 @@ import static us.kbase.common.test.TestCommon.set;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -33,25 +31,15 @@ import com.google.common.collect.ImmutableMap;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
-import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.typedobj.core.AbsoluteTypeDefId;
-import us.kbase.typedobj.core.ExtractedMetadata;
-import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
-import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.ValidatedTypedObject;
-import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
-import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceObjectData;
-import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.mongo.Fields;
@@ -99,17 +87,16 @@ public class MongoWorkspaceDBTest {
 		
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		when(mocks.clockmock.instant()).thenReturn(Instant.now());
-		final MongoWorkspaceDB db = mocks.mdb;
 		
 		final WorkspaceUser u = new WorkspaceUser("u");
-		db.createWorkspace(u, "ws", false, null, new WorkspaceUserMetadata());
+		mocks.mdb.createWorkspace(u, "ws", false, null, new WorkspaceUserMetadata());
 		
 		final Provenance p = new Provenance(u, new Date(10000));
 		p.setWorkspaceID(1L);
 		p.addAction(new ProvenanceAction().withCaller("call"));
 		
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
-		saveTestObject(db, wsid, u, p, "newobj", "Mod.Type-5.1",
+		mocks.saveTestObject(wsid, u, p, "newobj", "Mod.Type-5.1",
 				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
 		
 		final Document v = MONGO_DB.getCollection("workspaceObjVersions").find().first();
@@ -124,7 +111,7 @@ public class MongoWorkspaceDBTest {
 		
 		
 		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> res =
-				db.getObjects(
+				mocks.mdb.getObjects(
 						ImmutableMap.of(new ObjectIDResolvedWS(wsid, 1), set()),
 						null,
 						0,
@@ -150,16 +137,15 @@ public class MongoWorkspaceDBTest {
 		// check that older objects without external ID fields in the document don't cause NPEs
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		when(mocks.clockmock.instant()).thenReturn(Instant.now());
-		final MongoWorkspaceDB db = mocks.mdb;
 		
 		final WorkspaceUser u = new WorkspaceUser("u");
-		db.createWorkspace(u, "ws", false, null, new WorkspaceUserMetadata());
+		mocks.mdb.createWorkspace(u, "ws", false, null, new WorkspaceUserMetadata());
 		
 		final Provenance p = new Provenance(u, new Date(10000));
 		p.setWorkspaceID(1L);
 		
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
-		saveTestObject(db, wsid, u, p, "newobj", "Mod.Type-5.1",
+		mocks.saveTestObject(wsid, u, p, "newobj", "Mod.Type-5.1",
 				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
 		
 		MONGO_DB.getCollection("workspaceObjVersions").updateOne(
@@ -167,7 +153,7 @@ public class MongoWorkspaceDBTest {
 				new Document("$unset", new Document(Fields.VER_EXT_IDS, "")));
 		
 		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> res =
-				db.getObjects(
+				mocks.mdb.getObjects(
 						ImmutableMap.of(new ObjectIDResolvedWS(wsid, 1), set()),
 						null,
 						0,
@@ -191,7 +177,6 @@ public class MongoWorkspaceDBTest {
 		
 		// setup mocks
 		final PartialMock mocks = new PartialMock(MONGO_DB);
-		final MongoWorkspaceDB db = mocks.mdb;
 		when(mocks.clockmock.instant()).thenReturn(
 				inst(10000), // save #1 ws update
 				inst(10000), // save #2 ws update
@@ -209,15 +194,15 @@ public class MongoWorkspaceDBTest {
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
 		final ResolvedWorkspaceID wsid2 = new ResolvedWorkspaceID(2, "ws2", false, false);
 
-		final Set<ObjectIDResolvedWS> objectIDs = setupTestDataForHideDelete(db, wsid, wsid2);
+		final Set<ObjectIDResolvedWS> objectIDs = setupTestDataForHideDelete(mocks, wsid, wsid2);
 
 		// don't care about the object times, they're set by the save code
 		checkObjectDeletionState(false, set(), 3);
 		
-		deleteOrUndeleteAndCheck(db, objectIDs, true, wsid, wsid2,
+		deleteOrUndeleteAndCheck(mocks.mdb, objectIDs, true, wsid, wsid2,
 				set(inst(20000), inst(40000)),
 				set(inst(30000), inst(50000)));
-		deleteOrUndeleteAndCheck(db, objectIDs, false, wsid, wsid2,
+		deleteOrUndeleteAndCheck(mocks.mdb, objectIDs, false, wsid, wsid2,
 				set(inst(60000), inst(80000)),
 				set(inst(70000), inst(90000)));
 	}
@@ -291,22 +276,23 @@ public class MongoWorkspaceDBTest {
 	}
 	
 	private Set<ObjectIDResolvedWS> setupTestDataForHideDelete(
-			final MongoWorkspaceDB db,
+			final PartialMock mocks,
 			final ResolvedWorkspaceID wsid,
 			final ResolvedWorkspaceID wsid2)
 			throws Exception {
 		// create workspaces
 		final WorkspaceUser u = new WorkspaceUser("u");
-		db.createWorkspace(u, "ws1", false, null, new WorkspaceUserMetadata());
-		db.createWorkspace(u, "ws2", false, null, new WorkspaceUserMetadata());
+		mocks.mdb.createWorkspace(u, "ws1", false, null, new WorkspaceUserMetadata());
+		mocks.mdb.createWorkspace(u, "ws2", false, null, new WorkspaceUserMetadata());
 		
 		// save objects
 		final Provenance p = new Provenance(u);
 		final String type = "Mod.Type-5.1";
 		
-		saveTestObject(db, wsid, u, p, "newobj", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
-		saveTestObject(db, wsid, u, p, "newobj2", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab", 22L);
-		saveTestObject(db, wsid2, u, p, "newobj3", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac", 22L);
+		mocks.saveTestObject(wsid, u, p, "newobj", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
+		mocks.saveTestObject(wsid, u, p, "newobj2", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab", 22L);
+		mocks.saveTestObject(
+				wsid2, u, p, "newobj3", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac", 22L);
 		
 		final ObjectIDResolvedWS oid1 = new ObjectIDResolvedWS(wsid, "newobj");
 		final ObjectIDResolvedWS oid2 = new ObjectIDResolvedWS(wsid, "newobj2");
@@ -325,7 +311,6 @@ public class MongoWorkspaceDBTest {
 		
 		// setup mocks
 		final PartialMock mocks = new PartialMock(MONGO_DB);
-		final MongoWorkspaceDB db = mocks.mdb;
 		when(mocks.clockmock.instant()).thenReturn(
 				inst(10000), // save #1 ws update
 				inst(10000), // save #2 ws update
@@ -339,10 +324,12 @@ public class MongoWorkspaceDBTest {
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
 		final ResolvedWorkspaceID wsid2 = new ResolvedWorkspaceID(2, "ws2", false, false);
 
-		final Set<ObjectIDResolvedWS> objectIDs = setupTestDataForHideDelete(db, wsid, wsid2);
+		final Set<ObjectIDResolvedWS> objectIDs = setupTestDataForHideDelete(mocks, wsid, wsid2);
 
-		hideOrUnhideAndCheck(db, objectIDs, true, wsid, wsid2, set(inst(20000), inst(40000)));
-		hideOrUnhideAndCheck(db, objectIDs, false, wsid, wsid2, set(inst(60000), inst(80000)));
+		hideOrUnhideAndCheck(
+				mocks.mdb, objectIDs, true, wsid, wsid2, set(inst(20000), inst(40000)));
+		hideOrUnhideAndCheck(
+				mocks.mdb, objectIDs, false, wsid, wsid2, set(inst(60000), inst(80000)));
 	}
 	
 	private void hideOrUnhideAndCheck(
@@ -385,39 +372,5 @@ public class MongoWorkspaceDBTest {
 			count++;
 		}
 		assertThat("incorrect object count", count, is(expectedCount));
-	}
-	
-	private Reference saveTestObject(
-			final MongoWorkspaceDB db,
-			final ResolvedWorkspaceID wsid,
-			final WorkspaceUser u,
-			final Provenance prov,
-			final String name,
-			final String absoluteTypeDef,
-			final String md5,
-			final long size)
-			throws Exception {
-		final ValidatedTypedObject vto = mock(ValidatedTypedObject.class);
-		when(vto.getValidationTypeDefId()).thenReturn(
-				AbsoluteTypeDefId.fromAbsoluteTypeString(absoluteTypeDef));
-		when(vto.extractMetadata(16000)).thenReturn(new ExtractedMetadata(Collections.emptyMap()));
-		when(vto.getMD5()).thenReturn(new MD5(md5));
-		when(vto.getRelabeledSize()).thenReturn(size);
-
-		final List<ObjectInformation> res = db.saveObjects(u, wsid,
-				Arrays.asList(new WorkspaceSaveObject(
-						new ObjectIDNoWSNoVer(name),
-						new UObject(ImmutableMap.of("foo", "bar")),
-						new TypeDefId("Mod.Type", "5.1"),
-						null,
-						prov,
-						false)
-						.resolve(
-								vto,
-								set(),
-								Collections.emptyList(),
-								Collections.emptyMap())
-						));
-		return res.get(0).getReferencePath().get(0);
 	}
 }
