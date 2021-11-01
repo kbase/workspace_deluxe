@@ -118,9 +118,10 @@ public class WorkspaceIntegrationWithGridFSTest {
 		final TypeDefinitionDB typeDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		final TypedObjectValidator val = new TypedObjectValidator(new LocalTypeProvider(typeDB));
 		WORK = new Workspace(
-				new MongoWorkspaceDB(wsdb, new GridFSBlobStore(wsdb), TFM),
+				new MongoWorkspaceDB(wsdb, new GridFSBlobStore(wsdb)),
 				new ResourceUsageConfigurationBuilder().build(),
-				val);
+				val,
+				TFM);
 		WorkspaceTestCommon.installBasicSpecs(new WorkspaceUser("user"), new Types(typeDB));
 	}
 	

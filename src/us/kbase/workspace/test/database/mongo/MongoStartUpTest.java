@@ -6,7 +6,6 @@ import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 import static us.kbase.common.test.TestCommon.set;
 
-import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
@@ -30,7 +29,6 @@ import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.WorkspaceInformation;
@@ -74,8 +72,7 @@ public class MongoStartUpTest {
 		
 		TestCommon.destroyDB(mdb);
 		
-		TempFilesManager tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
-		new MongoWorkspaceDB(mdb, new GridFSBlobStore(mdb), tfm);
+		new MongoWorkspaceDB(mdb, new GridFSBlobStore(mdb));
 	}
 
 	@AfterClass
@@ -93,8 +90,7 @@ public class MongoStartUpTest {
 	@Test
 	public void startUpAndCheckConfigDoc() throws Exception {
 		final MongoDatabase db = mongoClient.getDatabase("startUpAndCheckConfigDoc");
-		TempFilesManager tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
-		new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
+		new MongoWorkspaceDB(db, new GridFSBlobStore(db));
 		
 		final MongoCursor<Document> c = db.getCollection("config").find().iterator();
 		final Document cd = c.next();
@@ -104,7 +100,7 @@ public class MongoStartUpTest {
 		assertThat("Only one config doc", c.hasNext(), is(false));
 		
 		//check startup works with the config object in place
-		MongoWorkspaceDB m = new MongoWorkspaceDB(db,  new GridFSBlobStore(db), tfm);
+		MongoWorkspaceDB m = new MongoWorkspaceDB(db,  new GridFSBlobStore(db));
 		WorkspaceInformation ws = m.createWorkspace(
 				new WorkspaceUser("foo"), "bar", false, null, new WorkspaceUserMetadata());
 		assertThat("check a ws field", ws.getName(), is("bar"));
@@ -156,9 +152,8 @@ public class MongoStartUpTest {
 
 	private void failMongoWSStart(final MongoDatabase db, final Exception exp)
 			throws Exception {
-		TempFilesManager tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		try {
-			new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
+			new MongoWorkspaceDB(db, new GridFSBlobStore(db));
 			fail("started mongo with bad config");
 		} catch (Exception e) {
 			assertExceptionCorrect(e, exp);

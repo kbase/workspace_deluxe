@@ -172,11 +172,12 @@ public class InitWorkspaceServer {
 		final AdministratorHandler ah;
 		final Workspace ws;
 		try {
-			wsdeps = getDependencies(cfg, tfm, auth, rep);
+			wsdeps = getDependencies(cfg, auth, rep);
 			ws = new Workspace(
 					wsdeps.mongoWS,
 					new ResourceUsageConfigurationBuilder().build(),
 					wsdeps.validator,
+					tfm,
 					wsdeps.listeners);
 			ah = getAdminHandler(cfg, ws);
 		} catch (WorkspaceInitException wie) {
@@ -245,7 +246,6 @@ public class InitWorkspaceServer {
 	
 	private static WorkspaceDependencies getDependencies(
 			final KBaseWorkspaceConfig cfg,
-			final TempFilesManager tfm,
 			final ConfigurableAuthService auth,
 			final InitReporter rep) // DO NOT use the rep to report failures. Throw instead.
 			throws WorkspaceInitException {
@@ -267,7 +267,7 @@ public class InitWorkspaceServer {
 		}
 		deps.validator = new TypedObjectValidator(new LocalTypeProvider(deps.typeDB));
 		try {
-			deps.mongoWS = new MongoWorkspaceDB(db, bs, tfm);
+			deps.mongoWS = new MongoWorkspaceDB(db, bs);
 		} catch (WorkspaceDBException wde) {
 			throw new WorkspaceInitException(
 					"Error initializing the workspace database: " +

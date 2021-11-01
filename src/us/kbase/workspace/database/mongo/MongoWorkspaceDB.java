@@ -42,7 +42,6 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ExtractedMetadata;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
@@ -151,7 +150,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private final QueryMethods query;
 	private final ObjectInfoUtils objutils;
 	
-	private final TempFilesManager tfm;
 	// TODO TEST add more unit tests using the mocked clock 
 	private final Clock clock;
 	
@@ -254,33 +252,27 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	/** Create a workspace database using MongoDB as a backend.
 	 * @param workspaceDB the MongoDB in which to store data
 	 * @param blobStore the blob store in which to store object data
-	 * @param tfm the temporary files manager
 	 * @throws WorkspaceCommunicationException if the backend cannot be reached
 	 * @throws WorkspaceDBInitializationException if the database cannot be initialized
 	 * @throws CorruptWorkspaceDBException if the database is corrupt.
 	 */
-	public MongoWorkspaceDB(
-			final MongoDatabase workspaceDB,
-			final BlobStore blobStore,
-			final TempFilesManager tfm)
+	public MongoWorkspaceDB(final MongoDatabase workspaceDB, final BlobStore blobStore)
 			throws WorkspaceCommunicationException,
 				WorkspaceDBInitializationException, CorruptWorkspaceDBException {
-		this(workspaceDB, blobStore, tfm, Clock.systemDefaultZone());
+		this(workspaceDB, blobStore, Clock.systemDefaultZone());
 	}
 	
 	// for tests
 	private MongoWorkspaceDB(
 			final MongoDatabase workspaceDB,
 			final BlobStore blobStore,
-			final TempFilesManager tfm,
 			final Clock clock)
 			throws WorkspaceCommunicationException,
 				WorkspaceDBInitializationException, CorruptWorkspaceDBException {
-		if (workspaceDB == null || blobStore == null || tfm == null) {
+		if (workspaceDB == null || blobStore == null) {
 			throw new NullPointerException("No arguments can be null");
 		}
 		rescfg = new ResourceUsageConfigurationBuilder().build();
-		this.tfm = tfm;
 		this.clock = clock;
 		wsmongo = workspaceDB;
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
@@ -420,11 +412,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public void setResourceUsageConfiguration(
 			final ResourceUsageConfiguration rescfg) {
 		this.rescfg = rescfg;
-	}
-	
-	@Override
-	public TempFilesManager getTempFilesManager() {
-		return tfm;
 	}
 	
 	private static void checkConfig(final MongoDatabase wsmongo)

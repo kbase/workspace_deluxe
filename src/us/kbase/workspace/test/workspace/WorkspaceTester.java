@@ -300,9 +300,9 @@ public class WorkspaceTester {
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		final TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
-		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(wsdb, bs, tfm);
+		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(wsdb, bs);
 		final Workspace work = new Workspace(
-				mwdb, new ResourceUsageConfigurationBuilder().build(), val);
+				mwdb, new ResourceUsageConfigurationBuilder().build(), val, tfm);
 		final Types t = new Types(typeDefDB);
 		if (maxMemoryUsePerCall != null) {
 			final ResourceUsageConfigurationBuilder build =

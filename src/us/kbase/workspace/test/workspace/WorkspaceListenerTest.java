@@ -26,6 +26,7 @@ import org.mockito.ArgumentMatcher;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.core.ValidatedTypedObject;
@@ -60,6 +61,8 @@ import us.kbase.workspace.listener.WorkspaceEventListener;
 
 public class WorkspaceListenerTest {
 	
+	private final WorkspaceUserMetadata META = new WorkspaceUserMetadata();
+	
 	public static final WorkspaceInformation WS_INFO = WorkspaceInformation.getBuilder()
 			.withID(42)
 			.withName("wsfoo")
@@ -84,128 +87,122 @@ public class WorkspaceListenerTest {
 			new ResolvedWorkspaceID(24, "whee", false, false), "chksum",
 			20, new UncheckedUserMetadata(Collections.emptyMap()));
 
+	private static class Mocks {
+		
+		private final WorkspaceDatabase db;
+		private final TypedObjectValidator tv;
+		private final ResourceUsageConfiguration cfg;
+		private final TempFilesManager tfm;
+		private final WorkspaceEventListener l1;
+		private final WorkspaceEventListener l2;
+
+		public Mocks() {
+			db = mock(WorkspaceDatabase.class);
+			tv = mock(TypedObjectValidator.class);
+			cfg = new ResourceUsageConfigurationBuilder().build();
+			tfm = mock(TempFilesManager.class);
+			l1 = mock(WorkspaceEventListener.class);
+			l2 = mock(WorkspaceEventListener.class);
+		}
+	}
+	
 	@Test
 	public void createWorkspace1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
-		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
+		final Mocks m = new Mocks();
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, meta))
+		when(m.db.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, META))
 				.thenReturn(WS_INFO);
 		
 		ws.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, null);
 		
-		verify(l).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
+		verify(m.l1).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void createWorkspace2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
-		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
+		final Mocks m = new Mocks();
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, meta))
+		when(m.db.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, META))
 				.thenReturn(WS_INFO);
 		
 		ws.createWorkspace(new WorkspaceUser("foo"), "ws", false, null, null);
 		
-		verify(l1).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
-		verify(l2).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
+		verify(m.l1).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
+		verify(m.l2).createWorkspace(new WorkspaceUser("foo"), 42L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void cloneWorkspace1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
-		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.READ, Permission.NONE).build());
-		when(db.cloneWorkspace(user, rwsi, "whee", false, null, meta, null)).thenReturn(WS_INFO);
+		when(m.db.cloneWorkspace(user, rwsi, "whee", false, null, META, null)).thenReturn(WS_INFO);
 		
 		ws.cloneWorkspace(user, wsi, "whee", false, null, null, null);
 		
-		verify(l).cloneWorkspace(user, 42L, false, Instant.ofEpochMilli(20000));
+		verify(m.l1).cloneWorkspace(user, 42L, false, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void cloneWorkspace2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
-		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
-		
+		final Mocks m = new Mocks();
+
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.READ, Permission.NONE).build());
-		when(db.cloneWorkspace(user, rwsi, "whee", true, null, meta, null))
+		when(m.db.cloneWorkspace(user, rwsi, "whee", true, null, META, null))
 				.thenReturn(WS_INFO_READABLE);
 		
 		ws.cloneWorkspace(user, wsi, "whee", true, null, null, null);
 		
-		verify(l1).cloneWorkspace(user, 42L, true, Instant.ofEpochMilli(30000));
-		verify(l2).cloneWorkspace(user, 42L, true, Instant.ofEpochMilli(30000));
+		verify(m.l1).cloneWorkspace(user, 42L, true, Instant.ofEpochMilli(30000));
+		verify(m.l2).cloneWorkspace(user, 42L, true, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void setWorkspaceMetadataNoUpdate() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
-		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
 		
-		ws.setWorkspaceMetadata(user, wsi, meta, null);
+		ws.setWorkspaceMetadata(user, wsi, META, null);
 		
-		verify(l, never()).setWorkspaceMetadata(
+		verify(m.l1, never()).setWorkspaceMetadata(
 				any(WorkspaceUser.class), anyLong(), any(Instant.class));
 	}
 	
 	@Test
 	public void setWorkspaceMetadata1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata(
 				ImmutableMap.of("foo", "bar"));
 		
@@ -213,27 +210,23 @@ public class WorkspaceListenerTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
 
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
+		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void setWorkspaceMetadata2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata(
 				ImmutableMap.of("foo", "bar"));
 		
@@ -241,27 +234,24 @@ public class WorkspaceListenerTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
 
 		
 		ws.setWorkspaceMetadata(user, wsi, meta, null);
 		
-		verify(l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
-		verify(l2).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
+		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
+		verify(m.l2).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void setWorkspaceMetadataExceptionOnSetMeta() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata(
 				ImmutableMap.of("foo", "bar"));
 		
@@ -269,31 +259,28 @@ public class WorkspaceListenerTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
 		
 		doThrow(new WorkspaceCommunicationException("whee"))
-				.when(db).setWorkspaceMeta(rwsi, meta);
+				.when(m.db).setWorkspaceMeta(rwsi, meta);
 		try {
 			ws.setWorkspaceMetadata(user, wsi, meta, Arrays.asList("foo"));
 		} catch(WorkspaceCommunicationException e) {
 			//fine
 		}
 		
-		verify(l, never()).setWorkspaceMetadata(
+		verify(m.l1, never()).setWorkspaceMetadata(
 				any(WorkspaceUser.class), anyLong(), any(Instant.class));
 	}
 	
 	@Test
 	public void setWorkspaceMetadataExceptionOnFirstRemove() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata(
 				ImmutableMap.of("foo", "bar"));
 		
@@ -301,447 +288,388 @@ public class WorkspaceListenerTest {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
 		
 		doThrow(new WorkspaceCommunicationException("whee"))
-				.when(db).removeWorkspaceMetaKey(rwsi, "foo");
+				.when(m.db).removeWorkspaceMetaKey(rwsi, "foo");
 		try {
 			ws.setWorkspaceMetadata(user, wsi, meta, Arrays.asList("foo"));
 		} catch(WorkspaceCommunicationException e) {
 			//fine
 		}
 		
-		verify(l).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
+		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void setWorkspaceMetadataExceptionOnSecondRemove() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
-		final WorkspaceUserMetadata meta = new WorkspaceUserMetadata();
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(db.setWorkspaceMeta(rwsi, meta)).thenReturn(Instant.ofEpochMilli(20000));
-		when(db.removeWorkspaceMetaKey(rwsi, "bar")).thenReturn(Instant.ofEpochMilli(30000));
+		when(m.db.setWorkspaceMeta(rwsi, META)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.removeWorkspaceMetaKey(rwsi, "bar")).thenReturn(Instant.ofEpochMilli(30000));
 		
 		doThrow(new WorkspaceCommunicationException("whee"))
-				.when(db).removeWorkspaceMetaKey(rwsi, "foo");
+				.when(m.db).removeWorkspaceMetaKey(rwsi, "foo");
 		try {
-			ws.setWorkspaceMetadata(user, wsi, meta, Arrays.asList("bar", "foo"));
+			ws.setWorkspaceMetadata(user, wsi, META, Arrays.asList("bar", "foo"));
 		} catch(WorkspaceCommunicationException e) {
 			//fine
 		}
 		
-		verify(l).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(30000));
+		verify(m.l1).setWorkspaceMetadata(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void lockWorkspace1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(db.lockWorkspace(rwsi)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.lockWorkspace(rwsi)).thenReturn(Instant.ofEpochMilli(20000));
 		
 		ws.lockWorkspace(user, wsi);
 		
-		verify(l).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
+		verify(m.l1).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void lockWorkspace2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(db.lockWorkspace(rwsi)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.lockWorkspace(rwsi)).thenReturn(Instant.ofEpochMilli(20000));
 		
 		ws.lockWorkspace(user, wsi);
 		
-		verify(l1).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
-		verify(l2).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
+		verify(m.l1).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
+		verify(m.l2).lockWorkspace(user, 24L, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void renameWorkspace1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
-		when(db.renameWorkspace(rwsi, "foobar")).thenReturn(Instant.ofEpochMilli(10000));
+		when(m.db.renameWorkspace(rwsi, "foobar")).thenReturn(Instant.ofEpochMilli(10000));
 		
 		ws.renameWorkspace(user, wsi, "foobar");
 		
-		verify(l).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
+		verify(m.l1).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
 	}
 	
 	@Test
 	public void renameWorkspace2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1,l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
-		when(db.renameWorkspace(rwsi, "foobar")).thenReturn(Instant.ofEpochMilli(10000));
+		when(m.db.renameWorkspace(rwsi, "foobar")).thenReturn(Instant.ofEpochMilli(10000));
 		
 		ws.renameWorkspace(user, wsi, "foobar");
 		
-		verify(l1).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
-		verify(l2).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
+		verify(m.l1).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
+		verify(m.l2).renameWorkspace(user, 24L, "foobar", Instant.ofEpochMilli(10000));
 	}
 	
 	@Test
 	public void setGlobalPermission1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
-		when(db.getPermission(user, rwsi)).thenReturn(Permission.ADMIN);
-		when(db.setGlobalPermission(rwsi, Permission.READ))
+		when(m.db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(m.db.getPermission(user, rwsi)).thenReturn(Permission.ADMIN);
+		when(m.db.setGlobalPermission(rwsi, Permission.READ))
 				.thenReturn(Instant.ofEpochMilli(50000));
 		
 		ws.setGlobalPermission(user, wsi, Permission.READ);
 		
-		verify(l).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
+		verify(m.l1).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
 	}
 	
 	@Test
 	public void setGlobalPermission2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
-		when(db.getPermission(user, rwsi)).thenReturn(Permission.ADMIN);
-		when(db.setGlobalPermission(rwsi, Permission.READ))
+		when(m.db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(m.db.getPermission(user, rwsi)).thenReturn(Permission.ADMIN);
+		when(m.db.setGlobalPermission(rwsi, Permission.READ))
 				.thenReturn(Instant.ofEpochMilli(50000));
 		
 		ws.setGlobalPermission(user, wsi, Permission.READ);
 		
-		verify(l1).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
-		verify(l2).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
+		verify(m.l1).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
+		verify(m.l2).setGlobalPermission(user, 24L, Permission.READ, Instant.ofEpochMilli(50000));
 	}
 	
 	@Test
 	public void setPermissions1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final List<WorkspaceUser> users = Arrays.asList(new WorkspaceUser("foobar"));
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
-		when(db.getPermissions(user, rwsi)).thenReturn(
+		when(m.db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(m.db.getPermissions(user, rwsi)).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(db.setPermissions(rwsi, users, Permission.WRITE))
+		when(m.db.setPermissions(rwsi, users, Permission.WRITE))
 				.thenReturn(Instant.ofEpochMilli(40000));
 		
 		ws.setPermissions(user, wsi, users, Permission.WRITE);
 		
-		verify(l).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
+		verify(m.l1).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
 	}
 	
 	@Test
 	public void setPermissions2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final List<WorkspaceUser> users = Arrays.asList(new WorkspaceUser("foobar"));
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
-		when(db.getPermissions(user, rwsi)).thenReturn(
+		when(m.db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(m.db.getPermissions(user, rwsi)).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.ADMIN, Permission.NONE).build());
-		when(db.setPermissions(rwsi, users, Permission.WRITE))
+		when(m.db.setPermissions(rwsi, users, Permission.WRITE))
 				.thenReturn(Instant.ofEpochMilli(40000));
 		
 		ws.setPermissions(user, wsi, users, Permission.WRITE);
 		
-		verify(l1).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
-		verify(l2).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
+		verify(m.l1).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
+		verify(m.l2).setPermissions(user, 24, Permission.WRITE, users, Instant.ofEpochMilli(40000));
 	}
 	
 	@Test
 	public void setWorkspaceDescription1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
-		when(db.setWorkspaceDescription(rwsi, "foo")).thenReturn(Instant.ofEpochMilli(30000));
+		when(m.db.setWorkspaceDescription(rwsi, "foo")).thenReturn(Instant.ofEpochMilli(30000));
 		
 		ws.setWorkspaceDescription(user, wsi, "foo", false);
 		
-		verify(l).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
+		verify(m.l1).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void setWorkspaceDescription2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
-		when(db.setWorkspaceDescription(rwsi, "foo")).thenReturn(Instant.ofEpochMilli(30000));
+		when(m.db.setWorkspaceDescription(rwsi, "foo")).thenReturn(Instant.ofEpochMilli(30000));
 		
 		ws.setWorkspaceDescription(user, wsi, "foo", false);
 		
-		verify(l1).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
-		verify(l2).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
+		verify(m.l1).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
+		verify(m.l2).setWorkspaceDescription(user, 24L, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void setWorkspaceOwner1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceUser newUser = new WorkspaceUser("bar");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "foobar", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
-		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
-		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.empty()))
+		when(m.db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
+		when(m.db.setWorkspaceOwner(rwsi, user, newUser, Optional.empty()))
 				.thenReturn(Instant.ofEpochMilli(30000));
 		
 		ws.setWorkspaceOwner(user, wsi, newUser, Optional.empty(), false);
 
-		verify(l).setWorkspaceOwner(user, 24L, newUser, Optional.empty(),
+		verify(m.l1).setWorkspaceOwner(user, 24L, newUser, Optional.empty(),
 				Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void setWorkspaceOwner1AsAdmin() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceUser newUser = new WorkspaceUser("bar");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "foobar", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspace(wsi)).thenReturn(rwsi);
-		when(db.getWorkspaceOwner(rwsi)).thenReturn(user);
-		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
-		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.empty()))
+		when(m.db.resolveWorkspace(wsi)).thenReturn(rwsi);
+		when(m.db.getWorkspaceOwner(rwsi)).thenReturn(user);
+		when(m.db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
+		when(m.db.setWorkspaceOwner(rwsi, user, newUser, Optional.empty()))
 				.thenReturn(Instant.ofEpochMilli(30000));
 		
 		ws.setWorkspaceOwner(null, wsi, newUser, Optional.empty(), true);
 
-		verify(l).setWorkspaceOwner(null, 24L, newUser, Optional.empty(),
+		verify(m.l1).setWorkspaceOwner(null, 24L, newUser, Optional.empty(),
 				Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void setWorkspaceOwner2Listeners() throws Exception {
 		// also tests that a changed name is propagated
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceUser newUser = new WorkspaceUser("bar");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "foo:foobar", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
-		when(db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
-		when(db.setWorkspaceOwner(rwsi, user, newUser, Optional.of("bar:foobar")))
+		when(m.db.getPermission(newUser, rwsi)).thenReturn(Permission.ADMIN);
+		when(m.db.setWorkspaceOwner(rwsi, user, newUser, Optional.of("bar:foobar")))
 				.thenReturn(Instant.ofEpochMilli(30000));
 		
 		ws.setWorkspaceOwner(user, wsi, newUser, Optional.empty(), false);
 
-		verify(l1).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
+		verify(m.l1).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
-		verify(l2).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
+		verify(m.l2).setWorkspaceOwner(user, 24L, newUser, Optional.of("bar:foobar"),
 				Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void setWorkspaceDeleted1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspace(wsi, false)).thenReturn(rwsi);
-		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(WS_INFO_READABLE);
-		when(db.setWorkspaceDeleted(rwsi, true)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.resolveWorkspace(wsi, false)).thenReturn(rwsi);
+		when(m.db.getWorkspaceInformation(user, rwsi)).thenReturn(WS_INFO_READABLE);
+		when(m.db.setWorkspaceDeleted(rwsi, true)).thenReturn(Instant.ofEpochMilli(20000));
 		
 		ws.setWorkspaceDeleted(user, wsi, true, true);
 
-		verify(l).setWorkspaceDeleted(user, 24, true, 302, Instant.ofEpochMilli(20000));
+		verify(m.l1).setWorkspaceDeleted(user, 24, true, 302, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void setWorkspaceDeleted2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspace(wsi, true)).thenReturn(rwsi);
-		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(WS_INFO);
-		when(db.setWorkspaceDeleted(rwsi, false)).thenReturn(Instant.ofEpochMilli(20000));
+		when(m.db.resolveWorkspace(wsi, true)).thenReturn(rwsi);
+		when(m.db.getWorkspaceInformation(user, rwsi)).thenReturn(WS_INFO);
+		when(m.db.setWorkspaceDeleted(rwsi, false)).thenReturn(Instant.ofEpochMilli(20000));
 
 		ws.setWorkspaceDeleted(user, wsi, false, true);
 
-		verify(l1).setWorkspaceDeleted(user, 24, false, 300, Instant.ofEpochMilli(20000));
-		verify(l2).setWorkspaceDeleted(user, 24, false, 300, Instant.ofEpochMilli(20000));
+		verify(m.l1).setWorkspaceDeleted(user, 24, false, 300, Instant.ofEpochMilli(20000));
+		verify(m.l2).setWorkspaceDeleted(user, 24, false, 300, Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void renameObject1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -749,27 +677,23 @@ public class WorkspaceListenerTest {
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.renameObject(roi, "bollocks")).thenReturn(
+		when(m.db.renameObject(roi, "bollocks")).thenReturn(
 				new ObjectInfoWithModDate(OBJ_INFO, Instant.ofEpochMilli(20000)));
 		
 		ws.renameObject(user, oi, "bollocks");
 
-		verify(l).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
+		verify(m.l1).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void renameObject2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -777,27 +701,24 @@ public class WorkspaceListenerTest {
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.renameObject(roi, "bollocks")).thenReturn(
+		when(m.db.renameObject(roi, "bollocks")).thenReturn(
 				new ObjectInfoWithModDate(OBJ_INFO, Instant.ofEpochMilli(20000)));
 		
 		ws.renameObject(user, oi, "bollocks");
 
-		verify(l1).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
-		verify(l2).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
+		verify(m.l1).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
+		verify(m.l2).renameObject(user, 24, 42, "bollocks", Instant.ofEpochMilli(20000));
 	}
 	
 	@Test
 	public void revertObject1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -815,27 +736,23 @@ public class WorkspaceListenerTest {
 				.withGlobalRead(true)
 				.build();
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.revertObject(user, roi)).thenReturn(OBJ_INFO);
-		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
+		when(m.db.revertObject(user, roi)).thenReturn(OBJ_INFO);
+		when(m.db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 		
 		ws.revertObject(user, oi);
 		
-		verify(l).revertObject(OBJ_INFO, true);
+		verify(m.l1).revertObject(OBJ_INFO, true);
 	}
 	
 	@Test
 	public void revertObject2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -852,27 +769,24 @@ public class WorkspaceListenerTest {
 				.withUserPermission(Permission.WRITE)
 				.build();
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.revertObject(user, roi)).thenReturn(OBJ_INFO);
-		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
+		when(m.db.revertObject(user, roi)).thenReturn(OBJ_INFO);
+		when(m.db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 		
 		ws.revertObject(user, oi);
 		
-		verify(l1).revertObject(OBJ_INFO, false);
-		verify(l2).revertObject(OBJ_INFO, false);
+		verify(m.l1).revertObject(OBJ_INFO, false);
+		verify(m.l2).revertObject(OBJ_INFO, false);
 	}
 	
 	@Test
 	public void hideObjects1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -884,29 +798,25 @@ public class WorkspaceListenerTest {
 		final ResolvedObjectIDNoVer roiv1 = new ResolvedObjectIDNoVer(rwsi, 16, "whee", true);
 		final ResolvedObjectIDNoVer roiv2 = new ResolvedObjectIDNoVer(rwsi, 75, "whoo", true);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.setObjectsHidden(set(roi1, roi2), true)).thenReturn(ImmutableMap.of(
+		when(m.db.setObjectsHidden(set(roi1, roi2), true)).thenReturn(ImmutableMap.of(
 				roiv1, Instant.ofEpochMilli(20000),
 				roiv2, Instant.ofEpochMilli(30000)));
 
 		ws.setObjectsHidden(user, Arrays.asList(oi1, oi2), true);
 
-		verify(l).setObjectsHidden(user, 24, 16, true, Instant.ofEpochMilli(20000));
-		verify(l).setObjectsHidden(user, 24, 75, true, Instant.ofEpochMilli(30000));
+		verify(m.l1).setObjectsHidden(user, 24, 16, true, Instant.ofEpochMilli(20000));
+		verify(m.l1).setObjectsHidden(user, 24, 75, true, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void hideObjects2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -918,30 +828,27 @@ public class WorkspaceListenerTest {
 		final ResolvedObjectIDNoVer roiv1 = new ResolvedObjectIDNoVer(rwsi, 16, "whee", false);
 		final ResolvedObjectIDNoVer roiv2 = new ResolvedObjectIDNoVer(rwsi, 75, "whoo", false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.setObjectsHidden(set(roi1, roi2), false)).thenReturn(ImmutableMap.of(
+		when(m.db.setObjectsHidden(set(roi1, roi2), false)).thenReturn(ImmutableMap.of(
 				roiv1, Instant.ofEpochMilli(20000),
 				roiv2, Instant.ofEpochMilli(30000)));
 
 		ws.setObjectsHidden(user, Arrays.asList(oi1, oi2), false);
 
-		verify(l1).setObjectsHidden(user, 24, 16, false, Instant.ofEpochMilli(20000));
-		verify(l1).setObjectsHidden(user, 24, 75, false, Instant.ofEpochMilli(30000));
-		verify(l2).setObjectsHidden(user, 24, 16, false, Instant.ofEpochMilli(20000));
-		verify(l2).setObjectsHidden(user, 24, 75, false, Instant.ofEpochMilli(30000));
+		verify(m.l1).setObjectsHidden(user, 24, 16, false, Instant.ofEpochMilli(20000));
+		verify(m.l1).setObjectsHidden(user, 24, 75, false, Instant.ofEpochMilli(30000));
+		verify(m.l2).setObjectsHidden(user, 24, 16, false, Instant.ofEpochMilli(20000));
+		verify(m.l2).setObjectsHidden(user, 24, 75, false, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void deleteObjects1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -953,29 +860,25 @@ public class WorkspaceListenerTest {
 		final ResolvedObjectIDNoVer roiv1 = new ResolvedObjectIDNoVer(rwsi, 16, "whee", true);
 		final ResolvedObjectIDNoVer roiv2 = new ResolvedObjectIDNoVer(rwsi, 75, "whoo", true);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.setObjectsDeleted(set(roi1, roi2), true)).thenReturn(ImmutableMap.of(
+		when(m.db.setObjectsDeleted(set(roi1, roi2), true)).thenReturn(ImmutableMap.of(
 				roiv1, Instant.ofEpochMilli(20000),
 				roiv2, Instant.ofEpochMilli(30000)));
 
 		ws.setObjectsDeleted(user, Arrays.asList(oi1, oi2), true);
 
-		verify(l).setObjectDeleted(user, 24, 16, true, Instant.ofEpochMilli(20000));
-		verify(l).setObjectDeleted(user, 24, 75, true, Instant.ofEpochMilli(30000));
+		verify(m.l1).setObjectDeleted(user, 24, 16, true, Instant.ofEpochMilli(20000));
+		verify(m.l1).setObjectDeleted(user, 24, 75, true, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void deleteObjects2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -987,30 +890,27 @@ public class WorkspaceListenerTest {
 		final ResolvedObjectIDNoVer roiv1 = new ResolvedObjectIDNoVer(rwsi, 16, "whee", false);
 		final ResolvedObjectIDNoVer roiv2 = new ResolvedObjectIDNoVer(rwsi, 75, "whoo", false);
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.setObjectsDeleted(set(roi1, roi2), false)).thenReturn(ImmutableMap.of(
+		when(m.db.setObjectsDeleted(set(roi1, roi2), false)).thenReturn(ImmutableMap.of(
 				roiv1, Instant.ofEpochMilli(20000),
 				roiv2, Instant.ofEpochMilli(30000)));
 
 		ws.setObjectsDeleted(user, Arrays.asList(oi1, oi2), false);
 
-		verify(l1).setObjectDeleted(user, 24, 16, false, Instant.ofEpochMilli(20000));
-		verify(l1).setObjectDeleted(user, 24, 75, false, Instant.ofEpochMilli(30000));
-		verify(l2).setObjectDeleted(user, 24, 16, false, Instant.ofEpochMilli(20000));
-		verify(l2).setObjectDeleted(user, 24, 75, false, Instant.ofEpochMilli(30000));
+		verify(m.l1).setObjectDeleted(user, 24, 16, false, Instant.ofEpochMilli(20000));
+		verify(m.l1).setObjectDeleted(user, 24, 75, false, Instant.ofEpochMilli(30000));
+		verify(m.l2).setObjectDeleted(user, 24, 16, false, Instant.ofEpochMilli(20000));
+		verify(m.l2).setObjectDeleted(user, 24, 75, false, Instant.ofEpochMilli(30000));
 	}
 	
 	@Test
 	public void copyObject1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -1030,27 +930,23 @@ public class WorkspaceListenerTest {
 				.withGlobalRead(true)
 				.build();
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
-		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.copyObject(user, rfrom, rto)).thenReturn(new CopyResult(OBJ_INFO, false));
-		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
+		when(m.db.copyObject(user, rfrom, rto)).thenReturn(new CopyResult(OBJ_INFO, false));
+		when(m.db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 
 		ws.copyObject(user, from, to);
 		
-		verify(l).copyObject(OBJ_INFO, true);
+		verify(m.l1).copyObject(OBJ_INFO, true);
 	}
 	
 	@Test
 	public void copyObject2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
+		final Mocks m = new Mocks();
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -1069,19 +965,19 @@ public class WorkspaceListenerTest {
 				.withUserPermission(Permission.WRITE)
 				.build();
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
-		when(db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.WRITE, Permission.NONE).build());
-		when(db.copyObject(user, rfrom, rto)).thenReturn(new CopyResult(OBJ_INFO, true));
-		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
+		when(m.db.copyObject(user, rfrom, rto)).thenReturn(new CopyResult(OBJ_INFO, true));
+		when(m.db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
 
 		ws.copyObject(user, from, to);
 		
-		verify(l1).copyObject(user, 24, 42, 45, Instant.ofEpochMilli(40000), false);
-		verify(l2).copyObject(user, 24, 42, 45, Instant.ofEpochMilli(40000), false);
+		verify(m.l1).copyObject(user, 24, 42, 45, Instant.ofEpochMilli(40000), false);
+		verify(m.l2).copyObject(user, 24, 42, 45, Instant.ofEpochMilli(40000), false);
 	}
 	
 	public static class SaveObjectsAnswerMatcher implements
@@ -1111,12 +1007,9 @@ public class WorkspaceListenerTest {
 	
 	@Test
 	public void saveObject1Listener() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final Mocks m = new Mocks();
 		final ValidatedTypedObject vto1 = mock(ValidatedTypedObject.class);
 		final ValidatedTypedObject vto2 = mock(ValidatedTypedObject.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l = mock(WorkspaceEventListener.class);
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -1154,42 +1047,38 @@ public class WorkspaceListenerTest {
 				.withUserPermission(Permission.WRITE)
 				.build();
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
 		
-		when(tv.validate(isA(UObject.class), eq(new TypeDefId("foo.bar")),
+		when(m.tv.validate(isA(UObject.class), eq(new TypeDefId("foo.bar")),
 				isA(IdReferenceHandlerSet.class))).thenReturn(vto1);
-		when(tv.validate(isA(UObject.class), eq(new TypeDefId("foo.baz")),
+		when(m.tv.validate(isA(UObject.class), eq(new TypeDefId("foo.baz")),
 				isA(IdReferenceHandlerSet.class))).thenReturn(vto2);
 		when(vto1.isInstanceValid()).thenReturn(true);
 		when(vto2.isInstanceValid()).thenReturn(true);
 		when(vto1.getRelabeledSize()).thenReturn(6L);
 		when(vto2.getRelabeledSize()).thenReturn(7L);
 		
-		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
-		when(db.saveObjects(eq(user), eq(rwsi),
+		when(m.db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
+		when(m.db.saveObjects(eq(user), eq(rwsi),
 				argThat(new SaveObjectsAnswerMatcher(Arrays.asList(rso1, rso2)))))
 				.thenReturn(Arrays.asList(oi1, oi2));
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1));
 		
 		ws.saveObjects(user, wsi, Arrays.asList(wso1, wso2), fac);
 		
-		verify(l).saveObject(oi1, false);
-		verify(l).saveObject(oi2, false);
+		verify(m.l1).saveObject(oi1, false);
+		verify(m.l1).saveObject(oi2, false);
 	}
 	
 	@Test
 	public void saveObject2Listeners() throws Exception {
-		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
-		final TypedObjectValidator tv = mock(TypedObjectValidator.class);
+		final Mocks m = new Mocks();
 		final ValidatedTypedObject vto1 = mock(ValidatedTypedObject.class);
 		final ValidatedTypedObject vto2 = mock(ValidatedTypedObject.class);
-		final ResourceUsageConfiguration cfg = new ResourceUsageConfigurationBuilder().build();
-		final WorkspaceEventListener l1 = mock(WorkspaceEventListener.class);
-		final WorkspaceEventListener l2 = mock(WorkspaceEventListener.class);
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
@@ -1228,33 +1117,33 @@ public class WorkspaceListenerTest {
 				.withGlobalRead(true)
 				.build();
 		
-		when(db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
-		when(db.getPermissions(user, set(rwsi))).thenReturn(
+		when(m.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(m.db.getPermissions(user, set(rwsi))).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
 						.withWorkspace(rwsi, Permission.OWNER, Permission.NONE).build());
 		
-		when(tv.validate(isA(UObject.class), eq(new TypeDefId("foo.bar")),
+		when(m.tv.validate(isA(UObject.class), eq(new TypeDefId("foo.bar")),
 				isA(IdReferenceHandlerSet.class))).thenReturn(vto1);
-		when(tv.validate(isA(UObject.class), eq(new TypeDefId("foo.baz")),
+		when(m.tv.validate(isA(UObject.class), eq(new TypeDefId("foo.baz")),
 				isA(IdReferenceHandlerSet.class))).thenReturn(vto2);
 		when(vto1.isInstanceValid()).thenReturn(true);
 		when(vto2.isInstanceValid()).thenReturn(true);
 		when(vto1.getRelabeledSize()).thenReturn(6L);
 		when(vto2.getRelabeledSize()).thenReturn(7L);
 		
-		when(db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
-		when(db.saveObjects(eq(user), eq(rwsi),
+		when(m.db.getWorkspaceInformation(user, rwsi)).thenReturn(wsinfo);
+		when(m.db.saveObjects(eq(user), eq(rwsi),
 				argThat(new SaveObjectsAnswerMatcher(Arrays.asList(rso1, rso2)))))
 				.thenReturn(Arrays.asList(oi1, oi2));
 		
-		final Workspace ws = new Workspace(db, cfg, tv, Arrays.asList(l1, l2));
+		final Workspace ws = new Workspace(m.db, m.cfg, m.tv, m.tfm, Arrays.asList(m.l1, m.l2));
 		
 		ws.saveObjects(user, wsi, Arrays.asList(wso1, wso2), fac);
 		
-		verify(l1).saveObject(oi1, true);
-		verify(l1).saveObject(oi2, true);
-		verify(l2).saveObject(oi1, true);
-		verify(l2).saveObject(oi2, true);
+		verify(m.l1).saveObject(oi1, true);
+		verify(m.l1).saveObject(oi2, true);
+		verify(m.l2).saveObject(oi1, true);
+		verify(m.l2).saveObject(oi2, true);
 	}
 }
 

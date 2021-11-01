@@ -73,8 +73,7 @@ public class GetObjectsLibSpeedTest {
 		//need to redo set up if this is used again
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, shockuser, null);
-		TempFilesManager tfm = new TempFilesManager(
-				new File(TestCommon.getTempDir()));
+		final TempFilesManager tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		
 		@SuppressWarnings("resource")
 		final MongoClient mc = new MongoClient(mongohost);
@@ -83,8 +82,9 @@ public class GetObjectsLibSpeedTest {
 				mc.getDatabase(typeDB)));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
-		MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
-		Workspace ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
+		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db));
+		final Workspace ws = new Workspace(
+				mwdb, new ResourceUsageConfigurationBuilder().build(), val, tfm);
 		Types types = new Types(typeDefDB);
 		
 		WorkspaceUser user = new WorkspaceUser("foo");

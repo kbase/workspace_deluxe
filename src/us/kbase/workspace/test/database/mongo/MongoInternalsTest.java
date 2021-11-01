@@ -117,13 +117,12 @@ public class MongoInternalsTest {
 		TestCommon.destroyDB(db);
 		TestCommon.destroyDB(tdb);
 		
-		TempFilesManager tfm = new TempFilesManager(
-				new File(TestCommon.getTempDir()));
+		final TempFilesManager tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
-		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db), tfm);
-		ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val);
+		mwdb = new MongoWorkspaceDB(db, new GridFSBlobStore(db));
+		ws = new Workspace(mwdb, new ResourceUsageConfigurationBuilder().build(), val, tfm);
 
 		//make a general spec that tests that don't worry about typechecking can use
 		WorkspaceUser foo = new WorkspaceUser("foo");
@@ -780,7 +779,7 @@ public class MongoInternalsTest {
 			paths.put(o, null);
 		}
 		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(
-				10000, 10000, mwdb.getTempFilesManager());
+				10000, 10000, ws.getTempFilesManager());
 		try {
 			mwdb.getObjects(paths, man, 0, true, false, true);
 			fail("operated on object with no version");
