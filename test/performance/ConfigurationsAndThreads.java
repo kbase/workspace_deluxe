@@ -150,7 +150,6 @@ public class ConfigurationsAndThreads {
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, user, null);
 		//NOTE this setup is just to make it compile, not tested yet
-		@SuppressWarnings("resource")
 		final MongoClient mc = new MongoClient(MONGO_HOST);
 		MC = mc;
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(
@@ -238,16 +237,16 @@ public class ConfigurationsAndThreads {
 		for (int i = 0; i < threads; i++) {
 			if (i + 1 == threads) {
 				int threadSize = writes - pos;
-				rwthreads[i] = clazz.newInstance();
+				rwthreads[i] = clazz.getDeclaredConstructor().newInstance();
 				rwthreads[i].initialize(threadSize, i + 1);
 				threadDist.add(threadSize);
 			} else if (hasMod && i % 2 == 1) {
-				rwthreads[i] = clazz.newInstance();
+				rwthreads[i] = clazz.getDeclaredConstructor().newInstance();
 				rwthreads[i].initialize(minWrites + 1, i + 1);
 				pos += minWrites + 1;
 				threadDist.add(minWrites + 1);
 			} else {
-				rwthreads[i] = clazz.newInstance();
+				rwthreads[i] = clazz.getDeclaredConstructor().newInstance();
 				rwthreads[i].initialize(minWrites, i + 1);
 				pos += minWrites;
 				threadDist.add(minWrites);

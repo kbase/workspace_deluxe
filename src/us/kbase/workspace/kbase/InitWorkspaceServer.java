@@ -2,6 +2,7 @@ package us.kbase.workspace.kbase;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -395,8 +396,9 @@ public class InitWorkspaceServer {
 		final Class<WorkspaceEventListenerFactory> inter =
 				(Class<WorkspaceEventListenerFactory>) cls;
 		try {
-			return inter.newInstance();
-		} catch (IllegalAccessException | InstantiationException e) {
+			return inter.getDeclaredConstructor().newInstance();
+		} catch (IllegalAccessException | InstantiationException | IllegalArgumentException |
+				InvocationTargetException | NoSuchMethodException | SecurityException e) {
 			throw new WorkspaceInitException(String.format(
 					"Module %s could not be instantiated: %s", className, e.getMessage()), e);
 		}

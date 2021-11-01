@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app>
-    <listener>
-        <listener-class>us.kbase.workspace.kbase.AppEventListener</listener-class>
-    </listener>
     <servlet>
         <servlet-name>RootServlet</servlet-name>
         <servlet-class>us.kbase.workspace.WorkspaceServer</servlet-class>

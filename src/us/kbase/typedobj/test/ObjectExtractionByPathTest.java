@@ -100,7 +100,7 @@ public class ObjectExtractionByPathTest {
 		if(VERBOSE) System.out.println(" " + instanceResources.size() + " found");
 		Object [][] instanceInfo = new Object[instanceResources.size()][1];
 		for(int k=0; k<instanceResources.size(); k++) {
-			instanceInfo[k][0] = new Integer(k);
+			instanceInfo[k][0] = k;
 		}
 		return Arrays.asList(instanceInfo);
 	}
