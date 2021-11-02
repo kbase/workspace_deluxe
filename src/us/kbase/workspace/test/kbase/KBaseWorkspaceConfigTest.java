@@ -207,8 +207,8 @@ public class KBaseWorkspaceConfigTest {
 			return this;
 		}
 
-		public ExpectedConfig withAuth2URL(final URL auth2url) {
-			auth2URL = auth2url;
+		public ExpectedConfig withAuth2URL(final URL auth2URL) {
+			this.auth2URL = auth2URL;
 			return this;
 		}
 
