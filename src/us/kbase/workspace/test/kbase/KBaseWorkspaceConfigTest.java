@@ -41,7 +41,6 @@ public class KBaseWorkspaceConfigTest {
 	private final static String CI_SERV = "https://ci.kbase.us/services/";
 	private final static String AUTH_LEGACY_URL =
 			CI_SERV + "auth/api/legacy/KBase/Sessions/Login";
-	private final static List<String> MT = Collections.emptyList();
 	private final static String IGNORE_HANDLE = 
 			"Ignoring Handle Service config. Objects with handle IDs will fail typechecking.";
 	private final static String MISSING_PARAM = "Must provide param %s in config file";
@@ -164,42 +163,197 @@ public class KBaseWorkspaceConfigTest {
 		}
 	}
 	
-	// TODO NOW_NEXT_PR reorder the args to be more sensible
-	// good heavens, what what absolutely ghastly code. I may faint
-	// hey kids, don't try this at home
-	private void assertConfigCorrect(
-			final Map<String, String> cfg,
-			final Set<String> adminReadOnlyRoles,
-			final Set<String> adminRoles,
-			final URL auth2URL,
-			final URL authURL,
-			final String backendToken,
-			final BackendType backendType,
-			final URL backendURL,
-			final String backendUser,
-			final String backendContiner,
-			final Region backendRegion,
-			final boolean backendTrustAllCerts,
-			final String dbname,
-			final List<String> errors,
-			final String handleServiceToken,
-			final URL handleServiceURL,
-			final String host,
-			final List<String> infoMessages,
-			final List<ListenerConfig> listenerConfigs,
-			final String mongoPwd,
-			final String mongoUser,
-			final String paramReport,
-			final String bytestreamToken,
-			final URL bytestreamURL,
-			final String bytestreamUser,
-			final String sampleServiceToken,
-			final URL sampleServiceURL,
-			final String tempDir,
-			final String typeDBname,
-			final String workspaceAdmin,
-			final boolean hasErrors,
-			final boolean ignoreHandleService)
+	private static class ExpectedConfig {
+		
+		public URL auth2URL = null;
+		public URL authURL = null;
+		public Set<String> adminReadOnlyRoles = set();
+		public Set<String> adminRoles = set();
+		public String workspaceAdmin = null;
+		public String mongohost = null;
+		public String mongoDBname = null;
+		public String typeDBname = null;
+		public String mongoPwd = null;
+		public String mongoUser = null;
+		public List<ListenerConfig> listenerConfigs = Collections.emptyList();
+		public BackendType backendType = null;
+		public URL backendURL = null;
+		public String backendUser = null;
+		public String backendToken = null;
+		public String backendContiner = null;
+		public Region backendRegion = null;
+		public boolean backendTrustAllCerts = false;
+		public URL handleServiceURL = null;
+		public String handleServiceToken = null;
+		public boolean ignoreHandleService = false;
+		public URL bytestreamURL = null;
+		public String bytestreamUser = null;
+		public String bytestreamToken = null;
+		public URL sampleServiceURL = null;
+		public String sampleServiceToken = null;
+		public String tempDir = null;
+		public List<String> infoMessages = Collections.emptyList();
+		public String paramReport = null;
+		public boolean hasErrors = false;
+		public List<String> errors = Collections.emptyList();
+
+		public ExpectedConfig withAdminReadOnlyRoles(final Set<String> adminReadOnlyRoles) {
+			this.adminReadOnlyRoles = adminReadOnlyRoles;
+			return this;
+		}
+
+		public ExpectedConfig withAdminRoles(final Set<String> adminRoles) {
+			this.adminRoles = adminRoles;
+			return this;
+		}
+
+		public ExpectedConfig withAuth2URL(final URL auth2url) {
+			auth2URL = auth2url;
+			return this;
+		}
+
+		public ExpectedConfig withAuthURL(final URL authURL) {
+			this.authURL = authURL;
+			return this;
+		}
+
+		public ExpectedConfig withBackendToken(final String backendToken) {
+			this.backendToken = backendToken;
+			return this;
+		}
+
+		public ExpectedConfig withBackendType(final BackendType backendType) {
+			this.backendType = backendType;
+			return this;
+		}
+
+		public ExpectedConfig withBackendURL(final URL backendURL) {
+			this.backendURL = backendURL;
+			return this;
+		}
+
+		public ExpectedConfig withBackendUser(final String backendUser) {
+			this.backendUser = backendUser;
+			return this;
+		}
+
+		public ExpectedConfig withBackendContainer(final String backendContiner) {
+			this.backendContiner = backendContiner;
+			return this;
+		}
+
+		public ExpectedConfig withBackendRegion(final Region backendRegion) {
+			this.backendRegion = backendRegion;
+			return this;
+		}
+		
+		public ExpectedConfig withBackendTrustAllCerts(final boolean backendTrustAllCerts) {
+			this.backendTrustAllCerts = backendTrustAllCerts;
+			return this;
+		}
+
+		public ExpectedConfig withMongoDBname(final String mongoDBname) {
+			this.mongoDBname = mongoDBname;
+			return this;
+		}
+
+		public ExpectedConfig withErrors(final List<String> errors) {
+			this.errors = errors;
+			return this;
+		}
+
+		public ExpectedConfig withHandleServiceToken(final String handleServiceToken) {
+			this.handleServiceToken = handleServiceToken;
+			return this;
+		}
+
+		public ExpectedConfig withHandleServiceURL(final URL handleServiceURL) {
+			this.handleServiceURL = handleServiceURL;
+			return this;
+		}
+
+		public ExpectedConfig withMongohost(final String mongohost) {
+			this.mongohost = mongohost;
+			return this;
+		}
+
+		public ExpectedConfig withInfoMessages(final List<String> infoMessages) {
+			this.infoMessages = infoMessages;
+			return this;
+		}
+
+		public ExpectedConfig withListenerConfigs(final List<ListenerConfig> listenerConfigs) {
+			this.listenerConfigs = listenerConfigs;
+			return this;
+		}
+
+		public ExpectedConfig withMongoPwd(final String mongoPwd) {
+			this.mongoPwd = mongoPwd;
+			return this;
+		}
+
+		public ExpectedConfig withMongoUser(final String mongoUser) {
+			this.mongoUser = mongoUser;
+			return this;
+		}
+
+		public ExpectedConfig withParamReport(final String paramReport) {
+			this.paramReport = paramReport;
+			return this;
+		}
+
+		public ExpectedConfig withBytestreamToken(final String bytestreamToken) {
+			this.bytestreamToken = bytestreamToken;
+			return this;
+		}
+
+		public ExpectedConfig withBytestreamURL(final URL bytestreamURL) {
+			this.bytestreamURL = bytestreamURL;
+			return this;
+		}
+
+		public ExpectedConfig withBytestreamUser(final String bytestreamUser) {
+			this.bytestreamUser = bytestreamUser;
+			return this;
+		}
+
+		public ExpectedConfig withSampleServiceToken(final String sampleServiceToken) {
+			this.sampleServiceToken = sampleServiceToken;
+			return this;
+		}
+
+		public ExpectedConfig withSampleServiceURL(final URL sampleServiceURL) {
+			this.sampleServiceURL = sampleServiceURL;
+			return this;
+		}
+
+		public ExpectedConfig withTempDir(final String tempDir) {
+			this.tempDir = tempDir;
+			return this;
+		}
+
+		public ExpectedConfig withTypeDBname(final String typeDBname) {
+			this.typeDBname = typeDBname;
+			return this;
+		}
+
+		public ExpectedConfig withWorkspaceAdmin(final String workspaceAdmin) {
+			this.workspaceAdmin = workspaceAdmin;
+			return this;
+		}
+
+		public ExpectedConfig withHasErrors(final boolean hasErrors) {
+			this.hasErrors = hasErrors;
+			return this;
+		}
+
+		public ExpectedConfig withIgnoreHandleService(final boolean ignoreHandleService) {
+			this.ignoreHandleService = ignoreHandleService;
+			return this;
+		}
+	}
+	
+	private void assertConfigCorrect(final Map<String, String> cfg, final ExpectedConfig exp)
 			throws Exception {
 		final Path tempfile = Files.createTempFile(TEMP_DIR, TestCommon.getMethodName(2), "");
 		try (final BufferedWriter w = Files.newBufferedWriter(tempfile)) {
@@ -215,42 +369,44 @@ public class KBaseWorkspaceConfigTest {
 				)) {
 		
 			assertThat("incorrect admin read roles",
-					kwc.getAdminReadOnlyRoles(), is(adminReadOnlyRoles));
-			assertThat("incorrect admin roles", kwc.getAdminRoles(), is(adminRoles));
-			assertThat("incorrect auth2 url", kwc.getAuth2URL(), is(auth2URL));
-			assertThat("incorrect auth url", kwc.getAuthURL(), is(authURL));
-			assertThat("incorrect backend token", kwc.getBackendToken(), is(backendToken));
-			assertThat("incorrect backend type", kwc.getBackendType(), is(backendType));
-			assertThat("incorrect backend url", kwc.getBackendURL(), is(backendURL));
-			assertThat("incorrect backend user", kwc.getBackendUser(), is(backendUser));
+					kwc.getAdminReadOnlyRoles(), is(exp.adminReadOnlyRoles));
+			assertThat("incorrect admin roles", kwc.getAdminRoles(), is(exp.adminRoles));
+			assertThat("incorrect auth2 url", kwc.getAuth2URL(), is(exp.auth2URL));
+			assertThat("incorrect auth url", kwc.getAuthURL(), is(exp.authURL));
+			assertThat("incorrect backend token", kwc.getBackendToken(), is(exp.backendToken));
+			assertThat("incorrect backend type", kwc.getBackendType(), is(exp.backendType));
+			assertThat("incorrect backend url", kwc.getBackendURL(), is(exp.backendURL));
+			assertThat("incorrect backend user", kwc.getBackendUser(), is(exp.backendUser));
 			assertThat("incorrect backend container",
-					kwc.getBackendContainer(), is(backendContiner));
-			assertThat("incorrect backend region", kwc.getBackendRegion(), is(backendRegion));
+					kwc.getBackendContainer(), is(exp.backendContiner));
+			assertThat("incorrect backend region", kwc.getBackendRegion(), is(exp.backendRegion));
 			assertThat("incorrect backend trust certs",
-					kwc.getBackendTrustAllCerts(), is(backendTrustAllCerts));
-			assertThat("incorrect db", kwc.getDBname(), is(dbname));
-			assertThat("incorrect errors", kwc.getErrors(), is(errors));
+					kwc.getBackendTrustAllCerts(), is(exp.backendTrustAllCerts));
+			assertThat("incorrect db", kwc.getDBname(), is(exp.mongoDBname));
+			assertThat("incorrect errors", kwc.getErrors(), is(exp.errors));
 			assertThat("incorrect srvc token",
-					kwc.getHandleServiceToken(), is(handleServiceToken));
-			assertThat("incorrect srvc url", kwc.getHandleServiceURL(), is(handleServiceURL));
-			assertThat("incorrect host", kwc.getHost(), is(host));
-			assertThat("incorrect info msgs", kwc.getInfoMessages(), is(infoMessages));
-			assertThat("incorrect listeners", kwc.getListenerConfigs(), is(listenerConfigs));
-			assertThat("incorrect mongo pwd", kwc.getMongoPassword(), is(mongoPwd));
-			assertThat("incorrect mongo user", kwc.getMongoUser(), is(mongoUser));
-			assertThat("incorrect param report", kwc.getParamReport(), is(paramReport));
+					kwc.getHandleServiceToken(), is(exp.handleServiceToken));
+			assertThat("incorrect srvc url", kwc.getHandleServiceURL(), is(exp.handleServiceURL));
+			assertThat("incorrect host", kwc.getHost(), is(exp.mongohost));
+			assertThat("incorrect info msgs", kwc.getInfoMessages(), is(exp.infoMessages));
+			assertThat("incorrect listeners", kwc.getListenerConfigs(), is(exp.listenerConfigs));
+			assertThat("incorrect mongo pwd", kwc.getMongoPassword(), is(exp.mongoPwd));
+			assertThat("incorrect mongo user", kwc.getMongoUser(), is(exp.mongoUser));
+			assertThat("incorrect param report", kwc.getParamReport(), is(exp.paramReport));
 			assertThat("incorrect bytestream token",
-					kwc.getBytestreamToken(), is(bytestreamToken));
-			assertThat("incorrect bytestream url", kwc.getBytestreamURL(), is(bytestreamURL));
-			assertThat("incorrect bytestream user", kwc.getBytestreamUser(), is(bytestreamUser));
+					kwc.getBytestreamToken(), is(exp.bytestreamToken));
+			assertThat("incorrect bytestream url", kwc.getBytestreamURL(), is(exp.bytestreamURL));
+			assertThat("incorrect bytestream user",
+					kwc.getBytestreamUser(), is(exp.bytestreamUser));
 			assertThat("incorrect sample token",
-					kwc.getSampleServiceToken(), is(sampleServiceToken));
-			assertThat("incorrect sample url", kwc.getSampleServiceURL(), is(sampleServiceURL));
-			assertThat("incorrect temp dir", kwc.getTempDir(), is(tempDir));
-			assertThat("incorrect type db", kwc.getTypeDBName(), is(typeDBname));
-			assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), is(workspaceAdmin));
-			assertThat("incorrect has err", kwc.hasErrors(), is(hasErrors));
-			assertThat("incorrect ignore hs", kwc.ignoreHandleService(), is(ignoreHandleService));
+					kwc.getSampleServiceToken(), is(exp.sampleServiceToken));
+			assertThat("incorrect sample url", kwc.getSampleServiceURL(), is(exp.sampleServiceURL));
+			assertThat("incorrect temp dir", kwc.getTempDir(), is(exp.tempDir));
+			assertThat("incorrect type db", kwc.getTypeDBName(), is(exp.typeDBname));
+			assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), is(exp.workspaceAdmin));
+			assertThat("incorrect has err", kwc.hasErrors(), is(exp.hasErrors));
+			assertThat("incorrect ignore hs",
+					kwc.ignoreHandleService(), is(exp.ignoreHandleService));
 		}
 	}
 	
@@ -276,38 +432,19 @@ public class KBaseWorkspaceConfigTest {
 				"backend-type=GridFS\n";
 		
 		assertConfigCorrect(
-				cfg,									// config under test
-				set(),									// admin read only roles
-				set(),									// admin roles
-				new URL(CI_SERV + "auth"),				// auth root url
-				new URL(AUTH_LEGACY_URL),				// auth legacy api url
-				null,									// backend token
-				BackendType.GridFS,						// backend type
-				null,									// backend url
-				null,									// backend user
-				null,									// backend container
-				null,									// backend region
-				false,									// backend trust all certs
-				"somedb",								// mongo db
-				MT,										// errors
-				null,									// handle service token
-				null,									// handle service url
-				"somehost",								// mongo host
-				Arrays.asList(IGNORE_HANDLE),			// info messages
-				Collections.emptyList(),				// listener configs
-				null,									// mongo password
-				null,									// mongo user
-				paramReport,							// param report
-				null,									// bytestream token
-				null,									// bytestream URL
-				null,									// bytestream user
-				null,									// sample service token
-				null,									// sample service URL
-				"temp",									// temp dir
-				"typedb",								// mongo type db name
-				null,									// workspace admin
-				false,									// has errors
-				true);									// ignore handle service
+				cfg,
+				new ExpectedConfig()
+						.withAuth2URL(new URL(CI_SERV + "auth"))
+						.withAuthURL(new URL(AUTH_LEGACY_URL))
+						.withMongohost("somehost")
+						.withMongoDBname("somedb")
+						.withTypeDBname("typedb")
+						.withBackendType(BackendType.GridFS)
+						.withInfoMessages(Arrays.asList(IGNORE_HANDLE))
+						.withParamReport(paramReport)
+						.withTempDir("temp")
+						.withIgnoreHandleService(true)
+				);
 	}
 	
 	@Test
@@ -331,7 +468,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-token", "    token token token    ")
 				.with("backend-container", "   mahbukkit   ")
 				.with("backend-region", "   a-lovely-region   ")
-				.with("backend-trust-all-ssl-certificates", "trudat")
+				.with("backend-trust-all-ssl-certificates", "     true    ")
 				.with("handle-service-token", "    hstoken    ")
 				.with("handle-manager-token", "    hmtoken    ")  // test service takes precedence
 				.with("handle-manager-url", "    " + CI_SERV + "handle_mngr     ")
@@ -363,7 +500,7 @@ public class KBaseWorkspaceConfigTest {
 				"backend-user=someuser\n" + 
 				"backend-region=a-lovely-region\n" +
 				"backend-container=mahbukkit\n" +
-				"backend-trust-all-ssl-certificates=trudat\n" +
+				"backend-trust-all-ssl-certificates=true\n" +
 				"handle-service-url=" + CI_SERV + "handle_service\n" +
 				"bytestream-url=" + CI_SERV + "shock-api2\n" +
 				"bytestream-user=otheruser\n" +
@@ -372,42 +509,40 @@ public class KBaseWorkspaceConfigTest {
 				"listeners=us.kbase.MyListener,us.kbase.MyListener2\n";
 		
 		assertConfigCorrect(
-				cfg,									// config under test
-				set("role1", "role2"),					// admin read only roles
-				set("role3", "role4"),					// admin roles
-				new URL(CI_SERV + "auth"),				// auth root url
-				new URL(AUTH_LEGACY_URL),				// auth legacy api url
-				"token token token",					// backend token
-				BackendType.S3,							// backend type
-				new URL("http://localhost:34567"),		// backend url
-				"someuser",								// backend user
-				"mahbukkit",							// backend container
-				Region.of("a-lovely-region"),			// backend region
-				false,									// backend trust all certs
-				"somedb",								// mongo db
-				MT,										// errors
-				"hstoken",								// handle service token
-				new URL(CI_SERV + "handle_service"),	// handle service url
-				"somehost",								// mongo host
-				Collections.emptyList(),				// info messages
-				Arrays.asList(							// listener configs
-						new ListenerConfig("us.kbase.MyListener",
-								ImmutableMap.of("key1", "value1", "key2", "value2")),
-						new ListenerConfig("us.kbase.MyListener2",
-								ImmutableMap.of("key1", "value3"))),
-				"mpwd",									// mongo password
-				"muser",								// mongo user
-				paramReport,							// param report
-				"token token",							// bytestream token
-				new URL(CI_SERV + "shock-api2"),		// bytestream URL
-				"otheruser",							// bytestream user
-				"sstoken2",								// sample service token
-				new URL(CI_SERV + "sample_service2"),	// sample service URL
-				"temp",									// temp dir
-				"typedb",								// mongo type db name
-				"wsadminuser",							// workspace admin
-				false,									// has errors
-				false);									// ignore handle service
+				cfg,
+				new ExpectedConfig()
+						.withAuth2URL(new URL(CI_SERV + "auth"))
+						.withAuthURL(new URL(AUTH_LEGACY_URL))
+						.withAdminReadOnlyRoles(set("role1", "role2"))
+						.withAdminRoles(set("role3", "role4"))
+						.withWorkspaceAdmin("wsadminuser")
+						.withMongohost("somehost")
+						.withMongoDBname("somedb")
+						.withTypeDBname("typedb")
+						.withMongoUser("muser")
+						.withMongoPwd("mpwd")
+						.withListenerConfigs(Arrays.asList(
+								new ListenerConfig("us.kbase.MyListener",
+										ImmutableMap.of("key1", "value1", "key2", "value2")),
+								new ListenerConfig("us.kbase.MyListener2",
+										ImmutableMap.of("key1", "value3"))))
+						.withBackendType(BackendType.S3)
+						.withBackendURL(new URL("http://localhost:34567"))
+						.withBackendUser("someuser")
+						.withBackendToken("token token token")
+						.withBackendContainer("mahbukkit")
+						.withBackendRegion(Region.of("a-lovely-region"))
+						.withBackendTrustAllCerts(true)
+						.withHandleServiceURL(new URL(CI_SERV + "handle_service"))
+						.withHandleServiceToken("hstoken")
+						.withBytestreamURL(new URL(CI_SERV + "shock-api2"))
+						.withBytestreamUser("otheruser")
+						.withBytestreamToken("token token")
+						.withSampleServiceURL(new URL(CI_SERV + "sample_service2"))
+						.withSampleServiceToken("sstoken2")
+						.withTempDir("temp")
+						.withParamReport(paramReport)
+				);
 	}
 	
 	@Test
@@ -453,38 +588,21 @@ public class KBaseWorkspaceConfigTest {
 				"sample-service-url=" + CI_SERV +"sample_service3\n";
 		
 		assertConfigCorrect(
-				cfg,									// config under test
-				set(),									// admin read only roles
-				set(),									// admin roles
-				new URL(CI_SERV + "auth"),				// auth root url
-				new URL(AUTH_LEGACY_URL),				// auth legacy api url
-				null,									// backend token
-				BackendType.GridFS,						// backend type
-				null,									// backend url
-				null,									// backend user
-				null,									// backend container
-				null,									// backend region
-				false,									// backend trust all certs
-				"somedb",								// mongo db
-				MT,										// errors
-				"hmtoken",								// handle service token
-				new URL(CI_SERV + "handle_service"),	// handle service url
-				"somehost",								// mongo host
-				Collections.emptyList(),				// info messages
-				Collections.emptyList(),				// listener configs
-				null,									// mongo password
-				null,									// mongo user
-				paramReport,							// param report
-				null,									// bytestream token
-				null,									// bytestream URL
-				null,									// bytestream user
-				"sstoken3",								// sample service token
-				new URL(CI_SERV + "sample_service3"),	// sample service URL
-				"temp",									// temp dir
-				"typedb",								// mongo type db name
-				null,									// workspace admin
-				false,									// has errors
-				false);									// ignore handle service
+				cfg,
+				new ExpectedConfig()
+						.withAuth2URL(new URL(CI_SERV + "auth"))
+						.withAuthURL(new URL(AUTH_LEGACY_URL))
+						.withMongohost("somehost")
+						.withMongoDBname("somedb")
+						.withTypeDBname("typedb")
+						.withBackendType(BackendType.GridFS)
+						.withHandleServiceURL(new URL(CI_SERV + "handle_service"))
+						.withHandleServiceToken("hmtoken")
+						.withSampleServiceURL(new URL(CI_SERV + "sample_service3"))
+						.withSampleServiceToken("sstoken3")
+						.withParamReport(paramReport)
+						.withTempDir("temp")
+				);
 	}
 	
 	@Test
@@ -584,38 +702,13 @@ public class KBaseWorkspaceConfigTest {
 		final String paramReport = "mongodb-user=user\nsample-service-url=https://foo.com\n";
 		
 		assertConfigCorrect(
-				cfg,									// config under test
-				set(),									// admin read only roles
-				set(),									// admin roles
-				null,									// auth root url
-				null,									// auth legacy api url
-				null,									// backend token
-				null,									// backend type
-				null,									// backend url
-				null,									// backend user
-				null,									// backend container
-				null,									// backend region
-				false,									// backend trust all certs
-				null,									// mongo db
-				errors,									// errors
-				null,									// handle service token
-				null,									// handle service url
-				null,									// mongo host
-				Collections.emptyList(),				// info messages
-				Collections.emptyList(),				// listener configs
-				null,									// mongo password
-				null,									// mongo user
-				paramReport,							// param report
-				null,									// bytestream token
-				null,									// bytestream URL
-				null,									// bytestream user
-				null,									// sample service token
-				new URL("https://foo.com"),				// sample service URL
-				null,									// temp dir
-				null,									// mongo type db name
-				null,									// workspace admin
-				true,									// has errors
-				false);									// ignore handle service
+				cfg,
+				new ExpectedConfig()
+						.withParamReport(paramReport)
+						.withSampleServiceURL(new URL("https://foo.com"))
+						.withHasErrors(true)
+						.withErrors(errors)
+				);
 	}
 	
 	@Test
@@ -662,38 +755,13 @@ public class KBaseWorkspaceConfigTest {
 		final String paramReport = "sample-service-url=https://foo2.com\n";
 		
 		assertConfigCorrect(
-				cfg,									// config under test
-				set(),									// admin read only roles
-				set(),									// admin roles
-				null,									// auth root url
-				null,									// auth legacy api url
-				null,									// backend token
-				null,									// backend type
-				null,									// backend url
-				null,									// backend user
-				null,									// backend container
-				null,									// backend region
-				false,									// backend trust all certs
-				null,									// mongo db
-				errors,										// errors
-				null,									// handle service token
-				null,									// handle service url
-				null,									// mongo host
-				Collections.emptyList(),				// info messages
-				Collections.emptyList(),				// listener configs
-				null,									// mongo password
-				null,									// mongo user
-				paramReport,							// param report
-				null,									// bytestream token
-				null,									// bytestream URL
-				null,									// bytestream user
-				null,									// sample service token
-				new URL("https://foo2.com"),			// sample service URL
-				null,									// temp dir
-				null,									// mongo type db name
-				null,									// workspace admin
-				true,									// has errors
-				false);									// ignore handle service
+				cfg,
+				new ExpectedConfig()
+						.withParamReport(paramReport)
+						.withSampleServiceURL(new URL("https://foo2.com"))
+						.withHasErrors(true)
+						.withErrors(errors)
+				);
 	}
 	
 	@Test
@@ -742,38 +810,22 @@ public class KBaseWorkspaceConfigTest {
 				String.format(err, "handle-service-url", "4"));
 		
 		assertConfigCorrect(
-				cfg,									// config under test
-				set(),									// admin read only roles
-				set(),									// admin roles
-				null,									// auth root url
-				null,									// auth legacy api url
-				"bet",									// backend token
-				BackendType.S3,							// backend type
-				null,									// backend url
-				"buser",								// backend user
-				"foo",									// backend container
-				Region.of("over there"),				// backend region
-				false,									// backend trust all certs
-				"somedb",								// mongo db
-				errors,									// errors
-				"hmtoken",								// handle service token
-				null,									// handle service url
-				"somehost",								// mongo host
-				Collections.emptyList(),				// info messages
-				Collections.emptyList(),				// listener configs
-				null,									// mongo password
-				null,									// mongo user
-				paramReport,							// param report
-				null,									// bytestream token
-				null,									// bytestream URL
-				null,									// bytestream user
-				null,									// sample service token
-				null,									// sample service URL
-				"temp",									// temp dir
-				"typedb",								// mongo type db name
-				null,									// workspace admin
-				true,									// has errors
-				false);									// ignore handle service
+				cfg,
+				new ExpectedConfig()
+						.withMongohost("somehost")
+						.withMongoDBname("somedb")
+						.withTypeDBname("typedb")
+						.withBackendType(BackendType.S3)
+						.withBackendUser("buser")
+						.withBackendToken("bet")
+						.withBackendContainer("foo")
+						.withBackendRegion(Region.of("over there"))
+						.withHandleServiceToken("hmtoken")
+						.withParamReport(paramReport)
+						.withTempDir("temp")
+						.withHasErrors(true)
+						.withErrors(errors)
+				);
 	}
 	
 	@Test
@@ -802,38 +854,21 @@ public class KBaseWorkspaceConfigTest {
 				"value, somedb");
 		
 		assertConfigCorrect(
-				cfg,									// config under test
-				set(),									// admin read only roles
-				set(),									// admin roles
-				new URL(CI_SERV + "auth"),				// auth root url
-				new URL(AUTH_LEGACY_URL),				// auth legacy api url
-				null,									// backend token
-				BackendType.GridFS,						// backend type
-				null,									// backend url
-				null,									// backend user
-				null,									// backend container
-				null,									// backend region
-				false,									// backend trust all certs
-				"somedb",								// mongo db
-				errors,									// errors
-				null,									// handle service token
-				null,									// handle service url
-				"somehost",								// mongo host
-				Arrays.asList(IGNORE_HANDLE),			// info messages
-				Collections.emptyList(),				// listener configs
-				null,									// mongo password
-				null,									// mongo user
-				paramReport,							// param report
-				null,									// bytestream token
-				null,									// bytestream URL
-				null,									// bytestream user
-				null,									// sample service token
-				null,									// sample service URL
-				"temp",									// temp dir
-				"somedb",								// mongo type db name
-				null,									// workspace admin
-				true,									// has errors
-				true);									// ignore handle service
+				cfg,
+				new ExpectedConfig()
+						.withAuth2URL(new URL(CI_SERV + "auth"))
+						.withAuthURL(new URL(AUTH_LEGACY_URL))
+						.withMongohost("somehost")
+						.withMongoDBname("somedb")
+						.withTypeDBname("somedb")
+						.withBackendType(BackendType.GridFS)
+						.withIgnoreHandleService(true)
+						.withParamReport(paramReport)
+						.withTempDir("temp")
+						.withInfoMessages(Arrays.asList(IGNORE_HANDLE))
+						.withHasErrors(true)
+						.withErrors(errors)
+				);
 	}
 	
 	@Test
@@ -860,38 +895,20 @@ public class KBaseWorkspaceConfigTest {
 		final List<String> errors = Arrays.asList("Illegal backend type: GreedFS");
 		
 		assertConfigCorrect(
-				cfg,									// config under test
-				set(),									// admin read only roles
-				set(),									// admin roles
-				new URL(CI_SERV + "auth"),				// auth root url
-				new URL(AUTH_LEGACY_URL),				// auth legacy api url
-				null,									// backend token
-				null,									// backend type
-				null,									// backend url
-				null,									// backend user
-				null,									// backend container
-				null,									// backend region
-				false,									// backend trust all certs
-				"somedb",								// mongo db
-				errors,									// errors
-				null,									// handle service token
-				null,									// handle service url
-				"somehost",								// mongo host
-				Arrays.asList(IGNORE_HANDLE),			// info messages
-				Collections.emptyList(),				// listener configs
-				null,									// mongo password
-				null,									// mongo user
-				paramReport,							// param report
-				null,									// bytestream token
-				null,									// bytestream URL
-				null,									// bytestream user
-				null,									// sample service token
-				null,									// sample service URL
-				"temp",									// temp dir
-				"typedb",								// mongo type db name
-				null,									// workspace admin
-				true,									// has errors
-				true);									// ignore handle service
+				cfg,
+				new ExpectedConfig()
+						.withAuth2URL(new URL(CI_SERV + "auth"))
+						.withAuthURL(new URL(AUTH_LEGACY_URL))
+						.withMongohost("somehost")
+						.withMongoDBname("somedb")
+						.withTypeDBname("typedb")
+						.withIgnoreHandleService(true)
+						.withParamReport(paramReport)
+						.withTempDir("temp")
+						.withInfoMessages(Arrays.asList(IGNORE_HANDLE))
+						.withHasErrors(true)
+						.withErrors(errors)
+				);
 	}
 	
 	@Test
@@ -941,38 +958,24 @@ public class KBaseWorkspaceConfigTest {
 				null : bytestreamUser;
 
 		assertConfigCorrect(
-				cfg,									// config under test
-				set(),									// admin read only roles
-				set(),									// admin roles
-				new URL(CI_SERV + "auth"),				// auth root url
-				new URL(AUTH_LEGACY_URL),				// auth legacy api url
-				null,									// backend token
-				BackendType.GridFS,						// backend type
-				null,									// backend url
-				null,									// backend user
-				null,									// backend container
-				null,									// backend region
-				false,									// backend trust all certs
-				"somedb",								// mongo db
-				errors,									// errors
-				null,									// handle service token
-				null,									// handle service url
-				"somehost",								// mongo host
-				Arrays.asList(IGNORE_HANDLE),			// info messages
-				Collections.emptyList(),				// listener configs
-				null,									// mongo password
-				null,									// mongo user
-				paramReport,							// param report
-				bytestreamToken,						// bytestream token
-				new URL("https://foo.com"),				// bytestream URL
-				bytestreamUser,							// bytestream user
-				null,									// sample service token
-				null,									// sample service URL
-				"temp",									// temp dir
-				"typedb",								// mongo type db name
-				null,									// workspace admin
-				true,									// has errors
-				true);									// ignore handle service
+				cfg,
+				new ExpectedConfig()
+						.withAuth2URL(new URL(CI_SERV + "auth"))
+						.withAuthURL(new URL(AUTH_LEGACY_URL))
+						.withMongohost("somehost")
+						.withMongoDBname("somedb")
+						.withTypeDBname("typedb")
+						.withBackendType(BackendType.GridFS)
+						.withIgnoreHandleService(true)
+						.withBytestreamURL(new URL("https://foo.com"))
+						.withBytestreamUser(bytestreamUser)
+						.withBytestreamToken(bytestreamToken)
+						.withParamReport(paramReport)
+						.withTempDir("temp")
+						.withInfoMessages(Arrays.asList(IGNORE_HANDLE))
+						.withHasErrors(true)
+						.withErrors(errors)
+				);
 	}
 	
 	@Test
@@ -1016,37 +1019,20 @@ public class KBaseWorkspaceConfigTest {
 				String.format(err, "backend-region"));
 		
 		assertConfigCorrect(
-				cfg,									// config under test
-				set(),									// admin read only roles
-				set(),									// admin roles
-				new URL(CI_SERV + "auth"),				// auth root url
-				new URL(AUTH_LEGACY_URL),				// auth legacy api url
-				null,									// backend token
-				BackendType.S3,							// backend type
-				null,									// backend url
-				null,									// backend user
-				null,									// backend container
-				null,									// backend region
-				false,									// backend trust all certs
-				"somedb",								// mongo db
-				errors,										// errors
-				null,									// handle service token
-				null,									// handle service url
-				"somehost",								// mongo host
-				Arrays.asList(IGNORE_HANDLE),			// info messages
-				Collections.emptyList(),				// listener configs
-				null,									// mongo password
-				null,									// mongo user
-				paramReport,							// param report
-				null,									// bytestream token
-				null,									// bytestream URL
-				null,									// bytestream user
-				null,									// sample service token
-				null,									// sample service URL
-				"temp",									// temp dir
-				"typedb",								// mongo type db name
-				null,									// workspace admin
-				true,									// has errors
-				true);									// ignore handle service
+				cfg,
+				new ExpectedConfig()
+						.withAuth2URL(new URL(CI_SERV + "auth"))
+						.withAuthURL(new URL(AUTH_LEGACY_URL))
+						.withMongohost("somehost")
+						.withMongoDBname("somedb")
+						.withTypeDBname("typedb")
+						.withBackendType(BackendType.S3)
+						.withIgnoreHandleService(true)
+						.withParamReport(paramReport)
+						.withTempDir("temp")
+						.withInfoMessages(Arrays.asList(IGNORE_HANDLE))
+						.withHasErrors(true)
+						.withErrors(errors)
+				);
 	}
 }
