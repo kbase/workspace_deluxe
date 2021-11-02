@@ -198,6 +198,7 @@ public class KBaseWorkspaceConfig {
 		}
 	}
 	
+	/** An error encountered when attempting to create a workspace configuration. */
 	@SuppressWarnings("serial")
 	public static class KBaseWorkspaceConfigException extends Exception {
 		
@@ -217,6 +218,11 @@ public class KBaseWorkspaceConfig {
 		}
 	}
 	
+	/** Create the configuration from an *.ini file.
+	 * @param configFile the file.
+	 * @param configSection the section of the file containing the configuration.
+	 * @throws KBaseWorkspaceConfigException if creating the configuration fails.
+	 */
 	public KBaseWorkspaceConfig(final Path configFile, final String configSection)
 			throws KBaseWorkspaceConfigException {
 		this(getConfigMap(configFile, configSection));
