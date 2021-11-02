@@ -33,7 +33,7 @@ Release checklist
 
   * Use a semantic version in the format ``X.Y.Z``.
 
-* Update the version in the ``us.kbase.workspace.version.WorkspaceVersion``
+* Update the version in the ``us.kbase.workspace.version.WorkspaceVersion`` class.
 
   * Use a semantic version in the format ``X.Y.Z-devA``,  where ``X.Y.Z`` is the
     semantic version and ``A`` is the incremental dev version.
