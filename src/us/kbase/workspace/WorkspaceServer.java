@@ -183,6 +183,7 @@ public class WorkspaceServer extends JsonServerServlet {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
 		setUpLogger();
+		// TODO CODE force service name to always be Workspace, screw this KB_SERVICE_NAME crap
 		setMaxRPCPackageSize(MAX_RPC_PACKAGE_SIZE);
 		setMaxRpcMemoryCacheSize(MAX_RPC_PACKAGE_MEM_USE);
 		//assign config once per jvm, otherwise you could wind up with

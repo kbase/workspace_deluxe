@@ -3,8 +3,10 @@ package us.kbase.workspace.kbase;
 import static java.util.Objects.requireNonNull;
 import static us.kbase.workspace.database.Util.checkString;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,9 +18,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.ini4j.Ini;
+
 import com.google.common.collect.ImmutableMap;
 
 import software.amazon.awssdk.regions.Region;
+import us.kbase.common.service.JsonServerServlet;
 
 public class KBaseWorkspaceConfig {
 	
@@ -192,7 +197,56 @@ public class KBaseWorkspaceConfig {
 			return true;
 		}
 	}
+	
+	@SuppressWarnings("serial")
+	public static class KBaseWorkspaceConfigException extends Exception {
+		
+		/** Create the exception.
+		 * @param message the exception message.
+		 */
+		public KBaseWorkspaceConfigException(final String message) {
+			super(message);
+		}
+		
+		/** Create the exception with a cause.
+		 * @param message the exception message.
+		 * @param cause the cause of this exception.
+		 */
+		public KBaseWorkspaceConfigException(final String message, final Throwable cause) {
+			super(message, cause);
+		}
+	}
+	
+	public KBaseWorkspaceConfig(final Path configFile, final String configSection)
+			throws KBaseWorkspaceConfigException {
+		this(getConfigMap(configFile, configSection));
+	}
 
+	private static Map<String, String> getConfigMap(
+			final Path configFile,
+			final String configSection)
+			throws KBaseWorkspaceConfigException {
+		final Ini ini;
+		try {
+			ini = new Ini(configFile.toFile());
+		} catch (IOException ioe) {
+			throw new KBaseWorkspaceConfigException(
+					String.format("Could not read from configuration file %s: %s",
+							configFile, ioe.getLocalizedMessage()),
+					ioe);
+		}
+		final Map<String, String> config = ini.get(configSection);
+		if (config == null) {
+			throw new KBaseWorkspaceConfigException(
+					String.format("The configuration file %s has no section %s",
+							configFile, configSection));
+		}
+		return config;
+	}
+
+	/** Create the configuration from a mapping as provided by {@link JsonServerServlet}.
+	 * @param config the configuration
+	 */
 	public KBaseWorkspaceConfig(final Map<String, String> config) {
 		// this is a really long constructor. Clean up at some point
 		requireNonNull(config, "config");
@@ -370,7 +424,7 @@ public class KBaseWorkspaceConfig {
 			if (key.startsWith(prefix)) {
 				final String ckey = key.replaceFirst(prefix, "");
 				if (ckey.trim().isEmpty()) {
-					paramErrors.add("Invalid listener configuration item: " + key);
+					paramErrors.add("Invalid listener configuration item: " + key.trim());
 					return null;
 				}
 				ret.put(ckey, config.get(key));
@@ -583,4 +637,198 @@ public class KBaseWorkspaceConfig {
 	public boolean hasErrors() {
 		return !errors.isEmpty();
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((adminReadOnlyRoles == null) ? 0 : adminReadOnlyRoles.hashCode());
+		result = prime * result + ((adminRoles == null) ? 0 : adminRoles.hashCode());
+		result = prime * result + ((auth2URL == null) ? 0 : auth2URL.hashCode());
+		result = prime * result + ((authURL == null) ? 0 : authURL.hashCode());
+		result = prime * result + ((backendContainer == null) ? 0 : backendContainer.hashCode());
+		// Region doesn't implement hashcode or equals
+		result = prime * result + ((backendRegion == null) ? 0 : backendRegion.id().hashCode());
+		result = prime * result + ((backendToken == null) ? 0 : backendToken.hashCode());
+		result = prime * result + (backendTrustAllCerts ? 1231 : 1237);
+		result = prime * result + ((backendType == null) ? 0 : backendType.hashCode());
+		result = prime * result + ((backendURL == null) ? 0 : backendURL.hashCode());
+		result = prime * result + ((backendUser == null) ? 0 : backendUser.hashCode());
+		result = prime * result + ((bytestreamToken == null) ? 0 : bytestreamToken.hashCode());
+		result = prime * result + ((bytestreamURL == null) ? 0 : bytestreamURL.hashCode());
+		result = prime * result + ((bytestreamUser == null) ? 0 : bytestreamUser.hashCode());
+		result = prime * result + ((db == null) ? 0 : db.hashCode());
+		result = prime * result + ((errors == null) ? 0 : errors.hashCode());
+		result = prime * result + ((handleServiceToken == null) ? 0 : handleServiceToken.hashCode());
+		result = prime * result + ((handleServiceURL == null) ? 0 : handleServiceURL.hashCode());
+		result = prime * result + ((host == null) ? 0 : host.hashCode());
+		result = prime * result + (ignoreHandleService ? 1231 : 1237);
+		result = prime * result + ((infoMessages == null) ? 0 : infoMessages.hashCode());
+		result = prime * result + ((listenerConfigs == null) ? 0 : listenerConfigs.hashCode());
+		result = prime * result + ((mongoPassword == null) ? 0 : mongoPassword.hashCode());
+		result = prime * result + ((mongoUser == null) ? 0 : mongoUser.hashCode());
+		result = prime * result + ((paramReport == null) ? 0 : paramReport.hashCode());
+		result = prime * result + ((sampleServiceToken == null) ? 0 : sampleServiceToken.hashCode());
+		result = prime * result + ((sampleServiceURL == null) ? 0 : sampleServiceURL.hashCode());
+		result = prime * result + ((tempDir == null) ? 0 : tempDir.hashCode());
+		result = prime * result + ((typedb == null) ? 0 : typedb.hashCode());
+		result = prime * result + ((workspaceAdmin == null) ? 0 : workspaceAdmin.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		KBaseWorkspaceConfig other = (KBaseWorkspaceConfig) obj;
+		if (adminReadOnlyRoles == null) {
+			if (other.adminReadOnlyRoles != null)
+				return false;
+		} else if (!adminReadOnlyRoles.equals(other.adminReadOnlyRoles))
+			return false;
+		if (adminRoles == null) {
+			if (other.adminRoles != null)
+				return false;
+		} else if (!adminRoles.equals(other.adminRoles))
+			return false;
+		if (auth2URL == null) {
+			if (other.auth2URL != null)
+				return false;
+		} else if (!auth2URL.equals(other.auth2URL))
+			return false;
+		if (authURL == null) {
+			if (other.authURL != null)
+				return false;
+		} else if (!authURL.equals(other.authURL))
+			return false;
+		if (backendContainer == null) {
+			if (other.backendContainer != null)
+				return false;
+		} else if (!backendContainer.equals(other.backendContainer))
+			return false;
+		if (backendRegion == null) {
+			if (other.backendRegion != null)
+				return false;
+		// Region doesn't implement hashcode or equals
+		} else if (!backendRegion.id().equals(
+				other.backendRegion == null ? null : other.backendRegion.id()))
+			return false;
+		if (backendToken == null) {
+			if (other.backendToken != null)
+				return false;
+		} else if (!backendToken.equals(other.backendToken))
+			return false;
+		if (backendTrustAllCerts != other.backendTrustAllCerts)
+			return false;
+		if (backendType != other.backendType)
+			return false;
+		if (backendURL == null) {
+			if (other.backendURL != null)
+				return false;
+		} else if (!backendURL.equals(other.backendURL))
+			return false;
+		if (backendUser == null) {
+			if (other.backendUser != null)
+				return false;
+		} else if (!backendUser.equals(other.backendUser))
+			return false;
+		if (bytestreamToken == null) {
+			if (other.bytestreamToken != null)
+				return false;
+		} else if (!bytestreamToken.equals(other.bytestreamToken))
+			return false;
+		if (bytestreamURL == null) {
+			if (other.bytestreamURL != null)
+				return false;
+		} else if (!bytestreamURL.equals(other.bytestreamURL))
+			return false;
+		if (bytestreamUser == null) {
+			if (other.bytestreamUser != null)
+				return false;
+		} else if (!bytestreamUser.equals(other.bytestreamUser))
+			return false;
+		if (db == null) {
+			if (other.db != null)
+				return false;
+		} else if (!db.equals(other.db))
+			return false;
+		if (errors == null) {
+			if (other.errors != null)
+				return false;
+		} else if (!errors.equals(other.errors))
+			return false;
+		if (handleServiceToken == null) {
+			if (other.handleServiceToken != null)
+				return false;
+		} else if (!handleServiceToken.equals(other.handleServiceToken))
+			return false;
+		if (handleServiceURL == null) {
+			if (other.handleServiceURL != null)
+				return false;
+		} else if (!handleServiceURL.equals(other.handleServiceURL))
+			return false;
+		if (host == null) {
+			if (other.host != null)
+				return false;
+		} else if (!host.equals(other.host))
+			return false;
+		if (ignoreHandleService != other.ignoreHandleService)
+			return false;
+		if (infoMessages == null) {
+			if (other.infoMessages != null)
+				return false;
+		} else if (!infoMessages.equals(other.infoMessages))
+			return false;
+		if (listenerConfigs == null) {
+			if (other.listenerConfigs != null)
+				return false;
+		} else if (!listenerConfigs.equals(other.listenerConfigs))
+			return false;
+		if (mongoPassword == null) {
+			if (other.mongoPassword != null)
+				return false;
+		} else if (!mongoPassword.equals(other.mongoPassword))
+			return false;
+		if (mongoUser == null) {
+			if (other.mongoUser != null)
+				return false;
+		} else if (!mongoUser.equals(other.mongoUser))
+			return false;
+		if (paramReport == null) {
+			if (other.paramReport != null)
+				return false;
+		} else if (!paramReport.equals(other.paramReport))
+			return false;
+		if (sampleServiceToken == null) {
+			if (other.sampleServiceToken != null)
+				return false;
+		} else if (!sampleServiceToken.equals(other.sampleServiceToken))
+			return false;
+		if (sampleServiceURL == null) {
+			if (other.sampleServiceURL != null)
+				return false;
+		} else if (!sampleServiceURL.equals(other.sampleServiceURL))
+			return false;
+		if (tempDir == null) {
+			if (other.tempDir != null)
+				return false;
+		} else if (!tempDir.equals(other.tempDir))
+			return false;
+		if (typedb == null) {
+			if (other.typedb != null)
+				return false;
+		} else if (!typedb.equals(other.typedb))
+			return false;
+		if (workspaceAdmin == null) {
+			if (other.workspaceAdmin != null)
+				return false;
+		} else if (!workspaceAdmin.equals(other.workspaceAdmin))
+			return false;
+		return true;
+	}
+	
 }
