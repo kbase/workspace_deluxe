@@ -7,6 +7,7 @@ import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.common.test.controllers.ControllerCommon.makeTempDirs;
 
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -355,14 +356,7 @@ public class KBaseWorkspaceConfigTest {
 	
 	private void assertConfigCorrect(final Map<String, String> cfg, final ExpectedConfig exp)
 			throws Exception {
-		final Path tempfile = Files.createTempFile(TEMP_DIR, TestCommon.getMethodName(2), "");
-		try (final BufferedWriter w = Files.newBufferedWriter(tempfile)) {
-			w.write("[Workspace]\n");
-			for (final Entry<String, String> e: cfg.entrySet()) {
-				w.write(String.format("%s=%s\n",
-						e.getKey(), e.getValue() == null ? "" : e.getValue()));
-			}
-		}
+		final Path tempfile = writeConfig(cfg, TEMP_DIR, TestCommon.getMethodName(2));
 		for (final KBaseWorkspaceConfig kwc: list(
 				new KBaseWorkspaceConfig(cfg),
 				new KBaseWorkspaceConfig(tempfile, "Workspace")
@@ -408,6 +402,22 @@ public class KBaseWorkspaceConfigTest {
 			assertThat("incorrect ignore hs",
 					kwc.ignoreHandleService(), is(exp.ignoreHandleService));
 		}
+	}
+
+	public static Path writeConfig(
+			final Map<String, String> cfg,
+			final Path dir,
+			final String prefix)
+			throws IOException {
+		final Path tempfile = Files.createTempFile(dir, prefix, "");
+		try (final BufferedWriter w = Files.newBufferedWriter(tempfile)) {
+			w.write("[Workspace]\n");
+			for (final Entry<String, String> e: cfg.entrySet()) {
+				w.write(String.format("%s=%s\n",
+						e.getKey(), e.getValue() == null ? "" : e.getValue()));
+			}
+		}
+		return tempfile;
 	}
 	
 	@Test
