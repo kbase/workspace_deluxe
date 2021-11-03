@@ -108,6 +108,14 @@
     <include name="objenesis/objenesis-2.6.jar"/>
   </fileset>
 
+  <union id="applicationjars">
+    <fileset refid="serverlib"/>
+    <fileset refid="clientserverlib"/>
+    <fileset refid="shocklib"/>
+    <fileset refid="applicationlib"/>
+    <fileset refid="s3lib"/>
+  </union>
+
   <union id="serverside">
     <fileset refid="serverlib"/>
     <fileset refid="clientserverlib"/>
@@ -405,6 +413,14 @@
       <test name="TestClientImport"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
+  </target>
+
+  <target name="script" depends="compile" description="create cli script">
+    <pathconvert targetos="unix" property="lib.classpath" refid="applicationjars"/>
+    <echo file="./update_workspace_database_schema">#!/bin/sh
+java -cp ${dist}/${jar.file}:${lib.classpath} us.kbase.workspace.kbase.SchemaUpdaterCLI $@
+    </echo>
+    <chmod file="./update_workspace_database_schema" perm="a+x"/>
   </target>
 
   <target name="clean" description="clean up" >
