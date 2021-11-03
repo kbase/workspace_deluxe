@@ -58,9 +58,6 @@ public class SchemaUpdaterCLITest {
 			"  -V, --version       Print version information and exit."
 			);
 
-	private static final String HELP_TEXT = String.join("\n", HELP) + "\n";
-
-	
 	private static final Map<String, String> VALID_CONFIG = MapBuilder.<String, String>newHashMap()
 			.with("auth2-service-url", "https://ci.kbase.us/services/auth/")
 			.with("auth-service-url",
@@ -204,7 +201,7 @@ public class SchemaUpdaterCLITest {
 	}
 	
 	private void help(final String[] args) {
-		runUpdater(new Mocks(), args, HELP_TEXT);
+		runUpdater(new Mocks(), args, String.join("\n", HELP) + "\n");
 	}
 
 	@Test
