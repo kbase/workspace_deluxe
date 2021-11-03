@@ -480,7 +480,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	static void ensureIndexes(final MongoDatabase wsdb) throws CorruptWorkspaceDBException {
+	static void ensureIndexes(final MongoDatabase wsdb)
+			throws CorruptWorkspaceDBException, WorkspaceCommunicationException {
 		final HashMap<String, List<IndexSpecification>> indexes = getIndexSpecs();
 		for (final String col: indexes.keySet()) {
 			for (final IndexSpecification index: indexes.get(col)) {
@@ -491,6 +492,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					throw new CorruptWorkspaceDBException(
 							"Found duplicate index keys in the database, " +
 							"aborting startup", dk);
+				} catch (MongoException me) {
+					throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 				}
 			}
 		}
