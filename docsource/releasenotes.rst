@@ -23,6 +23,8 @@ BACKWARDS INCOMPATIBILITIES:
   field from the root of the document. Since the ``GridFS`` backend is not recommended for
   production use and no known productions installations exist, a schema updater for the GridFS
   backend is not provided.
+* The ``KB_SERVICE_NAME`` environment variable has been deprecated and will be removed in a
+  future version.
 
 UPDATES:
 

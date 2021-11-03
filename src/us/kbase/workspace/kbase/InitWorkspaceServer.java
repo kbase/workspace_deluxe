@@ -341,7 +341,7 @@ public class InitWorkspaceServer {
 		return new SampleIdHandlerFactory(cli);
 	}
 
-	private static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
+	public static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
 			throws WorkspaceInitException {
 		//TODO ZLATER MONGO handle shards & replica sets
 		try {
@@ -564,7 +564,7 @@ public class InitWorkspaceServer {
 	}
 
 	
-	private static class WorkspaceInitException extends Exception {
+	public static class WorkspaceInitException extends Exception {
 		
 		private static final long serialVersionUID = 1L;
 
