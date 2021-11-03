@@ -105,11 +105,13 @@ public class SchemaUpdaterCLITest {
 		}
 	}
 	
-	public static <T> T[] array(@SuppressWarnings("unchecked") T... items) {
+	@SafeVarargs
+	public static <T> T[] array(T... items) {
 		return items;
 	}
 	
-	public static <T> List<T> list(@SuppressWarnings("unchecked") T... items) {
+	@SafeVarargs
+	public static <T> List<T> list(T... items) {
 		return Arrays.asList(items);
 	}
 	
@@ -209,6 +211,12 @@ public class SchemaUpdaterCLITest {
 		final String err =
 				"Unknown option: '--o'\nPossible solutions: -o, --override-version-check\n";
 		runUpdater(new Mocks(), array("--o", VALID_CONFIG_FILE.toString()), "", err, 2);
+	}
+	
+	@Test
+	public void noArgsFail() throws Exception {
+		final String err = generateHelpString(list("Missing required parameter: '<CONFIG_FILE>'"));
+		runUpdater(new Mocks(), array(), "", err, 2);
 	}
 	
 	@Test
