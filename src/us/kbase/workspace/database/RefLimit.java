@@ -11,19 +11,19 @@ public class RefLimit {
 	
 	private static final RefLimit EMPTY = new RefLimit(null, null, null);
 	
-	private final Optional<Long> wsid;
-	private final Optional<Long> objid;
-	private final Optional<Integer> ver;
+	private final long wsid;
+	private final long objid;
+	private final int ver;
 	
 	private RefLimit(final Long wsid, final Long objid, final Integer ver) {
-		this.wsid = wsid == null || wsid < 1 ? Optional.empty() : Optional.of(wsid);
-		this.objid = objid == null || objid < 1 ? Optional.empty() : Optional.of(objid);
-		this.ver = ver== null || ver < 1 ? Optional.empty() : Optional.of(ver);
-		if (this.ver.isPresent() && (!this.objid.isPresent() || !this.wsid.isPresent())) {
+		this.wsid = wsid == null || wsid < 1 ? -1 : wsid;
+		this.objid = objid == null || objid < 1 ? -1 : objid;
+		this.ver = ver== null || ver < 1 ? -1 : ver;
+		if (this.ver > 0 && (this.objid < 1 || this.wsid < 1)) {
 			throw new IllegalArgumentException("If a version is specified in a reference " +
 					"limit the object ID and workspace ID must also be specified");
 		}
-		if (this.objid.isPresent() && !this.wsid.isPresent()) {
+		if (this.objid > 0 && this.wsid < 1) {
 			throw new IllegalArgumentException("If an object ID is specified in a reference " +
 					"limit the workspace ID must also be specified");
 		}
@@ -102,21 +102,21 @@ public class RefLimit {
 	 * @return the workspace ID
 	 */
 	public Optional<Long> getWorkspaceID() {
-		return wsid;
+		return Optional.ofNullable(wsid < 1 ? null : wsid);
 	}
 
 	/** Get the limit for the object ID, if any.
 	 * @return the object ID
 	 */
 	public Optional<Long> getObjectID() {
-		return objid;
+		return Optional.ofNullable(objid < 1 ? null : objid);
 	}
 
 	/** Get the limit for the version, if any.
 	 * @return the version
 	 */
 	public Optional<Integer> getVersion() {
-		return ver;
+		return Optional.ofNullable(ver < 1 ? null : ver);
 	}
 
 	/** Determine whether this limit contains limiting information.
@@ -124,7 +124,7 @@ public class RefLimit {
 	 * @return True if there is limiting information.
 	 */
 	public boolean isPresent() {
-		return wsid.isPresent();
+		return wsid > 0;
 	}
 	
 	/** Determine whether this limit contains limiting information.
@@ -132,16 +132,16 @@ public class RefLimit {
 	 * @return True if there is no limiting information.
 	 */
 	public boolean isEmpty() {
-		return !wsid.isPresent();
+		return wsid < 1;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((objid == null) ? 0 : objid.hashCode());
-		result = prime * result + ((ver == null) ? 0 : ver.hashCode());
-		result = prime * result + ((wsid == null) ? 0 : wsid.hashCode());
+		result = prime * result + (int) (objid ^ (objid >>> 32));
+		result = prime * result + ver;
+		result = prime * result + (int) (wsid ^ (wsid >>> 32));
 		return result;
 	}
 
@@ -154,20 +154,11 @@ public class RefLimit {
 		if (getClass() != obj.getClass())
 			return false;
 		RefLimit other = (RefLimit) obj;
-		if (objid == null) {
-			if (other.objid != null)
-				return false;
-		} else if (!objid.equals(other.objid))
+		if (objid != other.objid)
 			return false;
-		if (ver == null) {
-			if (other.ver != null)
-				return false;
-		} else if (!ver.equals(other.ver))
+		if (ver != other.ver)
 			return false;
-		if (wsid == null) {
-			if (other.wsid != null)
-				return false;
-		} else if (!wsid.equals(other.wsid))
+		if (wsid != other.wsid)
 			return false;
 		return true;
 	}
