@@ -2820,8 +2820,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 	
 	@Test
-	public void listObjectsWithStartFrom() throws Exception {
-		// This only tests that the start from parameter is passed correctly to the backend.
+	public void listObjectsWithStartAfter() throws Exception {
+		// This only tests that the start after parameter is passed correctly to the backend.
 		// The various interactions with other parameters are tested in the workspace tests
 		final String ws1 = "listObjectsWithStartFrom1";
 		final String ws2 = "listObjectsWithStartFrom2";
@@ -2854,36 +2854,39 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new TstObjInfo(2, 1, 1)
 				);
 		
-		checkStartFrom(lop.withStartfrom(null), expected);
-		checkStartFrom(lop.withStartfrom("   \t    "), expected);
-		checkStartFrom(lop.withStartfrom("0"), expected);
-		checkStartFrom(lop.withStartfrom("0/0"), expected);
-		checkStartFrom(lop.withStartfrom("0/0/0"), expected);
-		checkStartFrom(lop.withStartfrom("1"), expected);
-		checkStartFrom(lop.withStartfrom("1/1"), expected);
-		checkStartFrom(lop.withStartfrom("1/1/2"), expected);
-		checkStartFrom(lop.withStartfrom("2"), expected.subList(5, 6));
-		checkStartFrom(lop.withStartfrom("2/1/"), expected.subList(5, 6));
-		checkStartFrom(lop.withStartfrom("2/1/1"), expected.subList(5, 6));
-		checkStartFrom(lop.withStartfrom("1/1/1"), expected.subList(1, 6));
-		checkStartFrom(lop.withStartfrom("1/2/2"), expected.subList(2, 6));
-		checkStartFrom(lop.withStartfrom("1/3/1"), expected.subList(4, 6));
+		checkStartafter(lop.withStartafter(null), expected);
+		checkStartafter(lop.withStartafter("   \t    "), expected);
+		checkStartafter(lop.withStartafter("0"), expected);
+		checkStartafter(lop.withStartafter("0/0"), expected);
+		checkStartafter(lop.withStartafter("0/0/0"), expected);
+		checkStartafter(lop.withStartafter("1"), expected);
+		checkStartafter(lop.withStartafter("1/1"), expected);
+		checkStartafter(lop.withStartafter("1/1/3"), expected);
+		checkStartafter(lop.withStartafter("2"), expected.subList(5, 6));
+		checkStartafter(lop.withStartafter("2/1/"), expected.subList(5, 6));
+		checkStartafter(lop.withStartafter("2/1/2"), expected.subList(5, 6));
+		checkStartafter(lop.withStartafter("2/1/1"), Collections.emptyList());
+		checkStartafter(lop.withStartafter("1/1/2"), expected.subList(1, 6));
+		checkStartafter(lop.withStartafter("1/1/1"), expected.subList(2, 6));
+		checkStartafter(lop.withStartafter("1/2/2"), expected.subList(2, 6));
+		checkStartafter(lop.withStartafter("1/3/2"), expected.subList(4, 6));
+		checkStartafter(lop.withStartafter("1/3/1"), expected.subList(5, 6));
 	}
 	
 	@Test
-	public void listObjectsWithStartFromFail() throws Exception {
+	public void listObjectsWithStartafterFail() throws Exception {
 		// test a non-exhaustive set of error conditions.
 		final ListObjectsParams lop = new ListObjectsParams().withIds(Arrays.asList(1L));
-		failListObjects(lop.withStartfrom("foo"),
+		failListObjects(lop.withStartafter("foo"),
 				 "Illegal integer workspace ID in reference string foo: foo");
-		failListObjects(lop.withStartfrom("1/2/  "),
+		failListObjects(lop.withStartafter("1/2/  "),
 				"Illegal integer version in reference string 1/2/  : ");
-		failListObjects(lop.withStartfrom("1/2/").withAfterEpoch(10000L),
+		failListObjects(lop.withStartafter("1/2/").withAfterEpoch(10000L),
 				"If a starting reference for paging is provided, metadata, savers, " +
 				"min/max object IDs, and timestamps cannot be set as filters.");
 	}
 
-	private void checkStartFrom(final ListObjectsParams lop, final List<TstObjInfo> expected)
+	private void checkStartafter(final ListObjectsParams lop, final List<TstObjInfo> expected)
 			throws Exception {
 		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
 				Map<String, String>>> res = CLIENT1.listObjects(lop);

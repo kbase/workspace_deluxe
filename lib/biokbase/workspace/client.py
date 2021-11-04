@@ -3060,16 +3060,16 @@ class Workspace(object):
            before - only return objects that were created before this date.
            epoch after_epoch - only return objects that were created after
            this date. epoch before_epoch - only return objects that were
-           created before this date. string startfrom - a reference-like
+           created before this date. string startafter - a reference-like
            string that determines where the list of objects will begin. It
            takes the form X/Y/Z, where X is the workspace ID, Y the object
            ID, and Z the version. The version may be omitted, and the object
            ID omitted if the version is also omitted. After a '/' separator
            either an integer or no characters at all, including whitespace,
-           may occur. Whitespace strings are ignored. If startfrom is
+           may occur. Whitespace strings are ignored. If startafter is
            provided, after, before, after_epoch, before_epoch, savedby, meta,
            minObjectID, and maxObjectID may not be provided. Only objects
-           that are ordered after the reference, inclusive, will be included
+           that are ordered after the reference, exclusive, will be included
            in the result, and the resulting list will be sorted by reference.
            obj_id minObjectID - only return objects with an object id greater
            or equal to this value. obj_id maxObjectID - only return objects
@@ -3125,8 +3125,8 @@ class Workspace(object):
            time)), parameter "after_epoch" of type "epoch" (A Unix epoch (the
            time since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter
            "before_epoch" of type "epoch" (A Unix epoch (the time since
-           00:00:00 1/1/1970 UTC) in milliseconds.), parameter "startfrom" of
-           String, parameter "minObjectID" of type "obj_id" (The unique,
+           00:00:00 1/1/1970 UTC) in milliseconds.), parameter "startafter"
+           of String, parameter "minObjectID" of type "obj_id" (The unique,
            permanent numerical ID of an object.), parameter "maxObjectID" of
            type "obj_id" (The unique, permanent numerical ID of an object.),
            parameter "showDeleted" of type "boolean" (A boolean. 0 = false,
