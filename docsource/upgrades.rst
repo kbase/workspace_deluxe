@@ -86,6 +86,7 @@ upgrades.
 
 Prior to attempting an upgrade note that:
 
+* MongoDB 3.6+ is required.
 * Shock is no longer supported as a data backend, and data must be transferred to an S3 compatible
   instance. This is a complicated process - please contact KBase for help.
 * The Sample service is no longer supported as a KBase dynamic service, only as a core service.

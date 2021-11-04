@@ -9,6 +9,7 @@ VERSION: 0.12.0 (Released TBD)
 ADMIN NOTES:
 
 * A database schema update is required. See :ref:`upgrade0.12`.
+* MongoDB 3.6+ is now required.
 * Shock is no longer supported as a data backend.
 * The Sample service is no longer supported as a KBase dynamic service, only as a core
   service. As such, the ``sample-service-tag`` configuration key has been removed.
