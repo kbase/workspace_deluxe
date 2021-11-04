@@ -9,5 +9,6 @@ Server Administrator Documentation
    events
    resourcereqs
    administrationinterface
+   upgrades
    knownadminbugs
 
