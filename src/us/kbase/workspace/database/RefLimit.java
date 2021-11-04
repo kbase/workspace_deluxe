@@ -135,6 +135,28 @@ public class RefLimit {
 		return wsid < 1;
 	}
 
+	/** Return a new ref limit, decrementing the version by one and incrementing the object ID if
+	 * necessary.
+	 * 
+	 * If there is no version present, then this instance is returned unchanged.
+	 * If the version decrement causes the version to be zero, in the returned instance the
+	 * object ID is incremented by one and the version removed.
+	 * @return the ref limit
+	 */
+	public RefLimit decrementVersionIncrementingObjectID() {
+		if (ver < 1) {
+			return this;
+		}
+		return new RefLimit(wsid, ver == 1 ? objid + 1 : objid, ver == 1 ? null : ver - 1);
+	}
+	
+	@Override
+	public String toString() {
+		return "RefLimit [wsid=" + (wsid < 1 ? null : wsid) +
+				", objid=" + (objid < 1 ? null : objid) +
+				", ver=" + (ver < 1 ? null : ver) + "]";
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
