@@ -130,6 +130,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	 */
 	
 	// TODO TEST need some lower level tests for this module rather than just integration tests
+	// TODO MONGO in 4.2 index creation is no longer blocking (I think) = big mess,
+	// could cause index build fail and corrupt data in the db
+	// Need to look into this before upgrading to 4.2
 
 	public static final AllUsers ALL_USERS = Workspace.ALL_USERS;
 
