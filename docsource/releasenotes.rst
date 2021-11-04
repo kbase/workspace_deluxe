@@ -35,7 +35,7 @@ BACKWARDS INCOMPATIBILITIES:
 
 UPDATES:
 
-* ``list_objects`` now supports the ``startfrom`` parameter. See :ref:`paging`.
+* ``list_objects`` now supports the ``startafter`` parameter. See :ref:`paging`.
 * The workspace now emits events when an object is hidden or unhidden. See :ref:`kafka_listener`.
 
 VERSION: 0.11.5 (Released 4/27/21)

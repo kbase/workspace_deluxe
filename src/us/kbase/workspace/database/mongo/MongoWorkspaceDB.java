@@ -134,8 +134,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	// could cause index build fail and corrupt data in the db
 	// Need to look into this before upgrading to 4.2
 
-	// TODO NOW start after, do math locally
-	
 	public static final AllUsers ALL_USERS = Workspace.ALL_USERS;
 
 	//TODO CONFIG this should really be configurable
