@@ -218,7 +218,6 @@ public class ListObjectsParameters {
 		private final Optional<TypeDefId> type;
 		private final List<WorkspaceUser> savers;
 		private final WorkspaceUserMetadata meta;
-		// TODO NOW_PAGING add documentation for update script
 		private final RefLimit startFrom;
 		private final Optional<Instant> after;
 		private final Optional<Instant> before;
