@@ -37,9 +37,12 @@ public class RefLimitTest {
 			assertThat("incorrect ver", rl.getVersion(), is(Optional.empty()));
 			assertThat("incorrect present", rl.isPresent(), is(false));
 			assertThat("incorrect present", rl.isEmpty(), is(true));
+			assertThat("incorrect toString",
+					rl.toString(), is("RefLimit [wsid=null, objid=null, ver=null]"));
 		}	
 	}
 	
+	@Test
 	public void buildWithWsid() throws Exception {
 		RefLimit rl = RefLimit.build(1L, null, null);
 		
@@ -48,6 +51,8 @@ public class RefLimitTest {
 		assertThat("incorrect ver", rl.getVersion(), is(Optional.empty()));
 		assertThat("incorrect present", rl.isPresent(), is(true));
 		assertThat("incorrect present", rl.isEmpty(), is(false));
+		assertThat("incorrect toString",
+				rl.toString(), is("RefLimit [wsid=1, objid=null, ver=null]"));
 
 		rl = RefLimit.build(10L, null, null);
 		
@@ -56,6 +61,8 @@ public class RefLimitTest {
 		assertThat("incorrect ver", rl.getVersion(), is(Optional.empty()));
 		assertThat("incorrect present", rl.isPresent(), is(true));
 		assertThat("incorrect present", rl.isEmpty(), is(false));
+		assertThat("incorrect toString",
+				rl.toString(), is("RefLimit [wsid=10, objid=null, ver=null]"));
 	}
 	
 	@Test
@@ -67,6 +74,8 @@ public class RefLimitTest {
 		assertThat("incorrect ver", rl.getVersion(), is(Optional.empty()));
 		assertThat("incorrect present", rl.isPresent(), is(true));
 		assertThat("incorrect present", rl.isEmpty(), is(false));
+		assertThat("incorrect toString",
+				rl.toString(), is("RefLimit [wsid=1, objid=1, ver=null]"));
 
 		rl = RefLimit.build(1L, 7L, null);
 		
@@ -75,6 +84,8 @@ public class RefLimitTest {
 		assertThat("incorrect ver", rl.getVersion(), is(Optional.empty()));
 		assertThat("incorrect present", rl.isPresent(), is(true));
 		assertThat("incorrect present", rl.isEmpty(), is(false));
+		assertThat("incorrect toString",
+				rl.toString(), is("RefLimit [wsid=1, objid=7, ver=null]"));
 	}
 	
 	@Test
@@ -86,6 +97,8 @@ public class RefLimitTest {
 		assertThat("incorrect ver", rl.getVersion(), is(Optional.of(1)));
 		assertThat("incorrect present", rl.isPresent(), is(true));
 		assertThat("incorrect present", rl.isEmpty(), is(false));
+		assertThat("incorrect toString",
+				rl.toString(), is("RefLimit [wsid=1, objid=1, ver=1]"));
 
 		rl = RefLimit.build(1L, 1L, 42);
 		
@@ -94,6 +107,8 @@ public class RefLimitTest {
 		assertThat("incorrect ver", rl.getVersion(), is(Optional.of(42)));
 		assertThat("incorrect present", rl.isPresent(), is(true));
 		assertThat("incorrect present", rl.isEmpty(), is(false));
+		assertThat("incorrect toString",
+				rl.toString(), is("RefLimit [wsid=1, objid=1, ver=42]"));
 	}
 
 	@Test
@@ -184,6 +199,26 @@ public class RefLimitTest {
 			fail("expected exception");
 		} catch (Exception got) {
 			assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	@Test
+	public void decrementVersionIncrementingObjectID() throws Exception {
+		final Map<RefLimit, RefLimit> testCases = MapBuilder.<RefLimit, RefLimit>newHashMap()
+				.with(RefLimit.build(null, null, null), RefLimit.build(null, null, null))
+				.with(RefLimit.build(1L, null, null), RefLimit.build(1L, null, null))
+				.with(RefLimit.build(10L, null, null), RefLimit.build(10L, null, null))
+				.with(RefLimit.build(1L, 1L, null), RefLimit.build(1L, 1L, null))
+				.with(RefLimit.build(1L, 3L, null), RefLimit.build(1L, 3L, null))
+				.with(RefLimit.build(1L, 1L, 10), RefLimit.build(1L, 1L, 9))
+				.with(RefLimit.build(1L, 1L, 2), RefLimit.build(1L, 1L, 1))
+				.with(RefLimit.build(1L, 1L, 1), RefLimit.build(1L, 2L, null))
+				.with(RefLimit.build(24L, 36L, 1), RefLimit.build(24L, 37L, null))
+				.build();
+		
+		for (final Entry<RefLimit, RefLimit> tc: testCases.entrySet()) {
+			assertThat("incorrect ref " + tc.getKey(),
+					tc.getKey().decrementVersionIncrementingObjectID(), is(tc.getValue()));
 		}
 	}
 }
