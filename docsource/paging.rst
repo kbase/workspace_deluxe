@@ -97,18 +97,17 @@ data set depends on the prior set.
 Paging by reference limit
 -------------------------
 
-To page by a reference limit, provide the ``startfrom`` parameter and optionally a ``limit``
+To page by a reference limit, provide the ``startafter`` parameter and optionally a ``limit``
 if less than 10,000 objects should be returned at a time. Paging with a reference limit is useful
-for paging through multiple workspaces or object versions. The ``startfrom`` parameter looks
+for paging through multiple workspaces or object versions. The ``startafter`` parameter looks
 like a workspace object reference of the form ``X/Y/Z`` where ``X`` is the integer workspace ID,
 ``Y`` the integer object ID, and ``Z`` the version. The version may be omitted, and and object ID
 may be omitted if the version is omitted. To page through data, start by submitting only the
 smallest workspace ID from the set of workspaces submitted to the ``list_objects`` command and
-the object ID of the starting object of interest (often 1). Construct the ``startfrom`` parameter
-from the last object in the list of returned objects, and decrement the version. If the
-resulting version is 0, increment the object ID and omit the version from the ``startfrom`` string.
+the object ID of the starting object of interest (often 1). Construct further ``startafter``
+parameters from the last object in the list of returned objects.
 
-The following ``list_objects`` parameters are incompatible with the ``startfrom`` parameter
+The following ``list_objects`` parameters are incompatible with the ``startafter`` parameter
 and will cause an error to be returned if used:
 
 * Any of the time stamps (``after``, ``before``, ``after_epoch``, and ``before_epoch``)
@@ -120,41 +119,39 @@ The following example shows how the paging proceeds, using a very small limit fo
 
 .. code-block:: python
 
-    In [5]: def calc_startfrom(obj_info):
-       ...:     ver = obj_info[4] - 1
-       ...:     obj_id = obj_info[0]
-       ...:     wsid = obj_info[6]
-       ...:     if not ver:
-       ...:         ver = ''
-       ...:         obj_id += 1
-       ...:     return '/'.join([str(wsid), str(obj_id), str(ver)])
-       ...:
+    In [5]: def calc_startafter(objects):
+       ...:     if not objects:
+       ...:         return None
+       ...:     o = objects[-1]
+       ...:     return '/'.join([str(o[6]), str(o[0]), str(o[4])])
+       ...: 
     
-    In [6]: startfrom = '1/1'
+    In [6]: startafter = '1/1'
     
-    In [7]: objs = ['fake data']
-    
-    In [8]: while objs:
+    In [7]: while startafter:
        ...:     objs = ws.list_objects({
        ...:         'ids': [1, 2],
-       ...:         'startfrom': startfrom,
+       ...:         'startafter': startafter,
        ...:         'limit': 3,
        ...:         'showAllVersions': 1
        ...:     })
        ...:     for o in objs:
        ...:         # do something more meaningful here
        ...:         print(f'{o[6]}/{o[0]}/{o[4]}')
-       ...:     if objs:
-       ...:         startfrom = calc_startfrom(objs[-1])
-       ...:         print(f'startfrom: {startfrom}')
-       ...:
+       ...:     startafter = calc_startafter(objs)
+       ...:     print(f'startafter: {startafter}')
+       ...: 
     1/1/3
     1/1/2
     1/1/1
-    startfrom: 1/2/
+    startafter: 1/1/1
     1/2/2
     1/2/1
     2/1/2
-    startfrom: 2/1/1
+    startafter: 2/1/2
     2/1/1
-    startfrom: 2/2/
+    startafter: 2/1/1
+    startafter: None
+    
+The last call to the workspace could be eliminated by checking that the number of objects
+returned is less than ``limit``.
