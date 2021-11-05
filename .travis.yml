@@ -20,7 +20,7 @@ before_install:
   - echo $PYVER
   - pyenv local $PYVER
   - python --version
-  - pip3 install pipenv
+  - pip3 install pipenv==2021.5.29
 
 install:
   - export HOMEDIR=`pwd`
