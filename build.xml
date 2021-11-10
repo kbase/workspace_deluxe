@@ -195,9 +195,14 @@
 
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
-    <javac destdir="${classes}" includeantruntime="false"
-      target="1.8" source="1.8"
-      debug="true" classpathref="compile.classpath">
+    <javac
+        destdir="${classes}"
+        includeantruntime="false"
+        target="1.8"
+        source="1.8"
+        encoding="UTF-8"
+        debug="true"
+        classpathref="compile.classpath">
       <src path="${src}"/>
     </javac>
     <!-- Copy resource files-->
