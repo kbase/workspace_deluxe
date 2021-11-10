@@ -63,7 +63,8 @@ public class KBaseWorkspaceConfigTest {
 		}
 	}
 	
-	private <T> List<T> list(@SuppressWarnings("unchecked") T... things) {
+	@SafeVarargs
+	private static <T> List<T> list(final T... things) {
 		return Arrays.asList(things);
 	}
 
