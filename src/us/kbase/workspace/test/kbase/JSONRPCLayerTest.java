@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -23,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
@@ -36,7 +40,6 @@ import us.kbase.common.service.Tuple7;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
-import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.AlterWorkspaceMetadataParams;
 import us.kbase.workspace.CloneWorkspaceParams;
 import us.kbase.workspace.CopyObjectParams;
@@ -89,10 +92,12 @@ import com.google.common.collect.ImmutableMap;
  * {@link us.kbase.workspace.test.workspaces.WorkspaceTest} handles that. This means
  * that only one backend (the simplest gridFS backend) is tested here, while WorkspaceTest
  * tests all backends and {@link us.kbase.workspace.database.WorkspaceDatabase} implementations.
+ * 
+ * Many of these tests are far too long and should be rewritten.
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
-	private static final String VER = "0.11.5";
+	private static final String VER = "0.12.0";
 
 	@Test
 	public void ver() throws Exception {
@@ -1193,7 +1198,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					.withType(type));
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, expected);
+			assertExceptionCorrect(got, expected);
 		}
 		try {
 			cli.saveObjects(new SaveObjectsParams()
@@ -1204,7 +1209,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 							.withType(type))));
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, expected);
+			assertExceptionCorrect(got, expected);
 		}
 	}
 
@@ -2492,6 +2497,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withNewPermission("a").withUsers(Arrays.asList(USER1)));
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace("listObjsGlobal")
 				.withGlobalread("r"));
+		
+		List<String> allws = Arrays.asList("listObjs1", "listObjs2", "listObjsread",
+				"listObjswrite", "listObjsadmin", "listObjsGlobal");
 
 
 		Map<String, String> meta = new HashMap<String, String>();
@@ -2538,6 +2546,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withObjects(Arrays.asList(new ObjectSaveData().withData(new UObject(new HashMap<String, String>()))
 				.withMeta(meta).withType(anotherType).withName("global")))).get(0);
 
+		// holy shit these tests are unreadable
 		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, std2, hidden, deleted), false);
 		checkListObjects(Arrays.asList("listObjs1"), Arrays.asList(info2.getE1()), null, null, null, null, 1L, 1L, null, 1L, 1L, 0L,
@@ -2554,49 +2563,35 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				Arrays.asList(hidden, deleted), false);
 		checkListObjects(Arrays.asList("listObjs1", "listObjs2"), new ArrayList<Long>(), null, null, null, null, 1L, 1L, 0L, 1L, 0L, 0L,
 				Arrays.asList(std1, std2, hidden, deleted), true);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-
-		//exclude global ws
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null, null, 1L, 1L, 0L, 1L, 1L, 1L,
-				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable), false);
 
 		//user filtering
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null,
 				new ArrayList<String>(), null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null,
 				Arrays.asList(USER1, USER2), null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null,
 				Arrays.asList(USER1), null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, deleted), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null,
 				Arrays.asList(USER2), null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(readable, writeable, adminable, global), false);
 
-		//perms testing
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "n", null, null, 1L, 1L, 0L, 1L, 1L, 0L,
-				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "r", null, null, 1L, 1L, 0L, 1L, 1L, 0L,
-				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "w", null, null, 1L, 1L, 0L, 1L, 1L, 0L,
-				Arrays.asList(std1, hidden, deleted, writeable, adminable), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, "a", null, null, 1L, 1L, 0L, 1L, 1L, 0L,
-				Arrays.asList(std1, hidden, deleted, adminable), false);
-
 		//meta data testing
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null, null,
 				new HashMap<String, String>(), 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, deleted, readable, writeable, adminable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null, null,
 				meta, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, hidden, readable, global), false);
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType, null, null,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType, null, null,
 				meta2, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(deleted, writeable, adminable), false);
 
-		checkListObjects(new ArrayList<String>(), new ArrayList<Long>(), anotherType2, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
+		checkListObjects(allws, new ArrayList<Long>(), anotherType2, null, null, null, 1L, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std2), false);
 		checkListObjects(new ArrayList<String>(), Arrays.asList(info2.getE1(), info1.getE1()), null, null, null, null, null, 1L, 0L, 1L, 1L, 0L,
 				Arrays.asList(std1, std2, deleted), false);
@@ -2619,20 +2614,29 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				"Workspace name foo:bar:listObjs1 may only contain one : delimiter");
 		failListObjects(Arrays.asList("listObjs1fake"), Arrays.asList(info2.getE1()), anotherType, null, null, 1L, 1L, 1L, 1L,
 				"No workspace with name listObjs1fake exists");
-		failListObjects(new ArrayList<String>(), new ArrayList<Long>(), null, null, null, 1L, 1L, 1L, 1L,
-				"At least one filter must be specified.");
-		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(1L), null, "x", null, 1L, 1L, 1L, 1L,
-				"No such permission: x");
+		
+		// test with illegal numbers of workspaces
+		final String err = "At least one and no more than 10000 workspaces must be specified";
+		failListObjects(null, null, null, null, null, 1L, 1L, 1L, 1L, err);
+		failListObjects(Collections.emptyList(), Collections.emptyList(),
+				null, null, null, 1L, 1L, 1L, 1L, err);
+		final List<String> ws = IntStream.range(1, 5002).mapToObj(i -> "a" + i)
+				.collect(Collectors.toList());
+		final List<Long> longs = LongStream.range(1, 5001).mapToObj(i -> i)
+				.collect(Collectors.toList());
+		failListObjects(ws, longs, null, null, null, 1L, 1L, 1L, 1L, err);
+		ws.remove(ws.size() - 1);
+		longs.add(7000L);
+		failListObjects(ws, longs, null, null, null, 1L, 1L, 1L, 1L, err);
+		
 		meta.put("this should", "force a fail");
 		failListObjects(Arrays.asList("listObjs1"), Arrays.asList(1L), null, null, meta, 1L, 1L, 1L, 1L,
 				"Only one metadata spec allowed");
 
 		compareObjectInfo(CLIENT1.getObjectHistory(
-				new ObjectIdentity().withRef("listObjs1/std")),
-						Arrays.asList(std1, std2));
+				new ObjectIdentity().withRef("listObjs1/std")), Arrays.asList(std1, std2));
 		compareObjectInfo(CLIENT1.getObjectHistory(
-				new ObjectIdentity().withRef("listObjs2/hidden/1")),
-						Arrays.asList(hidden));
+				new ObjectIdentity().withRef("listObjs2/hidden/1")), Arrays.asList(hidden));
 
 		try {
 			CLIENT1.getObjectHistory(new ObjectIdentity().withRef("listObjs1/hidden/1/3"));
@@ -2796,6 +2800,103 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 						oi.getE1(), minIDexpected, maxIDexpected));
 			}
 		}
+	}
+	
+	private class TstObjInfo {
+		private long wsid;
+		private long objid;
+		private long ver;
+
+		public TstObjInfo(long wsid, long objid, int ver) {
+			this.wsid = wsid;
+			this.objid = objid;
+			this.ver = ver;
+		}
+
+		@Override
+		public String toString() {
+			return "TstObjInfo [wsid=" + wsid + ", objid=" + objid + ", ver=" + ver + "]";
+		}
+	}
+	
+	@Test
+	public void listObjectsWithStartAfter() throws Exception {
+		// This only tests that the start after parameter is passed correctly to the backend.
+		// The various interactions with other parameters are tested in the workspace tests
+		final String ws1 = "listObjectsWithStartFrom1";
+		final String ws2 = "listObjectsWithStartFrom2";
+		final UObject d = new UObject(new HashMap<String, String>());
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws1));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(ws2));
+		
+		List<ObjectSaveData> objs = new LinkedList<ObjectSaveData>();
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o1"));
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o2"));
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o3"));
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o3"));  // v2
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o1"));  // v2
+		
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws1).withObjects(objs));
+		
+		objs.clear();
+		objs.add(new ObjectSaveData().withData(d).withType(SAFE_TYPE).withName("o1"));
+		CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace(ws2).withObjects(objs));
+		
+		final ListObjectsParams lop = new ListObjectsParams().withIds(Arrays.asList(1L, 2L))
+				.withShowAllVersions(1L);
+		
+		final List<TstObjInfo> expected = Arrays.asList(
+				new TstObjInfo(1, 1, 2),
+				new TstObjInfo(1, 1, 1),
+				new TstObjInfo(1, 2, 1),
+				new TstObjInfo(1, 3, 2),
+				new TstObjInfo(1, 3, 1),
+				new TstObjInfo(2, 1, 1)
+				);
+		
+		checkStartafter(lop.withStartafter(null), expected);
+		checkStartafter(lop.withStartafter("   \t    "), expected);
+		checkStartafter(lop.withStartafter("0"), expected);
+		checkStartafter(lop.withStartafter("0/0"), expected);
+		checkStartafter(lop.withStartafter("0/0/0"), expected);
+		checkStartafter(lop.withStartafter("1"), expected);
+		checkStartafter(lop.withStartafter("1/1"), expected);
+		checkStartafter(lop.withStartafter("1/1/3"), expected);
+		checkStartafter(lop.withStartafter("2"), expected.subList(5, 6));
+		checkStartafter(lop.withStartafter("2/1/"), expected.subList(5, 6));
+		checkStartafter(lop.withStartafter("2/1/2"), expected.subList(5, 6));
+		checkStartafter(lop.withStartafter("2/1/1"), Collections.emptyList());
+		checkStartafter(lop.withStartafter("1/1/2"), expected.subList(1, 6));
+		checkStartafter(lop.withStartafter("1/1/1"), expected.subList(2, 6));
+		checkStartafter(lop.withStartafter("1/2/2"), expected.subList(2, 6));
+		checkStartafter(lop.withStartafter("1/3/2"), expected.subList(4, 6));
+		checkStartafter(lop.withStartafter("1/3/1"), expected.subList(5, 6));
+	}
+	
+	@Test
+	public void listObjectsWithStartafterFail() throws Exception {
+		// test a non-exhaustive set of error conditions.
+		final ListObjectsParams lop = new ListObjectsParams().withIds(Arrays.asList(1L));
+		failListObjects(lop.withStartafter("foo"),
+				 "Illegal integer workspace ID in reference string foo: foo");
+		failListObjects(lop.withStartafter("1/2/  "),
+				"Illegal integer version in reference string 1/2/  : ");
+		failListObjects(lop.withStartafter("1/2/").withAfterEpoch(10000L),
+				"If a starting reference for paging is provided, metadata, savers, " +
+				"min/max object IDs, and timestamps cannot be set as filters.");
+	}
+
+	private void checkStartafter(final ListObjectsParams lop, final List<TstObjInfo> expected)
+			throws Exception {
+		final List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long,
+				Map<String, String>>> res = CLIENT1.listObjects(lop);
+		for (int i = 0; i < expected.size(); i++) {
+			final TstObjInfo info = expected.get(i);
+			assertThat("incorrect wsid for case " + info, res.get(i).getE7(), is(info.wsid));
+			assertThat("incorrect objid for case " + info, res.get(i).getE1(), is(info.objid));
+			assertThat("incorrect ver for case " + info, res.get(i).getE5(), is(info.ver));
+		}
+		assertThat("incorrect object count", res.size(), is(expected.size()));
 	}
 
 	@Test
@@ -3850,15 +3951,30 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 
 	@Test
-	public void adminListObjectsWithoutUserFail() throws Exception {
+	public void adminListObjectsFailOnWorkspaceCounts() throws Exception {
+		adminListObjectsFail(null, null);
+		adminListObjectsFail(Collections.emptyList(), Collections.emptyList());
+		
+		final List<String> ws = IntStream.range(1, 5002).mapToObj(i -> "a" + i)
+				.collect(Collectors.toList());
+		final List<Long> longs = LongStream.range(1, 5001).mapToObj(i -> i)
+				.collect(Collectors.toList());
+		adminListObjectsFail(ws, longs);
+		ws.remove(ws.size() - 1);
+		longs.add(7000L);
+		adminListObjectsFail(ws, longs);
+	}
+	
+	private void adminListObjectsFail(final List<String> ws, final List<Long> ids)
+			throws Exception {
 		try {
 			CLIENT2.administer(new UObject(ImmutableMap.of(
 					"command", "listObjects",
-					"params", new ListObjectsParams().withType(SAFE_TYPE))));
+					"params", new ListObjectsParams().withWorkspaces(ws).withIds(ids))));
 			fail("expected exception");
 		} catch (ServerException e) {
-			assertThat("incorrect exception", e.getMessage(), is("When listing objects as an " +
-					"admin at least one target workspace must be provided"));
+			assertThat("incorrect exception", e.getMessage(), is(
+					"At least one and no more than 10000 workspaces must be specified"));
 		}
 	}
 

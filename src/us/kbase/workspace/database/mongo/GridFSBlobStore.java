@@ -1,10 +1,14 @@
 package us.kbase.workspace.database.mongo;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
+import org.bson.BsonString;
+import org.bson.Document;
 import org.slf4j.LoggerFactory;
 
 import us.kbase.typedobj.core.MD5;
@@ -17,78 +21,74 @@ import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.CommandResult;
-import com.mongodb.DB;
-import com.mongodb.DBObject;
-import com.mongodb.DuplicateKeyException;
 import com.mongodb.MongoException;
-import com.mongodb.gridfs.GridFS;
-import com.mongodb.gridfs.GridFSDBFile;
-import com.mongodb.gridfs.GridFSInputFile;
+import com.mongodb.MongoWriteException;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.gridfs.GridFSBucket;
+import com.mongodb.client.gridfs.GridFSBuckets;
+import com.mongodb.client.gridfs.model.GridFSFile;
+import com.mongodb.client.gridfs.model.GridFSUploadOptions;
 
 public class GridFSBlobStore implements BlobStore {
 	
-	private final GridFS gfs;
+	// TODO JAVADOC
 	
-	public GridFSBlobStore(final DB mongodb) {
-		gfs = new GridFS(mongodb);
+	private static final String ERR_NO_DB_WRITE = "Could not write to the mongo database";
+	private final GridFSBucket gfs;
+	private final MongoDatabase db;
+	
+	public GridFSBlobStore(final MongoDatabase db) {
+		this.db = requireNonNull(db, "db");
+		this.gfs = GridFSBuckets.create(db);
 	}
 
 	@Override
-	public void saveBlob(final MD5 md5, final Restreamable data, final boolean sorted)
+	public void saveBlob(
+			final MD5 md5,
+			final Restreamable data,
+			final boolean sorted)
 			throws BlobStoreCommunicationException {
-		if(data == null || md5 == null) {
+		if (data == null || md5 == null) {
 			throw new NullPointerException("Arguments cannot be null");
 		}
-		if (getFile(md5) != null) {
+		if (getFileMetadata(md5) != null) {
 			return; //already exists
 		}
 		try (final InputStream is = data.getInputStream()) {
-			final GridFSInputFile gif = gfs.createFile(is, true);
-			gif.setId(md5.getMD5());
-			gif.setFilename(md5.getMD5());
-			gif.put(Fields.GFS_SORTED, sorted);
-			gif.save();
+			final GridFSUploadOptions opts = new GridFSUploadOptions()
+					.metadata(new Document(Fields.GFS_SORTED, sorted));
+			gfs.uploadFromStream(new BsonString(md5.getMD5()), md5.getMD5(), is, opts);
 		} catch (IOException e) {
 			throw new BlobStoreCommunicationException("Couldn't connect to the GridFS backend: " +
 					e.getMessage(), e);
-		} catch (DuplicateKeyException dk) {
-			// already here, done
+		} catch (MongoWriteException mwe) {
+			// if the doc is already here, nothing to be done
+			// this block is essentially impossible to test without removing the
+			// getFileMetadata line above
+			if (!MongoWorkspaceDB.isDuplicateKeyException(mwe)) {
+				throw new BlobStoreCommunicationException(ERR_NO_DB_WRITE, mwe);
+			}
 		} catch (MongoException me) {
-			throw new BlobStoreCommunicationException(
-					"Could not write to the mongo database", me);
+			throw new BlobStoreCommunicationException(ERR_NO_DB_WRITE, me);
 		}
 	}
 
 	@Override
-	public ByteArrayFileCache getBlob(final MD5 md5,
-			final ByteArrayFileCacheManager bafcMan)
+	public ByteArrayFileCache getBlob(final MD5 md5, final ByteArrayFileCacheManager bafcMan)
 			throws NoSuchBlobException, BlobStoreCommunicationException,
-			FileCacheIOException, FileCacheLimitExceededException {
-		final GridFSDBFile out;
+				FileCacheIOException, FileCacheLimitExceededException {
 		try {
-			out = getFile(md5);
+			final Document out = getFileMetadata(md5);
 			if (out == null) {
 				throw new NoSuchBlobException(
 						"Attempt to retrieve non-existant blob with chksum " + 
 								md5.getMD5());
 			}
-			final boolean sorted;
-			if (!out.containsField(Fields.GFS_SORTED)) {
-				sorted = false;
-			} else {
-				sorted = (Boolean)out.get(Fields.GFS_SORTED);
-			}
-			final InputStream file = out.getInputStream();
-			try {
+			final boolean sorted = out.getBoolean(Fields.GFS_SORTED, false);
+			try (final InputStream file = gfs.openDownloadStream(new BsonString(md5.getMD5()))) {
 				return bafcMan.createBAFC(file, true, sorted);
-			} finally {
-				try {
-					file.close();
-				} catch (IOException ioe) {
-					throw new RuntimeException("Something is broken", ioe);
-				}
+			} catch (IOException ioe) {
+				throw new RuntimeException("Something is broken", ioe);
 			}	
 		} catch (MongoException me) {
 			throw new BlobStoreCommunicationException(
@@ -96,23 +96,20 @@ public class GridFSBlobStore implements BlobStore {
 		}
 	}
 
-	private GridFSDBFile getFile(final MD5 md5) {
-		final GridFSDBFile out;
-		final DBObject query = new BasicDBObject();
-		query.put(Fields.MONGO_ID, md5.getMD5());
-		out = gfs.findOne(query);
-		return out;
+	private Document getFileMetadata(final MD5 md5) {
+		final GridFSFile doc = gfs.find(new Document(Fields.MONGO_ID, md5.getMD5())).first();
+		if (doc == null) {
+			return null;
+		}
+		return doc.getMetadata() == null ? new Document() : doc.getMetadata();
 	}
 
 	@Override
 	public void removeBlob(MD5 md5) throws BlobStoreCommunicationException {
-		final DBObject query = new BasicDBObject();
-		query.put(Fields.MONGO_ID, md5.getMD5());
 		try {
-			gfs.remove(query);
+			gfs.delete(new BsonString(md5.getMD5()));
 		} catch (MongoException me) {
-			throw new BlobStoreCommunicationException(
-					"Could not write to the mongo database", me);
+			throw new BlobStoreCommunicationException(ERR_NO_DB_WRITE, me);
 		}
 	}
 
@@ -123,7 +120,7 @@ public class GridFSBlobStore implements BlobStore {
 		//TODO TEST add tests exercising failures
 		final String version;
 		try {
-			final CommandResult bi = gfs.getDB().command("buildInfo");
+			final Document bi = db.runCommand(new Document("buildInfo", 1));
 			version = bi.getString("version");
 		} catch (MongoException e) {
 			LoggerFactory.getLogger(getClass())

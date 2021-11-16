@@ -16,21 +16,21 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <p>Original spec-file type: ListObjectsParams</p>
  * <pre>
  * Parameters for the 'list_objects' function.
- *                 At least one of the following filters must be provided. It is strongly
- *                 recommended that the list is restricted to the workspaces of interest,
- *                 or the results may be very large:
+ *                 At least one, and no more than 10000, workspaces must be specified in one of the
+ *                 two following parameters. It is strongly recommended that the list is restricted to
+ *                 the workspaces of interest, or the results may be very large:
  *                 list<ws_id> ids - the numerical IDs of the workspaces of interest.
  *                 list<ws_name> workspaces - the names of the workspaces of interest.
- *                 type_string type - type of the objects to be listed.  Here, omitting
- *                         version information will find any objects that match the provided
- *                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
- *                         existing version.
  *                 
  *                 Only one of each timestamp/epoch pair may be supplied.
  *                 
  *                 Optional arguments:
- *                 permission perm - filter objects by minimum permission level. 'None'
- *                         and 'readable' are ignored.
+ *                 type_string type - type of the objects to be listed.  Here, omitting
+ *                         version information will find any objects that match the provided
+ *                         type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is any
+ *                         existing version.
+ *                 permission perm - DEPRECATED, no longer useful. Filter on minimum permission by providing
+ *                         only workspaces with the desired permission levels in the input list(s).
  *                 list<username> savedby - filter objects by the user that saved or
  *                         copied the object.
  *                 usermeta meta - filter objects by the user supplied metadata. NOTE:
@@ -45,6 +45,17 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                         date.
  *                 epoch before_epoch - only return objects that were created before this
  *                         date.
+ *                 string startafter - a reference-like string that determines where the
+ *                         list of objects will begin. It takes the form X/Y/Z, where X is
+ *                         the workspace ID, Y the object ID, and Z the version. The version
+ *                         may be omitted, and the object ID omitted if the version is also
+ *                         omitted. After a '/' separator either an integer or no characters
+ *                         at all, including whitespace, may occur. Whitespace strings are
+ *                         ignored. If startafter is provided, after, before,
+ *                         after_epoch, before_epoch, savedby, meta, minObjectID, and
+ *                         maxObjectID may not be provided. Only objects that are ordered
+ *                         after the reference, exclusive, will be included in the
+ *                         result, and the resulting list will be sorted by reference.
  *                 obj_id minObjectID - only return objects with an object id greater or
  *                         equal to this value.
  *                 obj_id maxObjectID - only return objects with an object id less than or
@@ -59,8 +70,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 boolean includeMetadata - include the user provided metadata in the
  *                         returned object_info. If false (0 or null), the default, the
  *                         metadata will be null.
- *                 boolean excludeGlobal - exclude objects in global workspaces. This
- *                         parameter only has an effect when filtering by types alone.
+ *                 boolean excludeGlobal - DEPRECATED, no longer useful. Filter on global workspaces by
+ *                         excluding them from the input workspace list(s).
  *                 int limit - limit the output to X objects. Default and maximum value
  *                         is 10000. Limit values < 1 are treated as 10000, the default.
  * </pre>
@@ -79,6 +90,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "before",
     "after_epoch",
     "before_epoch",
+    "startafter",
     "minObjectID",
     "maxObjectID",
     "showDeleted",
@@ -111,6 +123,8 @@ public class ListObjectsParams {
     private java.lang.Long afterEpoch;
     @JsonProperty("before_epoch")
     private java.lang.Long beforeEpoch;
+    @JsonProperty("startafter")
+    private java.lang.String startafter;
     @JsonProperty("minObjectID")
     private java.lang.Long minObjectID;
     @JsonProperty("maxObjectID")
@@ -281,6 +295,21 @@ public class ListObjectsParams {
         return this;
     }
 
+    @JsonProperty("startafter")
+    public java.lang.String getStartafter() {
+        return startafter;
+    }
+
+    @JsonProperty("startafter")
+    public void setStartafter(java.lang.String startafter) {
+        this.startafter = startafter;
+    }
+
+    public ListObjectsParams withStartafter(java.lang.String startafter) {
+        this.startafter = startafter;
+        return this;
+    }
+
     @JsonProperty("minObjectID")
     public java.lang.Long getMinObjectID() {
         return minObjectID;
@@ -428,7 +457,7 @@ public class ListObjectsParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", afterEpoch=")+ afterEpoch)+", beforeEpoch=")+ beforeEpoch)+", minObjectID=")+ minObjectID)+", maxObjectID=")+ maxObjectID)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((((((((((((((("ListObjectsParams"+" [workspaces=")+ workspaces)+", ids=")+ ids)+", type=")+ type)+", perm=")+ perm)+", savedby=")+ savedby)+", meta=")+ meta)+", after=")+ after)+", before=")+ before)+", afterEpoch=")+ afterEpoch)+", beforeEpoch=")+ beforeEpoch)+", startafter=")+ startafter)+", minObjectID=")+ minObjectID)+", maxObjectID=")+ maxObjectID)+", showDeleted=")+ showDeleted)+", showOnlyDeleted=")+ showOnlyDeleted)+", showHidden=")+ showHidden)+", showAllVersions=")+ showAllVersions)+", includeMetadata=")+ includeMetadata)+", excludeGlobal=")+ excludeGlobal)+", limit=")+ limit)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

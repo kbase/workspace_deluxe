@@ -28,6 +28,7 @@ import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestCommon;
 import us.kbase.sampleservice.GetSampleACLsParams;
 import us.kbase.sampleservice.SampleACLs;
+import us.kbase.sampleservice.SampleServiceClient;
 import us.kbase.sampleservice.UpdateSampleACLsParams;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.SimpleRemappedId;
@@ -39,7 +40,6 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.kbase.SampleIdHandlerFactory;
-import us.kbase.workspace.kbase.SampleServiceClientWrapper;
 
 public class SampleIDHandlerFactoryTest {
 	
@@ -109,7 +109,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	@Test
 	public void getIDType() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		assertThat("incorrect ID type", new SampleIdHandlerFactory(cli).getIDType(),
 				is(new IdReferenceType("sample")));
@@ -124,7 +124,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	@Test
 	public void getDependencies() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		when(cli.status()).thenReturn(ImmutableMap.of("version", "8.7.3-fake"));
 		
@@ -136,7 +136,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	@Test
 	public void getDependenciesFailIOException() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		when(cli.status()).thenThrow(new IOException("whoopsie"));
 		
@@ -148,7 +148,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	@Test
 	public void getDependenciesFailJsonClientException() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		when(cli.status()).thenThrow(new JsonClientException("whoopsie2"));
 		
@@ -170,21 +170,21 @@ public class SampleIDHandlerFactoryTest {
 	
 	@Test
 	public void addReadPermissionAnonymous() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		addReadPermissionAnonymous(cli, new SampleIdHandlerFactory(cli).createPermissionHandler());
 	}
 	
 	@Test
 	public void addReadPermissionAnonymousWithNullUser() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		addReadPermissionAnonymous(
 				cli, new SampleIdHandlerFactory(cli).createPermissionHandler(null));
 	}
 		
 	private void addReadPermissionAnonymous(
-			final SampleServiceClientWrapper mockcli,
+			final SampleServiceClient mockcli,
 			final IdReferencePermissionHandler h)
 			throws Exception {
 		
@@ -200,7 +200,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	@Test
 	public void addReadPermission() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		final IdReferencePermissionHandler h = new SampleIdHandlerFactory(cli)
 				.createPermissionHandler("user1");
@@ -263,7 +263,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	private void addReadPermissionFailClientException(
 			final Exception thrown, final Exception expected) throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		final IdReferencePermissionHandler h = new SampleIdHandlerFactory(cli)
 				.createPermissionHandler("user1");
@@ -290,7 +290,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	@Test
 	public void sampleIDHandlerGetIDType() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		assertThat(
 				"incorrect ID type",
@@ -301,7 +301,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	@Test
 	public void sampleIDHandlerFailConstruct() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		try {
 			new SampleIdHandlerFactory(cli).createHandler(null, null);
@@ -328,7 +328,7 @@ public class SampleIDHandlerFactoryTest {
 		// pretty much has to run the full workflow to see results
 		// any attributes passed in to addId() are ignored
 		
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		final IdReferenceHandler<Integer> h = new SampleIdHandlerFactory(cli)
 				// keep the new String(). String interning caused this test to pass when
@@ -417,7 +417,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	@Test
 	public void processIdsFailNoAdminPermission() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		final IdReferenceHandler<Integer> h = new SampleIdHandlerFactory(cli)
 				.createHandler(Integer.class, new AuthToken("t", "user1"));
@@ -446,7 +446,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	@Test
 	public void getRemappedIDFail() throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		final IdReferenceHandler<Integer> h = new SampleIdHandlerFactory(cli)
 				.createHandler(Integer.class, new AuthToken("t", "user1"));
@@ -472,7 +472,7 @@ public class SampleIDHandlerFactoryTest {
 	
 	private void processIdsFail(final Exception thrown, final IdReferenceHandlerException expected)
 			throws Exception {
-		final SampleServiceClientWrapper cli = mock(SampleServiceClientWrapper.class);
+		final SampleServiceClient cli = mock(SampleServiceClient.class);
 		
 		final IdReferenceHandler<Integer> h = new SampleIdHandlerFactory(cli)
 				.createHandler(Integer.class, new AuthToken("t", "user1"));

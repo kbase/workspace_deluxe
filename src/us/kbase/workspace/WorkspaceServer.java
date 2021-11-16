@@ -29,6 +29,7 @@ import static us.kbase.workspace.kbase.IdentifierUtils.processObjectIdentifiers;
 import static us.kbase.workspace.kbase.IdentifierUtils.processObjectSpecifications;
 import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifiers;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
+import static us.kbase.workspace.version.WorkspaceVersion.VERSION;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -97,14 +98,13 @@ public class WorkspaceServer extends JsonServerServlet {
     private static final long serialVersionUID = 1L;
     private static final String version = "0.0.1";
     private static final String gitUrl = "https://github.com/mrcreosote/workspace_deluxe";
-    private static final String gitCommitHash = "620e037e2b4967914544bd538c11633ef98162bb";
+    private static final String gitCommitHash = "2b31e92a5810e610b9a43d516355a4436db11b82";
 
     //BEGIN_CLASS_HEADER
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 	//TODO DOCS workspace glossary
 
-	private static final String VER = "0.11.5";
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
@@ -183,6 +183,7 @@ public class WorkspaceServer extends JsonServerServlet {
         super("Workspace");
         //BEGIN_CONSTRUCTOR
 		setUpLogger();
+		// TODO CODE force service name to always be Workspace, screw this KB_SERVICE_NAME crap
 		setMaxRPCPackageSize(MAX_RPC_PACKAGE_SIZE);
 		setMaxRpcMemoryCacheSize(MAX_RPC_PACKAGE_MEM_USE);
 		//assign config once per jvm, otherwise you could wind up with
@@ -244,7 +245,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public String ver(RpcContext jsonRpcContext) throws Exception {
         String returnVal = null;
         //BEGIN ver
-		returnVal = VER;
+		returnVal = VERSION;
         //END ver
         return returnVal;
     }
@@ -899,14 +900,12 @@ public class WorkspaceServer extends JsonServerServlet {
 				TypeDefId.fromTypeString(params.getType());
 		
 		final WorkspaceUser user = wsmeth.getUser(params.getAuth(), authPart);
-		final ListObjectsParameters lop;
-		if (type == null) {
-			lop = new ListObjectsParameters(user, Arrays.asList(wsi));
-		} else {
-			lop = new ListObjectsParameters(user, Arrays.asList(wsi), type);
-		}
-		lop.withShowDeleted(longToBoolean(params.getShowDeletedObject()))
-			.withIncludeMetaData(true);
+		final ListObjectsParameters lop = ListObjectsParameters.getBuilder(Arrays.asList(wsi))
+				.withUser(user)
+				.withType(type)
+				.withShowDeleted(longToBoolean(params.getShowDeletedObject()))
+				.withIncludeMetaData(true)
+				.build();
 		returnVal = objInfoToMetaTuple(ws.listObjects(lop), false);
         //END list_workspace_objects
         return returnVal;
@@ -1710,7 +1709,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		returnVal.put("state", ok ? "OK" : "Fail");
 		returnVal.put("message", ok ? "OK" : "Dependency failure");
 		returnVal.put("dependencies", dstate);
-		returnVal.put("version", VER);
+		returnVal.put("version", VERSION);
 		returnVal.put("git_url", GIT);
 		returnVal.put("freemem", Runtime.getRuntime().freeMemory());
 		returnVal.put("totalmem", Runtime.getRuntime().totalMemory());

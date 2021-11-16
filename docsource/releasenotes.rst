@@ -1,5 +1,42 @@
+.. _release_notes:
+
 Workspace service release notes
 ===============================
+
+VERSION: 0.12.0 (Released 11/16/21)
+-----------------------------------
+
+ADMIN NOTES:
+
+* A database schema update is required. See :ref:`upgrade0.12`.
+* MongoDB 3.6+ is now required.
+* Shock is no longer supported as a data backend.
+* The Sample service is no longer supported as a KBase dynamic service, only as a core
+  service. As such, the ``sample-service-tag`` configuration key has been removed.
+* The SearchPrototypeEventHandlerFactory has been removed. The workspace will not start if the
+  search prototype event handler is configured.
+* The MongoDB driver API has been updated from the 2.X driver legacy interface to
+  the new interface introduced in the 3.0 driver. This change is invisible other than the
+  ``sorted`` key in ``GridFS`` file documents has been moved to the new ``metadata``
+  field from the root of the document. Since the ``GridFS`` backend is not recommended for
+  production use and no known productions installations exist, a schema updater for the GridFS
+  backend is not provided.
+* The ``KB_SERVICE_NAME`` environment variable has been deprecated and will be removed in a
+  future version.
+
+BACKWARDS INCOMPATIBILITIES:
+
+* ``list_objects`` now requires that at least one and no more than 10000 workspaces are
+  specified.
+* As such, the ``excludeGlobal`` and ``perm`` parameters no longer have any use and are
+  deprecated. 
+* The WorkspaceEventListener interface now includes a setObjectHidden method. Code using this
+  interface must be updated to implement this method.
+
+UPDATES:
+
+* ``list_objects`` now supports the ``startafter`` parameter. See :ref:`paging`.
+* The workspace now emits events when an object is hidden or unhidden. See :ref:`kafka_listener`.
 
 VERSION: 0.11.5 (Released 4/27/21)
 ----------------------------------

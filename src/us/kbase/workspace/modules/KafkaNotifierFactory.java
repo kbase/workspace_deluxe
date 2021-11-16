@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +26,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
 
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -112,6 +112,11 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 		 * method.
 		 */
 		public static final String RENAME_OBJECT = "RENAME_OBJECT";
+		/** The event type sent by the
+		 * {@link WorkspaceEventListener#setObjectsHidden(WorkspaceUser, long, long, boolean, Instant)}
+		 * method.
+		 */
+		public static final String OBJECT_HIDE_STATE_CHANGE = "OBJECT_HIDE_STATE_CHANGE";
 		/** The event type sent by the
 		 * {@link WorkspaceEventListener#setObjectDeleted(WorkspaceUser, long, long, boolean, Instant)}
 		 * method.
@@ -357,6 +362,17 @@ public class KafkaNotifierFactory implements WorkspaceEventListenerFactory {
 			
 		}
 
+		@Override
+		public void setObjectsHidden(
+				final WorkspaceUser user,
+				final long workspaceId,
+				final long objectId,
+				final boolean hidden,
+				final Instant time) {
+			newEvent(user.getUser(), workspaceId, objectId, null, null, OBJECT_HIDE_STATE_CHANGE,
+					time);
+		}
+		
 		@Override
 		public void setObjectDeleted(
 				final WorkspaceUser user,

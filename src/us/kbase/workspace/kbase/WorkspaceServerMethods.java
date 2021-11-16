@@ -3,6 +3,7 @@ package us.kbase.workspace.kbase;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.checkLong;
 import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
+import static us.kbase.workspace.kbase.ArgUtils.chooseInstant;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.ArgUtils.processProvenance;
@@ -18,6 +19,7 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -68,6 +70,7 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.RefLimit;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.UserWorkspaceIDs;
@@ -510,8 +513,7 @@ public class WorkspaceServerMethods {
 				"Cannot specify both timestamp and epoch for after parameter");
 		final Date before = chooseDate(params.getBefore(),
 				params.getBeforeEpoch(),
-				"Cannot specify both timestamp and epoch for before " +
-				"parameter");
+				"Cannot specify both timestamp and epoch for before parameter");
 		return wsInfoToTuple(ws.listWorkspaces(user,
 				p, convertUsers(params.getOwners()),
 				new WorkspaceUserMetadata(params.getMeta()),
@@ -575,75 +577,39 @@ public class WorkspaceServerMethods {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final List<WorkspaceIdentifier> wsis = new LinkedList<WorkspaceIdentifier>();
 		if (params.getWorkspaces() != null) {
-			for (final String ws: params.getWorkspaces()) {
-				wsis.add(processWorkspaceIdentifier(ws, null));
-			}
+			params.getWorkspaces().stream().forEach(
+					ws -> wsis.add(processWorkspaceIdentifier(ws, null)));
 		}
 		if (params.getIds() != null) {
-			for (final Long id: params.getIds()) {
-				wsis.add(processWorkspaceIdentifier(null, id));
-			}
+			params.getIds().stream().forEach(id -> wsis.add(processWorkspaceIdentifier(null, id)));
 		}
 		final TypeDefId type = params.getType() == null ? null :
 				TypeDefId.fromTypeString(params.getType());
-		final ListObjectsParameters lop = getListObjectParameters(user, asAdmin, wsis, type);
-		final Date after = chooseDate(params.getAfter(),
-				params.getAfterEpoch(),
+		final Instant after = chooseInstant(params.getAfter(), params.getAfterEpoch(),
 				"Cannot specify both timestamp and epoch for after parameter");
-		final Date before = chooseDate(params.getBefore(),
-				params.getBeforeEpoch(),
-				"Cannot specify both timestamp and epoch for before " +
-				"parameter");
-		lop.withMinimumPermission(params.getPerm() == null ? null :
-				translatePermission(params.getPerm()))
-			.withSavers(convertUsers(params.getSavedby()))
-			.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
-			.withAfter(after)
-			.withBefore(before)
-			.withMinObjectID(checkLong(params.getMinObjectID(), -1))
-			.withMaxObjectID(checkLong(params.getMaxObjectID(), -1))
-			.withShowHidden(longToBoolean(params.getShowHidden()))
-			.withShowDeleted(longToBoolean(params.getShowDeleted()))
-			.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))
-			.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
-			.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
-			.withExcludeGlobal(longToBoolean(params.getExcludeGlobal()))
-			.withLimit(longToInt(params.getLimit(), "Limit", -1));
+		final Instant before = chooseInstant(params.getBefore(), params.getBeforeEpoch(),
+				"Cannot specify both timestamp and epoch for before parameter");
+		final ListObjectsParameters lop = ListObjectsParameters.getBuilder(wsis)
+				.withUser(user)
+				.withAsAdmin(asAdmin)
+				.withType(type)
+				.withSavers(convertUsers(params.getSavedby()))
+				.withMetadata(new WorkspaceUserMetadata(params.getMeta()))
+				.withAfter(after)
+				.withBefore(before)
+				.withStartFrom(RefLimit.fromRefString(params.getStartafter())
+						.decrementVersionIncrementingObjectID())
+				.withMinObjectID(checkLong(params.getMinObjectID(), -1))
+				.withMaxObjectID(checkLong(params.getMaxObjectID(), -1))
+				.withShowHidden(longToBoolean(params.getShowHidden()))
+				.withShowDeleted(longToBoolean(params.getShowDeleted()))
+				.withShowOnlyDeleted(longToBoolean(params.getShowOnlyDeleted()))
+				.withShowAllVersions(longToBoolean(params.getShowAllVersions()))
+				.withIncludeMetaData(longToBoolean(params.getIncludeMetadata()))
+				.withLimit(longToInt(params.getLimit(), "Limit", -1))
+				.build();
 		
 		return objInfoToTuple(ws.listObjects(lop), false);
-	}
-
-	private ListObjectsParameters getListObjectParameters(
-			final WorkspaceUser user,
-			final boolean asAdmin,
-			final List<WorkspaceIdentifier> wsis,
-			final TypeDefId type) {
-		if (type == null && wsis.isEmpty()) {
-			throw new IllegalArgumentException(
-					"At least one filter must be specified.");
-		}
-		final ListObjectsParameters lop;
-		if (type == null) {
-			if (asAdmin) {
-				lop = new ListObjectsParameters(wsis);
-			} else {
-				lop = new ListObjectsParameters(user, wsis);
-			}
-		} else if (wsis.isEmpty()) {
-			if (asAdmin) {
-				throw new IllegalArgumentException("When listing objects as an admin at least " +
-						"one target workspace must be provided");
-			} else {
-				lop = new ListObjectsParameters(user, type);
-			}
-		} else {
-			if (asAdmin) {
-				lop = new ListObjectsParameters(wsis, type);
-			} else {
-				lop = new ListObjectsParameters(user, wsis, type);
-			}
-		}
-		return lop;
 	}
 
 	/** Get all versions of an object.

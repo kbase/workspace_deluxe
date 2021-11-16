@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -20,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
 import com.google.common.base.Ticker;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -239,7 +239,7 @@ public class WorkspaceAdministration {
 			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.wsi);
 			final WorkspaceInformation info = ws.setWorkspaceOwner(null, wsi,
 					params.new_user == null ? null : getUser(params.new_user, token),
-					Optional.fromNullable(params.new_name), true);
+					Optional.ofNullable(params.new_name), true);
 			getLogger().info(SET_WORKSPACE_OWNER + " " + info.getId() + " " +
 					info.getOwner().getUser());
 			return wsInfoToTuple(info);

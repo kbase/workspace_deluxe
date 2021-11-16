@@ -27,6 +27,7 @@ public class ObjectInformation {
 	
 	// TODO CODE make a builder, even though only meta is optional. More readable, easier to add new optional fields.
 	// TODO CODE use a typedef class vs a string.
+	// TODO CODE md5 should use md5 class? Or is this a memory saving thing
 	
 	/** Create a new ObjectInformation.
 	 * @param id the object id.

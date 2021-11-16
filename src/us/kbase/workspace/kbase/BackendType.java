@@ -6,6 +6,4 @@ public enum BackendType {
 	
 	S3,
 	
-	Shock;
-	
 }

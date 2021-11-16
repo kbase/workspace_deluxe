@@ -58,9 +58,9 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.test.WorkspaceServerThread;
 import us.kbase.workspace.test.controllers.arango.ArangoController;
 import us.kbase.workspace.test.controllers.sample.SampleServiceController;
-import us.kbase.workspace.test.kbase.JSONRPCLayerTester.ServerThread;
 
 public class SampleServiceIntegrationTest {
 
@@ -280,7 +280,7 @@ public class SampleServiceIntegrationTest {
 
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer server = new WorkspaceServer();
-		new ServerThread(server).start();
+		new WorkspaceServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
 			Thread.sleep(1000);

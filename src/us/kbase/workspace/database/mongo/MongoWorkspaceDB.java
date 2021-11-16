@@ -2,8 +2,17 @@ package us.kbase.workspace.database.mongo;
 
 import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayToHash;
 import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_ADMINS;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_WS_CNT;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACES;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_WS_ACLS;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_OBJS;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_VERS;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_PROVENANCE;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_CONFIG;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,10 +26,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.Set;
 
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +42,7 @@ import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.ExtractedMetadata;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
-import us.kbase.typedobj.core.TempFilesManager;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.exceptions.ExceededMaxMetadataSizeException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReferenceType;
@@ -43,7 +55,7 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsa
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.CopyResult;
-import us.kbase.workspace.database.GetObjectInformationParameters;
+import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInfoWithModDate;
@@ -87,63 +99,69 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
-import com.mongodb.BasicDBObject;
-import com.mongodb.CommandResult;
-import com.mongodb.DB;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.DuplicateKeyException;
+import com.mongodb.ErrorCategory;
 import com.mongodb.MongoException;
-import com.mongodb.WriteResult;
+import com.mongodb.MongoWriteException;
+import com.mongodb.client.DistinctIterable;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.ReturnDocument;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
 
 public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	/* NOTES ON SHARDING:
 	 * - workspace cannot be sharded as it requires unique indexes on id and name. It's
 	 *   extremely unlikely to get big enough to require sharding though. The WSobject & ver
-	 *   collections are 2-3 orderes of magnitude larger in prod.
+	 *   collections are 2-3 orders of magnitude larger in prod.
 	 * - WS ACLs could be sharded on a hashed WSID, but probably not necessary.
 	 * - WS objects could be sharded on a hashed WSID. This means that large workspaces would
 	 *   exist entirely on one shard, unfortunately, but that index must be unique.
-	 * - WS object verisons could be sharded on a hashed WSID or combined WSID/Object ID. The
+	 * - WS object versions could be sharded on a hashed WSID or combined WSID/Object ID. The
 	 *   latter would split objects between shards, but all the versions for a particular object
 	 *   would remain on one shard. Again, the WSID/Object ID index must be unique.
-	 * - Provedence could be sharded on the (hashed?) Mongo Object ID.
+	 * - Provenance could be sharded on the (hashed?) Mongo Object ID.
 	 * - Admins and configs are tiny.
 	 */
 	
 	// TODO TEST need some lower level tests for this module rather than just integration tests
+	// TODO MONGO in 4.2 index creation is no longer blocking (I think) = big mess,
+	// could cause index build fail and corrupt data in the db
+	// Need to look into this before upgrading to 4.2
 
-	public static final String COL_ADMINS = CollectionNames.COL_ADMINS;
-	public static final String COL_WS_CNT = CollectionNames.COL_WS_CNT;
-	public static final String COL_WORKSPACES = CollectionNames.COL_WORKSPACES;
-	public static final String COL_WS_ACLS = CollectionNames.COL_WS_ACLS;
-	public static final String COL_WORKSPACE_OBJS = CollectionNames.COL_WORKSPACE_OBJS;
-	public static final String COL_WORKSPACE_VERS = CollectionNames.COL_WORKSPACE_VERS;
-	public static final String COL_PROVENANCE = CollectionNames.COL_PROVENANCE;
-	public static final String COL_CONFIG = CollectionNames.COL_CONFIG;
 	public static final AllUsers ALL_USERS = Workspace.ALL_USERS;
-	
 
 	//TODO CONFIG this should really be configurable
 	private static final long MAX_PROV_SIZE = 1000000;
-	private static final int SCHEMA_VERSION = 1;
+	
+	/** The expected version of the database schema. */
+	public static final int SCHEMA_VERSION = 2;
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
+	private static final String ERR_DB_COMM =
+			"There was a problem communicating with the database";
+	
 	private ResourceUsageConfiguration rescfg;
-	private final DB wsmongo;
+	private final MongoDatabase wsmongo;
 	private final BlobStore blob;
 	private final QueryMethods query;
 	private final ObjectInfoUtils objutils;
 	
-	private final TempFilesManager tfm;
+	// TODO TEST add more unit tests using the mocked clock 
+	private final Clock clock;
 	
-	private static final String IDX_UNIQ = "unique";
-	private static final String IDX_SPARSE = "sparse";
+	private static final IndexOptions IDX_UNIQ = new IndexOptions().unique(true);
+	private static final IndexOptions IDX_SPARSE = new IndexOptions().sparse(true);
+	private static final IndexOptions IDX_UNIQ_SPARSE = new IndexOptions()
+			.unique(true).sparse(true);
 	
-	private HashMap<String, List<IndexSpecification>> getIndexSpecs() {
+	private static HashMap<String, List<IndexSpecification>> getIndexSpecs() {
 		// should probably rework this and the index spec class
 		//hardcoded indexes
 		final HashMap<String, List<IndexSpecification>> indexes = new HashMap<>();
@@ -156,14 +174,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.add(idxSpec(Fields.WS_ID, 1, IDX_UNIQ));
 		// find workspaces by mutable name. Sparse to avoid indexing workspaces without names,
 		// which means the workspace is mid-clone. Since null can only be in the unique index
-		// once, only workspace could be clones at a time w/o sparse.
-		ws.add(idxSpec(Fields.WS_NAME, 1, IDX_UNIQ, IDX_SPARSE));
+		// once, only 1 workspace could be cloned at a time w/o sparse.
+		ws.add(idxSpec(Fields.WS_NAME, 1, IDX_UNIQ_SPARSE));
 		//find workspaces by metadata
 		ws.add(idxSpec(Fields.WS_META, 1, IDX_SPARSE));
 		indexes.put(COL_WORKSPACES, ws);
 		
 		//workspace acl indexes
 		final LinkedList<IndexSpecification> wsACL = new LinkedList<>();
+		// TODO CODE add a unique index on WSID and user since a user should only have 1 perm
+		// per workspace
 		//get a user's permission for a workspace, index covers queries
 		wsACL.add(idxSpec(Fields.ACL_WSID, 1, Fields.ACL_USER, 1, Fields.ACL_PERM, 1, IDX_UNIQ));
 		//find workspaces to which a user has some level of permission, index coves queries
@@ -188,8 +208,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		wsVer.add(idxSpec(Fields.VER_WS_ID, 1, Fields.VER_ID, 1, Fields.VER_VER, 1, IDX_UNIQ));
 		//find versions and sort descending on version
 		wsVer.add(idxSpec(Fields.VER_WS_ID, 1, Fields.VER_ID, 1, Fields.VER_VER, -1, IDX_UNIQ));
-		//find versions by data object
-		wsVer.add(idxSpec(Fields.VER_TYPE, 1, Fields.VER_CHKSUM, 1));
+		//find versions per type and sort descending on version
+		wsVer.add(idxSpec(
+				Fields.VER_TYPE_NAME, 1, Fields.VER_TYPE_MAJOR_VERSION, 1,
+				Fields.VER_TYPE_MINOR_VERSION, 1,
+				Fields.VER_WS_ID, 1, Fields.VER_ID, 1, Fields.VER_VER, -1));
+		//find versions per type with major version and sort descending on version
+		wsVer.add(idxSpec(
+				Fields.VER_TYPE_NAME, 1, Fields.VER_TYPE_MAJOR_VERSION, 1,
+				Fields.VER_WS_ID, 1, Fields.VER_ID, 1, Fields.VER_VER, -1));
+		//find versions per type name only and sort descending on version
+		wsVer.add(idxSpec(
+				Fields.VER_TYPE_NAME, 1,
+				Fields.VER_WS_ID, 1, Fields.VER_ID, 1, Fields.VER_VER, -1));
 		//find versions by user
 		wsVer.add(idxSpec(Fields.VER_SAVEDBY, 1));
 		//determine whether a particular object is referenced by this object
@@ -221,30 +252,46 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return indexes;
 	}
 	
-	public MongoWorkspaceDB(final DB workspaceDB, final BlobStore blobStore,
-			final TempFilesManager tfm)
+	/** Create a workspace database using MongoDB as a backend.
+	 * @param workspaceDB the MongoDB in which to store data
+	 * @param blobStore the blob store in which to store object data
+	 * @throws WorkspaceCommunicationException if the backend cannot be reached
+	 * @throws WorkspaceDBInitializationException if the database cannot be initialized
+	 * @throws CorruptWorkspaceDBException if the database is corrupt.
+	 */
+	public MongoWorkspaceDB(final MongoDatabase workspaceDB, final BlobStore blobStore)
 			throws WorkspaceCommunicationException,
-			WorkspaceDBInitializationException, CorruptWorkspaceDBException {
-		if (workspaceDB == null || blobStore == null || tfm == null) {
+				WorkspaceDBInitializationException, CorruptWorkspaceDBException {
+		this(workspaceDB, blobStore, Clock.systemDefaultZone());
+	}
+	
+	// for tests
+	private MongoWorkspaceDB(
+			final MongoDatabase workspaceDB,
+			final BlobStore blobStore,
+			final Clock clock)
+			throws WorkspaceCommunicationException,
+				WorkspaceDBInitializationException, CorruptWorkspaceDBException {
+		if (workspaceDB == null || blobStore == null) {
 			throw new NullPointerException("No arguments can be null");
 		}
 		rescfg = new ResourceUsageConfigurationBuilder().build();
-		this.tfm = tfm;
+		this.clock = clock;
 		wsmongo = workspaceDB;
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
 				COL_WORKSPACE_OBJS, COL_WORKSPACE_VERS, COL_WS_ACLS);
 		objutils = new ObjectInfoUtils(query);
 		blob = blobStore;
 		//TODO DBCONSIST check a few random types and make sure they exist
-		ensureIndexes();
-		checkConfig();
+		ensureIndexes(wsmongo);
+		checkConfig(wsmongo);
 	}
 	
 	private static class IndexSpecification {
-		public DBObject index;
-		public DBObject options;
+		public Document index;
+		public IndexOptions options;
 		
-		private IndexSpecification(final DBObject index, final DBObject options) {
+		private IndexSpecification(final Document index, final IndexOptions options) {
 			this.index = index;
 			this.options = options;
 		}
@@ -253,18 +300,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	// 1 for ascending sort, -1 for descending
 	private static IndexSpecification idxSpec(
 			final String field, final int ascendingSort,
-			final String... options) {
-		
-		return new IndexSpecification(new BasicDBObject(field, ascendingSort),
+			final IndexOptions... options) {
+		return new IndexSpecification(
+				new Document(field, ascendingSort),
 				getIndexOptions(options));
 	}
 
 	private static IndexSpecification idxSpec(
 			final String field1, final int ascendingSort1,
 			final String field2, final int ascendingSort2,
-			final String... options) {
+			final IndexOptions... options) {
 		return new IndexSpecification(
-				new BasicDBObject(field1, ascendingSort1)
+				new Document(field1, ascendingSort1)
 						.append(field2, ascendingSort2),
 				getIndexOptions(options));
 	}
@@ -273,20 +320,74 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final String field1, final int ascendingSort1,
 			final String field2, final int ascendingSort2,
 			final String field3, final int ascendingSort3,
-			final String... options) {
+			final IndexOptions... options) {
 		return new IndexSpecification(
-				new BasicDBObject(field1, ascendingSort1)
+				new Document(field1, ascendingSort1)
 					.append(field2, ascendingSort2)
 					.append(field3, ascendingSort3),
 				getIndexOptions(options));
 	}
 	
-	private static DBObject getIndexOptions(final String[] options) {
-		final DBObject opts = new BasicDBObject();
-		for (final String s: options) {
-			opts.put(s, 1);
+	// ew. Not sure how to make this less gross though.
+	private static IndexSpecification idxSpec(
+			final String field1, final int ascendingSort1,
+			final String field2, final int ascendingSort2,
+			final String field3, final int ascendingSort3,
+			final String field4, final int ascendingSort4,
+			final IndexOptions... options) {
+		return new IndexSpecification(
+				new Document(field1, ascendingSort1)
+					.append(field2, ascendingSort2)
+					.append(field3, ascendingSort3)
+					.append(field4, ascendingSort4),
+				getIndexOptions(options));
+	}
+	
+	// ew. Not sure how to make this less gross though.
+	private static IndexSpecification idxSpec(
+			final String field1, final int ascendingSort1,
+			final String field2, final int ascendingSort2,
+			final String field3, final int ascendingSort3,
+			final String field4, final int ascendingSort4,
+			final String field5, final int ascendingSort5,
+			final IndexOptions... options) {
+		return new IndexSpecification(
+				new Document(field1, ascendingSort1)
+					.append(field2, ascendingSort2)
+					.append(field3, ascendingSort3)
+					.append(field4, ascendingSort4)
+					.append(field5, ascendingSort5),
+				getIndexOptions(options));
+	}
+	
+	// ew. Not sure how to make this less gross though.
+	private static IndexSpecification idxSpec(
+			final String field1, final int ascendingSort1,
+			final String field2, final int ascendingSort2,
+			final String field3, final int ascendingSort3,
+			final String field4, final int ascendingSort4,
+			final String field5, final int ascendingSort5,
+			final String field6, final int ascendingSort6,
+			final IndexOptions... options) {
+		return new IndexSpecification(
+				new Document(field1, ascendingSort1)
+					.append(field2, ascendingSort2)
+					.append(field3, ascendingSort3)
+					.append(field4, ascendingSort4)
+					.append(field5, ascendingSort5)
+					.append(field6, ascendingSort6),
+				getIndexOptions(options));
+	}
+	
+	private static IndexOptions getIndexOptions(final IndexOptions[] options) {
+		if (options.length == 1) {
+			return options[0];
 		}
-		return opts;
+		return new IndexOptions();
+	}
+	
+	static boolean isDuplicateKeyException(final MongoWriteException mwe) {
+		return mwe.getError().getCategory().equals(ErrorCategory.DUPLICATE_KEY);
 	}
 
 	public List<DependencyStatus> status() {
@@ -296,7 +397,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		final List<DependencyStatus> deps = new LinkedList<>(blob.status());
 		final String version;
 		try {
-			final CommandResult bi = wsmongo.command("buildInfo");
+			final Document bi = wsmongo.runCommand(new Document("buildInfo", 1));
 			version = bi.getString("version");
 		} catch (MongoException e) {
 			LoggerFactory.getLogger(getClass())
@@ -316,61 +417,86 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		this.rescfg = rescfg;
 	}
 	
-	@Override
-	public TempFilesManager getTempFilesManager() {
-		return tfm;
-	}
-	
-	private void checkConfig() throws WorkspaceCommunicationException,
-			WorkspaceDBInitializationException, CorruptWorkspaceDBException {
-		final DBObject cfg = new BasicDBObject(
+	private static void checkConfig(final MongoDatabase wsmongo)
+			throws WorkspaceCommunicationException, WorkspaceDBInitializationException,
+				CorruptWorkspaceDBException {
+		final Document cfg = new Document(
 				Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
 		cfg.put(Fields.CONFIG_UPDATE, false);
 		cfg.put(Fields.CONFIG_SCHEMA_VERSION, SCHEMA_VERSION);
 		try {
-			wsmongo.getCollection(COL_CONFIG).insert(cfg);
-		} catch (DuplicateKeyException dk) {
-			//ok, the version doc is already there, this isn't the first
-			//startup
-			final DBCursor cur = wsmongo.getCollection(COL_CONFIG)
-					.find(new BasicDBObject(
-							Fields.CONFIG_KEY, Fields.CONFIG_VALUE));
-			if (cur.size() != 1) {
+			wsmongo.getCollection(COL_CONFIG).insertOne(cfg);
+		} catch (MongoWriteException mwe) {
+			if (isDuplicateKeyException(mwe)) {
+				//ok, the version doc is already there, this isn't the first
+				//startup
+				checkExtantConfigAndGetVersion(wsmongo, false, false);
+			} else {
+				// pretty hard to test this
+				throw new WorkspaceCommunicationException(ERR_DB_COMM, mwe);
+			}
+		} catch (MongoException me) {
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
+		}
+	}
+
+	static Optional<Integer> checkExtantConfigAndGetVersion(
+			final MongoDatabase wsmongo,
+			final boolean allowNoConfig,
+			final boolean skipVersionCheck)
+			throws CorruptWorkspaceDBException, WorkspaceDBInitializationException,
+				WorkspaceCommunicationException {
+		final Document query = new Document(Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
+		try {
+			final MongoCursor<Document> cur = wsmongo.getCollection(COL_CONFIG).find(query)
+					.iterator();
+			if (!cur.hasNext()) {
+				if (allowNoConfig) {
+					return Optional.empty();
+				}
 				throw new CorruptWorkspaceDBException(
-						"Multiple config objects found in the database. " +
+						"No config object found in the database. " +
 						"This should not happen, something is very wrong.");
 			}
-			final DBObject storedCfg = cur.next();
-			if ((Integer)storedCfg.get(Fields.CONFIG_SCHEMA_VERSION) !=
-					SCHEMA_VERSION) {
+			final Document storedCfg = cur.next();
+			if (cur.hasNext()) {
+				throw new CorruptWorkspaceDBException(
+						"> 1 config objects found in the database. " +
+						"This should not happen, something is very wrong.");
+			}
+			final Integer schemaVer = (Integer)storedCfg.get(Fields.CONFIG_SCHEMA_VERSION);
+			if (!skipVersionCheck && schemaVer != SCHEMA_VERSION) {
 				throw new WorkspaceDBInitializationException(String.format(
 						"Incompatible database schema. Server is v%s, DB is v%s",
 						SCHEMA_VERSION,
 						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
 			}
 			if ((Boolean)storedCfg.get(Fields.CONFIG_UPDATE)) {
-				throw new CorruptWorkspaceDBException(String.format(
+				throw new WorkspaceDBInitializationException(String.format(
 						"The database is in the middle of an update from " +
 						"v%s of the schema. Aborting startup.", 
 						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
 			}
+			return Optional.of(schemaVer);
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 	}
 	
-	private void ensureIndexes() throws CorruptWorkspaceDBException {
+	static void ensureIndexes(final MongoDatabase wsdb)
+			throws CorruptWorkspaceDBException, WorkspaceCommunicationException {
 		final HashMap<String, List<IndexSpecification>> indexes = getIndexSpecs();
 		for (final String col: indexes.keySet()) {
-//			wsmongo.getCollection(col).resetIndexCache();
 			for (final IndexSpecification index: indexes.get(col)) {
 				try {
-					wsmongo.getCollection(col).createIndex(index.index, index.options);
+					wsdb.getCollection(col).createIndex(index.index, index.options);
+					// this seems to be the 1 f*&)&*)*ing place where DKE is still used
 				} catch (DuplicateKeyException dk) {
 					throw new CorruptWorkspaceDBException(
 							"Found duplicate index keys in the database, " +
 							"aborting startup", dk);
+				} catch (MongoException me) {
+					throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 				}
 			}
 		}
@@ -379,17 +505,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private void updateWorkspaceModifiedDate(final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException {
 		try {
-			wsmongo.getCollection(COL_WORKSPACES).update(
-					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
-					new BasicDBObject("$set", new BasicDBObject(Fields.WS_MODDATE, new Date())));
+			wsmongo.getCollection(COL_WORKSPACES).updateOne(
+					new Document(Fields.WS_ID, rwsi.getID()),
+					new Document("$set",
+							new Document(Fields.WS_MODDATE, Date.from(clock.instant()))));
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 	}
 
-	private static final Set<String> FLDS_CREATE_WS =
-			newHashSet(Fields.WS_DEL, Fields.WS_OWNER);
+	private static final Set<String> FLDS_CREATE_WS = newHashSet(Fields.WS_DEL, Fields.WS_OWNER);
 	
 	@Override
 	public WorkspaceInformation createWorkspace(
@@ -420,7 +545,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//avoid incrementing the counter if we don't have to
 		try {
 			final List<Map<String, Object>> ws = query.queryCollection(
-					COL_WORKSPACES, new BasicDBObject(Fields.WS_NAME, wsname),
+					COL_WORKSPACES, new Document(Fields.WS_NAME, wsname),
 					FLDS_CREATE_WS);
 			if (ws.size() == 1) {
 				final boolean del = (Boolean) ws.get(0).get(Fields.WS_DEL);
@@ -437,11 +562,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						wsname));
 			}
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		final long count = updateWorkspaceCounter();
-		final DBObject ws = new BasicDBObject();
+		final Document ws = new Document();
 		ws.put(Fields.WS_OWNER, user.getUser());
 		ws.put(Fields.WS_ID, count);
 		final Date moddate = new Date();
@@ -459,15 +583,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		ws.put(Fields.WS_LOCKED, false);
 		ws.put(Fields.WS_META, metaHashToMongoArray(meta.getMetadata()));
 		try {
-			wsmongo.getCollection(COL_WORKSPACES).insert(ws);
-		} catch (DuplicateKeyException mdk) {
+			wsmongo.getCollection(COL_WORKSPACES).insertOne(ws);
+		} catch (MongoWriteException mwe) {
 			// this is almost impossible to test and will probably almost never
 			// happen
-			throw new PreExistingWorkspaceException(String.format(
-					"Workspace name %s is already in use", wsname), mdk);
+			if (isDuplicateKeyException(mwe)) {
+				throw new PreExistingWorkspaceException(String.format(
+						"Workspace name %s is already in use", wsname), mwe);
+			}
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, mwe);
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		if (!cloning) {
 			setCreatedWorkspacePermissions(user, globalRead,
@@ -488,19 +614,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private long updateWorkspaceCounter() throws WorkspaceCommunicationException {
 		try {
-			final DBObject updated = wsmongo.getCollection(COL_WS_CNT)
-					.findAndModify(
-							new BasicDBObject(Fields.CNT_ID, Fields.CNT_ID_VAL),
-							new BasicDBObject(Fields.CNT_NUM, 1).append(Fields.MONGO_ID, 0),
-							null,
-							false,
-							new BasicDBObject("$inc", new BasicDBObject(Fields.CNT_NUM, 1)),
-							true,
-							true);
+			final Document updated = wsmongo.getCollection(COL_WS_CNT).findOneAndUpdate(
+					new Document(Fields.CNT_ID, Fields.CNT_ID_VAL),
+					new Document("$inc", new Document(Fields.CNT_NUM, 1L)),
+					new FindOneAndUpdateOptions()
+							.projection(new Document(Fields.CNT_NUM, 1).append(Fields.MONGO_ID, 0))
+							.upsert(true)
+							.returnDocument(ReturnDocument.AFTER)
+			);
 			return ((Number) updated.get(Fields.CNT_NUM)).longValue();
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 	}
 
@@ -557,41 +681,37 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			boolean success = false;
 			while (!success) { //Danger, Will Robinson! Danger!
 				//replace the value if it exists already
-				WriteResult wr;
+				UpdateResult ur;
 				try {
 					time = Instant.now();
-					wr = wsmongo.getCollection(COL_WORKSPACES).update(
-							new BasicDBObject(Fields.WS_ID, rwsi.getID()).append(mkey, key),
-							new BasicDBObject("$set", new BasicDBObject(mval, value)
+					ur = wsmongo.getCollection(COL_WORKSPACES).updateOne(
+							new Document(Fields.WS_ID, rwsi.getID()).append(mkey, key),
+							new Document("$set", new Document(mval, value)
 									.append(Fields.WS_MODDATE, Date.from(time))));
 				} catch (MongoException me) {
-					throw new WorkspaceCommunicationException(
-							"There was a problem communicating with the database",
-							me);
+					throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 				}
-				if (wr.getN() == 1) { //ok, it worked
+				if (ur.getModifiedCount() == 1) { //ok, it worked
 					success = true;
 					continue;
 				}
 				//add the key/value pair to the array
 				time = Instant.now();
 				try {
-					wr = wsmongo.getCollection(COL_WORKSPACES).update(
-							new BasicDBObject(Fields.WS_ID, rwsi.getID())
-									.append(mkey, new BasicDBObject("$nin", Arrays.asList(key))),
-							new BasicDBObject(
-									"$push", new BasicDBObject(Fields.WS_META,
-											new BasicDBObject(Fields.META_KEY, key)
+					ur = wsmongo.getCollection(COL_WORKSPACES).updateOne(
+							new Document(Fields.WS_ID, rwsi.getID())
+									.append(mkey, new Document("$nin", Arrays.asList(key))),
+							new Document(
+									"$push", new Document(Fields.WS_META,
+											new Document(Fields.META_KEY, key)
 													.append(Fields.META_VALUE, value)))
-									.append("$set", new BasicDBObject(
+									.append("$set", new Document(
 											Fields.WS_MODDATE, Date.from(time))));
 					
 				} catch (MongoException me) {
-					throw new WorkspaceCommunicationException(
-							"There was a problem communicating with the database",
-							me);
+					throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 				}
-				if (wr.getN() == 1) { //ok, it worked
+				if (ur.getModifiedCount() == 1) { //ok, it worked
 					success = true;
 				}
 				/* amazingly, someone added that key to the metadata between the
@@ -605,21 +725,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	@Override
-	public Instant removeWorkspaceMetaKey(final ResolvedWorkspaceID rwsi,
-			final String key) throws WorkspaceCommunicationException {
+	public Instant removeWorkspaceMetaKey(
+			final ResolvedWorkspaceID rwsi,
+			final String key)
+			throws WorkspaceCommunicationException {
 		final Instant time = Instant.now();
 		final String mkey = Fields.WS_META + Fields.FIELD_SEP + Fields.META_KEY;
 		try {
-			wsmongo.getCollection(COL_WORKSPACES).update(
-					new BasicDBObject(Fields.WS_ID, rwsi.getID()).append(mkey, key),
-					new BasicDBObject(
-							"$pull", new BasicDBObject(Fields.WS_META,
-									new BasicDBObject(Fields.META_KEY, key)))
-							.append("$set", new BasicDBObject(
+			wsmongo.getCollection(COL_WORKSPACES).updateOne(
+					new Document(Fields.WS_ID, rwsi.getID()).append(mkey, key),
+					new Document(
+							"$pull", new Document(Fields.WS_META,
+									new Document(Fields.META_KEY, key)))
+							.append("$set", new Document(
 									Fields.WS_MODDATE, Date.from(time))));
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		return time;
 	}
@@ -650,24 +771,24 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				user, newname, globalRead, description, meta, true);
 		final ResolvedWorkspaceID toWS = new ResolvedWorkspaceID(wsinfo.getId(),
 				wsinfo.getName(), wsinfo.isLocked(), false); //assume it's not deleted already
-		final DBObject q = new BasicDBObject(Fields.OBJ_WS_ID, fromWS.getID());
+		final Document q = new Document(Fields.OBJ_WS_ID, fromWS.getID());
 		//skip any objects with no versions, likely a race condition
 		//or worse the db went down post version increment pre version save
 		//need to move to transactional backend or relationless schema
-		q.put(Fields.OBJ_VCNT, new BasicDBObject("$gt", 0));
+		q.put(Fields.OBJ_VCNT, new Document("$gt", 0));
 		q.put(Fields.OBJ_DEL, false);
 		addExcludedToCloneQuery(fromWS, resexclude, q);
-		final DBObject hint = new BasicDBObject(Fields.OBJ_WS_ID, 1);
+		final Document hint = new Document(Fields.OBJ_WS_ID, 1);
 		hint.put(Fields.OBJ_ID, 1);
 		long maxid = 0;
 		try {
-			final DBCursor wsobjects = query.queryCollectionCursor(
+			final FindIterable<Document> wsobjects = query.queryCollectionCursor(
 					COL_WORKSPACE_OBJS, q, FLDS_CLONE_WS, hint, -1);
-			for (final DBObject o: wsobjects) {
-				final long objid = (Long) o.get(Fields.OBJ_ID);
-				final String name = (String) o.get(Fields.OBJ_NAME);
-				final boolean hidden = (Boolean) o.get(Fields.OBJ_HIDE);
-				final boolean deleted = (Boolean) o.get(Fields.OBJ_DEL);
+			for (final Document o: wsobjects) {
+				final long objid = o.getLong(Fields.OBJ_ID);
+				final String name = o.getString(Fields.OBJ_NAME);
+				final boolean hidden = o.getBoolean(Fields.OBJ_HIDE);
+				final boolean deleted = o.getBoolean(Fields.OBJ_DEL);
 				maxid = Math.max(maxid, objid);
 				final ResolvedObjectIDNoVer roi =
 						new ResolvedObjectIDNoVer(fromWS, objid, name, deleted);
@@ -695,12 +816,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					v.put(Fields.VER_COPIED, new Reference(fromWS.getID(), objid, ver).toString());
 				}
 				updateReferenceCountsForVersions(versions);
+				// so if a save fails here the reference counts in other objects are wrong.
+				// need to detect failed saves on start up and fix or something
+				// mark a save started, then update ref counts etc.
+				// Or don't use refcounts - search for refs at time of deletion?
 				saveWorkspaceObject(toWS, objid, name);
 				saveObjectVersions(user, toWS, objid, versions, hidden);
 			}
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		if (maxid > 0) {
 			incrementWorkspaceCounter(toWS, maxid);
@@ -730,27 +854,28 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws PreExistingWorkspaceException, WorkspaceCommunicationException,
 				CorruptWorkspaceDBException {
 		
-		final DBObject q = new BasicDBObject(Fields.WS_ID, id);
+		final Document q = new Document(Fields.WS_ID, id);
 
 		final Date moddate = new Date();
-		final DBObject ws = new BasicDBObject();
+		final Document ws = new Document();
 		ws.put(Fields.WS_MODDATE, moddate);
 		ws.put(Fields.WS_NAME, newname);
 		
-		final DBObject update = new BasicDBObject(
-				"$unset", new BasicDBObject(Fields.WS_CLONING, ""));
+		final Document update = new Document("$unset", new Document(Fields.WS_CLONING, ""));
 		update.put("$set", ws);
-		final WriteResult wr;
+		final UpdateResult ur;
 		try {
-			wr = wsmongo.getCollection(COL_WORKSPACES).update(q, update);
-		} catch (DuplicateKeyException mdk) {
-			throw new PreExistingWorkspaceException(String.format(
-					"Workspace name %s is already in use", newname));
+			ur = wsmongo.getCollection(COL_WORKSPACES).updateOne(q, update);
+		} catch (MongoWriteException mwe) {
+			if (isDuplicateKeyException(mwe)) {
+				throw new PreExistingWorkspaceException(String.format(
+						"Workspace name %s is already in use", newname));
+			}
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, mwe);
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
-		if (wr.getN() != 1) {
+		if (ur.getModifiedCount() != 1) {
 			throw new IllegalStateException("A programming error occurred: " +
 					"there is no workspace with ID " + id);
 		}
@@ -762,7 +887,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private void addExcludedToCloneQuery(
 			final ResolvedWorkspaceID fromWS,
 			final Collection<ResolvedObjectID> resexclude,
-			final DBObject q)
+			final Document q)
 			throws WorkspaceCommunicationException {
 		if (resexclude == null || resexclude.isEmpty()) {
 			return;
@@ -771,27 +896,28 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final ResolvedObjectID o: resexclude) {
 			excludeids.add(o.getId());
 		}
-		q.put(Fields.OBJ_ID, new BasicDBObject("$nin", excludeids));
+		q.put(Fields.OBJ_ID, new Document("$nin", excludeids));
 	}
 	
 	@Override
 	public Instant lockWorkspace(final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		try {
-			wsmongo.getCollection(COL_WORKSPACES).update(
-					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
-					new BasicDBObject("$set", new BasicDBObject(Fields.WS_LOCKED, true)));
+			wsmongo.getCollection(COL_WORKSPACES).updateOne(
+					new Document(Fields.WS_ID, rwsi.getID()),
+					new Document("$set", new Document(Fields.WS_LOCKED, true)));
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		// ws mod date isn't changed, maybe it should be?
 		return Instant.now();
 	}
 	
 	private static final Set<String> FLDS_VER_COPYOBJ = newHashSet(
-			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
-			Fields.VER_TYPE, Fields.VER_CHKSUM, Fields.VER_SIZE,
+			// include full type name for rollback purposes, remove later
+			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER, Fields.VER_TYPE_FULL,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
+			Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_PROV, Fields.VER_REF, Fields.VER_PROVREF,
 			Fields.VER_COPIED, Fields.VER_META, Fields.VER_EXT_IDS);
 	
@@ -861,6 +987,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 		}
 		updateReferenceCountsForVersions(versions);
+		// so if a save fails here the reference counts in other objects are wrong.
+		// need to detect failed saves on start up and fix or something
+		// mark a save started, then update ref counts etc.
+		// Or don't use refcounts - search for refs at time of deletion?
 		final ResolvedWorkspaceID toWS = to.getWorkspaceIdentifier();
 		final long objid;
 		if (rto == null) { //need to make a new object
@@ -886,16 +1016,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Instant now = Instant.now();
 		try {
-			wsmongo.getCollection(COL_WORKSPACES).update(
-					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
-					new BasicDBObject("$set", new BasicDBObject(Fields.WS_NAME, newname)
+			wsmongo.getCollection(COL_WORKSPACES).updateOne(
+					new Document(Fields.WS_ID, rwsi.getID()),
+					new Document("$set", new Document(Fields.WS_NAME, newname)
 							.append(Fields.WS_MODDATE, Date.from(now))));
-		} catch (DuplicateKeyException medk) {
-			throw new IllegalArgumentException(
-					"There is already a workspace named " + newname);
+		} catch (MongoWriteException mwe) {
+			if (isDuplicateKeyException(mwe)) {
+				throw new IllegalArgumentException(
+						"There is already a workspace named " + newname);
+			}
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, mwe);
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		return now;
 	}
@@ -905,8 +1037,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectIDResolvedWS oi,
 			final String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
-		Set<ObjectIDResolvedWS> input = new HashSet<ObjectIDResolvedWS>(
-				Arrays.asList(oi));
+		Set<ObjectIDResolvedWS> input = new HashSet<>(Arrays.asList(oi));
 		final ResolvedObjectID roi = resolveObjectIDs(input).get(oi);
 		if (newname.equals(roi.getName())) {
 			throw new IllegalArgumentException("Object is already named " +
@@ -914,18 +1045,19 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Instant time = Instant.now();
 		try {
-			wsmongo.getCollection(COL_WORKSPACE_OBJS).update(
-					new BasicDBObject(Fields.OBJ_WS_ID, roi.getWorkspaceIdentifier().getID())
+			wsmongo.getCollection(COL_WORKSPACE_OBJS).updateOne(
+					new Document(Fields.OBJ_WS_ID, roi.getWorkspaceIdentifier().getID())
 							.append(Fields.OBJ_ID, roi.getId()),
-					new BasicDBObject("$set", new BasicDBObject(Fields.OBJ_NAME, newname)
+					new Document("$set", new Document(Fields.OBJ_NAME, newname)
 							.append(Fields.OBJ_MODDATE, Date.from(time))));
-		} catch (DuplicateKeyException medk) {
-			throw new IllegalArgumentException(
-					"There is already an object in the workspace named " +
-							newname);
+		} catch (MongoWriteException mwe) {
+			if (isDuplicateKeyException(mwe)) {
+				throw new IllegalArgumentException(
+						"There is already an object in the workspace named " + newname);
+			}
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, mwe);
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		final ObjectIDResolvedWS oid = new ObjectIDResolvedWS(
 				roi.getWorkspaceIdentifier(), roi.getId(), roi.getVersion());
@@ -944,11 +1076,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//http://stackoverflow.com/questions/2041778/initialize-java-hashset-values-by-construction
 	@SafeVarargs
 	private static <T> Set<T> newHashSet(T... objs) {
-		Set<T> set = new HashSet<T>();
-		for (T o : objs) {
-			set.add(o);
-		}
-		return set;
+		return Stream.of(objs).collect(Collectors.toSet());
 	}
 	
 	@Override
@@ -963,13 +1091,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		//TODO CODE generalized method for setting fields?
 		final Instant now = Instant.now();
 		try {
-			wsmongo.getCollection(COL_WORKSPACES).update(
-					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
-					new BasicDBObject("$set", new BasicDBObject(Fields.WS_DESC, description)
+			wsmongo.getCollection(COL_WORKSPACES).updateOne(
+					new Document(Fields.WS_ID, rwsi.getID()),
+					new Document("$set", new Document(Fields.WS_DESC, description)
 							.append(Fields.WS_MODDATE, Date.from(now))));
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		return now;
 	}
@@ -1049,17 +1176,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public Map<ResolvedWorkspaceID, Map<User, Permission>> getAllPermissions(
 			final Set<ResolvedWorkspaceID> rwsis)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		final Map<ResolvedWorkspaceID, Map<User, Permission>> res =
-				query.queryPermissions(rwsis, null);
-		final Map<ResolvedWorkspaceID, Map<User, Permission>> ret = 
-				new HashMap<ResolvedWorkspaceID, Map<User, Permission>>();
-		//probably a better way to do this
-		for (final ResolvedWorkspaceID r: res.keySet()) {
-			ret.put((ResolvedWorkspaceID)r, res.get(r)); 
-		}
-		return ret;
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		// TODO CODE error on null or empty input
+		return query.queryPermissions(rwsis, null);
 	}
 	
 	@Override
@@ -1102,26 +1221,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean includeProvidedWorkspaces)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (perm == null || Permission.NONE.equals(perm)) {
-			throw new IllegalArgumentException(
-					"Permission cannot be null or NONE");
+			throw new IllegalArgumentException("Permission cannot be null or NONE");
 		}
 		final Map<ResolvedWorkspaceID, Map<User, Permission>> userperms;
 		if (user != null) {
-			userperms = query.queryPermissions(rwsis, new HashSet<User>(Arrays.asList(user)),
-					perm, excludeDeletedWorkspaces);
+			userperms = query.queryPermissions(rwsis, user, perm, excludeDeletedWorkspaces);
 		} else {
-			userperms = new HashMap<ResolvedWorkspaceID, Map<User,Permission>>();
+			userperms = new HashMap<>();
 		}
-		final Set<User> allusers = new HashSet<User>(Arrays.asList(ALL_USERS));
 		final Map<ResolvedWorkspaceID, Map<User, Permission>> globalperms;
 		if (excludeGlobalRead || perm.compareTo(Permission.WRITE) >= 0) {
 			if (userperms.isEmpty()) {
-				globalperms = new HashMap<ResolvedWorkspaceID, Map<User,Permission>>();
+				globalperms = new HashMap<>();
 			} else {
-				globalperms = query.queryPermissions(userperms.keySet(), allusers);
+				globalperms = query.queryPermissions(userperms.keySet(), ALL_USERS);
 			}
 		} else {
-			globalperms = query.queryPermissions(rwsis, allusers,
+			globalperms = query.queryPermissions(rwsis, ALL_USERS,
 					Permission.READ, excludeDeletedWorkspaces);
 		}
 		return buildPermissionSet(user, rwsis, userperms, globalperms, includeProvidedWorkspaces);
@@ -1180,20 +1296,22 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final Optional<String> newname)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		final Instant now = Instant.now();
-		final BasicDBObject query = new BasicDBObject(Fields.WS_ID, rwsi.getID());
-		final BasicDBObject set = new BasicDBObject(Fields.WS_OWNER, newUser.getUser())
+		final Document query = new Document(Fields.WS_ID, rwsi.getID());
+		final Document set = new Document(Fields.WS_OWNER, newUser.getUser())
 				.append(Fields.WS_MODDATE, Date.from(now));
 		if (newname.isPresent()) {
 			set.append(Fields.WS_NAME, newname.get());
 		}
 		try {
-			wsmongo.getCollection(COL_WORKSPACES).update(query, new BasicDBObject("$set", set));
-		} catch (DuplicateKeyException medk) {
-			throw new IllegalArgumentException(
-					"There is already a workspace named " + newname.get());
+			wsmongo.getCollection(COL_WORKSPACES).updateOne(query, new Document("$set", set));
+		} catch (MongoWriteException mwe) {
+			if (isDuplicateKeyException(mwe)) {
+				throw new IllegalArgumentException(
+						"There is already a workspace named " + newname.get());
+			}
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, mwe);
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		final ResolvedWorkspaceID newRwsi = new ResolvedWorkspaceID(
 				rwsi.getID(),
@@ -1240,8 +1358,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			CorruptWorkspaceDBException {
 		final WorkspaceUser owner;
 		if (checkowner) {
-			final Map<String, Object> ws =
-					query.queryWorkspace(wsid, FLDS_WS_OWNER);
+			final Map<String, Object> ws = query.queryWorkspace(wsid, FLDS_WS_OWNER);
 			if (ws == null) {
 				throw new CorruptWorkspaceDBException(String.format(
 						"Workspace %s was unexpectedly deleted from the database",
@@ -1255,22 +1372,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			if (owner != null && owner.getUser().equals(user.getUser())) {
 				continue; // can't change owner permissions
 			}
-			final BasicDBObject query = new BasicDBObject(Fields.ACL_WSID, wsid.getID())
+			final Document query = new Document(Fields.ACL_WSID, wsid.getID())
 					.append(Fields.ACL_USER, user.getUser());
 			try {
 				if (perm.equals(Permission.NONE)) {
-					wsmongo.getCollection(COL_WS_ACLS).remove(query);
+					wsmongo.getCollection(COL_WS_ACLS).deleteOne(query);
 				} else {
-					wsmongo.getCollection(COL_WS_ACLS).update(
+					wsmongo.getCollection(COL_WS_ACLS).updateOne(
 							query,
-							new BasicDBObject("$set",
-									new BasicDBObject(Fields.ACL_PERM, perm.getPermission())),
-							true,
-							false);
+							new Document(
+									"$set", new Document(Fields.ACL_PERM, perm.getPermission())),
+							new UpdateOptions().upsert(true)
+					);
 				}
 			} catch (MongoException me) {
-				throw new WorkspaceCommunicationException(
-						"There was a problem communicating with the database", me);
+				throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 			}
 		}
 		// hmm. should the workspace mod date be changed when setting perms? Currently not
@@ -1292,28 +1408,27 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final boolean showDeleted, 
 			final boolean showOnlyDeleted)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final Map<Long, ResolvedWorkspaceID> rwsis = new HashMap<Long, ResolvedWorkspaceID>();
+		final Map<Long, ResolvedWorkspaceID> rwsis = new HashMap<>();
 		for (final ResolvedWorkspaceID rwsi: pset.getWorkspaces()) {
 			rwsis.put(rwsi.getID(), rwsi);
 		}
-		final DBObject q = new BasicDBObject(Fields.WS_ID,
-				new BasicDBObject("$in", rwsis.keySet()));
+		final Document q = new Document(Fields.WS_ID, new Document("$in", rwsis.keySet()));
 		if (owners != null && !owners.isEmpty()) {
-			q.put(Fields.WS_OWNER, new BasicDBObject("$in", convertWorkspaceUsers(owners)));
+			q.put(Fields.WS_OWNER, new Document(
+					"$in", owners.stream().map(o -> o.getUser()).collect(Collectors.toList())));
 		}
 		if (meta != null && !meta.isEmpty()) {
-			final List<DBObject> andmetaq = new LinkedList<DBObject>();
-			for (final Entry<String, String> e:
-					meta.getMetadata().entrySet()) {
-				final DBObject mentry = new BasicDBObject();
+			final List<Document> andmetaq = new LinkedList<>();
+			for (final Entry<String, String> e: meta.getMetadata().entrySet()) {
+				final Document mentry = new Document();
 				mentry.put(Fields.META_KEY, e.getKey());
 				mentry.put(Fields.META_VALUE, e.getValue());
-				andmetaq.add(new BasicDBObject(Fields.WS_META, mentry));
+				andmetaq.add(new Document(Fields.WS_META, mentry));
 			}
 			q.put("$and", andmetaq); //note more than one entry is untested
 		}
 		if (before != null || after != null) {
-			final DBObject d = new BasicDBObject();
+			final Document d = new Document();
 			if (before != null) {
 				d.put("$lt", before);
 			}
@@ -1341,14 +1456,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
-	private List<String> convertWorkspaceUsers(final List<WorkspaceUser> owners) {
-		final List<String> own = new ArrayList<String>();
-		for (final WorkspaceUser wu: owners) {
-			own.add(wu.getUser());
-		}
-		return own;
-	}
-	
 	@Override
 	public WorkspaceUser getWorkspaceOwner(final ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException,
@@ -1439,28 +1546,31 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	// save object in preexisting object container
-	private ObjectInformation saveObjectVersion(final WorkspaceUser user,
-			final ResolvedWorkspaceID wsid, final long objectid,
+	private ObjectInformation saveObjectVersion(
+			final WorkspaceUser user,
+			final ResolvedWorkspaceID wsid,
+			final long objectid,
 			final ObjectSavePackage pkg)
 			throws WorkspaceCommunicationException {
 		final Map<String, Object> version = new HashMap<String, Object>();
+		final AbsoluteTypeDefId t = pkg.wo.getRep().getValidationTypeDefId();
 		version.put(Fields.VER_SAVEDBY, user.getUser());
 		version.put(Fields.VER_CHKSUM, pkg.wo.getRep().getMD5().getMD5());
-		version.put(Fields.VER_META, metaHashToMongoArray(
-				pkg.wo.getUserMeta().getMetadata()));
+		version.put(Fields.VER_META, metaHashToMongoArray(pkg.wo.getUserMeta().getMetadata()));
 		version.put(Fields.VER_REF, pkg.refs);
 		version.put(Fields.VER_PROVREF, pkg.provrefs);
 		version.put(Fields.VER_PROV, pkg.provid);
-		version.put(Fields.VER_TYPE, pkg.wo.getRep().getValidationTypeDefId()
-				.getTypeString());
+		version.put(Fields.VER_TYPE_NAME, t.getType().getTypeString());
+		version.put(Fields.VER_TYPE_MAJOR_VERSION, t.getMajorVersion());
+		version.put(Fields.VER_TYPE_MINOR_VERSION, t.getMinorVersion());
+		// TODO CODE this field is here to allow for rollbacks from v0.12.0. remove later.
+		version.put(Fields.VER_TYPE_FULL, t.getTypeString());
 		version.put(Fields.VER_SIZE, pkg.wo.getRep().getRelabeledSize());
 		version.put(Fields.VER_RVRT, null);
 		version.put(Fields.VER_COPIED, null);
-		version.put(Fields.VER_EXT_IDS, extractedIDsToStrings(
-				pkg.wo.getExtractedIDs()));
+		version.put(Fields.VER_EXT_IDS, extractedIDsToStrings(pkg.wo.getExtractedIDs()));
 		
-		saveObjectVersions(user, wsid, objectid, Arrays.asList(version),
-				pkg.wo.isHidden());
+		saveObjectVersions(user, wsid, objectid, Arrays.asList(version), pkg.wo.isHidden());
 		
 		return new ObjectInformation(
 				objectid,
@@ -1510,41 +1620,38 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			zeros.add(0);
 		}
 		final Date saved = new Date();
-		final BasicDBObject set = new BasicDBObject(Fields.OBJ_DEL, false)
+		final Document set = new Document(Fields.OBJ_DEL, false)
 				.append(Fields.OBJ_MODDATE, saved)
 				.append(Fields.OBJ_LATEST, null);
-		final DBObject update = new BasicDBObject(
-				"$inc", new BasicDBObject(Fields.OBJ_VCNT, versions.size()))
+		final Document update = new Document(
+				"$inc", new Document(Fields.OBJ_VCNT, versions.size()))
 				.append("$set", set)
-				.append("$push", new BasicDBObject(Fields.OBJ_REFCOUNTS,
-						new BasicDBObject("$each", zeros)));
+				.append("$push", new Document(Fields.OBJ_REFCOUNTS, new Document("$each", zeros)));
 		if (hidden != null) {
 			set.append(Fields.OBJ_HIDE, hidden);
 		}
 		try {
-			final DBObject res = wsmongo.getCollection(COL_WORKSPACE_OBJS).findAndModify(
-					new BasicDBObject(Fields.OBJ_WS_ID, wsid.getID())
-							.append(Fields.OBJ_ID, objectid),
-					new BasicDBObject(Fields.OBJ_VCNT, 1).append(Fields.MONGO_ID, 0),
-					null,
-					false,
+			final Document res = wsmongo.getCollection(COL_WORKSPACE_OBJS).findOneAndUpdate(
+					new Document(Fields.OBJ_WS_ID, wsid.getID()).append(Fields.OBJ_ID, objectid),
 					update,
-					true,
-					false);
-			
-			ver = (Integer) res.get(Fields.OBJ_VCNT) - versions.size() + 1;
+					new FindOneAndUpdateOptions()
+							.projection(new Document(Fields.OBJ_VCNT, 1)
+									.append(Fields.MONGO_ID, 0))
+							.returnDocument(ReturnDocument.AFTER)
+			);
+			ver = res.getInteger(Fields.OBJ_VCNT) - versions.size() + 1;
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		//TODO look into why saving array of maps via List.ToArray() makes Lazy?Objects return, which screw up everything
-		final List<DBObject> dbo = new LinkedList<DBObject>();
+		// note ^ this may or may not be moot with the conversion to Document
+		final List<Document> dbo = new LinkedList<>();
 		for (final Map<String, Object> v: versions) {
 			v.put(Fields.VER_SAVEDATE, saved);
 			v.put(Fields.VER_WS_ID, wsid.getID());
 			v.put(Fields.VER_ID, objectid);
 			v.put(Fields.VER_VER, ver++);
-			final DBObject d = new BasicDBObject();
+			final Document d = new Document();
 			for (final Entry<String, Object> e: v.entrySet()) {
 				d.put(e.getKey(), e.getValue());
 			}
@@ -1552,10 +1659,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 
 		try {
-			wsmongo.getCollection(COL_WORKSPACE_VERS).insert(dbo);
+			wsmongo.getCollection(COL_WORKSPACE_VERS).insertMany(dbo);
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 	}
 	
@@ -1570,7 +1676,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (name == null) {
 			throw new NullPointerException("name");
 		}
-		final DBObject dbo = new BasicDBObject();
+		final Document dbo = new Document();
 		dbo.put(Fields.OBJ_WS_ID, wsid.getID());
 		dbo.put(Fields.OBJ_ID, objectid);
 		dbo.put(Fields.OBJ_VCNT, 0); //Integer
@@ -1583,25 +1689,27 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			//maybe could speed things up with batch inserts but dealing with
 			//errors would really suck
 			//do this later if it becomes a bottleneck
-			wsmongo.getCollection(COL_WORKSPACE_OBJS).insert(dbo);
-		} catch (DuplicateKeyException dk) {
-			//ok, someone must've just this second added this name to an object
-			//asshole
-			//this should be a rare event
-			//TODO BUG if id dupe throw exception, stack overflow otherwise. Can't actually happen unless bug in code though.
-			final ObjectIDNoWSNoVer o = new ObjectIDNoWSNoVer(name);
-			final Map<ObjectIDNoWSNoVer, ResolvedObjectID> objID =
-					resolveObjectIDsIgnoreExceptions(wsid,
-							new HashSet<ObjectIDNoWSNoVer>(Arrays.asList(o)));
-			if (objID.isEmpty()) {
-				//oh ffs, name deleted again, try again
-				return saveWorkspaceObject(wsid, objectid, name);
+			wsmongo.getCollection(COL_WORKSPACE_OBJS).insertOne(dbo);
+		} catch (MongoWriteException mwe) {
+			if (isDuplicateKeyException(mwe)) {
+				//ok, someone must've just this second added this name to an object
+				//asshole
+				//this should be a rare event
+				//TODO BUG if id dupe throw exception, stack overflow otherwise. Can't actually happen unless bug in code though.
+				final ObjectIDNoWSNoVer o = new ObjectIDNoWSNoVer(name);
+				final Map<ObjectIDNoWSNoVer, ResolvedObjectID> objID =
+						resolveObjectIDsIgnoreExceptions(wsid,
+								new HashSet<ObjectIDNoWSNoVer>(Arrays.asList(o)));
+				if (objID.isEmpty()) {
+					//oh ffs, name deleted again, try again
+					return saveWorkspaceObject(wsid, objectid, name);
+				}
+				//save version via the id associated with our name which already exists
+				return new IDName(objID.get(o).getId(), objID.get(o).getName());
 			}
-			//save version via the id associated with our name which already exists
-			return new IDName(objID.get(o).getId(), objID.get(o).getName());
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, mwe);
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		return new IDName(objectid, name);
 	}
@@ -1808,20 +1916,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final long newobjects) throws WorkspaceCommunicationException {
 		final long lastid;
 		try {
-			
-			lastid = ((Number) wsmongo.getCollection(COL_WORKSPACES)
-					.findAndModify(
-							new BasicDBObject(Fields.WS_ID, wsidmongo.getID()),
-							new BasicDBObject(Fields.WS_NUMOBJ, 1).append(Fields.MONGO_ID, 0),
-							null,
-							false,
-							new BasicDBObject("$inc",
-									new BasicDBObject(Fields.WS_NUMOBJ, newobjects)),
-							true,
-							false).get(Fields.WS_NUMOBJ)).longValue();
+			lastid = ((Number) wsmongo.getCollection(COL_WORKSPACES).findOneAndUpdate(
+					new Document(Fields.WS_ID, wsidmongo.getID()),
+					new Document("$inc", new Document(Fields.WS_NUMOBJ, newobjects)),
+					new FindOneAndUpdateOptions()
+							.projection(new Document(Fields.WS_NUMOBJ, 1)
+									.append(Fields.MONGO_ID, 0))
+							.returnDocument(ReturnDocument.AFTER)
+			).get(Fields.WS_NUMOBJ)).longValue();
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		long newid = lastid - newobjects + 1;
 		return newid;
@@ -1830,15 +1934,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	// has a side effect of setting the provid field on each package
 	private void saveProvenance(final List<ObjectSavePackage> packages)
 			throws WorkspaceCommunicationException {
-		final Map<ObjectSavePackage, DBObject> provmap = new HashMap<>();
+		final Map<ObjectSavePackage, Document> provmap = new HashMap<>();
 		for (final ObjectSavePackage p: packages) {
-			provmap.put(p, new BasicDBObject(toDocument(p.wo.getProvenance())));
+			provmap.put(p, new Document(toDocument(p.wo.getProvenance())));
 		}
 		try {
-			wsmongo.getCollection(COL_PROVENANCE).insert(new LinkedList<>(provmap.values()));
+			wsmongo.getCollection(COL_PROVENANCE).insertMany(new LinkedList<>(provmap.values()));
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		for (final ObjectSavePackage p: packages) {
 			p.provid = (ObjectId) provmap.get(p).get(Fields.MONGO_ID); // ew, side effect
@@ -1994,22 +2097,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private void updateReferenceCounts(final VerCount vc,
 			final Map<Long, List<Long>> wsToObjs)
 			throws WorkspaceCommunicationException {
-		final DBObject update = new BasicDBObject("$inc",
-				new BasicDBObject(Fields.OBJ_REFCOUNTS + "." + (vc.ver - 1),
+		final Document update = new Document("$inc",
+				new Document(Fields.OBJ_REFCOUNTS + "." + (vc.ver - 1),
 						vc.count));
-		final List<DBObject> orquery = new LinkedList<DBObject>();
+		final List<Document> orquery = new LinkedList<>();
 		for (final Long ws: wsToObjs.keySet()) {
-			final DBObject query = new BasicDBObject(Fields.OBJ_WS_ID, ws);
-			query.put(Fields.OBJ_ID, new BasicDBObject("$in",
-					wsToObjs.get(ws)));
+			final Document query = new Document(Fields.OBJ_WS_ID, ws);
+			query.put(Fields.OBJ_ID, new Document("$in", wsToObjs.get(ws)));
 			orquery.add(query);
 		}
 		try {
-			wsmongo.getCollection(COL_WORKSPACE_OBJS).update(
-					new BasicDBObject("$or", orquery), update, false, true);
+			wsmongo.getCollection(COL_WORKSPACE_OBJS).updateMany(
+					new Document("$or", orquery), update);
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 	}
 
@@ -2104,7 +2205,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private static final Set<String> FLDS_VER_GET_OBJECT = newHashSet(
-			Fields.VER_VER, Fields.VER_META, Fields.VER_TYPE,
+			Fields.VER_VER, Fields.VER_META,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE, Fields.VER_PROV,
 			Fields.VER_PROVREF, Fields.VER_REF, Fields.VER_EXT_IDS,
@@ -2209,6 +2311,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						.get(Fields.VER_SIZE);
 			}
 		}
+		// TODO CODE just pass constant into the constructor or method call
+		// vs. including the whole class
 		if (size + usedDataAllocation > rescfg.getMaxReturnedDataSize()) {
 			throw new IllegalArgumentException(String.format(
 					"Too much data requested from the workspace at once; " +
@@ -2407,9 +2511,9 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			refStrings.add(r.getId());
 		}
 		
-		final DBObject q = new BasicDBObject("$or", Arrays.asList(
-				new BasicDBObject(Fields.VER_REF, new BasicDBObject("$in", refStrings)),
-				new BasicDBObject(Fields.VER_PROVREF, new BasicDBObject("$in", refStrings))));
+		final Document q = new Document("$or", Arrays.asList(
+				new Document(Fields.VER_REF, new Document("$in", refStrings)),
+				new Document(Fields.VER_PROVREF, new Document("$in", refStrings))));
 		final List<Map<String, Object>> vers = query.queryCollection(
 				COL_WORKSPACE_VERS, q, FLDS_GET_REF_TO_OBJ);
 		return buildReferenceToReferencesMap(refs, vers);
@@ -2454,8 +2558,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private static final Set<String> FLDS_GETREFOBJ = newHashSet(
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
-			Fields.VER_VER, Fields.VER_TYPE, Fields.VER_META,
-			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
+			Fields.VER_META, Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_PROVREF, Fields.VER_REF);
 	
@@ -2481,10 +2585,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			ref2id.get(ref).add(oi);
 		}
-		final DBObject q = new BasicDBObject(Fields.VER_WS_ID, new BasicDBObject("$in", wsids));
-		q.put("$or", Arrays.asList(new BasicDBObject(Fields.VER_REF,
-						new BasicDBObject("$in", ref2id.keySet())),
-				new BasicDBObject(Fields.VER_PROVREF, new BasicDBObject("$in", ref2id.keySet()))));
+		final Document q = new Document(Fields.VER_WS_ID, new Document("$in", wsids));
+		q.put("$or", Arrays.asList(new Document(Fields.VER_REF,
+						new Document("$in", ref2id.keySet())),
+				new Document(Fields.VER_PROVREF, new Document("$in", ref2id.keySet()))));
 		final List<Map<String, Object>> vers = query.queryCollection(
 				COL_WORKSPACE_VERS, q, FLDS_GETREFOBJ);
 		final Map<Map<String, Object>, ObjectInformation> voi = objutils.generateObjectInfo(
@@ -2562,12 +2666,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			provIDs.put((ObjectId) vers.get(id).get(Fields.VER_PROV), vers.get(id));
 		}
 		final Map<ObjectId, Provenance> ret = new HashMap<>();
+		final Document query = new Document(Fields.MONGO_ID,
+				new Document("$in", provIDs.keySet()));
 		try {
-			final DBCursor provs = wsmongo.getCollection(COL_PROVENANCE).find(
-					new BasicDBObject(Fields.MONGO_ID,
-							new BasicDBObject("$in", provIDs.keySet())));
-			for (final DBObject dbo: provs) {
-				final ObjectId oid = (ObjectId) dbo.get(Fields.MONGO_ID);
+			for (final Document dbo: wsmongo.getCollection(COL_PROVENANCE).find(query)) {
+				final ObjectId oid = dbo.getObjectId(Fields.MONGO_ID);
 				// this list is expected to be ordered in the same order as in the incoming
 				// provenance actions
 				@SuppressWarnings("unchecked")
@@ -2576,14 +2679,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				ret.put(oid, toProvenance(dbo, resolvedRefs));
 			}
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		return ret;
 	}
 	
 	private Provenance toProvenance(
-			final DBObject p,
+			final Document p,
 			// this list is expected to be ordered in the same order as in the incoming
 			// provenance actions
 			final List<String> resolvedRefs) {
@@ -2691,7 +2793,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private static final Set<String> FLDS_VER_TYPE = newHashSet(
-			Fields.VER_TYPE, Fields.VER_VER);
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
+			Fields.VER_VER);
 	
 	public Map<ObjectIDResolvedWS, TypeAndReference> getObjectType(
 			final Set<ObjectIDResolvedWS> objectIDs,
@@ -2709,8 +2812,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ResolvedObjectID roi = oids.get(o);
 			final Map<String, Object> v = vers.get(roi);
 			if (v != null) {
-				ret.put(o, new TypeAndReference(AbsoluteTypeDefId.fromAbsoluteTypeString(
-								(String) v.get(Fields.VER_TYPE)),
+				ret.put(o, new TypeAndReference(
+						new AbsoluteTypeDefId(
+								new TypeDefName((String) v.get(Fields.VER_TYPE_NAME)),
+								(int) v.get(Fields.VER_TYPE_MAJOR_VERSION),
+								(int) v.get(Fields.VER_TYPE_MINOR_VERSION)),
 						new Reference(roi.getWorkspaceIdentifier().getID(), roi.getId(),
 								(Integer) v.get(Fields.VER_VER))));
 			}
@@ -2738,12 +2844,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final ResolvedWorkspaceID rwsid: rwsis) {
 			wsIDtoWS.put(rwsid.getID(), rwsid);
 		}
-		final DBObject q = new BasicDBObject(Fields.OBJ_DEL, false);
-		q.put(Fields.OBJ_WS_ID, new BasicDBObject("$in", wsIDtoWS.keySet()));
+		final Document q = new Document(Fields.OBJ_DEL, false);
+		q.put(Fields.OBJ_WS_ID, new Document("$in", wsIDtoWS.keySet()));
 		if (!prefix.isEmpty()) {
 			// escape regex chars
-			q.put(Fields.OBJ_NAME,
-					new BasicDBObject("$regex", "^" + Pattern.quote(prefix)));
+			q.put(Fields.OBJ_NAME, new Document("$regex", "^" + Pattern.quote(prefix)));
 		}
 		if (!includeHidden) {
 			q.put(Fields.OBJ_HIDE, false);
@@ -2765,14 +2870,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	
 	@Override
 	public List<ObjectInformation> getObjectInformation(
-			final GetObjectInformationParameters params)
+			final ResolvedListObjectParameters params)
 			throws WorkspaceCommunicationException {
-		return objutils.filter(params);
+		return new ObjectLister(wsmongo.getCollection(COL_WORKSPACE_VERS), objutils)
+				.filter(params);
 	}
 
 	private static final Set<String> FLDS_VER_OBJ_HIST = newHashSet(
 			Fields.VER_WS_ID, Fields.VER_ID, Fields.VER_VER,
-			Fields.VER_TYPE, Fields.VER_CHKSUM, Fields.VER_SIZE,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
+			Fields.VER_CHKSUM, Fields.VER_SIZE,
 			Fields.VER_META, Fields.VER_SAVEDATE, Fields.VER_SAVEDBY);
 	
 	@Override
@@ -2795,7 +2902,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 	
 	private static final Set<String> FLDS_VER_META = newHashSet(
-			Fields.VER_VER, Fields.VER_TYPE,
+			Fields.VER_VER,
+			Fields.VER_TYPE_NAME, Fields.VER_TYPE_MAJOR_VERSION, Fields.VER_TYPE_MINOR_VERSION,
 			Fields.VER_SAVEDATE, Fields.VER_SAVEDBY,
 			Fields.VER_CHKSUM, Fields.VER_SIZE);
 	
@@ -2811,7 +2919,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				resolveObjectIDs(objectIDs, exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Set<String> fields;
 		if (includeMetadata) {
-			fields = new HashSet<String>(FLDS_VER_META);
+			fields = new HashSet<>(FLDS_VER_META);
 			fields.add(Fields.VER_META);
 		} else {
 			fields = FLDS_VER_META;
@@ -3076,14 +3184,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	@Override
-	public void setObjectsHidden(final Set<ObjectIDResolvedWS> objectIDs,
+	public Map<ResolvedObjectIDNoVer, Instant> setObjectsHidden(
+			final Set<ObjectIDResolvedWS> objectIDs,
 			final boolean hide)
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		//TODO CODE generalize, nearly identical to delete objects
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> ids =
 				resolveObjectIDs(objectIDs);
-		final Map<ResolvedWorkspaceID, List<Long>> toModify =
-				new HashMap<ResolvedWorkspaceID, List<Long>>();
+		final Map<ResolvedWorkspaceID, List<Long>> toModify = new HashMap<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
 			if (!toModify.containsKey(ws)) {
@@ -3091,30 +3199,37 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			toModify.get(ws).add(ids.get(o).getId());
 		}
+		final Map<ResolvedWorkspaceID, Instant> modtimes = new HashMap<>();
 		//Do this by workspace since per mongo docs nested $ors are crappy
 		for (final ResolvedWorkspaceID ws: toModify.keySet()) {
-			setObjectsHidden(ws, toModify.get(ws), hide);
+			modtimes.put(ws, setObjectsHidden(ws, toModify.get(ws), hide));
 		}
+		final Map<ResolvedObjectIDNoVer, Instant> ret = new HashMap<>();
+		for (final ObjectIDResolvedWS o: objectIDs) {
+			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
+			final ResolvedObjectID obj = ids.get(o);
+			ret.put(new ResolvedObjectIDNoVer(obj), modtimes.get(ws));
+		}
+		return ret;
 	}
 	
-	private void setObjectsHidden(final ResolvedWorkspaceID ws,
+	private Instant setObjectsHidden(final ResolvedWorkspaceID ws,
 			final List<Long> objectIDs, final boolean hide)
 			throws WorkspaceCommunicationException {
 		//TODO CODE general set field method?
 		if (objectIDs.isEmpty()) {
 			throw new IllegalArgumentException("Object IDs cannot be empty");
 		}
+		final Instant now = clock.instant();
 		try {
-			wsmongo.getCollection(COL_WORKSPACE_OBJS).update(
-					new BasicDBObject(Fields.OBJ_WS_ID, ws.getID())
-							.append(Fields.OBJ_ID, new BasicDBObject("$in", objectIDs)),
-					new BasicDBObject("$set", new BasicDBObject(Fields.OBJ_HIDE, hide)),
-					false,
-					true);
+			wsmongo.getCollection(COL_WORKSPACE_OBJS).updateMany(
+					new Document(Fields.OBJ_WS_ID, ws.getID())
+							.append(Fields.OBJ_ID, new Document("$in", objectIDs)),
+					new Document("$set", new Document(Fields.OBJ_HIDE, hide)));
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
+		return now;
 	}
 	
 	@Override
@@ -3124,8 +3239,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			throws NoSuchObjectException, WorkspaceCommunicationException {
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> ids =
 				resolveObjectIDs(objectIDs, delete, true);
-		final Map<ResolvedWorkspaceID, List<Long>> toModify =
-				new HashMap<ResolvedWorkspaceID, List<Long>>();
+		final Map<ResolvedWorkspaceID, List<Long>> toModify = new HashMap<>();
 		for (final ObjectIDResolvedWS o: objectIDs) {
 			final ResolvedWorkspaceID ws = o.getWorkspaceIdentifier();
 			final ResolvedObjectID obj = ids.get(o);
@@ -3155,23 +3269,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<Long> objectIDs,
 			final boolean delete)
 			throws WorkspaceCommunicationException {
-		final BasicDBObject query = new BasicDBObject(Fields.OBJ_WS_ID, ws.getID())
+		final Document query = new Document(Fields.OBJ_WS_ID, ws.getID())
 				.append(Fields.OBJ_DEL, !delete);
 		if (!objectIDs.isEmpty()) {
-			query.append(Fields.OBJ_ID, new BasicDBObject("$in", objectIDs));
+			query.append(Fields.OBJ_ID, new Document("$in", objectIDs));
 		}
 		final Instant time;
 		try {
-			time = Instant.now();
-			wsmongo.getCollection(COL_WORKSPACE_OBJS).update(
+			time = clock.instant();
+			wsmongo.getCollection(COL_WORKSPACE_OBJS).updateMany(
 					query,
-					new BasicDBObject("$set", new BasicDBObject(Fields.OBJ_DEL, delete)
-							.append(Fields.OBJ_MODDATE, Date.from(time))),
-					false,
-					true);
+					new Document("$set", new Document(Fields.OBJ_DEL, delete)
+							.append(Fields.OBJ_MODDATE, Date.from(time))));
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		return time;
 	}
@@ -3188,13 +3299,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Instant now = Instant.now();
 		try {
-			wsmongo.getCollection(COL_WORKSPACES).update(
-					new BasicDBObject(Fields.WS_ID, rwsi.getID()),
-					new BasicDBObject("$set", new BasicDBObject(Fields.WS_DEL, delete)
+			wsmongo.getCollection(COL_WORKSPACES).updateOne(
+					new Document(Fields.WS_ID, rwsi.getID()),
+					new Document("$set", new Document(Fields.WS_DEL, delete)
 							.append(Fields.WS_MODDATE, Date.from(now))));
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		if (!delete) {
 			//undelete object last so we yadda yadda
@@ -3207,18 +3317,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Set<WorkspaceUser> getAllWorkspaceOwners()
 			throws WorkspaceCommunicationException {
 		final Set<WorkspaceUser> ret = new HashSet<WorkspaceUser>();
-		final DBObject q = new BasicDBObject(Fields.WS_CLONING,
-				new BasicDBObject("$exists", false));
+		final Document q = new Document(Fields.WS_CLONING, new Document("$exists", false));
 		try {
-			@SuppressWarnings("unchecked")
-			final List<String> users = wsmongo.getCollection(COL_WORKSPACES)
-				.distinct(Fields.WS_OWNER, q);
+			final DistinctIterable<String> users = wsmongo.getCollection(COL_WORKSPACES)
+				.distinct(Fields.WS_OWNER, q, String.class);
 			for (final String u: users) {
 				ret.add(new WorkspaceUser(u));
 			}
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		return ret;
 	}
@@ -3227,11 +3334,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public boolean isAdmin(WorkspaceUser putativeAdmin)
 			throws WorkspaceCommunicationException {
 		try {
-			return wsmongo.getCollection(COL_ADMINS).count(
-					new BasicDBObject(Fields.ADMIN_NAME, putativeAdmin.getUser())) > 0;
+			return wsmongo.getCollection(COL_ADMINS).countDocuments(
+					new Document(Fields.ADMIN_NAME, putativeAdmin.getUser())) > 0;
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 	}
 	
@@ -3240,15 +3346,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public Set<WorkspaceUser> getAdmins()
 			throws WorkspaceCommunicationException {
 		final Set<WorkspaceUser> ret = new HashSet<WorkspaceUser>();
-		final DBCursor cur;
 		try {
-			cur = wsmongo.getCollection(COL_ADMINS).find();
-			for (final DBObject dbo: cur) {
+			for (final Document dbo: wsmongo.getCollection(COL_ADMINS).find()) {
 				ret.add(new WorkspaceUser((String) dbo.get(Fields.ADMIN_NAME)));
 			}
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 		return ret;
 	}
@@ -3257,11 +3360,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public void removeAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException {
 		try {
-			wsmongo.getCollection(COL_ADMINS).remove(
-					new BasicDBObject(Fields.ADMIN_NAME, user.getUser()));
+			wsmongo.getCollection(COL_ADMINS).deleteOne(
+					new Document(Fields.ADMIN_NAME, user.getUser()));
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 	}
 
@@ -3269,15 +3371,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	public void addAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException {
 		try {
-			wsmongo.getCollection(COL_ADMINS).update(
-					new BasicDBObject(Fields.ADMIN_NAME, user.getUser()),
-					new BasicDBObject("$set",
-							new BasicDBObject(Fields.ADMIN_NAME, user.getUser())),
-					true,
-					false);
+			wsmongo.getCollection(COL_ADMINS).updateOne(
+					new Document(Fields.ADMIN_NAME, user.getUser()),
+					new Document("$set", new Document(Fields.ADMIN_NAME, user.getUser())),
+					new UpdateOptions().upsert(true));
 		} catch (MongoException me) {
-			throw new WorkspaceCommunicationException(
-					"There was a problem communicating with the database", me);
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
 		}
 	}
 }

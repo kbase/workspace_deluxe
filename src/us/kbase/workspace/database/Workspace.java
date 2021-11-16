@@ -17,10 +17,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.google.common.base.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -93,36 +93,31 @@ public class Workspace {
 	private final WorkspaceDatabase db;
 	private ResourceUsageConfiguration rescfg;
 	private final TypedObjectValidator validator;
+	private final TempFilesManager tfm;
 	private final List<WorkspaceEventListener> listeners;
 	private int maximumObjectSearchCount;
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
-			final TypedObjectValidator validator) {
-		this(db, cfg, validator, Collections.emptyList());
+			final TypedObjectValidator validator,
+			final TempFilesManager tfm) {
+		this(db, cfg, validator, tfm, Collections.emptyList());
 	}
 	
 	public Workspace(
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
 			final TypedObjectValidator validator,
+			final TempFilesManager tfm,
 			final List<WorkspaceEventListener> listeners) {
-		if (db == null) {
-			throw new NullPointerException("db cannot be null");
-		}
-		if (cfg == null) {
-			throw new NullPointerException("cfg cannot be null");
-		}
-		if (validator == null) {
-			throw new NullPointerException("validator cannot be null");
-		}
+		this.db = requireNonNull(db, "db");
+		rescfg = requireNonNull(cfg, "cfg");
+		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
+		this.validator = requireNonNull(validator, "validator");
+		this.tfm = requireNonNull(tfm, "tfm");
 		nonNull(listeners, "listeners");
 		noNulls(listeners, "null item in listeners");
-		this.db = db;
-		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
-		this.validator = validator;
-		rescfg = cfg;
 		this.listeners = Collections.unmodifiableList(listeners);
 		db.setResourceUsageConfiguration(rescfg);
 		this.maximumObjectSearchCount = MAX_OBJECT_SEARCH_COUNT_DEFAULT;
@@ -153,7 +148,7 @@ public class Workspace {
 	}
 	
 	public TempFilesManager getTempFilesManager() {
-		return db.getTempFilesManager();
+		return tfm;
 	}
 	
 	public List<DependencyStatus> status() {
@@ -402,7 +397,7 @@ public class Workspace {
 		} else {
 			new WorkspaceIdentifier(newName.get(), newUser); //checks for illegal names
 			if (newName.get().equals(rwsi.getName())) {
-				newName = Optional.absent(); // no need to change name
+				newName = Optional.empty(); // no need to change name
 			}
 		}
 		final Instant time = db.setWorkspaceOwner(rwsi, owner, newUser, newName);
@@ -563,8 +558,7 @@ public class Workspace {
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwslist =
 				db.resolveWorkspaces(new HashSet<WorkspaceIdentifier>(wslist));
 		final Map<ResolvedWorkspaceID, Map<User, Permission>> perms =
-				db.getAllPermissions(new HashSet<ResolvedWorkspaceID>(
-						rwslist.values()));
+				db.getAllPermissions(new HashSet<ResolvedWorkspaceID>(rwslist.values()));
 		final List<Map<User, Permission>> ret = new LinkedList<Map<User,Permission>>();
 		for (final WorkspaceIdentifier wsi: wslist) {
 			final ResolvedWorkspaceID rwsi = rwslist.get(wsi);
@@ -1010,24 +1004,25 @@ public class Workspace {
 		return new UserWorkspaceIDs(user, minPerm, workspaceIDs, publicIDs);
 	}
 	
-	public List<ObjectInformation> listObjects(
-			final ListObjectsParameters params)
+	public List<ObjectInformation> listObjects(final ListObjectsParameters params)
 			throws CorruptWorkspaceDBException, NoSuchWorkspaceException,
 				WorkspaceCommunicationException, WorkspaceAuthorizationException {
 
 		final Map<WorkspaceIdentifier, ResolvedWorkspaceID> rwsis =
 				db.resolveWorkspaces(params.getWorkspaces());
-		final HashSet<ResolvedWorkspaceID> rw = new HashSet<ResolvedWorkspaceID>(rwsis.values());
-		final PermissionSet pset = db.getPermissions(params.getUser(), rw,
-				params.getMinimumPermission(), params.isExcludeGlobal(), true, params.asAdmin());
+		final Set<ResolvedWorkspaceID> rw = new HashSet<>(rwsis.values());
+		final PermissionSet pset = db.getPermissions(params.getUser().orElse(null), rw,
+				Permission.READ, false, true, params.asAdmin());
 		rw.clear();
 		if (!params.asAdmin()) {
+			// If a user doesn't have permission to a ws, the above call will merely exclude it
+			// from the results. The actual error gets thrown here.
 			for (final WorkspaceIdentifier wsi: params.getWorkspaces()) {
-				PermissionsCheckerFactory.comparePermission(params.getUser(), Permission.READ,
-						pset.getPermission(rwsis.get(wsi)), wsi, "read");
+				PermissionsCheckerFactory.comparePermission(params.getUser().orElse(null),
+						Permission.READ, pset.getPermission(rwsis.get(wsi)), wsi, "read");
 			}
 		}
-		return db.getObjectInformation(params.generateParameters(pset));
+		return db.getObjectInformation(params.resolve(pset));
 	}
 	
 	public List<WorkspaceObjectData> getObjects(
@@ -1181,7 +1176,7 @@ public class Workspace {
 					 * originals will then be discarded
 					 */
 					rescfg.getMaxReturnedDataSize() * 2L,
-					db.getTempFilesManager());
+					tfm);
 		}
 	}
 
@@ -1576,8 +1571,14 @@ public class Workspace {
 						.getObjectChecker(loi, Permission.WRITE)
 						.withOperation((hide ? "" : "un") + "hide objects from")
 						.check();
-		db.setObjectsHidden(new HashSet<ObjectIDResolvedWS>(ws.values()),
-				hide);
+		final Map<ResolvedObjectIDNoVer, Instant> objs = db.setObjectsHidden(
+				new HashSet<>(ws.values()), hide);
+		for (final WorkspaceEventListener l: listeners) {
+			for (final ResolvedObjectIDNoVer o: objs.keySet()) {
+				l.setObjectsHidden(user, o.getWorkspaceIdentifier().getID(), o.getId(), hide,
+						objs.get(o));
+			}
+		}
 	}
 	
 	public void setObjectsDeleted(final WorkspaceUser user,
@@ -1590,7 +1591,7 @@ public class Workspace {
 						.withOperation((delete ? "" : "un") + "delete objects from")
 						.check();
 		final Map<ResolvedObjectIDNoVer, Instant> objs = db.setObjectsDeleted(
-				new HashSet<ObjectIDResolvedWS>(ws.values()), delete);
+				new HashSet<>(ws.values()), delete);
 		for (final WorkspaceEventListener l: listeners) {
 			for (final ResolvedObjectIDNoVer o: objs.keySet()) {
 				l.setObjectDeleted(user, o.getWorkspaceIdentifier().getID(), o.getId(), delete,

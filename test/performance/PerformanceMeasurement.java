@@ -72,7 +72,7 @@ public class PerformanceMeasurement {
 		final double pop = population ? 0 : -1;
 		double accum = 0;
 		for (Long d: values) {
-			accum += Math.pow(new Double(d) - mean, 2);
+			accum += Math.pow(Double.valueOf(d) - mean, 2);
 		}
 		return Math.sqrt(accum / (values.size() + pop));
 	}

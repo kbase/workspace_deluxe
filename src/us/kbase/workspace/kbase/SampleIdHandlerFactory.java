@@ -19,6 +19,7 @@ import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.sampleservice.GetSampleACLsParams;
 import us.kbase.sampleservice.SampleACLs;
+import us.kbase.sampleservice.SampleServiceClient;
 import us.kbase.sampleservice.UpdateSampleACLsParams;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
@@ -39,14 +40,14 @@ import us.kbase.typedobj.idref.RemappedId;
 public class SampleIdHandlerFactory implements IdReferenceHandlerFactory {
 
 	public static final IdReferenceType TYPE = new IdReferenceType("sample");
-	private final SampleServiceClientWrapper client;
+	private final SampleServiceClient client;
 	
 	/** Create the Sample ID handler factory.
 	 * @param client a sample service client with service administrator write permissions.
 	 * Pass null if there is no sample service available - in this
 	 * case an error will be thrown if a sample ID is encountered.
 	 */
-	public SampleIdHandlerFactory(final SampleServiceClientWrapper client) {
+	public SampleIdHandlerFactory(final SampleServiceClient client) {
 		this.client = client;
 	}
 	

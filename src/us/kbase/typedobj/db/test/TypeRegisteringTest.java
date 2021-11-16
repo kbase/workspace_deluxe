@@ -33,8 +33,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
@@ -135,7 +135,7 @@ public class TypeRegisteringTest {
 		db = new TypeDefinitionDB(storage);
 	}
 	
-	public static DB createMongoDbConnection() throws Exception {
+	public static MongoDatabase createMongoDbConnection() throws Exception {
 		if (mongo == null) {
 			mongo = new MongoController(TestCommon.getMongoExe(),
 					Paths.get(TestCommon.getTempDir()),
@@ -143,8 +143,9 @@ public class TypeRegisteringTest {
 			System.out.println("Using mongo temp dir " + 
 					mongo.getTempDir());
 		}
-		DB mdb = new MongoClient("localhost:" + mongo.getServerPort())
-			.getDB("TypeRegisteringTest");
+		@SuppressWarnings("resource")
+		final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
+		final MongoDatabase mdb = mcli.getDatabase("TypeRegisteringTest");
 		TestCommon.destroyDB(mdb);
 		return mdb;
 	}

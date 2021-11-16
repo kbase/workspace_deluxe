@@ -3,8 +3,7 @@ package us.kbase.workspace.test.listener;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -128,6 +127,17 @@ public class NullListenerFactory implements WorkspaceEventListenerFactory {
 			print(String.format("revertObject %s %s", oi, isPublic));
 		}
 
+		@Override
+		public void setObjectsHidden(
+				WorkspaceUser user,
+				long workspaceId,
+				long objectId,
+				boolean hidden,
+				Instant time) {
+			print(String.format("setObjectHidden %s %s %s %s",
+					workspaceId, objectId, hidden, time));
+		}
+		
 		@Override
 		public void setObjectDeleted(
 				WorkspaceUser user,

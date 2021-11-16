@@ -10,23 +10,20 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
-
-import org.bson.BSONObject;
+import org.bson.Document;
 
 import us.kbase.typedobj.exceptions.TypeStorageException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.IndexOptions;
 
 public class MongoTypeStorage implements TypeStorage {
 	
-	private final DB db;
+	private final MongoDatabase db;
 	
 	public static final String TABLE_MODULE_REQUEST = "module_request";
 	public static final String TABLE_MODULE_VERSION = "module_version";
@@ -44,80 +41,83 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private static final Pattern dotSep = Pattern.compile(Pattern.quote("."));
 	
-	public MongoTypeStorage(DB db) {
-		this.db = db;
+	public MongoTypeStorage(final MongoDatabase typeDB) {
+		this.db = typeDB;
 		ensureIndeces();
 	}
 	
-	private static final DBObject UNIQ = new BasicDBObject("unique", true);
+	private static final IndexOptions UNIQ = new IndexOptions().unique(true);
 	
 	private void ensureIndeces() {
-		final DBCollection reqs = db.getCollection(TABLE_MODULE_REQUEST);
-		reqs.createIndex(new BasicDBObject("moduleName", 1).append("ownerUserId", 1), UNIQ);
-		reqs.createIndex(new BasicDBObject("ownerUserId", 1));
-		final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
-		vers.createIndex(new BasicDBObject("moduleName", 1), UNIQ);
-		final DBCollection owns = db.getCollection(TABLE_MODULE_OWNER);
-		owns.createIndex(new BasicDBObject("moduleName", 1).append("ownerUserId", 1), UNIQ);
-		owns.createIndex(new BasicDBObject("ownerUserId", 1));
-		final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
-		infos.createIndex(new BasicDBObject("moduleName", 1).append("versionTime", 1), UNIQ);
-		final DBCollection specs = db.getCollection(TABLE_MODULE_SPEC_HISTORY);
-		specs.createIndex(new BasicDBObject("moduleName", 1).append("versionTime", 1), UNIQ);
-		final DBCollection tschs = db.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-		tschs.createIndex(new BasicDBObject("moduleName", 1).append("typeName", 1)
+		final MongoCollection<Document> reqs = db.getCollection(TABLE_MODULE_REQUEST);
+		reqs.createIndex(new Document("moduleName", 1).append("ownerUserId", 1), UNIQ);
+		reqs.createIndex(new Document("ownerUserId", 1));
+		final MongoCollection<Document> vers = db.getCollection(TABLE_MODULE_VERSION);
+		vers.createIndex(new Document("moduleName", 1), UNIQ);
+		final MongoCollection<Document> owns = db.getCollection(TABLE_MODULE_OWNER);
+		owns.createIndex(new Document("moduleName", 1).append("ownerUserId", 1), UNIQ);
+		owns.createIndex(new Document("ownerUserId", 1));
+		final MongoCollection<Document> infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+		infos.createIndex(new Document("moduleName", 1).append("versionTime", 1), UNIQ);
+		final MongoCollection<Document> specs = db.getCollection(TABLE_MODULE_SPEC_HISTORY);
+		specs.createIndex(new Document("moduleName", 1).append("versionTime", 1), UNIQ);
+		final MongoCollection<Document> tschs = db.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+		tschs.createIndex(new Document("moduleName", 1).append("typeName", 1)
 				.append("version", 1), UNIQ);
-		tschs.createIndex(new BasicDBObject("moduleName", 1).append("moduleVersion", 1));
-		final DBCollection tprs = db.getCollection(TABLE_MODULE_TYPE_PARSE);
-		tprs.createIndex(new BasicDBObject("moduleName", 1).append("typeName", 1)
+		tschs.createIndex(new Document("moduleName", 1).append("moduleVersion", 1));
+		final MongoCollection<Document> tprs = db.getCollection(TABLE_MODULE_TYPE_PARSE);
+		tprs.createIndex(new Document("moduleName", 1).append("typeName", 1)
 				.append("version", 1), UNIQ);
-		tschs.createIndex(new BasicDBObject("moduleName", 1).append("moduleVersion", 1));
-		final DBCollection fprs = db.getCollection(TABLE_MODULE_FUNC_PARSE);
-		fprs.createIndex(new BasicDBObject("moduleName", 1).append("funcName", 1)
+		tschs.createIndex(new Document("moduleName", 1).append("moduleVersion", 1));
+		final MongoCollection<Document> fprs = db.getCollection(TABLE_MODULE_FUNC_PARSE);
+		fprs.createIndex(new Document("moduleName", 1).append("funcName", 1)
 				.append("version", 1), UNIQ);
-		fprs.createIndex(new BasicDBObject("moduleName", 1).append("moduleVersion", 1));
-		final DBCollection frefs = db.getCollection(TABLE_FUNC_REFS);
-		frefs.createIndex(new BasicDBObject("depModule", 1).append("depName", 1)
+		fprs.createIndex(new Document("moduleName", 1).append("moduleVersion", 1));
+		final MongoCollection<Document> frefs = db.getCollection(TABLE_FUNC_REFS);
+		frefs.createIndex(new Document("depModule", 1).append("depName", 1)
 				.append("depVersion", 1));
-		frefs.createIndex(new BasicDBObject("refModule", 1).append("refName", 1)
+		frefs.createIndex(new Document("refModule", 1).append("refName", 1)
 				.append("refVersion", 1));
-		frefs.createIndex(new BasicDBObject("depModule", 1).append("depModuleVersion", 1));
-		final DBCollection trefs = db.getCollection(TABLE_TYPE_REFS);
-		trefs.createIndex(new BasicDBObject("depModule", 1).append("depName", 1)
+		frefs.createIndex(new Document("depModule", 1).append("depModuleVersion", 1));
+		final MongoCollection<Document> trefs = db.getCollection(TABLE_TYPE_REFS);
+		trefs.createIndex(new Document("depModule", 1).append("depName", 1)
 				.append("depVersion", 1));
-		trefs.createIndex(new BasicDBObject("refModule", 1).append("refName", 1)
+		trefs.createIndex(new Document("refModule", 1).append("refName", 1)
 				.append("refVersion", 1));
-		trefs.createIndex(new BasicDBObject("depModule", 1).append("depModuleVersion", 1));
+		trefs.createIndex(new Document("depModule", 1).append("depModuleVersion", 1));
 	}
 	
 	private Map<String, Object> toMap(final Object obj) {
 		return MAPPER.convertValue(obj, new TypeReference<Map<String, Object>>() {});
 	}
 	
-	private DBObject toDBObj(final Object obj) {
-		return new BasicDBObject(toMap(obj));
+	private Document toDBObj(final Object obj) {
+		return new Document(toMap(obj));
 	}
 	
-	private <T> T toObj(final DBObject dbo, final Class<T> clazz) {
-		return dbo == null ? null : MAPPER.convertValue(toMapRec(dbo), clazz);
+	private <T> T toObj(final Document document, final Class<T> clazz) {
+		return document == null ? null : MAPPER.convertValue(toMapRec(document), clazz);
 	}
 	
-	private <T> T toObj(final DBObject dbo, final TypeReference<T> tr) {
-		return dbo == null ? null :  MAPPER.convertValue(toMapRec(dbo), tr);
+	private <T> T toObj(final Document document, final TypeReference<T> tr) {
+		return document == null ? null :  MAPPER.convertValue(toMapRec(document), tr);
 	}
 	
+	// These are old notes from the DBObject based legacy Mongo API.
+	// Not sure if they're still applicable here, but switching to the new API is murder
+	// and it's going to take long enough already, so minimizing changes.
 	// Unimplemented error for dbo.toMap()
 	// dbo is read only
 	// can't call convertValue() on dbo since it has a 'size' field outside of the internal map
 	// and just weird shit happens when you do anyway
-	private Map<String, Object> toMapRec(final BSONObject dbo) {
+	private Map<String, Object> toMapRec(final Document document) {
 		// can't stream because streams don't like null values at HashMap.merge()
 		final Map<String, Object> ret = new HashMap<>();
-		for (final String k: dbo.keySet()) {
+		for (final String k: document.keySet()) {
 			if (!k.equals("_id")) {
-				final Object v = dbo.get(k);
+				final Object v = document.get(k);
 				// may need lists too?
-				ret.put(k, v instanceof BSONObject ? toMapRec((BSONObject) v) : v);
+				ret.put(k, v instanceof Document ? toMapRec((Document) v) : v);
 			}
 		}
 		return ret;
@@ -128,19 +128,19 @@ public class MongoTypeStorage implements TypeStorage {
 			throws TypeStorageException {
 		try {
 			if (typeRefs.size() > 0) {
-				DBCollection refs = db.getCollection(TABLE_TYPE_REFS);
+				MongoCollection<Document> refs = db.getCollection(TABLE_TYPE_REFS);
 				for (RefInfo ref : typeRefs) {
 					if (ref.getDepModuleVersion() == 0)
 						throw new TypeStorageException("Dependent type's module version was not initialized");
-					refs.insert(toDBObj(ref));
+					refs.insertOne(toDBObj(ref));
 				}
 			}
 			if (funcRefs.size() > 0) {
-				DBCollection refs = db.getCollection(TABLE_FUNC_REFS);
+				MongoCollection<Document> refs = db.getCollection(TABLE_FUNC_REFS);
 				for (RefInfo ref : funcRefs) {
 					if (ref.getDepModuleVersion() == 0)
 						throw new TypeStorageException("Dependent function's module version was not initialized");
-					refs.insert(toDBObj(ref));
+					refs.insertOne(toDBObj(ref));
 				}
 			}
 		} catch (Exception e) {
@@ -163,9 +163,9 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private Long getLastModuleVersionOrNull(String moduleName) throws TypeStorageException {
 		try {
-			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
-			final ModuleVersion ret = toObj(vers.findOne(
-					new BasicDBObject("moduleName", moduleName)), ModuleVersion.class);
+			final MongoCollection<Document> vers = db.getCollection(TABLE_MODULE_VERSION);
+			final ModuleVersion ret = toObj(vers.find(
+					new Document("moduleName", moduleName)).first(), ModuleVersion.class);
 			return ret == null ? null : ret.releasedVersionTime;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -184,9 +184,9 @@ public class MongoTypeStorage implements TypeStorage {
 
 	private ModuleInfo getModuleInfoOrNull(String moduleName, long version) throws TypeStorageException {
 		try {
-			final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
-			final ModuleInfo info = toObj(infos.findOne(new BasicDBObject("moduleName", moduleName)
-					.append("versionTime", version)), ModuleInfo.class);
+			final MongoCollection<Document> infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			final ModuleInfo info = toObj(infos.find(new Document("moduleName", moduleName)
+					.append("versionTime", version)).first(), ModuleInfo.class);
 			return info;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -195,9 +195,9 @@ public class MongoTypeStorage implements TypeStorage {
 
 	private String getModuleSpecOrNull(String moduleName, long version) throws TypeStorageException {
 		try {
-			final DBCollection specs = db.getCollection(TABLE_MODULE_SPEC_HISTORY);
-			final ModuleSpec spec = toObj(specs.findOne(new BasicDBObject("moduleName", moduleName)
-					.append("versionTime", version)), ModuleSpec.class);
+			final MongoCollection<Document> specs = db.getCollection(TABLE_MODULE_SPEC_HISTORY);
+			final ModuleSpec spec = toObj(specs.find(new Document("moduleName", moduleName)
+					.append("versionTime", version)).first(), ModuleSpec.class);
 			return spec == null ? null : spec.document;
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -208,10 +208,10 @@ public class MongoTypeStorage implements TypeStorage {
 	public boolean checkTypeSchemaRecordExists(String moduleName,
 			String typeName, String version) throws TypeStorageException {
 		try {
-			final DBCollection docs = db.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-			return null != docs.findOne(new BasicDBObject("moduleName", moduleName)
+			final MongoCollection<Document> docs = db.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+			return null != docs.find(new Document("moduleName", moduleName)
 					.append("typeName", typeName)
-					.append("version", version));
+					.append("version", version)).first();
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -220,9 +220,9 @@ public class MongoTypeStorage implements TypeStorage {
 	@Override
 	public Set<String> getAllRegisteredModules(boolean withUnsupported) throws TypeStorageException {
 		try {
-			final DBCollection infos = db.getCollection(TABLE_MODULE_VERSION);
+			final MongoCollection<Document> infos = db.getCollection(TABLE_MODULE_VERSION);
 			final Map<String, Boolean> map = getProjection(
-					infos, new BasicDBObject(), "moduleName", String.class, "supported",
+					infos, new Document(), "moduleName", String.class, "supported",
 					Boolean.class);
 			Set<String> ret = new TreeSet<String>();
 			if (withUnsupported) {
@@ -242,9 +242,9 @@ public class MongoTypeStorage implements TypeStorage {
 	public boolean getModuleSupportedState(String moduleName)
 			throws TypeStorageException {
 		try {
-			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
-			final ModuleVersion ret = toObj(vers.findOne(
-					new BasicDBObject("moduleName", moduleName)), ModuleVersion.class);
+			final MongoCollection<Document> vers = db.getCollection(TABLE_MODULE_VERSION);
+			final ModuleVersion ret = toObj(vers.find(
+					new Document("moduleName", moduleName)).first(), ModuleVersion.class);
 			if (ret == null)
 				throw new TypeStorageException("Support information is unavailable for module: " + moduleName);
 			return ret.isSupported();
@@ -261,10 +261,10 @@ public class MongoTypeStorage implements TypeStorage {
 			String version) throws TypeStorageException {
 		Map<String, Object> ret;
 		try {
-			final DBCollection docs = db.getCollection(TABLE_MODULE_FUNC_PARSE);
-			ret = toObj(docs.findOne(new BasicDBObject("moduleName", moduleName)
+			final MongoCollection<Document> docs = db.getCollection(TABLE_MODULE_FUNC_PARSE);
+			ret = toObj(docs.find(new Document("moduleName", moduleName)
 					.append("funcName", funcName)
-					.append("version", version)), Map.class);
+					.append("version", version)).first(), Map.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -278,7 +278,7 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getFuncRefsByDep(String depModule, String depFunc,
 			String version) throws TypeStorageException {
 		try {
-			return Sets.newHashSet(find(TABLE_FUNC_REFS, new BasicDBObject("depModule", depModule)
+			return Sets.newHashSet(find(TABLE_FUNC_REFS, new Document("depModule", depModule)
 					.append("depName", depFunc).append("depVersion", version), RefInfo.class));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -289,7 +289,7 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getFuncRefsByRef(String refModule, String refType,
 			String version) throws TypeStorageException {
 		try {
-			return Sets.newHashSet(find(TABLE_FUNC_REFS, new BasicDBObject("refModule", refModule)
+			return Sets.newHashSet(find(TABLE_FUNC_REFS, new Document("refModule", refModule)
 					.append("refName", refType).append("refVersion", version), RefInfo.class));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -317,9 +317,9 @@ public class MongoTypeStorage implements TypeStorage {
 	@Override
 	public TreeMap<Long, Boolean> getAllModuleVersions(String moduleName) throws TypeStorageException {
 		try {
-			final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			final MongoCollection<Document> infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
 			Map<Long, Boolean> map = getProjection(
-					infos, new BasicDBObject("moduleName", moduleName), "versionTime", Long.class, 
+					infos, new Document("moduleName", moduleName), "versionTime", Long.class, 
 					"released", Boolean.class);
 			long releaseVer = getLastReleasedModuleVersion(moduleName);
 			TreeMap<Long, Boolean> ret = new TreeMap<Long, Boolean>();
@@ -333,15 +333,15 @@ public class MongoTypeStorage implements TypeStorage {
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected <KT, VT> Map<KT, VT> getProjection(
-			final DBCollection infos,
-			final DBObject whereCondition, 
+			final MongoCollection<Document> infos,
+			final Document whereCondition, 
 			final String keySelectField,
 			final Class<KT> keyType,
 			final String valueSelectField,
 			final Class<VT> valueType)
 			throws TypeStorageException {
 		final List<Map> data = find(infos, whereCondition,
-				new BasicDBObject(keySelectField, 1).append(valueSelectField, 1), Map.class);
+				new Document(keySelectField, 1).append(valueSelectField, 1), Map.class);
 		Map<KT, VT> ret = new LinkedHashMap<KT, VT>();
 		for (Map<?,?> item : data) {
 			Object key = getMongoProp(item, keySelectField);
@@ -357,27 +357,26 @@ public class MongoTypeStorage implements TypeStorage {
 
 	private <T> List<T> find(
 			final String collectionName,
-			final DBObject whereCondition,
+			final Document whereCondition,
 			final Class<T> clazz) {
-		return find(collectionName, whereCondition, new BasicDBObject(), clazz);
+		return find(collectionName, whereCondition, new Document(), clazz);
 	}
 	
 	private <T> List<T> find(
 			final String collectionName,
-			final DBObject whereCondition,
-			final BasicDBObject projection,
+			final Document whereCondition,
+			final Document projection,
 			final Class<T> clazz) {
 		return find(db.getCollection(collectionName), whereCondition, projection, clazz);
 	}
 	
 	private <T> List<T> find(
-			final DBCollection col,
-			final DBObject whereCondition,
-			final BasicDBObject projection,
+			final MongoCollection<Document> col,
+			final Document whereCondition,
+			final Document projection,
 			final Class<T> clazz) {
-		final DBCursor find = col.find(whereCondition, projection);
 		final List<T> data = new LinkedList<>();
-		for (final DBObject dbo: find) {
+		for (final Document dbo: col.find(whereCondition).projection(projection)) {
 			data.add(toObj(dbo, clazz));
 		}
 		return data;
@@ -385,27 +384,26 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private <T> List<T> find(
 			final String collectionName,
-			final DBObject whereCondition,
+			final Document whereCondition,
 			final TypeReference<T> tr) {
-		return find(collectionName, whereCondition, new BasicDBObject(), tr);
+		return find(collectionName, whereCondition, new Document(), tr);
 	}
 	
 	private <T> List<T> find(
 			final String collectionName,
-			final DBObject whereCondition,
-			final BasicDBObject projection,
+			final Document whereCondition,
+			final Document projection,
 			final TypeReference<T> tr) {
 		return find(db.getCollection(collectionName), whereCondition, projection, tr);
 	}
 	
 	private <T> List<T> find(
-			final DBCollection col,
-			final DBObject whereCondition,
-			final BasicDBObject projection,
+			final MongoCollection<Document> col,
+			final Document whereCondition,
+			final Document projection,
 			final TypeReference<T> tr) {
-		final DBCursor find = col.find(whereCondition, projection);
 		final List<T> data = new LinkedList<>();
-		for (final DBObject dbo: find) {
+		for (final Document dbo: col.find(whereCondition).projection(projection)) {
 			data.add(toObj(dbo, tr));
 		}
 		return data;
@@ -428,10 +426,10 @@ public class MongoTypeStorage implements TypeStorage {
 		if (typeName.contains("'"))
 			throw new TypeStorageException("Type names with symbol ['] are not supperted");
 		try {
-			final DBCollection schemas = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			final MongoCollection<Document> schemas = db.getCollection(TABLE_MODULE_INFO_HISTORY);
 			Map<Long, String> typeMap = getProjection(
 					schemas,
-					new BasicDBObject("moduleName", moduleName)
+					new Document("moduleName", moduleName)
 							.append("types." + typeName + ".typeName", typeName),
 					"versionTime", Long.class, "types." + typeName + ".typeVersion", String.class);
 			Map<Long, Boolean> moduleMap = getAllModuleVersions(moduleName);
@@ -454,10 +452,10 @@ public class MongoTypeStorage implements TypeStorage {
 		if (funcName.contains("'"))
 			throw new TypeStorageException("Function names with symbol ['] are not supperted");
 		try {
-			final DBCollection schemas = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			final MongoCollection<Document> schemas = db.getCollection(TABLE_MODULE_INFO_HISTORY);
 			Map<Long, String> funcMap = getProjection(
 					schemas,
-					new BasicDBObject("moduleName", moduleName)
+					new Document("moduleName", moduleName)
 							.append("funcs." + funcName + ".funcName", funcName),
 					"versionTime", Long.class, "funcs." + funcName + ".funcVersion", String.class);
 			Map<Long, Boolean> moduleMap = getAllModuleVersions(moduleName);
@@ -490,10 +488,10 @@ public class MongoTypeStorage implements TypeStorage {
 			String version) throws TypeStorageException {
 		Map<String, Object> ret;
 		try {
-			final DBCollection docs = db.getCollection(TABLE_MODULE_TYPE_PARSE);
-			ret = toObj(docs.findOne(new BasicDBObject("moduleName", moduleName)
+			final MongoCollection<Document> docs = db.getCollection(TABLE_MODULE_TYPE_PARSE);
+			ret = toObj(docs.find(new Document("moduleName", moduleName)
 					.append("typeName", typeName)
-					.append("version", version)), Map.class);
+					.append("version", version)).first(), Map.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -507,7 +505,7 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getTypeRefsByDep(String depModule, String depType,
 			String version) throws TypeStorageException {
 		try {
-			return Sets.newTreeSet(find(TABLE_TYPE_REFS, new BasicDBObject("depModule", depModule)
+			return Sets.newTreeSet(find(TABLE_TYPE_REFS, new Document("depModule", depModule)
 					.append("depName", depType)
 					.append("depVersion", version), RefInfo.class));
 		} catch (Exception e) {
@@ -519,7 +517,7 @@ public class MongoTypeStorage implements TypeStorage {
 	public Set<RefInfo> getTypeRefsByRef(String refModule, String refType,
 			String version) throws TypeStorageException {
 		try {
-			return Sets.newTreeSet(find(TABLE_TYPE_REFS, new BasicDBObject("refModule", refModule)
+			return Sets.newTreeSet(find(TABLE_TYPE_REFS, new Document("refModule", refModule)
 					.append("refName", refType).append("refVersion", version), RefInfo.class));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -528,11 +526,11 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private <T> T findOne(
 			final String collectionName,
-			final DBObject query,
+			final Document query,
 			final TypeReference<T> tr)
 			throws TypeStorageException {
 		try {
-			return toObj(db.getCollection(collectionName).findOne(query), tr);
+			return toObj(db.getCollection(collectionName).find(query).first(), tr);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}	
@@ -550,7 +548,7 @@ public class MongoTypeStorage implements TypeStorage {
 			final String version)
 			throws TypeStorageException {
 		final Map<String, Object> rec = findOne(TABLE_MODULE_TYPE_SCHEMA,
-						new BasicDBObject("moduleName", moduleName)
+						new Document("moduleName", moduleName)
 								.append("typeName", typeName)
 								.append("version", version),
 								new TypeReference<Map<String, Object>>() {});
@@ -571,7 +569,7 @@ public class MongoTypeStorage implements TypeStorage {
 			String md5) throws TypeStorageException {
 		try {
 			final List<Map<String, Object>> list = find(TABLE_MODULE_TYPE_SCHEMA,
-					new BasicDBObject("moduleName", moduleName)
+					new Document("moduleName", moduleName)
 							.append("typeName", typeName)
 							.append("md5hash", md5),
 							new TypeReference<Map<String, Object>>() {});
@@ -584,20 +582,20 @@ public class MongoTypeStorage implements TypeStorage {
 		}
 	}
 	
-	private static final DBObject MT_DBO = new BasicDBObject();
+	private static final Document MT_DBO = new Document();
 	
 	@Override
 	public void removeAllData() throws TypeStorageException {
-		db.getCollection(TABLE_TYPE_REFS).remove(MT_DBO);
-		db.getCollection(TABLE_FUNC_REFS).remove(MT_DBO);
-		db.getCollection(TABLE_MODULE_TYPE_PARSE).remove(MT_DBO);
-		db.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove(MT_DBO);
-		db.getCollection(TABLE_MODULE_FUNC_PARSE).remove(MT_DBO);
-		db.getCollection(TABLE_MODULE_REQUEST).remove(MT_DBO);
-		db.getCollection(TABLE_MODULE_OWNER).remove(MT_DBO);
-		db.getCollection(TABLE_MODULE_SPEC_HISTORY).remove(MT_DBO);
-		db.getCollection(TABLE_MODULE_INFO_HISTORY).remove(MT_DBO);
-		db.getCollection(TABLE_MODULE_VERSION).remove(MT_DBO);
+		db.getCollection(TABLE_TYPE_REFS).deleteMany(MT_DBO);
+		db.getCollection(TABLE_FUNC_REFS).deleteMany(MT_DBO);
+		db.getCollection(TABLE_MODULE_TYPE_PARSE).deleteMany(MT_DBO);
+		db.getCollection(TABLE_MODULE_TYPE_SCHEMA).deleteMany(MT_DBO);
+		db.getCollection(TABLE_MODULE_FUNC_PARSE).deleteMany(MT_DBO);
+		db.getCollection(TABLE_MODULE_REQUEST).deleteMany(MT_DBO);
+		db.getCollection(TABLE_MODULE_OWNER).deleteMany(MT_DBO);
+		db.getCollection(TABLE_MODULE_SPEC_HISTORY).deleteMany(MT_DBO);
+		db.getCollection(TABLE_MODULE_INFO_HISTORY).deleteMany(MT_DBO);
+		db.getCollection(TABLE_MODULE_VERSION).deleteMany(MT_DBO);
 	}
 	
 	// removed removeModule method after 3ad9e2d. Untested, unused.
@@ -606,17 +604,18 @@ public class MongoTypeStorage implements TypeStorage {
 	public void writeFuncParseRecord(String moduleName, String funcName,
 			String version, long moduleVersion, String parseText) throws TypeStorageException {
 		try {
-			final DBCollection recs = db.getCollection(TABLE_MODULE_FUNC_PARSE);
-			recs.remove(new BasicDBObject("moduleName", moduleName)
+			final MongoCollection<Document> recs = db.getCollection(TABLE_MODULE_FUNC_PARSE);
+			recs.deleteMany(new Document("moduleName", moduleName)
 					.append("funcName", funcName)
 					.append("version", version));
+			// this is a race condition waiting to happen
 			final FuncRecord rec = new FuncRecord();
 			rec.setModuleName(moduleName);
 			rec.setFuncName(funcName);
 			rec.setVersion(version);
 			rec.setModuleVersion(moduleVersion);
 			rec.setDocument(parseText);
-			recs.save(toDBObj(rec));
+			recs.insertOne(toDBObj(rec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -624,18 +623,18 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private void writeModuleVersion(String moduleName, long version) throws TypeStorageException {
 		try {
-			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
+			final MongoCollection<Document> vers = db.getCollection(TABLE_MODULE_VERSION);
 			// this is a race condition waiting to happen
-			if (vers.findOne(new BasicDBObject("moduleName", moduleName)) == null) {
+			if (vers.find(new Document("moduleName", moduleName)).first() == null) {
 				ModuleVersion ver = new ModuleVersion();
 				ver.setModuleName(moduleName);
 				ver.setVersionTime(version);
 				ver.setReleasedVersionTime(version);
 				ver.setSupported(true);
-				vers.insert(toDBObj(ver));
+				vers.insertOne(toDBObj(ver));
 			} else {
-				vers.update(new BasicDBObject("moduleName", moduleName),
-						new BasicDBObject("$set", new BasicDBObject("versionTime", version)));
+				vers.updateOne(new Document("moduleName", moduleName),
+						new Document("$set", new Document("versionTime", version)));
 			}
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -648,12 +647,12 @@ public class MongoTypeStorage implements TypeStorage {
 		writeModuleVersion(info.getModuleName(), version);
 		writeModuleInfo(info, version);
 		try {
-			final DBCollection specs = db.getCollection(TABLE_MODULE_SPEC_HISTORY);
+			final MongoCollection<Document> specs = db.getCollection(TABLE_MODULE_SPEC_HISTORY);
 			ModuleSpec spec = new ModuleSpec();
 			spec.setModuleName(info.getModuleName());
 			spec.setDocument(specDocument);
 			spec.setVersionTime(version);
-			specs.insert(toDBObj(spec));
+			specs.insertOne(toDBObj(spec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -668,9 +667,9 @@ public class MongoTypeStorage implements TypeStorage {
 	
 	private void writeModuleInfo(ModuleInfo info, long version) throws TypeStorageException {
 		try {
-			final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			final MongoCollection<Document> infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
 			info.setVersionTime(version);
-			infos.insert(toDBObj(info));
+			infos.insertOne(toDBObj(info));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -680,17 +679,18 @@ public class MongoTypeStorage implements TypeStorage {
 	public void writeTypeParseRecord(String moduleName, String typeName,
 			String version, long moduleVersion, String document) throws TypeStorageException {
 		try {
-			final DBCollection recs = db.getCollection(TABLE_MODULE_TYPE_PARSE);
-			recs.remove(new BasicDBObject("moduleName", moduleName)
+			final MongoCollection<Document> recs = db.getCollection(TABLE_MODULE_TYPE_PARSE);
+			recs.deleteMany(new Document("moduleName", moduleName)
 					.append("typeName", typeName)
 					.append("version", version));
+			// race condition
 			TypeRecord rec = new TypeRecord();
 			rec.setModuleName(moduleName);
 			rec.setTypeName(typeName);
 			rec.setVersion(version);
 			rec.setModuleVersion(moduleVersion);
 			rec.setDocument(document);
-			recs.save(toDBObj(rec));
+			recs.insertOne(toDBObj(rec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -702,10 +702,10 @@ public class MongoTypeStorage implements TypeStorage {
 		if (typeName.contains("'"))
 			throw new TypeStorageException("Type names with symbol ['] are not supperted");
 		try {
-			final DBCollection infoCol = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			final MongoCollection<Document> infoCol = db.getCollection(TABLE_MODULE_INFO_HISTORY);
 			return getProjection(
 					infoCol,
-					new BasicDBObject("moduleName", moduleName)
+					new Document("moduleName", moduleName)
 							.append("types." + typeName + ".typeVersion", typeVersion)
 							.append("types." + typeName + ".supported", true),
 					"versionTime", Long.class, "released", Boolean.class);
@@ -720,10 +720,10 @@ public class MongoTypeStorage implements TypeStorage {
 		if (funcName.contains("'"))
 			throw new TypeStorageException("Function names with symbol ['] are not supperted");
 		try {
-			final DBCollection infoCol = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+			final MongoCollection<Document> infoCol = db.getCollection(TABLE_MODULE_INFO_HISTORY);
 			return getProjection(
 					infoCol,
-					new BasicDBObject("moduleName", moduleName)
+					new Document("moduleName", moduleName)
 							.append("funcs." + funcName + ".funcVersion", funcVersion),
 					"versionTime", Long.class, "released", Boolean.class);
 		} catch (Exception e) {
@@ -735,10 +735,11 @@ public class MongoTypeStorage implements TypeStorage {
 	public void writeTypeSchemaRecord(String moduleName, String typeName,
 			String version, long moduleVersion, String document, String md5) throws TypeStorageException {
 		try {
-			final DBCollection recs = db.getCollection(TABLE_MODULE_TYPE_SCHEMA);
-			recs.remove(new BasicDBObject("moduleName", moduleName)
+			final MongoCollection<Document> recs = db.getCollection(TABLE_MODULE_TYPE_SCHEMA);
+			recs.deleteMany(new Document("moduleName", moduleName)
 					.append("typeName", typeName)
 					.append("version", version));
+			// race condition
 			TypeRecord rec = new TypeRecord();
 			rec.setModuleName(moduleName);
 			rec.setTypeName(typeName);
@@ -746,7 +747,7 @@ public class MongoTypeStorage implements TypeStorage {
 			rec.setModuleVersion(moduleVersion);
 			rec.setDocument(document);
 			rec.setMd5hash(md5);
-			recs.insert(toDBObj(rec));
+			recs.insertOne(toDBObj(rec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -756,26 +757,27 @@ public class MongoTypeStorage implements TypeStorage {
 	public void addNewModuleRegistrationRequest(String moduleName, String userId)
 			throws TypeStorageException {
 		try {
-			final DBCollection recs = db.getCollection(TABLE_MODULE_REQUEST);
+			final MongoCollection<Document> recs = db.getCollection(TABLE_MODULE_REQUEST);
 			// lots of race conditions here
-			if (recs.count(new BasicDBObject("ownerUserId", userId)) >= MAX_REQUESTS_BY_USER) {
+			if (recs.countDocuments(new Document("ownerUserId", userId)) >= MAX_REQUESTS_BY_USER) {
 				throw new TypeStorageException("User " + userId + " has maximal count " +
 						"of requests: " + MAX_REQUESTS_BY_USER);
 			}
-			if (recs.findOne(new BasicDBObject("moduleName", moduleName)) != null) {
+			if (recs.find(new Document("moduleName", moduleName)).first() != null) {
 				throw new TypeStorageException("Registration of module " + moduleName +
 						" was already requested");
 			}
 			if (checkModuleExist(moduleName)) {
 				throw new TypeStorageException("Module " + moduleName + " was already registered");
 			}
+			// race condition
 			OwnerInfo rec = new OwnerInfo();
 			rec.setOwnerUserId(userId);
 			rec.setWithChangeOwnersPrivilege(true);
 			rec.setModuleName(moduleName);
-			recs.insert(toDBObj(rec));
+			recs.insertOne(toDBObj(rec));
 		} catch (TypeStorageException e) {
-			throw e;
+			throw e;  // don't wrap TSEs in another Exception
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -786,8 +788,8 @@ public class MongoTypeStorage implements TypeStorage {
 			throws TypeStorageException {
 		OwnerInfo ret;
 		try {
-			final DBCollection recs = db.getCollection(TABLE_MODULE_REQUEST);
-			ret = toObj(recs.findOne(new BasicDBObject("moduleName", moduleName)),
+			final MongoCollection<Document> recs = db.getCollection(TABLE_MODULE_REQUEST);
+			ret = toObj(recs.find(new Document("moduleName", moduleName)).first(),
 					OwnerInfo.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
@@ -801,14 +803,14 @@ public class MongoTypeStorage implements TypeStorage {
 	public void addOwnerToModule(String moduleName, String userId,
 			boolean withChangeOwnersPrivilege) throws TypeStorageException {
 		try {
-			final DBCollection recs = db.getCollection(TABLE_MODULE_OWNER);
+			final MongoCollection<Document> recs = db.getCollection(TABLE_MODULE_OWNER);
 			// race condition
-			recs.remove(new BasicDBObject("moduleName", moduleName).append("ownerUserId", userId));
+			recs.deleteMany(new Document("moduleName", moduleName).append("ownerUserId", userId));
 			OwnerInfo rec = new OwnerInfo();
 			rec.setOwnerUserId(userId);
 			rec.setWithChangeOwnersPrivilege(withChangeOwnersPrivilege);
 			rec.setModuleName(moduleName);
-			recs.insert(toDBObj(rec));
+			recs.insertOne(toDBObj(rec));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -818,7 +820,7 @@ public class MongoTypeStorage implements TypeStorage {
 	public List<OwnerInfo> getNewModuleRegistrationRequests()
 			throws TypeStorageException {
 		try {
-			return find(TABLE_MODULE_REQUEST, new BasicDBObject(), OwnerInfo.class);
+			return find(TABLE_MODULE_REQUEST, new Document(), OwnerInfo.class);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -829,7 +831,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throws TypeStorageException {
 		try {
 			final List<OwnerInfo> owners = find(TABLE_MODULE_OWNER,
-					new BasicDBObject("moduleName", moduleName), OwnerInfo.class);
+					new Document("moduleName", moduleName), OwnerInfo.class);
 			Map<String, OwnerInfo> ret = new TreeMap<String, OwnerInfo>();
 			for (OwnerInfo oi : owners)
 				ret.put(oi.getOwnerUserId(), oi);
@@ -844,7 +846,7 @@ public class MongoTypeStorage implements TypeStorage {
 			throws TypeStorageException {
 		try {
 			final List<OwnerInfo> owners = find(
-					TABLE_MODULE_OWNER, new BasicDBObject("ownerUserId", userId), OwnerInfo.class);
+					TABLE_MODULE_OWNER, new Document("ownerUserId", userId), OwnerInfo.class);
 			Map<String, OwnerInfo> ret = new TreeMap<String, OwnerInfo>();
 			for (OwnerInfo oi : owners)
 				ret.put(oi.getModuleName(), oi);
@@ -858,8 +860,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public void removeNewModuleRegistrationRequest(String moduleName,
 			String userId) throws TypeStorageException {
 		try {
-			final DBCollection recs = db.getCollection(TABLE_MODULE_REQUEST);
-			recs.remove(new BasicDBObject("moduleName", moduleName).append("ownerUserId", userId));
+			final MongoCollection<Document> recs = db.getCollection(TABLE_MODULE_REQUEST);
+			recs.deleteMany(new Document("moduleName", moduleName).append("ownerUserId", userId));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -869,8 +871,8 @@ public class MongoTypeStorage implements TypeStorage {
 	public void removeOwnerFromModule(String moduleName, String userId)
 			throws TypeStorageException {
 		try {
-			final DBCollection recs = db.getCollection(TABLE_MODULE_OWNER);
-			recs.remove(new BasicDBObject("moduleName", moduleName).append("ownerUserId", userId));
+			final MongoCollection<Document> recs = db.getCollection(TABLE_MODULE_OWNER);
+			recs.deleteMany(new Document("moduleName", moduleName).append("ownerUserId", userId));
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -892,7 +894,7 @@ public class MongoTypeStorage implements TypeStorage {
 		};
 		Map<String, Long> ret = new TreeMap<String, Long>();
 		for (String table : tables) {
-			List<Object> rows = find(table, new BasicDBObject(), Object.class);
+			List<Object> rows = find(table, new Document(), Object.class);
 			ret.put(table, (long)rows.size());
 		}
 		return ret;
@@ -902,20 +904,20 @@ public class MongoTypeStorage implements TypeStorage {
 	public void removeModuleVersionAndSwitchIfNotCurrent(String moduleName,
 			long versionToDelete, long versionToSwitchTo)
 			throws TypeStorageException {
-		final DBObject dep = new BasicDBObject("depModule", moduleName)
+		final Document dep = new Document("depModule", moduleName)
 				.append("depModuleVersion", versionToDelete);
-		final DBObject mod = new BasicDBObject("moduleName", moduleName)
+		final Document mod = new Document("moduleName", moduleName)
 				.append("moduleVersion", versionToDelete);
-		final DBObject hist = new BasicDBObject("moduleName", moduleName)
+		final Document hist = new Document("moduleName", moduleName)
 				.append("versionTime", versionToDelete);
 		try {
-			db.getCollection(TABLE_TYPE_REFS).remove(dep);
-			db.getCollection(TABLE_FUNC_REFS).remove(dep);
-			db.getCollection(TABLE_MODULE_TYPE_SCHEMA).remove(mod);
-			db.getCollection(TABLE_MODULE_TYPE_PARSE).remove(mod);
-			db.getCollection(TABLE_MODULE_FUNC_PARSE).remove(mod);
-			db.getCollection(TABLE_MODULE_SPEC_HISTORY).remove(hist);
-			db.getCollection(TABLE_MODULE_INFO_HISTORY).remove(hist);
+			db.getCollection(TABLE_TYPE_REFS).deleteMany(dep);
+			db.getCollection(TABLE_FUNC_REFS).deleteMany(dep);
+			db.getCollection(TABLE_MODULE_TYPE_SCHEMA).deleteMany(mod);
+			db.getCollection(TABLE_MODULE_TYPE_PARSE).deleteMany(mod);
+			db.getCollection(TABLE_MODULE_FUNC_PARSE).deleteMany(mod);
+			db.getCollection(TABLE_MODULE_SPEC_HISTORY).deleteMany(hist);
+			db.getCollection(TABLE_MODULE_INFO_HISTORY).deleteMany(hist);
 		} catch (Exception e) {
 			throw new TypeStorageException(e);
 		}
@@ -935,9 +937,9 @@ public class MongoTypeStorage implements TypeStorage {
 	private Long getLastModuleVersionWithUnreleasedOrNull(String moduleName)
 			throws TypeStorageException {
 		try {
-			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
-			final ModuleVersion ret = toObj(vers.findOne(
-					new BasicDBObject("moduleName", moduleName)), ModuleVersion.class);
+			final MongoCollection<Document> vers = db.getCollection(TABLE_MODULE_VERSION);
+			final ModuleVersion ret = toObj(vers.find(
+					new Document("moduleName", moduleName)).first(), ModuleVersion.class);
 			if (ret == null)
 				return null;
 			return ret.versionTime;
@@ -950,17 +952,18 @@ public class MongoTypeStorage implements TypeStorage {
 	public void setModuleReleaseVersion(String moduleName, long version)
 			throws TypeStorageException {
 		try {
-			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
-			if (vers.findOne(new BasicDBObject("moduleName", moduleName)) == null) {
+			final MongoCollection<Document> vers = db.getCollection(TABLE_MODULE_VERSION);
+			if (vers.find(new Document("moduleName", moduleName)).first() == null) {
 				throw new TypeStorageException("Module " + moduleName + " was not registered");
 			} else {
-				final DBCollection infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
-				infos.update(new BasicDBObject("moduleName", moduleName)
+				// race condition
+				final MongoCollection<Document> infos = db.getCollection(TABLE_MODULE_INFO_HISTORY);
+				infos.updateOne(new Document("moduleName", moduleName)
 						.append("versionTime", version),
-						new BasicDBObject("$set", new BasicDBObject("released", true)));
-				vers.update(new BasicDBObject("moduleName", moduleName),
-						new BasicDBObject("$set",
-								new BasicDBObject("releasedVersionTime", version)));
+						new Document("$set", new Document("released", true)));
+				vers.updateOne(new Document("moduleName", moduleName),
+						new Document("$set",
+								new Document("releasedVersionTime", version)));
 			}
 		} catch (TypeStorageException e) {
 			throw e;
@@ -975,13 +978,14 @@ public class MongoTypeStorage implements TypeStorage {
 	public void changeModuleSupportedState(String moduleName, boolean supported)
 			throws TypeStorageException {
 		try {
-			final DBCollection vers = db.getCollection(TABLE_MODULE_VERSION);
-			if (vers.findOne(new BasicDBObject("moduleName", moduleName)) == null) {
+			final MongoCollection<Document> vers = db.getCollection(TABLE_MODULE_VERSION);
+			if (vers.find(new Document("moduleName", moduleName)).first() == null) {
 				throw new TypeStorageException("Support information is unavailable for module: " +
 						moduleName);
 			}
-			vers.update(new BasicDBObject("moduleName", moduleName),
-					new BasicDBObject("$set", new BasicDBObject("supported", supported)));
+			// race condition
+			vers.updateOne(new Document("moduleName", moduleName),
+					new Document("$set", new Document("supported", supported)));
 		} catch (TypeStorageException e) {
 			throw e;
 		} catch (Exception e) {

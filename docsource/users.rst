@@ -11,6 +11,7 @@ User documentation
    typecheckingerrors
    workspaces
    saveobjects
+   paging
    getobjectsubdata
    traversereferences
    lockpublish

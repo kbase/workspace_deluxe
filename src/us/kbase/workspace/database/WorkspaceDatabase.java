@@ -4,13 +4,12 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
-import com.google.common.base.Optional;
-
 import us.kbase.typedobj.core.SubsetSelection;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
+import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -512,9 +511,18 @@ public interface WorkspaceDatabase {
 	public ObjectInfoWithModDate renameObject(ObjectIDResolvedWS object, String newname)
 			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
-	public void setObjectsHidden(Set<ObjectIDResolvedWS> objectIDs,
-			boolean hide) throws NoSuchObjectException,
-			WorkspaceCommunicationException;
+	/** Hide or unhide objects.
+	 * @param objectIDs the objects to hide.
+	 * @param hide true to hide the object, false to unhide.
+	 * @return the resolved objects mapped to the time of hiding.
+	 * @throws NoSuchObjectException if an object doesn't exist.
+	 * @throws WorkspaceCommunicationException if a communication error occurs with the storage
+	 * system.
+	 */
+	public Map<ResolvedObjectIDNoVer, Instant> setObjectsHidden(
+			Set<ObjectIDResolvedWS> objectIDs,
+			boolean hide)
+			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	/** Delete or undelete objects.
 	 * @param objectIDs the objects to delete.
@@ -534,7 +542,7 @@ public interface WorkspaceDatabase {
 	 * @param wsid the workspace ID.
 	 * @param delete true to delete the workspace, false to undelete it.
 	 * @return the workspace modification time.
-	 * @throws WorkspaceCommunicationException
+	 * @throws WorkspaceCommunicationException if a communication exception occurs.
 	 */
 	public Instant setWorkspaceDeleted(ResolvedWorkspaceID wsid, boolean delete)
 			throws WorkspaceCommunicationException;
@@ -548,8 +556,13 @@ public interface WorkspaceDatabase {
 	public WorkspaceUser getWorkspaceOwner(ResolvedWorkspaceID rwsi)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException;
 	
+	/** Get information about objects in a set of workspaces
+	 * @param params the parameters for getting the objects.
+	 * @return the object information
+	 * @throws WorkspaceCommunicationException if a communication exception occurs.
+	 */
 	public List<ObjectInformation> getObjectInformation(
-			GetObjectInformationParameters perms)
+			ResolvedListObjectParameters params)
 			throws WorkspaceCommunicationException;
 
 	/** Verify that a set of objects exist in the database and are not in
@@ -591,8 +604,6 @@ public interface WorkspaceDatabase {
 	public void addAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException;
 	
-	public TempFilesManager getTempFilesManager();
-
 	public void setResourceUsageConfiguration(
 			ResourceUsageConfiguration rescfg);
 	

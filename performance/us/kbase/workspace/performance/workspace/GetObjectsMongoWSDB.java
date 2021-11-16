@@ -3,18 +3,15 @@ package us.kbase.workspace.performance.workspace;
 import static us.kbase.workspace.performance.utils.Utils.printElapse;
 
 import java.io.File;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
-import us.kbase.auth.AuthService;
-import us.kbase.shock.client.BasicShockClient;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
@@ -23,9 +20,8 @@ import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.mongo.BlobStore;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
-import us.kbase.workspace.database.mongo.ShockBlobStore;
-import us.kbase.workspace.kbase.InitWorkspaceServer;
 
 public class GetObjectsMongoWSDB {
 
@@ -37,22 +33,19 @@ public class GetObjectsMongoWSDB {
 	
 	private static final String WS_DB = "ws_test";
 	
-	private static final String SHOCK_URL = "http://localhost:7044";
-	
 	public static void main(final String[] args) throws Exception {
 		final String token = args[0];
 		if (token == null || token.trim().isEmpty()) {
 			throw new IllegalArgumentException("no token in args");
 		}
 		
+		@SuppressWarnings("resource")
 		final MongoClient mc = new MongoClient();
-		final DB db = mc.getDB(WS_DB);
+		final MongoDatabase db = mc.getDatabase(WS_DB);
 		
-		final BlobStore blob = new ShockBlobStore(
-				db.getCollection(InitWorkspaceServer.COL_SHOCK_NODES),
-				new BasicShockClient(new URL(SHOCK_URL), AuthService.validateToken(token)));
+		final BlobStore blob = new GridFSBlobStore(db);
 		final TempFilesManager tfm = new TempFilesManager(new File("temp_getobjmongoWS"));
-		final MongoWorkspaceDB mws = new MongoWorkspaceDB(db, blob, tfm);
+		final MongoWorkspaceDB mws = new MongoWorkspaceDB(db, blob);
 		
 		final ResolvedWorkspaceID rwsi = mws.resolveWorkspace(new WorkspaceIdentifier(WORKSPACE));
 		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(

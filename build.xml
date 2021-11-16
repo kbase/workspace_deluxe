@@ -61,6 +61,7 @@
     <include name="apache_commons/commons-codec-1.8.jar"/>
     <include name="apache_commons/commons-io-2.4.jar"/>
     <include name="apache_commons/commons-lang3-3.1.jar"/>
+    <include name="picocli/picocli-4.6.1.jar"/>
     <include name="mongo/mongo-java-driver-3.8.2.jar"/>
     <include name="slf4j/slf4j-api-1.7.7.jar"/>
     <include name="logback/logback-core-1.1.2.jar"/>
@@ -106,6 +107,14 @@
     <include name="bytebuddy/byte-buddy-agent-1.9.10.jar"/>
     <include name="objenesis/objenesis-2.6.jar"/>
   </fileset>
+
+  <union id="applicationjars">
+    <fileset refid="serverlib"/>
+    <fileset refid="clientserverlib"/>
+    <fileset refid="shocklib"/>
+    <fileset refid="applicationlib"/>
+    <fileset refid="s3lib"/>
+  </union>
 
   <union id="serverside">
     <fileset refid="serverlib"/>
@@ -186,9 +195,14 @@
 
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile class files-->
-    <javac destdir="${classes}" includeantruntime="false"
-      target="1.8" source="1.8"
-      debug="true" classpathref="compile.classpath">
+    <javac
+        destdir="${classes}"
+        includeantruntime="false"
+        target="1.8"
+        source="1.8"
+        encoding="UTF-8"
+        debug="true"
+        classpathref="compile.classpath">
       <src path="${src}"/>
     </javac>
     <!-- Copy resource files-->
@@ -404,6 +418,14 @@
       <test name="TestClientImport"/>
     </junit>
     <fail message="Test failure detected, check test results." if="test.failed" />
+  </target>
+
+  <target name="script" depends="compile" description="create cli script">
+    <pathconvert targetos="unix" property="lib.classpath" refid="applicationjars"/>
+    <echo file="./update_workspace_database_schema">#!/bin/sh
+java -cp ${dist}/${jar.file}:${lib.classpath} us.kbase.workspace.kbase.SchemaUpdaterCLI $@
+    </echo>
+    <chmod file="./update_workspace_database_schema" perm="a+x"/>
   </target>
 
   <target name="clean" description="clean up" >

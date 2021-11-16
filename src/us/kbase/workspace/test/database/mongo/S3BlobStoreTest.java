@@ -4,8 +4,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -20,13 +21,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
+import org.bson.Document;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
 import com.mongodb.MongoException;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.UpdateOptions;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -56,6 +59,7 @@ import us.kbase.workspace.database.mongo.S3BlobStore.UUIDGen;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.test.UpdateOptionsMatcher;
 
 public class S3BlobStoreTest {
 	
@@ -84,73 +88,84 @@ public class S3BlobStoreTest {
 		logEvents.clear();
 	}
 	
+	private static class Mocks {
+		final S3ClientWithPresign s3clipre;
+		final S3Client s3cli;
+		final MongoCollection<Document> col;
+		final FindIterable<Document> cur;
+		final UUIDGen uuidGen;
+		
+		public Mocks() {
+			s3clipre = mock(S3ClientWithPresign.class);
+			s3cli = mock(S3Client.class);
+			when(s3clipre.getClient()).thenReturn(s3cli);
+			@SuppressWarnings("unchecked")
+			final MongoCollection<Document> col = mock(MongoCollection.class);
+			this.col = col;
+			@SuppressWarnings("unchecked")
+			final FindIterable<Document> cur = mock(FindIterable.class);
+			this.cur = cur;
+			uuidGen = mock(UUIDGen.class);
+		}
+	}
+	
 	@Test
 	public void constructWithNewBucket() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		new S3BlobStore(col, cli, "   \t   " + BUCKET63 + "    ");
+		new S3BlobStore(m.col, m.s3clipre, "   \t   " + BUCKET63 + "    ");
 
-		verify(s3cli).createBucket(CreateBucketRequest.builder().bucket(BUCKET63).build());
+		verify(m.s3cli).createBucket(CreateBucketRequest.builder().bucket(BUCKET63).build());
 	}
 	
 	@Test
 	public void constructWithExistingBucket() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		when(s3cli.createBucket(CreateBucketRequest.builder().bucket("foo").build()))
+		when(m.s3cli.createBucket(CreateBucketRequest.builder().bucket("foo").build()))
 			.thenThrow(BucketAlreadyOwnedByYouException.builder().message("whoopsie").build());
 		
-		new S3BlobStore(col, cli, "   foo     ");
+		new S3BlobStore(m.col, m.s3clipre, "   foo     ");
 		// test passes since no exception thown
 	}
 	
 	@Test
 	public void constructFailBadInput() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final DBCollection col = mock(DBCollection.class);
+		final Mocks m = new Mocks();
 		
-		constructFail(null, cli, "sss", new NullPointerException("mongoCollection"));
-		constructFail(col, null, "sss", new NullPointerException("s3"));
-		constructFail(col, cli, null, new IllegalArgumentException(
+		constructFail(null, m.s3clipre, "sss", new NullPointerException("mongoCollection"));
+		constructFail(m.col, null, "sss", new NullPointerException("s3"));
+		constructFail(m.col, m.s3clipre, null, new IllegalArgumentException(
 				"bucket cannot be null or whitespace only"));
-		constructFail(col, cli, "   \t     ", new IllegalArgumentException(
+		constructFail(m.col, m.s3clipre, "   \t     ", new IllegalArgumentException(
 				"bucket cannot be null or whitespace only"));
-		constructFail(col, cli, "   fo     ", new IllegalArgumentException(
+		constructFail(m.col, m.s3clipre, "   fo     ", new IllegalArgumentException(
 				"bucket length must be between 3 and 63 characters"));
-		constructFail(col, cli, BUCKET63 + "a", new IllegalArgumentException(
+		constructFail(m.col, m.s3clipre, BUCKET63 + "a", new IllegalArgumentException(
 				"bucket length must be between 3 and 63 characters"));
-		constructFail(col, cli, "-ab", new IllegalArgumentException(
+		constructFail(m.col, m.s3clipre, "-ab", new IllegalArgumentException(
 				"bucket must start with a letter or number"));
-		constructFail(col, cli, "a𐤈b", new IllegalArgumentException(
+		constructFail(m.col, m.s3clipre, "a𐤈b", new IllegalArgumentException(
 				"bucket contains an illegal character: 𐤈"));
-		constructFail(col, cli, "aCb", new IllegalArgumentException(
+		constructFail(m.col, m.s3clipre, "aCb", new IllegalArgumentException(
 				"bucket contains an illegal character: C"));
-		constructFail(col, cli, "a#b", new IllegalArgumentException(
+		constructFail(m.col, m.s3clipre, "a#b", new IllegalArgumentException(
 				"bucket contains an illegal character: #"));
 	}
 	
 	@Test
 	public void constructFailSDKError() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		when(s3cli.createBucket(CreateBucketRequest.builder().bucket("buk").build()))
+		when(m.s3cli.createBucket(CreateBucketRequest.builder().bucket("buk").build()))
 			.thenThrow(SdkException.builder().message("whoopsie").build());
 		
-		constructFail(col, cli, "buk", new BlobStoreCommunicationException(
+		constructFail(m.col, m.s3clipre, "buk", new BlobStoreCommunicationException(
 				"Failed to initialize S3 bucket: whoopsie"));
 	}
 	
 	private void constructFail(
-			final DBCollection col,
+			final MongoCollection<Document> col,
 			final S3ClientWithPresign cli,
 			final String bucket,
 			final Exception expected) {
@@ -204,24 +219,23 @@ public class S3BlobStoreTest {
 	
 	@Test
 	public void saveBlobAlreadyExists() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s3 = new S3BlobStore(col, cli, "foo");
+		final S3BlobStore s3 = new S3BlobStore(m.col, m.s3clipre, "foo");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-			.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")
 					.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 					.append("sorted", true));
 		
 		s3.saveBlob(new MD5("1fc5a11811de5142af444f5d482cd748"), new TestRestreamable("f"), true);
 		
-		verify(s3cli).createBucket(CreateBucketRequest.builder().bucket("foo").build());
-		verifyNoMoreInteractions(s3cli);
-		verify(cli, never()).presignAndPutObject(any(), any());
-		verify(col, never()).update(any(), any(), anyBoolean(), anyBoolean());
+		verify(m.s3cli).createBucket(CreateBucketRequest.builder().bucket("foo").build());
+		verifyNoMoreInteractions(m.s3cli);
+		verify(m.s3clipre, never()).presignAndPutObject(any(), any());
+		verify(m.col, never()).updateOne(
+				any(Document.class), any(Document.class), any(UpdateOptions.class));
 	}
 	
 	@Test
@@ -239,90 +253,79 @@ public class S3BlobStoreTest {
 			final Restreamable expecteddata,
 			final boolean sorted)
 			throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		final UUIDGen uuidGen = mock(UUIDGen.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s3 = new S3BlobStore(col, cli, "foo", uuidGen);
+		final S3BlobStore s3 = new S3BlobStore(m.col, m.s3clipre, "foo", m.uuidGen);
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-			.thenReturn(null);
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+			.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(null);
 		
-		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
+		when(m.uuidGen.randomUUID()).thenReturn(UUID.fromString(
 				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
 		
-		when(s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
+		when(m.s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
 				"68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build())).thenReturn(
 				HeadObjectResponse.builder()
 						.eTag("   \"   1fc5a11811de5142af444f5d482cd748\"  ").build());
 		
 		s3.saveBlob(new MD5("1fc5a11811de5142af444f5d482cd748"), data, sorted);
 
-		verify(cli).presignAndPutObject(
+		verify(m.s3clipre).presignAndPutObject(
 				PutObjectRequest.builder()
 						.bucket("foo")
 						.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 						.build(),
 				expecteddata);
-		verify(col).update(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748"),
-				new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
-						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
-						.append("sorted", sorted),
-				true, false);
+		verify(m.col).updateOne(
+				eq(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")),
+				eq(new Document("$set",
+						new Document("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
+								.append("sorted", sorted))),
+				argThat(new UpdateOptionsMatcher(new UpdateOptions().upsert(true))));
 	}
 	
 	@Test
 	public void saveBlobFailBadInput() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final Restreamable r = new TestRestreamable("f");
 		
 		saveBlobFail(s, null, r, new NullPointerException("md5"));
-		saveBlobFail(s, m, null, new NullPointerException("data"));
+		saveBlobFail(s, md5, null, new NullPointerException("data"));
 	}
 	
 	@Test
 	public void saveBlobFailMongoExceptionOnFind() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final Restreamable r = new TestRestreamable("f");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenThrow(new MongoException("well rats"));
 		
-		saveBlobFail(s, m, r, new BlobStoreCommunicationException(
+		saveBlobFail(s, md5, r, new BlobStoreCommunicationException(
 				"Could not read from the mongo database"));
 	}
 	
 	@Test
 	public void saveBlobFailOnPresign() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		final UUIDGen uuidGen = mock(UUIDGen.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo", uuidGen);
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo", m.uuidGen);
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final Restreamable r = new TestRestreamable("f");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-				.thenReturn(null);
-		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(null);
+		when(m.uuidGen.randomUUID()).thenReturn(UUID.fromString(
 				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
-		doThrow(new IOException("get your trash data outta here")).when(cli)
+		doThrow(new IOException("get your trash data outta here")).when(m.s3clipre)
 				.presignAndPutObject(
 						PutObjectRequest.builder()
 								.bucket("foo")
@@ -330,91 +333,84 @@ public class S3BlobStoreTest {
 								.build(),
 						r);
 		
-		saveBlobFail(s, m, r, new BlobStoreCommunicationException(
+		saveBlobFail(s, md5, r, new BlobStoreCommunicationException(
 				"S3 error: get your trash data outta here"));
 	}
 	
 	@Test
 	public void saveBlobFailOnHeadObject() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		final UUIDGen uuidGen = mock(UUIDGen.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo", uuidGen);
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo", m.uuidGen);
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final Restreamable r = new TestRestreamable("f");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-				.thenReturn(null);
-		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(null);
+		when(m.uuidGen.randomUUID()).thenReturn(UUID.fromString(
 				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
-		when(s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
+		when(m.s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
 				"68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build())).thenThrow(
 						SdkException.builder().message("how dare you... how DARE you!").build());
 		
-		saveBlobFail(s, m, r, new BlobStoreCommunicationException(
+		saveBlobFail(s, md5, r, new BlobStoreCommunicationException(
 				"Error stating S3 object: how dare you... how DARE you!"));
 	}
 	
 	@Test
 	public void saveBlobFailBadMD5() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		final UUIDGen uuidGen = mock(UUIDGen.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo", uuidGen);
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo", m.uuidGen);
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final Restreamable r = new TestRestreamable("f");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-				.thenReturn(null);
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(null);
 		
-		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
+		when(m.uuidGen.randomUUID()).thenReturn(UUID.fromString(
 				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
 
-		when(s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
+		when(m.s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
 				"68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build())).thenReturn(
 				HeadObjectResponse.builder()
 						.eTag("   \"   1fc5a11811de5142af444f5d482cd749\"  ").build());
 		
-		saveBlobFail(s, m, r, new BlobStoreCommunicationException(
+		saveBlobFail(s, md5, r, new BlobStoreCommunicationException(
 				"S3 upload corrupted, MD5s don't match"));
 	}
 	
 	@Test
 	public void saveBlobFailOnMongoUpdate() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		final UUIDGen uuidGen = mock(UUIDGen.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo", uuidGen);
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo", m.uuidGen);
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final Restreamable r = new TestRestreamable("f");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-				.thenReturn(null);
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(null);
 		
-		when(uuidGen.randomUUID()).thenReturn(UUID.fromString(
+		when(m.uuidGen.randomUUID()).thenReturn(UUID.fromString(
 				"68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9"));
 
-		when(s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
+		when(m.s3cli.headObject(HeadObjectRequest.builder().bucket("foo").key(
 				"68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build())).thenReturn(
 				HeadObjectResponse.builder()
 						.eTag("   \"   1fc5a11811de5142af444f5d482cd748\"  ").build());
 		
-		when(col.update(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748"),
-				new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
-						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
-						.append("sorted", true),
-				true, false)).thenThrow(new MongoException("dang!"));
+		when(m.col.updateOne(
+				eq(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")),
+				eq(new Document("$set",
+						new Document("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
+							.append("sorted", true))),
+				argThat(new UpdateOptionsMatcher(new UpdateOptions().upsert(true)))
+				)).thenThrow(new MongoException("dang!"));
 		
-		saveBlobFail(s, m, r, new BlobStoreCommunicationException(
+		saveBlobFail(s, md5, r, new BlobStoreCommunicationException(
 				"Could not write to the mongo database"));
 	}
 	
@@ -438,20 +434,19 @@ public class S3BlobStoreTest {
 	}
 
 	private void getBlob(final boolean sorted) throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-				.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(
+				new Document("chksum", "1fc5a11811de5142af444f5d482cd748")
 						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 						.append("sorted", sorted));
 		
-		when(s3cli.getObject(GetObjectRequest.builder().bucket("foo")
+		when(m.s3cli.getObject(GetObjectRequest.builder().bucket("foo")
 				.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build()))
 			.thenReturn(new ResponseInputStream<GetObjectResponse>(
 					GetObjectResponse.builder().build(), // not currently used
@@ -460,7 +455,7 @@ public class S3BlobStoreTest {
 		
 		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
 		
-		final ByteArrayFileCache ba = s.getBlob(m, bafcMan);
+		final ByteArrayFileCache ba = s.getBlob(md5, bafcMan);
 		
 		assertThat("incorrect data", ba.getUObject().asClassInstance(String.class),
 				is("input here"));
@@ -470,52 +465,44 @@ public class S3BlobStoreTest {
 	
 	@Test
 	public void getBlobFailBadInput() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
 		
 		getBlobFail(s, null, bafcMan, new NullPointerException("md5"));
-		getBlobFail(s, m, null, new NullPointerException("bafcMan"));
+		getBlobFail(s, md5, null, new NullPointerException("bafcMan"));
 	}
 	
 	@Test
 	public void getBlobFailNoBlob() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-				.thenReturn(null);
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(null);
 		
 		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
-		getBlobFail(s, m, bafcMan, new NoSuchBlobException(
+		getBlobFail(s, md5, bafcMan, new NoSuchBlobException(
 				"No blob saved with chksum 1fc5a11811de5142af444f5d482cd748"));
 	}
 	
 	@Test
 	public void getBlobFailMongoException() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenThrow(new MongoException("heck"));
 		
 		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
-		getBlobFail(s, m, bafcMan, new BlobStoreCommunicationException(
+		getBlobFail(s, md5, bafcMan, new BlobStoreCommunicationException(
 				"Could not read from the mongo database"));
 	}
 	
@@ -530,25 +517,24 @@ public class S3BlobStoreTest {
 
 	private void getBlobFailGetObject(final SdkException thrown, final Exception expected)
 			throws BlobStoreCommunicationException {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-				.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(
+				new Document("chksum", "1fc5a11811de5142af444f5d482cd748")
 						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
 						.append("sorted", true));
 		
-		when(s3cli.getObject(GetObjectRequest.builder().bucket("foo")
+		when(m.s3cli.getObject(GetObjectRequest.builder().bucket("foo")
 				.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build()))
 			.thenThrow(thrown);
 		
 		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
-		getBlobFail(s, m, bafcMan, expected);
+		getBlobFail(s, md5, bafcMan, expected);
 	}
 	
 	private void getBlobFail(
@@ -566,118 +552,107 @@ public class S3BlobStoreTest {
 	
 	@Test
 	public void removeBlobNoBlob() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-			.thenReturn(null);
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(null);
 
-		s.removeBlob(m);
+		s.removeBlob(md5);
 		
-		verify(s3cli).createBucket(CreateBucketRequest.builder().bucket("foo").build());
-		verifyNoMoreInteractions(s3cli);
-		verify(cli, never()).presignAndPutObject(any(), any());
-		verify(col, never()).remove(any());
+		verify(m.s3cli).createBucket(CreateBucketRequest.builder().bucket("foo").build());
+		verifyNoMoreInteractions(m.s3cli);
+		verify(m.s3clipre, never()).presignAndPutObject(any(), any());
+		verify(m.col, never()).deleteOne(any());
 	}
 	
 	@Test
 	public void removeBlob() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-			.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
-					.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
-					.append("sorted", true));
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(
+				new Document("chksum", "1fc5a11811de5142af444f5d482cd748")
+						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
+						.append("sorted", true));
 
-		s.removeBlob(m);
+		s.removeBlob(md5);
 		
-		verify(col).remove(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748"));
-		verify(s3cli).deleteObject(DeleteObjectRequest.builder()
+		verify(m.col).deleteOne(new Document("chksum", "1fc5a11811de5142af444f5d482cd748"));
+		verify(m.s3cli).deleteObject(DeleteObjectRequest.builder()
 				.bucket("foo").key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build());
 	}
 	
 	@Test
 	public void removeBlobFailBadInput() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
 		
 		removeBlobFail(s, null, new NullPointerException("md5"));
 	}
 	
 	@Test
 	public void removeBlobFailMongoExceptionOnFind() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-			.thenThrow(new MongoException("heck"));
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenThrow(new MongoException("heck"));
 
-		removeBlobFail(s, m, new BlobStoreCommunicationException(
+		removeBlobFail(s, md5, new BlobStoreCommunicationException(
 				"Could not read from the mongo database"));
 	}
 	
 	@Test
 	public void removeBlobFailMongoExceptionOnRemove() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-			.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
-					.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
-					.append("sorted", true));
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(
+				new Document("chksum", "1fc5a11811de5142af444f5d482cd748")
+						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
+						.append("sorted", true));
 
-		when(col.remove(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
+		when(m.col.deleteOne(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenThrow(new MongoException("hey ho"));
 		
-		removeBlobFail(s, m, new BlobStoreCommunicationException(
+		removeBlobFail(s, md5, new BlobStoreCommunicationException(
 				"Could not write to the mongo database"));
 	}
 	
 	@Test
 	public void removeBlobFailMongoExceptionOnDeleteObject() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
-		final MD5 m = new MD5("1fc5a11811de5142af444f5d482cd748");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
 		
-		when(col.findOne(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")))
-			.thenReturn(new BasicDBObject("chksum", "1fc5a11811de5142af444f5d482cd748")
-					.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
-					.append("sorted", true));
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(
+				new Document("chksum", "1fc5a11811de5142af444f5d482cd748")
+						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
+						.append("sorted", true));
 		
-		when(s3cli.deleteObject(DeleteObjectRequest.builder()
+		when(m.s3cli.deleteObject(DeleteObjectRequest.builder()
 				.bucket("foo").key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build()))
 				.thenThrow(SdkException.builder().message("my pants are on fire").build());
 
-		removeBlobFail(s, m, new BlobStoreCommunicationException(
+		removeBlobFail(s, md5, new BlobStoreCommunicationException(
 				"Failed to delete blob: my pants are on fire"));
 	}
 	
@@ -692,12 +667,9 @@ public class S3BlobStoreTest {
 	
 	@Test
 	public void status() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
 		
 		final List<DependencyStatus> stat = s.status();
 		
@@ -711,14 +683,11 @@ public class S3BlobStoreTest {
 	
 	@Test
 	public void statusFail() throws Exception {
-		final S3ClientWithPresign cli = mock(S3ClientWithPresign.class);
-		final S3Client s3cli = mock(S3Client.class);
-		final DBCollection col = mock(DBCollection.class);
-		when(cli.getClient()).thenReturn(s3cli);
+		final Mocks m = new Mocks();
 		
-		final S3BlobStore s = new S3BlobStore(col, cli, "foo");
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
 		
-		when(s3cli.headBucket(HeadBucketRequest.builder().bucket("foo").build()))
+		when(m.s3cli.headBucket(HeadBucketRequest.builder().bucket("foo").build()))
 				.thenThrow(SdkException.builder().message("You done f'd up now").build());
 		
 		final List<DependencyStatus> stat = s.status();

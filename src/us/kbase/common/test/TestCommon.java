@@ -29,8 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
 import com.mongodb.client.MongoDatabase;
 
 import ch.qos.logback.classic.Level;
@@ -139,6 +137,7 @@ public class TestCommon {
 		return Paths.get(testCfgFilePathStr).toAbsolutePath().normalize();
 	}
 	
+	// TODO CODE return Paths for all of these
 	public static String getTempDir() {
 		return getTestProperty(TEST_TEMP_DIR);
 	}
@@ -187,15 +186,6 @@ public class TestCommon {
 		return "true".equals(getTestProperty(MONGO_USE_WIRED_TIGER));
 	}
 	
-	public static void destroyDB(final DB db) {
-		for (String name: db.getCollectionNames()) {
-			if (!name.startsWith("system.")) {
-				// dropping collection also drops indexes
-				db.getCollection(name).remove(new BasicDBObject());
-			}
-		}
-	}
-	
 	public static void destroyDB(final MongoDatabase db) {
 		for (String name: db.listCollectionNames()) {
 			if (!name.startsWith("system.")) {
@@ -203,6 +193,16 @@ public class TestCommon {
 				db.getCollection(name).deleteMany(new Document());
 			}
 		}
+	}
+	
+	
+	/** Get the name of a method in the stack.
+	 * @param index determines which method to get. 1 = the method calling this method,
+	 * 2 = the method calling that method, etc.
+	 * @return the method name.
+	 */
+	public static String getMethodName(final int index) {
+		return new Throwable().getStackTrace()[index].getMethodName();
 	}
 	
 	public static void assertExceptionCorrect(
@@ -215,6 +215,25 @@ public class TestCommon {
 		assertThat("incorrect exception type", got, instanceOf(expected.getClass()));
 	}
 	
+	public static void assertCloseToNow(final long epochMillis) {
+		assertCloseToNow(epochMillis, 1000);
+	}
+	
+	public static void assertCloseToNow(final long epochMillis, final int rangeMillis) {
+		final long now = Instant.now().toEpochMilli();
+		assertThat(String.format("time (%s) not within %sms of now: %s",
+				epochMillis, rangeMillis, now),
+				Math.abs(epochMillis - now) < rangeMillis, is(true));
+	}
+	
+	public static void assertCloseToNow(final Instant creationDate) {
+		assertCloseToNow(creationDate.toEpochMilli());
+	}
+	
+	public static void assertCloseToNow(final Instant creationDate, final int rangeMillis) {
+		assertCloseToNow(creationDate.toEpochMilli(), rangeMillis);
+	}
+
 	public static void assertNoTempFilesExist(TempFilesManager tfm)
 			throws Exception {
 		assertNoTempFilesExist(Arrays.asList(tfm));

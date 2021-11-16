@@ -12,8 +12,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
@@ -29,7 +29,7 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 public class MongoTypeStorageTest {
 
 	private static MongoController MONGO;
-	private static DB MONGO_DB;
+	private static MongoDatabase MONGO_DB;
 	
 	@BeforeClass
 	public static void setUp() throws Exception {
@@ -42,8 +42,9 @@ public class MongoTypeStorageTest {
 		System.out.println("Started test mongo instance at localhost:" +
 				MONGO.getServerPort());
 		
+		@SuppressWarnings("resource")
 		final MongoClient mc = new MongoClient("localhost:" + MONGO.getServerPort());
-		MONGO_DB = mc.getDB("test_" + MongoTypeStorageTest.class.getSimpleName());
+		MONGO_DB = mc.getDatabase("test_" + MongoTypeStorageTest.class.getSimpleName());
 	}
 	
 	@AfterClass

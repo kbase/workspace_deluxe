@@ -31,7 +31,7 @@ auth-service-url-allow-insecure={{ default .Env.auth_service_url_allow_insecure 
 auth2-service-url = {{ default .Env.auth2_service "https://ci.kbase.us/services/auth/" }}
 auth2-ws-admin-read-only-roles = {{ default .Env.auth2_ws_admin_read_only_roles "" }}
 auth2-ws-admin-full-roles = {{ default .Env.auth2_ws_admin_full_roles "" }}
-# The credential for the account approved to assign/modify shock node ACLs.
+# The credential for the account approved to run add_read_acl on the handle service.
 handle-service-token={{ default .Env.handle_service_token "" }}
 # handle-manager-token is present for backwards compatibility. handle-service-token takes
 # precedence.
@@ -39,16 +39,9 @@ handle-manager-token={{ default .Env.handle_manager_token "" }}
 
 sample-service-url = {{ default .Env.sample_service_url "" }}
 sample-service-administrator-token = {{ default .Env.sample_service_administrator_token "" }}
-sample-service-tag = {{ default .Env.sample_service_tag "" }}
 
-# configuration options for RESKE
-listeners={{ default .Env.listeners "Search" }}
-
-listener-Search-class={{ default .Env.listener_search_class "us.kbase.workspace.modules.SearchPrototypeEventHandlerFactory" }}
-listener-Search-config-mongohost={{ default .Env.listener_search_config_mongohost "" }}
-listener-Search-config-mongodatabase={{ default .Env.listener_search_config_mongodatabase "search" }}
-listener-Search-config-mongouser={{ default .Env.listener_search_config_mongouser "" }}
-listener-Search-config-mongopwd={{ default .Env.listener_search_config_mongopwd "" }}
+# configuration options for listeners
+listeners={{ default .Env.listeners "Kafka" }}
 
 listener-Kafka-class={{ default .Env.listener_Kafka_class "us.kbase.workspace.modules.KafkaNotifierFactory" }}
 listener-Kafka-config-topic={{ default .Env.listener_Kafka_config_topic "workspaceevents" }}

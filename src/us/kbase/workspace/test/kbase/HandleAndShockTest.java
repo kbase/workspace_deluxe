@@ -6,7 +6,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.administerCommand;
-import us.kbase.workspace.test.kbase.JSONRPCLayerTester.ServerThread;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -69,7 +68,9 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.kbase.HandleIdHandlerFactory;
+import us.kbase.workspace.test.WorkspaceServerThread;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
+import us.kbase.workspace.test.controllers.minio.MinioController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class HandleAndShockTest {
@@ -79,12 +80,13 @@ public class HandleAndShockTest {
 	 * allow retrieving an object set the permissions correctly. As such, the Shock ID tests
 	 * concentrate on testing cases that are unique to Shock IDs.
 	 */
+	
+	/* Also performs an integration test with a Minio backend. */
 
-	/* This test also performs an integration test on the Shock backend since we have to
-	 * use Shock here anyway.
-	 */
-
+	//TODO BLOBSTORE swap all Shock stuff for the blobstore, remove Shock binary from repo
+	
 	private static MongoController MONGO;
+	private static MinioController MINIO;
 	private static ShockController SHOCK;
 	private static HandleServiceController HANDLE;
 	private static AuthController AUTH;
@@ -127,6 +129,17 @@ public class HandleAndShockTest {
 				TestCommon.useWiredTigerEngine());
 		System.out.println("Using Mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
+		
+		final String minioUser = "s3key";
+		final String minioKey = "supersecretkey";
+		MINIO = new MinioController(
+				TestCommon.getMinioExe(),
+				minioUser,
+				minioKey,
+				Paths.get(TestCommon.getTempDir())
+				);
+		System.out.println("Using Minio temp dir " + MINIO.getTempDir());
+		final String miniohost = "http://localhost:" + MINIO.getServerPort();
 
 		// set up auth
 		final String dbname = HandleAndShockTest.class.getSimpleName() + "Auth";
@@ -189,7 +202,11 @@ public class HandleAndShockTest {
 				shockURL,
 				t2,
 				HANDLE_SRVC_TOKEN,
-				HANDLE_SRVC_TOKEN);
+				HANDLE_SRVC_TOKEN,
+				miniohost,
+				minioUser,
+				minioKey
+				);
 
 		int port = SERVER.getServerPort();
 		System.out.println("Started test workspace server on port " + port);
@@ -275,7 +292,10 @@ public class HandleAndShockTest {
 			final URL shockURL,
 			final AuthToken shockToken,
 			final AuthToken handleToken,
-			final AuthToken shockLinkToken)
+			final AuthToken shockLinkToken,
+			final String miniohost,
+			final String minioUser,
+			final String minioKey)
 			throws InvalidHostException, UnknownHostException, IOException,
 				NoSuchFieldException, IllegalAccessException, Exception,
 				InterruptedException {
@@ -293,15 +313,16 @@ public class HandleAndShockTest {
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db);
 		ws.add("mongodb-type-database", typedb);
-		ws.add("backend-secret", "foo");
 		ws.add("auth-service-url-allow-insecure", "true");
 		ws.add("auth-service-url", "http://localhost:" + AUTH.getServerPort() +
 				"/testmode/api/legacy/KBase");
 		ws.add("auth2-service-url", "http://localhost:" + AUTH.getServerPort() + "/testmode/");
-		ws.add("backend-type", "Shock");
-		ws.add("backend-url", shockURL.toString());
-		ws.add("backend-user", shockToken.getUserName());
-		ws.add("backend-token", shockToken.getToken());
+		ws.add("backend-type", "S3");
+		ws.add("backend-url", miniohost);
+		ws.add("backend-user", minioUser);
+		ws.add("backend-token", minioKey);
+		ws.add("backend-container", HANDLE_SERVICE_TEST_DB.replace('_', '-'));
+		ws.add("backend-region", "us-west");
 		ws.add("bytestream-url", shockURL.toString());
 		ws.add("bytestream-user", shockLinkToken.getUserName());
 		ws.add("bytestream-token", shockLinkToken.getToken());
@@ -320,7 +341,7 @@ public class HandleAndShockTest {
 
 		WorkspaceServer.clearConfigForTests();
 		WorkspaceServer server = new WorkspaceServer();
-		new ServerThread(server).start();
+		new WorkspaceServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
 			Thread.sleep(1000);
@@ -349,6 +370,9 @@ public class HandleAndShockTest {
 		if (MONGO != null) {
 			MONGO.destroy(TestCommon.getDeleteTempFiles());
 		}
+		if (MINIO != null) {
+			MINIO.destroy(TestCommon.getDeleteTempFiles());
+		}
 	}
 
 	@Test
@@ -374,12 +398,16 @@ public class HandleAndShockTest {
 
 		final Iterator<Map<String, String>> gotiter = deps.iterator();
 		for (final String name: Arrays.asList(
-				"MongoDB", "Shock", "Linked Shock for IDs", "Handle service")) {
+				"MongoDB", "S3", "Linked Shock for IDs", "Handle service")) {
 			final Map<String, String> g = gotiter.next();
 			assertThat("incorrect name", (String) g.get("name"), is(name));
 			assertThat("incorrect state", g.get("state"), is((Object) "OK"));
 			assertThat("incorrect message", g.get("message"), is((Object) "OK"));
-			Version.valueOf((String) g.get("version"));
+			if (name.equals("S3")) {
+				assertThat("incorrect version", g.get("version"), is("Unknown"));
+			} else {
+				Version.valueOf((String) g.get("version"));
+			}
 		}
 	}
 
@@ -440,13 +468,12 @@ public class HandleAndShockTest {
 							.withType(HANDLE_TYPE))));
 			fail("saved object with bad handle");
 		} catch (ServerException e) {
-			assertThat("correct exception message", e.getMessage(),
-							is("An error occured while processing IDs: " +
-									"The Handle Service reported that at least one of " +
-									"the handles contained in the objects in this call " +
-									"is not accessible - it may not exist, or the " +
-									"supplied credentials may not own the node, or some " +
-									"other reason. The call cannot complete."));
+			assertThat("correct exception message", e.getMessage(), is(
+					"An error occured while processing IDs: The Handle Service reported that " +
+					"at least one of the handles contained in the objects in this call " +
+					"is not owned by the current user or is not accessible - it may not exist, " +
+					"or the supplied credentials may not own the node, or some " +
+					"other reason. The call cannot complete."));
 		}
 
 		bsc.removeFromNodeAcl(new ShockNodeId(shock_id),

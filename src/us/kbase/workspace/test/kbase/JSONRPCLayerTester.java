@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.io.File;
 import java.io.IOException;
@@ -76,12 +77,13 @@ import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
+import us.kbase.workspace.test.WorkspaceServerThread;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 /*
  * These tests are specifically for testing the JSON-RPC communications between
@@ -165,23 +167,6 @@ public class JSONRPCLayerTester {
 	
 	private static List<TempFilesManager> TFMS =
 			new LinkedList<TempFilesManager>();
-	
-	protected static class ServerThread extends Thread {
-		private WorkspaceServer server;
-		
-		protected ServerThread(WorkspaceServer server) {
-			this.server = server;
-		}
-		
-		public void run() {
-			try {
-				server.startupServer();
-			} catch (Exception e) {
-				System.err.println("Can't start server:");
-				e.printStackTrace();
-			}
-		}
-	}
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -451,7 +436,7 @@ public class JSONRPCLayerTester {
 				.withMaxIncomingDataMemoryUsage(24)
 				.withMaxReturnedDataMemoryUsage(24).build());
 		TFMS.add(server.getTempFilesManager());
-		new ServerThread(server).start();
+		new WorkspaceServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
 			Thread.sleep(1000);
@@ -487,12 +472,11 @@ public class JSONRPCLayerTester {
 	}
 	@Before
 	public void clearDB() throws Exception {
-		final DB wsdb1 = new MongoClient("localhost:" + mongo.getServerPort())
-				.getDB(DB_WS_NAME_1);
-		final DB wsdb2 = new MongoClient("localhost:" + mongo.getServerPort())
-				.getDB(DB_WS_NAME_2);
-		final DB wsdb3 = new MongoClient("localhost:" + mongo.getServerPort())
-				.getDB(DB_WS_NAME_AUTH2_ADMINS);
+		@SuppressWarnings("resource")
+		final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
+		final MongoDatabase wsdb1 = mcli.getDatabase(DB_WS_NAME_1);
+		final MongoDatabase wsdb2 = mcli.getDatabase(DB_WS_NAME_2);
+		final MongoDatabase wsdb3 = mcli.getDatabase(DB_WS_NAME_AUTH2_ADMINS);
 		TestCommon.destroyDB(wsdb1);
 		TestCommon.destroyDB(wsdb2);
 		TestCommon.destroyDB(wsdb3);
@@ -1554,16 +1538,21 @@ public class JSONRPCLayerTester {
 			String type, String perm, Map<String, String> meta, Long showHidden,
 			Long showDeleted, Long allVers, Long includeMeta, long limit, String exp)
 			throws Exception {
-		try {
-			CLIENT1.listObjects(new ListObjectsParams().withWorkspaces(wsnames)
+		failListObjects(new ListObjectsParams().withWorkspaces(wsnames)
 					.withIds(wsids).withType(type).withShowHidden(showHidden)
 					.withShowDeleted(showDeleted).withShowAllVersions(allVers)
 					.withIncludeMetadata(includeMeta).withPerm(perm).withMeta(meta)
-					.withLimit(limit));
+					.withLimit(limit),
+					exp);
+	}
+	
+	protected void failListObjects(final ListObjectsParams lop, final String expected)
+			throws Exception {
+		try {
+			CLIENT1.listObjects(lop);
 			fail("listed objects with bad params");
-		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is(exp));
+		} catch (Exception se) {
+			assertExceptionCorrect(se, new ServerException(expected, 1, "foo"));
 		}
 	}
 
@@ -1827,16 +1816,16 @@ public class JSONRPCLayerTester {
 		@SuppressWarnings("unchecked")
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> ret =
 				new Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String,String>>()
-				.withE1(new Long((Integer) got.get(0)))
+				.withE1(Long.valueOf((Integer) got.get(0)))
 				.withE2((String) got.get(1))
 				.withE3((String) got.get(2))
 				.withE4((String) got.get(3))
-				.withE5(new Long((Integer) got.get(4)))
+				.withE5(Long.valueOf((Integer) got.get(4)))
 				.withE6((String) got.get(5))
-				.withE7(new Long((Integer) got.get(6)))
+				.withE7(Long.valueOf((Integer) got.get(6)))
 				.withE8((String) got.get(7))
 				.withE9((String) got.get(8))
-				.withE10(new Long((Integer) got.get(9)))
+				.withE10(Long.valueOf((Integer) got.get(9)))
 				.withE11((Map<String, String>) got.get(10));
 		return ret;
 	}
@@ -1846,11 +1835,11 @@ public class JSONRPCLayerTester {
 		@SuppressWarnings("unchecked")
 		Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>> ret =
 				new Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>()
-				.withE1(new Long((Integer) got.get(0)))
+				.withE1(Long.valueOf((Integer) got.get(0)))
 				.withE2((String) got.get(1))
 				.withE3((String) got.get(2))
 				.withE4((String) got.get(3))
-				.withE5(new Long((Integer) got.get(4)))
+				.withE5(Long.valueOf((Integer) got.get(4)))
 				.withE6((String) got.get(5))
 				.withE7((String) got.get(6))
 				.withE8((String) got.get(7))

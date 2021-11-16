@@ -5,9 +5,9 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBObject;
+import org.bson.Document;
+
+import com.mongodb.client.MongoDatabase;
 
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TempFilesManager;
@@ -22,18 +22,18 @@ public class Common {
 
 
 	public static List<String> getMD5s(
-			final DB db,
+			final MongoDatabase db,
 			final String workspace) {
-		final DBObject ws = db.getCollection(CollectionNames.COL_WORKSPACES).findOne(
-				new BasicDBObject(Fields.WS_NAME, workspace));
-		final long id = (long) ws.get(Fields.WS_ID);
-		final DBObject sort = new BasicDBObject(Fields.VER_WS_ID, 1);
+		final Document ws = db.getCollection(CollectionNames.COL_WORKSPACES).find(
+				new Document(Fields.WS_NAME, workspace)).first();
+		final long id = ws.getLong(Fields.WS_ID);
+		final Document sort = new Document(Fields.VER_WS_ID, 1);
 		sort.put(Fields.VER_ID, 1);
 		final List<String> md5s = new ArrayList<>();
 		final long startvers = System.nanoTime();
-		for (final DBObject dbo: db.getCollection(CollectionNames.COL_WORKSPACE_VERS)
-				.find(new BasicDBObject(Fields.VER_WS_ID, id)).sort(sort)) {
-			md5s.add((String) dbo.get(Fields.VER_CHKSUM));
+		for (final Document dbo: db.getCollection(CollectionNames.COL_WORKSPACE_VERS)
+				.find(new Document(Fields.VER_WS_ID, id)).sort(sort)) {
+			md5s.add(dbo.getString(Fields.VER_CHKSUM));
 		}
 		System.out.println("time to get md5s: " + (System.nanoTime() - startvers) / 1000000000.0);
 		return md5s;
@@ -89,13 +89,13 @@ public class Common {
 		return shocktimes;
 	}
 
-	public static List<String> getShockNodes(final DB db, final List<String> md5s) {
+	public static List<String> getShockNodes(final MongoDatabase db, final List<String> md5s) {
 		final List<String> nodes = new LinkedList<>();
 		final long startNodes = System.nanoTime();
 		for (final String md5: md5s) {
-			final DBObject node = db.getCollection(InitConstants.COL_SHOCK_NODES)
-					.findOne(new BasicDBObject(Fields.SHOCK_CHKSUM, md5));
-			nodes.add((String) node.get(Fields.SHOCK_NODE));
+			final Document node = db.getCollection(InitConstants.COL_SHOCK_NODES)
+					.find(new Document(Fields.SHOCK_CHKSUM, md5)).first();
+			nodes.add(node.getString(Fields.SHOCK_NODE));
 		}
 		System.out.println("Time to get nodes: " +
 				(System.nanoTime() - startNodes) / 1000000000.0);

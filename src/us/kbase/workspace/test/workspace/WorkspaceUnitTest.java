@@ -22,6 +22,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.common.test.TestCommon;
+import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Permission;
@@ -51,11 +52,12 @@ public class WorkspaceUnitTest {
 	private TestMocks initMocks() {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final TypedObjectValidator val = mock(TypedObjectValidator.class);
+		final TempFilesManager tfm = mock(TempFilesManager.class);
 		
 		final ResourceUsageConfiguration b = new ResourceUsageConfigurationBuilder().build();
-		final Workspace ws = new Workspace(db, b, val);
+		final Workspace ws = new Workspace(db, b, val, tfm);
 		
-		return new TestMocks(db, val, b, ws);
+		return new TestMocks(db, val, b, ws, tfm);
 	}
 	
 	private class TestMocks {
@@ -65,16 +67,20 @@ public class WorkspaceUnitTest {
 		@SuppressWarnings("unused")
 		private final ResourceUsageConfiguration cfg;
 		private final Workspace ws;
+		@SuppressWarnings("unused")
+		private TempFilesManager tfm;
 		
 		private TestMocks(
 				final WorkspaceDatabase db,
 				final TypedObjectValidator val,
 				final ResourceUsageConfiguration cfg,
-				final Workspace ws) {
+				final Workspace ws,
+				final TempFilesManager tfm) {
 			this.db = db;
 			this.val = val;
 			this.cfg = cfg;
 			this.ws = ws;
+			this.tfm = tfm;
 		}
 	}
 	

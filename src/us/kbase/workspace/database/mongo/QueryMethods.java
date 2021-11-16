@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.bson.Document;
+
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.ResolvedObjectID;
@@ -21,26 +23,25 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
 public class QueryMethods {
 	
 	//TODO TEST unit tests
 	//TODO JAVADOC
 	
-	private final DB wsmongo;
+	private final MongoDatabase wsmongo;
 	private final AllUsers allUsers;
 	private final String workspaceCollection;
 	private final String objectCollection;
 	private final String versionCollection;
-	private final String workspaceACLCollection;
+	private final MongoCollection<Document> wsACL;
 	
 	QueryMethods(
-			final DB wsmongo,
+			final MongoDatabase wsmongo,
 			final AllUsers allUsers,
 			final String workspaceCollection,
 			final String objectCollection,
@@ -67,31 +68,11 @@ public class QueryMethods {
 		this.workspaceCollection = workspaceCollection;
 		this.objectCollection = objectCollection;
 		this.versionCollection = versionCollection;
-		this.workspaceACLCollection = workspaceACLCollection;
+		this.wsACL = wsmongo.getCollection(workspaceACLCollection);
 	}
 	
-	
-	DB getDatabase() {
-		return wsmongo;
-	}
-
-	String getWorkspaceCollection() {
-		return workspaceCollection;
-	}
-
-
 	String getObjectCollection() {
 		return objectCollection;
-	}
-
-
-	String getVersionCollection() {
-		return versionCollection;
-	}
-
-
-	String getWorkspaceACLCollection() {
-		return workspaceACLCollection;
 	}
 
 
@@ -174,19 +155,19 @@ public class QueryMethods {
 				names.put(wsi.getName(), wsi);
 			}
 		}
-		final List<DBObject> orquery = new LinkedList<DBObject>();
+		final List<Document> orquery = new LinkedList<>();
 		if (!ids.isEmpty()) {
-			orquery.add(new BasicDBObject(Fields.WS_ID,
-					new BasicDBObject("$in", ids.keySet())));
+			orquery.add(new Document(Fields.WS_ID,
+					new Document("$in", ids.keySet())));
 		}
 		if (!names.isEmpty()) {
-			orquery.add(new BasicDBObject(Fields.WS_NAME,
-					new BasicDBObject("$in", names.keySet())));
+			orquery.add(new Document(Fields.WS_NAME,
+					new Document("$in", names.keySet())));
 		}
 		fields.add(Fields.WS_NAME);
 		fields.add(Fields.WS_ID);
-		final BasicDBObject q = new BasicDBObject("$or", orquery);
-		q.put(Fields.WS_CLONING, new BasicDBObject("$exists", false));
+		final Document q = new Document("$or", orquery);
+		q.put(Fields.WS_CLONING, new Document("$exists", false));
 		final List<Map<String, Object>> res = queryCollection(
 				workspaceCollection, q, fields);
 		
@@ -214,12 +195,11 @@ public class QueryMethods {
 			return new HashMap<Long, Map<String, Object>>();
 		}
 		fields.add(Fields.WS_ID);
-		final DBObject q = new BasicDBObject(Fields.WS_ID,
-				new BasicDBObject("$in", wsids));
+		final Document q = new Document(Fields.WS_ID, new Document("$in", wsids));
 		if (excludeDeletedWorkspaces) {
 			q.put(Fields.WS_DEL, false);
 		}
-		q.put(Fields.WS_CLONING, new BasicDBObject("$exists", false));
+		q.put(Fields.WS_CLONING, new Document("$exists", false));
 		final List<Map<String, Object>> queryres =
 				queryCollection(workspaceCollection, q, fields);
 		final Map<Long, Map<String, Object>> result =
@@ -234,6 +214,7 @@ public class QueryMethods {
 			final Set<ObjectIDResolvedWSNoVer> objectIDs,
 			final Set<String> fields)
 			throws WorkspaceCommunicationException {
+		// TODO CODE this method is madness, refactor
 		if (objectIDs.isEmpty()) {
 			return new HashMap<ObjectIDResolvedWSNoVer, Map<String,Object>>();
 		}
@@ -266,32 +247,30 @@ public class QueryMethods {
 		}
 		
 		//TODO PERFORMANCE This $or query might be better as multiple individual queries, test
-		final List<DBObject> orquery = new LinkedList<DBObject>();
+		final List<Document> orquery = new LinkedList<>();
 		for (final ResolvedWorkspaceID rwsi: names.keySet()) {
-			final DBObject query = new BasicDBObject(Fields.OBJ_WS_ID,
-					rwsi.getID());
-			query.put(Fields.OBJ_NAME, new BasicDBObject(
-					"$in", names.get(rwsi).keySet()));
+			final Document query = new Document(Fields.OBJ_WS_ID, rwsi.getID());
+			query.put(Fields.OBJ_NAME, new Document("$in", names.get(rwsi).keySet()));
 			//if ver count < 1, we're in a race condition or the database went
 			//down after saving the object but before saving the version
 			//so don't look at objects with no versions
-			query.put(Fields.OBJ_VCNT, new BasicDBObject("$gt", 0));
+			query.put(Fields.OBJ_VCNT, new Document("$gt", 0));
 			orquery.add(query);
 		}
 		for (final ResolvedWorkspaceID rwsi: ids.keySet()) {
-			final DBObject query = new BasicDBObject(Fields.OBJ_WS_ID,
+			final Document query = new Document(Fields.OBJ_WS_ID,
 					rwsi.getID());
-			query.put(Fields.OBJ_ID, new BasicDBObject(
+			query.put(Fields.OBJ_ID, new Document(
 					"$in", ids.get(rwsi).keySet()));
 			//see notes in loop above
-			query.put(Fields.OBJ_VCNT, new BasicDBObject("$gt", 0));
+			query.put(Fields.OBJ_VCNT, new Document("$gt", 0));
 			orquery.add(query);
 		}
 		fields.add(Fields.OBJ_ID);
 		fields.add(Fields.OBJ_NAME);
 		fields.add(Fields.OBJ_WS_ID);
 		final List<Map<String, Object>> queryres = queryCollection(
-				objectCollection, new BasicDBObject("$or", orquery), fields);
+				objectCollection, new Document("$or", orquery), fields);
 
 		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ret =
 				new HashMap<ObjectIDResolvedWSNoVer, Map<String, Object>>();
@@ -384,9 +363,10 @@ public class QueryMethods {
 		return ret;
 	}
 	
-	private Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>>
-			queryVersions(final Map<ResolvedWorkspaceID, Map<Long, List<Integer>>> ids,
-			final Set<String> fields) throws WorkspaceCommunicationException {
+	private Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>> queryVersions(
+			final Map<ResolvedWorkspaceID, Map<Long, List<Integer>>> ids,
+			final Set<String> fields)
+			throws WorkspaceCommunicationException {
 		fields.add(Fields.VER_ID);
 		fields.add(Fields.VER_VER);
 		//disgusting. need to do better.
@@ -394,22 +374,20 @@ public class QueryMethods {
 		//workspace at a time. If profiling shows this is slow investigate
 		//further
 		//actually, $or queries just suck it seems. Way faster to do single queries
-		final Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>>
-			ret = new HashMap<ResolvedWorkspaceID, Map<Long,Map<Integer,Map<String,Object>>>>();
+		final Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>> ret =
+				new HashMap<>();
 		for (final ResolvedWorkspaceID rwsi: ids.keySet()) {
-			ret.put(rwsi, new HashMap<Long, Map<Integer, Map<String,Object>>>());
+			ret.put(rwsi, new HashMap<>());
 			for (final Long objectID: ids.get(rwsi).keySet()) {
-				ret.get(rwsi).put(objectID,
-						new HashMap<Integer, Map<String, Object>>());
-				final DBObject q;
+				ret.get(rwsi).put(objectID, new HashMap<>());
+				final Document q;
 				if (ids.get(rwsi).get(objectID).size() == 0) {
-					q = new BasicDBObject();
+					q = new Document();
 				} else if (ids.get(rwsi).get(objectID).size() == 1) {
-					q = new BasicDBObject(Fields.VER_VER,
-							ids.get(rwsi).get(objectID).get(0));
+					q = new Document(Fields.VER_VER, ids.get(rwsi).get(objectID).get(0));
 				} else {
-					q = new BasicDBObject(Fields.VER_VER,
-						new BasicDBObject("$in", ids.get(rwsi).get(objectID)));
+					q = new Document(Fields.VER_VER,
+							new Document("$in", ids.get(rwsi).get(objectID)));
 				}
 				q.put(Fields.VER_ID, objectID);
 				q.put(Fields.VER_WS_ID, rwsi.getID());
@@ -425,32 +403,36 @@ public class QueryMethods {
 		return ret;
 	}
 	
-	List<Map<String, Object>> queryCollection(final String collection,
-			final DBObject query, final Set<String> fields)
+	List<Map<String, Object>> queryCollection(
+			final String collection,
+			final Document query,
+			final Set<String> fields)
 			throws WorkspaceCommunicationException {
 		return queryCollection(collection, query, fields, null, -1);
 	}
 	
-	List<Map<String, Object>> queryCollection(final String collection,
-	final DBObject query, final Set<String> fields, final int limit)
+	List<Map<String, Object>> queryCollection(
+			final String collection,
+			final Document query,
+			final Set<String> fields,
+			final int limit)
 	throws WorkspaceCommunicationException {
 		return queryCollection(collection, query, fields, null, limit);
 	}
 
 	List<Map<String, Object>> queryCollection(
 			final String collection,
-			final DBObject query,
+			final Document query,
 			final Set<String> fields,
 			// really shouldn't be necessary, but 2.4 sometimes isn't smart
-			final DBObject queryHint,
+			final Document queryHint,
 			final int limit)
 			throws WorkspaceCommunicationException {
 		final List<Map<String, Object>> result =
 				new ArrayList<Map<String,Object>>();
 		try {
-			final DBCursor im = queryCollectionCursor(
-					collection, query, fields, queryHint, limit);
-			for (final DBObject o: im) {
+			for (final Document o: queryCollectionCursor(
+					collection, query, fields, queryHint, limit)) {
 				result.add(dbObjectToMap(o));
 			}
 		} catch (MongoException me) {
@@ -460,22 +442,21 @@ public class QueryMethods {
 		return result;
 	}
 	
-	DBCursor queryCollectionCursor(
+	FindIterable<Document> queryCollectionCursor(
 			final String collection,
-			final DBObject query,
+			final Document query,
 			final Set<String> fields,
 			// really shouldn't be necessary, but 2.4 sometimes isn't smart
-			final DBObject queryHint,
+			final Document queryHint,
 			final int limit)
 			throws WorkspaceCommunicationException {
-		final DBObject projection = new BasicDBObject();
-		projection.put(Fields.MONGO_ID, 0);
+		final Document projection = new Document(Fields.MONGO_ID, 0);
 		for (final String field: fields) {
 			projection.put(field, 1);
 		}
 		try {
-			final DBCursor im = wsmongo.getCollection(collection)
-					.find(query, projection);
+			final FindIterable<Document> im = wsmongo.getCollection(collection)
+					.find(query).projection(projection);
 			if (limit > 0) {
 				im.limit(limit);
 			}
@@ -489,8 +470,8 @@ public class QueryMethods {
 		}
 	}
 	
-	//since LazyBsonObject.toMap() is not supported
-	static Map<String, Object> dbObjectToMap(final DBObject o) {
+	// TODO CODING why bother with converting? Just use the Document
+	static Map<String, Object> dbObjectToMap(final Document o) {
 		final Map<String, Object> m = new HashMap<String, Object>();
 		for (final String name: o.keySet()) {
 			m.put(name, o.get(name));
@@ -498,30 +479,10 @@ public class QueryMethods {
 		return m;
 	}
 	
-	Map<User, Permission> queryPermissions(
-			final ResolvedWorkspaceID rwsi) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return queryPermissions(rwsi, null);
-	}
-	
-	Map<User, Permission> queryPermissions(
-			final ResolvedWorkspaceID rwsi, final Set<User> users) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final Set<ResolvedWorkspaceID> wsis = new HashSet<ResolvedWorkspaceID>();
-		wsis.add(rwsi);
-		return queryPermissions(wsis, users).get(rwsi);
-	}
-	
 	Map<ResolvedWorkspaceID, Map<User, Permission>> queryPermissions(
-			final Set<ResolvedWorkspaceID> rwsis, final Set<User> users) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return queryPermissions(rwsis, users, Permission.NONE, false);
-	}
-	
-	Map<ResolvedWorkspaceID, Map<User, Permission>> queryPermissions(
-			final Set<User> users, final Permission minPerm) throws
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		return queryPermissions(null, users, minPerm, false);
+			final Set<ResolvedWorkspaceID> rwsis, final User user)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return queryPermissions(rwsis, user, Permission.NONE, false);
 	}
 	
 	private final static HashSet<String> PROJ_WS_ID_NAME_LOCK_DEL = 
@@ -530,46 +491,40 @@ public class QueryMethods {
 	
 	Map<ResolvedWorkspaceID, Map<User, Permission>> queryPermissions(
 			final Set<ResolvedWorkspaceID> rwsis,
-			final Set<User> users,
+			final User user,
 			final Permission minPerm,
 			final boolean excludeDeletedWorkspaces)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		final DBObject query = new BasicDBObject();
-		final Map<Long, ResolvedWorkspaceID> idToWS = new HashMap<Long, ResolvedWorkspaceID>();
+		final Document query = new Document();
+		final Map<Long, ResolvedWorkspaceID> idToWS = new HashMap<>();
 		if (rwsis != null && rwsis.size() > 0) {
-			final Set<Long> wsids = new HashSet<Long>();
+			final Set<Long> wsids = new HashSet<>();
 			for (final ResolvedWorkspaceID r: rwsis) {
 				idToWS.put(r.getID(), r);
 				wsids.add(r.getID());
 			}
-			query.put(Fields.ACL_WSID, new BasicDBObject("$in", wsids));
+			query.put(Fields.ACL_WSID, new Document("$in", wsids));
 		}
-		if (users != null && users.size() > 0) {
-			final List<String> u = new ArrayList<String>();
-			for (User user: users) {
-				u.add(user.getUser());
-			}
-			query.put(Fields.ACL_USER, new BasicDBObject("$in", u));
+		if (user != null ) {
+			query.put(Fields.ACL_USER, user.getUser());
 		}
 		if (minPerm != null & !Permission.NONE.equals(minPerm)) {
-			query.put(Fields.ACL_PERM, new BasicDBObject("$gte", minPerm.getPermission()));
+			query.put(Fields.ACL_PERM, new Document("$gte", minPerm.getPermission()));
 		}
-		final DBObject proj = new BasicDBObject();
+		final Document proj = new Document();
 		proj.put(Fields.MONGO_ID, 0);
 		proj.put(Fields.ACL_USER, 1);
 		proj.put(Fields.ACL_PERM, 1);
 		proj.put(Fields.ACL_WSID, 1);
 		
-		final Map<ResolvedWorkspaceID, Map<User, Permission>> wsidToPerms =
-				new HashMap<ResolvedWorkspaceID, Map<User, Permission>>();
-		final Map<Long, List<DBObject>> noWS = new HashMap<Long, List<DBObject>>();
+		final Map<ResolvedWorkspaceID, Map<User, Permission>> wsidToPerms = new HashMap<>();
+		final Map<Long, List<Document>> noWS = new HashMap<>();
 		try {
-			final DBCursor res = wsmongo.getCollection(workspaceACLCollection).find(query, proj);
-			for (final DBObject m: res) {
-				final Long id = (Long) m.get(Fields.ACL_WSID);
+			for (final Document m: wsACL.find(query).projection(proj)) {
+				final Long id = m.getLong(Fields.ACL_WSID);
 				if (!idToWS.containsKey(id)) {
 					if (!noWS.containsKey(id)) {
-						noWS.put(id, new LinkedList<DBObject>());
+						noWS.put(id, new LinkedList<>());
 					}
 					noWS.get(id).add(m);
 				} else {
@@ -597,7 +552,7 @@ public class QueryMethods {
 						(String) ws.get(id).get(Fields.WS_NAME),
 						(Boolean) ws.get(id).get(Fields.WS_LOCKED),
 						(Boolean) ws.get(id).get(Fields.WS_DEL));
-				for (final DBObject m: noWS.get(id)) {
+				for (final Document m: noWS.get(id)) {
 					addPerm(wsidToPerms, m, wsid);
 				}
 			}
@@ -607,13 +562,14 @@ public class QueryMethods {
 
 	private void addPerm(
 			final Map<ResolvedWorkspaceID, Map<User, Permission>> wsidToPerms,
-			final DBObject m, final ResolvedWorkspaceID wsid)
+			final Document m,
+			final ResolvedWorkspaceID wsid)
 			throws CorruptWorkspaceDBException {
 		if (!wsidToPerms.containsKey(wsid)) {
-			wsidToPerms.put(wsid, new HashMap<User, Permission>());
+			wsidToPerms.put(wsid, new HashMap<>());
 		}
 		wsidToPerms.get(wsid).put(getUser(
-				(String) m.get(Fields.ACL_USER)),
+				m.getString(Fields.ACL_USER)),
 				Permission.fromInt((Integer) m.get(Fields.ACL_PERM)));
 	}
 	

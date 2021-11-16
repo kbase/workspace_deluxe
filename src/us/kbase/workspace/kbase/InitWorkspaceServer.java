@@ -2,6 +2,7 @@ package us.kbase.workspace.kbase;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -9,7 +10,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -17,19 +17,20 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 import com.mongodb.MongoException;
 import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoDatabase;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
-import us.kbase.common.service.JsonClientCaller;
+import us.kbase.common.service.UnauthorizedException;
+import us.kbase.sampleservice.SampleServiceClient;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
@@ -51,7 +52,6 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.S3BlobStore;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
-import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
 import us.kbase.workspace.kbase.ShockIdHandlerFactory.ShockClientCloner;
@@ -173,11 +173,12 @@ public class InitWorkspaceServer {
 		final AdministratorHandler ah;
 		final Workspace ws;
 		try {
-			wsdeps = getDependencies(cfg, tfm, auth, rep);
+			wsdeps = getDependencies(cfg, auth, rep);
 			ws = new Workspace(
 					wsdeps.mongoWS,
 					new ResourceUsageConfigurationBuilder().build(),
 					wsdeps.validator,
+					tfm,
 					wsdeps.listeners);
 			ah = getAdminHandler(cfg, ws);
 		} catch (WorkspaceInitException wie) {
@@ -246,19 +247,18 @@ public class InitWorkspaceServer {
 	
 	private static WorkspaceDependencies getDependencies(
 			final KBaseWorkspaceConfig cfg,
-			final TempFilesManager tfm,
 			final ConfigurableAuthService auth,
 			final InitReporter rep) // DO NOT use the rep to report failures. Throw instead.
 			throws WorkspaceInitException {
 		
 		final WorkspaceDependencies deps = new WorkspaceDependencies();
-		//TODO CODE update to new mongo APIs
-		final DB db = buildMongo(cfg, cfg.getDBname()).getDB(cfg.getDBname());
+		final MongoDatabase db = buildMongo(cfg, cfg.getDBname()).getDatabase(cfg.getDBname());
 		
 		final BlobStore bs = setupBlobStore(db, cfg, auth);
 		
 		// see https://jira.mongodb.org/browse/JAVA-2656
-		final DB typeDB = buildMongo(cfg, cfg.getTypeDBName()).getDB(cfg.getTypeDBName());
+		final MongoDatabase typeDB = buildMongo(cfg, cfg.getTypeDBName())
+				.getDatabase(cfg.getTypeDBName());
 		
 		try {
 			deps.typeDB = new TypeDefinitionDB(new MongoTypeStorage(typeDB));
@@ -268,7 +268,7 @@ public class InitWorkspaceServer {
 		}
 		deps.validator = new TypedObjectValidator(new LocalTypeProvider(deps.typeDB));
 		try {
-			deps.mongoWS = new MongoWorkspaceDB(db, bs, tfm);
+			deps.mongoWS = new MongoWorkspaceDB(db, bs);
 		} catch (WorkspaceDBException wde) {
 			throw new WorkspaceInitException(
 					"Error initializing the workspace database: " +
@@ -324,20 +324,24 @@ public class InitWorkspaceServer {
 		// tightly coupled, although the workspace service dependency on the sample
 		// service is optional.
 		final AuthToken t = getToken(cfg.getSampleServiceToken(), auth, "Sample Service");
-		final JsonClientCaller jcc = new JsonClientCaller(cfg.getSampleServiceURL(), t);
+		final SampleServiceClient cli;
+		try {
+			cli = new SampleServiceClient(cfg.getSampleServiceURL(), t);
+		} catch (UnauthorizedException | IOException e) {
+			// these exceptions are not actually thrown by the code. The generated client
+			// needs an update
+			throw new RuntimeException("It should be impossible for this exception to get "+
+					"thrown, but here we are", e);
+		}
 		if (cfg.getSampleServiceURL().getProtocol().equals("http")) {
 			rep.reportInfo("Warning - the Sample Service url uses insecure http. " +
 					"https is recommended.");
-			jcc.setInsecureHttpConnectionAllowed(true);
+			cli.setIsInsecureHttpConnectionAllowed(true);
 		}
-		// testing the tag is basically impossible in automated tests. It should fail fast if
-		// it doesn't work though.
-		final SampleServiceClientWrapper cli = SampleServiceClientWrapper.getClient(
-				jcc, Optional.ofNullable(cfg.getSampleServiceTag()));
 		return new SampleIdHandlerFactory(cli);
 	}
 
-	private static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
+	public static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
 			throws WorkspaceInitException {
 		//TODO ZLATER MONGO handle shards & replica sets
 		try {
@@ -392,8 +396,9 @@ public class InitWorkspaceServer {
 		final Class<WorkspaceEventListenerFactory> inter =
 				(Class<WorkspaceEventListenerFactory>) cls;
 		try {
-			return inter.newInstance();
-		} catch (IllegalAccessException | InstantiationException e) {
+			return inter.getDeclaredConstructor().newInstance();
+		} catch (IllegalAccessException | InstantiationException | IllegalArgumentException |
+				InvocationTargetException | NoSuchMethodException | SecurityException e) {
 			throw new WorkspaceInitException(String.format(
 					"Module %s could not be instantiated: %s", className, e.getMessage()), e);
 		}
@@ -437,7 +442,7 @@ public class InitWorkspaceServer {
 	}
 
 	private static BlobStore setupBlobStore(
-			final DB db,
+			final MongoDatabase db,
 			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
@@ -445,26 +450,6 @@ public class InitWorkspaceServer {
 		if (cfg.getBackendType().equals(BackendType.GridFS)) {
 			return new GridFSBlobStore(db);
 		}
-		if (cfg.getBackendType().equals(BackendType.Shock)) {
-			final AuthToken token = getKBaseToken(
-					cfg.getBackendUser(), cfg.getBackendToken(), "backend", auth);
-			try {
-				return new ShockBlobStore(db.getCollection(COL_SHOCK_NODES),
-						new BasicShockClient(cfg.getBackendURL(), token));
-			} catch (InvalidShockUrlException isue) {
-				throw new WorkspaceInitException(
-						"The backend url " + cfg.getBackendURL() + " is invalid", isue);
-			} catch (ShockHttpException she) {
-				throw new WorkspaceInitException(
-						"Shock appears to be misconfigured - the client could not initialize. " +
-						"Shock said: " + she.getLocalizedMessage(), she);
-			} catch (IOException ioe) {
-				throw new WorkspaceInitException(
-						"Could not connect to the shock backend: " +
-						ioe.getLocalizedMessage(), ioe);
-			}
-		}
-		// tested manually
 		if (cfg.getBackendType().equals(BackendType.S3)) {
 			try {
 				final S3ClientWithPresign cli = new S3ClientWithPresign(
@@ -579,7 +564,7 @@ public class InitWorkspaceServer {
 	}
 
 	
-	private static class WorkspaceInitException extends Exception {
+	public static class WorkspaceInitException extends Exception {
 		
 		private static final long serialVersionUID = 1L;
 

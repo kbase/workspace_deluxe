@@ -27,9 +27,9 @@ auth-service-url = https://kbase.us/services/auth/api/legacy/KBase/Sessions/Logi
 # The KBase authorization service mkII url.
 auth2-service-url = https://kbase.us/services/auth
 
-# The urls for the Handle Service.
+# The url for the Handle Service.
 handle-service-url =
-# The credential for the account approved to assign/modify shock node ACLs.
+# The credential for the account approved to run the add_read_acl handle service method.
 handle-service-token =
 
 # The user name for a workspace administrator. This name is not permanently
@@ -45,7 +45,7 @@ ws-admin = workspaceadmin
 auth2-ws-admin-read-only-roles =
 auth2-ws-admin-full-roles =
 
-# The type of the backend that will store the workspace data. Either 'GridFS', 'S3', or 'Shock'.
+# The type of the backend that will store the workspace data. Either 'GridFS' or 'S3'.
 # WARNING: Once any data has been saved by the workspace, changing the backend will result in
 # unspecified behavior, including data corruption.
 backend-type = GridFS
@@ -53,8 +53,7 @@ backend-type = GridFS
 # Token / access secret for the backend account. Not required for GridFS.
 backend-token =
 
-# Username / access key for the backend account. For Shock, this name is checked against the
-# token as a safety measure.
+# Username / access key for the backend account.
 # WARNING: Once any data has been saved by the workspace, changing the backend user
 # (except for the GridFS backend) will result in unspecified behavior, including data corruption.
 # Changing the access key for the S3 backend is acceptable as long as the new access key is
@@ -62,7 +61,7 @@ backend-token =
 backend-user =
 
 # URL for the backend service. Not required for GridFS.
-backend-url = https://kbase.us/services/shock-api
+backend-url = 
 
 # Container for data in the backend service. Only required for S3 - this is the bucket name in
 # which objects will be stored.
@@ -80,17 +79,13 @@ backend-region = us-west-1
 # *WARNING* Do not set this to true unless you are absolutely sure of what you are doing.
 backend-trust-all-ssl-certificates = false
 
-# The next three configuration items are for handling workspace objects that link to Shock nodes.
-# The Shock service may or may not be the same as the Shock service used for backend
-# storage. Similarly, the account used to own linked shock nodes may be the same as that
-# used for contacting the Shock backend, but it is strongly advised that different accounts
-# are used so that system administrators can distinguish between core workspace data and
-# linked Shock data.
-# If the bytestream-url is not supplied, attempting to save objects with Shock links will fail,
-# and retrieving objects with shock IDs will contain errors in the returned data JSON.
+# The next three configuration items are for handling workspace objects that link to Blobstore
+# nodes.
+# If the bytestream-url is not supplied, attempting to save objects with Blpbstore links will fail,
+# and retrieving objects with Blobstore IDs will contain errors in the returned data JSON.
 # Like the backend-user configuration item, bytestream-user is checked against bytestream-token
 # as a safety measure.
-# bytestream-token must have administrative privileges for Shock.
+# bytestream-token must have administrative privileges for the Blobstore.
 bytestream-url =
 bytestream-user =
 bytestream-token =
@@ -101,11 +96,6 @@ sample-service-url =
 # Sample service administrator token. The token must possess full read/write administrator
 # rights for the sample service.
 sample-service-administrator-token =
-# Sample service service tag. If left blank, the url will be presumed to be a direct url to
-# the sample service. Otherwise, the release tag will be used to look up the url in the KBase
-# service wizard, the url of which should be provided in the sample-service-url field.
-# Examples: dev, beta, release, a git hash.
-sample-service-tag =
 
 # Port for the service.
 port = 7058

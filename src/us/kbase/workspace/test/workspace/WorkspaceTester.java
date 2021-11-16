@@ -6,8 +6,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE_0_1;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE_1_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE_2_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_0_1;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_1_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_2_0;
+import static us.kbase.workspace.test.WorkspaceTestCommon.ATYPE2_2_1;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,6 +32,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -37,12 +44,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
-import us.kbase.auth.AuthToken;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.shock.client.BasicShockClient;
-import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
@@ -83,11 +87,9 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.S3BlobStore;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
-import us.kbase.workspace.database.mongo.ShockBlobStore;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.minio.MinioController;
-import us.kbase.workspace.test.controllers.shock.ShockController;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import software.amazon.awssdk.regions.Region;
@@ -95,15 +97,12 @@ import software.amazon.awssdk.regions.Region;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 @RunWith(Parameterized.class)
 public class WorkspaceTester {
 	
-	private static final boolean SKIP_SHOCK = false;
-
 	protected static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	protected static final String LONG_TEXT_PART =
@@ -145,8 +144,6 @@ public class WorkspaceTester {
 	
 	private static MongoController mongo = null;
 	private static MinioController minio = null;
-	private static ShockController shock = null;
-	private static AuthController auth = null;
 	protected static TempFilesManager tfm;
 	
 	protected static final WorkspaceUser SOMEUSER = new WorkspaceUser("auser");
@@ -155,20 +152,13 @@ public class WorkspaceTester {
 	protected static final WorkspaceUser CUSER = new WorkspaceUser("c");
 	protected static final AllUsers STARUSER = new AllUsers('*');
 	
-	protected static final TypeDefId SAFE_TYPE1 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
-	protected static final TypeDefId SAFE_TYPE2 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 0, 1);
-	protected static final TypeDefId SAFE_TYPE1_10 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType"), 1, 0);
-	protected static final TypeDefId SAFE_TYPE2_10 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 1, 0);
-	protected static final TypeDefId SAFE_TYPE1_20 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType"), 2, 0);
-	protected static final TypeDefId SAFE_TYPE2_20 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 0);
-	protected static final TypeDefId SAFE_TYPE2_21 =
-			new TypeDefId(new TypeDefName("SomeModule", "AType2"), 2, 1);
+	protected static final TypeDefId SAFE_TYPE1 = ATYPE_0_1;
+	protected static final TypeDefId SAFE_TYPE2 = ATYPE2_0_1;
+	protected static final TypeDefId SAFE_TYPE1_10 = ATYPE_1_0;
+	protected static final TypeDefId SAFE_TYPE2_10 = ATYPE2_1_0;
+	protected static final TypeDefId SAFE_TYPE1_20 = ATYPE_2_0;
+	protected static final TypeDefId SAFE_TYPE2_20 = ATYPE2_2_0;
+	protected static final TypeDefId SAFE_TYPE2_21 = ATYPE2_2_1;
 	
 	protected static final TypeDefId REF_TYPE =
 			new TypeDefId(new TypeDefName("CopyRev", "RefType"), 0, 1);
@@ -180,22 +170,12 @@ public class WorkspaceTester {
 	@Parameters
 	public static Collection<Object[]> generateData() throws Exception {
 		printMem("*** startup ***");
-		List<Object[]> tests;
-		if (SKIP_SHOCK) {
-			System.out.println("Skipping shock backend tests");
-			tests = Arrays.asList(new Object[][] {
-					{"mongo", "mongo", null},
-					{"mongoUseFile", "mongo", 1},
-					{"minio", "minio", null}
-			});
-		} else {
-			tests = Arrays.asList(new Object[][] {
-					{"mongo", "mongo", null},
-					{"mongoUseFile", "mongo", 1},
-					{"minio", "minio", null},
-					{"shock", "shock", null}
-			});
-		}
+		List<Object[]> tests = Arrays.asList(new Object[][] {
+				{"mongo", "mongo", null},
+				{"mongoUseFile", "mongo", 1},
+				{"minio", "minio", null}
+		});
+		// tf? nothing's happened to change the memory usage
 		printMem("*** startup complete ***");
 		return tests;
 	}
@@ -204,12 +184,6 @@ public class WorkspaceTester {
 	public static void tearDownClass() throws Exception {
 		if (minio != null) {
 			minio.destroy(TestCommon.getDeleteTempFiles());
-		}
-		if (shock != null) {
-			shock.destroy(TestCommon.getDeleteTempFiles());
-		}
-		if (auth != null) {
-			auth.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (mongo != null) {
 			mongo.destroy(TestCommon.getDeleteTempFiles());
@@ -248,30 +222,21 @@ public class WorkspaceTester {
 			System.out.println("Started test mongo instance at localhost:" +
 					mongo.getServerPort());
 		}
-		if (auth == null) {
-			final String dbname = WorkspaceTester.class.getSimpleName() + "Auth";
-			auth = new AuthController(
-					TestCommon.getJarsDir(),
-					"localhost:" + mongo.getServerPort(),
-					dbname,
-					Paths.get(TestCommon.getTempDir()));
-			final URL authURL = new URL("http://localhost:" + auth.getServerPort() + "/testmode");
-			System.out.println("started auth server at " + authURL);
-		}
 		if (!CONFIGS.containsKey(config)) {
-			final DB wsdb = new MongoClient("localhost:" + mongo.getServerPort())
-					.getDB(DB_WS_NAME);
-			WorkspaceTestCommon.destroyWSandTypeDBs(wsdb, DB_TYPE_NAME);
+			@SuppressWarnings("resource")
+			final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
+			final MongoDatabase wsdb = mcli.getDatabase(DB_WS_NAME);
+			final MongoDatabase tdb = mcli.getDatabase(DB_TYPE_NAME);
+			TestCommon.destroyDB(wsdb);
+			TestCommon.destroyDB(tdb);
 			System.out.println("Starting test suite with parameters:");
 			System.out.println(String.format(
 					"\tConfig: %s, Backend: %s, MaxMemPerCall: %s",
 					config, backend, maxMemoryUsePerCall));
-			if ("shock".equals(backend)) {
-				CONFIGS.put(config, setUpShock(wsdb, maxMemoryUsePerCall));
-			} else if("mongo".equals(backend)) {
-				CONFIGS.put(config, setUpMongo(wsdb, maxMemoryUsePerCall));
+			if("mongo".equals(backend)) {
+				CONFIGS.put(config, setUpMongo(wsdb, tdb, maxMemoryUsePerCall));
 			} else if ("minio".equals(backend)) {
-				CONFIGS.put(config, setUpMinio(wsdb, maxMemoryUsePerCall));
+				CONFIGS.put(config, setUpMinio(wsdb, tdb, maxMemoryUsePerCall));
 			} else {
 				throw new TestException("Unknown backend: " + config);
 			}
@@ -290,11 +255,18 @@ public class WorkspaceTester {
 		}
 	}
 	
-	private WSandTypes setUpMongo(DB wsdb, Integer maxMemoryUsePerCall) throws Exception {
-		return setUpWorkspaces(wsdb, new GridFSBlobStore(wsdb), maxMemoryUsePerCall);
+	private WSandTypes setUpMongo(
+			final MongoDatabase wsdb,
+			final MongoDatabase tdb,
+			final Integer maxMemoryUsePerCall)
+			throws Exception {
+		return setUpWorkspaces(wsdb, tdb, new GridFSBlobStore(wsdb), maxMemoryUsePerCall);
 	}
 	
-	private WSandTypes setUpMinio(final DB wsdb, final Integer maxMemoryUsePerCall)
+	private WSandTypes setUpMinio(
+			final MongoDatabase wsdb,
+			final MongoDatabase tdb,
+			final Integer maxMemoryUsePerCall)
 			throws Exception {
 		if (minio == null) {
 			minio = new MinioController(
@@ -312,58 +284,25 @@ public class WorkspaceTester {
 				Region.of("us-west-1"),
 				false);
 		final BlobStore bs = new S3BlobStore(wsdb.getCollection("s3_map"), cli, "test-bucket");
-		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
-	}
-	
-	private WSandTypes setUpShock(DB wsdb, Integer maxMemoryUsePerCall)
-			throws Exception {
-		final URL authURL = new URL("http://localhost:" + auth.getServerPort() + "/testmode");
-		TestCommon.createAuthUser(authURL, "user1", "display1");
-		final String token1 = TestCommon.createLoginToken(authURL, "user1");
-		final AuthToken t = new AuthToken(token1, "user1");
-		if (shock == null) {
-			shock = new ShockController(
-					TestCommon.getShockExe(),
-					TestCommon.getShockVersion(),
-					Paths.get(TestCommon.getTempDir()),
-					"***---fakeuser---***",
-					"localhost:" + mongo.getServerPort(),
-					"WorkspaceTester_ShockDB",
-					null,
-					null,
-					new URL(authURL.toString() + "/api/legacy/globus"));
-			System.out.println("Shock controller version: " +
-					shock.getVersion());
-			if (shock.getVersion() == null) {
-				System.out.println(
-						"Unregistered version - Shock may not start correctly");
-			}
-			System.out.println("Using Shock temp dir " + shock.getTempDir());
-		}
-		URL shockUrl = new URL("http://localhost:" + shock.getServerPort());
-		BlobStore bs = new ShockBlobStore(
-				wsdb.getCollection("shock_nodes"), new BasicShockClient(shockUrl, t));
-		return setUpWorkspaces(wsdb, bs, maxMemoryUsePerCall);
+		return setUpWorkspaces(wsdb, tdb, bs, maxMemoryUsePerCall);
 	}
 	
 	private WSandTypes setUpWorkspaces(
-			final DB db,
+			final MongoDatabase wsdb,
+			final MongoDatabase tdb,
 			final BlobStore bs,
 			final Integer maxMemoryUsePerCall)
 			throws Exception {
 		
-		tfm = new TempFilesManager(
-				new File(TestCommon.getTempDir()));
+		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		tfm.cleanup();
 		
-		final DB tdb = new MongoClient("localhost:" + mongo.getServerPort())
-				.getDB(DB_TYPE_NAME);
 		final TypeDefinitionDB typeDefDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
 		final TypedObjectValidator val = new TypedObjectValidator(
 				new LocalTypeProvider(typeDefDB));
-		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(db, bs, tfm);
+		final MongoWorkspaceDB mwdb = new MongoWorkspaceDB(wsdb, bs);
 		final Workspace work = new Workspace(
-				mwdb, new ResourceUsageConfigurationBuilder().build(), val);
+				mwdb, new ResourceUsageConfigurationBuilder().build(), val, tfm);
 		final Types t = new Types(typeDefDB);
 		if (maxMemoryUsePerCall != null) {
 			final ResourceUsageConfigurationBuilder build =
@@ -375,49 +314,9 @@ public class WorkspaceTester {
 		return new WSandTypes(work, t);
 	}
 		
-	private void installSpecs(Types t) throws Exception {
-		//make a general spec that tests that don't worry about typechecking can use
+	private void installSpecs(final Types t) throws Exception {
 		WorkspaceUser foo = new WorkspaceUser("foo");
-		//simple spec
-		t.requestModuleRegistration(foo, "SomeModule");
-		t.resolveModuleRegistration("SomeModule", true);
-		t.compileNewTypeSpec(foo, 
-				"module SomeModule {" +
-					"/* @optional thing */" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType;" +
-					"/* @optional thing */" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType2;" +
-				"};",
-				Arrays.asList("AType", "AType2"), null, null, false, null);
-		t.releaseTypes(foo, "SomeModule");
-		t.compileNewTypeSpec(foo, 
-				"module SomeModule {" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType;" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType2;" +
-				"};",
-				null, null, null, false, null);
-		t.releaseTypes(foo, "SomeModule");
-		t.compileNewTypeSpec(foo, 
-				"module SomeModule {" +
-					"typedef structure {" +
-						"string thing;" +
-					"} AType;" +
-					"/* @optional thing2 */" +
-					"typedef structure {" +
-						"string thing;" +
-						"string thing2;" +
-					"} AType2;" +
-				"};",
-				null, null, null, false, null);
-		t.releaseTypes(foo, "SomeModule");
+		WorkspaceTestCommon.installBasicSpecs(foo, t);
 		
 		//spec that simply references another object
 		final String specRefType =
@@ -1923,8 +1822,8 @@ public class WorkspaceTester {
 			int limit, int minid, int maxid, Set<Long> exlude) 
 			throws Exception {
 		List<ObjectInformation> res = ws.listObjects(
-				new ListObjectsParameters(user, Arrays.asList(wsi))
-				.withLimit(limit));
+				ListObjectsParameters.getBuilder(Arrays.asList(wsi))
+						.withUser(user).withLimit(limit).build());
 		assertThat("correct number of objects returned", res.size(),
 				is(maxid - minid + 1 - exlude.size()));
 		for (ObjectInformation oi: res) {
@@ -1974,8 +1873,8 @@ public class WorkspaceTester {
 			final Map<String, String> meta,
 			final Exception e) {
 		try {
-			ws.listObjects(new ListObjectsParameters(user, wsis)
-					.withMetadata(new WorkspaceUserMetadata(meta)));
+			ws.listObjects(ListObjectsParameters.getBuilder(wsis)
+					.withUser(user).withMetadata(new WorkspaceUserMetadata(meta)).build());
 			fail("listed obj when should fail");
 		} catch (Exception exp) {
 			assertExceptionCorrect(exp, e);

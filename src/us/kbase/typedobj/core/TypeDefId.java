@@ -13,7 +13,11 @@ public class TypeDefId {
 	protected final TypeDefName type;
 	protected final Integer majorVersion;
 	protected final Integer minorVersion;
+	// TODO CODE there should probably be different classes for MD5 and standard types
 	protected final MD5 md5;
+	
+	// TODO JAVADOC
+	// TODO TEST clean up and complete tests. 
 
 	public TypeDefId(final TypeDefName type, final int majorVersion,
 			final int minorVersion) {
@@ -161,23 +165,6 @@ public class TypeDefId {
 		return (minorVersion != null) || (md5 != null);
 	}
 	
-	//TODO TEST getTypePrefix()
-	public String getTypePrefix() {
-		String t = type.getTypeString() + TYPE_VER_SEP;
-		if (majorVersion == null) {
-			if (md5 != null) {
-				return t + md5;
-			} else {
-				return t;
-			}
-		}
-		t += majorVersion + TYPE_SEP;
-		if (minorVersion == null) {
-			return t;
-		}
-		return t + minorVersion;
-	}
-	
 	public String getTypeString() {
 		String t = type.getTypeString();
 		final String v = getVerString();
@@ -185,6 +172,17 @@ public class TypeDefId {
 			t += TYPE_VER_SEP + v;
 		}
 		return t;
+	}
+	
+	/** Get the type string including the major version, e.g. Module.Type-1.
+	 * @return the type string
+	 * @throws IllegalStateException if the major version is not present.
+	 */
+	public String getTypeStringMajorVersion() {
+		if (majorVersion == null) {
+			throw new IllegalStateException("The major type version is not present");
+		}
+		return type.getTypeString() + TYPE_VER_SEP + majorVersion;
 	}
 	
 	public String getVerString() {

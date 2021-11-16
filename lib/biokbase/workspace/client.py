@@ -3038,40 +3038,52 @@ class Workspace(object):
         """
         List objects in one or more workspaces.
         :param params: instance of type "ListObjectsParams" (Parameters for
-           the 'list_objects' function. At least one of the following filters
-           must be provided. It is strongly recommended that the list is
-           restricted to the workspaces of interest, or the results may be
-           very large: list<ws_id> ids - the numerical IDs of the workspaces
-           of interest. list<ws_name> workspaces - the names of the
-           workspaces of interest. type_string type - type of the objects to
-           be listed.  Here, omitting version information will find any
-           objects that match the provided type - e.g. Foo.Bar-0 will match
-           Foo.Bar-0.X where X is any existing version. Only one of each
-           timestamp/epoch pair may be supplied. Optional arguments:
-           permission perm - filter objects by minimum permission level.
-           'None' and 'readable' are ignored. list<username> savedby - filter
-           objects by the user that saved or copied the object. usermeta meta
-           - filter objects by the user supplied metadata. NOTE: only one
-           key/value pair is supported at this time. A full map is provided
-           as input for the possibility for expansion in the future.
-           timestamp after - only return objects that were created after this
-           date. timestamp before - only return objects that were created
-           before this date. epoch after_epoch - only return objects that
-           were created after this date. epoch before_epoch - only return
-           objects that were created before this date. obj_id minObjectID -
-           only return objects with an object id greater or equal to this
-           value. obj_id maxObjectID - only return objects with an object id
-           less than or equal to this value. boolean showDeleted - show
-           deleted objects in workspaces to which the user has write access.
-           boolean showOnlyDeleted - only show deleted objects in workspaces
-           to which the user has write access. boolean showHidden - show
-           hidden objects. boolean showAllVersions - show all versions of
-           each object that match the filters rather than only the most
-           recent version. boolean includeMetadata - include the user
-           provided metadata in the returned object_info. If false (0 or
-           null), the default, the metadata will be null. boolean
-           excludeGlobal - exclude objects in global workspaces. This
-           parameter only has an effect when filtering by types alone. int
+           the 'list_objects' function. At least one, and no more than 10000,
+           workspaces must be specified in one of the two following
+           parameters. It is strongly recommended that the list is restricted
+           to the workspaces of interest, or the results may be very large:
+           list<ws_id> ids - the numerical IDs of the workspaces of interest.
+           list<ws_name> workspaces - the names of the workspaces of
+           interest. Only one of each timestamp/epoch pair may be supplied.
+           Optional arguments: type_string type - type of the objects to be
+           listed.  Here, omitting version information will find any objects
+           that match the provided type - e.g. Foo.Bar-0 will match
+           Foo.Bar-0.X where X is any existing version. permission perm -
+           DEPRECATED, no longer useful. Filter on minimum permission by
+           providing only workspaces with the desired permission levels in
+           the input list(s). list<username> savedby - filter objects by the
+           user that saved or copied the object. usermeta meta - filter
+           objects by the user supplied metadata. NOTE: only one key/value
+           pair is supported at this time. A full map is provided as input
+           for the possibility for expansion in the future. timestamp after -
+           only return objects that were created after this date. timestamp
+           before - only return objects that were created before this date.
+           epoch after_epoch - only return objects that were created after
+           this date. epoch before_epoch - only return objects that were
+           created before this date. string startafter - a reference-like
+           string that determines where the list of objects will begin. It
+           takes the form X/Y/Z, where X is the workspace ID, Y the object
+           ID, and Z the version. The version may be omitted, and the object
+           ID omitted if the version is also omitted. After a '/' separator
+           either an integer or no characters at all, including whitespace,
+           may occur. Whitespace strings are ignored. If startafter is
+           provided, after, before, after_epoch, before_epoch, savedby, meta,
+           minObjectID, and maxObjectID may not be provided. Only objects
+           that are ordered after the reference, exclusive, will be included
+           in the result, and the resulting list will be sorted by reference.
+           obj_id minObjectID - only return objects with an object id greater
+           or equal to this value. obj_id maxObjectID - only return objects
+           with an object id less than or equal to this value. boolean
+           showDeleted - show deleted objects in workspaces to which the user
+           has write access. boolean showOnlyDeleted - only show deleted
+           objects in workspaces to which the user has write access. boolean
+           showHidden - show hidden objects. boolean showAllVersions - show
+           all versions of each object that match the filters rather than
+           only the most recent version. boolean includeMetadata - include
+           the user provided metadata in the returned object_info. If false
+           (0 or null), the default, the metadata will be null. boolean
+           excludeGlobal - DEPRECATED, no longer useful. Filter on global
+           workspaces by excluding them from the input workspace list(s). int
            limit - limit the output to X objects. Default and maximum value
            is 10000. Limit values < 1 are treated as 10000, the default.) ->
            structure: parameter "workspaces" of list of type "ws_name" (A
@@ -3113,18 +3125,19 @@ class Workspace(object):
            time)), parameter "after_epoch" of type "epoch" (A Unix epoch (the
            time since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter
            "before_epoch" of type "epoch" (A Unix epoch (the time since
-           00:00:00 1/1/1970 UTC) in milliseconds.), parameter "minObjectID"
-           of type "obj_id" (The unique, permanent numerical ID of an
-           object.), parameter "maxObjectID" of type "obj_id" (The unique,
-           permanent numerical ID of an object.), parameter "showDeleted" of
-           type "boolean" (A boolean. 0 = false, other = true.), parameter
-           "showOnlyDeleted" of type "boolean" (A boolean. 0 = false, other =
-           true.), parameter "showHidden" of type "boolean" (A boolean. 0 =
-           false, other = true.), parameter "showAllVersions" of type
+           00:00:00 1/1/1970 UTC) in milliseconds.), parameter "startafter"
+           of String, parameter "minObjectID" of type "obj_id" (The unique,
+           permanent numerical ID of an object.), parameter "maxObjectID" of
+           type "obj_id" (The unique, permanent numerical ID of an object.),
+           parameter "showDeleted" of type "boolean" (A boolean. 0 = false,
+           other = true.), parameter "showOnlyDeleted" of type "boolean" (A
+           boolean. 0 = false, other = true.), parameter "showHidden" of type
            "boolean" (A boolean. 0 = false, other = true.), parameter
-           "includeMetadata" of type "boolean" (A boolean. 0 = false, other =
-           true.), parameter "excludeGlobal" of type "boolean" (A boolean. 0
-           = false, other = true.), parameter "limit" of Long
+           "showAllVersions" of type "boolean" (A boolean. 0 = false, other =
+           true.), parameter "includeMetadata" of type "boolean" (A boolean.
+           0 = false, other = true.), parameter "excludeGlobal" of type
+           "boolean" (A boolean. 0 = false, other = true.), parameter "limit"
+           of Long
         :returns: instance of list of type "object_info" (Information about
            an object, including user provided metadata. obj_id objid - the
            numerical id of the object. obj_name name - the name of the

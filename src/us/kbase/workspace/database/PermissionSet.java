@@ -33,6 +33,18 @@ public class PermissionSet {
 		public boolean isWorldReadable() {
 			return worldRead;
 		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			Perms other = (Perms) obj;
+			if (perm != other.perm)
+				return false;
+			if (worldRead != other.worldRead)
+				return false;
+			return true;
+		}
 
 		@Override
 		public String toString() {
@@ -153,6 +165,43 @@ public class PermissionSet {
 		return perms.isEmpty();
 	}
 	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((globalUser == null) ? 0 : globalUser.hashCode());
+		result = prime * result + ((perms == null) ? 0 : perms.hashCode());
+		result = prime * result + ((user == null) ? 0 : user.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		PermissionSet other = (PermissionSet) obj;
+		if (globalUser == null) {
+			if (other.globalUser != null)
+				return false;
+		} else if (!globalUser.equals(other.globalUser))
+			return false;
+		if (perms == null) {
+			if (other.perms != null)
+				return false;
+		} else if (!perms.equals(other.perms))
+			return false;
+		if (user == null) {
+			if (other.user != null)
+				return false;
+		} else if (!user.equals(other.user))
+			return false;
+		return true;
+	}
+
 	@Override
 	public String toString() {
 		return "PermissionSet [user=" + user + ", globalUser="

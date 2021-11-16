@@ -66,6 +66,7 @@ public class WorkspaceUserMetadata {
 		}
 	}
 	
+	// TODO CODE IMMUTABILITY see if these methods can return a new class vs. mutating current
 	/** Adds metadata to this container, overwriting any existing metadata with
 	 * the same key.
 	 * @param meta the metadata to add. A null value results in a no-op.
