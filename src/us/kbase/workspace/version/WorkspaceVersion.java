@@ -4,6 +4,6 @@ package us.kbase.workspace.version;
 public class WorkspaceVersion {
 	
 	/** The version. */
-	public static final String VERSION = "0.12.0-dev3";
+	public static final String VERSION = "0.12.0";
 
 }
