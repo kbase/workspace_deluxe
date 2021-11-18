@@ -40,7 +40,7 @@ import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitException;
 
 public class SchemaUpdaterCLITest {
 	
-	private static final String VERSION = "0.12.0";
+	private static final String VERSION = "0.12.1-dev1";
 	
 	private static final List<String> HELP = list(
 			"Usage: update_workspace_database_schema [-choV] <CONFIG_FILE>",
