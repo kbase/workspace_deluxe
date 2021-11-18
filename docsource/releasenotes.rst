@@ -3,6 +3,11 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.12.1 (Released TBD)
+-----------------------------------
+
+* nada
+
 VERSION: 0.12.0 (Released 11/16/21)
 -----------------------------------
 
