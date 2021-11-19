@@ -3,7 +3,8 @@ name: Tag Prod Latest
 'on':
   pull_request:
     branches:
-    - master, 0.12.0-hotfix
+    - master
+    - 0.12.0-hotfix
     types:
     - closed
 jobs:
