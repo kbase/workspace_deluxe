@@ -3,7 +3,7 @@ name: Build Prod RC Image
 'on':
   pull_request:
     branches:
-    - master
+    - master, 0.12.0-hotfix
     types:
     - opened
     - synchronize
