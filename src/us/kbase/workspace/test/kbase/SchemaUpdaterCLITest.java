@@ -43,19 +43,20 @@ public class SchemaUpdaterCLITest {
 	private static final String VERSION = "0.12.0";
 	
 	private static final List<String> HELP = list(
-			"Usage: update_workspace_database_schema [-choV] <CONFIG_FILE>",
+			"Usage: update_workspace_database_schema [-chosV] <CONFIG_FILE>",
 			"Update the workspace database to the current version.",
 			"Please read the upgrade documentation carefully before running this script.",
-			"      <CONFIG_FILE>   The configuration file (usually called deploy.cfg) for",
-			"                        the workspace service to modify.",
-			"  -c, --complete      Complete the upgrade. WARNING: DO NOT complete the",
-			"                        upgrade unless no other processes are writing to the",
-			"                        workspace database.",
-			"  -h, --help          Show this help message and exit.",
+			"      <CONFIG_FILE>        The configuration file (usually called deploy.cfg)",
+			"                             for the workspace service to modify.",
+			"  -c, --complete           Complete the upgrade. WARNING: DO NOT complete the",
+			"                             upgrade unless no other processes are writing to",
+			"                             the workspace database.",
+			"  -h, --help               Show this help message and exit.",
 			"  -o, --override-version-check",
-			"                      Allow the upgrade to continue even if the database schema",
-			"                        version indicates it is complete.",
-			"  -V, --version       Print version information and exit."
+			"                           Allow the upgrade to continue even if the database",
+			"                             schema version indicates it is complete.",
+			"  -s, --print-stacktrace   On an error, print a stacktrace if available.",
+			"  -V, --version            Print version information and exit."
 			);
 
 	private static final Map<String, String> VALID_CONFIG = MapBuilder.<String, String>newHashMap()
