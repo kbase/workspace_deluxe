@@ -3,6 +3,13 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.12.0-hotfix1 (Released TBD)
+--------------------------------------
+
+UPDATES:
+
+* Added the --print-stacktrace option to the schema updater
+
 VERSION: 0.12.0 (Released 11/16/21)
 -----------------------------------
 
