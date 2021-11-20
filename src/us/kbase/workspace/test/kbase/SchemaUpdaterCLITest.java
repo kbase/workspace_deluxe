@@ -261,7 +261,7 @@ public class SchemaUpdaterCLITest {
 				err,
 				"us.kbase.workspace.kbase.KBaseWorkspaceConfig$KBaseWorkspaceConfigException: " +
 						"Could not read from configuration file super_fake_file:",
-				"at java.base/java.io.FileInputStream.open(FileInputStream.java",
+				"Caused by: java.io.FileNotFoundException: /",
 				".workspace.kbase.KBaseWorkspaceConfig.getConfigMap(KBaseWorkspaceConfig.java"
 				);
 		runUpdater(new Mocks(), array("-s", file.toString()), "", expectedErrs, 2);
