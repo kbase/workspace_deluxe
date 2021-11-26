@@ -44,7 +44,7 @@ public class SchemaUpdaterCLITest {
 	private static final String VERSION = "0.12.0-hotfix1";
 	
 	private static final List<String> HELP = list(
-			"Usage: update_workspace_database_schema [-chosV] <CONFIG_FILE>",
+			"Usage: update_workspace_database_schema [-chostV] <CONFIG_FILE>",
 			"Update the workspace database to the current version.",
 			"Please read the upgrade documentation carefully before running this script.",
 			"      <CONFIG_FILE>        The configuration file (usually called deploy.cfg)",
@@ -57,6 +57,7 @@ public class SchemaUpdaterCLITest {
 			"                           Allow the upgrade to continue even if the database",
 			"                             schema version indicates it is complete.",
 			"  -s, --print-stacktrace   On an error, print a stacktrace if available.",
+			"  -t, --test-index         Test index creation",
 			"  -V, --version            Print version information and exit."
 			);
 

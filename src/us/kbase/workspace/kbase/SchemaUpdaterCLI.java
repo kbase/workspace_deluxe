@@ -7,10 +7,15 @@ import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
+import org.bson.Document;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoException;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.IndexOptions;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -21,6 +26,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Spec;
+import us.kbase.workspace.database.mongo.CollectionNames;
 import us.kbase.workspace.database.mongo.SchemaUpdater;
 import us.kbase.workspace.database.mongo.SchemaUpdater.SchemaUpdateException;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitException;
@@ -62,6 +68,9 @@ public class SchemaUpdaterCLI implements Callable<Integer>{
 	@Option(names = {"-s", "--print-stacktrace"},
 			description = "On an error, print a stacktrace if available.")
 	private boolean stacktrace;
+	
+	@Option(names = {"-t", "--test-index"}, description = "Test index creation")
+	private boolean testIndex;
 	
 	static {
 		// mongo sure is chatty
@@ -143,9 +152,19 @@ public class SchemaUpdaterCLI implements Callable<Integer>{
 					"Invalid specification file %s", configFile.toAbsolutePath()));
 		}
 		try (final MongoClient mc = mongoProvider.provide(cfg)) {
+			final String col = CollectionNames.COL_WORKSPACE_VERS;
+			if (testIndex) {
+				cl.getOut().println("testing index creation w/ old & new mongo APIs");
+				final DB dbold = mc.getDB(cfg.getDBname());
+				dbold.getCollection(col).createIndex(
+						new BasicDBObject("meta", 1), new BasicDBObject("sparse", 1));
+				final MongoDatabase dbnew = mc.getDatabase(cfg.getDBname());
+				dbnew.getCollection(col).createIndex(
+						new Document("meta", 1), new IndexOptions().sparse(true));
+			}
 			final MongoDatabase db = mc.getDatabase(cfg.getDBname());
 			updater.update(db, s -> cl.getOut().println(s), complete, override);
-		} catch (SchemaUpdateException | WorkspaceInitException e) {
+		} catch (SchemaUpdateException | WorkspaceInitException | MongoException e) {
 			printStackTrace(cl, e);
 			throw new ParameterException(cl, e.getLocalizedMessage(), e);
 		}
