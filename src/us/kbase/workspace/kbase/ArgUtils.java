@@ -417,7 +417,7 @@ public class ArgUtils {
 			} catch (IOException e) {
 				// impossible to test in integration tests, shouldn't occur
 				throw new RuntimeException(
-						"An unexpected error occured: " + e.getLocalizedMessage(), e);
+						"An unexpected error occurred: " + e.getLocalizedMessage(), e);
 			}
 			ret.add(new ObjectData()
 					.withData(data)
