@@ -1524,65 +1524,68 @@ class Workspace(object):
            accessed; return null for that object's information instead.
            Default false. boolean no_data - return the provenance,
            references, and object_info for this object without the object
-           data. Default false.) -> structure: parameter "objects" of list of
-           type "ObjectSpecification" (An Object Specification (OS). Inherits
-           from ObjectIdentity (OI). Specifies which object, and which parts
-           of that object, to retrieve from the Workspace Service. The fields
-           wsid, workspace, objid, name, and ver are identical to the OI
-           fields. The ref field's behavior is extended from OI. It maintains
-           its previous behavior, but now also can act as a reference string.
-           See reference following below for more information. REFERENCE
-           FOLLOWING: Reference following guarantees that a user that has
-           access to an object can always see a) objects that are referenced
-           inside the object and b) objects that are referenced in the
-           object's provenance. This ensures that the user has visibility
-           into the entire provenance of the object and the object's object
-           dependencies (e.g. references). The user must have at least read
-           access to the object specified in this SO, but need not have
-           access to any further objects in the reference chain, and those
-           objects may be deleted. Optional reference following fields: Note
-           that only one of the following fields may be specified. ref_chain
-           obj_path - a path to the desired object from the object specified
-           in this OS. In other words, the object specified in this OS is
-           assumed to be accessible to the user, and the objects in the
-           object path represent a chain of references to the desired object
-           at the end of the object path. If the references are all valid,
-           the desired object will be returned. - OR - list<obj_ref>
-           obj_ref_path - shorthand for the obj_path. - OR - ref_chain
-           to_obj_path - identical to obj_path, except that the path is TO
-           the object specified in this OS, rather than from the object. In
-           other words the object specified by wsid/objid/ref etc. is the end
-           of the path, and to_obj_path is the rest of the path. The user
-           must have access to the first object in the to_obj_path. - OR -
-           list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path. -
-           OR - ref_string ref - A string representing a reference path from
-           one object to another. Unlike the previous reference following
-           options, the ref_string represents the ENTIRE path from the source
-           object to the target object. As with the OI object, the ref field
-           may contain a single reference. - OR - boolean find_refence_path -
-           This is the last, slowest, and most expensive resort for getting a
-           referenced object - do not use this method unless the path to the
-           object is unavailable by any other means. Setting the
-           find_refence_path parameter to true means that the workspace
-           service will search through the object reference graph from the
-           object specified in this OS to find an object that 1) the user can
-           access, and 2) has an unbroken reference path to the target
-           object. If the search succeeds, the object will be returned as
-           normal. Note that the search will automatically fail after a
-           certain (but much larger than necessary for the vast majority of
-           cases) number of objects are traversed. OBJECT SUBSETS: When
-           selecting a subset of an array in an object, the returned array is
-           compressed to the size of the subset, but the ordering of the
-           array is maintained. For example, if the array stored at the
-           'feature' key of a Genome object has 4000 entries, and the object
-           paths provided are: /feature/7 /feature/3015 /feature/700 The
-           returned feature array will be of length three and the entries
-           will consist, in order, of the 7th, 700th, and 3015th entries of
-           the original array. Optional object subset fields:
-           list<object_path> included - the portions of the object to include
-           in the object subset. boolean strict_maps - if true, throw an
-           exception if the subset specification traverses a non-existent map
-           key (default false) boolean strict_arrays - if true, throw an
+           data. Default false. boolean skip_external_acl_updates - if the
+           object contains any external IDs, don't update ACLs for those IDs
+           to allow access for the user. In some cases this can speed up
+           fetching the data. Default false.) -> structure: parameter
+           "objects" of list of type "ObjectSpecification" (An Object
+           Specification (OS). Inherits from ObjectIdentity (OI). Specifies
+           which object, and which parts of that object, to retrieve from the
+           Workspace Service. The fields wsid, workspace, objid, name, and
+           ver are identical to the OI fields. The ref field's behavior is
+           extended from OI. It maintains its previous behavior, but now also
+           can act as a reference string. See reference following below for
+           more information. REFERENCE FOLLOWING: Reference following
+           guarantees that a user that has access to an object can always see
+           a) objects that are referenced inside the object and b) objects
+           that are referenced in the object's provenance. This ensures that
+           the user has visibility into the entire provenance of the object
+           and the object's object dependencies (e.g. references). The user
+           must have at least read access to the object specified in this SO,
+           but need not have access to any further objects in the reference
+           chain, and those objects may be deleted. Optional reference
+           following fields: Note that only one of the following fields may
+           be specified. ref_chain obj_path - a path to the desired object
+           from the object specified in this OS. In other words, the object
+           specified in this OS is assumed to be accessible to the user, and
+           the objects in the object path represent a chain of references to
+           the desired object at the end of the object path. If the
+           references are all valid, the desired object will be returned. -
+           OR - list<obj_ref> obj_ref_path - shorthand for the obj_path. - OR
+           - ref_chain to_obj_path - identical to obj_path, except that the
+           path is TO the object specified in this OS, rather than from the
+           object. In other words the object specified by wsid/objid/ref etc.
+           is the end of the path, and to_obj_path is the rest of the path.
+           The user must have access to the first object in the to_obj_path.
+           - OR - list<obj_ref> to_obj_ref_path - shorthand for the
+           to_obj_path. - OR - ref_string ref - A string representing a
+           reference path from one object to another. Unlike the previous
+           reference following options, the ref_string represents the ENTIRE
+           path from the source object to the target object. As with the OI
+           object, the ref field may contain a single reference. - OR -
+           boolean find_refence_path - This is the last, slowest, and most
+           expensive resort for getting a referenced object - do not use this
+           method unless the path to the object is unavailable by any other
+           means. Setting the find_refence_path parameter to true means that
+           the workspace service will search through the object reference
+           graph from the object specified in this OS to find an object that
+           1) the user can access, and 2) has an unbroken reference path to
+           the target object. If the search succeeds, the object will be
+           returned as normal. Note that the search will automatically fail
+           after a certain (but much larger than necessary for the vast
+           majority of cases) number of objects are traversed. OBJECT
+           SUBSETS: When selecting a subset of an array in an object, the
+           returned array is compressed to the size of the subset, but the
+           ordering of the array is maintained. For example, if the array
+           stored at the 'feature' key of a Genome object has 4000 entries,
+           and the object paths provided are: /feature/7 /feature/3015
+           /feature/700 The returned feature array will be of length three
+           and the entries will consist, in order, of the 7th, 700th, and
+           3015th entries of the original array. Optional object subset
+           fields: list<object_path> included - the portions of the object to
+           include in the object subset. boolean strict_maps - if true, throw
+           an exception if the subset specification traverses a non-existent
+           map key (default false) boolean strict_arrays - if true, throw an
            exception if the subset specification exceeds the size of an array
            (default true)) -> structure: parameter "workspace" of type
            "ws_name" (A string used as a name for a workspace. Any string
@@ -1710,7 +1713,9 @@ class Workspace(object):
            "strict_arrays" of type "boolean" (A boolean. 0 = false, other =
            true.), parameter "ignoreErrors" of type "boolean" (A boolean. 0 =
            false, other = true.), parameter "no_data" of type "boolean" (A
-           boolean. 0 = false, other = true.)
+           boolean. 0 = false, other = true.), parameter
+           "skip_external_acl_updates" of type "boolean" (A boolean. 0 =
+           false, other = true.)
         :returns: instance of type "GetObjects2Results" (Results from the
            get_objects2 function. list<ObjectData> data - the returned
            objects.) -> structure: parameter "data" of list of type

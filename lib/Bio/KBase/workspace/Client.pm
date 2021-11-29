@@ -2542,6 +2542,7 @@ GetObjects2Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 	ignoreErrors has a value which is a Workspace.boolean
 	no_data has a value which is a Workspace.boolean
+	skip_external_acl_updates has a value which is a Workspace.boolean
 ObjectSpecification is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -2657,6 +2658,7 @@ GetObjects2Params is a reference to a hash where the following keys are defined:
 	objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 	ignoreErrors has a value which is a Workspace.boolean
 	no_data has a value which is a Workspace.boolean
+	skip_external_acl_updates has a value which is a Workspace.boolean
 ObjectSpecification is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -10574,6 +10576,9 @@ Input parameters for the get_objects2 function.
                 Default false.
         boolean no_data - return the provenance, references, and
                 object_info for this object without the object data. Default false.
+        boolean skip_external_acl_updates - if the object contains any external IDs, don't
+                update ACLs for those IDs to allow access for the user. In some cases this can
+                speed up fetching the data. Default false.
 
 
 =item Definition
@@ -10585,6 +10590,7 @@ a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 ignoreErrors has a value which is a Workspace.boolean
 no_data has a value which is a Workspace.boolean
+skip_external_acl_updates has a value which is a Workspace.boolean
 
 </pre>
 
@@ -10596,6 +10602,7 @@ a reference to a hash where the following keys are defined:
 objects has a value which is a reference to a list where each element is a Workspace.ObjectSpecification
 ignoreErrors has a value which is a Workspace.boolean
 no_data has a value which is a Workspace.boolean
+skip_external_acl_updates has a value which is a Workspace.boolean
 
 
 =end text

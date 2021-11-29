@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -23,8 +24,6 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.core.JsonParseException;
 
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple12;
@@ -37,7 +36,6 @@ import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ProvenanceAction;
-import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
@@ -395,11 +393,17 @@ public class ArgUtils {
 		return ret;
 	}
 	
+	/** Translate object data returned from the workspace to JSONRPC API object data.
+	 * @param objects the objects to convert.
+	 * @param permHandler any permissions handlers to invoke based on the contents of the object.
+	 * If not present, no permissions are updated.
+	 * @param logObjects if true, log the object ref and type.
+	 * @return the translated objects.
+	 */
 	public static List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
-			final IdReferencePermissionHandlerSet permHandler,
-			final boolean logObjects)
-			throws JsonParseException, IOException {
+			final Optional<IdReferencePermissionHandlerSet> permHandler,
+			final boolean logObjects) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
 		for (final WorkspaceObjectData o: objects) {
 			if (o == null) {
@@ -407,9 +411,16 @@ public class ArgUtils {
 				continue;
 			}
 			final PermError error = makeExternalIDsReadable(o, permHandler);
-			final ByteArrayFileCache resource = o.getSerializedData();
+			final UObject data;
+			try {
+				data = o.getSerializedData() == null ? null : o.getSerializedData().getUObject();
+			} catch (IOException e) {
+				// impossible to test in integration tests, shouldn't occur
+				throw new RuntimeException(
+						"An unexpected error occurred: " + e.getLocalizedMessage(), e);
+			}
 			ret.add(new ObjectData()
-					.withData(resource == null ? null : resource.getUObject())
+					.withData(data)
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withPath(toObjectPath(o.getObjectInfo().getReferencePath()))
 					.withProvenance(translateProvenanceActions(
@@ -466,7 +477,7 @@ public class ArgUtils {
 		final List<us.kbase.workspace.ObjectProvenanceInfo> ret =
 				new ArrayList<us.kbase.workspace.ObjectProvenanceInfo>();
 		for (final WorkspaceObjectData o: objects) {
-			final PermError error = makeExternalIDsReadable(o, permHandler);
+			final PermError error = makeExternalIDsReadable(o, Optional.of(permHandler));
 			ret.add(new us.kbase.workspace.ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
@@ -514,12 +525,14 @@ public class ArgUtils {
 
 	private static PermError makeExternalIDsReadable(
 			final WorkspaceObjectData o,
-			final IdReferencePermissionHandlerSet permhandler) {
-		for (final IdReferenceType t: o.getExtractedIds().keySet()) {
-			try {
-				permhandler.addReadPermission(t, o.getExtractedIds().get(t));
-			} catch (IdReferencePermissionHandlerException e) {
-				return new PermError(e.getMessage(), ExceptionUtils.getStackTrace(e));
+			final Optional<IdReferencePermissionHandlerSet> permhandler) {
+		if (permhandler.isPresent()) {
+			for (final IdReferenceType t: o.getExtractedIds().keySet()) {
+				try {
+					permhandler.get().addReadPermission(t, o.getExtractedIds().get(t));
+				} catch (IdReferencePermissionHandlerException e) {
+					return new PermError(e.getMessage(), ExceptionUtils.getStackTrace(e));
+				}
 			}
 		}
 		return new PermError(null, null);

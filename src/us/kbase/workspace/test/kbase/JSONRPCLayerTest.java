@@ -904,7 +904,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withName("auto1");
 		Map<String, List<String>> exp = new HashMap<String, List<String>>();
 		ObjectData objo = CLIENT1.getObjects2(new GetObjects2Params()
-			.withObjects(toObjSpec(Arrays.asList(ojbid)))).getData().get(0);
+			.withObjects(toObjSpec(Arrays.asList(ojbid)))
+			.withSkipExternalAclUpdates(1L) // should have no effect
+			).getData().get(0);
 		assertThat("extracted ids empty", objo.getExtractedIds(), is(exp));
 		@SuppressWarnings("deprecation")
 		ObjectData obj = CLIENT1.getObjects(Arrays.asList(ojbid)).get(0);
