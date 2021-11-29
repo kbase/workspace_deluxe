@@ -6,7 +6,9 @@ Workspace service release notes
 VERSION: 0.12.1 (Released TBD)
 -----------------------------------
 
-* nada
+UPDATES: 
+
+* The ``skip_external_acl_updates`` option has been added to ``get_objects2``.
 
 VERSION: 0.12.0 (Released 11/16/21)
 -----------------------------------

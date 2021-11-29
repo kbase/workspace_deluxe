@@ -27,6 +27,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 Default false.
  *         boolean no_data - return the provenance, references, and
  *                 object_info for this object without the object data. Default false.
+ *         boolean skip_external_acl_updates - if the object contains any external IDs, don't
+ *                 update ACLs for those IDs to allow access for the user. In some cases this can
+ *                 speed up fetching the data. Default false.
  * </pre>
  * 
  */
@@ -35,7 +38,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({
     "objects",
     "ignoreErrors",
-    "no_data"
+    "no_data",
+    "skip_external_acl_updates"
 })
 public class GetObjects2Params {
 
@@ -45,6 +49,8 @@ public class GetObjects2Params {
     private Long ignoreErrors;
     @JsonProperty("no_data")
     private Long noData;
+    @JsonProperty("skip_external_acl_updates")
+    private Long skipExternalAclUpdates;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("objects")
@@ -92,6 +98,21 @@ public class GetObjects2Params {
         return this;
     }
 
+    @JsonProperty("skip_external_acl_updates")
+    public Long getSkipExternalAclUpdates() {
+        return skipExternalAclUpdates;
+    }
+
+    @JsonProperty("skip_external_acl_updates")
+    public void setSkipExternalAclUpdates(Long skipExternalAclUpdates) {
+        this.skipExternalAclUpdates = skipExternalAclUpdates;
+    }
+
+    public GetObjects2Params withSkipExternalAclUpdates(Long skipExternalAclUpdates) {
+        this.skipExternalAclUpdates = skipExternalAclUpdates;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -104,7 +125,7 @@ public class GetObjects2Params {
 
     @Override
     public String toString() {
-        return ((((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", noData=")+ noData)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", noData=")+ noData)+", skipExternalAclUpdates=")+ skipExternalAclUpdates)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
