@@ -1524,9 +1524,10 @@ class Workspace(object):
            accessed; return null for that object's information instead.
            Default false. boolean no_data - return the provenance,
            references, and object_info for this object without the object
-           data. Default false. boolean skip_external_acl_updates - if the
-           object contains any external IDs, don't update ACLs for those IDs
-           to allow access for the user. In some cases this can speed up
+           data. Default false. boolean skip_external_system_updates - if the
+           object contains any external IDs, don't contact external systems
+           to perform any updates for those IDs (often ACL updates, e.g. for
+           handle / blobstore / sample IDs). In some cases this can speed up
            fetching the data. Default false.) -> structure: parameter
            "objects" of list of type "ObjectSpecification" (An Object
            Specification (OS). Inherits from ObjectIdentity (OI). Specifies
@@ -1714,7 +1715,7 @@ class Workspace(object):
            true.), parameter "ignoreErrors" of type "boolean" (A boolean. 0 =
            false, other = true.), parameter "no_data" of type "boolean" (A
            boolean. 0 = false, other = true.), parameter
-           "skip_external_acl_updates" of type "boolean" (A boolean. 0 =
+           "skip_external_system_updates" of type "boolean" (A boolean. 0 =
            false, other = true.)
         :returns: instance of type "GetObjects2Results" (Results from the
            get_objects2 function. list<ObjectData> data - the returned
