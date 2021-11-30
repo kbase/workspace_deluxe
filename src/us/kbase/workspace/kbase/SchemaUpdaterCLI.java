@@ -155,12 +155,15 @@ public class SchemaUpdaterCLI implements Callable<Integer>{
 			final String col = CollectionNames.COL_WORKSPACE_VERS;
 			if (testIndex) {
 				cl.getOut().println("testing index creation w/ old & new mongo APIs");
+				System.out.println("starting test code");
 				final DB dbold = mc.getDB(cfg.getDBname());
 				dbold.getCollection(col).createIndex(
 						new BasicDBObject("meta", 1), new BasicDBObject("sparse", 1));
+				System.out.println("created old index");
 				final MongoDatabase dbnew = mc.getDatabase(cfg.getDBname());
 				dbnew.getCollection(col).createIndex(
 						new Document("meta", 1), new IndexOptions().sparse(true));
+				System.out.println("created new index");
 			}
 			final MongoDatabase db = mc.getDatabase(cfg.getDBname());
 			updater.update(db, s -> cl.getOut().println(s), complete, override);
