@@ -687,7 +687,7 @@ public class SampleServiceIntegrationTest {
 			throws Exception {
 		return checkExternalIDError(cli.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification().withRef(ref)))
-				.withSkipExternalAclUpdates(skipExternalACLUpdates)
+				.withSkipExternalSystemUpdates(skipExternalACLUpdates)
 				).getData().get(0));
 	}
 	

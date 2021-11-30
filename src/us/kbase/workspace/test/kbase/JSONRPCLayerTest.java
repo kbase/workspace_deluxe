@@ -97,7 +97,7 @@ import com.google.common.collect.ImmutableMap;
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
-	private static final String VER = "0.12.1-dev1";
+	private static final String VER = "0.12.1-dev2";
 
 	@Test
 	public void ver() throws Exception {
@@ -905,7 +905,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		Map<String, List<String>> exp = new HashMap<String, List<String>>();
 		ObjectData objo = CLIENT1.getObjects2(new GetObjects2Params()
 			.withObjects(toObjSpec(Arrays.asList(ojbid)))
-			.withSkipExternalAclUpdates(1L) // should have no effect
+			.withSkipExternalSystemUpdates(1L) // should have no effect
 			).getData().get(0);
 		assertThat("extracted ids empty", objo.getExtractedIds(), is(exp));
 		@SuppressWarnings("deprecation")
