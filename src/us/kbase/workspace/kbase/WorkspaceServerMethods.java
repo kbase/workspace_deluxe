@@ -450,7 +450,7 @@ public class WorkspaceServerMethods {
 				user, loi, noData, ignoreErrors, asAdmin);
 		resourcesToDelete.set(objects);
 		return new GetObjects2Results().withData(translateObjectData(
-				objects, user, true, longToBoolean(params.getSkipExternalAclUpdates(), false)));
+				objects, user, true, longToBoolean(params.getSkipExternalSystemUpdates(), false)));
 	}
 
 	private IdReferencePermissionHandlerSet getPermissionsHandler(final WorkspaceUser user) {
