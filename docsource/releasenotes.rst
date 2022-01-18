@@ -9,6 +9,7 @@ VERSION: 0.12.1 (Released TBD)
 UPDATES: 
 
 * The ``skip_external_system_updates`` option has been added to ``get_objects2``.
+* Added the ``--print-stacktrace`` option to the schema updater
 
 VERSION: 0.12.0 (Released 11/16/21)
 -----------------------------------
