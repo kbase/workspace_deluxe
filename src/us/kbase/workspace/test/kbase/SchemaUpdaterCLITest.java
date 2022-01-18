@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
@@ -40,22 +41,23 @@ import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitException;
 
 public class SchemaUpdaterCLITest {
 	
-	private static final String VERSION = "0.12.1-dev2";
+	private static final String VERSION = "0.12.1-dev3";
 	
 	private static final List<String> HELP = list(
-			"Usage: update_workspace_database_schema [-choV] <CONFIG_FILE>",
+			"Usage: update_workspace_database_schema [-chosV] <CONFIG_FILE>",
 			"Update the workspace database to the current version.",
 			"Please read the upgrade documentation carefully before running this script.",
-			"      <CONFIG_FILE>   The configuration file (usually called deploy.cfg) for",
-			"                        the workspace service to modify.",
-			"  -c, --complete      Complete the upgrade. WARNING: DO NOT complete the",
-			"                        upgrade unless no other processes are writing to the",
-			"                        workspace database.",
-			"  -h, --help          Show this help message and exit.",
+			"      <CONFIG_FILE>        The configuration file (usually called deploy.cfg)",
+			"                             for the workspace service to modify.",
+			"  -c, --complete           Complete the upgrade. WARNING: DO NOT complete the",
+			"                             upgrade unless no other processes are writing to",
+			"                             the workspace database.",
+			"  -h, --help               Show this help message and exit.",
 			"  -o, --override-version-check",
-			"                      Allow the upgrade to continue even if the database schema",
-			"                        version indicates it is complete.",
-			"  -V, --version       Print version information and exit."
+			"                           Allow the upgrade to continue even if the database",
+			"                             schema version indicates it is complete.",
+			"  -s, --print-stacktrace   On an error, print a stacktrace if available.",
+			"  -V, --version            Print version information and exit."
 			);
 
 	private static final Map<String, String> VALID_CONFIG = MapBuilder.<String, String>newHashMap()
@@ -152,6 +154,27 @@ public class SchemaUpdaterCLITest {
 		assertThat("incorrect exit code", exitCode, is(expectedExitCode));
 	}
 	
+	private void runUpdater(
+			final Mocks mocks,
+			final String[] args,
+			final String expectedOut,
+			final List<String> expectedInErr,
+			final int expectedExitCode) {
+		// trying to merge this with the above turned into a ridiculous mess since you want to
+		// check the error conditions first
+		
+		final ByteArrayOutputStream out = new ByteArrayOutputStream();
+		final ByteArrayOutputStream err = new ByteArrayOutputStream();
+		
+		final int exitCode = SchemaUpdaterCLI.run(mocks.updater, mocks.provider, out, err, args);
+		
+		for (final String errstr: expectedInErr) {
+			assertThat("incorrect sys err", err.toString(), containsString(errstr));
+		}
+		assertThat("incorrect sys out", out.toString(), is(expectedOut));
+		assertThat("incorrect exit code", exitCode, is(expectedExitCode));
+	}
+	
 	public String generateHelpString(final List<String> preface) {
 		final LinkedList<String> helpCopy = new LinkedList<String>(HELP);
 		Collections.reverse(preface);
@@ -233,6 +256,16 @@ public class SchemaUpdaterCLITest {
 						"(No such file or directory)",
 				file.toAbsolutePath())));
 		runUpdater(new Mocks(), array(file.toString()), "", err, 2);
+		
+		final List<String> expectedErrs = Arrays.asList(
+				err,
+				"us.kbase.workspace.kbase.KBaseWorkspaceConfig$KBaseWorkspaceConfigException: " +
+						"Could not read from configuration file super_fake_file:",
+				"Caused by: java.io.FileNotFoundException: /",
+				".workspace.kbase.KBaseWorkspaceConfig.getConfigMap(KBaseWorkspaceConfig.java"
+				);
+		runUpdater(new Mocks(), array("-s", file.toString()), "", expectedErrs, 2);
+		runUpdater(new Mocks(), array("--print-stacktrace", file.toString()), "", expectedErrs, 2);
 	}
 	
 	@Test
@@ -255,7 +288,17 @@ public class SchemaUpdaterCLITest {
 		when(m.provider.provide(new KBaseWorkspaceConfig(VALID_CONFIG)))
 				.thenThrow(new WorkspaceInitException("oh dang"));
 		final String err = generateHelpString(list("oh dang"));
-		runUpdater(m, array(VALID_CONFIG_FILE.toString()), "", err, 2);
+		final String file = VALID_CONFIG_FILE.toString();
+		runUpdater(m, array(file), "", err, 2);
+		
+		final List<String> expectedErrs = Arrays.asList(
+				err,
+				"us.kbase.workspace.kbase.InitWorkspaceServer$WorkspaceInitException: oh dang",
+				"at us.kbase.workspace.kbase.SchemaUpdaterCLI.call(SchemaUpdaterCLI.",
+				"at us.kbase.workspace.kbase.SchemaUpdaterCLI.run(SchemaUpdaterCLI.java"
+				);
+		runUpdater(m, array("-s", file.toString()), "", expectedErrs, 2);
+		runUpdater(m, array("--print-stacktrace", file.toString()), "", expectedErrs, 2);
 	}
 	
 	@Test
@@ -266,6 +309,16 @@ public class SchemaUpdaterCLITest {
 		when(m.updater.update(eq(m.db), any(), eq(false), eq(false)))
 				.thenThrow(new SchemaUpdateException("well kiss my grits"));
 		final String err = generateHelpString(list("well kiss my grits"));
-		runUpdater(m, array(VALID_CONFIG_FILE.toString()), "", err, 2);
+		final String file = VALID_CONFIG_FILE.toString();
+		runUpdater(m, array(file), "", err, 2);
+		
+		final List<String> expectedErrs = Arrays.asList(
+				err,
+				"workspace.database.mongo.SchemaUpdater$SchemaUpdateException: well kiss my grits",
+				"at us.kbase.workspace.kbase.SchemaUpdaterCLI.call(SchemaUpdaterCLI",
+				"at us.kbase.workspace.kbase.SchemaUpdaterCLI.run(SchemaUpdaterCLI.java"
+				);
+		runUpdater(m, array("-s", file.toString()), "", expectedErrs, 2);
+		runUpdater(m, array("--print-stacktrace", file.toString()), "", expectedErrs, 2);
 	}
 }
