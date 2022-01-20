@@ -77,7 +77,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/common/kbase-common-0.1.0.jar" sourcepath="/jars/lib/jars/kbase/common/kbase-common-0.1.0-sources.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/sample/SampleServiceClient-0.1.0-alpha22.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/arangodb/arangodb-java-driver-6.7.2.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/jars/lib/jars/arangodb/arangodb-java-driver-6.7.2-javadoc.jar!/"/>
@@ -104,5 +103,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpcore-4.4.5.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpmime-4.5.8.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/picocli/picocli-4.6.1.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/kbase/sample/SampleServiceClient-e5e111c.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
