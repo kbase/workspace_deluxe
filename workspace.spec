@@ -1077,11 +1077,16 @@ module Workspace {
 			Default false.
 		boolean no_data - return the provenance, references, and
 			object_info for this object without the object data. Default false.
+		boolean skip_external_system_updates - if the object contains any external IDs, don't
+			contact external systems to perform any updates for those IDs (often ACL updates,
+			e.g. for handle / blobstore / sample IDs). In some cases this can speed up fetching the
+			data. Default false.
 	*/
 	typedef structure {
 		list<ObjectSpecification> objects;
 		boolean ignoreErrors;
 		boolean no_data;
+		boolean skip_external_system_updates;
 	} GetObjects2Params;
 	
 	/* Results from the get_objects2 function.

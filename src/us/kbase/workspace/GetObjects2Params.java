@@ -27,6 +27,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 Default false.
  *         boolean no_data - return the provenance, references, and
  *                 object_info for this object without the object data. Default false.
+ *         boolean skip_external_system_updates - if the object contains any external IDs, don't
+ *                 contact external systems to perform any updates for those IDs (often ACL updates,
+ *                 e.g. for handle / blobstore / sample IDs). In some cases this can speed up fetching the
+ *                 data. Default false.
  * </pre>
  * 
  */
@@ -35,7 +39,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({
     "objects",
     "ignoreErrors",
-    "no_data"
+    "no_data",
+    "skip_external_system_updates"
 })
 public class GetObjects2Params {
 
@@ -45,6 +50,8 @@ public class GetObjects2Params {
     private Long ignoreErrors;
     @JsonProperty("no_data")
     private Long noData;
+    @JsonProperty("skip_external_system_updates")
+    private Long skipExternalSystemUpdates;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("objects")
@@ -92,6 +99,21 @@ public class GetObjects2Params {
         return this;
     }
 
+    @JsonProperty("skip_external_system_updates")
+    public Long getSkipExternalSystemUpdates() {
+        return skipExternalSystemUpdates;
+    }
+
+    @JsonProperty("skip_external_system_updates")
+    public void setSkipExternalSystemUpdates(Long skipExternalSystemUpdates) {
+        this.skipExternalSystemUpdates = skipExternalSystemUpdates;
+    }
+
+    public GetObjects2Params withSkipExternalSystemUpdates(Long skipExternalSystemUpdates) {
+        this.skipExternalSystemUpdates = skipExternalSystemUpdates;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -104,7 +126,7 @@ public class GetObjects2Params {
 
     @Override
     public String toString() {
-        return ((((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", noData=")+ noData)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", noData=")+ noData)+", skipExternalSystemUpdates=")+ skipExternalSystemUpdates)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

@@ -488,8 +488,16 @@ public class HandleAndShockTest {
 		// been removed when user2 can read the workspace object
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
-		//get objects2
+		//get objects2 with skip ACL update
 		ObjectData ret1 = CLIENT2.getObjects2(new GetObjects2Params()
+				.withSkipExternalSystemUpdates(1L)
+				.withObjects(Arrays.asList(new ObjectSpecification()
+					.withWorkspace(workspace)
+					.withObjid(1L)))).getData().get(0);
+		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
+		checkReadAcl(node, oneuser);
+		// without skipping ACL update
+		ret1 = CLIENT2.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
@@ -604,7 +612,15 @@ public class HandleAndShockTest {
 						.withWorkspace(workspace).withName("foo")));
 
 		// get the object with the workspace user that owns linked shock nodes
-		final ObjectData od = CLIENT3.getObjects2(gop).getData().get(0);
+		// first without updating ACLS
+		ObjectData od = CLIENT3.getObjects2(gop.withSkipExternalSystemUpdates(1L))
+				.getData().get(0);
+		checkExternalIDError(od.getHandleError(), od.getHandleStacktrace());
+		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER1));
+		// next with the update
+		od = CLIENT3.getObjects2(gop.withSkipExternalSystemUpdates(null))
+				.getData().get(0);
 		checkExternalIDError(od.getHandleError(), od.getHandleStacktrace());
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3));

@@ -27,8 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import com.fasterxml.jackson.core.JsonParseException;
+import java.util.Optional;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
@@ -431,8 +430,6 @@ public class WorkspaceServerMethods {
 	 * many other objects.
 	 * @throws TypedObjectExtractionException if an error occurred extracting data from a typed
 	 * object.
-	 * @throws JsonParseException if an error occurs when attempting to get the object data. 
-	 * @throws IOException if an error occurs when attempting to get the object data.
 	 */
 	public GetObjects2Results getObjects(
 			final GetObjects2Params params,
@@ -441,8 +438,7 @@ public class WorkspaceServerMethods {
 			final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
 			throws CorruptWorkspaceDBException, WorkspaceCommunicationException,
 					InaccessibleObjectException, NoSuchReferenceException, NoSuchObjectException,
-					TypedObjectExtractionException, ReferenceSearchMaximumSizeExceededException,
-					JsonParseException, IOException {
+					TypedObjectExtractionException, ReferenceSearchMaximumSizeExceededException {
 		// ugh, tried to see if we could code out the jpe and ioe but it's too much of a mess
 		// once you get into the byte array cache and JTS
 		checkAddlArgs(params.getAdditionalProperties(), GetObjects2Params.class);
@@ -453,7 +449,8 @@ public class WorkspaceServerMethods {
 		final List<WorkspaceObjectData> objects = ws.getObjects(
 				user, loi, noData, ignoreErrors, asAdmin);
 		resourcesToDelete.set(objects);
-		return new GetObjects2Results().withData(translateObjectData(objects, user, true));
+		return new GetObjects2Results().withData(translateObjectData(
+				objects, user, true, longToBoolean(params.getSkipExternalSystemUpdates(), false)));
 	}
 
 	private IdReferencePermissionHandlerSet getPermissionsHandler(final WorkspaceUser user) {
@@ -469,9 +466,18 @@ public class WorkspaceServerMethods {
 	public List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
 			final WorkspaceUser user,
-			final boolean logObjects)
-			throws JsonParseException, IOException {
-		return ArgUtils.translateObjectData(objects, getPermissionsHandler(user), logObjects);
+			final boolean logObjects) {
+		return translateObjectData(objects, user, logObjects, false);
+	}
+	
+	private List<ObjectData> translateObjectData(
+			final List<WorkspaceObjectData> objects, 
+			final WorkspaceUser user,
+			final boolean logObjects,
+			final boolean skipExternalACLUpdates) {
+		final Optional<IdReferencePermissionHandlerSet> handlers = skipExternalACLUpdates ? 
+				Optional.empty() : Optional.of(getPermissionsHandler(user));
+		return ArgUtils.translateObjectData(objects, handlers, logObjects);
 	}
 	
 	@SuppressWarnings("deprecation")

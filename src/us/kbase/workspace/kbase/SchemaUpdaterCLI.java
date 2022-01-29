@@ -59,6 +59,10 @@ public class SchemaUpdaterCLI implements Callable<Integer>{
 				"indicates it is complete.")
 	private boolean override;
 	
+	@Option(names = {"-s", "--print-stacktrace"},
+			description = "On an error, print a stacktrace if available.")
+	private boolean stacktrace;
+	
 	static {
 		// mongo sure is chatty
 		((Logger) LoggerFactory.getLogger("org.mongodb.driver")).setLevel(Level.ERROR);
@@ -128,6 +132,7 @@ public class SchemaUpdaterCLI implements Callable<Integer>{
 		try {
 			cfg = new KBaseWorkspaceConfig(configFile, CONFIG_SECTION);
 		} catch (KBaseWorkspaceConfigException e) {
+			printStackTrace(cl, e);
 			throw new ParameterException(cl, e.getLocalizedMessage(), e);
 		}
 		if (cfg.hasErrors()) {
@@ -141,9 +146,16 @@ public class SchemaUpdaterCLI implements Callable<Integer>{
 			final MongoDatabase db = mc.getDatabase(cfg.getDBname());
 			updater.update(db, s -> cl.getOut().println(s), complete, override);
 		} catch (SchemaUpdateException | WorkspaceInitException e) {
+			printStackTrace(cl, e);
 			throw new ParameterException(cl, e.getLocalizedMessage(), e);
 		}
 		return 0;
+	}
+	
+	private void printStackTrace(final CommandLine cl, final Exception e) {
+		if (stacktrace) {
+			e.printStackTrace(cl.getErr());
+		}
 	}
 
 }

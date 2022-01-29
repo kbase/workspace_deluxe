@@ -391,7 +391,10 @@ public class SampleServiceIntegrationTest {
 		final SampleACLs expected = addAdmin(initEmptyACLs().withOwner(USER1), USER2);
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), expected);
 		
-		// trigger ACL change
+		// trigger ACL change, first skipping the ACL change with an input param
+		getObject(CLIENT3, "1/" + USER1 + "obj/1", 1L);
+		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), expected);
+		// now actually trigger the change
 		getObject(CLIENT3, "1/" + USER1 + "obj/1");
 		assertAclsCorrect(SAMPLE_CLIENT, samadd.getId(), addRead(expected, USER3));
 	}
@@ -672,11 +675,20 @@ public class SampleServiceIntegrationTest {
 				.withId(id)
 				.withRemove(Arrays.asList(USER2)));
 	}
-	
+
 	private ObjectData getObject(final WorkspaceClient cli, final String ref) throws Exception {
-		return checkExternalIDError(cli.getObjects2(new GetObjects2Params().withObjects(
-				Arrays.asList(new ObjectSpecification().withRef(ref))))
-				.getData().get(0));
+		return getObject(cli, ref, null);
+	}
+	
+	private ObjectData getObject(
+			final WorkspaceClient cli,
+			final String ref,
+			final Long skipExternalACLUpdates)
+			throws Exception {
+		return checkExternalIDError(cli.getObjects2(new GetObjects2Params()
+				.withObjects(Arrays.asList(new ObjectSpecification().withRef(ref)))
+				.withSkipExternalSystemUpdates(skipExternalACLUpdates)
+				).getData().get(0));
 	}
 	
 	private ObjectData checkExternalIDError(final ObjectData obj) {
