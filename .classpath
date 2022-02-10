@@ -103,6 +103,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpcore-4.4.5.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpmime-4.5.8.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/picocli/picocli-4.6.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/kbase/sample/SampleServiceClient-e5e111c.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/kbase/sample/SampleServiceClient-0.1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

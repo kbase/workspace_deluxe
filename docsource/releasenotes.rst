@@ -8,7 +8,7 @@ VERSION: 0.13.0 (Released TBD)
 
 BACKWARDS INCOMPATIBILIES:
 
-* The workspace now requires version XXX TODO XXX of the Sample service.
+* The workspace now requires version 0.1.1 of the Sample service.
 
 UPDATES:
 
