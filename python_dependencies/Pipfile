@@ -13,7 +13,7 @@ requests = "==2.22.0"
 # handle service dependencies
 cachetools = "*"
 configparser = "*"
-pymongo = "*"
+pymongo = "==3.11.0"
 uwsgi = "==2.0.18"
 
 # sample service dependencies
@@ -30,6 +30,8 @@ jinja2 = "==2.11.2"
 gevent = "==20.5.0"
 gunicorn = "==20.0.4"
 kafka-python = "==2.0.1"
+greenlet = "==0.4.16"
+typing-extensions = "*"
 
 [requires]
 python_version = "3.7"

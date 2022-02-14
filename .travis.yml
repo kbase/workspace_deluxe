@@ -56,7 +56,7 @@ install:
   - cd ../..
   
   # set up sample service
-  - export SAMPLE_COMMIT=695bb800cb3babe2084e93c260affcd10018d3e7
+  - export SAMPLE_COMMIT=6813fb148e95db2b11db6eea04f4d1d45cbb7119
   - git clone https://github.com/kbase/sample_service.git
   - cd sample_service
   - git checkout $SAMPLE_COMMIT
