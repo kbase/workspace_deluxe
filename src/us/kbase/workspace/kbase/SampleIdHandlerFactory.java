@@ -20,7 +20,7 @@ import us.kbase.common.service.UnauthorizedException;
 import us.kbase.sampleservice.GetSampleACLsParams;
 import us.kbase.sampleservice.SampleACLs;
 import us.kbase.sampleservice.SampleServiceClient;
-import us.kbase.sampleservice.UpdateSampleACLsParams;
+import us.kbase.sampleservice.UpdateSamplesACLsParams;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandlerException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
@@ -109,41 +109,35 @@ public class SampleIdHandlerFactory implements IdReferenceHandlerFactory {
 						"The workspace is not currently connected to the Sample Service " +
 						"and cannot process Sample IDs.");
 			}
-			// Theoretically the sample service could allow bulk ACL updates. However,
-			// this would be the illusion of atomicity since under the hood the Sample Service
-			// uses ArangoDB and ArangoDB atomicity level is per document
-			// Unless you use a transactions, but transactions aren't atomic in a cluster
-			// either as of 3.5
-			for (final String id: ids) {
-				try {
-					if (user == null) {
-						client.updateSampleAcls(new UpdateSampleACLsParams().withId(id)
-								.withPublicRead(1L).withAsAdmin(1L));
-					} else {
-						client.updateSampleAcls(new UpdateSampleACLsParams().withId(id)
-								.withRead(Arrays.asList(user)).withAtLeast(1L).withAsAdmin(1L));
-					}
-				} catch (IOException e) {
-					throw new IdReferencePermissionHandlerException(
-							"There was an IO problem while attempting to set " +
-							"Sample ACLs: " + e.getMessage(), e);
-				} catch (UnauthorizedException e) {
-					throw new IdReferencePermissionHandlerException(
-							"Unable to contact the Sample Service - " +
-							"the Workspace credentials were rejected: " +
-							e.getMessage(), e);
-				} catch (ServerException e) {
-					// we rely on adequate messaging from the sample service here as to
-					// the cause of the problem. May need to change
-					throw new IdReferencePermissionHandlerException(
-							"The Sample Service reported a problem while attempting " +
-									"to set Sample ACLs: " + e.getMessage(), e);
-				} catch (JsonClientException e) {
-					throw new IdReferencePermissionHandlerException(
-							"There was an unexpected problem while contacting the " +
-							"Sample Service to set Sample ACLs: " +
-							e.getMessage(), e);
+			final List<String> lids = ids.stream().collect(Collectors.toList());
+			try {
+				if (user == null) {
+					client.updateSamplesAcls(new UpdateSamplesACLsParams().withIds(lids)
+							.withPublicRead(1L).withAsAdmin(1L));
+				} else {
+					client.updateSamplesAcls(new UpdateSamplesACLsParams().withIds(lids)
+							.withRead(Arrays.asList(user)).withAtLeast(1L).withAsAdmin(1L));
 				}
+			} catch (IOException e) {
+				throw new IdReferencePermissionHandlerException(
+						"There was an IO problem while attempting to set " +
+						"Sample ACLs: " + e.getMessage(), e);
+			} catch (UnauthorizedException e) {
+				throw new IdReferencePermissionHandlerException(
+						"Unable to contact the Sample Service - " +
+						"the Workspace credentials were rejected: " +
+						e.getMessage(), e);
+			} catch (ServerException e) {
+				// we rely on adequate messaging from the sample service here as to
+				// the cause of the problem. May need to change
+				throw new IdReferencePermissionHandlerException(
+						"The Sample Service reported a problem while attempting " +
+								"to set Sample ACLs: " + e.getMessage(), e);
+			} catch (JsonClientException e) {
+				throw new IdReferencePermissionHandlerException(
+						"There was an unexpected problem while contacting the " +
+						"Sample Service to set Sample ACLs: " +
+						e.getMessage(), e);
 			}
 		}
 	}

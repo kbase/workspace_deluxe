@@ -3,6 +3,19 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.13.0 (Released TBD)
+------------------------------
+
+BACKWARDS INCOMPATIBILIES:
+
+* The workspace now requires version 0.1.1 of the Sample service.
+
+UPDATES:
+
+* The sample service ACL update mechanism has been changed to use a bulk interface for updating
+  ACLs rather than updating ACLs one at a time, which should speed up fetching objects with
+  ``@id sample`` annotations.
+
 VERSION: 0.12.1 (Released 1/25/2022)
 ------------------------------------
 
