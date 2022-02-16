@@ -2234,26 +2234,23 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			checkTotalFileSize(usedDataAllocation, objs, resobjs, vers);
 		}
 		final Map<ObjectId, Provenance> provs = getProvenance(vers);
-		final Map<String, ByteArrayFileCache> chksumToData =
-				new HashMap<String, ByteArrayFileCache>();
+		final Map<String, ByteArrayFileCache> chksumToData = new HashMap<>();
 		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> ret =
-				new HashMap<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>>();
+				new HashMap<>();
 		for (final ObjectIDResolvedWS o: objs.keySet()) {
 			final ResolvedObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
 				continue; // works if roi is null or vers doesn't have the key
 			}
 			final Provenance prov = provs.get((ObjectId) vers.get(roi).get(Fields.VER_PROV));
-			final String copyref =
-					(String) vers.get(roi).get(Fields.VER_COPIED);
+			final String copyref = (String) vers.get(roi).get(Fields.VER_COPIED);
 			final Reference copied = copyref == null ? null : new Reference(copyref);
 			@SuppressWarnings("unchecked")
 			final Map<String, List<String>> extIDs =
 					(Map<String, List<String>>) vers.get(roi).get(Fields.VER_EXT_IDS);
 			@SuppressWarnings("unchecked")
 			final List<String> refs = (List<String>) vers.get(roi).get(Fields.VER_REF);
-			final ObjectInformation info = ObjectInfoUtils.generateObjectInfo(
-					roi, vers.get(roi));
+			final ObjectInformation info = ObjectInfoUtils.generateObjectInfo(roi, vers.get(roi));
 			if (dataMan == null) {
 				ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
 				ret.get(o).put(SubsetSelection.EMPTY, new WorkspaceObjectData(
@@ -2349,7 +2346,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	//yuck. Think more about the interface here
 	private void buildReturnedObjectData(
 			final ObjectIDResolvedWS o,
-			final SubsetSelection op,
+			final SubsetSelection subset,
 			final Provenance prov,
 			final List<String> refs,
 			final Reference copied,
@@ -2369,8 +2366,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			 * times, but probably unlikely. If it becomes a problem
 			 * memoize the subset
 			 */
-			ret.get(o).put(op, new WorkspaceObjectData(getDataSubSet(
-					chksumToData.get(info.getCheckSum()), op, bafcMan),
+			ret.get(o).put(subset, new WorkspaceObjectData(
+					getDataSubSet(chksumToData.get(info.getCheckSum()), subset, bafcMan),
 					info, prov, refs, copied, toExternalIDs(extIDs)));
 		} else {
 			final ByteArrayFileCache data;
@@ -2398,8 +2395,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						info.getVersion()), e);
 			}
 			chksumToData.put(info.getCheckSum(), data);
-			ret.get(o).put(op, new WorkspaceObjectData(
-					getDataSubSet(data, op, bafcMan),
+			ret.get(o).put(subset, new WorkspaceObjectData(
+					getDataSubSet(data, subset, bafcMan),
 					info, prov, refs, copied, toExternalIDs(extIDs)));
 		}
 	}
@@ -2414,8 +2411,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		try {
 			return bafcMan.getSubdataExtraction(data, paths);
 		} catch (FileCacheIOException e) {
-			throw new WorkspaceCommunicationException(
-					e.getLocalizedMessage(), e);
+			throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
 		} catch (FileCacheLimitExceededException e) {
 			throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
 					"Too much data requested from the workspace at once; " +
