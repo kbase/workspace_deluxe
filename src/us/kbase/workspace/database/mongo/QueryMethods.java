@@ -218,16 +218,10 @@ public class QueryMethods {
 		if (objectIDs.isEmpty()) {
 			return new HashMap<ObjectIDResolvedWSNoVer, Map<String,Object>>();
 		}
-		final Map<Long, ResolvedWorkspaceID> idToWS =
-				new HashMap<Long, ResolvedWorkspaceID>();
-		final Map<ResolvedWorkspaceID,
-				Map<Long, ObjectIDResolvedWSNoVer>> ids = 
-						new HashMap<ResolvedWorkspaceID,
-								Map<Long, ObjectIDResolvedWSNoVer>>();
-		final Map<ResolvedWorkspaceID,
-				Map<String, ObjectIDResolvedWSNoVer>> names = 
-						new HashMap<ResolvedWorkspaceID,
-								Map<String, ObjectIDResolvedWSNoVer>>();
+		final Map<Long, ResolvedWorkspaceID> idToWS = new HashMap<>();
+		final Map<ResolvedWorkspaceID, Map<Long, ObjectIDResolvedWSNoVer>> ids = new HashMap<>();
+		final Map<ResolvedWorkspaceID, Map<String, ObjectIDResolvedWSNoVer>> names = 
+				new HashMap<>();
 		for (final ObjectIDResolvedWSNoVer o: objectIDs) {
 			final ResolvedWorkspaceID rwsi = o.getWorkspaceIdentifier();
 			idToWS.put(rwsi.getID(), rwsi);
@@ -258,10 +252,8 @@ public class QueryMethods {
 			orquery.add(query);
 		}
 		for (final ResolvedWorkspaceID rwsi: ids.keySet()) {
-			final Document query = new Document(Fields.OBJ_WS_ID,
-					rwsi.getID());
-			query.put(Fields.OBJ_ID, new Document(
-					"$in", ids.get(rwsi).keySet()));
+			final Document query = new Document(Fields.OBJ_WS_ID, rwsi.getID());
+			query.put(Fields.OBJ_ID, new Document( "$in", ids.get(rwsi).keySet()));
 			//see notes in loop above
 			query.put(Fields.OBJ_VCNT, new Document("$gt", 0));
 			orquery.add(query);
@@ -272,11 +264,9 @@ public class QueryMethods {
 		final List<Map<String, Object>> queryres = queryCollection(
 				objectCollection, new Document("$or", orquery), fields);
 
-		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ret =
-				new HashMap<ObjectIDResolvedWSNoVer, Map<String, Object>>();
+		final Map<ObjectIDResolvedWSNoVer, Map<String, Object>> ret = new HashMap<>();
 		for (Map<String, Object> m: queryres) {
-			final ResolvedWorkspaceID rwsi =
-					idToWS.get((Long) m.get(Fields.OBJ_WS_ID));
+			final ResolvedWorkspaceID rwsi = idToWS.get((Long) m.get(Fields.OBJ_WS_ID));
 			final String name = (String) m.get(Fields.OBJ_NAME);
 			final Long id = (Long) m.get(Fields.OBJ_ID);
 			if (names.containsKey(rwsi) && names.get(rwsi).containsKey(name)) {
@@ -294,13 +284,12 @@ public class QueryMethods {
 			final Set<ResolvedObjectID> objectIDs, final Set<String> fields)
 			throws WorkspaceCommunicationException {
 
-		final Map<ResolvedWorkspaceID, Map<Long, List<Integer>>> ids = 
-			new HashMap<ResolvedWorkspaceID, Map<Long, List<Integer>>>();
+		final Map<ResolvedWorkspaceID, Map<Long, List<Integer>>> ids = new HashMap<>();
 		
 		for (final ResolvedObjectID roi: objectIDs) {
 			final ResolvedWorkspaceID rwsi = roi.getWorkspaceIdentifier();
 			if (ids.get(rwsi) == null) {
-				ids.put(rwsi, new HashMap<Long, List<Integer>>());
+				ids.put(rwsi, new HashMap<>());
 			}
 			if (ids.get(rwsi).get(roi.getId()) == null) {
 				ids.get(rwsi).put(roi.getId(), new LinkedList<Integer>());
@@ -312,13 +301,11 @@ public class QueryMethods {
 		final Map<ResolvedWorkspaceID, Map<Long, Map<Integer, Map<String, Object>>>> data = //this is getting ridiculous
 				queryVersions(ids, fields);
 		
-		final Map<ResolvedObjectID, Map<String, Object>> ret =
-				new HashMap<ResolvedObjectID, Map<String,Object>>();
+		final Map<ResolvedObjectID, Map<String, Object>> ret = new HashMap<>();
 		
 		for (final ResolvedObjectID roi: objectIDs) {
 			final Map<String, Object> d = data.get(
-					roi.getWorkspaceIdentifier()).get(roi.getId())
-					.get(roi.getVersion());
+					roi.getWorkspaceIdentifier()).get(roi.getId()).get(roi.getVersion());
 			if (d != null) {
 				ret.put(roi, d);
 			}

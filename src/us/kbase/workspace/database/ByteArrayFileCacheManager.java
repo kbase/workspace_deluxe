@@ -313,8 +313,7 @@ public class ByteArrayFileCacheManager {
 					jts.close();
 					jgen.close();
 				}
-				// jts.setRoot throws IllegalStateException in a bunch of
-				// places, ugh
+				// jts.setRoot throws IllegalStateException in a bunch of places, ugh
 			} catch (IOException | IllegalStateException ex) {
 				throw new TypedObjectExtractionException(ex.getMessage(), ex);
 			}

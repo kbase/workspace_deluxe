@@ -1183,12 +1183,11 @@ public class Workspace {
 	private Map<ObjectIDResolvedWS, Set<SubsetSelection>> setupObjectPaths(
 			final Set<ObjectIdentifier> objects,
 			final ObjectResolver res) {
-		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
+		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths = new HashMap<>();
 		for (final ObjectIdentifier o: objects) {
 			final ObjectIDResolvedWS roi = res.getResolvedObject(o);
 			if (!paths.containsKey(roi)) {
-				paths.put(roi, new HashSet<SubsetSelection>());
+				paths.put(roi, new HashSet<>());
 			}
 			if (o instanceof ObjIDWithRefPathAndSubset) {
 				paths.get(roi).add(((ObjIDWithRefPathAndSubset) o).getSubSet());
