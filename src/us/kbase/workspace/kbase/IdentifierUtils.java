@@ -14,9 +14,9 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
-import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
-import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
+import us.kbase.workspace.database.ObjectIdentifier.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 
 public class IdentifierUtils {

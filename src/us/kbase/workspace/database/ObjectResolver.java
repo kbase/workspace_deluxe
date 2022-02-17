@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;

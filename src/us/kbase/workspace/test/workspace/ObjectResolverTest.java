@@ -21,7 +21,7 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDWithRefPath;
+import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.ObjectResolver;

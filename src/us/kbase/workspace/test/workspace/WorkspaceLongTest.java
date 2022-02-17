@@ -26,7 +26,7 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
-import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
+import us.kbase.workspace.database.ObjectIdentifier.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
