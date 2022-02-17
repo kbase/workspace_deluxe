@@ -54,6 +54,8 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
+import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
+import us.kbase.workspace.database.ObjectIdentifier.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectResolver.ObjectResolution;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
