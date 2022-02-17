@@ -55,7 +55,6 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
-import us.kbase.workspace.database.ObjectIdentifier.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectResolver.ObjectResolution;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
@@ -1092,12 +1091,6 @@ public class Workspace {
 			
 			final List<WorkspaceObjectData> ret = new ArrayList<>();
 			for (final ObjectIdentifier o: loi) {
-				final SubsetSelection ss;
-				if (o instanceof ObjIDWithRefPathAndSubset) {
-					ss = ((ObjIDWithRefPathAndSubset) o).getSubSet();
-				} else {
-					ss = SubsetSelection.EMPTY;
-				}
 				final WorkspaceObjectData wod;
 				final ObjectResolution objres = res.getObjectResolution(o);
 				if (objres.equals(ObjectResolution.INACCESSIBLE)) {
@@ -1106,13 +1099,13 @@ public class Workspace {
 					final ObjectIDResolvedWS resobj = res.getResolvedObject(o);
 					if (objres.equals(ObjectResolution.NO_PATH)) {
 						if (stddata.containsKey(resobj)) {
-							wod = stddata.get(resobj).get(ss);
+							wod = stddata.get(resobj).get(o.getSubSet());
 						} else {
 							wod = null; //object was deleted or missing
 						}
 					} else {
 						// since was resolved by path, object must exist
-						final WorkspaceObjectData prewod = refdata.get(resobj).get(ss);
+						final WorkspaceObjectData prewod = refdata.get(resobj).get(o.getSubSet());
 						wod = prewod.updateObjectReferencePath(res.getReferencePath(o));
 					}
 				}
@@ -1191,11 +1184,7 @@ public class Workspace {
 			if (!paths.containsKey(roi)) {
 				paths.put(roi, new HashSet<>());
 			}
-			if (o instanceof ObjIDWithRefPathAndSubset) {
-				paths.get(roi).add(((ObjIDWithRefPathAndSubset) o).getSubSet());
-			} else {
-				paths.get(roi).add(SubsetSelection.EMPTY);
-			}
+			paths.get(roi).add(o.getSubSet());
 		}
 		return paths;
 	}

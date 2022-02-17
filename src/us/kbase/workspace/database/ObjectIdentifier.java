@@ -4,7 +4,6 @@ import static us.kbase.workspace.database.Util.xorNameId;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 import us.kbase.typedobj.core.SubsetSelection;
@@ -14,7 +13,8 @@ import static us.kbase.common.utils.StringUtils.checkString;
 
 public class ObjectIdentifier {
 	
-	//TODO TEST unittests (move from WorkspaceTest, mostly covered there)
+	// TODO NOW TEST unittests (move from WorkspaceTest, mostly covered there)
+	// TODO NOW JAVADOC
 	
 	//this cannot be a legal object/workspace char
 	public final static String REFERENCE_SEP = "/";
@@ -102,6 +102,43 @@ public class ObjectIdentifier {
 
 	public Integer getVersion() {
 		return version;
+	}
+	
+	/** Returns whether this object identifier has a reference path.
+	 * @return true if this object identifier has a reference path, false otherwise.
+	 */
+	public boolean hasRefPath() {
+		return false;
+	}
+
+	/** Returns the reference path to the target object, excluding the first object in the path.
+	 * @return the reference path.
+	 */
+	public List<ObjectIdentifier> getRefPath() {
+		return Collections.emptyList();
+	}
+	
+	/** Returns the last (target) object identifier in the reference path.
+	 * @return the last object identifier in the reference path.
+	 * @throws IllegalStateException if this object has no reference path.
+	 */
+	public ObjectIdentifier getLast() {
+		throw new IllegalStateException("This object identifier has no reference path");
+	}
+	
+	/** Returns true if this object identifier represents a target object for which the
+	 * permissions must be ascertained by a object reference DAG search.
+	 * @return true if a lookup is required.
+	 */
+	public boolean isLookupRequired() {
+		return false;
+	}
+	
+	/** Get the subset of the object to return.
+	 * @return the subset selection for the object.
+	 */
+	public SubsetSelection getSubSet() {
+		return SubsetSelection.EMPTY;
 	}
 	
 	public String getIdentifierString() {
@@ -252,6 +289,11 @@ public class ObjectIdentifier {
 		return true;
 	}
 	
+	// so theoretically there could be a whole lot of different classes to represent different
+	// configurations of object identifiers. For now we'll just go with these three because
+	// they exist at the time of writing. However, we could add more classes to further reduce
+	// memory usage by optimizing which fields are present in the future.
+	
 	/** An object identifier for an object, along with either 1) A reference path from the object to
 	 * the target object, or 2) an instruction that the object specified is the target object and
 	 * access must be verified via a search through the object reference graph.
@@ -260,7 +302,7 @@ public class ObjectIdentifier {
 	 */
 	public static class ObjectIDWithRefPath extends ObjectIdentifier {
 
-		//TODO TEST unit tests
+		//TODO NOW TEST unit tests
 		
 		private final List<ObjectIdentifier> refpath;
 		private final boolean lookup;
@@ -273,7 +315,7 @@ public class ObjectIdentifier {
 		public ObjectIDWithRefPath(final ObjectIdentifier id) {
 			super(id);
 			lookup = true;
-			refpath = Collections.unmodifiableList(new LinkedList<ObjectIdentifier>());
+			refpath = null;
 		}
 		
 		/** Create an object identifier for an object which is at the head of an explicitly defined
@@ -284,53 +326,41 @@ public class ObjectIdentifier {
 		 */
 		public ObjectIDWithRefPath(
 				final ObjectIdentifier id,
-				List<ObjectIdentifier> refpath) {
+				final List<ObjectIdentifier> refpath) {
 			super(id);
-			if (refpath == null) {
-				refpath = new LinkedList<ObjectIdentifier>();
-			} 
-			this.refpath = Collections.unmodifiableList(
-					new ArrayList<ObjectIdentifier>(refpath));
-			
-			for (final ObjectIdentifier oi: this.refpath) {
-				if (oi == null) {
-					throw new IllegalArgumentException(
-							"Nulls are not allowed in reference chains");
+			if (refpath == null || refpath.isEmpty()) {
+				this.refpath = null;
+			} else {
+				this.refpath = Collections.unmodifiableList(new ArrayList<>(refpath));
+				for (final ObjectIdentifier oi: this.refpath) {
+					if (oi == null) {
+						throw new IllegalArgumentException(
+								"Nulls are not allowed in reference paths");
+					}
 				}
 			}
 			lookup = false;
 		}
 		
-		/** Returns the reference path to the target object, excluding the first object in the path.
-		 * @return the reference path.
-		 */
+		@Override
 		public List<ObjectIdentifier> getRefPath() {
-			return refpath;
+			return refpath == null ? Collections.emptyList() : refpath;
 		}
 		
-		/** Returns whether this object identifier has a reference path.
-		 * @return true if this object identifier has a reference path, false otherwise.
-		 */
+		@Override
 		public boolean hasRefPath() {
-			return !refpath.isEmpty();
+			return refpath != null;
 		}
 		
-		/** Returns the last (target) object identifier in the reference path.
-		 * @return the last object identifier in the reference path.
-		 * @throws IllegalStateException if this object has no reference path.
-		 */
+		@Override
 		public ObjectIdentifier getLast() {
 			if (!hasRefPath()) {
-				throw new IllegalStateException(
-						"This object identifier has no reference chain");
+				throw new IllegalStateException("This object identifier has no reference path");
 			}
 			return refpath.get(refpath.size() - 1);
 		}
 		
-		/** Returns true if this object identifier represents a target object for which the permissions
-		 * must be ascertained by a object reference DAG search.
-		 * @return
-		 */
+		@Override
 		public boolean isLookupRequired() {
 			return lookup;
 		}
@@ -398,7 +428,7 @@ public class ObjectIdentifier {
 	 */
 	public static class ObjIDWithRefPathAndSubset extends ObjectIDWithRefPath {
 
-		//TODO TEST unit tests
+		//TODO NOW TEST unit tests
 		
 		private final SubsetSelection subset;
 		
@@ -412,14 +442,14 @@ public class ObjectIdentifier {
 				final ObjectIdentifier id,
 				final SubsetSelection subset) {
 			super(id);
-			this.subset = subset == null ? SubsetSelection.EMPTY : subset;
+			this.subset = subset;
 		}
 
 		/** Create an object identifier for an object which is at the head of an explicitly defined
 		 * reference path that grants access to a target object at the end of the path.
 		 * @param id the identifier for the object at the head of the reference path.
 		 * @param refpath the reference path from the head of the path (not inclusive) to the target
-		 * object.
+		 * object. Any empty or null path indicates no refpath.
 		 * @param subset the subset of the object to return.
 		 */
 		public ObjIDWithRefPathAndSubset(
@@ -427,20 +457,16 @@ public class ObjectIdentifier {
 				final List<ObjectIdentifier> refpath,
 				final SubsetSelection subset) {
 			super(id, refpath);
-			this.subset = subset == null ? SubsetSelection.EMPTY : subset;
+			this.subset = subset;
 		}
 		
-		
-		/** Get the subset of the object to return.
-		 * @return the subset selection for the object.
-		 */
+		@Override
 		public SubsetSelection getSubSet() {
-			return subset;
+			// TODO NOW this should be unnecessary when this class is hidden. Don't instantiate
+			// without a subset
+			return subset == null ? SubsetSelection.EMPTY : subset;
 		}
-
-		/* (non-Javadoc)
-		 * @see java.lang.Object#hashCode()
-		 */
+		
 		@Override
 		public int hashCode() {
 			final int prime = 31;
@@ -449,9 +475,6 @@ public class ObjectIdentifier {
 			return result;
 		}
 
-		/* (non-Javadoc)
-		 * @see java.lang.Object#equals(java.lang.Object)
-		 */
 		@Override
 		public boolean equals(Object obj) {
 			if (this == obj)

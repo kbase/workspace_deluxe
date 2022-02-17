@@ -973,7 +973,7 @@ public class IdentifierUtilsTest {
 		checkObjectIdentifier(oi, null, 3L, null, 2L, null, "3/2", "2", false);
 		
 		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(false));
+		assertThat("incorrect hasRefPath()", oirc.hasRefPath(), is(false));
 		assertThat("incorrect isLookupRequired()", oirc.isLookupRequired(), is(true));
 	}
 	
@@ -995,7 +995,7 @@ public class IdentifierUtilsTest {
 		
 		checkObjectIdentifier(oi, null, 3L, null, 2L, null, "3/2", "2", false);
 		
-		assertThat("incorrect hasChain()", oi.hasRefPath(), is(false));
+		assertThat("incorrect hasRefPath()", oi.hasRefPath(), is(false));
 		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(true));
 		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
