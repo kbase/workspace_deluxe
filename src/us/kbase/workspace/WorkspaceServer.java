@@ -657,7 +657,10 @@ public class WorkspaceServer extends JsonServerServlet {
     public GetObjects2Results getObjects2(GetObjects2Params params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         GetObjects2Results returnVal = null;
         //BEGIN get_objects2
+        us.kbase.workspace.DeleteMeIDHolder.init();
+        us.kbase.workspace.DeleteMeIDHolder.print("start gO2");
 		returnVal = wsmeth.getObjects(params, wsmeth.getUser(authPart), false, resourcesToDelete);
+		us.kbase.workspace.DeleteMeIDHolder.print("end gO2");
         //END get_objects2
         return returnVal;
     }

@@ -1057,7 +1057,7 @@ public class Workspace {
 				WorkspaceCommunicationException, InaccessibleObjectException,
 				NoSuchReferenceException, TypedObjectExtractionException,
 				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
-		
+		us.kbase.workspace.DeleteMeIDHolder.print("start internal gO");
 		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
 				.withIgnoreInaccessible(nullIfInaccessible)
 				.withAsAdmin(asAdmin)
@@ -1066,6 +1066,7 @@ public class Workspace {
 			orb.withObject(oi);
 		}
 		ObjectResolver res = orb.resolve();
+		us.kbase.workspace.DeleteMeIDHolder.print("objects resolved gO");
 		
 		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> refpaths =
 				setupObjectPaths(res.getObjects(true), res);
@@ -1081,9 +1082,11 @@ public class Workspace {
 		try {
 			stddata = db.getObjects(stdpaths, dataMan, 0,
 					!nullIfInaccessible, false, !nullIfInaccessible);
+			us.kbase.workspace.DeleteMeIDHolder.print("got first set gO");
 			refdata = db.getObjects(refpaths, dataMan, calculateDataSize(stddata),
 					//objects cannot be missing at this stage
 					false, true, true);
+			us.kbase.workspace.DeleteMeIDHolder.print("got second set gO");
 			
 			refpaths.clear();
 			stdpaths.clear();
@@ -1120,6 +1123,7 @@ public class Workspace {
 			refdata.clear();
 			stddata.clear();
 			removeInaccessibleDataCopyReferences(user, ret);
+			us.kbase.workspace.DeleteMeIDHolder.print("end internal gO");
 			return ret;
 		} catch (RuntimeException | Error | CorruptWorkspaceDBException |
 				WorkspaceCommunicationException | NoSuchObjectException |

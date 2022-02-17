@@ -2223,17 +2223,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException,
 			TypedObjectExtractionException, CorruptWorkspaceDBException {
-		
+		us.kbase.workspace.DeleteMeIDHolder.print("start mongo gO");
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs =
 				resolveObjectIDs(objs.keySet(), exceptIfDeleted, includeDeleted, exceptIfMissing);
+		us.kbase.workspace.DeleteMeIDHolder.print("resolved objIDs mongo gO");
 		final Map<ResolvedObjectID, Map<String, Object>> vers = 
 				queryVersions(
 						new HashSet<ResolvedObjectID>(resobjs.values()),
 						FLDS_VER_GET_OBJECT, !exceptIfMissing);
+		us.kbase.workspace.DeleteMeIDHolder.print("queried versions gO");
 		if (dataMan != null) {
 			checkTotalFileSize(usedDataAllocation, objs, resobjs, vers);
 		}
 		final Map<ObjectId, Provenance> provs = getProvenance(vers);
+		us.kbase.workspace.DeleteMeIDHolder.print("got provenance gO");
 		final Map<String, ByteArrayFileCache> chksumToData = new HashMap<>();
 		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> ret =
 				new HashMap<>();
@@ -2278,6 +2281,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				}
 			}
 		}
+		us.kbase.workspace.DeleteMeIDHolder.print("got object data / end mongo gO");
 		return ret;
 	}
 
