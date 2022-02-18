@@ -12,7 +12,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 
-public class ObjectIdentifierTest {
+public class ObjectIDNoWSNoVerTest {
 
 	//TODO TEST test the other object id classes
 	
@@ -110,7 +110,8 @@ public class ObjectIdentifierTest {
 	@Test
 	public void checkObjectName() {
 		// expect no exception
-		ObjectIDNoWSNoVer.checkObjectName("|f.o-o_bA2r");
+		assertThat("incorrect name returned", ObjectIDNoWSNoVer.checkObjectName("|f.o-o_bA2r"),
+				is("|f.o-o_bA2r"));
 	}
 	
 	@Test
