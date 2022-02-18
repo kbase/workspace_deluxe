@@ -105,30 +105,6 @@ public class WorkspaceTester {
 	
 	protected static final ObjectMapper MAPPER = new ObjectMapper();
 	
-	protected static final String LONG_TEXT_PART =
-			"Passersby were amazed by the unusually large amounts of blood. ";
-	protected static String LONG_TEXT = "";
-	static {
-		for (int i = 0; i < 17; i++) {
-			LONG_TEXT += LONG_TEXT_PART;
-		}
-	}
-	protected static String TEXT100 = "";
-	static {
-		for (int i = 0; i < 10; i++) {
-			TEXT100 += "aaaaabbbbb";
-		}
-	}
-	protected static String TEXT101 = TEXT100 + "f";
-	protected static String TEXT255 = TEXT100 + TEXT100 + TEXT100.substring(0, 55);
-	protected static String TEXT256 = TEXT255 + "f";
-	protected static String TEXT1000 = "";
-	static {
-		for (int i = 0; i < 10; i++) {
-			TEXT1000 += TEXT100;
-		}
-	}
-	
 	static {
 		//stfu EasyStream
 		((Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))

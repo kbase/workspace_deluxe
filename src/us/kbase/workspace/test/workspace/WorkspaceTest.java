@@ -8,6 +8,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static us.kbase.workspace.test.LongTextForTestUsage.LONG_TEXT_PART;
+import static us.kbase.workspace.test.LongTextForTestUsage.LONG_TEXT;
+import static us.kbase.workspace.test.LongTextForTestUsage.TEXT100;
+import static us.kbase.workspace.test.LongTextForTestUsage.TEXT101;
+import static us.kbase.workspace.test.LongTextForTestUsage.TEXT256;
+import static us.kbase.workspace.test.LongTextForTestUsage.TEXT1000;
 
 import java.io.File;
 import java.io.StringReader;

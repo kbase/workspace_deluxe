@@ -279,6 +279,11 @@ public class TestCommon {
 		return new HashSet<T>(Arrays.asList(objects));
 	}
 	
+	@SafeVarargs
+	public static <T> List<T> list(T... objects) {
+		return Arrays.asList(objects);
+	}
+	
 	public static Instant inst(final long epoch) {
 		return Instant.ofEpochMilli(epoch);
 	}
