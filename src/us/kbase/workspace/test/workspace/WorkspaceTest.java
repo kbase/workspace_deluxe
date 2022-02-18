@@ -8337,7 +8337,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		failCreateObjectChain(null, new ArrayList<ObjectIdentifier>(),
 				new IllegalArgumentException("id cannot be null"));
 		failCreateObjectChain(oi, Arrays.asList(oi, null, oi),
-				new IllegalArgumentException("Nulls are not allowed in reference chains"));
+				new IllegalArgumentException("Nulls are not allowed in reference paths"));
 	}
 	
 	@Test
