@@ -549,7 +549,7 @@ public class ObjectIdentifier {
 		}
 	}
 
-	/** Get a builder for a {@link ObjectIdentifier}.
+	/** Get a builder for an {@link ObjectIdentifier}.
 	 * @param wsi the workspace identifier for the object.
 	 * @return a new builder.
 	 */
@@ -642,7 +642,7 @@ public class ObjectIdentifier {
 		 * permissions must be ascertained by a object reference DAG search.
 		 * Passing true will remove any previously set reference path.
 		 * @param lookupRequired set whether a DAG lookup is required.
-		 * @return
+		 * @return this builder.
 		 */
 		public Builder withLookupRequired(final boolean lookupRequired) {
 			this.lookup = lookupRequired;
