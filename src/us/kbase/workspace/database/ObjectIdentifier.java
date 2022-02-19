@@ -557,6 +557,14 @@ public class ObjectIdentifier {
 		return new Builder(wsi);
 	}
 	
+	/** Get a builder for an {@link ObjectIdentifier} starting with the same.
+	 * @param oi the object identifier from which to initialize the build.
+	 * @return a new builder.
+	 */
+	public static Builder getBuilder(final ObjectIdentifier oi) {
+		return new Builder(oi);
+	}
+	
 	/** A builder for an {@link ObjectIdentifier}. */
 	public static class Builder {
 		
@@ -571,6 +579,16 @@ public class ObjectIdentifier {
 
 		private Builder(final WorkspaceIdentifier wsi) {
 			this.wsi = requireNonNull(wsi, "wsi");
+		}
+
+		private Builder(final ObjectIdentifier oi) {
+			this.wsi = requireNonNull(oi, "oi").getWorkspaceIdentifier();
+			this.id = oi.getId() == null ? -1 : oi.getId();
+			this.name = oi.getName();
+			this.version = oi.getVersion() == null ? -1 : oi.getVersion();
+			this.refpath = oi.getRefPath().isEmpty() ? null : oi.getRefPath();
+			this.lookup = oi.isLookupRequired();
+			this.subset = oi.getSubSet();
 		}
 
 		/** Set a name for the object. This will remove any previously set ID.
