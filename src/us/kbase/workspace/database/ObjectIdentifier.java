@@ -620,8 +620,8 @@ public class ObjectIdentifier {
 		 * @return this builder.
 		 */
 		public Builder withID(final Long id, boolean throwError) {
-			if (throwError) {
-				xorNameId(name, id, "object");
+			if (throwError && name != null) {
+				xorNameId(name, id, "object"); // reuse the error generating code
 			}
 			return withID(id);
 		}

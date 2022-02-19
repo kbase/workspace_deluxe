@@ -301,6 +301,7 @@ public class ObjectIdentifierTest {
 	@Test
 	public void buildNameWithBooleanNoop() throws Exception {
 		ObjectIdentifier oi = ObjectIdentifier.getBuilder(WSI)
+				.withName(null, true) // should not throw exception
 				.withName("foo", true)
 				.withName(null, true)
 				.build();
@@ -342,6 +343,7 @@ public class ObjectIdentifierTest {
 	@Test
 	public void buildIDWithBooleanNoop() throws Exception {
 		ObjectIdentifier oi = ObjectIdentifier.getBuilder(WSI)
+				.withID(null, true) // should not throw exception
 				.withID(3000L, true)
 				.withID(null, false)
 				.build();
@@ -505,8 +507,14 @@ public class ObjectIdentifierTest {
 	
 	@Test
 	public void buildFail() throws Exception {
+		final ObjectIdentifier.Builder b = ObjectIdentifier.getBuilder(WSI);
+		failBuild(b);
+		failBuild(b.withID(null).withName(null));
+	}
+	
+	private void failBuild(final ObjectIdentifier.Builder build) {
 		try {
-			ObjectIdentifier.getBuilder(WSI).build();
+			build.build();
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
