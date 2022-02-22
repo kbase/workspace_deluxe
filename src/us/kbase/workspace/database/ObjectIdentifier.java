@@ -1,5 +1,6 @@
 package us.kbase.workspace.database;
 
+import static java.util.Objects.requireNonNull;
 import static us.kbase.workspace.database.Util.xorNameId;
 
 import java.util.ArrayList;
@@ -15,14 +16,15 @@ public class ObjectIdentifier {
 	
 	// TODO NOW TEST unittests (move from WorkspaceTest, mostly covered there)
 	// TODO NOW JAVADOC
+	// TODO CODE return Optionals instead of nulls. That's a big change...
 	
 	//this cannot be a legal object/workspace char
 	public final static String REFERENCE_SEP = "/";
 	
 	private final WorkspaceIdentifier wsi;
 	private final String name;
-	private final Long id;
-	private final Integer version;
+	private final Long id; // TODO NOW change to long and use -1 as missing
+	private final Integer version; // TODO NOW change to int and use -1 as missing
 	
 	public ObjectIdentifier(WorkspaceIdentifier wsi, String name) {
 		if (wsi == null) {
@@ -78,7 +80,7 @@ public class ObjectIdentifier {
 		this.version = version;
 	}
 	
-	public ObjectIdentifier(ObjectIdentifier id) {
+	private ObjectIdentifier(ObjectIdentifier id) {
 		if (id == null) {
 			throw new IllegalArgumentException("id cannot be null");
 		}
@@ -86,6 +88,18 @@ public class ObjectIdentifier {
 		this.name = id.name;
 		this.id = id.id;
 		this.version = id.version;
+	}
+	
+	private ObjectIdentifier(
+			final WorkspaceIdentifier wsi,
+			final long id,
+			final String name,
+			final int version) {
+		this.wsi = wsi;
+		this.name = name;
+		// TODO NOW get rid of these ternaries
+		this.id = id < 0 ? null : id;
+		this.version = version < 0 ? null : version;
 	}
 
 	public WorkspaceIdentifier getWorkspaceIdentifier() {
@@ -96,7 +110,7 @@ public class ObjectIdentifier {
 		return name;
 	}
 
-	public Long getId() {
+	public Long getId() { // TODO NOW switch to ID
 		return id;
 	}
 
@@ -342,6 +356,18 @@ public class ObjectIdentifier {
 			lookup = false;
 		}
 		
+		private ObjectIDWithRefPath(
+				final WorkspaceIdentifier wsi,
+				final long id,
+				final String name,
+				final int version,
+				final List<ObjectIdentifier> refpath,
+				final boolean lookup) {
+			super(wsi, id, name, version);
+			this.refpath = refpath;
+			this.lookup = lookup;
+		}
+
 		@Override
 		public List<ObjectIdentifier> getRefPath() {
 			return refpath == null ? Collections.emptyList() : refpath;
@@ -381,9 +407,6 @@ public class ObjectIdentifier {
 				return true;
 			}
 			if (!super.equals(obj)) {
-				return false;
-			}
-			if (getClass() != obj.getClass()) {
 				return false;
 			}
 			ObjectIDWithRefPath other = (ObjectIDWithRefPath) obj;
@@ -442,7 +465,9 @@ public class ObjectIdentifier {
 				final ObjectIdentifier id,
 				final SubsetSelection subset) {
 			super(id);
-			this.subset = subset;
+			// TODO NOW this should be unnecessary when this class is hidden. Don't instantiate
+						// without a subset
+			this.subset = subset == null ? SubsetSelection.EMPTY : subset;
 		}
 
 		/** Create an object identifier for an object which is at the head of an explicitly defined
@@ -457,14 +482,26 @@ public class ObjectIdentifier {
 				final List<ObjectIdentifier> refpath,
 				final SubsetSelection subset) {
 			super(id, refpath);
+			// TODO NOW this should be unnecessary when this class is hidden. Don't instantiate
+						// without a subset
+			this.subset = subset == null ? SubsetSelection.EMPTY : subset;
+		}
+		
+		private ObjIDWithRefPathAndSubset(
+				final WorkspaceIdentifier wsi,
+				final long id,
+				final String name,
+				final int version,
+				final List<ObjectIdentifier> refpath,
+				final boolean lookup,
+				final SubsetSelection subset) {
+			super(wsi, id, name, version, refpath, lookup);
 			this.subset = subset;
 		}
 		
 		@Override
 		public SubsetSelection getSubSet() {
-			// TODO NOW this should be unnecessary when this class is hidden. Don't instantiate
-			// without a subset
-			return subset == null ? SubsetSelection.EMPTY : subset;
+			return subset;
 		}
 		
 		@Override
@@ -480,8 +517,6 @@ public class ObjectIdentifier {
 			if (this == obj)
 				return true;
 			if (!super.equals(obj))
-				return false;
-			if (getClass() != obj.getClass())
 				return false;
 			ObjIDWithRefPathAndSubset other = (ObjIDWithRefPathAndSubset) obj;
 			if (subset == null) {
@@ -511,6 +546,158 @@ public class ObjectIdentifier {
 			builder.append(getVersion());
 			builder.append("]");
 			return builder.toString();
+		}
+	}
+
+	/** Get a builder for an {@link ObjectIdentifier}.
+	 * @param wsi the workspace identifier for the object.
+	 * @return a new builder.
+	 */
+	public static Builder getBuilder(final WorkspaceIdentifier wsi) {
+		return new Builder(wsi);
+	}
+	
+	/** A builder for an {@link ObjectIdentifier}. */
+	public static class Builder {
+		
+		private final WorkspaceIdentifier wsi;
+		private String name = null;
+		private long id = -1;
+		private int version = -1;
+		private List<ObjectIdentifier> refpath = null;
+		private boolean lookup = false;
+		private SubsetSelection subset = SubsetSelection.EMPTY;
+		
+
+		private Builder(final WorkspaceIdentifier wsi) {
+			this.wsi = requireNonNull(wsi, "wsi");
+		}
+
+		/** Set a name for the object. This will remove any previously set ID.
+		 * @param name the objects's name. null is treated as a no-op.
+		 * @return this builder.
+		 */
+		public Builder withName(final String name) {
+			if (name != null) {
+				this.name = checkObjectName(name);
+				this.id = -1;
+			}
+			return this;
+		}
+		
+		/** Behaves identically to {@link #withName(String)}, except that optionally if an ID
+		 * is already set an error can be thrown.
+		 * @param name the name of the object. null is treated as a no-op.
+		 * @param throwError true to throw an error if the ID is already set. 
+		 * @return this builder
+		 */
+		public Builder withName(final String name, boolean throwError) {
+			if (throwError && id > 0) {
+				xorNameId(name, id, "object"); // reuse the error generating code
+			}
+			return withName(name);
+		}
+		
+		/** Set an ID for the object. This will remove any previously set name.
+		 * @param id the object's ID, which must be > 0. null is treated as a no-op.
+		 * @return this builder.
+		 */
+		public Builder withID(final Long id) {
+			if (id != null) {
+				if (id < 1) {
+					throw new IllegalArgumentException("Object id must be > 0");
+				}
+				this.id = id;
+				this.name = null;
+			}
+			return this;
+		}
+		
+		/** Behaves identically to {@link #withID(Long)}, except that optionally if a name
+		 * is already set an error can be thrown.
+		 * @param id the object's ID, which must be > 0. null is treated as a no-op.
+		 * @param throwError true to throw an error if the name is already set. 
+		 * @return this builder.
+		 */
+		public Builder withID(final Long id, boolean throwError) {
+			if (throwError && name != null) {
+				xorNameId(name, id, "object"); // reuse the error generating code
+			}
+			return withID(id);
+		}
+		
+		/** Set the version of this object. Passing null removes any previously set version.
+		 * @param version the object's version, which must be > 0.
+		 * @return this builder.
+		 */
+		public Builder withVersion(final Integer version) {
+			if (version != null && version < 1) {
+				throw new IllegalArgumentException("Object version must be > 0");
+			}
+			this.version = version == null ? -1 : version;
+			return this;
+		}
+		
+		/** Set whether this object identifier represents a target object for which the
+		 * permissions must be ascertained by a object reference DAG search.
+		 * Passing true will remove any previously set reference path.
+		 * @param lookupRequired set whether a DAG lookup is required.
+		 * @return this builder.
+		 */
+		public Builder withLookupRequired(final boolean lookupRequired) {
+			this.lookup = lookupRequired;
+			this.refpath = lookupRequired ? null : this.refpath;
+			return this;
+		}
+		
+		/** Add a reference path to a target object from the head of the path, where the path
+		 * head is not included and is represented by this {@link ObjectIdentifier}.
+		 * @param refpath the reference path. Passing a null or empty list will remove any
+		 * previously set path. If the case is otherwise, the lookup required flag will be set
+		 * to false.
+		 * @return this builder.
+		 */
+		public Builder withReferencePath(final List<ObjectIdentifier> refpath) {
+			if (refpath == null || refpath.isEmpty()) {
+				this.refpath = null;
+			} else {
+				// make immutable and prevent alteration by mutating the input list
+				this.refpath = Collections.unmodifiableList(new ArrayList<>(refpath));
+				for (final ObjectIdentifier oi: this.refpath) {
+					if (oi == null) {
+						throw new IllegalArgumentException(
+								"Nulls are not allowed in reference paths");
+					}
+				}
+				this.lookup = false;
+			}
+			return this;
+		}
+		
+		/** Add a specification of what parts of the object to return.
+		 * @param subset the subset of the object to return.
+		 * @return this builder.
+		 */
+		public Builder withSubsetSelection(final SubsetSelection subset) {
+			this.subset = subset == null ? SubsetSelection.EMPTY : subset;
+			return this;
+		}
+		
+		/** Build the {@link ObjectIdentifier}. One of {@link #withName(String)},
+		 * {@link #withName(String, boolean), {@link #withID(Long)}, or
+		 * {@link #withID(Long, boolean)} must have been called successfully prior to building.
+		 * @return the identifier.
+		 */
+		public ObjectIdentifier build() {
+			xorNameId(name, id < 1 ? null : id, "object"); // reuse error creation
+			if (!subset.equals(SubsetSelection.EMPTY)) {
+				return new ObjIDWithRefPathAndSubset(
+						wsi, id, name, version, refpath, lookup, subset);
+			} else if (lookup || refpath != null) {
+				return new ObjectIDWithRefPath(wsi, id, name, version, refpath, lookup);
+			} else {
+				return new ObjectIdentifier(wsi, id, name, version);
+			}
 		}
 	}
 }

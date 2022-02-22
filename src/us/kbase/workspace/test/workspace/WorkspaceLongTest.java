@@ -2,6 +2,7 @@ package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static us.kbase.workspace.test.LongTextForTestUsage.TEXT1000;
 
 import java.io.File;
 import java.io.InputStream;
