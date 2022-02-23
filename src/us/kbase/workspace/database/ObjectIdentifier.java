@@ -565,6 +565,14 @@ public class ObjectIdentifier {
 		return new Builder(oi);
 	}
 	
+	/** Create a copy of the input builder.
+	 * @param b the builder to copy.
+	 * @return a new builder with the same state as the input builder.
+	 */
+	public static Builder getBuilder(final Builder b) {
+		return new Builder(b);
+	}
+	
 	/** A builder for an {@link ObjectIdentifier}. */
 	public static class Builder {
 		
@@ -589,6 +597,16 @@ public class ObjectIdentifier {
 			this.refpath = oi.getRefPath().isEmpty() ? null : oi.getRefPath();
 			this.lookup = oi.isLookupRequired();
 			this.subset = oi.getSubSet();
+		}
+		
+		private Builder(final Builder b) {
+			this.wsi = requireNonNull(b, "b").wsi;
+			this.id = b.id;
+			this.name = b.name;
+			this.version = b.version;
+			this.refpath = b.refpath; // immutable so safe to make a shallow copy
+			this.lookup = b.lookup;
+			this.subset = b.subset;
 		}
 
 		/** Set a name for the object. This will remove any previously set ID.
