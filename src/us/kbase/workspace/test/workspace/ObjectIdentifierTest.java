@@ -426,6 +426,12 @@ public class ObjectIdentifierTest {
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new NullPointerException("oi"));
 		}
+		try {
+			ObjectIdentifier.getBuilder((ObjectIdentifier.Builder) null);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("b"));
+		}
 	}
 	
 	@Test
@@ -598,5 +604,35 @@ public class ObjectIdentifierTest {
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new IllegalStateException(msg));
 		}
+	}
+	
+	@Test
+	public void copyBuilderWithNameVersionSubsetAndRefpath() throws Exception {
+		// copy one of the 2 exclusionary states of the builder.
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(72);
+		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("yay");
+		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier(86);
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder(wsi1).withID(6L).build();
+		final ObjectIdentifier oi2 = ObjectIdentifier.getBuilder(wsi2).withName("thinger").build();
+		final ObjectIdentifier.Builder b = ObjectIdentifier.getBuilder(wsi)
+				.withName("stuff")
+				.withReferencePath(Arrays.asList(oi1, oi2))
+				.withSubsetSelection(new SubsetSelection(Arrays.asList("path1")))
+				.withVersion(24);
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(b).build();
+		
+		assertThat("incorrect build", oi, is(b.build()));
+	}
+	
+	@Test
+	public void copyBuilderWithIDAndLookup() throws Exception {
+		// copy the other of the 2 exclusionary states of the builder.
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(72);
+		final ObjectIdentifier.Builder b = ObjectIdentifier.getBuilder(wsi)
+				.withID(42L)
+				.withLookupRequired(true);
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(b).build();
+		
+		assertThat("incorrect build", oi, is(b.build()));
 	}
 }
