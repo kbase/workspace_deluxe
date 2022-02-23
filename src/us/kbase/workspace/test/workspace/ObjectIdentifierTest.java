@@ -52,6 +52,11 @@ public class ObjectIdentifierTest {
 		assertThat("incorrect name", oi.getName(), is("f|o.A-1_2"));
 		assertThat("incorrect id", oi.getId(), is(nullValue()));
 		assertMinimalState(oi);
+		
+		final ObjectIdentifier newoi = ObjectIdentifier.getBuilder(oi).build();
+		assertThat("incorrect name", newoi.getName(), is("f|o.A-1_2"));
+		assertThat("incorrect id", newoi.getId(), is(nullValue()));
+		assertMinimalState(newoi);
 	}
 	
 	@Test
@@ -61,6 +66,11 @@ public class ObjectIdentifierTest {
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
 		assertThat("incorrect id", oi.getId(), is(1L));
 		assertMinimalState(oi);
+		
+		final ObjectIdentifier newoi = ObjectIdentifier.getBuilder(oi).build();
+		assertThat("incorrect name", newoi.getName(), is(nullValue()));
+		assertThat("incorrect id", newoi.getId(), is(1L));
+		assertMinimalState(newoi);
 	}
 	
 	@Test
@@ -72,7 +82,15 @@ public class ObjectIdentifierTest {
 				.withLookupRequired(true)
 				.withSubsetSelection(new SubsetSelection(Arrays.asList("path1")))
 				.build();
+		assertOnBuildMaximalNameLookupVersionAndSubset(oi, wsi);
 		
+		final ObjectIdentifier newoi = ObjectIdentifier.getBuilder(oi).build();
+		assertOnBuildMaximalNameLookupVersionAndSubset(newoi, wsi);
+	}
+
+	public void assertOnBuildMaximalNameLookupVersionAndSubset(
+			final ObjectIdentifier oi,
+			final WorkspaceIdentifier wsi) {
 		assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(wsi));
 		assertThat("incorrect name", oi.getName(), is(TEXT255));
 		assertThat("incorrect id", oi.getId(), is(nullValue()));
@@ -96,7 +114,17 @@ public class ObjectIdentifierTest {
 				.withVersion(1023)
 				.withReferencePath(Arrays.asList(oi1, oi2))
 				.build();
+		assertOnBuildMaximalIDWithRefPath(oi, wsi, oi1, oi2);
 		
+		final ObjectIdentifier newoi = ObjectIdentifier.getBuilder(oi).build();
+		assertOnBuildMaximalIDWithRefPath(newoi, wsi, oi1, oi2);
+	}
+
+	public void assertOnBuildMaximalIDWithRefPath(
+			final ObjectIdentifier oi,
+			final WorkspaceIdentifier wsi,
+			final ObjectIdentifier oi1,
+			final ObjectIdentifier oi2) {
 		assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(wsi));
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
 		assertThat("incorrect id", oi.getId(), is(42L));
@@ -387,10 +415,16 @@ public class ObjectIdentifierTest {
 	@Test
 	public void getBuilderFail() throws Exception {
 		try {
-			ObjectIdentifier.getBuilder(null);
+			ObjectIdentifier.getBuilder((WorkspaceIdentifier) null);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new NullPointerException("wsi"));
+		}
+		try {
+			ObjectIdentifier.getBuilder((ObjectIdentifier) null);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("oi"));
 		}
 	}
 	
