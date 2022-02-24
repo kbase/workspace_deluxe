@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -15,8 +16,6 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
-import us.kbase.workspace.database.ObjectIdentifier.ObjIDWithRefPathAndSubset;
-import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.kbase.IdentifierUtils;
@@ -26,6 +25,9 @@ public class IdentifierUtilsTest {
 	/* Note - doesn't test subobject identifiers, should be fully tested in
 	 * the JSONRPCLayer tests and they're deprecated.
 	 */
+	
+	// TODO TEST most of these tests should test for equality with a built object rather than
+	// testing state via methods to future proof the tests
 	
 	private void expectFailProcessWorkspaceIdentifier(
 			final WorkspaceIdentity wsi,
@@ -458,11 +460,9 @@ public class IdentifierUtilsTest {
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
-				is(false));
-		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
-				is(false));
-		
+		assertThat("incorrect haspath", oi.hasRefPath(), is(false));
+		assertThat("incorrect lookup", oi.isLookupRequired(), is(false));
+		assertThat("incorrect subset", oi.getSubSet(), is(SubsetSelection.EMPTY));
 		checkObjectIdentifier(oi, wsname, wsid, name, id, ver, refstring,
 				idstring, isAbsolute);
 	}
@@ -692,15 +692,13 @@ public class IdentifierUtilsTest {
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath, is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset, is(false));
+		assertThat("incorrect subset", oi.getSubSet(), is(SubsetSelection.EMPTY));
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar", "bar", false);
 		
-		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(true));
-		assertThat("incorrect isLookupRequired()", oirc.isLookupRequired(), is(false));
-		final List<ObjectIdentifier> chain = oirc.getRefPath();
+		assertThat("incorrect hasRefPath()", oi.hasRefPath(), is(true));
+		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
+		final List<ObjectIdentifier> chain = oi.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(2));
 		
 		checkObjectIdentifier(chain.get(0), "baz", null, "bat", null, null,
@@ -719,18 +717,13 @@ public class IdentifierUtilsTest {
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
-				is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
-				is(false));
+		assertThat("incorrect subset", oi.getSubSet(), is(SubsetSelection.EMPTY));
 		
-		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
-				"bar", false);
+		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar", "bar", false);
 		
-		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(true));
-		assertThat("incorrect isLookupRequired()", oirc.isLookupRequired(), is(false));
-		final List<ObjectIdentifier> chain = oirc.getRefPath();
+		assertThat("incorrect hasRefPath()", oi.hasRefPath(), is(true));
+		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
+		final List<ObjectIdentifier> chain = oi.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(2));
 		
 		checkObjectIdentifier(chain.get(0), "baz", null, "bat", null, null,
@@ -746,18 +739,16 @@ public class IdentifierUtilsTest {
 				.withIncluded(Arrays.asList("baz", "bat")));
 		final List<ObjectIdentifier> ret = IdentifierUtils.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
-		final ObjIDWithRefPathAndSubset oi = (ObjIDWithRefPathAndSubset) ret.get(0);
+		final ObjectIdentifier oi = ret.get(0);
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar", "bar", false);
-		assertThat("incorrect hasChain()", oi.hasRefPath(), is(false));
+		assertThat("incorrect hasRefPath()", oi.hasRefPath(), is(false));
 		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
-		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
-				new LinkedList<ObjectIdentifier>()));
+		assertThat("has ref path", oi.getRefPath(), is(Collections.emptyList()));
 		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
-		for (final String p: op) {
-			paths.add(p);
-		}
+		op.forEach(p -> paths.add(p));
+
 		assertThat("incorrect object paths", paths, is(Arrays.asList("baz", "bat")));
 		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
 		assertThat("incorrect strict arrays", op.isStrictArrays(), is(true));
@@ -777,20 +768,17 @@ public class IdentifierUtilsTest {
 				.withToObjRefPath(new LinkedList<String>()));
 		final List<ObjectIdentifier> ret = IdentifierUtils .processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
-		final ObjIDWithRefPathAndSubset oi = (ObjIDWithRefPathAndSubset) ret.get(0);
+		final ObjectIdentifier oi =  ret.get(0);
 		
 		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar", "bar", false);
-		assertThat("incorrect hasChain()", oi.hasRefPath(), is(false));
+		assertThat("incorrect hasRefpath()", oi.hasRefPath(), is(false));
 		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
-		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
-				new LinkedList<ObjectIdentifier>()));
+		assertThat("has ref chain", oi.getRefPath(), is(Collections.emptyList()));
 		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
-		for (final String p: op) {
-			paths.add(p);
-		}
-		assertThat("incorrect object paths", paths,
-				is(Arrays.asList("whiz")));
+		op.forEach(p -> paths.add(p));
+
+		assertThat("incorrect object paths", paths, is(Arrays.asList("whiz")));
 		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
 		assertThat("incorrect strict arrays", op.isStrictArrays(), is(false));
 	}
@@ -805,21 +793,17 @@ public class IdentifierUtilsTest {
 		final List<ObjectIdentifier> ret = IdentifierUtils
 				.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
-		final ObjIDWithRefPathAndSubset oi = (ObjIDWithRefPathAndSubset) ret.get(0);
+		final ObjectIdentifier oi = ret.get(0);
 		
-		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar",
-				"bar", false);
+		checkObjectIdentifier(oi, "foo", null, "bar", null, null, "foo/bar", "bar", false);
 		assertThat("incorrect hasChain()", oi.hasRefPath(), is(false));
 		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
-		assertThat("has ref chain", oi.getRefPath(), is((List<ObjectIdentifier>)
-				new LinkedList<ObjectIdentifier>()));
+		assertThat("has ref chain", oi.getRefPath(), is(Collections.emptyList()));
 		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
-		for (final String p: op) {
-			paths.add(p);
-		}
-		assertThat("incorrect object paths", paths,
-				is(Arrays.asList("whiz", "towel", "bleah")));
+		op.forEach(p -> paths.add(p));
+
+		assertThat("incorrect object paths", paths, is(Arrays.asList("whiz", "towel", "bleah")));
 		assertThat("incorrect strict maps", op.isStrictMaps(), is(true));
 		assertThat("incorrect strict arrays", op.isStrictArrays(), is(true));
 	}
@@ -838,7 +822,7 @@ public class IdentifierUtilsTest {
 				.withIncluded(Arrays.asList("bar")));
 		final List<ObjectIdentifier> ret = IdentifierUtils.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
-		final ObjIDWithRefPathAndSubset oi = (ObjIDWithRefPathAndSubset) ret.get(0);
+		final ObjectIdentifier oi = ret.get(0);
 		
 		checkObjectIdentifier(oi, null, 3L, null, 2L, null, "3/2", "2", false);
 		
@@ -846,9 +830,8 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
 		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
-		for (final String p: op) {
-			paths.add(p);
-		}
+		op.forEach(p -> paths.add(p));
+
 		assertThat("incorrect object paths", paths, is(Arrays.asList("bar")));
 		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
 		assertThat("incorrect strict arrays", op.isStrictArrays(), is(true));
@@ -875,18 +858,14 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect return size", ret.size(), is(1));
 
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
-				is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
-				is(false));
+		assertThat("incorrect subset", oi.getSubSet(), is(SubsetSelection.EMPTY));
 		
 		checkObjectIdentifier(oi, "whoo", null, "whee", null, null, "whoo/whee", "whee", false);
 		
-		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(true));
-		final List<ObjectIdentifier> chain = oirc.getRefPath();
+		assertThat("incorrect hasRefPath()", oi.hasRefPath(), is(true));
+		final List<ObjectIdentifier> chain = oi.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(1));
-		assertThat("incorrect isLookupRequired()", oirc.isLookupRequired(), is(false));
+		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
 		
 		checkObjectIdentifier(chain.get(0), null, 3L, null, 2L, null, "3/2", "2", false);
 	}
@@ -902,19 +881,14 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect return size", ret.size(), is(1));
 
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
-				is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
-				is(false));
+		assertThat("incorrect subset", oi.getSubSet(), is(SubsetSelection.EMPTY));
 		
-		checkObjectIdentifier(oi, null, 3L, null, 4L, 1L,
-				"3/4/1", "4", true);
+		checkObjectIdentifier(oi, null, 3L, null, 4L, 1L, "3/4/1", "4", true);
 		
-		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(true));
-		final List<ObjectIdentifier> chain = oirc.getRefPath();
+		assertThat("incorrect hasRefPah()", oi.hasRefPath(), is(true));
+		final List<ObjectIdentifier> chain = oi.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(1));
-		assertThat("incorrect isLookupRequired()", oirc.isLookupRequired(), is(false));
+		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
 		
 		checkObjectIdentifier(chain.get(0), "bar", null, null, 2L, null,
 				"bar/2", "2", false);
@@ -930,26 +904,19 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect return size", ret.size(), is(1));
 
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
-				is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
-				is(false));
+		assertThat("incorrect subset", oi.getSubSet(), is(SubsetSelection.EMPTY));
 		
-		checkObjectIdentifier(oi, "bar", null, null, 2L, null,
-				"bar/2", "2", false);
+		checkObjectIdentifier(oi, "bar", null, null, 2L, null, "bar/2", "2", false);
 		
-		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasChain()", oirc.hasRefPath(), is(true));
-		final List<ObjectIdentifier> chain = oirc.getRefPath();
+		assertThat("incorrect hasRefPath()", oi.hasRefPath(), is(true));
+		final List<ObjectIdentifier> chain = oi.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(3));
-		assertThat("incorrect isLookupRequired()", oirc.isLookupRequired(), is(false));
+		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
 		
-		checkObjectIdentifier(chain.get(0), null, 5L, null, 6L, 7L,
-				"5/6/7", "6", true);
+		checkObjectIdentifier(chain.get(0), null, 5L, null, 6L, 7L, "5/6/7", "6", true);
 		checkObjectIdentifier(chain.get(1), "biz", null, "baz", null, null,
 				"biz/baz", "baz", false);
-		checkObjectIdentifier(chain.get(2), null, 3L, null, 4L, null,
-				"3/4", "4", false);
+		checkObjectIdentifier(chain.get(2), null, 3L, null, 4L, null, "3/4", "4", false);
 	}
 
 	@Test
@@ -965,16 +932,12 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect return size", ret.size(), is(1));
 
 		final ObjectIdentifier oi = ret.get(0);
-		assertThat("incorrect class", oi instanceof ObjectIDWithRefPath,
-				is(true));
-		assertThat("incorrect class", oi instanceof ObjIDWithRefPathAndSubset,
-				is(false));
+		assertThat("incorrect subset", oi.getSubSet(), is(SubsetSelection.EMPTY));
 		
 		checkObjectIdentifier(oi, null, 3L, null, 2L, null, "3/2", "2", false);
 		
-		final ObjectIDWithRefPath oirc = (ObjectIDWithRefPath) oi;
-		assertThat("incorrect hasRefPath()", oirc.hasRefPath(), is(false));
-		assertThat("incorrect isLookupRequired()", oirc.isLookupRequired(), is(true));
+		assertThat("incorrect hasRefPath()", oi.hasRefPath(), is(false));
+		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(true));
 	}
 	
 	@Test
@@ -991,7 +954,7 @@ public class IdentifierUtilsTest {
 				.withIncluded(Arrays.asList("bar")));
 		final List<ObjectIdentifier> ret = IdentifierUtils.processObjectSpecifications(oss);
 		assertThat("incorrect return size", ret.size(), is(1));
-		final ObjIDWithRefPathAndSubset oi = (ObjIDWithRefPathAndSubset) ret.get(0);
+		final ObjectIdentifier oi = ret.get(0);
 		
 		checkObjectIdentifier(oi, null, 3L, null, 2L, null, "3/2", "2", false);
 		
@@ -999,9 +962,8 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(true));
 		final SubsetSelection op = oi.getSubSet();
 		final List<String> paths = new LinkedList<>();
-		for (final String p: op) {
-			paths.add(p);
-		}
+		op.forEach(p -> paths.add(p));
+
 		assertThat("incorrect object paths", paths, is(Arrays.asList("bar")));
 		assertThat("incorrect strict maps", op.isStrictMaps(), is(false));
 		assertThat("incorrect strict arrays", op.isStrictArrays(), is(true));

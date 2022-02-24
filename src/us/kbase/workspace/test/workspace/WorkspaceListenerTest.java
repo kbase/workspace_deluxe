@@ -673,7 +673,7 @@ public class WorkspaceListenerTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ObjectIdentifier oi = new ObjectIdentifier(wsi, "whee");
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(wsi).withName("whee").build();
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
 		
@@ -697,7 +697,7 @@ public class WorkspaceListenerTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ObjectIdentifier oi = new ObjectIdentifier(wsi, "whee");
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(wsi).withName("whee").build();
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
 		
@@ -722,7 +722,7 @@ public class WorkspaceListenerTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ObjectIdentifier oi = new ObjectIdentifier(wsi, "whee");
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(wsi).withName("whee").build();
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
 		
@@ -756,7 +756,7 @@ public class WorkspaceListenerTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ObjectIdentifier oi = new ObjectIdentifier(wsi, "whee");
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(wsi).withName("whee").build();
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi = new ObjectIDResolvedWS(rwsi, "whee");
 		
@@ -790,8 +790,8 @@ public class WorkspaceListenerTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ObjectIdentifier oi1 = new ObjectIdentifier(wsi, "whee");
-		final ObjectIdentifier oi2 = new ObjectIdentifier(wsi, "whoo");
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder(wsi).withName("whee").build();
+		final ObjectIdentifier oi2 = ObjectIdentifier.getBuilder(wsi).withName("whoo").build();
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi, "whee");
 		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi, "whoo");
@@ -820,8 +820,8 @@ public class WorkspaceListenerTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ObjectIdentifier oi1 = new ObjectIdentifier(wsi, "whee");
-		final ObjectIdentifier oi2 = new ObjectIdentifier(wsi, "whoo");
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder(wsi).withName("whee").build();
+		final ObjectIdentifier oi2 = ObjectIdentifier.getBuilder(wsi).withName("whoo").build();
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi, "whee");
 		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi, "whoo");
@@ -852,8 +852,8 @@ public class WorkspaceListenerTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ObjectIdentifier oi1 = new ObjectIdentifier(wsi, "whee");
-		final ObjectIdentifier oi2 = new ObjectIdentifier(wsi, "whoo");
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder(wsi).withName("whee").build();
+		final ObjectIdentifier oi2 = ObjectIdentifier.getBuilder(wsi).withName("whoo").build();
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi, "whee");
 		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi, "whoo");
@@ -882,8 +882,8 @@ public class WorkspaceListenerTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ObjectIdentifier oi1 = new ObjectIdentifier(wsi, "whee");
-		final ObjectIdentifier oi2 = new ObjectIdentifier(wsi, "whoo");
+		final ObjectIdentifier oi1 = ObjectIdentifier.getBuilder(wsi).withName("whee").build();
+		final ObjectIdentifier oi2 = ObjectIdentifier.getBuilder(wsi).withName("whoo").build();
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS roi1 = new ObjectIDResolvedWS(rwsi, "whee");
 		final ObjectIDResolvedWS roi2 = new ObjectIDResolvedWS(rwsi, "whoo");
@@ -914,8 +914,8 @@ public class WorkspaceListenerTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ObjectIdentifier from = new ObjectIdentifier(wsi, "whoo");
-		final ObjectIdentifier to = new ObjectIdentifier(wsi, "whee");
+		final ObjectIdentifier from = ObjectIdentifier.getBuilder(wsi).withName("whoo").build();
+		final ObjectIdentifier to = ObjectIdentifier.getBuilder(wsi).withName("whee").build();
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS rfrom = new ObjectIDResolvedWS(rwsi, "whoo");
 		final ObjectIDResolvedWS rto = new ObjectIDResolvedWS(rwsi, "whee");
@@ -950,8 +950,8 @@ public class WorkspaceListenerTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(24);
-		final ObjectIdentifier from = new ObjectIdentifier(wsi, "whoo");
-		final ObjectIdentifier to = new ObjectIdentifier(wsi, "whee");
+		final ObjectIdentifier from = ObjectIdentifier.getBuilder(wsi).withName("whoo").build();
+		final ObjectIdentifier to = ObjectIdentifier.getBuilder(wsi).withName("whee").build();
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(24, "ugh", false, false);
 		final ObjectIDResolvedWS rfrom = new ObjectIDResolvedWS(rwsi, "whoo");
 		final ObjectIDResolvedWS rto = new ObjectIDResolvedWS(rwsi, "whee");

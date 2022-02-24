@@ -109,7 +109,7 @@ public class GetObjectsLibSpeedTest {
 						o, td, null, new Provenance(user), false)), fac);
 		o = null;
 		
-		ObjectIdentifier oi = new ObjectIdentifier(wsi, "auto1");
+		ObjectIdentifier oi = ObjectIdentifier.getBuilder(wsi).withName("auto1").build(); 
 		
 		List<PerformanceMeasurement> pms;
 		if (op == Op.XLATEOPS) {

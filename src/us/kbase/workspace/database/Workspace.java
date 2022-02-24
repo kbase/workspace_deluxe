@@ -54,7 +54,6 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
-import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectResolver.ObjectResolution;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
@@ -1831,8 +1830,11 @@ public class Workspace {
 			if (ois.size() == 1) {
 				return ois.get(0);
 			}
-			return new ObjectIDWithRefPath(ois.get(0), ois.subList(1, ois.size()));
-			
+			// probably not worth making a builder starting from a reference to avoid an
+			// extra OI instantiation
+			return ObjectIdentifier.getBuilder(ois.get(0))
+					.withReferencePath(ois.subList(1, ois.size()))
+					.build();
 		}
 
 		//use this method when an ID is bad regardless of the attribute set

@@ -24,7 +24,6 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
-import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
@@ -168,8 +167,8 @@ public class GetReferencedObjectWithBFS {
 			System.out.print(breadth + " ");
 			for (int j = 0; j < TEST_REPS; j++) {
 				long start = System.nanoTime();
-				WS.getObjects(u2, Arrays.asList((ObjectIdentifier) new ObjectIDWithRefPath(
-						new ObjectIdentifier(priv, o.getObjectId()))));
+				WS.getObjects(u2, Arrays.asList(ObjectIdentifier.getBuilder(priv)
+						.withID(o.getObjectId()).build()));
 				System.out.print((System.nanoTime() - start) + " ");
 			}
 			System.out.println();
@@ -232,8 +231,8 @@ public class GetReferencedObjectWithBFS {
 			System.out.print(i + " ");
 			for (int j = 0; j < TEST_REPS; j++) {
 				long start = System.nanoTime();
-				WS.getObjects(u2, Arrays.asList((ObjectIdentifier) new ObjectIDWithRefPath(
-						new ObjectIdentifier(priv, i))));
+				WS.getObjects(u2, Arrays.asList(ObjectIdentifier.getBuilder(priv)
+						.withID((long) i).build()));
 				System.out.print((System.nanoTime() - start) + " ");
 			}
 			System.out.println();

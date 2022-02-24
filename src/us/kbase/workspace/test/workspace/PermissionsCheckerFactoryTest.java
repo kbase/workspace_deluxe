@@ -471,8 +471,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
@@ -503,8 +504,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
@@ -535,8 +537,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
@@ -567,8 +570,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		
 		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
@@ -596,8 +600,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, true);
 		
@@ -628,8 +633,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, true);
 		
@@ -662,8 +668,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, true);
 		
@@ -692,7 +699,7 @@ public class PermissionsCheckerFactoryTest {
 	@Test
 	public void checkObjectsFailGetBuilder() throws Exception {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
-		final ObjectIdentifier oi = new ObjectIdentifier(wsi, 2);
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(wsi).withID(2L).build();
 		final List<ObjectIdentifier> wsis = Arrays.asList(oi);
 		
 		failGetObjectsChecker(null, Permission.READ, new NullPointerException("objects"));
@@ -723,9 +730,10 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
-		
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
+
 		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
 		
 		when(db.resolveWorkspaces(set(wsi3, wsi42), false))
@@ -744,8 +752,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
 		
@@ -776,8 +785,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		// locked to test that permissions errors take precedence over locking
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
@@ -809,8 +819,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		// locked to test that permissions errors take precedence over locking
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
@@ -845,8 +856,9 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceUser u = null;
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
 		final WorkspaceIdentifier wsi42 = new WorkspaceIdentifier("thing");
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
-		final ObjectIdentifier obj42 = new ObjectIdentifier(wsi42, "entity");
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
+		final ObjectIdentifier obj42 = ObjectIdentifier.getBuilder(wsi42).withName("entity")
+				.build();
 		// locked to test that permissions errors take precedence over locking
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		final ResolvedWorkspaceID res42 = new ResolvedWorkspaceID(42, "thing", false, false);
@@ -899,7 +911,7 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", false, false);
 		
 		final PermissionsCheckerFactory permfac = new PermissionsCheckerFactory(db, u);
@@ -922,7 +934,7 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
 		
 		final SingleObjectPermissionsChecker checker = new PermissionsCheckerFactory(db, u)
 				.getObjectChecker(obj3, Permission.READ);
@@ -947,7 +959,7 @@ public class PermissionsCheckerFactoryTest {
 	@Test
 	public void checkObjectFailGetBuilder() throws Exception {
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
-		final ObjectIdentifier oi = new ObjectIdentifier(wsi, 2);
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(wsi).withID(2L).build();
 		
 		failGetObjectChecker(null, Permission.READ, new NullPointerException(
 				"Object identifier cannot be null"));
@@ -972,7 +984,7 @@ public class PermissionsCheckerFactoryTest {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final WorkspaceUser u = new WorkspaceUser("foo");
 		final WorkspaceIdentifier wsi3 = new WorkspaceIdentifier(3);
-		final ObjectIdentifier obj3 = new ObjectIdentifier(wsi3, 2);
+		final ObjectIdentifier obj3 = ObjectIdentifier.getBuilder(wsi3).withID(2L).build();
 		// locked to test that permissions errors take precedence over locking
 		final ResolvedWorkspaceID res3 = new ResolvedWorkspaceID(3, "yay", true, false);
 		
