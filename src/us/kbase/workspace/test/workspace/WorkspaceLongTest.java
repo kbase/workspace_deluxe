@@ -193,7 +193,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				long expected = Long.parseLong(es.getValue().split(" ")[1]);
 				ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(es.getKey());
 				assertThat("reference ws is correct", oi.getWorkspaceIdentifier().getId(), is(wsid));
-				assertThat("reference id is correct", oi.getId(), is(expected));
+				assertThat("reference id is correct", oi.getID(), is(expected));
 				assertThat("reference ver is correct", oi.getVersion(), is(1));
 			}
 		} finally {

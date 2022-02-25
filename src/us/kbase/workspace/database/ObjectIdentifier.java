@@ -46,7 +46,7 @@ public class ObjectIdentifier {
 		return name;
 	}
 
-	public Long getId() { // TODO NOW switch to ID
+	public Long getID() {
 		return id < 1 ? null : id;
 	}
 
@@ -92,10 +92,10 @@ public class ObjectIdentifier {
 	}
 	
 	public String getIdentifierString() {
-		if (getId() == null) {
+		if (getID() == null) {
 			return getName();
 		}
-		return "" + getId();
+		return "" + getID();
 	}
 
 	public String getWorkspaceIdentifierString() {
@@ -165,7 +165,7 @@ public class ObjectIdentifier {
 	
 	@Override
 	public String toString() {
-		return "ObjectIdentifier [wsi=" + wsi + ", name=" + name + ", id=" + getId()
+		return "ObjectIdentifier [wsi=" + wsi + ", name=" + name + ", id=" + getID()
 				+ ", version=" + getVersion() + "]";
 	}
 
@@ -295,7 +295,7 @@ public class ObjectIdentifier {
 			builder.append(", getName()=");
 			builder.append(getName());
 			builder.append(", getId()=");
-			builder.append(getId());
+			builder.append(getID());
 			builder.append(", getVersion()=");
 			builder.append(getVersion());
 			builder.append("]");
@@ -361,7 +361,7 @@ public class ObjectIdentifier {
 			builder.append(", getName()=");
 			builder.append(getName());
 			builder.append(", getId()=");
-			builder.append(getId());
+			builder.append(getID());
 			builder.append(", getVersion()=");
 			builder.append(getVersion());
 			builder.append("]");
@@ -411,7 +411,7 @@ public class ObjectIdentifier {
 
 		private Builder(final ObjectIdentifier oi) {
 			this.wsi = requireNonNull(oi, "oi").getWorkspaceIdentifier();
-			this.id = oi.getId() == null ? -1 : oi.getId();
+			this.id = oi.getID() == null ? -1 : oi.getID();
 			this.name = oi.getName();
 			this.version = oi.getVersion() == null ? -1 : oi.getVersion();
 			this.refpath = oi.getRefPath().isEmpty() ? null : oi.getRefPath();

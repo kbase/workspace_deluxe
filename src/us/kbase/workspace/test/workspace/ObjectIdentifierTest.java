@@ -50,12 +50,12 @@ public class ObjectIdentifierTest {
 		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(WSI).withName("f|o.A-1_2").build();
 		
 		assertThat("incorrect name", oi.getName(), is("f|o.A-1_2"));
-		assertThat("incorrect id", oi.getId(), is(nullValue()));
+		assertThat("incorrect id", oi.getID(), is(nullValue()));
 		assertMinimalState(oi);
 		
 		final ObjectIdentifier newoi = ObjectIdentifier.getBuilder(oi).build();
 		assertThat("incorrect name", newoi.getName(), is("f|o.A-1_2"));
-		assertThat("incorrect id", newoi.getId(), is(nullValue()));
+		assertThat("incorrect id", newoi.getID(), is(nullValue()));
 		assertMinimalState(newoi);
 	}
 	
@@ -64,12 +64,12 @@ public class ObjectIdentifierTest {
 		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(WSI).withID(1L).build();
 		
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(1L));
+		assertThat("incorrect id", oi.getID(), is(1L));
 		assertMinimalState(oi);
 		
 		final ObjectIdentifier newoi = ObjectIdentifier.getBuilder(oi).build();
 		assertThat("incorrect name", newoi.getName(), is(nullValue()));
-		assertThat("incorrect id", newoi.getId(), is(1L));
+		assertThat("incorrect id", newoi.getID(), is(1L));
 		assertMinimalState(newoi);
 	}
 	
@@ -93,7 +93,7 @@ public class ObjectIdentifierTest {
 			final WorkspaceIdentifier wsi) {
 		assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(wsi));
 		assertThat("incorrect name", oi.getName(), is(TEXT255));
-		assertThat("incorrect id", oi.getId(), is(nullValue()));
+		assertThat("incorrect id", oi.getID(), is(nullValue()));
 		assertThat("incorrect version", oi.getVersion(), is(1));
 		assertThat("incorrect lookup", oi.isLookupRequired(), is(true));
 		assertThat("incorrect hasrefpath", oi.hasRefPath(), is(false));
@@ -127,7 +127,7 @@ public class ObjectIdentifierTest {
 			final ObjectIdentifier oi2) {
 		assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(wsi));
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(42L));
+		assertThat("incorrect id", oi.getID(), is(42L));
 		assertThat("incorrect version", oi.getVersion(), is(1023));
 		assertThat("incorrect lookup", oi.isLookupRequired(), is(false));
 		assertThat("incorrect hasrefpath", oi.hasRefPath(), is(true));
@@ -148,7 +148,7 @@ public class ObjectIdentifierTest {
 		
 		assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(wsi));
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(74L));
+		assertThat("incorrect id", oi.getID(), is(74L));
 		assertThat("incorrect version", oi.getVersion(), is(nullValue()));
 		assertThat("incorrect lookup", oi.isLookupRequired(), is(true));
 		assertThat("incorrect hasrefpath", oi.hasRefPath(), is(false));
@@ -169,7 +169,7 @@ public class ObjectIdentifierTest {
 		
 		assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(wsi));
 		assertThat("incorrect name", oi.getName(), is("foo"));
-		assertThat("incorrect id", oi.getId(), is(nullValue()));
+		assertThat("incorrect id", oi.getID(), is(nullValue()));
 		assertThat("incorrect version", oi.getVersion(), is(nullValue()));
 		assertThat("incorrect lookup", oi.isLookupRequired(), is(false));
 		assertThat("incorrect hasrefpath", oi.hasRefPath(), is(true));
@@ -191,7 +191,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(74L));
+		assertThat("incorrect id", oi.getID(), is(74L));
 		assertMinimalState(oi);
 	}
 	
@@ -205,7 +205,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(74L));
+		assertThat("incorrect id", oi.getID(), is(74L));
 		assertMinimalState(oi);
 	}
 	
@@ -222,7 +222,7 @@ public class ObjectIdentifierTest {
 			
 			assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(wsi));
 			assertThat("incorrect name", oi.getName(), is(nullValue()));
-			assertThat("incorrect id", oi.getId(), is(74L));
+			assertThat("incorrect id", oi.getID(), is(74L));
 			assertThat("incorrect version", oi.getVersion(), is(nullValue()));
 			assertThat("incorrect lookup", oi.isLookupRequired(), is(true));
 			assertThat("incorrect hasrefpath", oi.hasRefPath(), is(false));
@@ -240,7 +240,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(74L));
+		assertThat("incorrect id", oi.getID(), is(74L));
 		assertMinimalState(oi);
 	}
 	
@@ -256,7 +256,7 @@ public class ObjectIdentifierTest {
 		
 		assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(wsi));
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(74L));
+		assertThat("incorrect id", oi.getID(), is(74L));
 		assertThat("incorrect version", oi.getVersion(), is(nullValue()));
 		assertThat("incorrect lookup", oi.isLookupRequired(), is(false));
 		assertThat("incorrect hasrefpath", oi.hasRefPath(), is(true));
@@ -272,7 +272,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is("foo"));
-		assertThat("incorrect id", oi.getId(), is(nullValue()));
+		assertThat("incorrect id", oi.getID(), is(nullValue()));
 		assertMinimalState(oi);
 		
 		oi = ObjectIdentifier.getBuilder(WSI)
@@ -281,7 +281,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(84L));
+		assertThat("incorrect id", oi.getID(), is(84L));
 		assertMinimalState(oi);
 	}
 	
@@ -293,7 +293,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(98L));
+		assertThat("incorrect id", oi.getID(), is(98L));
 		assertMinimalState(oi);
 		
 		oi = ObjectIdentifier.getBuilder(WSI)
@@ -302,7 +302,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is("foo"));
-		assertThat("incorrect id", oi.getId(), is(nullValue()));
+		assertThat("incorrect id", oi.getID(), is(nullValue()));
 		assertMinimalState(oi);
 	}
 	
@@ -313,7 +313,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is("foo"));
-		assertThat("incorrect id", oi.getId(), is(nullValue()));
+		assertThat("incorrect id", oi.getID(), is(nullValue()));
 		assertMinimalState(oi);
 		
 		oi = ObjectIdentifier.getBuilder(WSI)
@@ -322,7 +322,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is("foo"));
-		assertThat("incorrect id", oi.getId(), is(nullValue()));
+		assertThat("incorrect id", oi.getID(), is(nullValue()));
 		assertMinimalState(oi);
 	}
 		
@@ -335,7 +335,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is("foo"));
-		assertThat("incorrect id", oi.getId(), is(nullValue()));
+		assertThat("incorrect id", oi.getID(), is(nullValue()));
 		assertMinimalState(oi);
 		
 		oi = ObjectIdentifier.getBuilder(WSI)
@@ -344,7 +344,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(78L));
+		assertThat("incorrect id", oi.getID(), is(78L));
 		assertMinimalState(oi);
 	}
 	
@@ -355,7 +355,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(2L));
+		assertThat("incorrect id", oi.getID(), is(2L));
 		assertMinimalState(oi);
 		
 		oi = ObjectIdentifier.getBuilder(WSI)
@@ -364,7 +364,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(6L));
+		assertThat("incorrect id", oi.getID(), is(6L));
 		assertMinimalState(oi);
 	}
 	
@@ -377,7 +377,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is(nullValue()));
-		assertThat("incorrect id", oi.getId(), is(3000L));
+		assertThat("incorrect id", oi.getID(), is(3000L));
 		assertMinimalState(oi);
 		
 		oi = ObjectIdentifier.getBuilder(WSI)
@@ -386,7 +386,7 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		assertThat("incorrect name", oi.getName(), is("foo"));
-		assertThat("incorrect id", oi.getId(), is(nullValue()));
+		assertThat("incorrect id", oi.getID(), is(nullValue()));
 		assertMinimalState(oi);
 	}
 	

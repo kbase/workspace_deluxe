@@ -43,7 +43,7 @@ public class Reference implements RemappedId {
 					"ref %s is not an absolute reference", ref));
 		}
 		workspaceID = oi.getWorkspaceIdentifier().getId();
-		objectID = oi.getId();
+		objectID = oi.getID();
 		version = oi.getVersion();
 	}
 
