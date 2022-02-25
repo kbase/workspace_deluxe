@@ -3,6 +3,7 @@ package us.kbase.workspace.test.workspace;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static us.kbase.workspace.test.LongTextForTestUsage.TEXT1000;
+import static us.kbase.common.test.TestCommon.opt;
 
 import java.io.File;
 import java.io.InputStream;
@@ -193,8 +194,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				long expected = Long.parseLong(es.getValue().split(" ")[1]);
 				ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(es.getKey());
 				assertThat("reference ws is correct", oi.getWorkspaceIdentifier().getId(), is(wsid));
-				assertThat("reference id is correct", oi.getID(), is(expected));
-				assertThat("reference ver is correct", oi.getVersion(), is(1));
+				assertThat("reference id is correct", oi.getID(), is(opt(expected)));
+				assertThat("reference ver is correct", oi.getVersion(), is(opt(1)));
 			}
 		} finally {
 			destroyGetObjectsResources(Arrays.asList(wod));

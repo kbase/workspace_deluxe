@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
@@ -286,6 +287,18 @@ public class TestCommon {
 	
 	public static Instant inst(final long epoch) {
 		return Instant.ofEpochMilli(epoch);
+	}
+	
+	public static final Optional<String> ES = Optional.empty();
+	public static final Optional<Long> EL = Optional.empty();
+	public static final Optional<Integer> EI = Optional.empty();
+	
+	public static <T> Optional<T> opt(final T obj) {
+		return Optional.of(obj);
+	}
+	
+	public static <T> Optional<T> optn(final T obj) {
+		return Optional.ofNullable(obj);
 	}
 	
 	public static class LogEvent {

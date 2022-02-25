@@ -6,6 +6,7 @@ import static us.kbase.workspace.database.Util.xorNameId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import us.kbase.typedobj.core.SubsetSelection;
 
@@ -17,7 +18,6 @@ public class ObjectIdentifier {
 	// TODO TEST unittests (move from WorkspaceTest, mostly covered there)
 	// also need to test toString code, but not super high priority
 	// TODO NOW JAVADOC
-	// TODO CODE return Optionals instead of nulls. That's a big change...
 	
 	//this cannot be a legal object/workspace char
 	public final static String REFERENCE_SEP = "/";
@@ -42,16 +42,16 @@ public class ObjectIdentifier {
 		return wsi;
 	}
 
-	public String getName() {
-		return name;
+	public Optional<String> getName() {
+		return Optional.ofNullable(name);
 	}
 
-	public Long getID() {
-		return id < 1 ? null : id;
+	public Optional<Long> getID() {
+		return id < 1 ? Optional.empty() : Optional.of(id);
 	}
 
-	public Integer getVersion() {
-		return version < 1 ? null : version;
+	public Optional<Integer> getVersion() {
+		return version < 1 ? Optional.empty() : Optional.of(version);
 	}
 	
 	/** Returns whether this object identifier has a reference path.
@@ -92,10 +92,10 @@ public class ObjectIdentifier {
 	}
 	
 	public String getIdentifierString() {
-		if (getID() == null) {
-			return getName();
+		if (getID().isEmpty()) {
+			return getName().get();
 		}
-		return "" + getID();
+		return "" + getID().get();
 	}
 
 	public String getWorkspaceIdentifierString() {
@@ -165,7 +165,7 @@ public class ObjectIdentifier {
 	
 	@Override
 	public String toString() {
-		return "ObjectIdentifier [wsi=" + wsi + ", name=" + name + ", id=" + getID()
+		return "ObjectIdentifier [wsi=" + wsi + ", name=" + getName() + ", id=" + getID()
 				+ ", version=" + getVersion() + "]";
 	}
 
@@ -411,9 +411,9 @@ public class ObjectIdentifier {
 
 		private Builder(final ObjectIdentifier oi) {
 			this.wsi = requireNonNull(oi, "oi").getWorkspaceIdentifier();
-			this.id = oi.getID() == null ? -1 : oi.getID();
-			this.name = oi.getName();
-			this.version = oi.getVersion() == null ? -1 : oi.getVersion();
+			this.id = oi.getID().orElse(-1L);
+			this.name = oi.getName().orElse(null);
+			this.version = oi.getVersion().orElse(-1);
 			this.refpath = oi.getRefPath().isEmpty() ? null : oi.getRefPath();
 			this.lookup = oi.isLookupRequired();
 			this.subset = oi.getSubSet();
