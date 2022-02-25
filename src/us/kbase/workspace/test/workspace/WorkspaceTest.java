@@ -4638,10 +4638,9 @@ public class WorkspaceTest extends WorkspaceTester {
 						"No object with name foo exists in workspace 2 (name copyrevert1)", null));
 		failRevert(user1, cp1b.withName("foo").build(), new NoSuchObjectException(
 				"No object with name foo exists in workspace 2 (name copyrevert1)", null));
-		failRevert(user1, cp1b.withName("orig").withVersion(4).build(),
-				new NoSuchObjectException(
-						"No object with id 2 (name orig) and version 4 exists in workspace 2 " +
-						"(name copyrevert1)", null));
+		failRevert(user1, cp1b.withName("orig").withVersion(4).build(), new NoSuchObjectException(
+				"No object with id 2 (name orig) and version 4 exists in workspace 2 " +
+				"(name copyrevert1)", null));
 		failCopy(user1, cp1b.withName("orig").withVersion(null).build(), cp1b.withID(7L).build(),
 				new NoSuchObjectException(
 						"Copy destination is specified as object id 7 in workspace 2 " +
@@ -4667,9 +4666,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		failCopy(user1, cp2b.withName("foo").build(), cp2b.withName("foo1").build(),
 				new InaccessibleObjectException("Object foo cannot be accessed: Workspace " +
 						"copyrevert2 is deleted", null));
-		failRevert(user1, cp2b.withName("foo").build(),
-				new InaccessibleObjectException("Object foo cannot be accessed: Workspace " +
-						"copyrevert2 is deleted", null));
+		failRevert(user1, cp2b.withName("foo").build(), new InaccessibleObjectException(
+				"Object foo cannot be accessed: Workspace copyrevert2 is deleted", null));
 		
 		ws.setWorkspaceDeleted(user2, cp2, false);
 		ws.setPermissions(user2, cp2, Arrays.asList(user1), Permission.READ);
@@ -6991,9 +6989,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		final ObjectIdentifier.Builder oident1 = ObjectIdentifier.getBuilder(wsi).withName("o1");
 		final ObjectIdentifier.Builder oident2 = ObjectIdentifier.getBuilder(wsi).withID(4L);
 		final ObjectIdentifier.Builder oident3 = ObjectIdentifier.getBuilder(wsi).withName("o3");
-//		ObjectIdentifier oident1 = new ObjectIdentifier(wsi, "o1");
-//		ObjectIdentifier oident2 = new ObjectIdentifier(wsi, 4);
-//		ObjectIdentifier oident3 = ObjectIdentifier.parseObjectReference("subData/o3");
 		
 		List<String> refs1 = Arrays.asList(wsid1 + "/1/1");
 		Map<String, String> refmap1 = new HashMap<String, String>();
@@ -7579,7 +7574,6 @@ public class WorkspaceTest extends WorkspaceTester {
 				SAFE_TYPE1, "leaf2", pU1_1);
 		final ObjectIdentifier.Builder leaf2b = ObjectIdentifier.getBuilder(wsaccessible)
 				.withName("leaf2");
-//		ObjectIdentifier leaf2oi = new ObjectIdentifier(wsaccessible, "leaf2");
 		
 		TypeDefId reftype = new TypeDefId(
 				new TypeDefName("CopyRev", "RefType"), 1, 0);
@@ -7589,8 +7583,6 @@ public class WorkspaceTest extends WorkspaceTester {
 				data2, reftype, "simpleref", pU2_2);
 		final ObjectIdentifier.Builder simpleb = ObjectIdentifier.getBuilder(wsaccessible)
 				.withName("simpleref");
-//		ObjectIdentifier simplerefoi = new ObjectIdentifier(
-//				wsaccessible, "simpleref");
 		
 		// test single call with different types of operations
 		final List<String> refs = Arrays.asList("2/1/1");

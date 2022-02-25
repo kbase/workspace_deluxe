@@ -14,7 +14,8 @@ import static us.kbase.common.utils.StringUtils.checkString;
 
 public class ObjectIdentifier {
 	
-	// TODO NOW TEST unittests (move from WorkspaceTest, mostly covered there)
+	// TODO TEST unittests (move from WorkspaceTest, mostly covered there)
+	// also need to test toString code, but not super high priority
 	// TODO NOW JAVADOC
 	// TODO CODE return Optionals instead of nulls. That's a big change...
 	
@@ -23,8 +24,8 @@ public class ObjectIdentifier {
 	
 	private final WorkspaceIdentifier wsi;
 	private final String name;
-	private final Long id; // TODO NOW change to long and use -1 as missing
-	private final Integer version; // TODO NOW change to int and use -1 as missing
+	private final long id;
+	private final int version;
 	
 	private ObjectIdentifier(
 			final WorkspaceIdentifier wsi,
@@ -33,9 +34,8 @@ public class ObjectIdentifier {
 			final int version) {
 		this.wsi = wsi;
 		this.name = name;
-		// TODO NOW get rid of these ternaries
-		this.id = id < 0 ? null : id;
-		this.version = version < 0 ? null : version;
+		this.id = id;
+		this.version = version;
 	}
 
 	public WorkspaceIdentifier getWorkspaceIdentifier() {
@@ -47,11 +47,11 @@ public class ObjectIdentifier {
 	}
 
 	public Long getId() { // TODO NOW switch to ID
-		return id;
+		return id < 1 ? null : id;
 	}
 
 	public Integer getVersion() {
-		return version;
+		return version < 1 ? null : version;
 	}
 	
 	/** Returns whether this object identifier has a reference path.
@@ -104,12 +104,12 @@ public class ObjectIdentifier {
 	
 	public String getReferenceString() {
 		return getWorkspaceIdentifierString() + REFERENCE_SEP +
-				getIdentifierString() + (version == null ? "" :
+				getIdentifierString() + (version < 1 ? "" :
 					REFERENCE_SEP + version);
 	}
 	
 	public boolean isAbsolute() {
-		return version != null && id != null && wsi.getId() != null;
+		return version > 0 && id > 0 && wsi.getId() != null;
 	}
 	
 	public ObjectIDResolvedWS resolveWorkspace(ResolvedWorkspaceID rwsi) {
@@ -117,13 +117,13 @@ public class ObjectIdentifier {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
 		if (name == null) {
-			if (version == null) {
+			if (version < 1) {
 				return new ObjectIDResolvedWS(rwsi, id);
 			} else {
 				return new ObjectIDResolvedWS(rwsi, id, version);
 			}
 		}
-		if (version == null) {
+		if (version < 1) {
 			return new ObjectIDResolvedWS(rwsi, name);
 		} else {
 			return new ObjectIDResolvedWS(rwsi, name, version);
@@ -165,17 +165,17 @@ public class ObjectIdentifier {
 	
 	@Override
 	public String toString() {
-		return "ObjectIdentifier [wsi=" + wsi + ", name=" + name + ", id=" + id
-				+ ", version=" + version + "]";
+		return "ObjectIdentifier [wsi=" + wsi + ", name=" + name + ", id=" + getId()
+				+ ", version=" + getVersion() + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + (int) (id ^ (id >>> 32));
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((version == null) ? 0 : version.hashCode());
+		result = prime * result + version;
 		result = prime * result + ((wsi == null) ? 0 : wsi.hashCode());
 		return result;
 	}
@@ -189,20 +189,14 @@ public class ObjectIdentifier {
 		if (getClass() != obj.getClass())
 			return false;
 		ObjectIdentifier other = (ObjectIdentifier) obj;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
+		if (id != other.id)
 			return false;
 		if (name == null) {
 			if (other.name != null)
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
-		if (version == null) {
-			if (other.version != null)
-				return false;
-		} else if (!version.equals(other.version))
+		if (version != other.version)
 			return false;
 		if (wsi == null) {
 			if (other.wsi != null)

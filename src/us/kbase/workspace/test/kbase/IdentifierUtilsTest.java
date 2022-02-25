@@ -885,7 +885,7 @@ public class IdentifierUtilsTest {
 		
 		checkObjectIdentifier(oi, null, 3L, null, 4L, 1L, "3/4/1", "4", true);
 		
-		assertThat("incorrect hasRefPah()", oi.hasRefPath(), is(true));
+		assertThat("incorrect hasRefPath()", oi.hasRefPath(), is(true));
 		final List<ObjectIdentifier> chain = oi.getRefPath();
 		assertThat("incorrect chain size", chain.size(), is(1));
 		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
