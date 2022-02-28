@@ -59,7 +59,6 @@ import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -792,8 +791,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (refChains == null) {
 			throw new IllegalArgumentException("refChains may not be null");
 		}
-		final List<ObjectIdentifier> chains =
-				new LinkedList<ObjectIdentifier>();
+		final List<ObjectIdentifier> chains = new LinkedList<>();
 		int count = 1;
 		for (List<ObjectIdentity> loy: refChains) {
 			final List<ObjectIdentifier> lor;
@@ -809,8 +807,9 @@ public class WorkspaceServer extends JsonServerServlet {
 						"Error on object chain #%s: The minimum size of a reference chain is 2 ObjectIdentities",
 						count));
 			}
-			chains.add(new ObjectIDWithRefPath(
-					lor.get(0), lor.subList(1, lor.size())));
+			chains.add(ObjectIdentifier.getBuilder(lor.get(0))
+					.withReferencePath(lor.subList(1, lor.size()))
+					.build());
 			count++;
 		}
 		final List<WorkspaceObjectData> objects = ws.getObjects(

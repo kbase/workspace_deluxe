@@ -275,12 +275,12 @@ public class TestCommon {
 	}
 	
 	@SafeVarargs
-	public static <T> Set<T> set(T... objects) {
+	public static <T> Set<T> set(final T... objects) {
 		return new HashSet<T>(Arrays.asList(objects));
 	}
 	
 	@SafeVarargs
-	public static <T> List<T> list(T... objects) {
+	public static <T> List<T> list(final T... objects) {
 		return Arrays.asList(objects);
 	}
 	

@@ -26,70 +26,6 @@ public class ObjectIdentifier {
 	private final Long id; // TODO NOW change to long and use -1 as missing
 	private final Integer version; // TODO NOW change to int and use -1 as missing
 	
-	public ObjectIdentifier(WorkspaceIdentifier wsi, String name) {
-		if (wsi == null) {
-			throw new IllegalArgumentException("wsi cannot be null");
-		}
-		checkObjectName(name);
-		this.wsi = wsi;
-		this.name = name;
-		this.id = null;
-		this.version = null;
-	}
-	
-	public ObjectIdentifier(WorkspaceIdentifier wsi, String name, int version) {
-		if (wsi == null) {
-			throw new IllegalArgumentException("wsi cannot be null");
-		}
-		checkObjectName(name);
-		if (version < 1) {
-			throw new IllegalArgumentException("Object version must be > 0");
-		}
-		this.wsi = wsi;
-		this.name = name;
-		this.id = null;
-		this.version = version;
-	}
-	
-	public ObjectIdentifier(WorkspaceIdentifier wsi, long id) {
-		if (wsi == null) {
-			throw new IllegalArgumentException("wsi cannot be null");
-		}
-		if (id < 1) {
-			throw new IllegalArgumentException("Object id must be > 0");
-		}
-		this.wsi = wsi;
-		this.name = null;
-		this.id = id;
-		this.version = null;
-	}
-	
-	public ObjectIdentifier(WorkspaceIdentifier wsi, long id, int version) {
-		if (wsi == null) {
-			throw new IllegalArgumentException("wsi cannot be null");
-		}
-		if (id < 1) {
-			throw new IllegalArgumentException("Object id must be > 0");
-		}
-		if (version < 1) {
-			throw new IllegalArgumentException("Object version must be > 0");
-		}
-		this.wsi = wsi;
-		this.name = null;
-		this.id = id;
-		this.version = version;
-	}
-	
-	private ObjectIdentifier(ObjectIdentifier id) {
-		if (id == null) {
-			throw new IllegalArgumentException("id cannot be null");
-		}
-		this.wsi = id.wsi;
-		this.name = id.name;
-		this.id = id.id;
-		this.version = id.version;
-	}
-	
 	private ObjectIdentifier(
 			final WorkspaceIdentifier wsi,
 			final long id,
@@ -194,26 +130,6 @@ public class ObjectIdentifier {
 		}
 	}
 	
-	public static ObjectIdentifier create(final WorkspaceIdentifier wsi,
-			final String name, final Long id) {
-		return create(wsi, name, id, null);
-	}
-	
-	public static ObjectIdentifier create(final WorkspaceIdentifier wsi,
-			final String name, final Long id, final Integer ver) {
-		xorNameId(name, id, "object");
-		if (name != null) {
-			if (ver == null) {
-				return new ObjectIdentifier(wsi, name);
-			}
-			return new ObjectIdentifier(wsi, name, ver);
-		}
-		if (ver == null) {
-			return new ObjectIdentifier(wsi, id);
-		}
-		return new ObjectIdentifier(wsi, id, ver);
-	}
-	
 	public static ObjectIdentifier parseObjectReference(final String reference) {
 		checkString(reference, "reference");
 		final String[] r = reference.split(REFERENCE_SEP);
@@ -228,19 +144,12 @@ public class ObjectIdentifier {
 		} catch (NumberFormatException nfe) {
 			wsi = new WorkspaceIdentifier(r[0]);
 		}
-		if (r.length == 3) {
-			final Integer ver = parseInt(r[2], reference, "version");
-			try {
-				return new ObjectIdentifier(wsi, Long.parseLong(r[1]), ver);
-			} catch (NumberFormatException nfe) {
-				return new ObjectIdentifier(wsi, r[1], ver);
-			}
-		} else {
-			try {
-				return new ObjectIdentifier(wsi, Long.parseLong(r[1]));
-			} catch (NumberFormatException nfe) {
-				return new ObjectIdentifier(wsi, r[1]);
-			}
+		final Integer ver = r.length == 3 ? parseInt(r[2], reference, "version") : null;
+		final Builder b = ObjectIdentifier.getBuilder(wsi).withVersion(ver);
+		try {
+			return b.withID(Long.parseLong(r[1])).build();
+		} catch (NumberFormatException nfe) {
+			return b.withName(r[1]).build();
 		}
 	}
 	
@@ -308,53 +217,10 @@ public class ObjectIdentifier {
 	// they exist at the time of writing. However, we could add more classes to further reduce
 	// memory usage by optimizing which fields are present in the future.
 	
-	/** An object identifier for an object, along with either 1) A reference path from the object to
-	 * the target object, or 2) an instruction that the object specified is the target object and
-	 * access must be verified via a search through the object reference graph.
-	 * @author gaprice@lbl.gov
-	 *
-	 */
-	public static class ObjectIDWithRefPath extends ObjectIdentifier {
+	private static class ObjectIDWithRefPath extends ObjectIdentifier {
 
-		//TODO NOW TEST unit tests
-		
 		private final List<ObjectIdentifier> refpath;
 		private final boolean lookup;
-		
-		/** Create an object identifier for an object. The permissions for this object must be 
-		 * ascertained via a search up the object reference DAG until a readable object is found,
-		 * granting permission to read this object.
-		 * @param id the identifier of the target object.
-		 */
-		public ObjectIDWithRefPath(final ObjectIdentifier id) {
-			super(id);
-			lookup = true;
-			refpath = null;
-		}
-		
-		/** Create an object identifier for an object which is at the head of an explicitly defined
-		 * reference path that grants access to a target object at the end of the path.
-		 * @param id the identifier for the object at the head of the reference path.
-		 * @param refpath the reference path from the head of the path (not inclusive) to the target
-		 * object.
-		 */
-		public ObjectIDWithRefPath(
-				final ObjectIdentifier id,
-				final List<ObjectIdentifier> refpath) {
-			super(id);
-			if (refpath == null || refpath.isEmpty()) {
-				this.refpath = null;
-			} else {
-				this.refpath = Collections.unmodifiableList(new ArrayList<>(refpath));
-				for (final ObjectIdentifier oi: this.refpath) {
-					if (oi == null) {
-						throw new IllegalArgumentException(
-								"Nulls are not allowed in reference paths");
-					}
-				}
-			}
-			lookup = false;
-		}
 		
 		private ObjectIDWithRefPath(
 				final WorkspaceIdentifier wsi,
@@ -443,49 +309,9 @@ public class ObjectIdentifier {
 		}
 	}
 	
-	/** An object identifier and subset selection for an object, along with either 1) A reference path
-	 * from the object to the target object, or 2) an instruction that the object specified is the
-	 * target object and access must be verified via a search through the object reference graph.
-	 * @author gaprice@lbl.gov
-	 *
-	 */
-	public static class ObjIDWithRefPathAndSubset extends ObjectIDWithRefPath {
+	private static class ObjIDWithRefPathAndSubset extends ObjectIDWithRefPath {
 
-		//TODO NOW TEST unit tests
-		
 		private final SubsetSelection subset;
-		
-		/** Create an object identifier for an object. The permissions for this object must be 
-		 * ascertained via a search up the object reference DAG until a readable object is found,
-		 * granting permission to read this object.
-		 * @param id the identifier of the target object.
-		 * @param subset the subset of the object to return.
-		 */
-		public ObjIDWithRefPathAndSubset(
-				final ObjectIdentifier id,
-				final SubsetSelection subset) {
-			super(id);
-			// TODO NOW this should be unnecessary when this class is hidden. Don't instantiate
-						// without a subset
-			this.subset = subset == null ? SubsetSelection.EMPTY : subset;
-		}
-
-		/** Create an object identifier for an object which is at the head of an explicitly defined
-		 * reference path that grants access to a target object at the end of the path.
-		 * @param id the identifier for the object at the head of the reference path.
-		 * @param refpath the reference path from the head of the path (not inclusive) to the target
-		 * object. Any empty or null path indicates no refpath.
-		 * @param subset the subset of the object to return.
-		 */
-		public ObjIDWithRefPathAndSubset(
-				final ObjectIdentifier id,
-				final List<ObjectIdentifier> refpath,
-				final SubsetSelection subset) {
-			super(id, refpath);
-			// TODO NOW this should be unnecessary when this class is hidden. Don't instantiate
-						// without a subset
-			this.subset = subset == null ? SubsetSelection.EMPTY : subset;
-		}
 		
 		private ObjIDWithRefPathAndSubset(
 				final WorkspaceIdentifier wsi,

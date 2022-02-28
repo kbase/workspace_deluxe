@@ -59,10 +59,8 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ListObjectsParameters;
-import us.kbase.workspace.database.ObjectIdentifier.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
@@ -911,7 +909,7 @@ public class WorkspaceTester {
 	
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefPath> objs,
+			final List<ObjectIdentifier> objs,
 			final Exception e)
 			throws Exception {
 		
@@ -920,7 +918,7 @@ public class WorkspaceTester {
 	
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefPath> objs,
+			final List<ObjectIdentifier> objs,
 			final Exception e,
 			final Set<Integer> nulls)
 			throws Exception {
@@ -930,13 +928,13 @@ public class WorkspaceTester {
 	
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefPath> objs,
+			final List<ObjectIdentifier> objs,
 			final Exception e,
 			final boolean onlyTestReturningData)
 			throws Exception {
 		Set<Integer> nulls = new HashSet<Integer>();
 		int count = 0;
-		for (@SuppressWarnings("unused") ObjectIDWithRefPath foo: objs) {
+		for (@SuppressWarnings("unused") ObjectIdentifier foo: objs) {
 			nulls.add(count);
 			count++;
 		}
@@ -945,7 +943,7 @@ public class WorkspaceTester {
 	
 	protected void failGetReferencedObjects(
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefPath> objs,
+			final List<ObjectIdentifier> objs,
 			final Exception e,
 			final boolean onlyTestReturningData,
 			final Set<Integer> nulls)
@@ -957,7 +955,7 @@ public class WorkspaceTester {
 	public static void failGetReferencedObjects(
 			final Workspace ws,
 			final WorkspaceUser user,
-			final List<ObjectIDWithRefPath> objs,
+			final List<ObjectIdentifier> objs,
 			final Exception e,
 			final boolean onlyTestReturningData,
 			final Set<Integer> nulls)
@@ -999,7 +997,7 @@ public class WorkspaceTester {
 	
 	protected void failGetSubset(
 			final WorkspaceUser user,
-			final List<ObjIDWithRefPathAndSubset> objs,
+			final List<ObjectIdentifier> objs,
 			final Exception e)
 			throws Exception {
 		failGetSubset(ws, user, objs, e);
@@ -1009,7 +1007,7 @@ public class WorkspaceTester {
 	public static void failGetSubset(
 			final Workspace ws,
 			final WorkspaceUser user,
-			final List<ObjIDWithRefPathAndSubset> objs,
+			final List<ObjectIdentifier> objs,
 			final Exception e)
 			throws Exception {
 		try {
@@ -1140,41 +1138,33 @@ public class WorkspaceTester {
 			new ResolvedWorkspaceID(1, "foo", false, false);
 	
 	protected void testObjectIdentifier(String goodId) {
-		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);
 		new ObjectIDResolvedWS(RWSID, goodId);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	protected void testObjectIdentifier(String goodId, int version) {
-		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId, version);
 		new ObjectIDResolvedWS(RWSID, goodId, version);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	protected void testObjectIdentifier(int goodId) {
-		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId);
 		new ObjectIDResolvedWS(RWSID, goodId);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	protected void testObjectIdentifier(int goodId, int version) {
-		new ObjectIdentifier(new WorkspaceIdentifier("foo"), goodId, version);
 		new ObjectIDResolvedWS(RWSID, goodId, version);
 //		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
-	protected void testObjectIdentifier(WorkspaceIdentifier badWS, String badId,
+	protected void testObjectIdentifier(
+			final WorkspaceIdentifier badWS,
+			final String badId,
 			String exception) {
-		try {
-			new ObjectIdentifier(badWS, badId);
-			fail("Initialized invalid object id");
-		} catch (IllegalArgumentException e) {
-			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-		}
 		ResolvedWorkspaceID fakews = null;
 		if (badWS != null) {
 			fakews = RWSID;
@@ -1197,14 +1187,11 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void testObjectIdentifier(WorkspaceIdentifier badWS, String badId,
-			int version, String exception) {
-		try {
-			new ObjectIdentifier(new WorkspaceIdentifier("foo"), badId, version);
-			fail("Initialized invalid object id");
-		} catch (IllegalArgumentException e) {
-			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-		}
+	protected void testObjectIdentifier(
+			final WorkspaceIdentifier badWS,
+			final String badId,
+			final int version,
+			String exception) {
 		ResolvedWorkspaceID fakews = null;
 		if (badWS != null) {
 			fakews = RWSID;
@@ -1219,14 +1206,10 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void testObjectIdentifier(WorkspaceIdentifier badWS, int badId,
+	protected void testObjectIdentifier(
+			final WorkspaceIdentifier badWS,
+			final int badId,
 			String exception) {
-		try {
-			new ObjectIdentifier(badWS, badId);
-			fail("Initialized invalid object id");
-		} catch (IllegalArgumentException e) {
-			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-		}
 		ResolvedWorkspaceID fakews = null;
 		if (badWS != null) {
 			fakews = RWSID;
@@ -1255,14 +1238,11 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void testObjectIdentifier(WorkspaceIdentifier badWS,
-			int badId, int version, String exception) {
-		try {
-			new ObjectIdentifier(badWS, badId, version);
-			fail("Initialized invalid object id");
-		} catch (IllegalArgumentException e) {
-			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-		}
+	protected void testObjectIdentifier(
+			final WorkspaceIdentifier badWS,
+			final int badId,
+			final int version,
+			String exception) {
 		ResolvedWorkspaceID fakews = null;
 		if (badWS != null) {
 			fakews = RWSID;
@@ -1277,40 +1257,12 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void testCreate(WorkspaceIdentifier goodWs, String name,
-			Long id) {
-		ObjectIdentifier.create(goodWs, name, id);
-		ObjectIDNoWSNoVer.create(name, id);
-		
-	}
-	
-	protected void testCreateVer(WorkspaceIdentifier goodWs, String name, Long id,
-			Integer ver) {
-		ObjectIdentifier.create(goodWs, name, id, ver);
-	}
-	
-	protected void testCreate(WorkspaceIdentifier badWS, String name,
-			Long id, String exception) {
+	protected void testCreate(
+			final String name,
+			final Long id,
+			final String exception) {
 		try {
-			ObjectIdentifier.create(badWS, name, id);
-			fail("Initialized invalid object id");
-		} catch (IllegalArgumentException e) {
-			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-		}
-		if (badWS != null) {
-			try {
-				ObjectIDNoWSNoVer.create(name, id);
-				fail("Initialized invalid object id");
-			} catch (IllegalArgumentException e) {
-				assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-			}
-		}
-	}
-	
-	protected void testCreateVer(WorkspaceIdentifier badWS, String name,
-			Long id, Integer ver, String exception) {
-		try {
-			ObjectIdentifier.create(badWS, name, id, ver);
+			ObjectIDNoWSNoVer.create(name, id);
 			fail("Initialized invalid object id");
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
@@ -1414,9 +1366,16 @@ public class WorkspaceTester {
 		return makeSimpleMeta("m", "" + id);
 	}
 
-	protected void compareObjectAndInfo(ObjectInformation original,
-			ObjectInformation copied, WorkspaceUser user, long wsid, String wsname, 
-			long objectid, String objname, int version) throws Exception {
+	protected void compareObjectAndInfo(
+			final ObjectInformation original,
+			final ObjectInformation copied,
+			final WorkspaceUser user,
+			final long wsid,
+			final String wsname, 
+			final long objectid,
+			final String objname,
+			final int version)
+			throws Exception {
 		compareObjectInfo(original, copied, user, wsid, wsname, objectid,
 				objname, version);
 		
@@ -1429,11 +1388,14 @@ public class WorkspaceTester {
 			
 			//getObjects
 			orig = ws.getObjects(original.getSavedBy(), Arrays.asList(
-					new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
-							original.getObjectId(), original.getVersion()))).get(0);
+					ObjectIdentifier.getBuilder(new WorkspaceIdentifier(original.getWorkspaceId()))
+						.withID(original.getObjectId()).withVersion(original.getVersion())
+						.build()))
+					.get(0);
 			copy = ws.getObjects(copied.getSavedBy(), Arrays.asList(
-					new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
-							copied.getObjectId(), copied.getVersion()))).get(0);
+					ObjectIdentifier.getBuilder(new WorkspaceIdentifier(copied.getWorkspaceId()))
+						.withID(copied.getObjectId()).withVersion(copied.getVersion()).build()))
+					.get(0);
 			compareObjectInfo(orig.getObjectInfo(), copy.getObjectInfo(), user, wsid, wsname, objectid,
 					objname, version);
 			assertThat("returned data same", getData(copy), is(getData(orig)));
@@ -1443,14 +1405,16 @@ public class WorkspaceTester {
 					null, original.getWorkspaceId());
 			
 			//getObjectProvenance
-			WorkspaceObjectData originfo = ws.getObjects(original.getSavedBy(),
-					Arrays.asList(
-							new ObjectIdentifier(new WorkspaceIdentifier(original.getWorkspaceId()),
-							original.getObjectId(), original.getVersion())), true).get(0);
-			WorkspaceObjectData copyinfo = ws.getObjects(copied.getSavedBy(),
-					Arrays.asList(
-					new ObjectIdentifier(new WorkspaceIdentifier(copied.getWorkspaceId()),
-							copied.getObjectId(), copied.getVersion())), true).get(0);
+			WorkspaceObjectData originfo = ws.getObjects(original.getSavedBy(), Arrays.asList(
+					ObjectIdentifier.getBuilder(new WorkspaceIdentifier(original.getWorkspaceId()))
+							.withID(original.getObjectId()).withVersion(original.getVersion())
+							.build()), true)
+					.get(0);
+			WorkspaceObjectData copyinfo = ws.getObjects(copied.getSavedBy(), Arrays.asList(
+					ObjectIdentifier.getBuilder(new WorkspaceIdentifier(copied.getWorkspaceId()))
+							.withID(copied.getObjectId()).withVersion(copied.getVersion())
+							.build()), true)
+					.get(0);
 			compareObjectInfo(originfo.getObjectInfo(), copyinfo.getObjectInfo(), user, wsid, wsname, objectid,
 					objname, version);
 			assertThat("returned refs same", copyinfo.getReferences(), is(originfo.getReferences()));
@@ -1899,7 +1863,7 @@ public class WorkspaceTester {
 	
 	protected void checkReferencedObject(
 			final WorkspaceUser user,
-			final ObjectIDWithRefPath chain,
+			final ObjectIdentifier chain,
 			final ObjectInformation oi,
 			final Provenance p,
 			final Map<String, ? extends Object> data,
@@ -1916,16 +1880,6 @@ public class WorkspaceTester {
 			destroyGetObjectsResources(Arrays.asList(wod));
 		}
 		assertThat("object info same", info, is(oi));
-	}
-	
-	protected void failCreateObjectChain(ObjectIdentifier oi, List<ObjectIdentifier> chain,
-			Exception e) {
-		try {
-			new ObjectIDWithRefPath(oi, chain);
-			fail("bad args to object chain");
-		} catch (Exception exp) {
-			assertExceptionCorrect(exp, e);
-		}
 	}
 	
 	protected Set<ObjectInformation> oiset(ObjectInformation... ois) {

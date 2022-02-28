@@ -318,8 +318,10 @@ public class WorkspaceIntegrationWithGridFSTest {
 		checkSort(p, Collections.emptyList());
 		
 		// case 10: hidden and deleted objects
-		WORK.setObjectsDeleted(USER, Arrays.asList(new ObjectIdentifier(WS1, 7)), true);
-		WORK.setObjectsHidden(USER, Arrays.asList(new ObjectIdentifier(WS1, 4)), true);
+		WORK.setObjectsDeleted(USER, Arrays.asList(
+				ObjectIdentifier.getBuilder(WS1).withID(7L).build()), true);
+		WORK.setObjectsHidden(USER, Arrays.asList(
+				ObjectIdentifier.getBuilder(WS1).withID(4L).build()), true);
 		p = lob.withStartFrom(RefLimit.build(1L, 2L, 1)).build();
 		expected = Arrays.asList(
 				oinf(RWS1, 2, 1, ATYPE2_2_0),

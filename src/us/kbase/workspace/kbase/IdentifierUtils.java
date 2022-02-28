@@ -15,8 +15,6 @@ import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.ObjectIdentifier.ObjectIDWithRefPath;
-import us.kbase.workspace.database.ObjectIdentifier.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 
 public class IdentifierUtils {
@@ -107,8 +105,11 @@ public class IdentifierUtils {
 	}
 		
 	public static ObjectIdentifier processObjectIdentifier(
-			final String workspace, final Long wsid, final String objname,
-			final Long objid, final Long ver) {
+			final String workspace,
+			final Long wsid,
+			final String objname,
+			final Long objid,
+			final Long ver) {
 		final Integer intver;
 		if (ver != null) {
 			if (ver.longValue() > Integer.MAX_VALUE) {
@@ -119,9 +120,9 @@ public class IdentifierUtils {
 		} else {
 			intver = null;
 		}
-		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
-				workspace, wsid);
-		return ObjectIdentifier.create(wsi, objname, objid, intver);
+		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(workspace, wsid);
+		return ObjectIdentifier.getBuilder(wsi)
+				.withName(objname).withID(objid, true).withVersion(intver).build();
 	}
 
 	@SuppressWarnings("deprecation")
@@ -153,7 +154,7 @@ public class IdentifierUtils {
 							SubsetSelection.STRICT_MAPS_DEFAULT),
 					longToBoolean(soi.getStrictArrays(),
 							SubsetSelection.STRICT_ARRAYS_DEFAULT));
-			objs.add(new ObjIDWithRefPathAndSubset(oi, null, paths));
+			objs.add(ObjectIdentifier.getBuilder(oi).withSubsetSelection(paths).build());
 			objcount++;
 		}
 		return objs;
@@ -236,21 +237,11 @@ public class IdentifierUtils {
 					+ objcount + ": " + e.getLocalizedMessage(), e);
 		}
 		final boolean searchDAG = longToBoolean(o.getFindReferencePath());
-		if (paths == null && refchain == null && !searchDAG) {
-			return oi;
-		} else if (paths == null) {
-			if (searchDAG) {
-				return new ObjectIDWithRefPath(oi);
-			} else {
-				return new ObjectIDWithRefPath(oi, refchain);
-			}
-		} else {
-			if (searchDAG) {
-				return new ObjIDWithRefPathAndSubset(oi, paths);
-			} else {
-				return new ObjIDWithRefPathAndSubset(oi, refchain, paths);
-			}
-		}
+		return ObjectIdentifier.getBuilder(oi)
+				.withReferencePath(refchain)
+				.withLookupRequired(searchDAG)
+				.withSubsetSelection(paths)
+				.build();
 	}
 
 	private static void mutateObjSpecByRefString(

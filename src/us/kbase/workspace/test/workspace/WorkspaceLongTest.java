@@ -27,7 +27,6 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
-import us.kbase.workspace.database.ObjectIdentifier.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
@@ -94,8 +93,10 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		
 		//printMem("*** released refs ***");
 		
-		ByteArrayFileCache newdata = ws.getObjects(userfoo, 
-				Arrays.asList(new ObjectIdentifier(bigdataws, 1))).get(0).getSerializedData();
+		ByteArrayFileCache newdata = ws.getObjects(
+				userfoo,
+				Arrays.asList(ObjectIdentifier.getBuilder(bigdataws).withID(1L).build()))
+				.get(0).getSerializedData();
 //		printMem("*** retrieved object ***");
 //		System.gc();
 //		printMem("*** ran gc after retrieve ***");
@@ -179,8 +180,9 @@ public class WorkspaceLongTest extends WorkspaceTester {
 						emptyprov, false)),
 				getIdFactory());
 		
-		WorkspaceObjectData wod = ws.getObjects(userfoo,
-				Arrays.asList(new ObjectIdentifier(wspace, "last")))
+		WorkspaceObjectData wod = ws.getObjects(
+				userfoo,
+				Arrays.asList(ObjectIdentifier.getBuilder(wspace).withName("last").build()))
 				.get(0);
 		try {
 			@SuppressWarnings("unchecked")
@@ -230,7 +232,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
 						new Provenance(userfoo), false)), getIdFactory());
 		final List<WorkspaceObjectData> objects = ws.getObjects(
-				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1)));
+				userfoo,
+				Arrays.asList(ObjectIdentifier.getBuilder(unicode).withID(1L).build()));
 		final Map<String, Object> newdata;
 		try {
 			@SuppressWarnings("unchecked")
@@ -254,7 +257,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
 						new Provenance(userfoo), false)), getIdFactory());
 		final List<WorkspaceObjectData> objects2 = ws.getObjects(
-				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2)));
+				userfoo,
+				Arrays.asList(ObjectIdentifier.getBuilder(unicode).withID(2L).build()));
 		try {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> newdata2 = (Map<String, Object>) getData(objects2.get(0));
@@ -338,8 +342,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		int iterCount1 = 100;
 		for (int iter = 0; iter < iterCount1; iter++) {
 			long time1 = System.currentTimeMillis();
-			WorkspaceObjectData wod1 = ws.getObjects(userfoo,
-					Arrays.asList(new ObjectIdentifier(wspace, oi.getObjectId()))).get(0);
+			WorkspaceObjectData wod1 = ws.getObjects(userfoo, Arrays.asList(
+					ObjectIdentifier.getBuilder(wspace).withID(oi.getObjectId()).build())).get(0);
 			Map<String, Object> ret1 = (Map<String, Object>) getData(wod1);
 			String data1 = UObject.getMapper().writeValueAsString(ret1);
 			Map<String, Object> contigIdsToFeatures = (Map<String, Object>)ret1.get("data");
@@ -394,9 +398,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				included.add("data/" + contigId + "/" + rnd.nextInt(featureCount));
 			long time2 = System.currentTimeMillis();
 			List<ObjectIdentifier> a = new LinkedList<ObjectIdentifier>();
-			a.add(new ObjIDWithRefPathAndSubset(
-					new ObjectIdentifier(wspace, oi.getObjectId()), null,
-						new SubsetSelection(included)));
+			a.add(ObjectIdentifier.getBuilder(wspace).withID(oi.getObjectId())
+					.withSubsetSelection(new SubsetSelection(included)).build());
 			WorkspaceObjectData wod2 = ws.getObjects(userfoo, a).get(0);
 			String data2 = UObject.getMapper().writeValueAsString(getData(wod2));
 			time2 = System.currentTimeMillis() - time2;

@@ -76,7 +76,7 @@ public class ObjectIDNoWSNoVerTest {
 	
 	@Test
 	public void create() {
-		checkCreate(null, "foo", new ObjectIDNoWSNoVer("foo"));
+		checkCreate(null, "f|o.A-1_2", new ObjectIDNoWSNoVer("f|o.A-1_2"));
 		checkCreate(6L, null, new ObjectIDNoWSNoVer(6));
 	}
 	
