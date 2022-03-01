@@ -13,13 +13,19 @@ import us.kbase.typedobj.core.SubsetSelection;
 import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 import static us.kbase.common.utils.StringUtils.checkString;
 
+/** Identifies an object, or portions of an object, in a workspace.
+ * 
+ * Some methods or class variables refer to references. These are a reference to an object in
+ * a workspace of the form X/Y/Z, where X is the workspace name or ID, Y is the object name or ID,
+ * and Z is an optional version.
+ */
 public class ObjectIdentifier {
 	
 	// TODO TEST unittests (move from WorkspaceTest, mostly covered there)
 	// also need to test toString code, but not super high priority
-	// TODO NOW JAVADOC
 	
 	//this cannot be a legal object/workspace char
+	/** The separator between parts of a workspace reference to an object. */
 	public final static String REFERENCE_SEP = "/";
 	
 	private final WorkspaceIdentifier wsi;
@@ -38,18 +44,30 @@ public class ObjectIdentifier {
 		this.version = version;
 	}
 
+	/** Get the identifier for the workspace in which the object resides.
+	 * @return the workspace ID.
+	 */
 	public WorkspaceIdentifier getWorkspaceIdentifier() {
 		return wsi;
 	}
 
+	/** Get the name of the object. Exactly one of the name or ID of the object must be specified.
+	 * @return the object name if present.
+	 */
 	public Optional<String> getName() {
 		return Optional.ofNullable(name);
 	}
 
+	/** Get the ID of the object. Exactly one of the name or ID of the object must be specified.
+	 * @return the object ID if present.
+	 */
 	public Optional<Long> getID() {
 		return id < 1 ? Optional.empty() : Optional.of(id);
 	}
 
+	/** Get the version of the object.
+	 * @return the version of the object, if present.
+	 */
 	public Optional<Integer> getVersion() {
 		return version < 1 ? Optional.empty() : Optional.of(version);
 	}
@@ -91,6 +109,10 @@ public class ObjectIdentifier {
 		return SubsetSelection.EMPTY;
 	}
 	
+	/** Get an identifier string for the object. This is either the name or the ID, depending on
+	 * which is present.
+	 * @return the identifier string.
+	 */
 	public String getIdentifierString() {
 		if (!getID().isPresent()) {
 			return getName().get();
@@ -98,21 +120,37 @@ public class ObjectIdentifier {
 		return "" + getID().get();
 	}
 
+	/** Get the workspace identifier string. This is identical to what is returned by
+	 * {@link WorkspaceIdentifier#getIdentifierString()}.
+	 * @return the identifier string.
+	 */
 	public String getWorkspaceIdentifierString() {
 		return wsi.getIdentifierString();
 	}
 	
+	/** Get a reference string for this object.
+	 * @return the reference string.
+	 */
 	public String getReferenceString() {
-		return getWorkspaceIdentifierString() + REFERENCE_SEP +
-				getIdentifierString() + (version < 1 ? "" :
-					REFERENCE_SEP + version);
+		return getWorkspaceIdentifierString() + REFERENCE_SEP + getIdentifierString() +
+				(version < 1 ? "" : REFERENCE_SEP + version);
 	}
 	
+	/** Determine whether this object identifier must always point to the same object. This means
+	 * that permanent IDs rather than mutable names are present for the workspace and object
+	 * and a version is present.
+	 * @return true if this object identifier is absolute.
+	 */
 	public boolean isAbsolute() {
 		return version > 0 && id > 0 && wsi.getId() != null;
 	}
 	
-	public ObjectIDResolvedWS resolveWorkspace(ResolvedWorkspaceID rwsi) {
+	/** Resolve the workspace for this identifier, guaranteeing it exists. Reference paths,
+	 * lookup directions, and subset information is not preserved is the resolved object.
+	 * @param rwsi the resolved workspace ID.
+	 * @return an object identifier with a resolved workspace. 
+	 */
+	public ObjectIDResolvedWS resolveWorkspace(final ResolvedWorkspaceID rwsi) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -130,6 +168,11 @@ public class ObjectIdentifier {
 		}
 	}
 	
+	// TODO NOW CODE move this to the builder.
+	/** Parses a reference to an object identifier.
+	 * @param reference the reference string.
+	 * @return an object identifier based on the reference.
+	 */
 	public static ObjectIdentifier parseObjectReference(final String reference) {
 		checkString(reference, "reference");
 		final String[] r = reference.split(REFERENCE_SEP);
