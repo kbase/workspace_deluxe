@@ -228,7 +228,7 @@ public class IdentifierUtilsTest {
 		assertThat("incorrect oi ws name", poi.getWorkspaceIdentifier().getName(), is(wsname));
 		assertThat("incorrect oi ws id", poi.getWorkspaceIdentifier().getId(), is(wsid));
 		assertThat("incorrect oi name", poi.getName(), is(name));
-		assertThat("incorrect oi id", poi.getId(), is(id));
+		assertThat("incorrect oi id", poi.getID(), is(id));
 		assertThat("incorrect oi ver", poi.getVersion(), is(ver == null ? null : ver.intValue()));
 		
 		assertThat("incorrect oi ref", poi.getReferenceString(), is(refstring));
