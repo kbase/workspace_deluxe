@@ -220,7 +220,7 @@ public class ObjectInformation {
 	 * path.
 	 * @return a new ObjectInformation with an updated reference path.
 	 */
-	public ObjectInformation updateReferencePath(List<Reference> refpath) {
+	public ObjectInformation updateReferencePath(final List<Reference> refpath) {
 		if (refpath == null || refpath.isEmpty()) {
 			throw new IllegalArgumentException("refpath cannot be null or empty");
 		}
@@ -228,6 +228,7 @@ public class ObjectInformation {
 			throw new IllegalArgumentException(
 					"refpath must end with the same reference as the current refpath");
 		}
+		// TODO CODE refpath can be modified by the caller and affect this class
 		return new ObjectInformation(id, name, type, savedDate, version, savedBy, workspaceID,
 				workspaceName, chksum, size, meta, refpath);
 	}

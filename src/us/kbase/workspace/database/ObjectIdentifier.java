@@ -21,7 +21,7 @@ import static us.kbase.common.utils.StringUtils.checkString;
  */
 public class ObjectIdentifier {
 	
-	// TODO TEST unittests (move from WorkspaceTest, mostly covered there)
+	// TODO TEST complete unit tests (move from WorkspaceTest, mostly covered there)
 	// also need to test toString code, but not super high priority
 	
 	//this cannot be a legal object/workspace char
