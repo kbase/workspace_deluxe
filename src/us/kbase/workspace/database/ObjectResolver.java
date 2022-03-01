@@ -398,7 +398,7 @@ public class ObjectResolver {
 	private InaccessibleObjectException generateInaccessibleObjectException(
 			final ObjectIdentifier o)
 			throws InaccessibleObjectException {
-		final String verString = o.getVersion().isEmpty() ? "The latest version of " :
+		final String verString = !o.getVersion().isPresent() ? "The latest version of " :
 				String.format("Version %s of ", o.getVersion().get());
 		final String userStr = user == null ? "anonymous users" : "user " + user.getUser();
 		return new InaccessibleObjectException(String.format(

@@ -92,7 +92,7 @@ public class ObjectIdentifier {
 	}
 	
 	public String getIdentifierString() {
-		if (getID().isEmpty()) {
+		if (!getID().isPresent()) {
 			return getName().get();
 		}
 		return "" + getID().get();

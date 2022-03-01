@@ -43,14 +43,14 @@ public class NoSuchReferenceException extends WorkspaceDBException {
 				"workspace %s",
 				listPosition,
 				start.getIdentifierString(),
-				start.getVersion().isEmpty() ? "" : "version " + start.getVersion().get() + " ",
+				!start.getVersion().isPresent() ? "" : "version " + start.getVersion().get() + " ",
 				start.getWorkspaceIdentifierString(),
 				fromPosition,
 				from.getIdentifierString(),
-				from.getVersion().isEmpty()? "" : "version " + from.getVersion().get() + " ",
+				!from.getVersion().isPresent()? "" : "version " + from.getVersion().get() + " ",
 				from.getWorkspaceIdentifierString(),
 				to.getIdentifierString(),
-				to.getVersion().isEmpty() ? "" : "version " + to.getVersion().get() + " ",
+				!to.getVersion().isPresent() ? "" : "version " + to.getVersion().get() + " ",
 				to.getWorkspaceIdentifierString()));
 		this.listPosition = listPosition;
 		this.fromPosition = fromPosition;
