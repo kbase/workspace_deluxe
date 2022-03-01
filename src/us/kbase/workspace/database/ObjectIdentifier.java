@@ -405,6 +405,7 @@ public class ObjectIdentifier {
 	 * @return a new builder.
 	 */
 	public static Builder getBuilder(final String reference) {
+		// TODO CODE add a builder for a reference path like X/Y/Z;X/Y;X/Y/Z and replace parsers
 		return new Builder(reference);
 	}
 	

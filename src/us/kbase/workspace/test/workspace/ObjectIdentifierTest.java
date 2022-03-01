@@ -42,7 +42,7 @@ public class ObjectIdentifierTest {
 		}
 	}
 	
-	private void assertNoAddressState(final ObjectIdentifier oi) {
+	private void assertNoNonAddressState(final ObjectIdentifier oi) {
 		assertThat("incorrect lookup", oi.isLookupRequired(), is(false));
 		assertThat("incorrect hasrefpath", oi.hasRefPath(), is(false));
 		assertThat("incorrect refpath", oi.getRefPath(), is(Collections.emptyList()));
@@ -52,7 +52,7 @@ public class ObjectIdentifierTest {
 	private void assertMinimalState(final ObjectIdentifier oi) {
 		assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(WSI));
 		assertThat("incorrect version", oi.getVersion(), is(EI));
-		assertNoAddressState(oi);
+		assertNoNonAddressState(oi);
 	}
 	
 	@Test
@@ -423,11 +423,11 @@ public class ObjectIdentifierTest {
 	}
 	
 	private final static class RefTestCase {
-		String ref;
-		WorkspaceIdentifier wsi;
-		Optional<String> name;
-		Optional<Long> id;
-		Optional<Integer> version;
+		final String ref;
+		final WorkspaceIdentifier wsi;
+		final Optional<String> name;
+		final Optional<Long> id;
+		final Optional<Integer> version;
 
 		public RefTestCase(
 				final String ref,
@@ -477,7 +477,7 @@ public class ObjectIdentifierTest {
 			assertThat("incorrect name for ref " + t.ref, oi.getName(), is(t.name));
 			assertThat("incorrect id for ref " + t.ref, oi.getID(), is(t.id));
 			assertThat("incorrect version for ref f" + t.ref, oi.getVersion(), is(t.version));
-			assertNoAddressState(oi);
+			assertNoNonAddressState(oi);
 		}
 	}
 	
@@ -546,7 +546,6 @@ public class ObjectIdentifierTest {
 				TestCommon.assertExceptionCorrect(got, testCases.get(ref));
 			}
 		}
-		
 	}
 	
 	@Test
