@@ -98,7 +98,7 @@ public class IdentifierUtils {
 		checkAddlArgs(oi.getAdditionalProperties(), oi.getClass());
 		if (oi.getRef() != null) {
 			verifyRefOnly(oi);
-			return ObjectIdentifier.parseObjectReference(oi.getRef());
+			return ObjectIdentifier.getBuilder(oi.getRef()).build();
 		}
 		return processObjectIdentifier(oi.getWorkspace(), oi.getWsid(),
 				oi.getName(), oi.getObjid(), oi.getVer());
@@ -330,7 +330,7 @@ public class IdentifierUtils {
 		final List<ObjectIdentifier> ret = new LinkedList<>();
 		for (final String r: objRefPath) {
 			try {
-				ret.add(ObjectIdentifier.parseObjectReference(r));
+				ret.add(ObjectIdentifier.getBuilder(r).build());
 			} catch (IllegalArgumentException | NullPointerException e) {
 				throw new IllegalArgumentException(String.format(
 						"Invalid object reference (%s) at position #%s: %s",

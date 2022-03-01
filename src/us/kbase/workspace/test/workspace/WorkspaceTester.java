@@ -1139,25 +1139,21 @@ public class WorkspaceTester {
 	
 	protected void testObjectIdentifier(String goodId) {
 		new ObjectIDResolvedWS(RWSID, goodId);
-//		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	protected void testObjectIdentifier(String goodId, int version) {
 		new ObjectIDResolvedWS(RWSID, goodId, version);
-//		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	protected void testObjectIdentifier(int goodId) {
 		new ObjectIDResolvedWS(RWSID, goodId);
-//		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
 	protected void testObjectIdentifier(int goodId, int version) {
 		new ObjectIDResolvedWS(RWSID, goodId, version);
-//		new ObjectIDResolvedWSNoVer(fakews, goodId);
 		new ObjectIDNoWSNoVer(goodId);
 	}
 	
@@ -1222,12 +1218,6 @@ public class WorkspaceTester {
 		} catch (IllegalArgumentException e) {
 			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
 		}
-//		try {
-//			new ObjectIDResolvedWSNoVer(fakews, badId);
-//			fail("Initialized invalid object id");
-//		} catch (IllegalArgumentException e) {
-//			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-//		}
 		if (badWS != null) {
 			try {
 				new ObjectIDNoWSNoVer(badId);
@@ -1269,19 +1259,6 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected void testRef(String ref) {
-		ObjectIdentifier.parseObjectReference(ref);
-	}
-	
-	protected void testRef(String ref, String exception) {
-		try {
-			ObjectIdentifier.parseObjectReference(ref);
-			fail("Initialized invalid object id");
-		} catch (IllegalArgumentException e) {
-			assertThat("correct exception string", e.getLocalizedMessage(), is(exception));
-		}
-	}
-
 	protected void checkNonDeletedObjs(WorkspaceUser foo,
 			Map<ObjectIdentifier, Object> idToData) throws Exception {
 		List<ObjectIdentifier> objs = new ArrayList<ObjectIdentifier>(idToData.keySet());

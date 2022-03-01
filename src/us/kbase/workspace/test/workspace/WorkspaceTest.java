@@ -3901,8 +3901,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		final List<ObjectIdentifier> idents = new LinkedList<>();
 		for (final ObjectInformation oi: ois) {
 			// should probably add a ref -> oi method
-			idents.add(ObjectIdentifier.parseObjectReference(
-					oi.getReferencePath().get(0).toString()));
+			idents.add(ObjectIdentifier.getBuilder(
+					oi.getReferencePath().get(0).toString()).build());
 		}
 		List<WorkspaceObjectData> d = null;
 		try {
@@ -3992,21 +3992,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		testCreate("boo", 1L, "Must provide one and only one of object name (was: boo) or id (was: 1)");
 		testCreate("-1", null, "Object names cannot be integers: -1");
 		testCreate("15", null, "Object names cannot be integers: 15");
-		testRef("foo/bar");
-		testRef("foo/bar/1");
-		testRef("foo/bar/1/2", "Illegal number of separators / in object reference foo/bar/1/2");
-		testRef("foo/" + TEXT256 + "/1", "Object name exceeds the maximum length of 255");
-		testRef("foo/bar/n", "Unable to parse version portion of object reference foo/bar/n to an integer");
-		testRef("foo", "Illegal number of separators / in object reference foo");
-		testRef("1/2");
-		testRef("1/2/3");
-		testRef("1/2/3/4", "Illegal number of separators / in object reference 1/2/3/4");
-		testRef("1/2/n", "Unable to parse version portion of object reference 1/2/n to an integer");
-		testRef("1", "Illegal number of separators / in object reference 1");
-		testRef("foo/2");
-		testRef("2/foo");
-		testRef("foo/2/1");
-		testRef("2/foo/1");
 	}
 	
 	@Test
@@ -4487,8 +4472,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		//copy entire stack of hidden objects
 		cp1LastDate = ws.getWorkspaceInformation(user1, cp1).getModDate();
 		ObjectInformation copied = ws.copyObject(user1,
-				ObjectIdentifier.parseObjectReference("copyrevert1/hide"),
-				ObjectIdentifier.parseObjectReference("copyrevert1/copyhide"));
+				ObjectIdentifier.getBuilder("copyrevert1/hide").build(),
+				ObjectIdentifier.getBuilder("copyrevert1/copyhide").build());
 		cp1LastDate = assertWorkspaceDateUpdated(user1, cp1, cp1LastDate, "ws date updated on copy");
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 4, "copyhide", 3);
 		List<ObjectInformation> copystack = ws.getObjectHistory(user1, cp1b.withID(4L).build());
@@ -4504,8 +4489,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//copy stack of unhidden objects
 		copied = ws.copyObject(user1,
-				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
-				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
+				ObjectIdentifier.getBuilder("copyrevert1/orig").build(),
+				ObjectIdentifier.getBuilder("copyrevert1/copied").build());
 		cp1LastDate = assertWorkspaceDateUpdated(user1, cp1, cp1LastDate, "ws date updated on copy");
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "copied", 3);
 		copystack = ws.getObjectHistory(user1, cp1b.withName("copied").build());
@@ -4516,7 +4501,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//copy visible object to pre-existing hidden object
 		copied = ws.copyObject(user1,
-				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
+				ObjectIdentifier.getBuilder("copyrevert1/orig").build(),
 				cp1b.withName("hidetarget").build());
 		cp1LastDate = assertWorkspaceDateUpdated(user1, cp1, cp1LastDate, "ws date updated on copy");
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 3, "hidetarget", 2);
@@ -4538,7 +4523,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		final ObjectIdentifier oi122 = ObjectIdentifier.getBuilder(new WorkspaceIdentifier(wsid1))
 				.withID(2L).withVersion(2).build();
 		copied = ws.copyObject(
-				user1, oi122, ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
+				user1, oi122, ObjectIdentifier.getBuilder("copyrevert1/copied").build());
 		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 5, "copied", 5);
 		copystack = ws.getObjectHistory(user1, cp1b.withName("copied").build());
 		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 5, "copied", 1);
@@ -4550,7 +4535,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//copy specific version to  hidden existing object
 		copied = ws.copyObject(
-				user1, oi122, ObjectIdentifier.parseObjectReference("copyrevert1/hidetarget"));
+				user1, oi122, ObjectIdentifier.getBuilder("copyrevert1/hidetarget").build());
 		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 3, "hidetarget", 3);
 		copystack = ws.getObjectHistory(user1, cp1b.withName("hidetarget").build());
 		//0 is original object
@@ -4560,7 +4545,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//copy specific version to new object
 		copied = ws.copyObject(
-				user1, oi122, ObjectIdentifier.parseObjectReference("copyrevert1/newobj"));
+				user1, oi122, ObjectIdentifier.getBuilder("copyrevert1/newobj").build());
 		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 6, "newobj", 1);
 		copystack = ws.getObjectHistory(user1, cp1b.withName("newobj").build());
 		compareObjectAndInfo(save12, copystack.get(0), user1, wsid1, cp1.getName(), 6, "newobj", 1);
@@ -4569,7 +4554,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		//revert normal object
 		cp1LastDate = ws.getWorkspaceInformation(user1, cp1).getModDate();
 		copied = ws.revertObject(user1,
-				ObjectIdentifier.parseObjectReference("copyrevert1/copied/2"));
+				ObjectIdentifier.getBuilder("copyrevert1/copied/2").build());
 		cp1LastDate = assertWorkspaceDateUpdated(user1, cp1, cp1LastDate, "ws date updated on revert");
 		compareObjectAndInfo(save12, copied, user1, wsid1, cp1.getName(), 5, "copied", 6);
 		copystack = ws.getObjectHistory(user1, cp1b.withName("copied").build());
@@ -4583,7 +4568,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//revert hidden object
 		copied = ws.revertObject(user1,
-				ObjectIdentifier.parseObjectReference("copyrevert1/hidetarget/2"));
+				ObjectIdentifier.getBuilder("copyrevert1/hidetarget/2").build());
 		cp1LastDate = assertWorkspaceDateUpdated(user1, cp1, cp1LastDate, "ws date updated on revert");
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 3, "hidetarget", 4);
 		copystack = ws.getObjectHistory(user1, cp1b.withName("hidetarget").build());
@@ -4597,8 +4582,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setPermissions(user2, cp2, Arrays.asList(user1), Permission.WRITE);
 		cp2LastDate = ws.getWorkspaceInformation(user1, cp2).getModDate();
 		copied = ws.copyObject(user1,
-				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
-				ObjectIdentifier.parseObjectReference("copyrevert2/copied"));
+				ObjectIdentifier.getBuilder("copyrevert1/orig").build(),
+				ObjectIdentifier.getBuilder("copyrevert2/copied").build());
 		cp2LastDate = assertWorkspaceDateUpdated(user1, cp2, cp2LastDate, "ws date updated on copy");
 		compareObjectAndInfo(save13, copied, user1, wsid2, cp2.getName(), 1, "copied", 3);
 		copystack = ws.getObjectHistory(user1, cp2b.withName("copied").build());
@@ -4610,10 +4595,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//copy to deleted object
 		ws.setObjectsDeleted(user1, Arrays.asList(
-				ObjectIdentifier.parseObjectReference("copyrevert1/copied")), true);
+				ObjectIdentifier.getBuilder("copyrevert1/copied").build()), true);
 		copied = ws.copyObject(user1,
-				ObjectIdentifier.parseObjectReference("copyrevert1/orig"),
-				ObjectIdentifier.parseObjectReference("copyrevert1/copied"));
+				ObjectIdentifier.getBuilder("copyrevert1/orig").build(),
+				ObjectIdentifier.getBuilder("copyrevert1/copied").build());
 		compareObjectAndInfo(save13, copied, user1, wsid1, cp1.getName(), 5, "copied", 7);
 		copystack = ws.getObjectHistory(user1, cp1b.withName("copied").build());
 		compareObjectAndInfo(save11, copystack.get(0), user1, wsid1, cp1.getName(), 5, "copied", 1);
@@ -7743,13 +7728,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		
 		//check target objects can't be accessed
-		failGetObjects(user1, Arrays.asList(ObjectIdentifier.parseObjectReference(leaf1_1ref)),
+		failGetObjects(user1, Arrays.asList(ObjectIdentifier.getBuilder(leaf1_1ref).build()),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: User " +
 						"u1 may not read workspace wsu2", null));
-		failGetObjects(user1, Arrays.asList(ObjectIdentifier.parseObjectReference(leaf1_2ref)),
+		failGetObjects(user1, Arrays.asList(ObjectIdentifier.getBuilder(leaf1_2ref).build()),
 				new InaccessibleObjectException("Object leaf1 cannot be accessed: User " +
 						"u1 may not read workspace wsu2", null));
-		failGetObjects(user1, Arrays.asList(ObjectIdentifier.parseObjectReference(delLeafRef)),
+		failGetObjects(user1, Arrays.asList(ObjectIdentifier.getBuilder(delLeafRef).build()),
 				new InaccessibleObjectException("Object delleaf cannot be accessed: User " +
 						"u1 may not read workspace wsu2", null));
 		

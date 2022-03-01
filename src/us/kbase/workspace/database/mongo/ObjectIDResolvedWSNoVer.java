@@ -5,6 +5,9 @@ import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 
+// TODO CODE is this class even necessary? can it be removed?
+// TODO NOW CODE make class & all methods package only & remove unused methods
+
 //these class names are getting ridiculous, need to think of a better way
 public class ObjectIDResolvedWSNoVer {
 	

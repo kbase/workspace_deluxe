@@ -168,34 +168,6 @@ public class ObjectIdentifier {
 		}
 	}
 	
-	// TODO NOW CODE move this to the builder.
-	/** Parses a reference to an object identifier.
-	 * @param reference the reference string.
-	 * @return an object identifier based on the reference.
-	 */
-	public static ObjectIdentifier parseObjectReference(final String reference) {
-		checkString(reference, "reference");
-		final String[] r = reference.split(REFERENCE_SEP);
-		if (r.length != 2 && r.length != 3) {
-			throw new IllegalArgumentException(String.format(
-					"Illegal number of separators %s in object reference %s",
-					REFERENCE_SEP, reference));
-		}
-		WorkspaceIdentifier wsi;
-		try {
-			wsi = new WorkspaceIdentifier(Long.parseLong(r[0]));
-		} catch (NumberFormatException nfe) {
-			wsi = new WorkspaceIdentifier(r[0]);
-		}
-		final Integer ver = r.length == 3 ? parseInt(r[2], reference, "version") : null;
-		final Builder b = ObjectIdentifier.getBuilder(wsi).withVersion(ver);
-		try {
-			return b.withID(Long.parseLong(r[1])).build();
-		} catch (NumberFormatException nfe) {
-			return b.withName(r[1]).build();
-		}
-	}
-	
 	private static Integer parseInt(String s, String reference, String portion) {
 		try {
 			return Integer.parseInt(s);
@@ -428,6 +400,14 @@ public class ObjectIdentifier {
 		return new Builder(oi);
 	}
 	
+	/** Get a builder given an object reference.
+	 * @param reference the object reference.
+	 * @return a new builder.
+	 */
+	public static Builder getBuilder(final String reference) {
+		return new Builder(reference);
+	}
+	
 	/** Create a copy of the input builder.
 	 * @param b the builder to copy.
 	 * @return a new builder with the same state as the input builder.
@@ -472,6 +452,29 @@ public class ObjectIdentifier {
 			this.subset = b.subset;
 		}
 
+		public Builder(final String reference) {
+			checkString(reference, "reference");
+			final String[] r = reference.split(REFERENCE_SEP);
+			if (r.length != 2 && r.length != 3) {
+				throw new IllegalArgumentException(String.format(
+						"Illegal number of separators %s in object reference %s",
+						REFERENCE_SEP, reference));
+			}
+			WorkspaceIdentifier wsi;
+			try {
+				wsi = new WorkspaceIdentifier(Long.parseLong(r[0]));
+			} catch (NumberFormatException nfe) {
+				wsi = new WorkspaceIdentifier(r[0]);
+			}
+			this.wsi = wsi;  // java complains if we assign directly
+			this.version = r.length == 3 ? checkVersion(parseInt(r[2], reference, "version")) : -1;
+			try {
+				this.id = checkID(Long.parseLong(r[1]));
+			} catch (NumberFormatException nfe) {
+				this.name = checkObjectName(r[1]);
+			}
+		}
+
 		/** Set a name for the object. This will remove any previously set ID.
 		 * @param name the objects's name. null is treated as a no-op.
 		 * @return this builder.
@@ -503,13 +506,17 @@ public class ObjectIdentifier {
 		 */
 		public Builder withID(final Long id) {
 			if (id != null) {
-				if (id < 1) {
-					throw new IllegalArgumentException("Object id must be > 0");
-				}
-				this.id = id;
+				this.id = checkID(id);
 				this.name = null;
 			}
 			return this;
+		}
+		
+		private long checkID(final Long id) {
+			if (id < 1) {
+				throw new IllegalArgumentException("Object id must be > 0");
+			}
+			return id;
 		}
 		
 		/** Behaves identically to {@link #withID(Long)}, except that optionally if a name
@@ -530,11 +537,15 @@ public class ObjectIdentifier {
 		 * @return this builder.
 		 */
 		public Builder withVersion(final Integer version) {
+			this.version = checkVersion(version);
+			return this;
+		}
+		
+		private int checkVersion(final Integer version) {
 			if (version != null && version < 1) {
 				throw new IllegalArgumentException("Object version must be > 0");
 			}
-			this.version = version == null ? -1 : version;
-			return this;
+			return version == null ? -1 : version;
 		}
 		
 		/** Set whether this object identifier represents a target object for which the

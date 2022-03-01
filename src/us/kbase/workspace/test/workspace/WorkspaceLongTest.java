@@ -192,7 +192,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			Map<String, String> retrefs = (Map<String, String>) ret.get("map");
 			for (Entry<String, String> es: retrefs.entrySet()) {
 				long expected = Long.parseLong(es.getValue().split(" ")[1]);
-				ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(es.getKey());
+				ObjectIdentifier oi = ObjectIdentifier.getBuilder(es.getKey()).build();
 				assertThat("reference ws is correct", oi.getWorkspaceIdentifier().getId(), is(wsid));
 				assertThat("reference id is correct", oi.getID(), is(opt(expected)));
 				assertThat("reference ver is correct", oi.getVersion(), is(opt(1)));

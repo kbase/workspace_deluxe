@@ -15,10 +15,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import us.kbase.common.test.MapBuilder;
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -39,13 +42,17 @@ public class ObjectIdentifierTest {
 		}
 	}
 	
-	private void assertMinimalState(final ObjectIdentifier oi) {
-		assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(WSI));
-		assertThat("incorrect version", oi.getVersion(), is(EI));
+	private void assertNoAddressState(final ObjectIdentifier oi) {
 		assertThat("incorrect lookup", oi.isLookupRequired(), is(false));
 		assertThat("incorrect hasrefpath", oi.hasRefPath(), is(false));
 		assertThat("incorrect refpath", oi.getRefPath(), is(Collections.emptyList()));
 		assertThat("incorrect subset", oi.getSubSet(), is(SubsetSelection.EMPTY));
+	}
+	
+	private void assertMinimalState(final ObjectIdentifier oi) {
+		assertThat("incorrect wsi", oi.getWorkspaceIdentifier(), is(WSI));
+		assertThat("incorrect version", oi.getVersion(), is(EI));
+		assertNoAddressState(oi);
 	}
 	
 	@Test
@@ -415,8 +422,67 @@ public class ObjectIdentifierTest {
 		}
 	}
 	
+	private final static class RefTestCase {
+		String ref;
+		WorkspaceIdentifier wsi;
+		Optional<String> name;
+		Optional<Long> id;
+		Optional<Integer> version;
+
+		public RefTestCase(
+				final String ref,
+				final WorkspaceIdentifier wsi,
+				final Optional<String> name,
+				final Optional<Long> id,
+				final Optional<Integer> version) {
+			this.ref = ref;
+			this.wsi = wsi;
+			this.name = name;
+			this.id = id;
+			this.version = version;
+		}
+	}
+	
 	@Test
-	public void getBuilderFail() throws Exception {
+	public void buildFromRef() throws Exception {
+		final WorkspaceIdentifier wfoo = new WorkspaceIdentifier("foo");
+		final WorkspaceIdentifier wufoo = new WorkspaceIdentifier("user1:foo");
+		final WorkspaceIdentifier wfoA = new WorkspaceIdentifier("fo.A-1_2");
+		final WorkspaceIdentifier wwhoo = new WorkspaceIdentifier("whoo");
+		final WorkspaceIdentifier w1 = new WorkspaceIdentifier(1);
+		final WorkspaceIdentifier w2 = new WorkspaceIdentifier(2);
+		final WorkspaceIdentifier w89 = new WorkspaceIdentifier(89);
+
+		// we use WorkspaceIdentifier under the hood to store the workspace ID and so don't 
+		// exhaustively test valid workspace IDs / Names here
+		final List<RefTestCase> tests = list(
+				new RefTestCase("fo.A-1_2/f|o.A-1_2/1", wfoA, opt("f|o.A-1_2"), EL, opt(1)),
+				new RefTestCase("1/" + TEXT255, w1, opt(TEXT255), EL, EI),
+				new RefTestCase("1/1/1", w1, ES, opt(1L), opt(1)),
+				new RefTestCase("user1:foo/bar", wufoo, opt("bar"), EL, EI),
+				new RefTestCase("foo/bar/1", wfoo, opt("bar"), EL, opt(1)),
+				new RefTestCase("2/49", w2, ES, opt(49L), EI),
+				new RefTestCase("1/1/60", w1, ES, opt(1L), opt(60)),
+				new RefTestCase("whoo/23/91", wwhoo, ES, opt(23L), opt(91)),
+				new RefTestCase("89/what", w89, opt("what"), EL, EI),
+				new RefTestCase("89/what/32", w89, opt("what"), EL, opt(32)),
+				new RefTestCase("whoo/6", wwhoo, ES, opt(6L), EI),
+				new RefTestCase("whoo/89/", wwhoo, ES, opt(89L), EI)  // trailing slash ok
+				);
+		
+		for (final RefTestCase t: tests) {
+			final ObjectIdentifier oi = ObjectIdentifier.getBuilder(t.ref).build();
+			
+			assertThat("incorrect wsi for ref " + t.ref, oi.getWorkspaceIdentifier(), is(t.wsi));
+			assertThat("incorrect name for ref " + t.ref, oi.getName(), is(t.name));
+			assertThat("incorrect id for ref " + t.ref, oi.getID(), is(t.id));
+			assertThat("incorrect version for ref f" + t.ref, oi.getVersion(), is(t.version));
+			assertNoAddressState(oi);
+		}
+	}
+	
+	@Test
+	public void getBuilderFailNull() throws Exception {
 		try {
 			ObjectIdentifier.getBuilder((WorkspaceIdentifier) null);
 			fail("expected exception");
@@ -435,6 +501,52 @@ public class ObjectIdentifierTest {
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new NullPointerException("b"));
 		}
+	}
+	
+	@Test
+	public void getBuilderRefFail() throws Exception {
+		// we use WorkspaceIdentifier under the hood to store the workspace ID and so don't 
+		// exhaustively test invalid workspace IDs / Names here
+		final Map<String, Exception> testCases = MapBuilder.<String, Exception>newHashMap()
+				.with(null, new IllegalArgumentException(
+						"reference cannot be null or the empty string"))
+				.with("  \t   ", new IllegalArgumentException(
+						"Illegal number of separators / in object reference   \t   "))
+				.with("1", new IllegalArgumentException(
+						"Illegal number of separators / in object reference 1"))
+				.with("foo", new IllegalArgumentException(
+						"Illegal number of separators / in object reference foo"))
+				.with("foo/1/3/4", new IllegalArgumentException(
+						"Illegal number of separators / in object reference foo/1/3/4"))
+				.with("user1|foo/1/3", new IllegalArgumentException(
+						"Illegal character in workspace name user1|foo: |"))
+				.with("foo/b*ar/3", new IllegalArgumentException(
+						"Illegal character in object name b*ar: *"))
+				.with("foo/" + TEXT256, new IllegalArgumentException(
+						"Object name exceeds the maximum length of 255"))
+				.with("0/bar/3", new IllegalArgumentException("Workspace id must be > 0"))
+				.with("-10000/bar/3", new IllegalArgumentException("Workspace id must be > 0"))
+				.with("/1/3", new IllegalArgumentException(
+						"Workspace name cannot be null or the empty string"))
+				.with("1//3", new IllegalArgumentException(
+						"Object name cannot be null or the empty string"))
+				.with("f/0/3", new IllegalArgumentException("Object id must be > 0"))
+				.with("f/-1/3", new IllegalArgumentException("Object id must be > 0"))
+				.with("f/1/0", new IllegalArgumentException("Object version must be > 0"))
+				.with("f/1/-10", new IllegalArgumentException("Object version must be > 0"))
+				.with("f/1/n", new IllegalArgumentException(
+						"Unable to parse version portion of object reference f/1/n to an integer"))
+				.build();
+		
+		for (final String ref: testCases.keySet()) {
+			try {
+				ObjectIdentifier.getBuilder(ref);
+				fail("expected exception");
+			} catch (Exception got) {
+				TestCommon.assertExceptionCorrect(got, testCases.get(ref));
+			}
+		}
+		
 	}
 	
 	@Test
