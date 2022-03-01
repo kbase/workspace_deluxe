@@ -13,6 +13,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Reference;
@@ -22,6 +23,12 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 
 public class ObjectInformationTest {
+	
+	@Test
+	public void equals() throws Exception {
+		EqualsVerifier.forClass(ObjectInformation.class).usingGetClass().verify();
+		
+	}
 
 	@Test
 	public void constructor() {
@@ -45,6 +52,31 @@ public class ObjectInformationTest {
 				is(new UncheckedUserMetadata(meta)));
 		assertThat("incorrect ref path", oi.getReferencePath(),
 				is(Arrays.asList(new Reference(4, 1, 3))));
+	}
+	
+	@Test
+	public void refPathImmutable() throws Exception {
+		final ObjectInformation oi = new ObjectInformation(1L, "foo", "type", new Date(), 3,
+				new WorkspaceUser("bar"), new ResolvedWorkspaceID(4, "whee", false, false),
+				"sum", 5L, new UncheckedUserMetadata(new HashMap<>()));
+		
+		failModifyReferencePath(oi);
+		final List<Reference> incomingPath = new LinkedList<>(
+				Arrays.asList(new Reference(1, 1, 1), new Reference(4, 1, 3)));
+		final ObjectInformation oi2 = oi.updateReferencePath(incomingPath);
+		incomingPath.remove(0);
+		assertThat("incorrect ref path", oi2.getReferencePath(), is(Arrays.asList(
+				new Reference(1, 1, 1), new Reference(4, 1, 3))));
+		failModifyReferencePath(oi2);
+	}
+
+	public void failModifyReferencePath(final ObjectInformation oi) {
+		try {
+			oi.getReferencePath().add(new Reference(1, 1, 1));
+			fail("expected exception");
+		} catch (UnsupportedOperationException e) {
+			// test passes
+		}
 	}
 	
 	@Test

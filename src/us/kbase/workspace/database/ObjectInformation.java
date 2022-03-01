@@ -123,7 +123,7 @@ public class ObjectInformation {
 		this.chksum = chksum;
 		this.size = size;
 		this.meta = meta;
-		this.refpath = Collections.unmodifiableList(refpath);
+		this.refpath = Collections.unmodifiableList(new LinkedList<>(refpath));
 	}
 	
 	/** Returns the id of the object.
@@ -228,7 +228,6 @@ public class ObjectInformation {
 			throw new IllegalArgumentException(
 					"refpath must end with the same reference as the current refpath");
 		}
-		// TODO CODE refpath can be modified by the caller and affect this class
 		return new ObjectInformation(id, name, type, savedDate, version, savedBy, workspaceID,
 				workspaceName, chksum, size, meta, refpath);
 	}

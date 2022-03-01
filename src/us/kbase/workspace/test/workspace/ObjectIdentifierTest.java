@@ -417,6 +417,7 @@ public class ObjectIdentifierTest {
 		// test modifying the returned path
 		try {
 			oi.getRefPath().add(oi2);
+			fail("expected exception");
 		} catch (UnsupportedOperationException e) {
 			// test passed
 		}
