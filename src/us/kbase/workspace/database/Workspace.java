@@ -1811,7 +1811,7 @@ public class Workspace {
 			final List<ObjectIdentifier> ois = new LinkedList<>();
 			for (int i = 0; i < refs.length; i++) {
 				try {
-					ois.add(ObjectIdentifier.parseObjectReference(refs[i].trim()));
+					ois.add(ObjectIdentifier.getBuilder(refs[i].trim()).build());
 					//Illegal arg is probably not the right exception
 				} catch (IllegalArgumentException iae) {
 					final List<String> attribs = getAnyAttributeSet(associatedObject, id);

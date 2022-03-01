@@ -202,7 +202,7 @@ public class IdentifierUtilsTest {
 			final String idstring,
 			final boolean isAbsolute)
 			throws Exception {
-		ObjectIdentifier poi = ObjectIdentifier.parseObjectReference(ref);
+		ObjectIdentifier poi = ObjectIdentifier.getBuilder(ref).build();
 		checkObjectIdentifier(poi, wsname, wsid, name, id, ver, refstring,
 				idstring, isAbsolute);
 	}
@@ -778,7 +778,7 @@ public class IdentifierUtilsTest {
 		final ObjectIdentifier oi =  ret.get(0);
 		
 		checkObjectIdentifier(oi, "foo", null, opt("bar"), EL, EI, "foo/bar", "bar", false);
-		assertThat("incorrect hasRefpath()", oi.hasRefPath(), is(false));
+		assertThat("incorrect hasRefPath()", oi.hasRefPath(), is(false));
 		assertThat("incorrect isLookupRequired()", oi.isLookupRequired(), is(false));
 		assertThat("has ref chain", oi.getRefPath(), is(Collections.emptyList()));
 		final SubsetSelection op = oi.getSubSet();
