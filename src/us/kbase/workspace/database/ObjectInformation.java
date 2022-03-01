@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.workspace.database.Util.noNulls;
+
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
@@ -224,6 +226,7 @@ public class ObjectInformation {
 		if (refpath == null || refpath.isEmpty()) {
 			throw new IllegalArgumentException("refpath cannot be null or empty");
 		}
+		noNulls(refpath, "refpath cannot contain nulls");
 		if (!getLast(refpath).equals(getLast(this.refpath))) {
 			throw new IllegalArgumentException(
 					"refpath must end with the same reference as the current refpath");

@@ -3,8 +3,10 @@ package us.kbase.workspace.test.workspace;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -212,21 +214,29 @@ public class ObjectInformationTest {
 	
 	@Test
 	public void failUpdateRefPathNull() {
-		failUpdateRefPath(null, "refpath cannot be null or empty");
+		failUpdateRefPath(null, new IllegalArgumentException("refpath cannot be null or empty"));
 	}
 	
 	@Test
 	public void failUpdateRefPathEmpty() {
-		failUpdateRefPath(new LinkedList<Reference>(), "refpath cannot be null or empty");
+		failUpdateRefPath(Collections.emptyList(), new IllegalArgumentException(
+				"refpath cannot be null or empty"));
+	}
+	
+	@Test
+	public void failUpdateRefPathNullInPath() {
+		failUpdateRefPath(Arrays.asList(new Reference(7, 7, 7), null, new Reference(3, 3, 1)),
+				new NullPointerException("refpath cannot contain nulls"));
 	}
 	
 	@Test
 	public void failUpdateRefPathMisMatch() {
 		failUpdateRefPath(Arrays.asList(new Reference(7, 7, 7), new Reference(3, 3, 1)),
-				"refpath must end with the same reference as the current refpath");
+				new IllegalArgumentException(
+						"refpath must end with the same reference as the current refpath"));
 	}
 	
-	private void failUpdateRefPath(final List<Reference> refpath, final String exp) {
+	private void failUpdateRefPath(final List<Reference> refpath, final Exception expected) {
 		final ObjectInformation oi = new ObjectInformation(1L, "foo", "type", new Date(), 3,
 				new WorkspaceUser("bar"), new ResolvedWorkspaceID(4, "whee", false, false),
 				"sum", 5L,
@@ -234,8 +244,8 @@ public class ObjectInformationTest {
 		try {
 			oi.updateReferencePath(refpath);
 			fail("updated bad refpath");
-		} catch (IllegalArgumentException e) {
-			assertThat("incorrect exception message", e.getMessage(), is(exp));
+		} catch (Exception got) {
+			assertExceptionCorrect(got, expected);
 		}
 	}
 }

@@ -655,7 +655,7 @@ public class ObjectIdentifierTest {
 					));
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
+			TestCommon.assertExceptionCorrect(got, new NullPointerException(
 					"Nulls are not allowed in reference paths"));
 		}
 	}
