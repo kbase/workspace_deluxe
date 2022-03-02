@@ -17,7 +17,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -2253,8 +2252,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectInformation info = ObjectInfoUtils.generateObjectInfo(roi, vers.get(roi));
 			if (dataMan == null) {
 				ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
-				ret.get(o).put(SubsetSelection.EMPTY, new WorkspaceObjectData(
-						info, prov, refs, copied, toExternalIDs(extIDs)));
+				final WorkspaceObjectData.Builder wod = WorkspaceObjectData.getBuilder(info, prov)
+						.withReferences(refs)
+						.withCopyReference(copied);
+				ret.get(o).put(SubsetSelection.EMPTY, addExternalIDs(wod, extIDs).build());
 			} else {
 				try {
 					if (objs.get(o).isEmpty()) {
@@ -2281,14 +2282,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return ret;
 	}
 
-	private Map<IdReferenceType, List<String>> toExternalIDs(
+	private WorkspaceObjectData.Builder addExternalIDs(
+			final WorkspaceObjectData.Builder wod,
 			final Map<String, List<String>> extIDs) {
-		if (extIDs == null) {
-			return Collections.emptyMap();
+		if (extIDs != null) {
+			extIDs.keySet().stream().forEach(
+					k -> wod.withExternalIDs(new IdReferenceType(k), extIDs.get(k)));
 		}
-		return extIDs.keySet().stream().collect(Collectors.toMap(
-				k -> new IdReferenceType(k),
-				k -> extIDs.get(k)));
+		return wod;
 	}
 
 	private void checkTotalFileSize(
@@ -2361,14 +2362,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (!ret.containsKey(o)) {
 			ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
 		}
+		final WorkspaceObjectData.Builder wod = addExternalIDs( 
+				WorkspaceObjectData.getBuilder(info, prov)
+					.withReferences(refs)
+					.withCopyReference(copied),
+				extIDs);
 		if (chksumToData.containsKey(info.getCheckSum())) {
 			/* might be subsetting the same object the same way multiple
 			 * times, but probably unlikely. If it becomes a problem
 			 * memoize the subset
 			 */
-			ret.get(o).put(subset, new WorkspaceObjectData(
-					getDataSubSet(chksumToData.get(info.getCheckSum()), subset, bafcMan),
-					info, prov, refs, copied, toExternalIDs(extIDs)));
+			wod.withData(getDataSubSet(chksumToData.get(info.getCheckSum()), subset, bafcMan));
+			ret.get(o).put(subset, wod.build());
 		} else {
 			final ByteArrayFileCache data;
 			try {
@@ -2395,9 +2400,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						info.getVersion()), e);
 			}
 			chksumToData.put(info.getCheckSum(), data);
-			ret.get(o).put(subset, new WorkspaceObjectData(
-					getDataSubSet(data, subset, bafcMan),
-					info, prov, refs, copied, toExternalIDs(extIDs)));
+			ret.get(o).put(subset, wod.withData(getDataSubSet(data, subset, bafcMan)).build());
 		}
 	}
 	
