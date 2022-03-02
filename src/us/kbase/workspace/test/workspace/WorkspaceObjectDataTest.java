@@ -1,10 +1,10 @@
 package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+import static us.kbase.common.test.TestCommon.opt;
 
 import java.io.ByteArrayInputStream;
 import java.nio.file.Paths;
@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -32,6 +33,9 @@ import us.kbase.workspace.database.exceptions.FileCacheException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 
 public class WorkspaceObjectDataTest {
+	
+	private static final Optional<ByteArrayFileCache> OD = Optional.empty();
+	private static final Optional<Reference> OR = Optional.empty();
 	
 	// Provenance really needs a rework and has no hashCode(), so we use identity equality for now
 	private static final Provenance PROV = new Provenance(new WorkspaceUser("foo"));
@@ -64,8 +68,8 @@ public class WorkspaceObjectDataTest {
 		
 		assertThat("incorrect info", wod.getObjectInfo(), is(INFO));
 		assertThat("incorrect prov", wod.getProvenance(), is(PROV));
-		assertThat("incorrect data", wod.getSerializedData(), is(nullValue()));
-		assertThat("incorrect copy ref", wod.getCopyReference(), is(nullValue()));
+		assertThat("incorrect data", wod.getSerializedData(), is(OD));
+		assertThat("incorrect copy ref", wod.getCopyReference(), is(OR));
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
 		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
 		assertThat("incorrect has data", wod.hasData(), is(false));
@@ -90,8 +94,8 @@ public class WorkspaceObjectDataTest {
 		
 		assertThat("incorrect info", wod.getObjectInfo(), is(info2));
 		assertThat("incorrect prov", wod.getProvenance(), is(PROV));
-		assertThat("incorrect data", wod.getSerializedData(), is(b));
-		assertThat("incorrect copy ref", wod.getCopyReference(), is(new Reference(8, 9, 10)));
+		assertThat("incorrect data", wod.getSerializedData(), is(opt(b)));
+		assertThat("incorrect copy ref", wod.getCopyReference(), is(opt(new Reference(8, 9, 10))));
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(ImmutableMap.of(
 				new IdReferenceType("t1"), Arrays.asList("foo", "bar"),
 				new IdReferenceType("t2"), Arrays.asList("whoo", "whee")
@@ -111,8 +115,8 @@ public class WorkspaceObjectDataTest {
 		
 		assertThat("incorrect info", wod.getObjectInfo(), is(INFO));
 		assertThat("incorrect prov", wod.getProvenance(), is(PROV));
-		assertThat("incorrect data", wod.getSerializedData(), is(nullValue()));
-		assertThat("incorrect copy ref", wod.getCopyReference(), is(nullValue()));
+		assertThat("incorrect data", wod.getSerializedData(), is(OD));
+		assertThat("incorrect copy ref", wod.getCopyReference(), is(OR));
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
 		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
 		assertThat("incorrect has data", wod.hasData(), is(false));
@@ -129,8 +133,8 @@ public class WorkspaceObjectDataTest {
 		
 		assertThat("incorrect info", wod.getObjectInfo(), is(INFO));
 		assertThat("incorrect prov", wod.getProvenance(), is(PROV));
-		assertThat("incorrect data", wod.getSerializedData(), is(nullValue()));
-		assertThat("incorrect copy ref", wod.getCopyReference(), is(new Reference(6, 7, 8)));
+		assertThat("incorrect data", wod.getSerializedData(), is(OD));
+		assertThat("incorrect copy ref", wod.getCopyReference(), is(opt(new Reference(6, 7, 8))));
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
 		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
 		assertThat("incorrect has data", wod.hasData(), is(false));
@@ -155,8 +159,8 @@ public class WorkspaceObjectDataTest {
 		
 		assertThat("incorrect info", wod.getObjectInfo(), is(INFO));
 		assertThat("incorrect prov", wod.getProvenance(), is(PROV));
-		assertThat("incorrect data", wod.getSerializedData(), is(nullValue()));
-		assertThat("incorrect copy ref", wod.getCopyReference(), is(nullValue()));
+		assertThat("incorrect data", wod.getSerializedData(), is(OD));
+		assertThat("incorrect copy ref", wod.getCopyReference(), is(OR));
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(ImmutableMap.of(
 				new IdReferenceType("t2"), Arrays.asList("whoo", "whee")
 				)));
@@ -178,8 +182,8 @@ public class WorkspaceObjectDataTest {
 		
 		assertThat("incorrect info", wod.getObjectInfo(), is(INFO));
 		assertThat("incorrect prov", wod.getProvenance(), is(PROV));
-		assertThat("incorrect data", wod.getSerializedData(), is(nullValue()));
-		assertThat("incorrect copy ref", wod.getCopyReference(), is(nullValue()));
+		assertThat("incorrect data", wod.getSerializedData(), is(OD));
+		assertThat("incorrect copy ref", wod.getCopyReference(), is(OR));
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(ImmutableMap.of(
 				new IdReferenceType("t1"), Arrays.asList("foo", "bar")
 				)));
@@ -193,7 +197,7 @@ public class WorkspaceObjectDataTest {
 		final WorkspaceObjectData wod1 = WorkspaceObjectData.getBuilder(INFO, PROV).build();
 		// should have no effect since no data
 		wod1.destroy();
-		assertThat("incorrect data", wod1.getSerializedData(), is(nullValue()));
+		assertThat("incorrect data", wod1.getSerializedData(), is(OD));
 		
 		final ByteArrayFileCache b = getBAFC();
 		final WorkspaceObjectData wod2 = WorkspaceObjectData.getBuilder(INFO, PROV)

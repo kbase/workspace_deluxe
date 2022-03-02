@@ -1150,7 +1150,7 @@ public class Workspace {
 				stddata.values()) {
 			for (final WorkspaceObjectData d: paths.values()) {
 				if (d.hasData()) {
-					dataSize += d.getSerializedData().getSize();
+					dataSize += d.getSerializedData().get().getSize();
 				}
 			}
 			
@@ -1195,8 +1195,8 @@ public class Workspace {
 		
 		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
 		for (final WorkspaceObjectData d: data) {
-			if (d != null && d.getCopyReference() != null) {
-				wsis.add(new WorkspaceIdentifier(d.getCopyReference().getWorkspaceID()));
+			if (d != null && d.getCopyReference().isPresent()) {
+				wsis.add(new WorkspaceIdentifier(d.getCopyReference().get().getWorkspaceID()));
 			}
 		}
 		if (wsis.isEmpty()) {
@@ -1227,8 +1227,8 @@ public class Workspace {
 		
 		final Map<WorkspaceObjectData, ObjectIDResolvedWS> rois = new HashMap<>();
 		for (final WorkspaceObjectData d: data) {
-			if (d != null && d.getCopyReference() != null) {
-				final Reference cref = d.getCopyReference();
+			if (d != null && d.getCopyReference().isPresent()) {
+				final Reference cref = d.getCopyReference().get();
 				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(cref.getWorkspaceID());
 				if (!rwsis.containsKey(wsi)) {
 					d.setCopySourceInaccessible();

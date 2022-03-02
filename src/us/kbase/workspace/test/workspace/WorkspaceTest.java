@@ -3908,7 +3908,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		try {
 			d = ws.getObjects(u1, idents);
 			for (int i = 0; i < list.size(); i++) {
-				final Map<String, Object> data = d.get(i).getSerializedData().getUObject()
+				final Map<String, Object> data = d.get(i).getSerializedData().get().getUObject()
 						.asClassInstance(new TypeReference<Map<String, Object>>() {});
 				final Map<String, Object> dataexp = new HashMap<>();
 				dataexp.put("refs", resolvedRefs.get(i));
@@ -4466,8 +4466,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceObjectData wod = ws.getObjects(user1, Arrays.asList(oihide)).get(0);
 		destroyGetObjectsResources(Arrays.asList(wod));
 		WorkspaceObjectData woi = ws.getObjects(user1, Arrays.asList(oihide), true).get(0);
-		assertThat("copy ref for obj is null", wod.getCopyReference(), is((Reference) null));
-		assertThat("copy ref for prov is null", woi.getCopyReference(), is((Reference) null));
+		assertThat("copy ref for obj is null", wod.getCopyReference(), is(Optional.empty()));
+		assertThat("copy ref for prov is null", woi.getCopyReference(), is(Optional.empty()));
 		
 		//copy entire stack of hidden objects
 		cp1LastDate = ws.getWorkspaceInformation(user1, cp1).getModDate();
@@ -4824,8 +4824,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		for (List<WorkspaceObjectData> info: infos) {
 			for (int i = 0; i < info.size(); i++) {
 				WorkspaceObjectData inf = info.get(i);
-				assertThat("correct reference ", inf.getCopyReference() == null ? null :
-					inf.getCopyReference(), is(testRef.get(i)));
+				assertThat("correct reference ", inf.getCopyReference().orElse(null),
+						is(testRef.get(i)));
 				assertThat("correct inaccessibility", inf.isCopySourceInaccessible(),
 						is(copyAccessible.get(i)));
 			}
@@ -8748,7 +8748,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.getObjects(user, list(oi1b.build()));
 		assertThat("created no temp files on get", filesCreated[0], is(0));
 		ws.getObjects(user, list(oi1b.withSubsetSelection(new SubsetSelection(list("z"))).build()))
-				.get(0).getSerializedData().destroy();
+				.get(0).getSerializedData().get().destroy();
 		assertThat("created 1 temp file on get subdata", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
@@ -8763,21 +8763,21 @@ public class WorkspaceTest extends WorkspaceTester {
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(12).build());
 		final ObjectIdentifier.Builder oi2b = ObjectIdentifier.getBuilder(wsi).withID(2L);
-		ws.getObjects(user, list(oi2b.build())).get(0).getSerializedData().destroy();
+		ws.getObjects(user, list(oi2b.build())).get(0).getSerializedData().get().destroy();
 		assertThat("created 1 temp files on get", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, list(
 				oi2b.withSubsetSelection(new SubsetSelection(list("z"))).build()))
-				.get(0).getSerializedData().destroy();
+				.get(0).getSerializedData().get().destroy();
 		assertThat("created 1 temp files on get subdata part object", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
 		ws.getObjects(user, list(
 				oi2b.withSubsetSelection(new SubsetSelection(list("z", "y"))).build()))
-				.get(0).getSerializedData().destroy();
+				.get(0).getSerializedData().get().destroy();
 		assertThat("created 2 temp files on get subdata full object", filesCreated[0], is(2));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
@@ -8804,7 +8804,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				.mapToObj(i -> ObjectIdentifier.getBuilder(wsi).withID(i).build())
 				.collect(Collectors.toList());
 		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
-			wod.getSerializedData().destroy();
+			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created no temp files on get", filesCreated[0], is(0));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -8824,7 +8824,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(38).build());
 		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
-			wod.getSerializedData().destroy();
+			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created 1 temp files on get", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -8832,7 +8832,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(25).build());
 		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
-			wod.getSerializedData().destroy();
+			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created 2 temp files on get", filesCreated[0], is(2));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -8852,7 +8852,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(39).build());
 		for (WorkspaceObjectData wod: ws.getObjects(user, refAndStd)) {
-			wod.getSerializedData().destroy();
+			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created no temp files on get", filesCreated[0], is(0));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -8861,7 +8861,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(38).build());
 		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
-			wod.getSerializedData().destroy();
+			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created 1 temp files on get", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -8869,7 +8869,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(25).build());
 		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
-			wod.getSerializedData().destroy();
+			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created 2 temp files on get", filesCreated[0], is(2));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -8896,12 +8896,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceObjectData o = ws.getObjects(
 				user, list(ObjectIdentifier.getBuilder(wsi).withID(1L).build())).get(0);
 		try {
-			String data = IOUtils.toString(o.getSerializedData().getJSON());
+			String data = IOUtils.toString(o.getSerializedData().get().getJSON());
 			assertThat("data is sorted", data, is(expected));
 		} finally {
 			destroyGetObjectsResources(list(o));
 		}
-		assertThat("data marked as sorted", o.getSerializedData().isSorted(),
+		assertThat("data marked as sorted", o.getSerializedData().get().isSorted(),
 				is(true));
 	}
 	
