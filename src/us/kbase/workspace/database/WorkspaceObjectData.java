@@ -33,61 +33,6 @@ public class WorkspaceObjectData {
 	private boolean isCopySourceInaccessible = false; // TODO NOW make final
 	private final Map<IdReferenceType, List<String>> extIDs;
 
-	/** Create a data package with only the provenance and other metadata.
-	 * @param info information about the object.
-	 * @param prov the object's provenance.
-	 * @param references references to other workspace objects extracted from the object.
-	 * @param copied the source of the object if it was copied from another object. May be null.
-	 * @param extIDs any external IDs extracted from the object, mapped by the ID type.
-	 */
-	// TODO NOW remove
-	public WorkspaceObjectData(
-			final ObjectInformation info,
-			final Provenance prov,
-			final List<String> references,
-			final Reference copied,
-			final Map<IdReferenceType, List<String>> extIDs) {
-		if (info == null || prov == null || references == null) {
-			throw new IllegalArgumentException(
-					"references, prov and info cannot be null");
-		}
-		this.info = info;
-		this.prov = prov;
-		this.references = references;
-		this.copied = copied;
-		this.extIDs = extIDs == null ? Collections.emptyMap() : extIDs;
-		this.data = null;
-	}
-	
-	/** Create a data package.
-	 * @param data the object data.
-	 * @param info information about the object.
-	 * @param prov the object's provenance.
-	 * @param references references to other workspace objects extracted from the object.
-	 * @param copied the source of the object if it was copied from another object. May be null.
-	 * @param extIDs any external IDs extracted from the object, mapped by the ID type.
-	 */
-	// TODO NOW remove
-	public WorkspaceObjectData(
-			final ByteArrayFileCache data,
-			final ObjectInformation info,
-			final Provenance prov,
-			final List<String> references,
-			final Reference copied,
-			final Map<IdReferenceType, List<String>> extIDs) {
-		if (info == null || prov == null || references == null) {
-			throw new IllegalArgumentException(
-					"references, prov and info cannot be null");
-		}
-		this.info = info;
-		this.prov = prov;
-		this.references = references;
-		this.copied = copied;
-		this.extIDs = extIDs == null ? Collections.emptyMap() : extIDs;
-		this.data = data;
-	}
-
-	
 	private WorkspaceObjectData(
 			final ByteArrayFileCache data, // TODO NOW use an Optional
 			final ObjectInformation info,
@@ -177,7 +122,8 @@ public class WorkspaceObjectData {
 	public WorkspaceObjectData updateObjectReferencePath(final List<Reference> refpath) {
 		// TODO NOW move to builder and use there.
 		final ObjectInformation newoi = info.updateReferencePath(refpath);
-		return new WorkspaceObjectData(data, newoi, prov, references, copied, extIDs);
+		return new WorkspaceObjectData(
+				data, newoi, prov, references, copied, isCopySourceInaccessible, extIDs);
 	}
 	
 	/** Destroys any resources used to store the objects. In the case of
