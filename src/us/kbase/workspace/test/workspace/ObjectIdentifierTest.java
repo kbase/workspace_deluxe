@@ -417,6 +417,7 @@ public class ObjectIdentifierTest {
 		// test modifying the returned path
 		try {
 			oi.getRefPath().add(oi2);
+			fail("expected exception");
 		} catch (UnsupportedOperationException e) {
 			// test passed
 		}
@@ -654,7 +655,7 @@ public class ObjectIdentifierTest {
 					));
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
+			TestCommon.assertExceptionCorrect(got, new NullPointerException(
 					"Nulls are not allowed in reference paths"));
 		}
 	}

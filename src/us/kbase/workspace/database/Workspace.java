@@ -1191,15 +1191,12 @@ public class Workspace {
 	private void removeInaccessibleDataCopyReferences(
 			final WorkspaceUser user,
 			final List<WorkspaceObjectData> data)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		
-		final Set<WorkspaceIdentifier> wsis =
-				new HashSet<WorkspaceIdentifier>();
+		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
 		for (final WorkspaceObjectData d: data) {
 			if (d != null && d.getCopyReference() != null) {
-				wsis.add(new WorkspaceIdentifier(
-						d.getCopyReference().getWorkspaceID()));
+				wsis.add(new WorkspaceIdentifier(d.getCopyReference().getWorkspaceID()));
 			}
 		}
 		if (wsis.isEmpty()) {
@@ -1209,8 +1206,7 @@ public class Workspace {
 		try {
 			rwsis = db.resolveWorkspaces(wsis, true);
 		} catch (NoSuchWorkspaceException nswe) {
-			throw new RuntimeException(
-					"Threw exception when explicitly told not to", nswe);
+			throw new RuntimeException("Threw exception when explicitly told not to", nswe);
 		}
 		Iterator<Entry<WorkspaceIdentifier, ResolvedWorkspaceID>> i =
 				rwsis.entrySet().iterator();
@@ -1221,8 +1217,7 @@ public class Workspace {
 		}
 		
 		//only includes workspaces that are at least readable
-		final PermissionSet perms = db.getPermissions(user,
-						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
+		final PermissionSet perms = db.getPermissions(user, new HashSet<>(rwsis.values()));
 		i = rwsis.entrySet().iterator();
 		while (i.hasNext()) {
 			if (!perms.hasWorkspace(i.next().getValue())) {
@@ -1230,8 +1225,7 @@ public class Workspace {
 			}
 		}
 		
-		final Map<WorkspaceObjectData, ObjectIDResolvedWS> rois =
-				new HashMap<WorkspaceObjectData, ObjectIDResolvedWS>();
+		final Map<WorkspaceObjectData, ObjectIDResolvedWS> rois = new HashMap<>();
 		for (final WorkspaceObjectData d: data) {
 			if (d != null && d.getCopyReference() != null) {
 				final Reference cref = d.getCopyReference();
@@ -1239,15 +1233,14 @@ public class Workspace {
 				if (!rwsis.containsKey(wsi)) {
 					d.setCopySourceInaccessible();
 				} else {
-					rois.put(d, new ObjectIDResolvedWS(rwsis.get(wsi),
-							cref.getObjectID(), cref.getVersion()));
+					rois.put(d, new ObjectIDResolvedWS(
+							rwsis.get(wsi), cref.getObjectID(), cref.getVersion()));
 				}
 			}
 		}
 		
 		final Map<ObjectIDResolvedWS, Boolean> objexists =
-				db.getObjectExists(
-						new HashSet<ObjectIDResolvedWS>(rois.values())); 
+				db.getObjectExists(new HashSet<>(rois.values())); 
 		
 		for (final Entry<WorkspaceObjectData, ObjectIDResolvedWS> e:
 				rois.entrySet()) {

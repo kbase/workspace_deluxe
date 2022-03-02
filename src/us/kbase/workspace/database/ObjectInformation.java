@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.workspace.database.Util.noNulls;
+
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
@@ -123,7 +125,7 @@ public class ObjectInformation {
 		this.chksum = chksum;
 		this.size = size;
 		this.meta = meta;
-		this.refpath = Collections.unmodifiableList(refpath);
+		this.refpath = Collections.unmodifiableList(new LinkedList<>(refpath));
 	}
 	
 	/** Returns the id of the object.
@@ -224,11 +226,11 @@ public class ObjectInformation {
 		if (refpath == null || refpath.isEmpty()) {
 			throw new IllegalArgumentException("refpath cannot be null or empty");
 		}
+		noNulls(refpath, "refpath cannot contain nulls");
 		if (!getLast(refpath).equals(getLast(this.refpath))) {
 			throw new IllegalArgumentException(
 					"refpath must end with the same reference as the current refpath");
 		}
-		// TODO CODE refpath can be modified by the caller and affect this class
 		return new ObjectInformation(id, name, type, savedDate, version, savedBy, workspaceID,
 				workspaceName, chksum, size, meta, refpath);
 	}

@@ -2,6 +2,7 @@ package us.kbase.workspace.database;
 
 import static java.util.Objects.requireNonNull;
 import static us.kbase.workspace.database.Util.xorNameId;
+import static us.kbase.workspace.database.Util.noNulls;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -572,14 +573,9 @@ public class ObjectIdentifier {
 			if (refpath == null || refpath.isEmpty()) {
 				this.refpath = null;
 			} else {
+				noNulls(refpath, "Nulls are not allowed in reference paths");
 				// make immutable and prevent alteration by mutating the input list
 				this.refpath = Collections.unmodifiableList(new ArrayList<>(refpath));
-				for (final ObjectIdentifier oi: this.refpath) {
-					if (oi == null) {
-						throw new IllegalArgumentException(
-								"Nulls are not allowed in reference paths");
-					}
-				}
 				this.lookup = false;
 			}
 			return this;
