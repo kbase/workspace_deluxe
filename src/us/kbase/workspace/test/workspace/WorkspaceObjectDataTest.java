@@ -235,6 +235,18 @@ public class WorkspaceObjectDataTest {
 	}
 	
 	@Test
+	public void builderGetObjectInfo() throws Exception {
+		final ObjectInformation info2 = INFO.updateReferencePath(Arrays.asList(
+				new Reference(7, 8, 9), new Reference(1, 1, 1)));
+		
+		final WorkspaceObjectData.Builder b = WorkspaceObjectData.getBuilder(INFO, PROV);
+		assertThat("incorrect object info", b.getObjectInfo(), is(INFO));
+		
+		b.withUpdatedReferencePath(Arrays.asList(new Reference(7, 8, 9), new Reference(1, 1, 1)));
+		assertThat("incorrect object info", b.getObjectInfo(), is(info2));
+	}
+	
+	@Test
 	public void builderGetCopyReference() throws Exception {
 		final WorkspaceObjectData.Builder b = WorkspaceObjectData.getBuilder(INFO, PROV)
 				.withCopyReference(new Reference(8, 9, 10));

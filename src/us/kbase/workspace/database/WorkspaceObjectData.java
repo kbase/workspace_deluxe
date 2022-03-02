@@ -202,6 +202,13 @@ public class WorkspaceObjectData {
 			b.extIDs.keySet().stream().forEach(k -> this.extIDs.put(k, b.extIDs.get(k)));
 			this.subset = b.subset;
 		}
+		
+		/** Get the current object information stored in this builder.
+		 * @return the object information.
+		 */
+		public ObjectInformation getObjectInfo() {
+			return info;
+		}
 
 		/** Add the object data to the builder. Passing null removes any current data.
 		 * @param data the data.
