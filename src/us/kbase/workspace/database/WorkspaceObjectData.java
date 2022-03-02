@@ -19,6 +19,7 @@ public class WorkspaceObjectData {
 	private final ByteArrayFileCache data;
 	private final ObjectInformation info;
 	private final Provenance prov;
+	//TODO CODE make this immutable. 
 	private final List<String> references;
 	private Reference copied;
 	private boolean isCopySourceInaccessible = false;
