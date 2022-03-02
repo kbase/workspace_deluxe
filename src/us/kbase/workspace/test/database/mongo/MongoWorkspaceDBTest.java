@@ -111,7 +111,7 @@ public class MongoWorkspaceDBTest {
 						.append("actions.0.wsobjs", null)));
 		
 		
-		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> res =
+		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> res =
 				mocks.mdb.getObjects(
 						ImmutableMap.of(new ObjectIDResolvedWS(wsid, 1), set()),
 						null,
@@ -121,7 +121,7 @@ public class MongoWorkspaceDBTest {
 						true);
 		
 		final Provenance pgot = res.get(new ObjectIDResolvedWS(wsid, 1))
-				.get(SubsetSelection.EMPTY).getProvenance();
+				.get(SubsetSelection.EMPTY).build().getProvenance();
 		
 		//TODO TEST add equals methods to provenance classes & test & use here
 		assertThat("incorrect user", pgot.getUser(), is(new WorkspaceUser("u")));
@@ -153,7 +153,7 @@ public class MongoWorkspaceDBTest {
 				new Document(),
 				new Document("$unset", new Document(Fields.VER_EXT_IDS, "")));
 		
-		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> res =
+		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> res =
 				mocks.mdb.getObjects(
 						ImmutableMap.of(new ObjectIDResolvedWS(wsid, 1), set()),
 						null,
@@ -163,7 +163,7 @@ public class MongoWorkspaceDBTest {
 						true);
 		
 		final WorkspaceObjectData wod = res.get(new ObjectIDResolvedWS(wsid, 1))
-				.get(SubsetSelection.EMPTY);
+				.get(SubsetSelection.EMPTY).build();
 		assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
 	}

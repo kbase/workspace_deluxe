@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import java.util.Optional;
 import java.util.Set;
 
@@ -1076,8 +1077,8 @@ public class Workspace {
 		final ByteArrayFileCacheManager dataMan = getDataManager(noData);
 		
 		//this is pretty gross, think about a better api here
-		Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> stddata = null;
-		Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> refdata = null;
+		Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> stddata = null;
+		Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> refdata = null;
 		try {
 			stddata = db.getObjects(stdpaths, dataMan, 0,
 					!nullIfInaccessible, false, !nullIfInaccessible);
@@ -1088,33 +1089,37 @@ public class Workspace {
 			refpaths.clear();
 			stdpaths.clear();
 			
-			final List<WorkspaceObjectData> ret = new ArrayList<>();
+			final List<WorkspaceObjectData.Builder> toProc = new ArrayList<>();
 			for (final ObjectIdentifier o: loi) {
-				final WorkspaceObjectData wod;
+				final WorkspaceObjectData.Builder wodb;
 				final ObjectResolution objres = res.getObjectResolution(o);
 				if (objres.equals(ObjectResolution.INACCESSIBLE)) {
-					wod = null;
+					wodb = null;
 				} else {
 					final ObjectIDResolvedWS resobj = res.getResolvedObject(o);
 					if (objres.equals(ObjectResolution.NO_PATH)) {
 						if (stddata.containsKey(resobj)) {
-							wod = stddata.get(resobj).get(o.getSubSet());
+							wodb = stddata.get(resobj).get(o.getSubSet());
 						} else {
-							wod = null; //object was deleted or missing
+							wodb = null; //object was deleted or missing
 						}
 					} else {
 						// since was resolved by path, object must exist
-						final WorkspaceObjectData prewod = refdata.get(resobj).get(o.getSubSet());
-						wod = prewod.updateObjectReferencePath(res.getReferencePath(o));
+						wodb = WorkspaceObjectData.getBuilder(
+								// need a new builder since there may be many OIs to one OIRWS
+								refdata.get(resobj).get(o.getSubSet()))
+								.withUpdatedReferencePath(res.getReferencePath(o));
 					}
 				}
-				ret.add(wod);
+				toProc.add(wodb);
 			}
 			res = null;
 			refdata.clear();
 			stddata.clear();
-			removeInaccessibleDataCopyReferences(user, ret);
-			return ret;
+			removeInaccessibleDataCopyReferences(user, toProc);
+			// TODO CODE return optionals instead of nulls
+			return toProc.stream().map(b -> b == null ? null : b.build())
+					.collect(Collectors.toList());
 		} catch (RuntimeException | Error | CorruptWorkspaceDBException |
 				WorkspaceCommunicationException | NoSuchObjectException |
 				TypedObjectExtractionException e) {
@@ -1125,16 +1130,15 @@ public class Workspace {
 	}
 
 	private void destroyGetObjectsResources(
-			final Map<ObjectIDResolvedWS, Map<SubsetSelection,
-					WorkspaceObjectData>> data) {
+			final Map<ObjectIDResolvedWS,
+					Map<SubsetSelection, WorkspaceObjectData.Builder>> data) {
 		if (data == null) {
 			return;
 		}
-		for (final Map<SubsetSelection, WorkspaceObjectData> paths:
-				data.values()) {
-			for (final WorkspaceObjectData d: paths.values()) {
+		for (final Map<SubsetSelection, WorkspaceObjectData.Builder> paths: data.values()) {
+			for (final WorkspaceObjectData.Builder d: paths.values()) {
 				try {
-					d.destroy();
+					d.build().destroy();
 				} catch (RuntimeException | Error e) {
 					//continue
 				}
@@ -1143,12 +1147,13 @@ public class Workspace {
 	}
 
 	private long calculateDataSize(
-			final Map<ObjectIDResolvedWS, Map<SubsetSelection,
-				WorkspaceObjectData>> stddata) {
+			final Map<ObjectIDResolvedWS,
+					Map<SubsetSelection, WorkspaceObjectData.Builder>> stddata) {
 		long dataSize = 0;
-		for (final Map<SubsetSelection, WorkspaceObjectData> paths:
-				stddata.values()) {
-			for (final WorkspaceObjectData d: paths.values()) {
+		for (final Map<SubsetSelection, WorkspaceObjectData.Builder> paths: stddata.values()) {
+			for (final WorkspaceObjectData.Builder b: paths.values()) {
+				// this will be removed shortly
+				final WorkspaceObjectData d = b.build();
 				if (d.hasData()) {
 					dataSize += d.getSerializedData().get().getSize();
 				}
@@ -1190,11 +1195,11 @@ public class Workspace {
 
 	private void removeInaccessibleDataCopyReferences(
 			final WorkspaceUser user,
-			final List<WorkspaceObjectData> data)
+			final List<WorkspaceObjectData.Builder> data)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		
 		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
-		for (final WorkspaceObjectData d: data) {
+		for (final WorkspaceObjectData.Builder d: data) {
 			if (d != null && d.getCopyReference().isPresent()) {
 				wsis.add(new WorkspaceIdentifier(d.getCopyReference().get().getWorkspaceID()));
 			}
@@ -1225,13 +1230,13 @@ public class Workspace {
 			}
 		}
 		
-		final Map<WorkspaceObjectData, ObjectIDResolvedWS> rois = new HashMap<>();
-		for (final WorkspaceObjectData d: data) {
+		final Map<WorkspaceObjectData.Builder, ObjectIDResolvedWS> rois = new HashMap<>();
+		for (final WorkspaceObjectData.Builder d: data) {
 			if (d != null && d.getCopyReference().isPresent()) {
 				final Reference cref = d.getCopyReference().get();
 				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(cref.getWorkspaceID());
 				if (!rwsis.containsKey(wsi)) {
-					d.setCopySourceInaccessible();
+					d.withCopySourceInaccessible();
 				} else {
 					rois.put(d, new ObjectIDResolvedWS(
 							rwsis.get(wsi), cref.getObjectID(), cref.getVersion()));
@@ -1242,10 +1247,9 @@ public class Workspace {
 		final Map<ObjectIDResolvedWS, Boolean> objexists =
 				db.getObjectExists(new HashSet<>(rois.values())); 
 		
-		for (final Entry<WorkspaceObjectData, ObjectIDResolvedWS> e:
-				rois.entrySet()) {
+		for (final Entry<WorkspaceObjectData.Builder, ObjectIDResolvedWS> e: rois.entrySet()) {
 			if (!objexists.get(e.getValue())) {
-				e.getKey().setCopySourceInaccessible();
+				e.getKey().withCopySourceInaccessible();
 			}
 		}
 	}

@@ -30,8 +30,8 @@ public class WorkspaceObjectData {
 	private final ObjectInformation info;
 	private final Provenance prov;
 	private final List<String> references;
-	private Reference copied; // TODO NOW make final
-	private boolean isCopySourceInaccessible = false; // TODO NOW make final
+	private final Reference copied;
+	private final boolean isCopySourceInaccessible;
 	private final Map<IdReferenceType, List<String>> extIDs;
 
 	private WorkspaceObjectData(
@@ -100,31 +100,12 @@ public class WorkspaceObjectData {
 		return data != null;
 	}
 	
-	/** Removes the copy reference and sets copySourceInacessible to true.
-	 */
-	public void setCopySourceInaccessible() {
-		// TODO NOW this mutates the object. Move to builder and use there.
-		copied = null;
-		isCopySourceInaccessible = true;
-	}
-	
 	/** Returns true if the object from which this object was copied is accessible to the user
 	 * requesting the data.
 	 * @return true if the source this object was copied from is accessible.
 	 */
 	public boolean isCopySourceInaccessible() {
 		return isCopySourceInaccessible;
-	}
-	
-	/** Change the path through the object graph that provided access to this object.
-	 * @param refpath the object reference path.
-	 * @returns a new WorkspaceObject data with an updated reference path.
-	 */
-	public WorkspaceObjectData updateObjectReferencePath(final List<Reference> refpath) {
-		// TODO NOW move to builder and use there.
-		final ObjectInformation newoi = info.updateReferencePath(refpath);
-		return new WorkspaceObjectData(
-				data, newoi, prov, references, copied, isCopySourceInaccessible, extIDs);
 	}
 	
 	/** Destroys any resources used to store the objects. In the case of
@@ -168,6 +149,20 @@ public class WorkspaceObjectData {
 		return new Builder(info, prov);
 	}
 	
+	/** Get a builder with the same state as the given builder. Note that the new builder will
+	 * contain a reference to the same object data, if any, as the old builder, and so if
+	 * the object data is destroyed it will be destroyed for both builders and / or
+	 * {@link WorkspaceObjectData}s.
+	 * 
+	 * @param b the input builder.
+	 * @return a new builder.
+	 * 
+	 * @see {@link WorkspaceObjectData#destroy()}
+	 */
+	public static Builder getBuilder(final Builder b) {
+		return new Builder(b);
+	}
+	
 	/** A builder for a {@link WorkspaceObjectData}. */
 	public static class Builder {
 		
@@ -184,6 +179,16 @@ public class WorkspaceObjectData {
 			this.prov = requireNonNull(prov, "prov");
 		}
 		
+		private Builder(final Builder b) {
+			this.info = b.info;
+			this.prov = b.prov;
+			this.data = b.data;
+			this.references = b.references;
+			this.copied = b.copied;
+			this.isCopySourceInaccessible = b.isCopySourceInaccessible;
+			b.extIDs.keySet().stream().forEach(k -> this.extIDs.put(k, b.extIDs.get(k)));
+		}
+
 		/** Add the object data to the builder. Passing null removes any current data.
 		 * @param data the data.
 		 * @return this builder.
@@ -194,7 +199,7 @@ public class WorkspaceObjectData {
 		}
 		
 		/** Add a set of references to other workspace objects that were contained in the object
-		 * data to the builder. Passing a null or empty list removes any current references
+		 * data to the builder. Passing a null or empty list removes any current references.
 		 * @param references the references.
 		 * @return this builder.
 		 */
@@ -212,7 +217,7 @@ public class WorkspaceObjectData {
 		
 		/** Add a reference to the object from which this object was copied, also setting
 		 * the inaccessible copy source flag to false.
-		 *  Passing null removes any current copy reference.
+		 * Passing null removes any current copy reference.
 		 * @param ref the reference to the source of this object.
 		 * @return this builder.
 		 */
@@ -220,6 +225,15 @@ public class WorkspaceObjectData {
 			this.copied = ref;
 			this.isCopySourceInaccessible = false;
 			return this;
+		}
+		
+		// add more getters as needed
+		/** Get the reference to the object from which this object was copied that's currently
+		 * in the builder.
+		 * @return the reference to the source of this object.
+		 */
+		public Optional<Reference> getCopyReference() {
+			return Optional.ofNullable(this.copied);
 		}
 		
 		/** Set that this object was copied, but the source object is inaccessible to the current

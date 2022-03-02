@@ -98,6 +98,7 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import com.mongodb.DuplicateKeyException;
 import com.mongodb.ErrorCategory;
 import com.mongodb.MongoException;
@@ -2212,7 +2213,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_COPIED);
 	
 	@Override
-	public Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>>
+	public Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>>
 			getObjects(
 				final Map<ObjectIDResolvedWS, Set<SubsetSelection>> objs,
 				final ByteArrayFileCacheManager dataMan,
@@ -2221,7 +2222,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				final boolean includeDeleted,
 				final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException,
-			TypedObjectExtractionException, CorruptWorkspaceDBException {
+				TypedObjectExtractionException, CorruptWorkspaceDBException {
 		
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs =
 				resolveObjectIDs(objs.keySet(), exceptIfDeleted, includeDeleted, exceptIfMissing);
@@ -2234,7 +2235,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		final Map<ObjectId, Provenance> provs = getProvenance(vers);
 		final Map<String, ByteArrayFileCache> chksumToData = new HashMap<>();
-		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> ret =
+		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> ret =
 				new HashMap<>();
 		for (final ObjectIDResolvedWS o: objs.keySet()) {
 			final ResolvedObjectID roi = resobjs.get(o);
@@ -2251,11 +2252,12 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<String> refs = (List<String>) vers.get(roi).get(Fields.VER_REF);
 			final ObjectInformation info = ObjectInfoUtils.generateObjectInfo(roi, vers.get(roi));
 			if (dataMan == null) {
-				ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
-				final WorkspaceObjectData.Builder wod = WorkspaceObjectData.getBuilder(info, prov)
-						.withReferences(refs)
-						.withCopyReference(copied);
-				ret.get(o).put(SubsetSelection.EMPTY, addExternalIDs(wod, extIDs).build());
+				ret.put(o, ImmutableMap.of(
+						SubsetSelection.EMPTY,
+						addExternalIDs(WorkspaceObjectData.getBuilder(info, prov)
+								.withReferences(refs)
+								.withCopyReference(copied),
+								extIDs)));
 			} else {
 				try {
 					if (objs.get(o).isEmpty()) {
@@ -2322,8 +2324,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 
 	private void cleanUpTempObjectFiles(
 			final Map<String, ByteArrayFileCache> chksumToData,
-			final Map<ObjectIDResolvedWS, Map<SubsetSelection,
-				WorkspaceObjectData>> ret) {
+			final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> ret) {
 		for (final ByteArrayFileCache f: chksumToData.values()) {
 			try {
 				f.destroy();
@@ -2331,11 +2332,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				//continue
 			}
 		}
-		for (final Map<SubsetSelection, WorkspaceObjectData> m:
-			ret.values()) {
-			for (final WorkspaceObjectData wod: m.values()) {
+		for (final Map<SubsetSelection, WorkspaceObjectData.Builder> m: ret.values()) {
+			for (final WorkspaceObjectData.Builder wod: m.values()) {
 				try {
-					wod.destroy();
+					wod.build().destroy();
 				} catch (RuntimeException | Error e) {
 					//continue
 				}
@@ -2355,12 +2355,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final ObjectInformation info,
 			final Map<String, ByteArrayFileCache> chksumToData,
 			final ByteArrayFileCacheManager bafcMan,
-			final Map<ObjectIDResolvedWS,
-					Map<SubsetSelection, WorkspaceObjectData>> ret)
+			final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> ret)
 			throws TypedObjectExtractionException,
 			WorkspaceCommunicationException, CorruptWorkspaceDBException {
 		if (!ret.containsKey(o)) {
-			ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
+			ret.put(o, new HashMap<>());
 		}
 		final WorkspaceObjectData.Builder wod = addExternalIDs( 
 				WorkspaceObjectData.getBuilder(info, prov)
@@ -2373,7 +2372,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			 * memoize the subset
 			 */
 			wod.withData(getDataSubSet(chksumToData.get(info.getCheckSum()), subset, bafcMan));
-			ret.get(o).put(subset, wod.build());
+			ret.get(o).put(subset, wod);
 		} else {
 			final ByteArrayFileCache data;
 			try {
@@ -2400,7 +2399,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						info.getVersion()), e);
 			}
 			chksumToData.put(info.getCheckSum(), data);
-			ret.get(o).put(subset, wod.withData(getDataSubSet(data, subset, bafcMan)).build());
+			ret.get(o).put(subset, wod.withData(getDataSubSet(data, subset, bafcMan)));
 		}
 	}
 	
