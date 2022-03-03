@@ -47,12 +47,12 @@ public class ObjectInformation {
 	public ObjectInformation(
 			final long id,
 			final String name,
-			final String typeString,
+			final String typeString, // TODO CODE use absolute typedef?
 			final Date savedDate, //TODO CODE use instant
 			final int version,
 			final WorkspaceUser savedBy,
 			final ResolvedWorkspaceID workspaceID,
-			final String chksum,
+			final String chksum,  // TODO CODE use MD5? 
 			final long size,
 			final UncheckedUserMetadata meta) {
 		//no error checking for now, add if needed
@@ -202,7 +202,7 @@ public class ObjectInformation {
 	 * @return the object metadata.
 	 */
 	public UncheckedUserMetadata getUserMetaData() {
-		return meta;
+		return meta;  // TODO CODE switch to Optional
 	}
 
 	/** Returns the resolved reference path to this object from a user-accessible object. There may

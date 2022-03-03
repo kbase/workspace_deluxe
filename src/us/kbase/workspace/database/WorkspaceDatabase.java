@@ -1,6 +1,7 @@
 package us.kbase.workspace.database;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
@@ -370,6 +372,24 @@ public interface WorkspaceDatabase {
 					boolean exceptIfMissing)
 			throws NoSuchObjectException,WorkspaceCommunicationException,
 				CorruptWorkspaceDBException, TypedObjectExtractionException;
+	
+	/** Adds object data to the given builder, specifically calling
+	 * {@link WorkspaceObjectData.Builder#withData(ByteArrayFileCacheManager.ByteArrayFileCache)},
+	 * and taking the contents of {@link WorkspaceObjectData.Builder#getSubsetSelection()}
+	 * into account. If this method throws an exception any data in the objects will be removed
+	 * and destroyed.
+	 * @param objects the object builders to update.
+	 * @param dataManager the data manager.
+	 * @throws WorkspaceCommunicationException if a communication error with the backend occurs.
+	 * @throws TypedObjectExtractionException if the subdata could not be extracted.
+	 * @throws NoObjectDataException if there is no data in the backend for the corresponding
+	 * object. 
+	 */
+	public void addDataToObjects(
+			final Collection<WorkspaceObjectData.Builder> objects,
+			final ByteArrayFileCacheManager dataManager)
+			throws WorkspaceCommunicationException, TypedObjectExtractionException,
+				NoObjectDataException;
 	
 	/** Resolve a set of objects to absolute references. If the object cannot be found, it is not
 	 * included in the returned map. Includes deleted objects.

@@ -1,7 +1,7 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayToHash;
-import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
+import static java.util.Objects.requireNonNull;
+import static us.kbase.workspace.database.Util.noNulls;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_ADMINS;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_WS_CNT;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACES;
@@ -10,6 +10,8 @@ import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_OB
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_VERS;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_PROVENANCE;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_CONFIG;
+import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayToHash;
+import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -87,6 +89,7 @@ import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DeletedObjectException;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
+import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
@@ -2293,6 +2296,87 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		return wod;
 	}
+	
+	@Override
+	public void addDataToObjects(
+			final Collection<WorkspaceObjectData.Builder> objects,
+			final ByteArrayFileCacheManager dataManager)
+			throws WorkspaceCommunicationException, TypedObjectExtractionException,
+				NoObjectDataException {
+		noNulls(requireNonNull(objects, "objects"), "null found in objects");
+		final Map<String, List<WorkspaceObjectData.Builder>> chksum2obj = new HashMap<>();
+		for (final WorkspaceObjectData.Builder b: objects) {
+			if (!chksum2obj.containsKey(b.getObjectInfo().getCheckSum())) {
+				chksum2obj.put(b.getObjectInfo().getCheckSum(), new LinkedList<>());
+			}
+			chksum2obj.get(b.getObjectInfo().getCheckSum()).add(b);
+		}
+		final List<ByteArrayFileCache> toDestroy = new LinkedList<>();
+		try {
+			for (final String chksum: chksum2obj.keySet()) {
+				// TODO PRL parallelize this code, make sure to clean up all threads' data 
+				// if one fails
+				final ByteArrayFileCache data;
+				try {
+					data = blob.getBlob(new MD5(chksum), dataManager);
+					toDestroy.add(data);
+				} catch (FileCacheIOException e) {
+					throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
+				} catch (FileCacheLimitExceededException e) {
+					throw new IllegalArgumentException( // TODO PRL CODE remove later when possible
+							"Too much data requested from the workspace at once; " +
+							"data requested including subsets exceeds maximum of "
+							+ dataManager.getMaxSizeOnDisk());
+				} catch (BlobStoreCommunicationException e) {
+					throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
+				} catch (BlobStoreAuthorizationException e) {
+					throw new WorkspaceCommunicationException(
+							"Authorization error communicating with the backend storage system",
+							e);
+				} catch (NoSuchBlobException e) {
+					final ObjectInformation info = chksum2obj.get(chksum).get(0).getObjectInfo();
+					throw new NoObjectDataException(String.format(
+							"No data present for object %s/%s/%s",
+							info.getWorkspaceId(), info.getObjectId(), info.getVersion()), e);
+				}
+				for (final WorkspaceObjectData.Builder b: chksum2obj.get(chksum)) {
+					/* might be subsetting the same object the same way multiple times, but
+					 * probably unlikely. If it becomes a problem memoize the subset
+					 */
+					b.withData(getDataSubSet(data, b.getSubsetSelection(), dataManager));
+				}
+			}
+		} catch (TypedObjectExtractionException | WorkspaceCommunicationException |
+				NoObjectDataException | RuntimeException | Error e) {
+			cleanUpTempObjectFiles(objects, toDestroy);
+			throw e;
+		}
+	}
+
+	private void cleanUpTempObjectFiles(
+			final Collection<WorkspaceObjectData.Builder> objects,
+			final List<ByteArrayFileCache> toDestroy) {
+		for (final WorkspaceObjectData.Builder b: objects) {
+			try {
+				final WorkspaceObjectData d = b.build();
+				if (d.hasData()) {
+					b.withData(null);
+					d.destroy();
+				}
+			} catch (RuntimeException | Error e) {
+				// continue
+				// not really any way to test this
+			}
+		}
+		for (final ByteArrayFileCache b: toDestroy) {
+			try {
+				b.destroy();
+			} catch (RuntimeException | Error e) {
+				// continue
+				// not really any way to test this
+			}
+		}
+	}
 
 	private void checkTotalFileSize(
 			final long usedDataAllocation,
@@ -2403,10 +2487,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 	
-	private ByteArrayFileCache getDataSubSet(final ByteArrayFileCache data,
-			final SubsetSelection paths, final ByteArrayFileCacheManager bafcMan)
-			throws TypedObjectExtractionException,
-			WorkspaceCommunicationException {
+	private ByteArrayFileCache getDataSubSet(
+			final ByteArrayFileCache data,
+			final SubsetSelection paths,
+			final ByteArrayFileCacheManager bafcMan)
+			throws TypedObjectExtractionException, WorkspaceCommunicationException {
 		if (paths.isEmpty()) {
 			return data;
 		}
@@ -2414,7 +2499,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			return bafcMan.getSubdataExtraction(data, paths);
 		} catch (FileCacheIOException e) {
 			throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
-		} catch (FileCacheLimitExceededException e) {
+		} catch (FileCacheLimitExceededException e) {  // TODO PRL remove when possible
 			throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
 					"Too much data requested from the workspace at once; " +
 					"data requested including subsets exceeds maximum of "
