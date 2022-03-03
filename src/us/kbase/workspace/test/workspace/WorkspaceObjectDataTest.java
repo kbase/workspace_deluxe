@@ -60,12 +60,18 @@ public class WorkspaceObjectDataTest {
 			throw new RuntimeException(e);
 		}
 	}
-	
 
 	@Test
 	public void buildMinimal() throws Exception {
-		final WorkspaceObjectData wod = WorkspaceObjectData.getBuilder(INFO, PROV).build();
+		final WorkspaceObjectData.Builder wodb = WorkspaceObjectData.getBuilder(INFO, PROV);
+		// test the builder from a builder builder
+		final WorkspaceObjectData wod2 = WorkspaceObjectData.getBuilder(wodb).build();
 		
+		buildMinimalAssertions(wodb.build());
+		buildMinimalAssertions(wod2);
+	}
+
+	public void buildMinimalAssertions(final WorkspaceObjectData wod) {
 		assertThat("incorrect info", wod.getObjectInfo(), is(INFO));
 		assertThat("incorrect prov", wod.getProvenance(), is(PROV));
 		assertThat("incorrect data", wod.getSerializedData(), is(OD));
@@ -82,17 +88,27 @@ public class WorkspaceObjectDataTest {
 				new Reference(3, 4, 5), new Reference(1, 1, 1)));
 		final ByteArrayFileCache b = getBAFC();
 		
-		final WorkspaceObjectData wod = WorkspaceObjectData.getBuilder(INFO, PROV)
+		final WorkspaceObjectData.Builder wodb = WorkspaceObjectData.getBuilder(INFO, PROV)
 				.withData(b)
 				.withCopyReference(new Reference(8, 9, 10))
 				.withReferences(Arrays.asList("3/4/5", "10/11/12"))
 				.withUpdatedReferencePath(Arrays.asList(
 						new Reference(3, 4, 5), new Reference(1, 1, 1)))
 				.withExternalIDs(new IdReferenceType("t1"), Arrays.asList("foo", "bar"))
-				.withExternalIDs(new IdReferenceType("t2"), Arrays.asList("whoo", "whee"))
-				.build();
+				.withExternalIDs(new IdReferenceType("t2"), Arrays.asList("whoo", "whee"));
+
+		// test the builder from a builder builder
+		final WorkspaceObjectData wod2 = WorkspaceObjectData.getBuilder(wodb).build();
 		
-		assertThat("incorrect info", wod.getObjectInfo(), is(info2));
+		buildMaximalWithCopyRefAssertions(info2, b, wodb.build());
+		buildMaximalWithCopyRefAssertions(info2, b, wod2);
+	}
+
+	public void buildMaximalWithCopyRefAssertions(
+			final ObjectInformation info,
+			final ByteArrayFileCache b,
+			final WorkspaceObjectData wod) {
+		assertThat("incorrect info", wod.getObjectInfo(), is(info));
 		assertThat("incorrect prov", wod.getProvenance(), is(PROV));
 		assertThat("incorrect data", wod.getSerializedData(), is(opt(b)));
 		assertThat("incorrect copy ref", wod.getCopyReference(), is(opt(new Reference(8, 9, 10))));
@@ -108,11 +124,18 @@ public class WorkspaceObjectDataTest {
 	@Test
 	public void buildWithCopyInaccessible() throws Exception {
 		// check that it removes the ref
-		final WorkspaceObjectData wod = WorkspaceObjectData.getBuilder(INFO, PROV)
+		final WorkspaceObjectData.Builder wodb = WorkspaceObjectData.getBuilder(INFO, PROV)
 				.withCopyReference(new Reference(6, 7, 8))
-				.withCopySourceInaccessible()
-				.build();
+				.withCopySourceInaccessible();
+				
+		// test the builder from a builder builder
+		final WorkspaceObjectData wod2 = WorkspaceObjectData.getBuilder(wodb).build();
 		
+		buildWithCopyInaccessibleAssertions(wodb.build());
+		buildWithCopyInaccessibleAssertions(wod2);
+	}
+
+	public void buildWithCopyInaccessibleAssertions(final WorkspaceObjectData wod) {
 		assertThat("incorrect info", wod.getObjectInfo(), is(INFO));
 		assertThat("incorrect prov", wod.getProvenance(), is(PROV));
 		assertThat("incorrect data", wod.getSerializedData(), is(OD));
@@ -125,12 +148,19 @@ public class WorkspaceObjectDataTest {
 	
 	@Test
 	public void buildAndRemoveInaccessible() throws Exception {
-		// check that the inaccessbile flag is removed
-		final WorkspaceObjectData wod = WorkspaceObjectData.getBuilder(INFO, PROV)
+		// check that the inaccessible flag is removed
+		final WorkspaceObjectData.Builder wodb = WorkspaceObjectData.getBuilder(INFO, PROV)
 				.withCopySourceInaccessible()
-				.withCopyReference(new Reference(6, 7, 8))
-				.build();
+				.withCopyReference(new Reference(6, 7, 8));
 		
+		// test the builder from a builder builder
+		final WorkspaceObjectData wod2 = WorkspaceObjectData.getBuilder(wodb).build();
+		
+		buildAndRemoveInaccessibleAssertions(wodb.build());
+		buildAndRemoveInaccessibleAssertions(wod2);
+	}
+
+	public void buildAndRemoveInaccessibleAssertions(final WorkspaceObjectData wod) {
 		assertThat("incorrect info", wod.getObjectInfo(), is(INFO));
 		assertThat("incorrect prov", wod.getProvenance(), is(PROV));
 		assertThat("incorrect data", wod.getSerializedData(), is(OD));
@@ -190,6 +220,17 @@ public class WorkspaceObjectDataTest {
 		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
 		assertThat("incorrect has data", wod.hasData(), is(false));
 		assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(false));
+	}
+	
+	@Test
+	public void builderGetCopyReference() throws Exception {
+		final WorkspaceObjectData.Builder b = WorkspaceObjectData.getBuilder(INFO, PROV)
+				.withCopyReference(new Reference(8, 9, 10));
+		
+		assertThat("incorrect copy ref", b.getCopyReference(), is(opt(new Reference(8, 9, 10))));
+		
+		b.withCopyReference(null);
+		assertThat("incorrect copy ref", b.getCopyReference(), is(OR));
 	}
 	
 	@Test
@@ -259,6 +300,30 @@ public class WorkspaceObjectDataTest {
 		} catch (UnsupportedOperationException e) {
 			// test passes
 		}
+	}
+	
+	@Test
+	public void immutableExternalIDsFromAnotherBuilder() throws Exception {
+		final List<String> ids = new LinkedList<>(Arrays.asList("KBH_1", "KBH_3"));
+		final WorkspaceObjectData.Builder wodb = WorkspaceObjectData.getBuilder(INFO, PROV)
+				.withExternalIDs(new IdReferenceType("handle"), ids);
+		
+		final WorkspaceObjectData.Builder wodb2 = WorkspaceObjectData.getBuilder(wodb);
+		
+		final ImmutableMap<IdReferenceType, List<String>> expected = ImmutableMap.of(
+				new IdReferenceType("handle"), Arrays.asList("KBH_1", "KBH_3")
+				);
+		
+		assertThat("incorrect ext ids", wodb2.build().getExtractedIds(), is(expected));
+		
+		// should not affect wodb2
+		wodb.withExternalIDs(new IdReferenceType("sample"), Arrays.asList("id1"));
+		
+		assertThat("incorrect ext ids", wodb2.build().getExtractedIds(), is(expected));
+		assertThat("incorrect ext ids", wodb.build().getExtractedIds(), is(ImmutableMap.of(
+				new IdReferenceType("handle"), Arrays.asList("KBH_1", "KBH_3"),
+				new IdReferenceType("sample"), Arrays.asList("id1")
+				)));
 	}
 	
 	@Test

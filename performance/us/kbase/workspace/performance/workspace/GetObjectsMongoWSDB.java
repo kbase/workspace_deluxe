@@ -62,11 +62,11 @@ public class GetObjectsMongoWSDB {
 			}
 			
 			final long preiter = System.nanoTime();
-			final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> res =
+			final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> res =
 					mws.getObjects(objs, man, 0, true, false, true);
-			for (final Map<SubsetSelection, WorkspaceObjectData> ss2wos: res.values()) {
-				for (final WorkspaceObjectData wos: ss2wos.values()) {
-					wos.destroy();
+			for (final Map<SubsetSelection, WorkspaceObjectData.Builder> ss2wos: res.values()) {
+				for (final WorkspaceObjectData.Builder wos: ss2wos.values()) {
+					wos.build().destroy();
 				}
 			}
 			printElapse("get", preiter);

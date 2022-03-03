@@ -351,7 +351,8 @@ public interface WorkspaceDatabase {
 	 * effect if exceptIfDeleted is set.
 	 * @param exceptIfMissing throw an exception if the object does not exist
 	 * in the database.
-	 * @return a mapping of object id -> subdata paths -> data.
+	 * @return a mapping of object id -> subdata paths -> data builder. The data is returned
+	 * as a builder so that copy status and reference paths can be updated as necessary.
 	 * @throws NoSuchObjectException if there is no such object.
 	 * @throws WorkspaceCommunicationException if a communication error with
 	 * the backend occurs.
@@ -359,7 +360,7 @@ public interface WorkspaceDatabase {
 	 * @throws TypedObjectExtractionException if the subdata could not be
 	 * extracted.
 	 */
-	public Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>>
+	public Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>>
 			getObjects(
 					Map<ObjectIDResolvedWS, Set<SubsetSelection>> objects,
 					ByteArrayFileCacheManager dataManager,
@@ -368,7 +369,7 @@ public interface WorkspaceDatabase {
 					boolean includeDeleted,
 					boolean exceptIfMissing)
 			throws NoSuchObjectException,WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, TypedObjectExtractionException;
+				CorruptWorkspaceDBException, TypedObjectExtractionException;
 	
 	/** Resolve a set of objects to absolute references. If the object cannot be found, it is not
 	 * included in the returned map. Includes deleted objects.
