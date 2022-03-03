@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 
 import org.bson.Document;
@@ -163,7 +164,7 @@ public class MongoWorkspaceDBTest {
 		
 		final WorkspaceObjectData wod = res.get(new ObjectIDResolvedWS(wsid, 1))
 				.get(SubsetSelection.EMPTY);
-		assertThat("incorrect data", wod.getSerializedData(), nullValue());
+		assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
 		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
 	}
 	

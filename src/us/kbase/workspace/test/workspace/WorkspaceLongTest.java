@@ -94,10 +94,10 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		
 		//printMem("*** released refs ***");
 		
-		ByteArrayFileCache newdata = ws.getObjects(
+		final ByteArrayFileCache newdata = ws.getObjects(
 				userfoo,
 				Arrays.asList(ObjectIdentifier.getBuilder(bigdataws).withID(1L).build()))
-				.get(0).getSerializedData();
+				.get(0).getSerializedData().get();
 //		printMem("*** retrieved object ***");
 //		System.gc();
 //		printMem("*** ran gc after retrieve ***");

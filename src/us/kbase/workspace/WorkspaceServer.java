@@ -593,7 +593,7 @@ public class WorkspaceServer extends JsonServerServlet {
 				Arrays.asList(oi)).get(0);
 		resourcesToDelete.set(Arrays.asList(ret));
 		returnVal = new GetObjectOutput()
-			.withData(ret.getSerializedData().getUObject())
+			.withData(ret.getSerializedData().get().getUObject())
 			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo(), true));
         //END get_object
         return returnVal;

@@ -5,6 +5,7 @@ import static us.kbase.workspace.database.Util.checkNoNullsOrEmpties;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -34,11 +35,11 @@ public class WorkspaceObjectData {
 	private final Map<IdReferenceType, List<String>> extIDs;
 
 	private WorkspaceObjectData(
-			final ByteArrayFileCache data, // TODO NOW use an Optional
+			final ByteArrayFileCache data,
 			final ObjectInformation info,
 			final Provenance prov,
 			final List<String> references,
-			final Reference copied, // TODO NOW use an Optional
+			final Reference copied,
 			final boolean isCopySourceAccessible,
 			final Map<IdReferenceType, List<String>> extIDs) {
 		this.data = data;
@@ -74,8 +75,8 @@ public class WorkspaceObjectData {
 	/** Returns the source of the object if copied and accessible.
 	 * @return the source of the object.
 	 */
-	public Reference getCopyReference() {
-		return copied;
+	public Optional<Reference> getCopyReference() {
+		return Optional.ofNullable(copied);
 	}
 	
 	/** Returns any external IDs extracted from the object, mapped by the ID type.
@@ -85,11 +86,11 @@ public class WorkspaceObjectData {
 		return extIDs;
 	}
 	
-	/** Returns the object data.
+	/** Returns the object data, if present.
 	 * @return the object data.
 	 */
-	public ByteArrayFileCache getSerializedData() {
-		return data;
+	public Optional<ByteArrayFileCache> getSerializedData() {
+		return Optional.ofNullable(data);
 	}
 	
 	/** Returns true if this package contains the object data, false otherwise.

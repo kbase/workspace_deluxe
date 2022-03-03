@@ -413,7 +413,7 @@ public class ArgUtils {
 			final PermError error = makeExternalIDsReadable(o, permHandler);
 			final UObject data;
 			try {
-				data = o.getSerializedData() == null ? null : o.getSerializedData().getUObject();
+				data = o.hasData() ? o.getSerializedData().get().getUObject() : null;
 			} catch (IOException e) {
 				// impossible to test in integration tests, shouldn't occur
 				throw new RuntimeException(
@@ -431,8 +431,8 @@ public class ArgUtils {
 							o.getProvenance().getDate()))
 					.withEpoch(o.getProvenance().getDate().getTime())
 					.withRefs(o.getReferences())
-					.withCopied(o.getCopyReference() == null ? null :
-						o.getCopyReference().getId())
+					.withCopied(o.getCopyReference().isPresent() ?
+							o.getCopyReference().get().getId() : null)
 					.withCopySourceInaccessible(
 							o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))
@@ -488,8 +488,8 @@ public class ArgUtils {
 							o.getProvenance().getDate()))
 					.withEpoch(o.getProvenance().getDate().getTime())
 					.withRefs(o.getReferences())
-					.withCopied(o.getCopyReference() == null ? null :
-						o.getCopyReference().getId())
+					.withCopied(o.getCopyReference().isPresent() ?
+							o.getCopyReference().get().getId() : null)
 					.withCopySourceInaccessible(
 						o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))

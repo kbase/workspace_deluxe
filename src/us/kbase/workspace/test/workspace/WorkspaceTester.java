@@ -384,7 +384,7 @@ public class WorkspaceTester {
 	}
 	
 	protected Object getData(final WorkspaceObjectData wod) throws Exception {
-		return wod.getSerializedData().getUObject().asClassInstance(Object.class);
+		return wod.getSerializedData().get().getUObject().asClassInstance(Object.class);
 	}
 	
 	protected void failSetWSDesc(
@@ -1360,8 +1360,10 @@ public class WorkspaceTester {
 		WorkspaceObjectData copy = null;
 		
 		try {
-			Reference expectedCopyRef = new Reference(original.getWorkspaceId(),
-					original.getObjectId(), original.getVersion());
+			final Optional<Reference> expectedCopyRef = Optional.of(new Reference(
+					original.getWorkspaceId(),
+					original.getObjectId(),
+					original.getVersion()));
 			
 			//getObjects
 			orig = ws.getObjects(original.getSavedBy(), Arrays.asList(
@@ -1414,8 +1416,8 @@ public class WorkspaceTester {
 			throws Exception {
 		assertThat("object info same", got.getObjectInfo(), is(info));
 		if (data == null) {
-			assertNull("returned data when requested provenance only",
-					got.getSerializedData());
+			assertThat("returned data when requested provenance only", got.getSerializedData(),
+					is(Optional.empty()));
 		} else {
 			assertThat("returned data same", getData(got), is((Object)data));
 		}
