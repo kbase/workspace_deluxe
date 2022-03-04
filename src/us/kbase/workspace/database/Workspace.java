@@ -60,6 +60,7 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsa
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
+import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -120,7 +121,6 @@ public class Workspace {
 		nonNull(listeners, "listeners");
 		noNulls(listeners, "null item in listeners");
 		this.listeners = Collections.unmodifiableList(listeners);
-		db.setResourceUsageConfiguration(rescfg);
 		this.maximumObjectSearchCount = MAX_OBJECT_SEARCH_COUNT_DEFAULT;
 	}
 	
@@ -145,7 +145,6 @@ public class Workspace {
 			throw new NullPointerException("rescfg cannot be null");
 		}
 		this.rescfg = rescfg;
-		db.setResourceUsageConfiguration(rescfg);
 	}
 	
 	public TempFilesManager getTempFilesManager() {
@@ -1068,129 +1067,96 @@ public class Workspace {
 		}
 		ObjectResolver res = orb.resolve();
 		
-		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> refpaths =
-				setupObjectPaths(res.getObjects(true), res);
-		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> stdpaths =
-				setupObjectPaths(res.getObjects(false), res);
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> stddata = getObjects(
+				res, false, !nullIfInaccessible, false, !nullIfInaccessible);
+		//objects cannot be missing at this stage
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> refdata = getObjects(
+				res, true, false, true, true);
 		
-		//TODO CODE make an overall resource manager that takes the config as an arg and handles returned data as well as mem & file limits 
-		final ByteArrayFileCacheManager dataMan = getDataManager(noData);
-		
-		//this is pretty gross, think about a better api here
-		Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> stddata = null;
-		Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> refdata = null;
-		try {
-			stddata = db.getObjects(stdpaths, dataMan, 0,
-					!nullIfInaccessible, false, !nullIfInaccessible);
-			refdata = db.getObjects(refpaths, dataMan, calculateDataSize(stddata),
-					//objects cannot be missing at this stage
-					false, true, true);
-			
-			refpaths.clear();
-			stdpaths.clear();
-			
-			final List<WorkspaceObjectData.Builder> toProc = new ArrayList<>();
-			for (final ObjectIdentifier o: loi) {
-				final WorkspaceObjectData.Builder wodb;
-				final ObjectResolution objres = res.getObjectResolution(o);
-				if (objres.equals(ObjectResolution.INACCESSIBLE)) {
-					wodb = null;
-				} else {
-					final ObjectIDResolvedWS resobj = res.getResolvedObject(o);
-					if (objres.equals(ObjectResolution.NO_PATH)) {
-						if (stddata.containsKey(resobj)) {
-							wodb = stddata.get(resobj).get(o.getSubSet());
-						} else {
-							wodb = null; //object was deleted or missing
-						}
+		final List<WorkspaceObjectData.Builder> toProc = new ArrayList<>();
+		for (final ObjectIdentifier o: loi) {
+			final WorkspaceObjectData.Builder wodb;
+			final ObjectResolution objres = res.getObjectResolution(o);
+			if (objres.equals(ObjectResolution.INACCESSIBLE)) {
+				wodb = null;
+			} else {
+				final ObjectIDResolvedWS resobj = res.getResolvedObject(o);
+				if (objres.equals(ObjectResolution.NO_PATH)) {
+					if (stddata.containsKey(resobj)) {
+						wodb = addSubData(stddata.get(resobj), o.getSubSet());
 					} else {
-						// since was resolved by path, object must exist
-						wodb = WorkspaceObjectData.getBuilder(
-								// need a new builder since there may be many OIs to one OIRWS
-								refdata.get(resobj).get(o.getSubSet()))
-								.withUpdatedReferencePath(res.getReferencePath(o));
+						wodb = null; //object was deleted or missing
 					}
-				}
-				toProc.add(wodb);
-			}
-			res = null;
-			refdata.clear();
-			stddata.clear();
-			removeInaccessibleDataCopyReferences(user, toProc);
-			// TODO CODE return optionals instead of nulls
-			return toProc.stream().map(b -> b == null ? null : b.build())
-					.collect(Collectors.toList());
-		} catch (RuntimeException | Error | CorruptWorkspaceDBException |
-				WorkspaceCommunicationException | NoSuchObjectException |
-				TypedObjectExtractionException e) {
-			destroyGetObjectsResources(stddata);
-			destroyGetObjectsResources(refdata);
-			throw e;
-		}
-	}
-
-	private void destroyGetObjectsResources(
-			final Map<ObjectIDResolvedWS,
-					Map<SubsetSelection, WorkspaceObjectData.Builder>> data) {
-		if (data == null) {
-			return;
-		}
-		for (final Map<SubsetSelection, WorkspaceObjectData.Builder> paths: data.values()) {
-			for (final WorkspaceObjectData.Builder d: paths.values()) {
-				try {
-					d.build().destroy();
-				} catch (RuntimeException | Error e) {
-					//continue
+				} else {
+					// since was resolved by path, object must exist
+					wodb = WorkspaceObjectData.getBuilder(refdata.get(resobj))
+							// need a new builder since there may be many OIs to one OIRWS
+							.withSubsetSelection(o.getSubSet())
+							.withUpdatedReferencePath(res.getReferencePath(o));
 				}
 			}
+			toProc.add(wodb);
 		}
-	}
-
-	private long calculateDataSize(
-			final Map<ObjectIDResolvedWS,
-					Map<SubsetSelection, WorkspaceObjectData.Builder>> stddata) {
-		long dataSize = 0;
-		for (final Map<SubsetSelection, WorkspaceObjectData.Builder> paths: stddata.values()) {
-			for (final WorkspaceObjectData.Builder b: paths.values()) {
-				// this will be removed shortly
-				final WorkspaceObjectData d = b.build();
-				if (d.hasData()) {
-					dataSize += d.getSerializedData().get().getSize();
-				}
+		res = null;
+		refdata.clear();
+		stddata.clear();
+		removeInaccessibleDataCopyReferences(user, toProc);
+		if (!noData) {
+			try {
+				final List<WorkspaceObjectData.Builder> f = toProc.stream().filter(p -> p != null)
+						.collect(Collectors.toList());
+				db.addDataToObjects(f, getDataManagerAndCheckObjectSize(f));
+			} catch (NoObjectDataException e) { // should be impossible
+				throw new CorruptWorkspaceDBException(e.getLocalizedMessage(), e);
 			}
-			
 		}
-		return dataSize;
+		// TODO CODE return optionals instead of nulls
+		return toProc.stream().map(b -> b == null ? null : b.build())
+				.collect(Collectors.toList());
 	}
 
-	private ByteArrayFileCacheManager getDataManager(final boolean noData) {
-		if (noData) {
-			return null;
-		} else {
-			return new ByteArrayFileCacheManager(
-					rescfg.getMaxReturnedDataMemoryUsage(),
-					/* maximum possible disk usage is when subsetting objects
-					 * summing to 1G, since we have to pull the 1G objects and
-					 * then subset which could take up to another 1G. The 1G
-					 * originals will then be discarded
-					 */
-					rescfg.getMaxReturnedDataSize() * 2L,
-					tfm);
-		}
+	public Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> getObjects(
+			final ObjectResolver res,
+			final boolean withPaths,
+			final boolean exceptIfDeleted,
+			final boolean includeDeleted,
+			final boolean exceptIfMissing)
+			throws NoSuchObjectException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
+		final Set<ObjectIDResolvedWS> stdpaths = res.getObjects(withPaths).stream()
+				.map(o -> res.getResolvedObject(o)).collect(Collectors.toSet());
+		return db.getObjects(stdpaths, exceptIfDeleted, includeDeleted, exceptIfMissing);
 	}
 
-	private Map<ObjectIDResolvedWS, Set<SubsetSelection>> setupObjectPaths(
-			final Set<ObjectIdentifier> objects,
-			final ObjectResolver res) {
-		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths = new HashMap<>();
-		for (final ObjectIdentifier o: objects) {
-			final ObjectIDResolvedWS roi = res.getResolvedObject(o);
-			if (!paths.containsKey(roi)) {
-				paths.put(roi, new HashSet<>());
-			}
-			paths.get(roi).add(o.getSubSet());
+	private WorkspaceObjectData.Builder addSubData(
+			final WorkspaceObjectData.Builder builder,
+			final SubsetSelection subSet) {
+		// If the subset is empty, we can just reuse the builder. Even if the data gets added
+		// multiple times it's no problem.
+		// If there's a subset we make a new builder in case there's a request for the same
+		// object with a different subset or no subset.
+		return subSet.isEmpty() ? builder :
+			WorkspaceObjectData.getBuilder(builder).withSubsetSelection(subSet);
+	}
+
+	private ByteArrayFileCacheManager getDataManagerAndCheckObjectSize(
+			final List<WorkspaceObjectData.Builder> objects) {
+		final long size = objects.stream().mapToLong(b -> b.getObjectInfo().getSize()).sum();
+		if (size > rescfg.getMaxReturnedDataSize()) {
+			throw new IllegalArgumentException(String.format(
+					"Too much data requested from the workspace at once; " +
+					"data requested including potential subsets is %sB " + 
+					"which exceeds maximum of %s.", size, rescfg.getMaxReturnedDataSize()));
 		}
-		return paths;
+		return new ByteArrayFileCacheManager(
+				rescfg.getMaxReturnedDataMemoryUsage(),
+				/* maximum possible disk usage is when subsetting objects
+				 * summing to 1G, since we have to pull the 1G objects and
+				 * then subset which could take up to another 1G. The 1G
+				 * originals will then be discarded
+				 */
+				rescfg.getMaxReturnedDataSize() * 2L,
+				tfm);
 	}
 
 	private void removeInaccessibleDataCopyReferences(

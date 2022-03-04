@@ -2,9 +2,6 @@ package us.kbase.workspace.performance.workspace;
 
 import static us.kbase.workspace.performance.utils.Utils.printElapse;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -12,9 +9,6 @@ import java.util.Set;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
-import us.kbase.typedobj.core.SubsetSelection;
-import us.kbase.typedobj.core.TempFilesManager;
-import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -24,6 +18,9 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 
 public class GetObjectsMongoWSDB {
+	// Note this originally timed getting data from the mongo backend, but now that
+	// method is split into two methods. If this code is needed, update to fetch the data as well.
+	// See the git history for more info
 
 //	public static final String WORKSPACE = "ReferenceTaxons";
 	public static final String WORKSPACE = "TestObjs";
@@ -44,30 +41,23 @@ public class GetObjectsMongoWSDB {
 		final MongoDatabase db = mc.getDatabase(WS_DB);
 		
 		final BlobStore blob = new GridFSBlobStore(db);
-		final TempFilesManager tfm = new TempFilesManager(new File("temp_getobjmongoWS"));
 		final MongoWorkspaceDB mws = new MongoWorkspaceDB(db, blob);
 		
 		final ResolvedWorkspaceID rwsi = mws.resolveWorkspace(new WorkspaceIdentifier(WORKSPACE));
-		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(
-				200000000, 1000000000000L, tfm);
-		
-		final Set<SubsetSelection> empty = new HashSet<>(Arrays.asList(SubsetSelection.EMPTY));
 		
 		for (int i = 0; i < ITERS; i++) {
-			final Map<ObjectIDResolvedWS, Set<SubsetSelection>> objs = new HashMap<>();
+			final Set<ObjectIDResolvedWS> objs = new HashSet<>();
 			final long start = (i * BATCH_SIZE) + 1;
 			final long end = (i + 1) * BATCH_SIZE;
 			for (long j = start; j <= end; j++) {
-				objs.put(new ObjectIDResolvedWS(rwsi, j), empty);
+				objs.add(new ObjectIDResolvedWS(rwsi, j));
 			}
 			
 			final long preiter = System.nanoTime();
-			final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> res =
-					mws.getObjects(objs, man, 0, true, false, true);
-			for (final Map<SubsetSelection, WorkspaceObjectData.Builder> ss2wos: res.values()) {
-				for (final WorkspaceObjectData.Builder wos: ss2wos.values()) {
-					wos.build().destroy();
-				}
+			final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> res =
+					mws.getObjects(objs, true, false, true); // no longer returns data
+			for (final WorkspaceObjectData.Builder wos: res.values()) {
+				wos.build().destroy();
 			}
 			printElapse("get", preiter);
 		}

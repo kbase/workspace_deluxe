@@ -43,13 +43,11 @@ import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.test.DummyValidatedTypedObject;
-import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -67,7 +65,6 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
-import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -768,22 +765,14 @@ public class MongoInternalsTest {
 	}
 
 	private void failGetObjectsNoSuchObjectExcp(
-			Set<ObjectIDResolvedWS> oidsetver, String msg)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, TypedObjectExtractionException {
-		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
-		for (final ObjectIDResolvedWS o: oidsetver) {
-			paths.put(o, null);
-		}
-		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(
-				10000, 10000, ws.getTempFilesManager());
+			final Set<ObjectIDResolvedWS> oidsetver,
+			final String msg)
+			throws WorkspaceCommunicationException {
 		try {
-			mwdb.getObjects(paths, man, 0, true, false, true);
+			mwdb.getObjects(oidsetver, true, false, true);
 			fail("operated on object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(msg));
+			assertThat("correct exception message", nsoe.getMessage(), is(msg));
 		}
 	}
 
