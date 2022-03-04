@@ -10,6 +10,7 @@ import java.util.TreeMap;
 import java.util.Collections;
 import java.util.LinkedList;
 
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 
@@ -33,6 +34,7 @@ public class WorkspaceObjectData {
 	private final Reference copied;
 	private final boolean isCopySourceInaccessible;
 	private final Map<IdReferenceType, List<String>> extIDs;
+	private final SubsetSelection subset;
 
 	private WorkspaceObjectData(
 			final ByteArrayFileCache data,
@@ -41,7 +43,8 @@ public class WorkspaceObjectData {
 			final List<String> references,
 			final Reference copied,
 			final boolean isCopySourceAccessible,
-			final Map<IdReferenceType, List<String>> extIDs) {
+			final Map<IdReferenceType, List<String>> extIDs,
+			final SubsetSelection subset) {
 		this.data = data;
 		this.info = info;
 		this.prov = prov;
@@ -49,6 +52,7 @@ public class WorkspaceObjectData {
 		this.copied = copied;
 		this.isCopySourceInaccessible = isCopySourceAccessible;
 		this.extIDs = Collections.unmodifiableMap(extIDs);
+		this.subset = subset;
 	}
 	
 	/** Returns information about the object.
@@ -108,7 +112,15 @@ public class WorkspaceObjectData {
 		return isCopySourceInaccessible;
 	}
 	
-	/** Destroys any resources used to store the objects. In the case of
+	/** Get the subset selection for this object, which defines which parts of the
+	 * object data are included in this object.
+	 * @return the subset.
+	 */
+	public SubsetSelection getSubsetSelection() {
+		return subset;
+	}
+	
+	/** Destroys any resources used to store the object data. In the case of
 	 * object subsets, also destroys the parent objects. This method should be
 	 * called on a set of objects when further processing is no longer
 	 * required.
@@ -173,6 +185,7 @@ public class WorkspaceObjectData {
 		private Reference copied = null;
 		private boolean isCopySourceInaccessible = false;
 		private final Map<IdReferenceType, List<String>> extIDs = new TreeMap<>();
+		private SubsetSelection subset = SubsetSelection.EMPTY;
 
 		private Builder(final ObjectInformation info, final Provenance prov) {
 			this.info = requireNonNull(info, "info");
@@ -187,6 +200,14 @@ public class WorkspaceObjectData {
 			this.copied = b.copied;
 			this.isCopySourceInaccessible = b.isCopySourceInaccessible;
 			b.extIDs.keySet().stream().forEach(k -> this.extIDs.put(k, b.extIDs.get(k)));
+			this.subset = b.subset;
+		}
+		
+		/** Get the current object information stored in this builder.
+		 * @return the object information.
+		 */
+		public ObjectInformation getObjectInfo() {
+			return info;
 		}
 
 		/** Add the object data to the builder. Passing null removes any current data.
@@ -278,12 +299,31 @@ public class WorkspaceObjectData {
 			return this;
 		}
 		
+		/** Set the subset selection for this object, which defines which parts of the object data
+		 * should be included in this builder and built object. Passing null removes any previous
+		 * subset selection from the builder, replacing it with {@link SubsetSelection#EMPTY}.
+		 * @param subset the subset.
+		 * @return this builder.
+		 */
+		public Builder withSubsetSelection(final SubsetSelection subset) {
+			this.subset = subset == null ? SubsetSelection.EMPTY : subset;
+			return this;
+		}
+		
+		/** Get the subset selection currently in this builder, if any.
+		 * @return the subset.
+		 */
+		public SubsetSelection getSubsetSelection() {
+			return subset;
+		}
+		
 		/** Build the {@link WorkspaceObjectData}.
 		 * @return the object data.
 		 */
 		public WorkspaceObjectData build() {
 			return new WorkspaceObjectData(
-					data, info, prov, references, copied, isCopySourceInaccessible, extIDs);
+					data, info, prov, references, copied, isCopySourceInaccessible, extIDs,
+					subset);
 		}
 	}
 }

@@ -20,6 +20,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.test.TestCommon;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
@@ -36,6 +37,7 @@ public class WorkspaceObjectDataTest {
 	
 	private static final Optional<ByteArrayFileCache> OD = Optional.empty();
 	private static final Optional<Reference> OR = Optional.empty();
+	private static final SubsetSelection OS = SubsetSelection.EMPTY;
 	
 	// Provenance really needs a rework and has no hashCode(), so we use identity equality for now
 	private static final Provenance PROV = new Provenance(new WorkspaceUser("foo"));
@@ -80,6 +82,7 @@ public class WorkspaceObjectDataTest {
 		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
 		assertThat("incorrect has data", wod.hasData(), is(false));
 		assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(false));
+		assertThat("incorrect subset", wod.getSubsetSelection(), is(OS));
 	}
 	
 	@Test
@@ -95,7 +98,8 @@ public class WorkspaceObjectDataTest {
 				.withUpdatedReferencePath(Arrays.asList(
 						new Reference(3, 4, 5), new Reference(1, 1, 1)))
 				.withExternalIDs(new IdReferenceType("t1"), Arrays.asList("foo", "bar"))
-				.withExternalIDs(new IdReferenceType("t2"), Arrays.asList("whoo", "whee"));
+				.withExternalIDs(new IdReferenceType("t2"), Arrays.asList("whoo", "whee"))
+				.withSubsetSelection(new SubsetSelection(Arrays.asList("/foo")));
 
 		// test the builder from a builder builder
 		final WorkspaceObjectData wod2 = WorkspaceObjectData.getBuilder(wodb).build();
@@ -119,6 +123,8 @@ public class WorkspaceObjectDataTest {
 		assertThat("incorrect refs", wod.getReferences(), is(Arrays.asList("3/4/5", "10/11/12")));
 		assertThat("incorrect has data", wod.hasData(), is(true));
 		assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(false));
+		assertThat("incorrect subset", wod.getSubsetSelection(),
+				is(new SubsetSelection(Arrays.asList("/foo"))));
 	}
 	
 	@Test
@@ -144,6 +150,7 @@ public class WorkspaceObjectDataTest {
 		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
 		assertThat("incorrect has data", wod.hasData(), is(false));
 		assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(true));
+		assertThat("incorrect subset", wod.getSubsetSelection(), is(OS));
 	}
 	
 	@Test
@@ -169,6 +176,7 @@ public class WorkspaceObjectDataTest {
 		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
 		assertThat("incorrect has data", wod.hasData(), is(false));
 		assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(false));
+		assertThat("incorrect subset", wod.getSubsetSelection(), is(OS));
 	}
 	
 	@Test
@@ -181,10 +189,12 @@ public class WorkspaceObjectDataTest {
 				.withReferences(Arrays.asList("3/4/5", "10/11/12"))
 				.withExternalIDs(new IdReferenceType("t1"), Arrays.asList("foo", "bar"))
 				.withExternalIDs(new IdReferenceType("t2"), Arrays.asList("whoo", "whee"))
+				.withSubsetSelection(new SubsetSelection(Arrays.asList("/foo")))
 				.withData(null)
 				.withCopyReference(null)
 				.withReferences(null)
 				.withExternalIDs(new IdReferenceType("t1"), null)
+				.withSubsetSelection(null)
 				.build();
 		
 		assertThat("incorrect info", wod.getObjectInfo(), is(INFO));
@@ -197,6 +207,7 @@ public class WorkspaceObjectDataTest {
 		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
 		assertThat("incorrect has data", wod.hasData(), is(false));
 		assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(false));
+		assertThat("incorrect subset", wod.getSubsetSelection(), is(OS));
 	}
 	
 	@Test
@@ -220,6 +231,19 @@ public class WorkspaceObjectDataTest {
 		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
 		assertThat("incorrect has data", wod.hasData(), is(false));
 		assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(false));
+		assertThat("incorrect subset", wod.getSubsetSelection(), is(OS));
+	}
+	
+	@Test
+	public void builderGetObjectInfo() throws Exception {
+		final ObjectInformation info2 = INFO.updateReferencePath(Arrays.asList(
+				new Reference(7, 8, 9), new Reference(1, 1, 1)));
+		
+		final WorkspaceObjectData.Builder b = WorkspaceObjectData.getBuilder(INFO, PROV);
+		assertThat("incorrect object info", b.getObjectInfo(), is(INFO));
+		
+		b.withUpdatedReferencePath(Arrays.asList(new Reference(7, 8, 9), new Reference(1, 1, 1)));
+		assertThat("incorrect object info", b.getObjectInfo(), is(info2));
 	}
 	
 	@Test
@@ -231,6 +255,18 @@ public class WorkspaceObjectDataTest {
 		
 		b.withCopyReference(null);
 		assertThat("incorrect copy ref", b.getCopyReference(), is(OR));
+	}
+	
+	@Test
+	public void builderGetSubsetSelection() throws Exception {
+		final WorkspaceObjectData.Builder b = WorkspaceObjectData.getBuilder(INFO, PROV)
+				.withSubsetSelection(new SubsetSelection(Arrays.asList("/bar")));
+		
+		assertThat("incorrect subset", b.getSubsetSelection(),
+				is(new SubsetSelection(Arrays.asList("/bar"))));
+		
+		b.withSubsetSelection(null);
+		assertThat("incorrect subset", b.getSubsetSelection(), is(OS));
 	}
 	
 	@Test
