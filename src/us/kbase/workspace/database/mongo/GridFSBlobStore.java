@@ -17,7 +17,6 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
-import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
@@ -75,8 +74,7 @@ public class GridFSBlobStore implements BlobStore {
 
 	@Override
 	public ByteArrayFileCache getBlob(final MD5 md5, final ByteArrayFileCacheManager bafcMan)
-			throws NoSuchBlobException, BlobStoreCommunicationException,
-				FileCacheIOException, FileCacheLimitExceededException {
+			throws NoSuchBlobException, BlobStoreCommunicationException, FileCacheIOException {
 		try {
 			final Document out = getFileMetadata(md5);
 			if (out == null) {

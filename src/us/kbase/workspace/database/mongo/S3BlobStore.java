@@ -34,7 +34,6 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
-import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
@@ -200,7 +199,7 @@ public class S3BlobStore implements BlobStore {
 	@Override
 	public ByteArrayFileCache getBlob(final MD5 md5, final ByteArrayFileCacheManager bafcMan)
 			throws BlobStoreAuthorizationException, BlobStoreCommunicationException,
-				NoSuchBlobException, FileCacheLimitExceededException, FileCacheIOException {
+				NoSuchBlobException, FileCacheIOException {
 		requireNonNull(bafcMan, "bafcMan");
 		final Document entry = getBlobEntry(requireNonNull(md5, "md5"));
 		final boolean sorted = entry.getBoolean(Fields.S3_SORTED);

@@ -39,7 +39,6 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -72,19 +71,12 @@ public class MongoWorkspaceDBTest {
 	private static MongoController MONGO;
 	private static MongoDatabase MONGO_DB;
 	
-	private static ByteArrayFileCacheManager bafcm;
-	static {
-		 // won't actually make temp files in this test
-		final TempFilesManager tfm = new TempFilesManager(
-				Paths.get(TestCommon.getTempDir()).toFile());
-		bafcm = new ByteArrayFileCacheManager(100000, 100000, tfm);
-	}
-	
 	// has no hashCode(), so identity equality
 	// shouldn't have hashCode() anyway, data could be huge
 	private static ByteArrayFileCache getBAFC(final String json) {
 		try {
-			return bafcm.createBAFC(new ByteArrayInputStream(json.getBytes()), true, true);
+			return new ByteArrayFileCacheManager()
+					.createBAFC(new ByteArrayInputStream(json.getBytes()), true, true);
 		} catch (FileCacheException e) {
 			throw new RuntimeException(e);
 		}

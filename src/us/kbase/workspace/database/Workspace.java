@@ -1141,7 +1141,12 @@ public class Workspace {
 
 	private ByteArrayFileCacheManager getDataManagerAndCheckObjectSize(
 			final List<WorkspaceObjectData.Builder> objects) {
-		final long size = objects.stream().mapToLong(b -> b.getObjectInfo().getSize()).sum();
+		long size = 0;
+		long subsetSize = 0;
+		for (final WorkspaceObjectData.Builder b: objects) {
+			size += b.getObjectInfo().getSize();
+			subsetSize += b.getSubsetSelection().isEmpty() ? 0 : b.getObjectInfo().getSize();
+		}
 		if (size > rescfg.getMaxReturnedDataSize()) {
 			throw new IllegalArgumentException(String.format(
 					"Too much data requested from the workspace at once; " +
@@ -1149,14 +1154,7 @@ public class Workspace {
 					"which exceeds maximum of %s.", size, rescfg.getMaxReturnedDataSize()));
 		}
 		return new ByteArrayFileCacheManager(
-				rescfg.getMaxReturnedDataMemoryUsage(),
-				/* maximum possible disk usage is when subsetting objects
-				 * summing to 1G, since we have to pull the 1G objects and
-				 * then subset which could take up to another 1G. The 1G
-				 * originals will then be discarded
-				 */
-				rescfg.getMaxReturnedDataSize() * 2L,
-				tfm);
+				size + subsetSize > rescfg.getMaxReturnedDataMemoryUsage() ? tfm : null);
 	}
 
 	private void removeInaccessibleDataCopyReferences(
