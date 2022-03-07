@@ -27,6 +27,8 @@ import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 public class ByteArrayFileCacheManager {
 	
 	//TODO TEST unit tests
+	//TODO JAVADOC
+	// this class is going to get a pretty huge overhaul so wait on tests & javadoc
 	
 	private int sizeInMem = 0;
 	private final int maxSizeInMem;
@@ -317,6 +319,10 @@ public class ByteArrayFileCacheManager {
 			} catch (IOException | IllegalStateException ex) {
 				throw new TypedObjectExtractionException(ex.getMessage(), ex);
 			}
+		}
+		
+		public boolean isDestroyed() {
+			return destroyed;
 		}
 		
 		/** Destroys any data associated with this cache and calls destroy()

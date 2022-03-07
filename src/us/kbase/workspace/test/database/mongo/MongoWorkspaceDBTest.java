@@ -4,10 +4,13 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.inst;
+import static us.kbase.common.test.TestCommon.list;
 import static us.kbase.common.test.TestCommon.set;
 
+import java.io.ByteArrayInputStream;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -15,6 +18,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,24 +38,58 @@ import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
+import us.kbase.typedobj.core.TempFilesManager;
+import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
+import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
+import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.exceptions.FileCacheException;
+import us.kbase.workspace.database.exceptions.FileCacheIOException;
+import us.kbase.workspace.database.exceptions.NoObjectDataException;
+import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
+import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
+import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 //TODO TEST start moving a bunch of the tests from Workspace test to here, and use mocks in workspace test.
 
 public class MongoWorkspaceDBTest {
+	
+	private static final Optional<ByteArrayFileCache> OC = Optional.empty();
 
 	private static MongoController MONGO;
 	private static MongoDatabase MONGO_DB;
+	
+	private static ByteArrayFileCacheManager bafcm;
+	static {
+		 // won't actually make temp files in this test
+		final TempFilesManager tfm = new TempFilesManager(
+				Paths.get(TestCommon.getTempDir()).toFile());
+		bafcm = new ByteArrayFileCacheManager(100000, 100000, tfm);
+	}
+	
+	// has no hashCode(), so identity equality
+	// shouldn't have hashCode() anyway, data could be huge
+	private static ByteArrayFileCache getBAFC(final String json) {
+		try {
+			return bafcm.createBAFC(new ByteArrayInputStream(json.getBytes()), true, true);
+		} catch (FileCacheException e) {
+			throw new RuntimeException(e);
+		}
+	}
 	
 	@BeforeClass
 	public static void setup() throws Exception {
@@ -374,4 +412,234 @@ public class MongoWorkspaceDBTest {
 		}
 		assertThat("incorrect object count", count, is(expectedCount));
 	}
+	
+	@Test
+	public void addDataToObjectsNoop() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
+		
+		// nothing should happen
+		mocks.mdb.addDataToObjects(Collections.emptyList(), bafcMock);
+	}
+
+	private List<WorkspaceObjectData.Builder> addDataToObjectsSetup() {
+		final Provenance p = new Provenance(new WorkspaceUser("user1"));
+		final List<WorkspaceObjectData.Builder> objects = list(
+				WorkspaceObjectData.getBuilder(
+						new ObjectInformation(
+								1, "one", "type", new Date(), 1, new WorkspaceUser("u"),
+								new ResolvedWorkspaceID(1, "ws1", false, false),
+								"c6b87e665ecd549c082db04f0979f551", 5, null),
+						p),
+				// same object accessed in a different way, which can happen
+				WorkspaceObjectData.getBuilder(
+						new ObjectInformation(
+								1, "one", "type", new Date(), 1, new WorkspaceUser("u"),
+								new ResolvedWorkspaceID(1, "ws1", false, false),
+								"c6b87e665ecd549c082db04f0979f551", 5, null)
+								.updateReferencePath(list(
+										new Reference(2, 2, 2), new Reference(1, 1, 1))),
+						p)
+						.withSubsetSelection(new SubsetSelection(list("/bar"))),
+				WorkspaceObjectData.getBuilder(
+						new ObjectInformation(
+								2, "two", "type", new Date(), 1, new WorkspaceUser("u"),
+								new ResolvedWorkspaceID(1, "ws1", false, false),
+								"a06ab5aadd3e058c7236bd6b681eefc7", 5, null),
+						p)
+						.withSubsetSelection(new SubsetSelection(list("/foo")))
+				);
+		return objects;
+	}
+	
+	@Test
+	public void addDataToObjects() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
+		final List<WorkspaceObjectData.Builder> objects = addDataToObjectsSetup();
+		
+		// BAFC does not override equals (which makes sense) so we do all tests based on equality
+		// that means the contents don't matter
+		final ByteArrayFileCache bafc1 = getBAFC("{}");
+		final ByteArrayFileCache bafc2 = getBAFC("{}");
+		final ByteArrayFileCache bafc1sub = getBAFC("{}");
+		final ByteArrayFileCache bafc2sub = getBAFC("{}");
+		
+		when(mocks.bsmock.getBlob(new MD5("c6b87e665ecd549c082db04f0979f551"), bafcMock))
+				.thenReturn(bafc1, (ByteArrayFileCache) null); // cause a failure if called 2x
+		when(mocks.bsmock.getBlob(new MD5("a06ab5aadd3e058c7236bd6b681eefc7"), bafcMock))
+			.thenReturn(bafc2, (ByteArrayFileCache) null); // cause a failure if called 2x
+		
+		when(bafcMock.getSubdataExtraction(bafc1, new SubsetSelection(list("/bar"))))
+				.thenReturn(bafc1sub, (ByteArrayFileCache) null); // cause a failure if called 2x
+		when(bafcMock.getSubdataExtraction(bafc2, new SubsetSelection(list("/foo"))))
+				.thenReturn(bafc2sub, (ByteArrayFileCache) null); // cause a failure if called 2x
+		
+		mocks.mdb.addDataToObjects(objects, bafcMock);
+		
+		final ByteArrayFileCache got1 = objects.get(0).build().getSerializedData().get();
+		final ByteArrayFileCache got2 = objects.get(1).build().getSerializedData().get();
+		final ByteArrayFileCache got3 = objects.get(2).build().getSerializedData().get();
+		
+		assertThat("incorrect data", got1, is(bafc1));
+		assertThat("data is destroyed", got1.isDestroyed(), is(false));
+		assertThat("incorrect data", got2, is(bafc1sub));
+		assertThat("data is destroyed", got2.isDestroyed(), is(false));
+		assertThat("incorrect data", got3, is(bafc2sub));
+		assertThat("data is destroyed", got3.isDestroyed(), is(false));
+	}
+	
+	@Test
+	public void addDataToObjectsFailGetBlobFileIOException() throws Exception {
+		failAddDataToObjectsGetBlobException(
+				new FileCacheIOException("foo"), new WorkspaceCommunicationException("foo"));
+	}
+	
+	@Test
+	public void addDataToObjectsFailGetBlobCommException() throws Exception {
+		failAddDataToObjectsGetBlobException(
+				new BlobStoreCommunicationException("bar"),
+				new WorkspaceCommunicationException("bar"));
+	}
+	
+	@Test
+	public void addDataToObjectsFailGetBlobAuthException() throws Exception {
+		failAddDataToObjectsGetBlobException(
+				new BlobStoreAuthorizationException("poopy ducks"),
+				new WorkspaceCommunicationException(
+						"Authorization error communicating with the backend storage system"));
+	}
+	
+	@Test
+	public void addDataToObjectsFailGetBlobNoBlobException() throws Exception {
+		final Exception got = failAddDataToObjectsGetBlobException(
+				new NoSuchBlobException("no MD5 or whatever"),
+				new NoObjectDataException("No data present for object 1/2/1"));
+		
+		TestCommon.assertExceptionCorrect(
+				got.getCause(), new NoSuchBlobException("no MD5 or whatever"));
+	}
+	
+	@Test
+	public void addDataToObjectsFailGetBlobRuntimeException() throws Exception {
+		// test that data is cleaned up correctly with a runtime exception
+		failAddDataToObjectsGetBlobException(
+				new RuntimeException("aw dang"), new RuntimeException("aw dang"));
+	}
+
+
+	public Exception failAddDataToObjectsGetBlobException(
+			final Exception blobErr,
+			final Exception expected)
+			throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
+		final List<WorkspaceObjectData.Builder> objects = addDataToObjectsSetup();
+		
+		final ByteArrayFileCache bafc1 = getBAFC("{}");
+		final ByteArrayFileCache bafc1sub = getBAFC("{}");
+		
+		when(mocks.bsmock.getBlob(new MD5("c6b87e665ecd549c082db04f0979f551"), bafcMock))
+				.thenReturn(bafc1, (ByteArrayFileCache) null); // cause a failure if called 2x
+		when(mocks.bsmock.getBlob(new MD5("a06ab5aadd3e058c7236bd6b681eefc7"), bafcMock))
+				.thenThrow(blobErr);
+		
+		when(bafcMock.getSubdataExtraction(bafc1, new SubsetSelection(list("/bar"))))
+				.thenReturn(bafc1sub, (ByteArrayFileCache) null); // cause a failure if called 2x
+		
+		final Exception got = failAddDataToObjects(mocks, objects, bafcMock, expected);
+		
+		for (final WorkspaceObjectData.Builder b: objects) {
+			assertThat("expected no data", b.build().getSerializedData(), is(OC));
+		}
+		assertThat("expected destroyed", bafc1.isDestroyed(), is(true));
+		assertThat("expected destroyed", bafc1sub.isDestroyed(), is(true));
+		return got;
+	}
+	
+	@Test
+	public void addDataToObjectsFailSubsetFileIOException() throws Exception {
+		addDataToObjectsFailSubsetFileIOException(
+				new FileCacheIOException("foo"), new WorkspaceCommunicationException("foo"));
+	}
+	
+	@Test
+	public void addDataToObjectsFailSubsetExtractionException() throws Exception {
+		// test that data is removed
+		addDataToObjectsFailSubsetFileIOException(
+				new TypedObjectExtractionException("foo"),
+				new TypedObjectExtractionException("foo"));
+	}
+	
+	private Exception addDataToObjectsFailSubsetFileIOException(
+			final Exception subsetErr,
+			final Exception expected)
+			throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
+		final List<WorkspaceObjectData.Builder> objects = addDataToObjectsSetup();
+		
+		final ByteArrayFileCache bafc1 = getBAFC("{}");
+		
+		when(mocks.bsmock.getBlob(new MD5("c6b87e665ecd549c082db04f0979f551"), bafcMock))
+				.thenReturn(bafc1, (ByteArrayFileCache) null); // cause a failure if called 2x
+		
+		when(bafcMock.getSubdataExtraction(bafc1, new SubsetSelection(list("/bar"))))
+				.thenThrow(subsetErr);
+		
+		final Exception got = failAddDataToObjects(mocks, objects, bafcMock, expected);
+		
+		for (final WorkspaceObjectData.Builder b: objects) {
+			assertThat("expected no data", b.build().getSerializedData(), is(OC));
+		}
+		assertThat("expected destroyed", bafc1.isDestroyed(), is(true));
+		return got;
+	}
+	
+	@Test
+	public void addDataToObjectsFailSubsetExtractionExceptionWithInvisibleParent()
+			throws Exception {
+		/* the test above for failing subset extraction tests the case where object data
+		 * is requested for the same object with and without a subset. However, if subsetting
+		 * fails on an object with a subset request, and only a subset request, then the
+		 * parent file is not visible in the list of WorkspaceObjectData and needs to be
+		 * cleaned up via the list of ByteArrayFileCaches.
+		 */
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
+		final List<WorkspaceObjectData.Builder> objects = new LinkedList<>(
+				addDataToObjectsSetup());
+		objects.remove(0); // remove the object without a subset selection
+		
+		final ByteArrayFileCache bafc1 = getBAFC("{}");
+		
+		when(mocks.bsmock.getBlob(new MD5("c6b87e665ecd549c082db04f0979f551"), bafcMock))
+				.thenReturn(bafc1, (ByteArrayFileCache) null); // cause a failure if called 2x
+		
+		when(bafcMock.getSubdataExtraction(bafc1, new SubsetSelection(list("/bar"))))
+				.thenThrow(new TypedObjectExtractionException("dang"));
+		
+		failAddDataToObjects(mocks, objects, bafcMock, new TypedObjectExtractionException("dang"));
+		
+		for (final WorkspaceObjectData.Builder b: objects) {
+			assertThat("expected no data", b.build().getSerializedData(), is(OC));
+		}
+		assertThat("expected destroyed", bafc1.isDestroyed(), is(true));
+	}
+
+	public Exception failAddDataToObjects(
+			final PartialMock mocks,
+			final List<WorkspaceObjectData.Builder> objects,
+			final ByteArrayFileCacheManager bafcMock,
+			final Exception expected) {
+		try {
+			mocks.mdb.addDataToObjects(objects, bafcMock);
+			fail("expected exception");
+			return null; // can't actually get here
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+			return got;
+		}
+	}
+
 }
