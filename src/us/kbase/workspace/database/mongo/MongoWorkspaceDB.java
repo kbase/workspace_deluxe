@@ -85,7 +85,6 @@ import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DeletedObjectException;
-import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -2273,7 +2272,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				try {
 					data = blob.getBlob(new MD5(chksum), dataManager);
 					toDestroy.add(data);
-				} catch (FileCacheIOException e) {
+				} catch (IOException e) {
 					throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
 				} catch (BlobStoreCommunicationException e) {
 					throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
@@ -2336,7 +2335,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		try {
 			return bafcMan.getSubdataExtraction(data, paths);
-		} catch (FileCacheIOException e) {
+		} catch (IOException e) {
 			throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
 		}
 	}

@@ -23,7 +23,6 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.SubdataExtractor;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
-import us.kbase.workspace.database.exceptions.FileCacheIOException;
 
 /** A manager for containers for arbitrary JSON data, stored in memory or on disk.
  * 
@@ -71,13 +70,13 @@ public class ByteArrayFileCacheManager {
 	 * {@link ByteArrayFileCache#getUObject()}, which can save significant time.
 	 * @param sorted true if the JSON is sorted.
 	 * @return the new data cache.
-	 * @throws FileCacheIOException if an IO exception occurs when attempting to read the file.
+	 * @throws IOException if an IO exception occurs when attempting to read the file.
 	 */
 	public ByteArrayFileCache createBAFC(
 			final InputStream input,
 			final boolean trustedJson,
 			final boolean sorted)
-			throws FileCacheIOException { // TODO NOW CODE why not just use IOException?
+			throws IOException {
 		requireNonNull(input, "input");
 		File tempFile = null;
 		try {
@@ -100,10 +99,7 @@ public class ByteArrayFileCacheManager {
 				return new ByteArrayFileCache(
 						null, tempFile, jts.setTrustedWholeJson(trustedJson), sorted, size);
 			}
-		} catch (IOException e) {
-			cleanUp(tempFile);
-			throw new FileCacheIOException(e.getLocalizedMessage(), e);
-		} catch (RuntimeException e) {
+		} catch (RuntimeException | IOException e) {
 			cleanUp(tempFile);
 			throw e;
 		}
@@ -120,13 +116,12 @@ public class ByteArrayFileCacheManager {
 	 * @param paths the subset to extract from the data.
 	 * @return a new cache containing the data subset.
 	 * @throws TypedObjectExtractionException if an error occurs while subsetting the data.
-	 * @throws FileCacheIOException if an IO exception occurs during the operation.
+	 * @throws IOException if an IO exception occurs during the operation.
 	 */
 	public ByteArrayFileCache getSubdataExtraction(
 			final ByteArrayFileCache parent,
 			final SubsetSelection paths)
-			// TODO NOW CODE again, why not IOError?
-			throws TypedObjectExtractionException, FileCacheIOException {
+			throws TypedObjectExtractionException, IOException {
 		requireNonNull(parent, "parent").checkIfDestroyed();
 		if (requireNonNull(paths, "paths").isEmpty()) {
 			throw new IllegalArgumentException("paths cannot be empty");
@@ -159,14 +154,8 @@ public class ByteArrayFileCacheManager {
 						parent.isSorted(),
 						Files.size(tempFile.toPath())); 
 			}
-		} catch (IOException e) {
-			// given the method inputs there doesn't seem to be a way to test this
-			cleanUp(tempFile);
-			throw new FileCacheIOException(e.getLocalizedMessage(), e);
-		} catch (TypedObjectExtractionException e) {
-			cleanUp(tempFile);
-			throw e;
-		} catch (RuntimeException e) {
+		} catch (IOException | TypedObjectExtractionException | RuntimeException e) {
+			// based on the inputs it doesn't seem possible to test the IOException case
 			cleanUp(tempFile);
 			throw e;
 		}
