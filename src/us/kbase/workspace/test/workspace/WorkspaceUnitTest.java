@@ -3,12 +3,20 @@ package us.kbase.workspace.test.workspace;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.set;
+import static us.kbase.common.test.TestCommon.list;
 
 import java.time.Instant;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -18,15 +26,22 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
+import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -279,5 +294,55 @@ public class WorkspaceUnitTest {
 				"new", false, input, new WorkspaceUserMetadata(), set());
 		
 		assertThat("incorrect wsinfo", wsinforet, is(wsinfo));
+	}
+	
+	@Test
+	public void getObjectsFailMissingData() throws Exception {
+		/* tests the case where there's an object in the database but no corresponding data
+		 * in the blobstore. Should never happen in practice.
+		 */
+		
+		final TestMocks mocks = initMocks();
+
+		final Date now = new Date();
+		final WorkspaceUser u = new WorkspaceUser("u1");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
+		final Provenance p = new Provenance(u);
+		final List<ObjectIdentifier> objs = list(
+				ObjectIdentifier.getBuilder(wsi).withID(1L).build());
+		final Set<ObjectIDResolvedWS> robjs = set(new ObjectIDResolvedWS(rwsi, 1));
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> data = new HashMap<>();
+		data.put(
+				new ObjectIDResolvedWS(rwsi, 1),
+				WorkspaceObjectData.getBuilder(
+						new ObjectInformation(
+								1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null),
+						p)
+				);
+		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(mocks.db.getPermissions(null, set(rwsi))).thenReturn(PermissionSet.getBuilder(
+				null, Workspace.ALL_USERS)
+				.withWorkspace(rwsi, Permission.NONE, Permission.READ)
+				.build());
+		when(mocks.db.getObjects(robjs, true, false, true)).thenReturn(data);
+		// arguments are a list of WOD builders and ByteArrayFileCacheManager, both of
+		// which are created in the method and are only equal based on identity
+		doThrow(new NoObjectDataException("oopsie")).when(mocks.db).addDataToObjects(any(), any());
+		
+		failGetObjects(mocks.ws, objs, false, new CorruptWorkspaceDBException("oopsie"));
+	}
+	
+	private void failGetObjects(
+			final Workspace ws,
+			final List<ObjectIdentifier> objs,
+			final boolean noData,
+			final Exception expected) {
+		try {
+			ws.getObjects(null, objs, noData, false, false);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
 	}
 }
