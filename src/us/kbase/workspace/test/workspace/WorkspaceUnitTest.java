@@ -17,6 +17,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.Test;
 
@@ -33,6 +38,7 @@ import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.common.test.TestCommon;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.AllUsers;
@@ -331,6 +337,69 @@ public class WorkspaceUnitTest {
 		doThrow(new NoObjectDataException("oopsie")).when(mocks.db).addDataToObjects(any(), any());
 		
 		failGetObjects(mocks.ws, objs, false, new CorruptWorkspaceDBException("oopsie"));
+	}
+	
+	@Test
+	public void getObjects10K() throws Exception {
+		final TestMocks mocks = initMocks();
+		
+		final Date now = new Date();
+		final WorkspaceUser u = new WorkspaceUser("u1");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
+		final Provenance p = new Provenance(u);
+		final ObjectIdentifier.Builder oi = ObjectIdentifier.getBuilder(wsi).withID(1L);
+		final List<ObjectIdentifier> objs = LongStream.range(1, 10001)
+				.mapToObj(i -> oi.withID(i).build()).collect(Collectors.toList());
+		final Set<ObjectIDResolvedWS> robjs = LongStream.range(1, 10001)
+				.mapToObj(i -> new ObjectIDResolvedWS(rwsi, i)).collect(Collectors.toSet());
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> data = LongStream
+				.range(1, 10001)
+				.mapToObj(i -> i)
+				.collect(Collectors.toMap(
+						i -> new ObjectIDResolvedWS(rwsi, i),
+						i -> WorkspaceObjectData.getBuilder(
+								new ObjectInformation(
+										i, "foo" + i, "type", now, 1, u, rwsi, "chcksm", 12, null),
+								p)));
+		
+		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(mocks.db.getPermissions(null, set(rwsi))).thenReturn(PermissionSet.getBuilder(
+				null, Workspace.ALL_USERS)
+				.withWorkspace(rwsi, Permission.NONE, Permission.READ)
+				.build());
+		when(mocks.db.getObjects(robjs, true, false, true)).thenReturn(data);
+		
+		final List<WorkspaceObjectData> got = mocks.ws.getObjects(null, objs, false, false, false);
+		for (int i = 0; i < 1000; i++) {
+			// no overridden equals method for WOD as expected
+			final WorkspaceObjectData wod = got.get(i);
+			assertThat("incorrect info", wod.getObjectInfo(), is(new ObjectInformation(
+					i + 1, "foo" + (i + 1), "type", now, 1, u, rwsi, "chcksm", 12, null)));
+			assertThat("incorrect prov", wod.getProvenance(), is(p));
+			assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
+			assertThat("incorrect copy ref", wod.getCopyReference(), is(Optional.empty()));
+			assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
+			assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
+			assertThat("incorrect has data", wod.hasData(), is(false));
+			assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(false));
+			assertThat("incorrect subset", wod.getSubsetSelection(), is(SubsetSelection.EMPTY));
+		}
+	}
+	
+	@Test
+	public void getObjectsFailBadArgs() throws Exception {
+		final TestMocks mocks = initMocks();
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+		final ObjectIdentifier.Builder oi = ObjectIdentifier.getBuilder(wsi).withID(1L);
+		
+		failGetObjects(mocks.ws, null, false, new NullPointerException("objs"));
+		failGetObjects(mocks.ws, Arrays.asList(oi.build(), null), false, new NullPointerException(
+				"object list cannot contain nulls"));
+		final List<ObjectIdentifier> objs = LongStream.range(1, 10002)
+				.mapToObj(i -> oi.withID(i).build()).collect(Collectors.toList());
+		failGetObjects(mocks.ws, objs, false, new IllegalArgumentException(
+				"At most 10000 objects can be requested at once"));
 	}
 	
 	private void failGetObjects(

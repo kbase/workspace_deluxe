@@ -589,8 +589,8 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getWorkspace(), null, params.getId(), null,
 				params.getInstance());
 		final WorkspaceObjectData ret = ws.getObjects(
-				wsmeth.getUser(params.getAuth(), authPart),
-				Arrays.asList(oi)).get(0);
+				wsmeth.getUser(params.getAuth(), authPart), Arrays.asList(oi), false, false, false)
+				.get(0);
 		resourcesToDelete.set(Arrays.asList(ret));
 		returnVal = new GetObjectOutput()
 			.withData(ret.getSerializedData().get().getUObject())
@@ -615,7 +615,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_provenance
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = wsmeth.translateObjectProvInfo(
-				ws.getObjects(wsmeth.getUser(authPart), loi, true),
+				ws.getObjects(wsmeth.getUser(authPart), loi, true, false, false),
 				wsmeth.getUser(authPart), true);
         //END get_object_provenance
         return returnVal;
@@ -637,7 +637,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		final List<WorkspaceObjectData> objects =
-				ws.getObjects(wsmeth.getUser(authPart), loi);
+				ws.getObjects(wsmeth.getUser(authPart), loi, false, false, false);
 		resourcesToDelete.set(objects);
 		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
         //END get_objects
@@ -689,7 +689,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<ObjectIdentifier> loi = processSubObjectIdentifiers(
 				subObjectIds);
 		final List<WorkspaceObjectData> objects =
-				ws.getObjects(wsmeth.getUser(authPart), loi);
+				ws.getObjects(wsmeth.getUser(authPart), loi, false, false, false);
 		resourcesToDelete.set(objects);
 		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
         //END get_object_subset
@@ -813,7 +813,7 @@ public class WorkspaceServer extends JsonServerServlet {
 			count++;
 		}
 		final List<WorkspaceObjectData> objects = ws.getObjects(
-				wsmeth.getUser(authPart), chains);
+				wsmeth.getUser(authPart), chains, false, false, false);
 		resourcesToDelete.set(objects);
 		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
         //END get_referenced_objects
