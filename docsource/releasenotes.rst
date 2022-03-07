@@ -9,6 +9,12 @@ VERSION: 0.13.0 (Released TBD)
 BACKWARDS INCOMPATIBILIES:
 
 * The workspace now requires version 0.1.1 of the Sample service.
+* Fixed a bug that would only count the first instance of an object in a data request when
+  checking against the maximum data return size. Now if the same object appears twice in
+  a data request it will be counted twice as expected.
+* `get_objects2`, `get_objects`, `get_object_subset`, `get_referenced_objects`, and
+  `get_object_provenance` now only allow a maximum of 10,000 objects in the input list.
+  Note the last 4 methods are deprecated and will be removed in a future release.
 
 UPDATES:
 
