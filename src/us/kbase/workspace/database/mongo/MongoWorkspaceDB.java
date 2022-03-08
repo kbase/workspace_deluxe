@@ -9,7 +9,8 @@ import static us.kbase.workspace.database.mongo.CollectionNames.COL_WS_ACLS;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_OBJS;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_VERS;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_PROVENANCE;
-import static us.kbase.workspace.database.mongo.CollectionNames.COL_CONFIG;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_SCHEMA_CONFIG;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_DYNAMIC_CONFIG;
 import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayToHash;
 import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
 
@@ -51,6 +52,8 @@ import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
+import us.kbase.workspace.database.DynamicConfig;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
@@ -240,11 +243,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		admin.add(idxSpec(Fields.ADMIN_NAME, 1, IDX_UNIQ));
 		indexes.put(COL_ADMINS, admin);
 		
-		//config indexes
-		final LinkedList<IndexSpecification> cfg = new LinkedList<>();
+		//schema indexes
+		final LinkedList<IndexSpecification> schema = new LinkedList<>();
 		//ensure only one config object
-		cfg.add(idxSpec(Fields.CONFIG_KEY, 1, IDX_UNIQ));
-		indexes.put(COL_CONFIG, cfg);
+		schema.add(idxSpec(Fields.SCHEMA_CONFIG_KEY, 1, IDX_UNIQ));
+		indexes.put(COL_SCHEMA_CONFIG, schema);
+		
+		// dynamic config indexes
+		final LinkedList<IndexSpecification> dyncfg = new LinkedList<>();
+		// ensure no duplicate config items
+		dyncfg.add(idxSpec(Fields.DYNAMIC_CONFIG_KEY, 1, IDX_UNIQ));
+		indexes.put(COL_DYNAMIC_CONFIG, dyncfg);
 		
 		return indexes;
 	}
@@ -280,7 +289,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		blob = blobStore;
 		//TODO DBCONSIST check a few random types and make sure they exist
 		ensureIndexes(wsmongo);
-		checkConfig(wsmongo);
+		checkSchema(wsmongo);
 	}
 	
 	private static class IndexSpecification {
@@ -407,20 +416,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return deps;
 	}
 	
-	private static void checkConfig(final MongoDatabase wsmongo)
+	private static void checkSchema(final MongoDatabase wsmongo)
 			throws WorkspaceCommunicationException, WorkspaceDBInitializationException,
 				CorruptWorkspaceDBException {
 		final Document cfg = new Document(
-				Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
-		cfg.put(Fields.CONFIG_UPDATE, false);
-		cfg.put(Fields.CONFIG_SCHEMA_VERSION, SCHEMA_VERSION);
+				Fields.SCHEMA_CONFIG_KEY, Fields.SCHEMA_CONFIG_VALUE);
+		cfg.put(Fields.SCHEMA_CONFIG_UPDATE, false);
+		cfg.put(Fields.SCHEMA_CONFIG_VERSION, SCHEMA_VERSION);
 		try {
-			wsmongo.getCollection(COL_CONFIG).insertOne(cfg);
+			wsmongo.getCollection(COL_SCHEMA_CONFIG).insertOne(cfg);
 		} catch (MongoWriteException mwe) {
 			if (isDuplicateKeyException(mwe)) {
 				//ok, the version doc is already there, this isn't the first
 				//startup
-				checkExtantConfigAndGetVersion(wsmongo, false, false);
+				checkExtantSchemaAndGetVersion(wsmongo, false, false);
 			} else {
 				// pretty hard to test this
 				throw new WorkspaceCommunicationException(ERR_DB_COMM, mwe);
@@ -430,15 +439,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 
-	static Optional<Integer> checkExtantConfigAndGetVersion(
+	static Optional<Integer> checkExtantSchemaAndGetVersion(
 			final MongoDatabase wsmongo,
 			final boolean allowNoConfig,
 			final boolean skipVersionCheck)
 			throws CorruptWorkspaceDBException, WorkspaceDBInitializationException,
 				WorkspaceCommunicationException {
-		final Document query = new Document(Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
+		final Document query = new Document(Fields.SCHEMA_CONFIG_KEY, Fields.SCHEMA_CONFIG_VALUE);
 		try {
-			final MongoCursor<Document> cur = wsmongo.getCollection(COL_CONFIG).find(query)
+			final MongoCursor<Document> cur = wsmongo.getCollection(COL_SCHEMA_CONFIG).find(query)
 					.iterator();
 			if (!cur.hasNext()) {
 				if (allowNoConfig) {
@@ -454,18 +463,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"> 1 config objects found in the database. " +
 						"This should not happen, something is very wrong.");
 			}
-			final Integer schemaVer = (Integer)storedCfg.get(Fields.CONFIG_SCHEMA_VERSION);
+			final Integer schemaVer = (Integer)storedCfg.get(Fields.SCHEMA_CONFIG_VERSION);
 			if (!skipVersionCheck && schemaVer != SCHEMA_VERSION) {
 				throw new WorkspaceDBInitializationException(String.format(
 						"Incompatible database schema. Server is v%s, DB is v%s",
 						SCHEMA_VERSION,
-						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+						storedCfg.get(Fields.SCHEMA_CONFIG_VERSION)));
 			}
-			if ((Boolean)storedCfg.get(Fields.CONFIG_UPDATE)) {
+			if ((Boolean)storedCfg.get(Fields.SCHEMA_CONFIG_UPDATE)) {
 				throw new WorkspaceDBInitializationException(String.format(
 						"The database is in the middle of an update from " +
 						"v%s of the schema. Aborting startup.", 
-						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+						storedCfg.get(Fields.SCHEMA_CONFIG_VERSION)));
 			}
 			return Optional.of(schemaVer);
 		} catch (MongoException me) {
@@ -505,6 +514,53 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private static final Set<String> FLDS_CREATE_WS = newHashSet(Fields.WS_DEL, Fields.WS_OWNER);
+	
+	@Override
+	public void setConfig(final DynamicConfigUpdate config, final boolean overwrite)
+			throws WorkspaceCommunicationException {
+		final Map<String, Object> cfg = requireNonNull(config, "config").toSet();
+		final String op = overwrite ? "$set" : "$setOnInsert";
+		try {
+			// could do an insertMany here but meh, performance is not going to be an issue
+			for (final String key: cfg.keySet()) {
+				wsmongo.getCollection(COL_DYNAMIC_CONFIG).updateOne(
+						new Document(Fields.DYNAMIC_CONFIG_KEY, key),
+						new Document(
+								op, new Document(Fields.DYNAMIC_CONFIG_VALUE, cfg.get(key))),
+						new UpdateOptions().upsert(true));
+			}
+			for (final String key: config.toRemove()) {
+				wsmongo.getCollection(COL_DYNAMIC_CONFIG).deleteOne(
+						new Document(Fields.DYNAMIC_CONFIG_KEY, key));
+			}
+		} catch (MongoException me) {
+			// not sure how to test this
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
+		}
+	}
+	
+	@Override
+	public DynamicConfig getConfig()
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		final Map<String, Object> values = new HashMap<>();
+		try {
+			// in the future might want to specify fields to pull
+			for (final Document d: wsmongo.getCollection(COL_DYNAMIC_CONFIG).find()) {
+				values.put(
+						d.getString(Fields.DYNAMIC_CONFIG_KEY),
+						d.get(Fields.DYNAMIC_CONFIG_VALUE));
+			}
+		} catch (MongoException me) {
+			// not sure how to test this
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
+		}
+		try {
+			return DynamicConfig.getBuilder().withMap(values).build();
+		} catch (IllegalArgumentException e) {
+			throw new CorruptWorkspaceDBException(
+					"Illegal configuration values found in database", e);
+		}
+	}
 	
 	@Override
 	public WorkspaceInformation createWorkspace(

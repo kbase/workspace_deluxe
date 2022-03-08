@@ -132,11 +132,14 @@ public class Fields {
 	// admin fields
 	public static final String ADMIN_NAME = "user";
 	
-	// configuration fields, since 0.4.1
-	public static final String CONFIG_KEY = "config";
-	public static final String CONFIG_VALUE = "config";
-	public static final String CONFIG_UPDATE = "inupdate";
-	public static final String CONFIG_SCHEMA_VERSION = "schemaver";
+	// schema configuration fields, since 0.4.1
+	// this was an unfortunate choice of name
+	public static final String SCHEMA_CONFIG_KEY = "config";
+	public static final String SCHEMA_CONFIG_VALUE = "config";
+	public static final String SCHEMA_CONFIG_UPDATE = "inupdate";
+	public static final String SCHEMA_CONFIG_VERSION = "schemaver";
 	
-	
+	// dynamic configuration keys, since 0.13.0
+	public static final String DYNAMIC_CONFIG_KEY = "key";
+	public static final String DYNAMIC_CONFIG_VALUE = "value";
 }

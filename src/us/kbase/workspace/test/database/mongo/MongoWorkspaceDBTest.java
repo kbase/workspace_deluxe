@@ -47,6 +47,7 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.Reference;
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
@@ -55,6 +56,8 @@ import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.DynamicConfig;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.mongo.Fields;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
@@ -616,6 +619,90 @@ public class MongoWorkspaceDBTest {
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
 			return got;
+		}
+	}
+	
+	@Test
+	public void dynamicConfigSetAndGetNoop() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		
+		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder().build();
+		mocks.mdb.setConfig(dcu, false);
+		
+		final DynamicConfig expected = DynamicConfig.getBuilder().build();
+		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected));
+	}
+	
+	@Test
+	public void dynamicConfigSetAndGet() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		
+		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder()
+				.withBackendScaling(42).build();
+		mocks.mdb.setConfig(dcu, false);
+		
+		final DynamicConfig expected = DynamicConfig.getBuilder().withBackendScaling(42).build();
+		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected));
+		
+		final DynamicConfigUpdate dcu2 = DynamicConfigUpdate.getBuilder()
+				.withBackendScaling(8).build();
+		mocks.mdb.setConfig(dcu2, false);
+		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected));
+		
+		mocks.mdb.setConfig(dcu2, true); // overwrite
+		final DynamicConfig expected2 = DynamicConfig.getBuilder().withBackendScaling(8).build();
+		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected2));
+	}
+	
+	@Test
+	public void dynamicConfigSetAndGetWithIniticalOverwrite() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		
+		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder()
+				.withBackendScaling(42).build();
+		mocks.mdb.setConfig(dcu, true);
+		
+		final DynamicConfig expected = DynamicConfig.getBuilder().withBackendScaling(42).build();
+		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected));
+	}
+	
+	@Test
+	public void dynamicConfigIllegalKeysAndRemove() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		MONGO_DB.getCollection("dyncfg").insertMany(list(
+				new Document("key", "illegal").append("value", "whatever"),
+				new Document("key", "backend-scaling").append("value", 89)
+				));
+		try {
+			mocks.mdb.getConfig();
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new CorruptWorkspaceDBException(
+					"Illegal configuration values found in database"));
+			TestCommon.assertExceptionCorrect(got.getCause(), new IllegalArgumentException(
+					"Unexpected key in configuration map: illegal"));
+		}
+		
+		// since currently the remove method does nothing
+		final DynamicConfigUpdate update = mock(DynamicConfigUpdate.class);
+		when(update.toSet()).thenReturn(Collections.emptyMap());
+		// foo should be a noop
+		when(update.toRemove()).thenReturn(set("foo", "illegal"));
+		
+		mocks.mdb.setConfig(update, false);
+		
+		final DynamicConfig expected = DynamicConfig.getBuilder().withBackendScaling(89).build();
+		assertThat("incorrect config", mocks.mdb.getConfig(), is(expected));
+	}
+	
+	@Test
+	public void failDynamicConfigSet() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		try {
+			mocks.mdb.setConfig(null, false);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("config"));
 		}
 	}
 
