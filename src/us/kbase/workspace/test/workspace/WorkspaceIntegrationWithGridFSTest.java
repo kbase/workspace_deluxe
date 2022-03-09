@@ -47,6 +47,8 @@ import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.database.DynamicConfig;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ListObjectsParameters.Builder;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
@@ -85,12 +87,15 @@ public class WorkspaceIntegrationWithGridFSTest {
 	private static final ResolvedWorkspaceID RWS2 = new ResolvedWorkspaceID(
 			2, "ws2", false, false);
 	
-	private static final String WS_DB = WorkspaceIntegrationWithGridFSTest.class.getSimpleName();
-	private static final String TYPE_DB = WS_DB + "_types";
+	private static final String WSDB_NAME = WorkspaceIntegrationWithGridFSTest.class
+			.getSimpleName();
+	private static final String TYPEDB_NAME = WSDB_NAME + "_types";
 	
 	private static MongoController MONGO;
 	private static TempFilesManager TFM;
 	private static Workspace WORK;
+	private static MongoDatabase WSDB;
+	private static MongoDatabase TYPEDB;
 	
 	static {
 		// mongo is really chatty
@@ -108,17 +113,17 @@ public class WorkspaceIntegrationWithGridFSTest {
 		
 		@SuppressWarnings("resource")
 		final MongoClient mcli = new MongoClient("localhost:" + MONGO.getServerPort());
-		final MongoDatabase wsdb = mcli.getDatabase(WS_DB);
-		final MongoDatabase tdb = mcli.getDatabase(TYPE_DB);
-		TestCommon.destroyDB(wsdb);
-		TestCommon.destroyDB(tdb);
+		WSDB = mcli.getDatabase(WSDB_NAME);
+		TYPEDB = mcli.getDatabase(TYPEDB_NAME);
+		TestCommon.destroyDB(WSDB);
+		TestCommon.destroyDB(TYPEDB);
 		TFM = new TempFilesManager(new File(TestCommon.getTempDir()));
 		TFM.cleanup();
 		
-		final TypeDefinitionDB typeDB = new TypeDefinitionDB(new MongoTypeStorage(tdb));
+		final TypeDefinitionDB typeDB = new TypeDefinitionDB(new MongoTypeStorage(TYPEDB));
 		final TypedObjectValidator val = new TypedObjectValidator(new LocalTypeProvider(typeDB));
 		WORK = new Workspace(
-				new MongoWorkspaceDB(wsdb, new GridFSBlobStore(wsdb)),
+				new MongoWorkspaceDB(WSDB, new GridFSBlobStore(WSDB)),
 				new ResourceUsageConfigurationBuilder().build(),
 				val,
 				TFM);
@@ -140,7 +145,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 	public void clearDB() throws Exception {
 		try (final MongoClient mongoClient = new MongoClient(
 				"localhost:" + MONGO.getServerPort())) {
-			TestCommon.destroyDB(mongoClient.getDatabase(WS_DB));
+			TestCommon.destroyDB(mongoClient.getDatabase(WSDB_NAME));
 		}
 	}
 	
@@ -219,6 +224,37 @@ public class WorkspaceIntegrationWithGridFSTest {
 			assertThat("incorrect object index " + i, ret.get(i), is(expected.get(i)));
 		}
 		assertThat("incorrect object count", ret.size(), is(expected.size()));
+	}
+	
+	@Test
+	public void dynamicConfig() throws Exception {
+		// db should be detroyed at the beginning of every test
+		final DynamicConfig empty = DynamicConfig.getBuilder().build();
+		assertThat("incorrect config", WORK.getConfig(), is(empty));
+		
+		// but on creation config should be initialized
+		createWorkspaceClass();
+		final DynamicConfig expected1 = DynamicConfig.getBuilder().withBackendScaling(1).build();
+		assertThat("incorrect config", WORK.getConfig(), is(expected1));
+		
+		// test that recreating the workspace doesn't set things back to the default
+		WORK.setConfig(DynamicConfigUpdate.getBuilder().withBackendScaling(42).build());
+		
+		final DynamicConfig expected42 = DynamicConfig.getBuilder().withBackendScaling(42).build();
+		assertThat("incorrect config", WORK.getConfig(), is(expected42));
+		
+		createWorkspaceClass();
+		assertThat("incorrect config", WORK.getConfig(), is(expected42));
+	}
+
+	public Workspace createWorkspaceClass() throws Exception {
+		return new Workspace(
+				new MongoWorkspaceDB(WSDB, new GridFSBlobStore(WSDB)),
+				new ResourceUsageConfigurationBuilder().build(),
+				new TypedObjectValidator(new LocalTypeProvider(new TypeDefinitionDB(
+						new MongoTypeStorage(TYPEDB)))),
+				TFM
+				);
 	}
 	
 	@Test
