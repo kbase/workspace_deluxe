@@ -3393,10 +3393,46 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 
 	@Test
+	public void adminGetSetConfig() throws Exception {
+		final Map<String, Object> gcCmd = ImmutableMap.of("command", "getConfig");
+		failAdmin(CLIENT_AA_ADMIN_NONE, gcCmd, "User " + USER2 + " is not an admin");
+		final Object ret = CLIENT_AA_ADMIN_READ.administer(new UObject(gcCmd))
+				.asClassInstance(Object.class);
+		// DB is cleared before every test
+		assertThat("incorrect config", ret, is(ImmutableMap.of(
+				"config", Collections.emptyMap())));
+		
+		final Map<String, Object> command = ImmutableMap.of(
+				"command", "setConfig",
+				"params", ImmutableMap.of("set", ImmutableMap.of(
+						"backend-file-retrieval-scaling", 4)));
+		failAdmin(CLIENT_AA_ADMIN_READ, command,
+				"Full administration rights required for this command");
+		CLIENT_AA_ADMIN_FULL.administer(new UObject(command));
+		final Object ret2 = CLIENT_AA_ADMIN_FULL.administer(new UObject(gcCmd))
+				.asClassInstance(Object.class);
+		assertThat("incorrect config", ret2, is(ImmutableMap.of(
+				"config", ImmutableMap.of("backend-file-retrieval-scaling", 4))));
+		
+		final Map<String, Object> badcommand = ImmutableMap.of(
+				"command", "setConfig",
+				"params", ImmutableMap.of("set", ImmutableMap.of(
+						"backend-file-retrieval-scaling", 8,
+						"hello-im-a-hacker", 10000000)));
+		failAdmin(CLIENT_AA_ADMIN_FULL, badcommand,
+				"Unexpected key in configuration map: hello-im-a-hacker");
+		final Object ret3 = CLIENT_AA_ADMIN_FULL.administer(new UObject(gcCmd))
+				.asClassInstance(Object.class);
+		assertThat("incorrect config", ret3, is(ImmutableMap.of(
+				"config", ImmutableMap.of("backend-file-retrieval-scaling", 4))));
+	}
+	
+	@Test
 	public void adminAddRemoveList() throws Exception {
 		checkAdmins(CLIENT2, Arrays.asList(USER2));
 		failAdmin(CLIENT1, "{\"command\": \"listAdmins\"}", "User " + USER1 + " is not an admin");
-		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}", "I don't know how to process the command: listAdmin");
+		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}",
+				"I don't know how to process the command: listAdmin");
 		failAdmin(CLIENT2, "{\"command\": \"addAdmin\"," +
 						   " \"user\": \"thisisnotavalidkbaseuserihopeorthistestwillfail\"}",
 				"User thisisnotavalidkbaseuserihopeorthistestwillfail is not a valid user");
@@ -3447,15 +3483,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		params.put("command", "createWorkspace");
 		params.put("user", "user3");
 		params.put("params", new CreateWorkspaceParams().withWorkspace("ws"));
-		CLIENT_AA1.administer(new UObject(params)); // has full admin role
+		CLIENT_AA_ADMIN_FULL.administer(new UObject(params)); 
 
 		// has read only role
-		failAdmin(CLIENT_AA3, params, "Full administration rights required for this command");
-		failAdmin(CLIENT_AA2, params, "user2 is not an admin"); // has no role
+		failAdmin(CLIENT_AA_ADMIN_READ, params,
+				"Full administration rights required for this command");
+		failAdmin(CLIENT_AA_ADMIN_NONE, params, "user2 is not an admin");
 
 		params.put("command", "getWorkspaceInfo");
 		params.put("params", new WorkspaceIdentity().withId(1L));
-		final List<Object> wsinfo = CLIENT_AA3.administer(new UObject(params))
+		final List<Object> wsinfo = CLIENT_AA_ADMIN_READ.administer(new UObject(params))
 				.asClassInstance(new TypeReference<List<Object>>() {});
 		assertThat("incorrect ws id", wsinfo.get(0), is(1));
 		assertThat("incorrect ws name", wsinfo.get(1), is("ws"));
