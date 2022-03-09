@@ -18,7 +18,7 @@ public class DynamicConfig {
 	// now that's moot.
 
 	/** The map key name for the backend scaling parameter. */
-	public static final String KEY_BACKEND_SCALING = "backend-scaling";
+	public static final String KEY_BACKEND_SCALING = "backend-file-retrieval-scaling";
 	private static final int DEFAULT_BACKEND_SCALING = 1;
 	private final int backendScaling;
 	

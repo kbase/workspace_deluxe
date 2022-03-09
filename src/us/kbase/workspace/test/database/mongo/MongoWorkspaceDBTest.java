@@ -671,7 +671,7 @@ public class MongoWorkspaceDBTest {
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		MONGO_DB.getCollection("dyncfg").insertMany(list(
 				new Document("key", "illegal").append("value", "whatever"),
-				new Document("key", "backend-scaling").append("value", 89)
+				new Document("key", "backend-file-retrieval-scaling").append("value", 89)
 				));
 		try {
 			mocks.mdb.getConfig();
