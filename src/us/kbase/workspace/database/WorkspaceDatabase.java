@@ -8,10 +8,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ListObjectsParameters.ResolvedListObjectParameters;
-import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
@@ -339,45 +337,39 @@ public interface WorkspaceDatabase {
 			List<ResolvedSaveObject> objects)
 			throws WorkspaceCommunicationException, NoSuchObjectException;
 	
-	/** Get object data and provenance information from the workspace database.
-	 * @param objects the objects for which to retrieve data.
-	 * @param dataManager the data manager. Reuse the same data manager over
-	 * multiple getObjects() calls to enforce limits on the combined returned
-	 * data. If null, only provenance information is returned.
-	 * @param usedDataAllocation the amount of data already pulled from prior
-	 * getObjects() calls. This amount will be added to the data amount pulled
-	 * this call and if the total exceeds the limit, an exception will be
-	 * thrown.
+	/** Get object and provenance information from the workspace database. The object data
+	 * is not included, but can be added if desired with
+	 * {@link #addDataToObjects(Collection, ByteArrayFileCacheManager)}.
+	 * This allows for checking for constraints on returned data prior to retrieving it.
+	 * @param objects the objects for which to retrieve information.
 	 * @param exceptIfDeleted throw an exception if deleted.
 	 * @param includeDeleted include information from deleted objects. Has no
 	 * effect if exceptIfDeleted is set.
 	 * @param exceptIfMissing throw an exception if the object does not exist
 	 * in the database.
-	 * @return a mapping of object id -> subdata paths -> data builder. The data is returned
-	 * as a builder so that copy status and reference paths can be updated as necessary.
+	 * @return a mapping of object id -> object information builder. The information is returned
+	 * as a builder so that copy status, reference paths, and object data can be updated as
+	 * necessary.
 	 * @throws NoSuchObjectException if there is no such object.
 	 * @throws WorkspaceCommunicationException if a communication error with
 	 * the backend occurs.
-	 * @throws CorruptWorkspaceDBException if database corruption is detected.
-	 * @throws TypedObjectExtractionException if the subdata could not be
-	 * extracted.
 	 */
-	public Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>>
-			getObjects(
-					Map<ObjectIDResolvedWS, Set<SubsetSelection>> objects,
-					ByteArrayFileCacheManager dataManager,
-					long usedDataAllocation,
+	public Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> getObjects(
+					Set<ObjectIDResolvedWS> objects,
 					boolean exceptIfDeleted,
 					boolean includeDeleted,
 					boolean exceptIfMissing)
-			throws NoSuchObjectException,WorkspaceCommunicationException,
-				CorruptWorkspaceDBException, TypedObjectExtractionException;
+			throws NoSuchObjectException, WorkspaceCommunicationException;
 	
 	/** Adds object data to the given builder, specifically calling
 	 * {@link WorkspaceObjectData.Builder#withData(ByteArrayFileCacheManager.ByteArrayFileCache)},
 	 * and taking the contents of {@link WorkspaceObjectData.Builder#getSubsetSelection()}
 	 * into account. If this method throws an exception any data in the objects will be removed
 	 * and destroyed.
+	 * 
+	 * Up to twice the size of the objects may be needed to store the objects themselves and their
+	 * subsets. How that data is stored is determined by the data manager.
+	 * 
 	 * @param objects the object builders to update.
 	 * @param dataManager the data manager.
 	 * @throws WorkspaceCommunicationException if a communication error with the backend occurs.
@@ -624,9 +616,6 @@ public interface WorkspaceDatabase {
 
 	public void addAdmin(WorkspaceUser user)
 			throws WorkspaceCommunicationException;
-	
-	public void setResourceUsageConfiguration(
-			ResourceUsageConfiguration rescfg);
 	
 	/** Returns the status of the databases' dependencies.
 	 * @return the dependency status.

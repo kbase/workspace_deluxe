@@ -8699,10 +8699,10 @@ public class WorkspaceTest extends WorkspaceTester {
 			List<ObjectIdentifier> all = new LinkedList<ObjectIdentifier>();
 			all.addAll(ois1l2);
 			all.addAll(bothoi);
-			ws.setResourceConfig(build.withMaxReturnedDataSize(60).build());
+			ws.setResourceConfig(build.withMaxReturnedDataSize(80).build());
 			destroyGetObjectsResources(ws.getObjects(user, all));
-			ws.setResourceConfig(build.withMaxReturnedDataSize(59).build());
-			err = new IllegalArgumentException(String.format(errstr, 60, 59));
+			ws.setResourceConfig(build.withMaxReturnedDataSize(79).build());
+			err = new IllegalArgumentException(String.format(errstr, 80, 79));
 			failGetSubset(user, all, err);
 			TestCommon.assertNoTempFilesExist(tfm);
 		} finally {

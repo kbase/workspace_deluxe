@@ -52,7 +52,6 @@ import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ObjectReferenceSet;
-import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.CopyResult;
@@ -73,7 +72,6 @@ import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
-import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.User;
@@ -101,7 +99,6 @@ import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
 import com.mongodb.DuplicateKeyException;
 import com.mongodb.ErrorCategory;
 import com.mongodb.MongoException;
@@ -150,7 +147,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String ERR_DB_COMM =
 			"There was a problem communicating with the database";
 	
-	private ResourceUsageConfiguration rescfg;
 	private final MongoDatabase wsmongo;
 	private final BlobStore blob;
 	private final QueryMethods query;
@@ -278,7 +274,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (workspaceDB == null || blobStore == null) {
 			throw new NullPointerException("No arguments can be null");
 		}
-		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.clock = clock;
 		wsmongo = workspaceDB;
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
@@ -412,12 +407,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 		deps.add(0, new DependencyStatus(true, "OK", "MongoDB", version));
 		return deps;
-	}
-	
-	@Override
-	public void setResourceUsageConfiguration(
-			final ResourceUsageConfiguration rescfg) {
-		this.rescfg = rescfg;
 	}
 	
 	private static void checkConfig(final MongoDatabase wsmongo)
@@ -2216,31 +2205,21 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_COPIED);
 	
 	@Override
-	public Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>>
-			getObjects(
-				final Map<ObjectIDResolvedWS, Set<SubsetSelection>> objs,
-				final ByteArrayFileCacheManager dataMan,
-				final long usedDataAllocation,
+	public Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> getObjects(
+				final Set<ObjectIDResolvedWS> objs,
 				final boolean exceptIfDeleted,
 				final boolean includeDeleted,
 				final boolean exceptIfMissing)
-			throws WorkspaceCommunicationException, NoSuchObjectException,
-				TypedObjectExtractionException, CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, NoSuchObjectException {
 		
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs =
-				resolveObjectIDs(objs.keySet(), exceptIfDeleted, includeDeleted, exceptIfMissing);
+				resolveObjectIDs(objs, exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Map<ResolvedObjectID, Map<String, Object>> vers = 
 				queryVersions(
-						new HashSet<ResolvedObjectID>(resobjs.values()),
-						FLDS_VER_GET_OBJECT, !exceptIfMissing);
-		if (dataMan != null) {
-			checkTotalFileSize(usedDataAllocation, objs, resobjs, vers);
-		}
+						new HashSet<>(resobjs.values()), FLDS_VER_GET_OBJECT, !exceptIfMissing);
 		final Map<ObjectId, Provenance> provs = getProvenance(vers);
-		final Map<String, ByteArrayFileCache> chksumToData = new HashMap<>();
-		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> ret =
-				new HashMap<>();
-		for (final ObjectIDResolvedWS o: objs.keySet()) {
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> ret = new HashMap<>();
+		for (final ObjectIDResolvedWS o: objs) {
 			final ResolvedObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
 				continue; // works if roi is null or vers doesn't have the key
@@ -2254,35 +2233,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			@SuppressWarnings("unchecked")
 			final List<String> refs = (List<String>) vers.get(roi).get(Fields.VER_REF);
 			final ObjectInformation info = ObjectInfoUtils.generateObjectInfo(roi, vers.get(roi));
-			if (dataMan == null) {
-				ret.put(o, ImmutableMap.of(
-						SubsetSelection.EMPTY,
-						addExternalIDs(WorkspaceObjectData.getBuilder(info, prov)
-								.withReferences(refs)
-								.withCopyReference(copied),
-								extIDs)));
-			} else {
-				try {
-					if (objs.get(o).isEmpty()) {
-						// this can never happen based on the Workspace code
-						throw new IllegalStateException(
-								"At least one SubsetSelection must be provided");
-					} else {
-						for (final SubsetSelection op: objs.get(o)) {
-							buildReturnedObjectData(
-									o, op, prov, refs, copied, extIDs, info,
-									chksumToData, dataMan, ret);
-						}
-					}
-				} catch (TypedObjectExtractionException |
-						WorkspaceCommunicationException |
-						CorruptWorkspaceDBException |
-						RuntimeException |
-						Error e) {
-					cleanUpTempObjectFiles(chksumToData, ret);
-					throw e;
-				}
-			}
+			ret.put(o, addExternalIDs(WorkspaceObjectData.getBuilder(info, prov)
+					.withReferences(refs)
+					.withCopyReference(copied),
+					extIDs));
 		}
 		return ret;
 	}
@@ -2378,115 +2332,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 
-	private void checkTotalFileSize(
-			final long usedDataAllocation,
-			final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths,
-			final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs,
-			final Map<ResolvedObjectID, Map<String, Object>> vers) {
-		//could take into account that identical md5s won't incur a real
-		//size penalty, but meh
-		long size = 0;
-		for (final ObjectIDResolvedWS o: paths.keySet()) {
-			// works if resobjs.get(o) is null or vers doesn't contain
-			if (vers.containsKey(resobjs.get(o))) {
-				final Set<SubsetSelection> ops = paths.get(o);
-				final long mult = ops.size() < 1 ? 1 : ops.size();
-				size += mult * (Long) vers.get(resobjs.get(o))
-						.get(Fields.VER_SIZE);
-			}
-		}
-		// TODO CODE just pass constant into the constructor or method call
-		// vs. including the whole class
-		if (size + usedDataAllocation > rescfg.getMaxReturnedDataSize()) {
-			throw new IllegalArgumentException(String.format(
-					"Too much data requested from the workspace at once; " +
-					"data requested including potential subsets is %sB " + 
-					"which exceeds maximum of %s.", size + usedDataAllocation,
-					rescfg.getMaxReturnedDataSize()));
-		}
-	}
-
-	private void cleanUpTempObjectFiles(
-			final Map<String, ByteArrayFileCache> chksumToData,
-			final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> ret) {
-		for (final ByteArrayFileCache f: chksumToData.values()) {
-			try {
-				f.destroy();
-			} catch (RuntimeException | Error e) {
-				//continue
-			}
-		}
-		for (final Map<SubsetSelection, WorkspaceObjectData.Builder> m: ret.values()) {
-			for (final WorkspaceObjectData.Builder wod: m.values()) {
-				try {
-					wod.build().destroy();
-				} catch (RuntimeException | Error e) {
-					//continue
-				}
-			}
-		}
-	}
-	
-
-	//yuck. Think more about the interface here
-	private void buildReturnedObjectData(
-			final ObjectIDResolvedWS o,
-			final SubsetSelection subset,
-			final Provenance prov,
-			final List<String> refs,
-			final Reference copied,
-			final Map<String, List<String>> extIDs,
-			final ObjectInformation info,
-			final Map<String, ByteArrayFileCache> chksumToData,
-			final ByteArrayFileCacheManager bafcMan,
-			final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData.Builder>> ret)
-			throws TypedObjectExtractionException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		if (!ret.containsKey(o)) {
-			ret.put(o, new HashMap<>());
-		}
-		final WorkspaceObjectData.Builder wod = addExternalIDs( 
-				WorkspaceObjectData.getBuilder(info, prov)
-					.withReferences(refs)
-					.withCopyReference(copied),
-				extIDs);
-		if (chksumToData.containsKey(info.getCheckSum())) {
-			/* might be subsetting the same object the same way multiple
-			 * times, but probably unlikely. If it becomes a problem
-			 * memoize the subset
-			 */
-			wod.withData(getDataSubSet(chksumToData.get(info.getCheckSum()), subset, bafcMan));
-			ret.get(o).put(subset, wod);
-		} else {
-			final ByteArrayFileCache data;
-			try {
-				data = blob.getBlob(new MD5(info.getCheckSum()), bafcMan);
-			} catch (FileCacheIOException e) {
-				throw new WorkspaceCommunicationException(
-						e.getLocalizedMessage(), e);
-			} catch (FileCacheLimitExceededException e) {
-				throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
-						"Too much data requested from the workspace at once; " +
-						"data requested including subsets exceeds maximum of "
-						+ bafcMan.getMaxSizeOnDisk());
-			} catch (BlobStoreCommunicationException e) {
-				throw new WorkspaceCommunicationException(
-						e.getLocalizedMessage(), e);
-			} catch (BlobStoreAuthorizationException e) {
-				throw new WorkspaceCommunicationException(
-						"Authorization error communicating with the backend storage system",
-						e);
-			} catch (NoSuchBlobException e) {
-				throw new CorruptWorkspaceDBException(String.format(
-						"No data present for valid object %s.%s.%s",
-						info.getWorkspaceId(), info.getObjectId(),
-						info.getVersion()), e);
-			}
-			chksumToData.put(info.getCheckSum(), data);
-			ret.get(o).put(subset, wod.withData(getDataSubSet(data, subset, bafcMan)));
-		}
-	}
-	
 	private ByteArrayFileCache getDataSubSet(
 			final ByteArrayFileCache data,
 			final SubsetSelection paths,

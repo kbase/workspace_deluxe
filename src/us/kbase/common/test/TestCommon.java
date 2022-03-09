@@ -254,6 +254,7 @@ public class TestCommon {
 							break;
 					}
 				}
+				// this is weird. Should it just be a fail()?
 				assertThat("There are tempfiles: " + tfm.getTempFileList(),
 						tfm.isEmpty(), is(true));
 			}
