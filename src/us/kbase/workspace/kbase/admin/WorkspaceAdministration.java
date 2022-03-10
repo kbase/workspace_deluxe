@@ -199,7 +199,6 @@ public class WorkspaceAdministration {
 		}
 		// should look into some sort of interface w/ registration instead of a massive if else
 		final String fn = (String) cmd.getCommand();
-		// TODO PRL document get/set config when they do something useful
 		if (GET_CONFIG.contentEquals(fn)) {
 			getLogger().info(GET_CONFIG);
 			return ImmutableMap.of("config", ws.getConfig().toMap());
