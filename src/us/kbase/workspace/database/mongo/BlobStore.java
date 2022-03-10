@@ -8,7 +8,6 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
-import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
@@ -39,16 +38,13 @@ public interface BlobStore {
 	 * @throws BlobStoreCommunicationException if a communication error with
 	 * the blob store backend occurs. 
 	 * @throws NoSuchBlobException if there is no blob matching the md5
-	 * @throws FileCacheLimitExceededException if the data manager's data limit
-	 * is exceeded.
 	 * @throws FileCacheIOException if the data manager throws an IO exception.
 	 */
 	public ByteArrayFileCache getBlob(
 			MD5 md5,
 			ByteArrayFileCacheManager bafcMan)
 			throws BlobStoreAuthorizationException,
-			BlobStoreCommunicationException, NoSuchBlobException,
-			FileCacheLimitExceededException, FileCacheIOException;
+				BlobStoreCommunicationException, NoSuchBlobException, FileCacheIOException;
 	
 	/**
 	 * Do not call removeBlob when saveBlob could be run by other threads or

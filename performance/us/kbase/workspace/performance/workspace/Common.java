@@ -60,7 +60,7 @@ public class Common {
 			final List<String> md5s,
 			final int batch)
 			throws Exception {
-		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(2000000000, 2000000000,
+		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(
 				new TempFilesManager(new File("temp_BlobBackendTiming")));
 		
 		final List<Long> shocktimes = new LinkedList<>();

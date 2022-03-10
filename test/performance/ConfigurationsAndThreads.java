@@ -2,7 +2,6 @@ package performance;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
@@ -28,12 +27,10 @@ import us.kbase.auth.AuthService;
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
-import us.kbase.common.test.TestCommon;
 import us.kbase.shock.client.BasicShockClient;
 import us.kbase.shock.client.ShockNode;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Restreamable;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.workspace.CreateWorkspaceParams;
@@ -108,7 +105,6 @@ public class ConfigurationsAndThreads {
 	private static JsonNode jsonData;
 	private static Map<String, Object> mapData;
 	private static AuthToken token;
-	private static TempFilesManager tfm;
 	
 	private static URL shockURL;
 	private static URL workspace0_1_0URL;
@@ -144,8 +140,6 @@ public class ConfigurationsAndThreads {
 		System.setProperty("test.mongo.db.types1", TYPE_DB);
 		System.setProperty("test.mongo.host", MONGO_HOST);
 		System.setProperty("test.shock.url", shockurl);
-		tfm = new TempFilesManager(
-				new File(TestCommon.getTempDir()));
 		//need to redo set up if this is used again
 //		us.kbase.workspace.test.WorkspaceTestCommonDeprecated.destroyAndSetupDB(
 //				1, WorkspaceTestCommon.SHOCK, user, null);
@@ -375,8 +369,7 @@ public class ConfigurationsAndThreads {
 		@Override
 		public int performReads() throws Exception {
 			for (MD5 md5: md5s) {
-				gfsb.getBlob(md5,
-						new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
+				gfsb.getBlob(md5, new ByteArrayFileCacheManager());
 			}
 			return 0;
 		}

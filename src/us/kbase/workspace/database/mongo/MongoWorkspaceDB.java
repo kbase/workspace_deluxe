@@ -86,7 +86,6 @@ import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DeletedObjectException;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
-import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -2276,11 +2275,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					toDestroy.add(data);
 				} catch (FileCacheIOException e) {
 					throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
-				} catch (FileCacheLimitExceededException e) {
-					throw new IllegalArgumentException( // TODO PRL CODE remove later when possible
-							"Too much data requested from the workspace at once; " +
-							"data requested including subsets exceeds maximum of "
-							+ dataManager.getMaxSizeOnDisk());
 				} catch (BlobStoreCommunicationException e) {
 					throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
 				} catch (BlobStoreAuthorizationException e) {
@@ -2344,11 +2338,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			return bafcMan.getSubdataExtraction(data, paths);
 		} catch (FileCacheIOException e) {
 			throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
-		} catch (FileCacheLimitExceededException e) {  // TODO PRL remove when possible
-			throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
-					"Too much data requested from the workspace at once; " +
-					"data requested including subsets exceeds maximum of "
-					+ bafcMan.getMaxSizeOnDisk());
 		}
 	}
 	

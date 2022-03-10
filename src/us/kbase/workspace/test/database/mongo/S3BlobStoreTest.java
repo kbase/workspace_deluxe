@@ -453,7 +453,7 @@ public class S3BlobStoreTest {
 					AbortableInputStream.create(
 							new ByteArrayInputStream("\"input here\"".getBytes()))));
 		
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
 		
 		final ByteArrayFileCache ba = s.getBlob(md5, bafcMan);
 		
@@ -469,7 +469,7 @@ public class S3BlobStoreTest {
 		
 		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
 		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
 		
 		getBlobFail(s, null, bafcMan, new NullPointerException("md5"));
 		getBlobFail(s, md5, null, new NullPointerException("bafcMan"));
@@ -486,7 +486,7 @@ public class S3BlobStoreTest {
 				.thenReturn(m.cur);
 		when(m.cur.first()).thenReturn(null);
 		
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
 		getBlobFail(s, md5, bafcMan, new NoSuchBlobException(
 				"No blob saved with chksum 1fc5a11811de5142af444f5d482cd748"));
 	}
@@ -501,7 +501,7 @@ public class S3BlobStoreTest {
 		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenThrow(new MongoException("heck"));
 		
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
 		getBlobFail(s, md5, bafcMan, new BlobStoreCommunicationException(
 				"Could not read from the mongo database"));
 	}
@@ -533,7 +533,7 @@ public class S3BlobStoreTest {
 				.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build()))
 			.thenThrow(thrown);
 		
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
 		getBlobFail(s, md5, bafcMan, expected);
 	}
 	

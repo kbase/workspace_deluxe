@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -8,12 +10,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.nio.file.Files;
 
-import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.io.IOUtils;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
@@ -22,217 +24,117 @@ import us.kbase.typedobj.core.SubdataExtractor;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
-import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 
 public class ByteArrayFileCacheManager {
 	
-	//TODO TEST unit tests
 	//TODO JAVADOC
-	// this class is going to get a pretty huge overhaul so wait on tests & javadoc
 	
-	private int sizeInMem = 0;
-	private final int maxSizeInMem;
-	private long sizeOnDisk = 0;
-	private final long maxSizeOnDisk;
 	private final TempFilesManager tfm;
+
+	public ByteArrayFileCacheManager() {
+		this.tfm = null;
+	}
 	
-	public ByteArrayFileCacheManager(
-			final int maxSizeInMem,
-			final long maxSizeOnDisk,
-			final TempFilesManager tfm) {
-		this.maxSizeInMem = maxSizeInMem;
-		this.maxSizeOnDisk = maxSizeOnDisk;
+	public ByteArrayFileCacheManager(final TempFilesManager tfm) {
 		this.tfm = tfm;
 	}
 	
-	public int getSizeInMem() {
-		return sizeInMem;
+	public boolean isStoringOnDisk() {
+		return tfm != null;
 	}
-
-	public int getMaxSizeInMem() {
-		return maxSizeInMem;
-	}
-
-	public long getSizeOnDisk() {
-		return sizeOnDisk;
-	}
-
-	public long getMaxSizeOnDisk() {
-		return maxSizeOnDisk;
-	}
-
-	@SuppressWarnings("resource")
+	
 	public ByteArrayFileCache createBAFC(
 			final InputStream input,
 			final boolean trustedJson,
 			final boolean sorted)
-			throws FileCacheIOException, FileCacheLimitExceededException {
-		byte[] buf = new byte[100000];
-		ByteArrayOutputStream bufOs = new ByteArrayOutputStream();
-		int maxInMemorySize = maxSizeInMem - sizeInMem;
-		long size = 0;
-		while (size < maxInMemorySize + 1) {
-			int count;
-			try {
-				count = input.read(buf, 0, Math.min(
-						buf.length, maxInMemorySize + 1 - (int)size));
-			} catch (IOException ioe) {
-				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
-			}
-			if (count < 0)
-				break;
-			bufOs.write(buf, 0, count);
-			size += count;
-		}
+			throws FileCacheIOException {
+		requireNonNull(input, "input");
+		File tempFile = null;
 		try {
-			bufOs.close();
-		} catch (IOException ioe) {
-			throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
-		}
-		if (size > maxInMemorySize) {
-			File tempFile = null;
-			OutputStream os = null;
-			try {
-				tempFile = tfm.generateTempFile("resp", "json");
-				os = new BufferedOutputStream(
-						new FileOutputStream(tempFile));
-				try {
-					os.write(bufOs.toByteArray());
-					bufOs = null;
-					while (true) {
-						if (sizeOnDisk + size > maxSizeOnDisk) {
-							cleanUp(tempFile, os);
-							throw new FileCacheLimitExceededException(
-									"Disk limit exceeded for file cache: " +
-											maxSizeOnDisk);
-						}
-						int count = input.read(buf, 0, buf.length);
-						if (count < 0)
-							break;
-						os.write(buf, 0, count);
-						size += count;
-					}
-				} finally {
-					try { os.close(); } catch (Exception ignore) {}
-				}
-				sizeOnDisk += size;
-				return new ByteArrayFileCache(null, tempFile,
-						new JsonTokenStream(tempFile)
-							.setTrustedWholeJson(trustedJson), sorted, size);
-			} catch (IOException ioe) {
-				cleanUp(tempFile, os);
-				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
-			} catch (RuntimeException re) {
-				cleanUp(tempFile, os);
-				throw re;
-			}
-		} else {
-			sizeInMem += (int)size;
-			try {
-				return new ByteArrayFileCache(null, null,
-						new JsonTokenStream(bufOs.toByteArray())
-							.setTrustedWholeJson(trustedJson), sorted, size);
-			} catch (IOException ioe) {
-				throw new FileCacheIOException(
-						ioe.getLocalizedMessage(), ioe);
-			}
-		}
-	}
-
-	private void cleanUp(File tempFile, OutputStream os) {
-		if (os != null)
-			try {
-				os.close();
-			} catch (Exception ignore) {}
-		if (tempFile != null)
-			tempFile.delete();
-	}
-
-	@SuppressWarnings("resource")
-	public ByteArrayFileCache getSubdataExtraction(
-			final ByteArrayFileCache parent, final SubsetSelection paths)
-			throws TypedObjectExtractionException,
-			FileCacheLimitExceededException, FileCacheIOException {
-		final OutputStream[] origin = {new ByteArrayOutputStream()};
-		final File[] tempFile = {null};
-		final long[] size = {0L};
-		OutputStream os = new OutputStream() {
-			@Override
-			public void write(int b) throws IOException {
-				throw new NotImplementedException(
-						"Single byte writing is not supported");
-			}
-			@Override
-			public void write(byte[] b, int off, int len) throws IOException {
-				origin[0].write(b, off, len);
-				size[0] += len;
-				if (tempFile[0] == null) {
-					if (sizeInMem + size[0] > maxSizeInMem) {
-						origin[0].close();
-						byte[] arr = ((ByteArrayOutputStream)origin[0]).toByteArray();
-						tempFile[0] = tfm.generateTempFile("resp", "json");
-						origin[0] = new BufferedOutputStream(new FileOutputStream(tempFile[0]));
-						origin[0].write(arr);
-					}
-				} else {
-					if (sizeOnDisk + size[0] > maxSizeOnDisk) {
-						final String err = "Disk limit exceeded for file cache: " +
-								maxSizeOnDisk;
-						throw new IOException(err,
-								new FileCacheLimitExceededException(err));
-					}
-				}
-			}
-			@Override
-			public void close() throws IOException {
-				origin[0].close();
-			}
-		};
-		try {
-			parent.getSubdataExtractionAsStream(paths, os);
-			if (tempFile[0] != null) {
-				sizeOnDisk += size[0];
-				return new ByteArrayFileCache(parent, tempFile[0],
-						new JsonTokenStream(tempFile[0])
-						.setTrustedWholeJson(parent.containsTrustedJson()),
-						parent.isSorted(), size[0]); 
+			if (tfm == null) {
+				final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				final int size = IOUtils.copy(input, baos);
+				@SuppressWarnings("resource")
+				final JsonTokenStream jts = new JsonTokenStream(baos.toByteArray());
+				return new ByteArrayFileCache(
+						null, null, jts.setTrustedWholeJson(trustedJson), sorted, size);
 			} else {
-				sizeInMem += (int)size[0];
-				byte[] arr = ((ByteArrayOutputStream)origin[0]).toByteArray();
-				return new ByteArrayFileCache(parent, null,
-						new JsonTokenStream(arr)
-						.setTrustedWholeJson(parent.containsTrustedJson()),
-						parent.isSorted(), size[0]);
-			}
-		} catch (Throwable e) {
-			try {
-				os.close();
-			} catch (Exception ignore) {}
-			if (tempFile[0] != null) {
-				tempFile[0].delete();
-			}
-			if (e instanceof TypedObjectExtractionException) {
-				throw (TypedObjectExtractionException)e;
-			}
-			if (e instanceof RuntimeException) {
-				throw (RuntimeException)e;
-			}
-			if (e instanceof IOException) {
-				final IOException ioe = (IOException) e;
-				if (ioe.getCause() instanceof FileCacheLimitExceededException) {
-					throw (FileCacheLimitExceededException) ioe.getCause();
+				tempFile = tfm.generateTempFile("resp", "json");
+				final int size;
+				try (final OutputStream os = new BufferedOutputStream(
+						new FileOutputStream(tempFile))) {
+					size = IOUtils.copy(input, os);
 				}
-				throw new FileCacheIOException(ioe.getLocalizedMessage(), ioe);
+				@SuppressWarnings("resource")
+				final JsonTokenStream jts = new JsonTokenStream(tempFile);
+				return new ByteArrayFileCache(
+						null, tempFile, jts.setTrustedWholeJson(trustedJson), sorted, size);
 			}
-			throw new RuntimeException(e.getMessage(), e);
+		} catch (IOException e) {
+			cleanUp(tempFile);
+			throw new FileCacheIOException(e.getLocalizedMessage(), e);
+		} catch (RuntimeException e) {
+			cleanUp(tempFile);
+			throw e;
 		}
 	}
 	
-	@Override
-	public String toString() {
-		return "ByteArrayFileCacheManager [sizeInMem=" + sizeInMem
-				+ ", maxSizeInMem=" + maxSizeInMem + ", sizeOnDisk="
-				+ sizeOnDisk + ", maxSizeOnDisk=" + maxSizeOnDisk + "]";
+	private void cleanUp(final File tempFile) {
+		if (tempFile != null) {
+			tempFile.delete();
+		}
+	}
+
+	// in docs note that this method or parent.getUObject() must complete before calling either
+	// one again or exceptions will be thrown. Also note not thread safe.
+	// fixing this bug would be a lot of work and not necessary at the moment
+	public ByteArrayFileCache getSubdataExtraction(
+			final ByteArrayFileCache parent,
+			final SubsetSelection paths)
+			throws TypedObjectExtractionException, FileCacheIOException {
+		requireNonNull(parent, "parent").checkIfDestroyed();
+		if (requireNonNull(paths, "paths").isEmpty()) {
+			throw new IllegalArgumentException("paths cannot be empty");
+		}
+		File tempFile = null;
+		try {
+			if (tfm == null) {
+				final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				parent.getSubdataExtractionAsStream(paths, baos);
+				@SuppressWarnings("resource")
+				final JsonTokenStream jts = new JsonTokenStream(baos.toByteArray());
+				return new ByteArrayFileCache(
+						parent,
+						null,
+						jts.setTrustedWholeJson(parent.containsTrustedJson()),
+						parent.isSorted(),
+						baos.size());
+			} else {
+				tempFile = tfm.generateTempFile("resp", "json");
+				try (final OutputStream os = new BufferedOutputStream(
+						new FileOutputStream(tempFile))) {
+					parent.getSubdataExtractionAsStream(paths, os);
+				}
+				@SuppressWarnings("resource")
+				final JsonTokenStream jts = new JsonTokenStream(tempFile);
+				return new ByteArrayFileCache(
+						parent,
+						tempFile,
+						jts.setTrustedWholeJson(parent.containsTrustedJson()),
+						parent.isSorted(),
+						Files.size(tempFile.toPath())); 
+			}
+		} catch (IOException e) {
+			// given the method inputs there doesn't seem to be a way to test this
+			cleanUp(tempFile);
+			throw new FileCacheIOException(e.getLocalizedMessage(), e);
+		} catch (TypedObjectExtractionException e) {
+			cleanUp(tempFile);
+			throw e;
+		} catch (RuntimeException e) {
+			cleanUp(tempFile);
+			throw e;
+		}
 	}
 	
 	public class ByteArrayFileCache {
@@ -253,11 +155,7 @@ public class ByteArrayFileCacheManager {
 			this.parent = parent;
 			this.tempFile = tempFile;
 			this.jts = jts;
-			if (parent != null) {
-				this.sorted = parent.isSorted();
-			} else {
-				this.sorted = sorted;
-			}
+			this.sorted = sorted;
 			this.size = size;
 		}
 		
@@ -269,16 +167,13 @@ public class ByteArrayFileCacheManager {
 			return size;
 		}
 		
+		// in docs note that this method or parent.getUObject() must complete before calling either
+		// one again or exceptions will be thrown. Also note not thread safe.
+		// fixing this bug would be a lot of work and not necessary at the moment
 		public UObject getUObject() throws JsonParseException, IOException {
 			checkIfDestroyed();
 			jts.setRoot(null);
 			return new UObject(jts);
-		}
-		
-		public JsonNode getAsJsonNode()
-				throws JsonParseException, IOException {
-			checkIfDestroyed();
-			return UObject.transformObjectToJackson(getUObject());
 		}
 		
 		public Reader getJSON() throws IOException {
@@ -302,13 +197,16 @@ public class ByteArrayFileCacheManager {
 			}
 		}
 		
-		private void getSubdataExtractionAsStream(final SubsetSelection paths, 
+		// in docs note that this method or parent.getUObject() must complete before calling either
+		// one again or exceptions will be thrown. Also note not thread safe.
+		// fixing this bug would be a lot of work and not necessary at the moment
+		private void getSubdataExtractionAsStream(
+				final SubsetSelection paths, 
 				final OutputStream os)
 				throws TypedObjectExtractionException {
-			checkIfDestroyed();
+			checkIfDestroyed(); // not necessary now but we might want to make this method public
 			try {
-				JsonGenerator jgen = UObject.getMapper().getFactory()
-						.createGenerator(os);
+				JsonGenerator jgen = UObject.getMapper().getFactory().createGenerator(os);
 				try {
 					SubdataExtractor.extract(paths, jts.setRoot(null), jgen);
 				} finally {
@@ -317,6 +215,7 @@ public class ByteArrayFileCacheManager {
 				}
 				// jts.setRoot throws IllegalStateException in a bunch of places, ugh
 			} catch (IOException | IllegalStateException ex) {
+				// there doesn't seem to be a good way of testing this
 				throw new TypedObjectExtractionException(ex.getMessage(), ex);
 			}
 		}
@@ -338,7 +237,7 @@ public class ByteArrayFileCacheManager {
 			} catch (IOException ioe) {
 				//nothing can be done
 			}
-			if (tempFile != null && tempFile.exists()) {
+			if (tempFile != null) {
 				tempFile.delete();
 			}
 			if (parent != null) {

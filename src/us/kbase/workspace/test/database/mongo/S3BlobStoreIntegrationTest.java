@@ -6,7 +6,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -28,7 +27,6 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Restreamable;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
@@ -55,7 +53,6 @@ public class S3BlobStoreIntegrationTest {
 	private static MongoDatabase mongo;
 	private static MinioController minio;
 	private static MongoController mongoCon;
-	private static TempFilesManager tfm;
 	
 	private static final String A32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	private static final String COLLECTION = "minio_blobs";
@@ -63,7 +60,6 @@ public class S3BlobStoreIntegrationTest {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		TestCommon.stfuLoggers();
 		mongoCon = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
@@ -188,8 +184,7 @@ public class S3BlobStoreIntegrationTest {
 		String data = "this is a blob yo";
 		bs.saveBlob(md1, new StringRestreamable(data), true);
 		MD5 md1copy = new MD5("5e498cecc4017dad15313bb009b0ef49");
-		ByteArrayFileCache d = s3bs.getBlob(md1copy, 
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
+		ByteArrayFileCache d = s3bs.getBlob(md1copy, new ByteArrayFileCacheManager());
 		assertThat("data returned marked as sorted", d.isSorted(), is(true));
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
@@ -197,15 +192,13 @@ public class S3BlobStoreIntegrationTest {
 		bs.saveBlob(md1, new StringRestreamable(data), true);
 		
 		bs.saveBlob(md1, new StringRestreamable(data), false); //this should do nothing
-		assertThat("sorted still true", s3bs.getBlob(md1copy,
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm))
+		assertThat("sorted still true", s3bs.getBlob(md1copy, new ByteArrayFileCacheManager())
 				.isSorted(), is(true));
 		
 		MD5 md2 = new MD5("78afe93c486269db5b49d9017e850103");
 		String data2 = "this is also a blob yo";
 		bs.saveBlob(md2, new StringRestreamable(data2), false);
-		d = bs.getBlob(md2,
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
+		d = bs.getBlob(md2, new ByteArrayFileCacheManager());
 		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
 		
 		bs.removeBlob(md1);
@@ -220,8 +213,7 @@ public class S3BlobStoreIntegrationTest {
 
 	private void failGetBlob(MD5 md5) throws Exception {
 		try {
-			s3bs.getBlob(md5,
-					new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
+			s3bs.getBlob(md5, new ByteArrayFileCacheManager());
 			fail("getblob should throw exception");
 		} catch (NoSuchBlobException wbe) {
 			assertThat("wrong exception message from failed getblob",

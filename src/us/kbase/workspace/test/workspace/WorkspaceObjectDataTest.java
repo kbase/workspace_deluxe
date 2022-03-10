@@ -7,7 +7,6 @@ import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 import static us.kbase.common.test.TestCommon.opt;
 
 import java.io.ByteArrayInputStream;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -21,7 +20,6 @@ import com.google.common.collect.ImmutableMap;
 
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.SubsetSelection;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectInformation;
@@ -45,19 +43,12 @@ public class WorkspaceObjectDataTest {
 			1, "foo", "type", new Date(), 1, new WorkspaceUser("u"),
 			new ResolvedWorkspaceID(1, "bar", false, false), "chksum", 25, null);
 	
-	private static ByteArrayFileCacheManager bafcm;
-	static {
-		 // won't actually make temp files in this test
-		final TempFilesManager tfm = new TempFilesManager(
-				Paths.get(TestCommon.getTempDir()).toFile());
-		bafcm = new ByteArrayFileCacheManager(10000, 10000, tfm);
-	}
-	
 	// also has no hashCode(), so identity equality
 	// shouldn't have hashCode() anyway, data could be huge
 	private static ByteArrayFileCache getBAFC() {
 		try {
-			return bafcm.createBAFC(new ByteArrayInputStream("{}".getBytes()), true, true);
+			return new ByteArrayFileCacheManager()
+					.createBAFC(new ByteArrayInputStream("{}".getBytes()), true, true);
 		} catch (FileCacheException e) {
 			throw new RuntimeException(e);
 		}
