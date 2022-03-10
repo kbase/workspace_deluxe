@@ -3398,9 +3398,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		failAdmin(CLIENT_AA_ADMIN_NONE, gcCmd, "User " + USER2 + " is not an admin");
 		final Object ret = CLIENT_AA_ADMIN_READ.administer(new UObject(gcCmd))
 				.asClassInstance(Object.class);
-		// DB is cleared before every test
 		assertThat("incorrect config", ret, is(ImmutableMap.of(
-				"config", Collections.emptyMap())));
+				"config", ImmutableMap.of("backend-file-retrieval-scaling", 1))));
 		
 		final Map<String, Object> command = ImmutableMap.of(
 				"command", "setConfig",

@@ -1134,7 +1134,10 @@ public class Workspace {
 			try {
 				final List<WorkspaceObjectData.Builder> f = toProc.stream().filter(p -> p != null)
 						.collect(Collectors.toList());
-				db.addDataToObjects(f, getDataManagerAndCheckObjectSize(f), 1);
+				db.addDataToObjects(
+						f,
+						getDataManagerAndCheckObjectSize(f),
+						db.getConfig().getBackendScaling().get());
 			} catch (NoObjectDataException e) { // should be impossible
 				throw new CorruptWorkspaceDBException(e.getLocalizedMessage(), e);
 			}

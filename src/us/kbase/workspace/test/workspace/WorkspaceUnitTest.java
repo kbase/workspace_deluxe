@@ -43,6 +43,7 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -372,12 +373,71 @@ public class WorkspaceUnitTest {
 				.withWorkspace(rwsi, Permission.NONE, Permission.READ)
 				.build());
 		when(mocks.db.getObjects(robjs, true, false, true)).thenReturn(data);
+		when(mocks.db.getConfig()).thenReturn(
+				DynamicConfig.getBuilder().withBackendScaling(3).build());
 		// arguments are a list of WOD builders and ByteArrayFileCacheManager, both of
 		// which are created in the method and are only equal based on identity
 		doThrow(new NoObjectDataException("oopsie"))
-				.when(mocks.db).addDataToObjects(any(), any(), eq(1));
+				.when(mocks.db).addDataToObjects(any(), any(), eq(3));
 		
 		failGetObjects(mocks.ws, objs, false, new CorruptWorkspaceDBException("oopsie"));
+	}
+	
+	@Test
+	public void getObjectsBackendScaling() throws Exception {
+		// Tests that the backend scaling parameter is passed correctly to the object data method.
+		getObjectsBackendScaling(1);
+		getObjectsBackendScaling(3);
+		getObjectsBackendScaling(5);
+		getObjectsBackendScaling(1000);
+	}
+	
+	private void getObjectsBackendScaling(final int scaling) throws Exception {
+		final TestMocks mocks = initMocks();
+
+		final Date now = new Date();
+		final WorkspaceUser u = new WorkspaceUser("u1");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
+		final Provenance p = new Provenance(u);
+		final List<ObjectIdentifier> objs = list(
+				ObjectIdentifier.getBuilder(wsi).withID(1L).build());
+		final Set<ObjectIDResolvedWS> robjs = set(new ObjectIDResolvedWS(rwsi, 1));
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> data = new HashMap<>();
+		data.put(
+				new ObjectIDResolvedWS(rwsi, 1),
+				WorkspaceObjectData.getBuilder(
+						new ObjectInformation(
+								1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null),
+						p)
+				);
+		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(mocks.db.getPermissions(null, set(rwsi))).thenReturn(PermissionSet.getBuilder(
+				null, Workspace.ALL_USERS)
+				.withWorkspace(rwsi, Permission.NONE, Permission.READ)
+				.build());
+		when(mocks.db.getObjects(robjs, true, false, true)).thenReturn(data);
+		when(mocks.db.getConfig()).thenReturn(
+				DynamicConfig.getBuilder().withBackendScaling(scaling).build());
+		
+		final List<WorkspaceObjectData> got = mocks.ws.getObjects(null, objs, false, false, false);
+		assertThat("incorrect count", got.size(), is(1));
+		final WorkspaceObjectData wod = got.get(0);
+		// no overridden equals method for WOD as expected
+		assertThat("incorrect info", wod.getObjectInfo(), is(new ObjectInformation(
+				1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null)));
+		assertThat("incorrect prov", wod.getProvenance(), is(p));
+		assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
+		assertThat("incorrect copy ref", wod.getCopyReference(), is(Optional.empty()));
+		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
+		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
+		assertThat("incorrect has data", wod.hasData(), is(false));
+		assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(false));
+		assertThat("incorrect subset", wod.getSubsetSelection(), is(SubsetSelection.EMPTY));
+		
+		// WOD & builder have no equals, so any() it is for this test
+		verify(mocks.db)
+				.addDataToObjects(any(), any(ByteArrayFileCacheManager.class), eq(scaling));
 	}
 	
 	@Test
@@ -411,7 +471,7 @@ public class WorkspaceUnitTest {
 				.build());
 		when(mocks.db.getObjects(robjs, true, false, true)).thenReturn(data);
 		
-		final List<WorkspaceObjectData> got = mocks.ws.getObjects(null, objs, false, false, false);
+		final List<WorkspaceObjectData> got = mocks.ws.getObjects(null, objs, true, false, false);
 		for (int i = 0; i < 1000; i++) {
 			// no overridden equals method for WOD as expected
 			final WorkspaceObjectData wod = got.get(i);
