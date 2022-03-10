@@ -33,6 +33,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -135,6 +141,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	// could cause index build fail and corrupt data in the db
 	// Need to look into this before upgrading to 4.2
 
+	private static final long OBJECT_DATA_FETCH_TIMEOUT_SEC = 900;
+	
 	public static final AllUsers ALL_USERS = Workspace.ALL_USERS;
 
 	//TODO CONFIG this should really be configurable
@@ -2308,10 +2316,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	@Override
 	public void addDataToObjects(
 			final Collection<WorkspaceObjectData.Builder> objects,
-			final ByteArrayFileCacheManager dataManager)
+			final ByteArrayFileCacheManager dataManager,
+			final int backendScaling)
 			throws WorkspaceCommunicationException, TypedObjectExtractionException,
-				NoObjectDataException {
+				NoObjectDataException, InterruptedException {
 		noNulls(requireNonNull(objects, "objects"), "null found in objects");
+		requireNonNull(dataManager, "dataManager");
+		if (backendScaling < 1) {
+			throw new IllegalArgumentException("backendScaling must be > 0");
+		}
+		if (objects.isEmpty()) {
+			return;
+		}
 		final Map<String, List<WorkspaceObjectData.Builder>> chksum2obj = new HashMap<>();
 		for (final WorkspaceObjectData.Builder b: objects) {
 			if (!chksum2obj.containsKey(b.getObjectInfo().getCheckSum())) {
@@ -2319,69 +2335,120 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			}
 			chksum2obj.get(b.getObjectInfo().getCheckSum()).add(b);
 		}
-		final List<ByteArrayFileCache> toDestroy = new LinkedList<>();
+		final List<BackendFileCallable> callables = chksum2obj.entrySet().stream()
+				.map(e -> new BackendFileCallable(blob, e.getKey(), dataManager, e.getValue()))
+				.collect(Collectors.toList());
+		final ExecutorService eserv = Executors.newFixedThreadPool(
+				Math.min(backendScaling, chksum2obj.size()));
 		try {
-			for (final String chksum: chksum2obj.keySet()) {
-				// TODO PRL parallelize this code, make sure to clean up all threads' data 
-				// if one fails
-				final ByteArrayFileCache data;
-				try {
-					data = blob.getBlob(new MD5(chksum), dataManager);
-					toDestroy.add(data);
-				} catch (IOException e) {
-					throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
-				} catch (BlobStoreCommunicationException e) {
-					throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
-				} catch (BlobStoreAuthorizationException e) {
-					throw new WorkspaceCommunicationException(
-							"Authorization error communicating with the backend storage system",
-							e);
-				} catch (NoSuchBlobException e) {
-					final ObjectInformation info = chksum2obj.get(chksum).get(0).getObjectInfo();
-					throw new NoObjectDataException(String.format(
-							"No data present for object %s/%s/%s",
-							info.getWorkspaceId(), info.getObjectId(), info.getVersion()), e);
-				}
-				for (final WorkspaceObjectData.Builder b: chksum2obj.get(chksum)) {
-					/* might be subsetting the same object the same way multiple times, but
-					 * probably unlikely. If it becomes a problem memoize the subset
-					 */
-					b.withData(getDataSubSet(data, b.getSubsetSelection(), dataManager));
-				}
+			final List<Future<Void>> futures = eserv.invokeAll(
+					callables, OBJECT_DATA_FETCH_TIMEOUT_SEC, TimeUnit.SECONDS);
+			for (final Future<Void> f: futures) {
+				f.get(); // trigger exceptions
 			}
-		} catch (TypedObjectExtractionException | WorkspaceCommunicationException |
-				NoObjectDataException | RuntimeException | Error e) {
-			cleanUpTempObjectFiles(objects, toDestroy);
+		} catch (ExecutionException e) { // just throw the 1st exception encountered
+			cleanUpTempObjectFiles(objects, callables);
+			// Wrap EE exceptions to get the full stack
+			final Throwable cause = e.getCause();
+			if (cause instanceof IOException) {
+				throw new WorkspaceCommunicationException(cause.getLocalizedMessage(), e);
+			} else if (cause instanceof BlobStoreCommunicationException) {
+				throw new WorkspaceCommunicationException(cause.getLocalizedMessage(), e);
+			} else if (cause instanceof BlobStoreAuthorizationException) {
+				throw new WorkspaceCommunicationException(
+						"Authorization error communicating with the backend storage system", e);
+			} else if (cause instanceof NoSuchBlobException) {
+				final ObjectInformation info = chksum2obj.get(((NoSuchBlobException) cause)
+						.getMD5().getMD5()).get(0).getObjectInfo();
+				throw new NoObjectDataException(String.format(
+						"No data present for object %s/%s/%s",
+						info.getWorkspaceId(), info.getObjectId(), info.getVersion()), e);
+			} else if (cause instanceof TypedObjectExtractionException) {
+				throw new TypedObjectExtractionException(cause.getLocalizedMessage(), e);
+			} else if (cause instanceof WorkspaceCommunicationException) {
+				throw new WorkspaceCommunicationException(cause.getLocalizedMessage(), e);
+			} else {
+				throw new RuntimeException("Unexpected error", e);
+			}
+		} catch (InterruptedException | RuntimeException | Error e) {
+			// no easy way to test this AFAICT
+			cleanUpTempObjectFiles(objects, callables);
 			throw e;
+		} finally {
+			eserv.shutdownNow();
+		}
+	}
+	
+	private static class BackendFileCallable implements Callable<Void> {
+
+		private final BlobStore blob;
+		private final String chksum;
+		private final ByteArrayFileCacheManager dataManager;
+		private ByteArrayFileCache cacheResult = null;
+		private final List<WorkspaceObjectData.Builder> wods;
+
+		private BackendFileCallable(
+				final BlobStore blob,
+				final String chksum,
+				final ByteArrayFileCacheManager dataManager,
+				final List<WorkspaceObjectData.Builder> wods) {
+			this.blob = blob;
+			this.chksum = chksum;
+			this.dataManager = dataManager;
+			this.wods = wods;
+		}
+
+		@Override
+		public Void call() throws BlobStoreAuthorizationException, BlobStoreCommunicationException,
+				NoSuchBlobException, IOException, WorkspaceCommunicationException,
+				TypedObjectExtractionException {
+			cacheResult = blob.getBlob(new MD5(chksum), dataManager);
+			for (final WorkspaceObjectData.Builder b: wods) {
+				/* might be subsetting the same object the same way multiple times, but
+				 * probably unlikely. If it becomes a problem memoize the subset
+				 */
+				b.withData(getDataSubSet(cacheResult, b.getSubsetSelection(), dataManager));
+			}
+			return null;
 		}
 	}
 
 	private void cleanUpTempObjectFiles(
 			final Collection<WorkspaceObjectData.Builder> objects,
-			final List<ByteArrayFileCache> toDestroy) {
-		for (final WorkspaceObjectData.Builder b: objects) {
+			final List<BackendFileCallable> callables) {
+		/* I assume (although this is a guess) that if a thread is interrupted while
+		 * ByteArrayFileCacheManager is writing to a file, an InterruptedIOException will be
+		 * thrown:
+		 * https://docs.oracle.com/javase/8/docs/api/java/io/InterruptedIOException.html
+		 * In that case the temp file will be cleaned up by BAFCM.
+		 * Not sure how to test that though. If the workspace starts leaving temp files all over
+		 * the place worth spending some time here, but for now hold off.
+		 */
+		for (final WorkspaceObjectData.Builder builder: objects) {
 			try {
-				final WorkspaceObjectData d = b.build();
-				if (d.hasData()) {
-					b.withData(null);
-					d.destroy();
+				final WorkspaceObjectData built = builder.build();
+				if (built.hasData()) {
+					builder.withData(null);
+					built.destroy();
 				}
 			} catch (RuntimeException | Error e) {
 				// continue
 				// not really any way to test this
 			}
 		}
-		for (final ByteArrayFileCache b: toDestroy) {
-			try {
-				b.destroy();
-			} catch (RuntimeException | Error e) {
-				// continue
-				// not really any way to test this
+		for (final BackendFileCallable bfc: callables) {
+			if (bfc.cacheResult != null) {
+				try {
+					bfc.cacheResult.destroy();
+				} catch (RuntimeException | Error e) {
+					// continue
+					// not really any way to test this
+				}
 			}
 		}
 	}
 
-	private ByteArrayFileCache getDataSubSet(
+	private static ByteArrayFileCache getDataSubSet(
 			final ByteArrayFileCache data,
 			final SubsetSelection paths,
 			final ByteArrayFileCacheManager bafcMan)

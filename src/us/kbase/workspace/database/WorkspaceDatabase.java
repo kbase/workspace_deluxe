@@ -340,7 +340,7 @@ public interface WorkspaceDatabase {
 	
 	/** Get object and provenance information from the workspace database. The object data
 	 * is not included, but can be added if desired with
-	 * {@link #addDataToObjects(Collection, ByteArrayFileCacheManager)}.
+	 * {@link #addDataToObjects(Collection, ByteArrayFileCacheManager, int)}.
 	 * This allows for checking for constraints on returned data prior to retrieving it.
 	 * @param objects the objects for which to retrieve information.
 	 * @param exceptIfDeleted throw an exception if deleted.
@@ -373,16 +373,22 @@ public interface WorkspaceDatabase {
 	 * 
 	 * @param objects the object builders to update.
 	 * @param dataManager the data manager.
+	 * @param backendScaling the number of threads to use when fetching object data from the
+	 * backend. For backends where the object data cannot be fetched in a batch this could
+	 * significantly speed up data fetching. Details depend on the backend implementation
+	 * and the environment in which the system is run.
 	 * @throws WorkspaceCommunicationException if a communication error with the backend occurs.
 	 * @throws TypedObjectExtractionException if the subdata could not be extracted.
 	 * @throws NoObjectDataException if there is no data in the backend for the corresponding
 	 * object. 
+	 * @throws InterruptedException if the thread is interrupted.
 	 */
 	void addDataToObjects(
 			final Collection<WorkspaceObjectData.Builder> objects,
-			final ByteArrayFileCacheManager dataManager)
+			final ByteArrayFileCacheManager dataManager,
+			final int backendScaling)
 			throws WorkspaceCommunicationException, TypedObjectExtractionException,
-				NoObjectDataException;
+				NoObjectDataException, InterruptedException;
 	
 	/** Resolve a set of objects to absolute references. If the object cannot be found, it is not
 	 * included in the returned map. Includes deleted objects.

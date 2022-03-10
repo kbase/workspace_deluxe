@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -33,14 +34,20 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
+import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
+import us.kbase.common.utils.sortjson.UTF8JsonSorterFactory;
+import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.SubsetSelection;
+import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
+import us.kbase.typedobj.test.DummyValidatedTypedObject;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInformation;
@@ -51,14 +58,18 @@ import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
+import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceObjectData;
+import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DynamicConfig;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.mongo.Fields;
+import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
@@ -399,7 +410,7 @@ public class MongoWorkspaceDBTest {
 		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
 		
 		// nothing should happen
-		mocks.mdb.addDataToObjects(Collections.emptyList(), bafcMock);
+		mocks.mdb.addDataToObjects(Collections.emptyList(), bafcMock, 1);
 	}
 
 	private List<WorkspaceObjectData.Builder> addDataToObjectsSetup() {
@@ -455,7 +466,7 @@ public class MongoWorkspaceDBTest {
 		when(bafcMock.getSubdataExtraction(bafc2, new SubsetSelection(list("/foo"))))
 				.thenReturn(bafc2sub, (ByteArrayFileCache) null); // cause a failure if called 2x
 		
-		mocks.mdb.addDataToObjects(objects, bafcMock);
+		mocks.mdb.addDataToObjects(objects, bafcMock, 1);
 		
 		final ByteArrayFileCache got1 = objects.get(0).build().getSerializedData().get();
 		final ByteArrayFileCache got2 = objects.get(1).build().getSerializedData().get();
@@ -467,6 +478,24 @@ public class MongoWorkspaceDBTest {
 		assertThat("data is destroyed", got2.isDestroyed(), is(false));
 		assertThat("incorrect data", got3, is(bafc2sub));
 		assertThat("data is destroyed", got3.isDestroyed(), is(false));
+	}
+	
+	@Test
+	public void addDataToObjectsFailBadArgs() throws Exception {
+		final PartialMock mocks = new PartialMock(MONGO_DB);
+		
+		final ByteArrayFileCacheManager m = new ByteArrayFileCacheManager();
+		final List<WorkspaceObjectData.Builder> objs = addDataToObjectsSetup();
+		final List<WorkspaceObjectData.Builder> badobjs = new LinkedList<>(objs);
+		badobjs.set(1, null);
+		
+		failAddDataToObjects(mocks, null, m, new NullPointerException("objects"));
+		failAddDataToObjects(mocks, badobjs, m, new NullPointerException("null found in objects"));
+		failAddDataToObjects(mocks, objs, null, new NullPointerException("dataManager"));
+		failAddDataToObjects(mocks, objs, m, 0, new IllegalArgumentException(
+				"backendScaling must be > 0"));
+		failAddDataToObjects(mocks, objs, m, -100, new IllegalArgumentException(
+				"backendScaling must be > 0"));
 	}
 	
 	@Test
@@ -497,7 +526,7 @@ public class MongoWorkspaceDBTest {
 						"no MD5 or whatever", new MD5("a06ab5aadd3e058c7236bd6b681eefc7")),
 				new NoObjectDataException("No data present for object 1/2/1"));
 		
-		TestCommon.assertExceptionCorrect(got.getCause(), new NoSuchBlobException(
+		TestCommon.assertExceptionCorrect(got.getCause().getCause(), new NoSuchBlobException(
 				"no MD5 or whatever", new MD5("a06ab5aadd3e058c7236bd6b681eefc7")));
 	}
 	
@@ -505,7 +534,7 @@ public class MongoWorkspaceDBTest {
 	public void addDataToObjectsFailGetBlobRuntimeException() throws Exception {
 		// test that data is cleaned up correctly with a runtime exception
 		failAddDataToObjectsGetBlobException(
-				new RuntimeException("aw dang"), new RuntimeException("aw dang"));
+				new RuntimeException("aw dang"), new RuntimeException("Unexpected error"));
 	}
 
 
@@ -584,7 +613,7 @@ public class MongoWorkspaceDBTest {
 		 * is requested for the same object with and without a subset. However, if subsetting
 		 * fails on an object with a subset request, and only a subset request, then the
 		 * parent file is not visible in the list of WorkspaceObjectData and needs to be
-		 * cleaned up via the list of ByteArrayFileCaches.
+		 * cleaned up via the list of Callables.
 		 */
 		final PartialMock mocks = new PartialMock(MONGO_DB);
 		final ByteArrayFileCacheManager bafcMock = mock(ByteArrayFileCacheManager.class);
@@ -608,13 +637,22 @@ public class MongoWorkspaceDBTest {
 		assertThat("expected destroyed", bafc1.isDestroyed(), is(true));
 	}
 
-	public Exception failAddDataToObjects(
+	private Exception failAddDataToObjects(
 			final PartialMock mocks,
 			final List<WorkspaceObjectData.Builder> objects,
 			final ByteArrayFileCacheManager bafcMock,
 			final Exception expected) {
+		return failAddDataToObjects(mocks, objects, bafcMock, 1, expected);
+	}
+	
+	private Exception failAddDataToObjects(
+			final PartialMock mocks,
+			final List<WorkspaceObjectData.Builder> objects,
+			final ByteArrayFileCacheManager bafcMock,
+			final int backendScaling,
+			final Exception expected) {
 		try {
-			mocks.mdb.addDataToObjects(objects, bafcMock);
+			mocks.mdb.addDataToObjects(objects, bafcMock, backendScaling);
 			fail("expected exception");
 			return null; // can't actually get here
 		} catch (Exception got) {
@@ -623,6 +661,93 @@ public class MongoWorkspaceDBTest {
 		}
 	}
 	
+	@Test
+	public void addDataToObjectsBackendScaling() throws Exception {
+		/* The scaling factor is really just an implementation detail and doesn't affect the
+		 * data returned from the method, so we really shouldn't care about testing it
+		 * other than it doesn't cause failures. The only noticeable effect should be that
+		 * a higher scaling factor should result in a faster return, which is not something
+		 * that should be in automated tests as it's heavily dependent on the environment.
+		 * Furthermore, in automated tests like this where network speed is not an issue
+		 * little to no benefit will be seen from parallelizing the requests as IO should be
+		 * local disk bound.
+		 * 
+		 * Hence, this test just tries different scaling factors and prints out the speed
+		 * for informational purposes. Any rigorous speed testing should take place outside the
+		 * context of unit or even integration tests.
+		 */
+		
+		// make a real MongoWSDB environment vs mocks
+		final MongoWorkspaceDB db = new MongoWorkspaceDB(MONGO_DB, new GridFSBlobStore(MONGO_DB));
+		final WorkspaceUser u = new WorkspaceUser("u1");
+		final ResolvedWorkspaceID ws = new ResolvedWorkspaceID(1, "one", false, false);
+		db.createWorkspace(u, "one", false, null, new WorkspaceUserMetadata());
+		final List<ResolvedSaveObject> objs = saveObjects(db, ws, 100);
+		
+		final List<WorkspaceObjectData.Builder> wods = new LinkedList<>();
+		int counter = 1;
+		for (final ResolvedSaveObject o: objs) {
+			wods.add(WorkspaceObjectData.getBuilder(
+					new ObjectInformation(
+							counter,
+							"o" + counter,
+							"Mod.Meth-1.0",
+							new Date(),
+							1,
+							u,
+							ws,
+							o.getRep().getMD5().getMD5(),
+							o.getRep().getRelabeledSize(),
+							null),
+					new Provenance(u))
+					.withSubsetSelection(new SubsetSelection(list("baz"))));
+			counter++;
+		}
+		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager();
+		final Map<Integer, Long> scaling2elapsed = new TreeMap<>();
+		for (final int i: list(1, 2, 5, 10, 50, 100, 500)) {
+			scaling2elapsed.put(i, timeAddDataToObjects(db, wods, man, i));
+		}
+		System.out.println(scaling2elapsed);
+	}
+	
+	private long timeAddDataToObjects(
+			final MongoWorkspaceDB db,
+			final List<WorkspaceObjectData.Builder> wods,
+			final ByteArrayFileCacheManager man,
+			final int backendScaling)
+			throws Exception {
+		final long start = System.currentTimeMillis();
+		db.addDataToObjects(wods, man, backendScaling);
+		return System.currentTimeMillis() - start;
+	}
+	
+	private List<ResolvedSaveObject> saveObjects(
+			final MongoWorkspaceDB db,
+			final ResolvedWorkspaceID ws,
+			final int count)
+			throws Exception {
+		final List<ResolvedSaveObject> objects = new LinkedList<>();
+		for (int i = 0; i < count; i++) {
+			final WorkspaceSaveObject wso = new WorkspaceSaveObject(
+					new ObjectIDNoWSNoVer("o" + i),
+					new UObject(ImmutableMap.of("foo", "bar", "baz", "bat" + i)),
+					new TypeDefId("Mod.Meth"),
+					null,
+					new Provenance(new WorkspaceUser("u1")),
+					false);
+			final DummyValidatedTypedObject dummy = new DummyValidatedTypedObject(
+					AbsoluteTypeDefId.fromAbsoluteTypeString("Mod.Meth-1.0"),
+					wso.getData());
+			dummy.calculateRelabeledSize();
+			dummy.sort(new UTF8JsonSorterFactory(100000));
+			objects.add(wso.resolve(dummy, set(), list(), Collections.emptyMap()));
+			
+		}
+		db.saveObjects(new WorkspaceUser("u1"), ws, objects);
+		return objects;
+	}
+
 	@Test
 	public void dynamicConfigSetAndGetNoop() throws Exception {
 		final PartialMock mocks = new PartialMock(MONGO_DB);

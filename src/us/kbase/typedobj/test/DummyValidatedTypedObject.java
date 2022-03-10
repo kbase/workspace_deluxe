@@ -1,6 +1,5 @@
 package us.kbase.typedobj.test;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -27,7 +26,7 @@ public class DummyValidatedTypedObject extends ValidatedTypedObject {
 	public DummyValidatedTypedObject(final AbsoluteTypeDefId type, final UObject data)
 			throws Exception {
 		
-		super(data, type, Collections.<String>emptyList(), null,
+		super(data, type, Collections.emptyList(), null,
 				JsonTokenValidationSchema.parseJsonSchema(JsonSchemas.EMPTY_STRUCT),
 				IdReferenceHandlerSetFactoryBuilder.getBuilder(6).build().getFactory(null)
 						.createHandlers(String.class).processIDs());
@@ -40,12 +39,11 @@ public class DummyValidatedTypedObject extends ValidatedTypedObject {
 	
 	@Override
 	public List <String> getErrorMessages() {
-		return new ArrayList<String>();
+		return Collections.emptyList();
 	}
 
 	public JsonNode extractSearchableWsSubset() {
-		ObjectMapper mapper = new ObjectMapper();
-		return mapper.createObjectNode();
+		return new ObjectMapper().createObjectNode();
 	}
 	
 	@Override

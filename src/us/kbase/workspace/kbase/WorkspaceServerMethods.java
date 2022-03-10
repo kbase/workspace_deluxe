@@ -430,6 +430,7 @@ public class WorkspaceServerMethods {
 	 * many other objects.
 	 * @throws TypedObjectExtractionException if an error occurred extracting data from a typed
 	 * object.
+	 * @throws InterruptedException if the operation is interrupted.
 	 */
 	public GetObjects2Results getObjects(
 			final GetObjects2Params params,
@@ -438,7 +439,8 @@ public class WorkspaceServerMethods {
 			final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
 			throws CorruptWorkspaceDBException, WorkspaceCommunicationException,
 					InaccessibleObjectException, NoSuchReferenceException, NoSuchObjectException,
-					TypedObjectExtractionException, ReferenceSearchMaximumSizeExceededException {
+					TypedObjectExtractionException, ReferenceSearchMaximumSizeExceededException,
+					InterruptedException {
 		// ugh, tried to see if we could code out the jpe and ioe but it's too much of a mess
 		// once you get into the byte array cache and JTS
 		checkAddlArgs(params.getAdditionalProperties(), GetObjects2Params.class);
