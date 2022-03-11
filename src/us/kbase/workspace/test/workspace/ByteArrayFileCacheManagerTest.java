@@ -31,7 +31,6 @@ import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
-import us.kbase.workspace.database.exceptions.FileCacheIOException;
 
 public class ByteArrayFileCacheManagerTest {
 	
@@ -151,7 +150,7 @@ public class ByteArrayFileCacheManagerTest {
 	
 	@Test
 	public void createBAFCFailIOExceptionWithoutFile() throws Exception {
-		failCreateBAFC(null, new IOException("rats"), new FileCacheIOException("rats"));
+		failCreateBAFC(null, new IOException("rats"), new IOException("rats"));
 	}
 	
 	@Test
@@ -161,7 +160,7 @@ public class ByteArrayFileCacheManagerTest {
 
 	@Test
 	public void createBAFCFailIOExceptionWithFile() throws Exception {
-		failCreateBAFCWithFile(new IOException("rats"), new FileCacheIOException("rats"));
+		failCreateBAFCWithFile(new IOException("rats"), new IOException("rats"));
 	}
 	
 	@Test

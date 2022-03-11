@@ -11,6 +11,7 @@ import static us.kbase.common.test.TestCommon.list;
 import static us.kbase.common.test.TestCommon.set;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -46,8 +47,6 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.Reference;
-import us.kbase.workspace.database.exceptions.FileCacheException;
-import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
@@ -77,7 +76,7 @@ public class MongoWorkspaceDBTest {
 		try {
 			return new ByteArrayFileCacheManager()
 					.createBAFC(new ByteArrayInputStream(json.getBytes()), true, true);
-		} catch (FileCacheException e) {
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -470,7 +469,7 @@ public class MongoWorkspaceDBTest {
 	@Test
 	public void addDataToObjectsFailGetBlobFileIOException() throws Exception {
 		failAddDataToObjectsGetBlobException(
-				new FileCacheIOException("foo"), new WorkspaceCommunicationException("foo"));
+				new IOException("foo"), new WorkspaceCommunicationException("foo"));
 	}
 	
 	@Test
@@ -538,7 +537,7 @@ public class MongoWorkspaceDBTest {
 	@Test
 	public void addDataToObjectsFailSubsetFileIOException() throws Exception {
 		addDataToObjectsFailSubsetFileIOException(
-				new FileCacheIOException("foo"), new WorkspaceCommunicationException("foo"));
+				new IOException("foo"), new WorkspaceCommunicationException("foo"));
 	}
 	
 	@Test

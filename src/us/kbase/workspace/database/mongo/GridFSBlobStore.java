@@ -16,7 +16,6 @@ import us.kbase.typedobj.core.Restreamable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
-import us.kbase.workspace.database.exceptions.FileCacheIOException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
@@ -74,7 +73,7 @@ public class GridFSBlobStore implements BlobStore {
 
 	@Override
 	public ByteArrayFileCache getBlob(final MD5 md5, final ByteArrayFileCacheManager bafcMan)
-			throws NoSuchBlobException, BlobStoreCommunicationException, FileCacheIOException {
+			throws NoSuchBlobException, BlobStoreCommunicationException, IOException {
 		try {
 			final Document out = getFileMetadata(md5);
 			if (out == null) {
@@ -85,8 +84,6 @@ public class GridFSBlobStore implements BlobStore {
 			final boolean sorted = out.getBoolean(Fields.GFS_SORTED, false);
 			try (final InputStream file = gfs.openDownloadStream(new BsonString(md5.getMD5()))) {
 				return bafcMan.createBAFC(file, true, sorted);
-			} catch (IOException ioe) {
-				throw new RuntimeException("Something is broken", ioe);
 			}	
 		} catch (MongoException me) {
 			throw new BlobStoreCommunicationException(

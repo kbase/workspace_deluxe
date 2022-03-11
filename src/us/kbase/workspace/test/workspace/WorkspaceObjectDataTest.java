@@ -7,6 +7,7 @@ import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 import static us.kbase.common.test.TestCommon.opt;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -28,7 +29,6 @@ import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.database.exceptions.FileCacheException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 
 public class WorkspaceObjectDataTest {
@@ -49,7 +49,7 @@ public class WorkspaceObjectDataTest {
 		try {
 			return new ByteArrayFileCacheManager()
 					.createBAFC(new ByteArrayInputStream("{}".getBytes()), true, true);
-		} catch (FileCacheException e) {
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
