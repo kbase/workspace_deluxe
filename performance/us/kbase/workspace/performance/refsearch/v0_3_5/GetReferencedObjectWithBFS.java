@@ -178,7 +178,7 @@ public class GetReferencedObjectWithBFS {
 			for (int j = 0; j < TEST_REPS; j++) {
 				long start = System.nanoTime();
 				WS.getObjects(u2, Arrays.asList(ObjectIdentifier.getBuilder(priv)
-						.withID(o.getObjectId()).build()), true);
+						.withID(o.getObjectId()).build()), true, false, false);
 				System.out.print((System.nanoTime() - start) + " ");
 			}
 			System.out.println();
@@ -243,7 +243,7 @@ public class GetReferencedObjectWithBFS {
 			for (int j = 0; j < TEST_REPS; j++) {
 				long start = System.nanoTime();
 				WS.getObjects(u2, Arrays.asList(ObjectIdentifier.getBuilder(priv)
-						.withID((long) i).build()), true);
+						.withID((long) i).build()), true, false, false);
 				System.out.print((System.nanoTime() - start) + " ");
 			}
 			System.out.println();

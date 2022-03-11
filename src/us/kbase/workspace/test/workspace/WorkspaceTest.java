@@ -1628,7 +1628,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		successGetObjects(bar, Arrays.asList(r2));
 		try {
-			ws.getObjects(bar, Arrays.asList(p2));
+			getObjects(ws, bar, Arrays.asList(p2));
 			fail("Able to get obj data from private workspace");
 		} catch (InaccessibleObjectException ioe) {
 			assertThat("correct exception message", ioe.getLocalizedMessage(),
@@ -2099,7 +2099,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		
 		ws.saveObjects(user, wspace, objs, getIdFactory());
-		List<WorkspaceObjectData> ret = ws.getObjects(user,
+		List<WorkspaceObjectData> ret = getObjects(ws, user,
 				LongStream.range(1, 6)
 						.mapToObj(i -> ObjectIdentifier.getBuilder(wspace).withID(i).build())
 						.collect(Collectors.toList()));
@@ -2232,7 +2232,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		long data1id = ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
 				getRandomName(), data1, abstype1, null, emptyprov, false)),
 				getIdFactory()).get(0).getObjectId();
-		final List<WorkspaceObjectData> objects = ws.getObjects(
+		final List<WorkspaceObjectData> objects = getObjects(
+				ws,
 				userfoo,
 				Arrays.asList(ObjectIdentifier.getBuilder(wspace).withID(data1id).build()));
 		final Map<String, Object> data1copy;
@@ -2317,8 +2318,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(user, wspace, Arrays.asList(new WorkspaceSaveObject(
 				getRandomName(), data, SAFE_TYPE1, null, mtprov, false)
 				), getIdFactory());
-		final List<WorkspaceObjectData> objects = ws.getObjects(
-				user, Arrays.asList(ObjectIdentifier.getBuilder(wspace).withID(1L).build()));
+		final List<WorkspaceObjectData> objects = getObjects(
+				ws, user, Arrays.asList(ObjectIdentifier.getBuilder(wspace).withID(1L).build()));
 		try {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> dataObj = (Map<String, Object>) getData(objects.get(0));
@@ -2847,7 +2848,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		for (long i = 3; i < 11; i++) {
 			final List<ObjectIdentifier> oi = list(
 					ObjectIdentifier.getBuilder(reftypecheck).withID(i).build());
-			final WorkspaceObjectData wod = ws.getObjects(userfoo, oi).get(0);
+			final WorkspaceObjectData wod = getObjects(ws, userfoo, oi).get(0);
 			try {
 				@SuppressWarnings("unchecked")
 				Map<String, Object> obj = (Map<String, Object>) getData(wod);
@@ -2859,7 +2860,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			assertThat("reference included correctly", wod.getReferences(),
 					is(Arrays.asList(reftypewsid + "/2/1")));
 			
-			final WorkspaceObjectData inf = ws.getObjects(userfoo, oi, true).get(0);
+			final WorkspaceObjectData inf = ws.getObjects(userfoo, oi, true, false, false).get(0);
 			assertThat("sub obj reference included correctly", inf.getReferences(),
 					is(Arrays.asList(reftypewsid + "/2/1")));
 		}
@@ -3519,11 +3520,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<Date> dates = checkProvenanceCorrect(
 				foo, p2, pidb.withID(5L).build(), new HashMap<>());
 		final ObjectIdentifier prov5 = ObjectIdentifier.getBuilder(prov).withID(5L).build();
-		final List<WorkspaceObjectData> objects = ws.getObjects(foo, Arrays.asList(prov5));
+		final List<WorkspaceObjectData> objects = getObjects(ws, foo, Arrays.asList(prov5));
 		destroyGetObjectsResources(objects); // don't need the data
 		Provenance got2 = objects.get(0).getProvenance();
 		assertThat("Prov date constant", got2.getDate(), is(dates.get(0)));
-		Provenance gotProv2 = ws.getObjects(foo, Arrays.asList(prov5), true)
+		Provenance gotProv2 = ws.getObjects(foo, Arrays.asList(prov5), true, false, false)
 				.get(0).getProvenance();
 		assertThat("Prov date constant", gotProv2.getDate(), is(dates.get(1)));
 		assertThat("Prov dates same", got2.getDate(), is(gotProv2.getDate()));
@@ -3906,7 +3907,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		}
 		List<WorkspaceObjectData> d = null;
 		try {
-			d = ws.getObjects(u1, idents);
+			d = getObjects(ws, u1, idents);
 			for (int i = 0; i < list.size(); i++) {
 				final Map<String, Object> data = d.get(i).getSerializedData().get().getUObject()
 						.asClassInstance(new TypeReference<Map<String, Object>>() {});
@@ -4463,9 +4464,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		ObjectInformation save12 = objs.get(1);
 		ObjectInformation save13 = objs.get(2);
 		
-		WorkspaceObjectData wod = ws.getObjects(user1, Arrays.asList(oihide)).get(0);
+		WorkspaceObjectData wod = getObjects(ws, user1, Arrays.asList(oihide)).get(0);
 		destroyGetObjectsResources(Arrays.asList(wod));
-		WorkspaceObjectData woi = ws.getObjects(user1, Arrays.asList(oihide), true).get(0);
+		WorkspaceObjectData woi = ws.getObjects(user1, Arrays.asList(oihide), true, false, false)
+				.get(0);
 		assertThat("copy ref for obj is null", wod.getCopyReference(), is(Optional.empty()));
 		assertThat("copy ref for prov is null", woi.getCopyReference(), is(Optional.empty()));
 		
@@ -4811,13 +4813,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<List<WorkspaceObjectData>> infos =
 				new LinkedList<List<WorkspaceObjectData>>();
 		
-		infos.add(ws.getObjects(user, testobjs, true));
-		final List<WorkspaceObjectData> objects =
-				ws.getObjects(user, testobjs);
+		infos.add(ws.getObjects(user, testobjs, true, false, false));
+		final List<WorkspaceObjectData> objects = getObjects(ws, user, testobjs);
 		destroyGetObjectsResources(objects); // don't need the data
 		infos.add(objects);
-		final List<WorkspaceObjectData> objects2 =
-				ws.getObjects(user, testocs);
+		final List<WorkspaceObjectData> objects2 = getObjects(ws, user, testocs);
 		destroyGetObjectsResources(objects2); // ditto
 		infos.add(objects2);
 		
@@ -6982,7 +6982,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, String> refmap2 = new HashMap<String, String>();
 		refmap2.put("subData/auto2", wsid1 + "/2/1");
 		
-		List<WorkspaceObjectData> got = ws.getObjects(user,  Arrays.asList(
+		List<WorkspaceObjectData> got = getObjects(ws, user, Arrays.asList(
 				oident1.withSubsetSelection(new SubsetSelection(
 						Arrays.asList("/map/id3", "/map/id1"))).build(),
 				oident1.withSubsetSelection(new SubsetSelection(
@@ -7038,7 +7038,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new TypedObjectExtractionException(
 						"Invalid selection: no array element exists at position '3', at: /array/3"));
 		
-		got = ws.getObjects(user, Arrays.asList(
+		got = getObjects(ws, user, Arrays.asList(
 				oident1.withSubsetSelection(new SubsetSelection(
 						Arrays.asList("/map/*/thing"))).build(),
 				oident2.withSubsetSelection(new SubsetSelection(
@@ -7078,7 +7078,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"may not read workspace subData", null));
 		
 		try {
-			ws.getObjects(user2, Arrays.asList(ObjectIdentifier.getBuilder(wsi).withID(2L)
+			getObjects(ws, user2, Arrays.asList(ObjectIdentifier.getBuilder(wsi).withID(2L)
 					.build()));
 			fail("Able to get obj data from private workspace");
 		} catch (InaccessibleObjectException ioe) {
@@ -7254,9 +7254,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		tar1.withVersion(null); // remove version to prevent test bugs
 		assertThat("got correct refs", ws.getReferencingObjects(user1, objs),
 				is(Arrays.asList(
-						oiset(stdref2, hiddenref),
-						oiset(stdref2, hiddenref),
-						oiset(stdref1))));
+						set(stdref2, hiddenref),
+						set(stdref2, hiddenref),
+						set(stdref1))));
 		@SuppressWarnings("deprecation")
 		List<Integer> d = ws.getReferencingObjectCounts(user1, objs);
 		assertThat("got correct refcounts", d,
@@ -7274,7 +7274,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				is(Arrays.asList(
 						mtoiset,
 						mtoiset,
-						oiset(globalrd))));
+						set(globalrd))));
 		@SuppressWarnings("deprecation")
 		List<Integer> d2 = ws.getReferencingObjectCounts(user1, objs);
 		assertThat("got correct refcounts", d2,
@@ -7289,8 +7289,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		tar2.withVersion(null);
 		assertThat("got correct refs", ws.getReferencingObjects(user1,objs),
 				is(Arrays.asList(
-						oiset(readable, globalrd),
-						oiset(readable, globalrd),
+						set(readable, globalrd),
+						set(readable, globalrd),
 						mtoiset,
 						mtoiset)));
 		@SuppressWarnings("deprecation")
@@ -7360,9 +7360,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		tar1.withVersion(null); // remove version to prevent test bugs
 		assertThat("got correct refs", ws.getReferencingObjects(user1, objs),
 				is(Arrays.asList(
-						oiset(stdref2, hiddenref, pstdref2, phiddenref),
-						oiset(stdref2, hiddenref, pstdref2, phiddenref),
-						oiset(stdref1, pstdref1))));
+						set(stdref2, hiddenref, pstdref2, phiddenref),
+						set(stdref2, hiddenref, pstdref2, phiddenref),
+						set(stdref1, pstdref1))));
 		@SuppressWarnings("deprecation")
 		List<Integer> d4 = ws.getReferencingObjectCounts(user1, objs);
 		assertThat("got correct refcounts", d4,
@@ -7377,7 +7377,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				is(Arrays.asList(
 						mtoiset,
 						mtoiset,
-						oiset(globalrd, pglobalrd))));
+						set(globalrd, pglobalrd))));
 		@SuppressWarnings("deprecation")
 		List<Integer> d5 = ws.getReferencingObjectCounts(user1, objs);
 		assertThat("got correct refcounts", d5,
@@ -7392,8 +7392,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		tar2.withVersion(null);
 		assertThat("got correct refs", ws.getReferencingObjects(user1, objs),
 				is(Arrays.asList(
-						oiset(readable, globalrd, preadable),
-						oiset(readable, globalrd, preadable),
+						set(readable, globalrd, preadable),
+						set(readable, globalrd, preadable),
 						mtoiset,
 						mtoiset)));
 		@SuppressWarnings("deprecation")
@@ -7573,7 +7573,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		final List<String> refs = Arrays.asList("2/1/1");
 		final Map<String, String> refmap = new HashMap<String, String>();
 		refmap.put("hidden/leaf1", "2/1/1");
-		List<WorkspaceObjectData> lwod = ws.getObjects(user1, Arrays.asList(
+		List<WorkspaceObjectData> lwod = getObjects(ws, user1, Arrays.asList(
 				leaf2b.build(),
 				simpleb.build(),
 				simpleb.withReferencePath(Arrays.asList(leaf1oi)).build(),
@@ -7622,7 +7622,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				leaf2b.withLookupRequired(true).build()
 				);
 		// test getting provenance only
-		lwod = ws.getObjects(user1, nodata, true);
+		lwod = ws.getObjects(user1, nodata, true, false, false);
 		try {
 			assertThat("correct list size", lwod.size(), is(5));
 			compareObjectAndInfo(lwod.get(0), leaf2, pU1_1, null, MT_LIST, MT_MAP);
@@ -7756,7 +7756,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				w2b.withName(leaf1Name).withVersion(2).build(),
 				w2b.withName(path2LeafName).withVersion(1).build() // 1 hop path
 				);
-		final List<WorkspaceObjectData> lwod = ws.getObjects(user1, a);
+		final List<WorkspaceObjectData> lwod = getObjects(ws, user1, a);
 		
 		final ObjectInformation leaf1_1stdPath = leaf1_1.updateReferencePath(Arrays.asList(
 				new Reference("1/3/1"), new Reference("2/6/1"), new Reference("2/4/1"),
@@ -7935,7 +7935,7 @@ public class WorkspaceTest extends WorkspaceTester {
 					false, Sets.newHashSet(0)); //checks for nulls under the hood
 			
 			ws.setMaximumObjectSearchCount(10);
-			destroyGetObjectsResources(ws.getObjects(user1, targetObjs)); // should work
+			destroyGetObjectsResources(getObjects(ws, user1, targetObjs)); // should work
 			
 		} finally {
 			ws.setMaximumObjectSearchCount(10000);
@@ -8240,7 +8240,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				delptr2b.withReferencePath(list(del2oi, leaf1oi1)).build(),
 				delptr2b.withReferencePath(list(del2oi, leaf2oi)).build()
 				);
-		List<WorkspaceObjectData> lwod = ws.getObjects(user1, objs);
+		List<WorkspaceObjectData> lwod = getObjects(ws, user1, objs);
 		try {
 			assertThat("correct list size", lwod.size(), is(7));
 			compareObjectAndInfo(lwod.get(0),
@@ -8297,7 +8297,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				delptr12b.withReferencePath(list(del1oi, leaf2tempID)).build(),
 				delptr12b.withReferencePath(list(del2oi, leaf2nover)).build()
 				);
-		lwod = ws.getObjects(user1, objs2);
+		lwod = getObjects(ws, user1, objs2);
 		try {
 			compareObjectAndInfo(lwod.get(0),
 					leaf2.updateReferencePath(list(dp12, del1ref, l2)),
@@ -8596,7 +8596,6 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.setResourceConfig(oldcfg);
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Test
 	public void maxReturnedObjectSize() throws Exception {
 		TypeDefId reftype = new TypeDefId(
@@ -8646,9 +8645,9 @@ public class WorkspaceTest extends WorkspaceTester {
 			final List<ObjectIdentifier> ois1lmt = list(oi1b.withSubsetSelection(
 					new SubsetSelection(Collections.emptyList())).build());
 			successGetObjects(user, oi1l);
-			destroyGetObjectsResources(ws.getObjects(user, ois1l));
-			destroyGetObjectsResources(ws.getObjects(user, ois1lmt));
-			destroyGetObjectsResources(ws.getObjects(user, refchain));
+			destroyGetObjectsResources(getObjects(ws, user, ois1l));
+			destroyGetObjectsResources(getObjects(ws, user, ois1lmt));
+			destroyGetObjectsResources(getObjects(ws, user, refchain));
 			TestCommon.assertNoTempFilesExist(tfm);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(19).build());
 			String errstr = "Too much data requested from the workspace at once; data requested " + 
@@ -8676,12 +8675,9 @@ public class WorkspaceTest extends WorkspaceTester {
 					oi2b.withSubsetSelection(new SubsetSelection(list("/ba"))).build());
 			successGetObjects(user, two);
 			successGetObjects(user, mixed);
-			destroyGetObjectsResources(ws.getObjects(user,
-					(List<ObjectIdentifier>)(List<?>) ois1l2));
-			destroyGetObjectsResources(ws.getObjects(user,
-					(List<ObjectIdentifier>)(List<?>) bothoi));
-			destroyGetObjectsResources(ws.getObjects(user,
-					(List<ObjectIdentifier>)(List<?>) refchain2));
+			destroyGetObjectsResources(getObjects(ws, user, ois1l2));
+			destroyGetObjectsResources(getObjects(ws, user, bothoi));
+			destroyGetObjectsResources(getObjects(ws, user, refchain2));
 			TestCommon.assertNoTempFilesExist(tfm);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(39).build());
 			err = new IllegalArgumentException(String.format(errstr, 40, 39));
@@ -8700,7 +8696,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			all.addAll(ois1l2);
 			all.addAll(bothoi);
 			ws.setResourceConfig(build.withMaxReturnedDataSize(80).build());
-			destroyGetObjectsResources(ws.getObjects(user, all));
+			destroyGetObjectsResources(getObjects(ws, user, all));
 			ws.setResourceConfig(build.withMaxReturnedDataSize(79).build());
 			err = new IllegalArgumentException(String.format(errstr, 80, 79));
 			failGetSubset(user, all, err);
@@ -8745,9 +8741,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		assertThat("created no temp files on save", filesCreated[0], is(0));
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(13).build());
 		final ObjectIdentifier.Builder oi1b = ObjectIdentifier.getBuilder(wsi).withID(1L);
-		ws.getObjects(user, list(oi1b.build()));
+		getObjects(ws, user, list(oi1b.build()));
 		assertThat("created no temp files on get", filesCreated[0], is(0));
-		ws.getObjects(user, list(oi1b.withSubsetSelection(new SubsetSelection(list("z"))).build()))
+		getObjects(ws, user, list(oi1b.withSubsetSelection(new SubsetSelection(list("z")))
+				.build()))
 				.get(0).getSerializedData().get().destroy();
 		assertThat("created 2 temp files on get subdata", filesCreated[0], is(2));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
@@ -8763,19 +8760,19 @@ public class WorkspaceTest extends WorkspaceTester {
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(12).build());
 		final ObjectIdentifier.Builder oi2b = ObjectIdentifier.getBuilder(wsi).withID(2L);
-		ws.getObjects(user, list(oi2b.build())).get(0).getSerializedData().get().destroy();
+		getObjects(ws, user, list(oi2b.build())).get(0).getSerializedData().get().destroy();
 		assertThat("created 1 temp files on get", filesCreated[0], is(1));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
-		ws.getObjects(user, list(
+		getObjects(ws, user, list(
 				oi2b.withSubsetSelection(new SubsetSelection(list("z"))).build()))
 				.get(0).getSerializedData().get().destroy();
 		assertThat("created 2 temp files on get subdata part object", filesCreated[0], is(2));
 		TestCommon.assertNoTempFilesExist(ws.getTempFilesManager());
 		
 		filesCreated[0] = 0;
-		ws.getObjects(user, list(
+		getObjects(ws, user, list(
 				oi2b.withSubsetSelection(new SubsetSelection(list("z", "y"))).build()))
 				.get(0).getSerializedData().get().destroy();
 		assertThat("created 2 temp files on get subdata full object", filesCreated[0], is(2));
@@ -8803,7 +8800,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		final List<ObjectIdentifier> ois = LongStream.range(3, 6)
 				.mapToObj(i -> ObjectIdentifier.getBuilder(wsi).withID(i).build())
 				.collect(Collectors.toList());
-		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+		for (WorkspaceObjectData wod: getObjects(ws, user, ois)) {
 			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created no temp files on get", filesCreated[0], is(0));
@@ -8823,7 +8820,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(38).build());
-		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+		for (WorkspaceObjectData wod: getObjects(ws, user, ois)) {
 			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created 3 temp files on get", filesCreated[0], is(3));
@@ -8831,7 +8828,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(25).build());
-		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+		for (WorkspaceObjectData wod: getObjects(ws, user, ois)) {
 			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created 3 temp files on get", filesCreated[0], is(3));
@@ -8851,7 +8848,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		// ref obj and std obj in memory
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(39).build());
-		for (WorkspaceObjectData wod: ws.getObjects(user, refAndStd)) {
+		for (WorkspaceObjectData wod: getObjects(ws, user, refAndStd)) {
 			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created no temp files on get", filesCreated[0], is(0));
@@ -8860,7 +8857,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		// ref obj and std obj to files
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(38).build());
-		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+		for (WorkspaceObjectData wod: getObjects(ws, user, ois)) {
 			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created 3 temp files on get", filesCreated[0], is(3));
@@ -8868,7 +8865,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		filesCreated[0] = 0;
 		ws.setResourceConfig(build.withMaxReturnedDataMemoryUsage(25).build());
-		for (WorkspaceObjectData wod: ws.getObjects(user, ois)) {
+		for (WorkspaceObjectData wod: getObjects(ws, user, ois)) {
 			wod.getSerializedData().get().destroy();
 		}
 		assertThat("created 3 temp files on get", filesCreated[0], is(3));
@@ -8893,7 +8890,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		List<WorkspaceSaveObject> objs = new ArrayList<WorkspaceSaveObject>();
 		objs.add(new WorkspaceSaveObject(getRandomName(), data1, SAFE_TYPE1, null, p, false));
 		ws.saveObjects(user, wsi, objs, getIdFactory());
-		WorkspaceObjectData o = ws.getObjects(
+		WorkspaceObjectData o = getObjects(ws, 
 				user, list(ObjectIdentifier.getBuilder(wsi).withID(1L).build())).get(0);
 		try {
 			String data = IOUtils.toString(o.getSerializedData().get().getJSON());

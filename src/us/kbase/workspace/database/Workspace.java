@@ -89,6 +89,7 @@ public class Workspace {
 	 * for now this is low enough it's not really a concern.
 	 */
 	private final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 10000;
+	private final static int MAX_GET_OBJECTS_REQUEST = 10000;
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
 	
@@ -1025,31 +1026,29 @@ public class Workspace {
 		return db.getObjectInformation(params.resolve(pset));
 	}
 	
+	/** Get data objects from the workspace.
+	 * @param user the user requesting the objects, or null for an anonymous user.
+	 * @param objs the requested objects; no more than 10,000.
+	 * @param noData true to return information about the object only, no data. E.g.
+	 * {@link WorkspaceObjectData#getSerializedData()} will be empty.
+	 * @param nullIfInaccessible instead of throwing an exception, if any object is not accessible
+	 * for any reason, including deletion, include a null in the returned list at its position.
+	 * @param asAdmin run this method as an admin, bypassing permissions checks.
+	 * @return the data objects.
+	 * @throws InaccessibleObjectException if any of the objects are inaccessible.
+	 * @throws NoSuchObjectException if a requested object doesn't exist.
+	 * @throws NoSuchReferenceException if a reference path is invalid.
+	 * @throws ReferenceSearchMaximumSizeExceededException if a valid path to an object could not
+	 * be found within the specified maximum size of the graph search.
+	 * @throws TypedObjectExtractionException if extracting a data subset from a data object
+	 * fails.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 */
 	public List<WorkspaceObjectData> getObjects(
 			final WorkspaceUser user,
-			final List<ObjectIdentifier> loi)
-			throws CorruptWorkspaceDBException,
-				WorkspaceCommunicationException, InaccessibleObjectException,
-				NoSuchReferenceException, TypedObjectExtractionException,
-				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
-			
-		return getObjects(user, loi, false);
-	}
-	
-	public List<WorkspaceObjectData> getObjects(
-			final WorkspaceUser user,
-			final List<ObjectIdentifier> loi,
-			final boolean noData)
-			throws CorruptWorkspaceDBException,
-				WorkspaceCommunicationException, InaccessibleObjectException,
-				NoSuchReferenceException, TypedObjectExtractionException,
-				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
-		return getObjects(user, loi, noData, false, false);
-	}
-	
-	public List<WorkspaceObjectData> getObjects(
-			final WorkspaceUser user,
-			final List<ObjectIdentifier> loi,
+			final List<ObjectIdentifier> objs,
 			final boolean noData,
 			final boolean nullIfInaccessible,
 			final boolean asAdmin)
@@ -1057,12 +1056,16 @@ public class Workspace {
 				WorkspaceCommunicationException, InaccessibleObjectException,
 				NoSuchReferenceException, TypedObjectExtractionException,
 				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
-		
+		if (requireNonNull(objs, "objs").size() > MAX_GET_OBJECTS_REQUEST) {
+			throw new IllegalArgumentException(String.format(
+					"At most %s objects can be requested at once", MAX_GET_OBJECTS_REQUEST));
+		}
+		noNulls(objs, "object list cannot contain nulls");
 		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
 				.withIgnoreInaccessible(nullIfInaccessible)
 				.withAsAdmin(asAdmin)
 				.withMaximumObjectsSearched(maximumObjectSearchCount);
-		for (final ObjectIdentifier oi: loi) {
+		for (final ObjectIdentifier oi: objs) {
 			orb.withObject(oi);
 		}
 		ObjectResolver res = orb.resolve();
@@ -1074,7 +1077,7 @@ public class Workspace {
 				res, true, false, true, true);
 		
 		final List<WorkspaceObjectData.Builder> toProc = new ArrayList<>();
-		for (final ObjectIdentifier o: loi) {
+		for (final ObjectIdentifier o: objs) {
 			final WorkspaceObjectData.Builder wodb;
 			final ObjectResolution objres = res.getObjectResolution(o);
 			if (objres.equals(ObjectResolution.INACCESSIBLE)) {
@@ -1115,7 +1118,7 @@ public class Workspace {
 				.collect(Collectors.toList());
 	}
 
-	public Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> getObjects(
+	private Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> getObjects(
 			final ObjectResolver res,
 			final boolean withPaths,
 			final boolean exceptIfDeleted,

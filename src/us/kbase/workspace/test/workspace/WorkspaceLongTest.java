@@ -94,7 +94,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		
 		//printMem("*** released refs ***");
 		
-		final ByteArrayFileCache newdata = ws.getObjects(
+		final ByteArrayFileCache newdata = getObjects(
+				ws,
 				userfoo,
 				Arrays.asList(ObjectIdentifier.getBuilder(bigdataws).withID(1L).build()))
 				.get(0).getSerializedData().get();
@@ -181,7 +182,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 						emptyprov, false)),
 				getIdFactory());
 		
-		WorkspaceObjectData wod = ws.getObjects(
+		WorkspaceObjectData wod = getObjects(
+				ws,
 				userfoo,
 				Arrays.asList(ObjectIdentifier.getBuilder(wspace).withName("last").build()))
 				.get(0);
@@ -232,7 +234,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
 						new Provenance(userfoo), false)), getIdFactory());
-		final List<WorkspaceObjectData> objects = ws.getObjects(
+		final List<WorkspaceObjectData> objects = getObjects(
+				ws,
 				userfoo,
 				Arrays.asList(ObjectIdentifier.getBuilder(unicode).withID(1L).build()));
 		final Map<String, Object> newdata;
@@ -257,7 +260,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
 						new Provenance(userfoo), false)), getIdFactory());
-		final List<WorkspaceObjectData> objects2 = ws.getObjects(
+		final List<WorkspaceObjectData> objects2 = getObjects(
+				ws,
 				userfoo,
 				Arrays.asList(ObjectIdentifier.getBuilder(unicode).withID(2L).build()));
 		try {
@@ -343,7 +347,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		int iterCount1 = 100;
 		for (int iter = 0; iter < iterCount1; iter++) {
 			long time1 = System.currentTimeMillis();
-			WorkspaceObjectData wod1 = ws.getObjects(userfoo, Arrays.asList(
+			WorkspaceObjectData wod1 = getObjects(ws, userfoo, Arrays.asList(
 					ObjectIdentifier.getBuilder(wspace).withID(oi.getObjectId()).build())).get(0);
 			Map<String, Object> ret1 = (Map<String, Object>) getData(wod1);
 			String data1 = UObject.getMapper().writeValueAsString(ret1);
@@ -401,7 +405,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			List<ObjectIdentifier> a = new LinkedList<ObjectIdentifier>();
 			a.add(ObjectIdentifier.getBuilder(wspace).withID(oi.getObjectId())
 					.withSubsetSelection(new SubsetSelection(included)).build());
-			WorkspaceObjectData wod2 = ws.getObjects(userfoo, a).get(0);
+			WorkspaceObjectData wod2 = getObjects(ws, userfoo, a).get(0);
 			String data2 = UObject.getMapper().writeValueAsString(getData(wod2));
 			time2 = System.currentTimeMillis() - time2;
 			avgTime2 += time2;
