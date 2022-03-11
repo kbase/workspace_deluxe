@@ -25,29 +25,59 @@ import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.workspace.database.exceptions.FileCacheIOException;
 
+/** A manager for containers for arbitrary JSON data, stored in memory or on disk.
+ * 
+ * When the container is no longer of use, be sure to call {@link ByteArrayFileCache#destroy()}
+ * to clean up any temporary files.
+ * 
+ * Implementation / known bug note:
+ * Any {@link UObject}s returned from {@link ByteArrayFileCache#getUObject()} share the same
+ * {@link JsonTokenStream}. In practice, this means the {@link UObject}s must be processed
+ * one at a time, and trying to process more than one at a time (whether in parallel or not)
+ * can cause errors, or possibly even data corruption.
+ * {@link #getSubdataExtraction(ByteArrayFileCache, SubsetSelection)} also uses the same
+ * {@link JsonTokenStream} and so cannot be called while a {@link UObject} from the parent
+ * cache is being processed.
+ *
+ */
 public class ByteArrayFileCacheManager {
-	
-	//TODO JAVADOC
 	
 	private final TempFilesManager tfm;
 
+	/** Create a data cache manager that stores all data in memory. */
 	public ByteArrayFileCacheManager() {
 		this.tfm = null;
 	}
 	
+	/** Create a data cache manager that stores all data on disk if a {@link TempFilesManager}
+	 * is provided or in memory otherwise.
+	 * @param tfm the temporary file manager, or null to store data in memory.
+	 */
 	public ByteArrayFileCacheManager(final TempFilesManager tfm) {
 		this.tfm = tfm;
 	}
 	
+	/** Check if this manager stores data in memory or on disk.
+	 * @return true if the data is stored on disk.
+	 */
 	public boolean isStoringOnDisk() {
 		return tfm != null;
 	}
 	
+	/** Create a data cache.
+	 * @param input the data to be stored in the cache.
+	 * @param trustedJson true if the cache stores known good JSON. If this is the case the JSON
+	 * will not be parsed when serializing a {@link UObject} from
+	 * {@link ByteArrayFileCache#getUObject()}, which can save significant time.
+	 * @param sorted true if the JSON is sorted.
+	 * @return the new data cache.
+	 * @throws FileCacheIOException if an IO exception occurs when attempting to read the file.
+	 */
 	public ByteArrayFileCache createBAFC(
 			final InputStream input,
 			final boolean trustedJson,
 			final boolean sorted)
-			throws FileCacheIOException {
+			throws FileCacheIOException { // TODO NOW CODE why not just use IOException?
 		requireNonNull(input, "input");
 		File tempFile = null;
 		try {
@@ -85,12 +115,17 @@ public class ByteArrayFileCacheManager {
 		}
 	}
 
-	// in docs note that this method or parent.getUObject() must complete before calling either
-	// one again or exceptions will be thrown. Also note not thread safe.
-	// fixing this bug would be a lot of work and not necessary at the moment
+	/** Get a subset of the data in a file cache.
+	 * @param parent the cache containing data to be subsetted.
+	 * @param paths the subset to extract from the data.
+	 * @return a new cache containing the data subset.
+	 * @throws TypedObjectExtractionException if an error occurs while subsetting the data.
+	 * @throws FileCacheIOException if an IO exception occurs during the operation.
+	 */
 	public ByteArrayFileCache getSubdataExtraction(
 			final ByteArrayFileCache parent,
 			final SubsetSelection paths)
+			// TODO NOW CODE again, why not IOError?
 			throws TypedObjectExtractionException, FileCacheIOException {
 		requireNonNull(parent, "parent").checkIfDestroyed();
 		if (requireNonNull(paths, "paths").isEmpty()) {
@@ -137,6 +172,7 @@ public class ByteArrayFileCacheManager {
 		}
 	}
 	
+	/** A container for arbitrary JSON data. */
 	public class ByteArrayFileCache {
 		private File tempFile = null;
 		private JsonTokenStream jts;
@@ -159,30 +195,42 @@ public class ByteArrayFileCacheManager {
 			this.size = size;
 		}
 		
+		/** Check if the JSON data is sorted.
+		 * @return true if sorted.
+		 */
 		public boolean isSorted() {
 			return sorted;
 		}
 		
+		/** Get the size of the data in this cache.
+		 * @return the size of the data.
+		 */
 		public long getSize() {
 			return size;
 		}
 		
-		// in docs note that this method or parent.getUObject() must complete before calling either
-		// one again or exceptions will be thrown. Also note not thread safe.
-		// fixing this bug would be a lot of work and not necessary at the moment
+		/** Get the data in this cache as a {@link UObject}.
+		 * @return the object.
+		 * @throws JsonParseException if the JSON data in this file could not be parsed.
+		 * @throws IOException if an IO error occurs.
+		 */
 		public UObject getUObject() throws JsonParseException, IOException {
 			checkIfDestroyed();
 			jts.setRoot(null);
 			return new UObject(jts);
 		}
 		
+		/** Get the data in this cache as a reader.
+		 * @return the reader.
+		 * @throws IOException if an IO error occurs.
+		 */
 		public Reader getJSON() throws IOException {
 			checkIfDestroyed();
 			return jts.createDataReader();
 		}
 		
-		/** True if this BAFC was marked as containing known good JSON.
-		 * @return true if the this BAFC was marked as containing known good
+		/** True if this cache was marked as containing known good JSON.
+		 * @return true if the this cache was marked as containing known good
 		 * JSON, false otherwise.
 		 */
 		public boolean containsTrustedJson() {
@@ -197,9 +245,6 @@ public class ByteArrayFileCacheManager {
 			}
 		}
 		
-		// in docs note that this method or parent.getUObject() must complete before calling either
-		// one again or exceptions will be thrown. Also note not thread safe.
-		// fixing this bug would be a lot of work and not necessary at the moment
 		private void getSubdataExtractionAsStream(
 				final SubsetSelection paths, 
 				final OutputStream os)
@@ -220,11 +265,14 @@ public class ByteArrayFileCacheManager {
 			}
 		}
 		
+		/** Check if this cache has been destroyed and is no longer useful.
+		 * @return true if the cache is destroyed.
+		 */
 		public boolean isDestroyed() {
 			return destroyed;
 		}
 		
-		/** Destroys any data associated with this cache and calls destroy()
+		/** Destroys any data associated with this cache and calls {@link #destroy()}
 		 * on this cache's parent. Only subdata objects have a parent, but
 		 * multiple subdata objects can share the same parent.
 		 */
