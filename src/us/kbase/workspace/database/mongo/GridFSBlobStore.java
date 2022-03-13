@@ -78,8 +78,7 @@ public class GridFSBlobStore implements BlobStore {
 			final Document out = getFileMetadata(md5);
 			if (out == null) {
 				throw new NoSuchBlobException(
-						"Attempt to retrieve non-existant blob with chksum " + 
-								md5.getMD5());
+						"Attempt to retrieve non-existant blob with chksum " + md5.getMD5(), md5);
 			}
 			final boolean sorted = out.getBoolean(Fields.GFS_SORTED, false);
 			try (final InputStream file = gfs.openDownloadStream(new BsonString(md5.getMD5()))) {
