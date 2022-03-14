@@ -46,6 +46,7 @@ import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
@@ -174,6 +175,7 @@ public class InitWorkspaceServer {
 		final Workspace ws;
 		try {
 			wsdeps = getDependencies(cfg, auth, rep);
+			// TODO CODE build ws in getDependencies & return in class
 			ws = new Workspace(
 					wsdeps.mongoWS,
 					new ResourceUsageConfigurationBuilder().build(),
@@ -181,8 +183,8 @@ public class InitWorkspaceServer {
 					tfm,
 					wsdeps.listeners);
 			ah = getAdminHandler(cfg, ws);
-		} catch (WorkspaceInitException wie) {
-			rep.reportFail(wie.getLocalizedMessage());
+		} catch (WorkspaceInitException | WorkspaceCommunicationException e) {
+			rep.reportFail(e.getLocalizedMessage());
 			rep.reportFail("Server startup failed - all calls will error out.");
 			return null;
 		}

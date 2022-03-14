@@ -55,6 +55,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.ObjectResolver.ObjectResolution;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
@@ -104,7 +105,8 @@ public class Workspace {
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
 			final TypedObjectValidator validator,
-			final TempFilesManager tfm) {
+			final TempFilesManager tfm)
+			throws WorkspaceCommunicationException {
 		this(db, cfg, validator, tfm, Collections.emptyList());
 	}
 	
@@ -113,8 +115,10 @@ public class Workspace {
 			final ResourceUsageConfiguration cfg,
 			final TypedObjectValidator validator,
 			final TempFilesManager tfm,
-			final List<WorkspaceEventListener> listeners) {
+			final List<WorkspaceEventListener> listeners)
+			throws WorkspaceCommunicationException {
 		this.db = requireNonNull(db, "db");
+		this.db.setConfig(DynamicConfigUpdate.getDefault(), false);
 		rescfg = requireNonNull(cfg, "cfg");
 		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
 		this.validator = requireNonNull(validator, "validator");
@@ -154,6 +158,27 @@ public class Workspace {
 	
 	public List<DependencyStatus> status() {
 		return db.status();
+	}
+	
+	/** Set the dynamic configuration for the workspace. This method should only be exposed
+	 * to workspace admins.
+	 * @param config the configuration
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 */
+	public void setConfig(final DynamicConfigUpdate config)
+			throws WorkspaceCommunicationException {
+		db.setConfig(requireNonNull(config, "config"), true);
+	}
+	
+	/** Get the dynamic configuration for the workspace. This method should only be exposed to
+	 * workspace admins.
+	 * @return the configuration.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if a corrupt database is detected.
+	 */
+	public DynamicConfig getConfig()
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return db.getConfig();
 	}
 	
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
