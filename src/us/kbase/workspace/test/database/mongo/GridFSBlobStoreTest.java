@@ -39,7 +39,7 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
-import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
+import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public class GridFSBlobStoreTest {
 	
@@ -214,9 +214,10 @@ public class GridFSBlobStoreTest {
 		try {
 			gfsb.getBlob(new MD5(a32), new ByteArrayFileCacheManager());
 			fail("getblob should throw exception");
-		} catch (BlobStoreException wbe) {
-			assertThat("wrong exception message from failed getblob",
-					wbe.getLocalizedMessage(), is("Attempt to retrieve non-existant blob with chksum " + a32));
+		} catch (NoSuchBlobException nsbe) {
+			assertThat("wrong exception message from failed getblob", nsbe.getLocalizedMessage(),
+					is("Attempt to retrieve non-existant blob with chksum " + a32));
+			assertThat("incorrect md5", nsbe.getMD5(), is(new MD5(a32)));
 		}
 	}
 	

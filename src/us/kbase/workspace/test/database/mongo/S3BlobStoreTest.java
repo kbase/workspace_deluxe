@@ -487,8 +487,11 @@ public class S3BlobStoreTest {
 		when(m.cur.first()).thenReturn(null);
 		
 		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
-		getBlobFail(s, md5, bafcMan, new NoSuchBlobException(
-				"No blob saved with chksum 1fc5a11811de5142af444f5d482cd748"));
+		final Exception e = getBlobFail(s, md5, bafcMan, new NoSuchBlobException(
+				"No blob saved with chksum 1fc5a11811de5142af444f5d482cd748",
+				new MD5("1fc5a11811de5142af444f5d482cd748")));
+		assertThat("incorrect md5", ((NoSuchBlobException) e).getMD5(),
+				is(new MD5("1fc5a11811de5142af444f5d482cd748")));
 	}
 	
 	@Test
@@ -566,7 +569,7 @@ public class S3BlobStoreTest {
 				"IO Error accessing blob: doody butts"));
 	}
 	
-	private void getBlobFail(
+	private Exception getBlobFail(
 			final S3BlobStore s,
 			final MD5 md5,
 			final ByteArrayFileCacheManager man,
@@ -574,8 +577,10 @@ public class S3BlobStoreTest {
 		try {
 			s.getBlob(md5, man);
 			fail("expected exception");
+			return null; // can't actually get here...
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
+			return got;
 		}
 	}
 	

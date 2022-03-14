@@ -186,7 +186,7 @@ public class S3BlobStore implements BlobStore {
 		try {
 			final Document ret = col.find(new Document(Fields.S3_CHKSUM, md5.getMD5())).first();
 			if (ret == null) {
-				throw new NoSuchBlobException("No blob saved with chksum " + md5.getMD5());
+				throw new NoSuchBlobException("No blob saved with chksum " + md5.getMD5(), md5);
 			}
 			return ret;
 		} catch (MongoException me) {

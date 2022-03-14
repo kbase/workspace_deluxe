@@ -493,11 +493,12 @@ public class MongoWorkspaceDBTest {
 	@Test
 	public void addDataToObjectsFailGetBlobNoBlobException() throws Exception {
 		final Exception got = failAddDataToObjectsGetBlobException(
-				new NoSuchBlobException("no MD5 or whatever"),
+				new NoSuchBlobException(
+						"no MD5 or whatever", new MD5("a06ab5aadd3e058c7236bd6b681eefc7")),
 				new NoObjectDataException("No data present for object 1/2/1"));
 		
-		TestCommon.assertExceptionCorrect(
-				got.getCause(), new NoSuchBlobException("no MD5 or whatever"));
+		TestCommon.assertExceptionCorrect(got.getCause(), new NoSuchBlobException(
+				"no MD5 or whatever", new MD5("a06ab5aadd3e058c7236bd6b681eefc7")));
 	}
 	
 	@Test
