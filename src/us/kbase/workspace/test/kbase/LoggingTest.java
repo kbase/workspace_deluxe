@@ -16,6 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.bson.Document;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.AfterClass;
@@ -48,6 +49,7 @@ import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.test.WorkspaceServerThread;
 
 import com.mongodb.MongoClient;
@@ -236,10 +238,12 @@ public class LoggingTest {
 	@Before
 	public void clearDB() throws Exception {
 		logout.reset();
-		@SuppressWarnings("resource")
-		final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
-		final MongoDatabase wsdb1 = mcli.getDatabase(DB_WS_NAME);
-		TestCommon.destroyDB(wsdb1);
+		try (final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort())) {
+			final MongoDatabase wsdb = mcli.getDatabase(DB_WS_NAME);
+			TestCommon.destroyDB(wsdb);
+			wsdb.getCollection("dyncfg").insertOne(
+					new Document("key", DynamicConfig.KEY_BACKEND_SCALING).append("value", 1));
+		}
 	}
 	
 	private static class LogEvent {

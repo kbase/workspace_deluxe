@@ -58,6 +58,7 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
@@ -169,9 +170,10 @@ public class WorkspaceTester {
 	
 	@Before
 	public void clearDB() throws Exception {
-		final MongoClient mongoClient = new MongoClient("localhost:" + mongo.getServerPort());
-		TestCommon.destroyDB(mongoClient.getDatabase(DB_WS_NAME));
-		mongoClient.close();
+		try (final MongoClient cli = new MongoClient("localhost:" + mongo.getServerPort())) {
+			TestCommon.destroyDB(cli.getDatabase(DB_WS_NAME));
+		}
+		ws.setConfig(DynamicConfigUpdate.getDefault());
 	}
 	
 	@After

@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.bson.Document;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.AfterClass;
@@ -30,6 +31,7 @@ import com.arangodb.model.CollectionCreateOptions;
 import com.github.zafarkhaja.semver.Version;
 import com.google.common.collect.ImmutableMap;
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientException;
@@ -58,6 +60,7 @@ import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.test.WorkspaceServerThread;
 import us.kbase.workspace.test.controllers.arango.ArangoController;
 import us.kbase.workspace.test.controllers.sample.SampleServiceController;
@@ -313,7 +316,11 @@ public class SampleServiceIntegrationTest {
 	@Before
 	public void clearDB() throws Exception {
 		try (final MongoClient cli = new MongoClient("localhost:" + MONGO.getServerPort())) {
-			TestCommon.destroyDB(cli.getDatabase(WS_DB));
+			final MongoDatabase db = cli.getDatabase(WS_DB);
+			TestCommon.destroyDB(db);
+			db.getCollection("dyncfg").insertOne(
+					new Document("key", DynamicConfig.KEY_BACKEND_SCALING).append("value", 1));
+		
 		}
 		ARANGO.clearDatabase(ARANGO_DB, false);
 	}

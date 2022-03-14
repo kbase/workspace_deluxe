@@ -7,6 +7,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+import static us.kbase.common.test.TestCommon.list;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bson.Document;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.After;
@@ -70,6 +72,7 @@ import us.kbase.workspace.SubAction;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -472,14 +475,14 @@ public class JSONRPCLayerTester {
 	}
 	@Before
 	public void clearDB() throws Exception {
-		@SuppressWarnings("resource")
-		final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
-		final MongoDatabase wsdb1 = mcli.getDatabase(DB_WS_NAME_1);
-		final MongoDatabase wsdb2 = mcli.getDatabase(DB_WS_NAME_2);
-		final MongoDatabase wsdb3 = mcli.getDatabase(DB_WS_NAME_AUTH2_ADMINS);
-		TestCommon.destroyDB(wsdb1);
-		TestCommon.destroyDB(wsdb2);
-		TestCommon.destroyDB(wsdb3);
+		try (final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort())) {
+			for (final String name: list(DB_WS_NAME_1, DB_WS_NAME_2, DB_WS_NAME_AUTH2_ADMINS)) {
+				final MongoDatabase wsdb = mcli.getDatabase(name);
+				TestCommon.destroyDB(wsdb);
+				wsdb.getCollection("dyncfg").insertOne(
+						new Document("key", DynamicConfig.KEY_BACKEND_SCALING).append("value", 1));
+			}
+		}
 	}
 	
 	@After
