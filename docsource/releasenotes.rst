@@ -12,12 +12,15 @@ BACKWARDS INCOMPATIBILIES:
 * Fixed a bug that would only count the first instance of an object in a data request when
   checking against the maximum data return size. Now if the same object appears twice in
   a data request it will be counted twice as expected.
-* `get_objects2`, `get_objects`, `get_object_subset`, `get_referenced_objects`, and
-  `get_object_provenance` now only allow a maximum of 10,000 objects in the input list.
+* ``get_objects2``, ``get_objects``, ``get_object_subset``, ``get_referenced_objects``, and
+  ``get_object_provenance`` now only allow a maximum of 10,000 objects in the input list.
   Note the last 4 methods are deprecated and will be removed in a future release.
 
 UPDATES:
 
+* Added a dynamic configuration feature - see :ref:`dynamicconfiguration`
+* Dynamic configuration allows setting a scaling parameter that specifies how many parallel
+  connections can be made to the ``S3`` or ``GridFS`` backend when getting objects.
 * The sample service ACL update mechanism has been changed to use a bulk interface for updating
   ACLs rather than updating ACLs one at a time, which should speed up fetching objects with
   ``@id sample`` annotations.

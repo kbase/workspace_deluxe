@@ -102,6 +102,8 @@ List all workspace owners::
      u'yetanotheruser',
      u'jkbaumohl']
 
+.. _dynamicconfiguration:
+
 Managing the dynamic configuration
 ----------------------------------
 
