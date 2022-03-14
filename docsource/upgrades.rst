@@ -155,4 +155,9 @@ If a rollback to an earlier version of the workspace is required:
 * Shut down the 0.12.0 workspace.
 * The single document in the ``config`` collection has a ``schemaver`` key with a value of
   ``2``. Update that value to ``1``.
-* Start the older version of the workspace. 
+* Start the older version of the workspace.
+
+Upgrading to version 0.13.0
+---------------------------
+
+* If used, Sample Service 0.1.1 is now required.
