@@ -20,6 +20,8 @@ import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 
 public class DynamicConfigTest {
 	
+	private static final String BACKEND_SCALING_TXT = "backend-file-retrieval-scaling";
+
 	@Test
 	public void equals() throws Exception {
 		EqualsVerifier.forClass(DynamicConfig.class).usingGetClass().verify();
@@ -48,60 +50,60 @@ public class DynamicConfigTest {
 		final DynamicConfig dc = DynamicConfig.getBuilder().withBackendScaling(1).build();
 		
 		assertThat("incorrect scaling", dc.getBackendScaling(), is(opt(1)));
-		assertThat("incorrect map", dc.toMap(), is(ImmutableMap.of("backend-scaling", 1)));
+		assertThat("incorrect map", dc.toMap(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 1)));
 		
 		final DynamicConfig dc2 = DynamicConfig.getBuilder().withBackendScaling(1000).build();
 		
 		assertThat("incorrect scaling", dc2.getBackendScaling(), is(opt(1000)));
-		assertThat("incorrect map", dc2.toMap(), is(ImmutableMap.of("backend-scaling", 1000)));
+		assertThat("incorrect map", dc2.toMap(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 1000)));
 	}
 	
 	@Test
 	public void buildConfigMinimalFromMap() throws Exception {
 		final DynamicConfig dc = DynamicConfig.getBuilder()
-				.withMap(ImmutableMap.of("backend-scaling", 1)).build();
+				.withMap(ImmutableMap.of(BACKEND_SCALING_TXT, 1)).build();
 		
 		assertThat("incorrect scaling", dc.getBackendScaling(), is(opt(1)));
-		assertThat("incorrect map", dc.toMap(), is(ImmutableMap.of("backend-scaling", 1)));
+		assertThat("incorrect map", dc.toMap(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 1)));
 		
 		final DynamicConfig dc2 = DynamicConfig.getBuilder()
-				.withMap(ImmutableMap.of("backend-scaling", 100000)).build();
+				.withMap(ImmutableMap.of(BACKEND_SCALING_TXT, 100000)).build();
 		
 		assertThat("incorrect scaling", dc2.getBackendScaling(), is(opt(100000)));
-		assertThat("incorrect map", dc2.toMap(), is(ImmutableMap.of("backend-scaling", 100000)));
+		assertThat("incorrect map", dc2.toMap(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 100000)));
 	}
 	
 	@Test
 	public void buildConfigOverrideMap() throws Exception {
 		final DynamicConfig dc = DynamicConfig.getBuilder()
-				.withMap(ImmutableMap.of("backend-scaling", 1))
+				.withMap(ImmutableMap.of(BACKEND_SCALING_TXT, 1))
 				.withBackendScaling(10)
 				.build();
 		
 		assertThat("incorrect scaling", dc.getBackendScaling(), is(opt(10)));
-		assertThat("incorrect map", dc.toMap(), is(ImmutableMap.of("backend-scaling", 10)));
+		assertThat("incorrect map", dc.toMap(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 10)));
 	}
 	
 	@Test
 	public void buildConfigOverrideMapWithNoop() throws Exception {
 		final DynamicConfig dc = DynamicConfig.getBuilder()
-				.withMap(ImmutableMap.of("backend-scaling", 10))
+				.withMap(ImmutableMap.of(BACKEND_SCALING_TXT, 10))
 				.withMap(Collections.emptyMap())
 				.build();
 		
 		assertThat("incorrect scaling", dc.getBackendScaling(), is(opt(10)));
-		assertThat("incorrect map", dc.toMap(), is(ImmutableMap.of("backend-scaling", 10)));
+		assertThat("incorrect map", dc.toMap(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 10)));
 	}
 	
 	@Test
 	public void buildConfigOverrideSetters() throws Exception {
 		final DynamicConfig dc = DynamicConfig.getBuilder()
 				.withBackendScaling(10)
-				.withMap(ImmutableMap.of("backend-scaling", 42))
+				.withMap(ImmutableMap.of(BACKEND_SCALING_TXT, 42))
 				.build();
 		
 		assertThat("incorrect scaling", dc.getBackendScaling(), is(opt(42)));
-		assertThat("incorrect map", dc.toMap(), is(ImmutableMap.of("backend-scaling", 42)));
+		assertThat("incorrect map", dc.toMap(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 42)));
 	}
 	
 	@Test
@@ -122,14 +124,14 @@ public class DynamicConfigTest {
 	
 	@Test
 	public void configWithMapFail() throws Exception {
-		final String err = "backend-scaling must be an integer > 0";
+		final String err = "backend-file-retrieval-scaling must be an integer > 0";
 		failConfigWithMap(
-				ImmutableMap.of("backend-scaling", 0), new IllegalArgumentException(err));
+				ImmutableMap.of(BACKEND_SCALING_TXT, 0), new IllegalArgumentException(err));
 		failConfigWithMap(
-				ImmutableMap.of("backend-scaling", -1000), new IllegalArgumentException(err));
+				ImmutableMap.of(BACKEND_SCALING_TXT, -1000), new IllegalArgumentException(err));
 		failConfigWithMap(
-				ImmutableMap.of("backend-scaling", "six"), new IllegalArgumentException(err));
-		failConfigWithMap(ImmutableMap.of("backend-scaling", 1, "ayyy", "fonz", "baar", "foo"),
+				ImmutableMap.of(BACKEND_SCALING_TXT, "six"), new IllegalArgumentException(err));
+		failConfigWithMap(ImmutableMap.of(BACKEND_SCALING_TXT, 1, "ayyy", "fonz", "baar", "foo"),
 				new IllegalArgumentException("Unexpected key in configuration map: ayyy"));
 		failConfigWithMap(ImmutableMap.of("ribaldry", 1, "ayyyy", "fonz", "baar", "foo"),
 				new IllegalArgumentException("Unexpected key in configuration map: ayyyy"));
@@ -148,7 +150,7 @@ public class DynamicConfigTest {
 	public void getDefaultUpdate() throws Exception {
 		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getDefault();
 		
-		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of("backend-scaling", 1)));
+		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 1)));
 		assertThat("incorrect map", dcu.toRemove(), is(Collections.emptySet()));
 	}
 	
@@ -174,50 +176,51 @@ public class DynamicConfigTest {
 		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder()
 				.withBackendScaling(1).build();
 		
-		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of("backend-scaling", 1)));
+		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 1)));
 		assertThat("incorrect map", dcu.toRemove(), is(Collections.emptySet()));
 		
 		final DynamicConfigUpdate dcu2 = DynamicConfigUpdate.getBuilder()
 				.withBackendScaling(1000).build();
 		
-		assertThat("incorrect set", dcu2.toSet(), is(ImmutableMap.of("backend-scaling", 1000)));
+		assertThat("incorrect set", dcu2.toSet(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 1000)));
 		assertThat("incorrect map", dcu2.toRemove(), is(Collections.emptySet()));
 	}
 	
 	@Test
 	public void buildUpdateMinimalFromMap() throws Exception {
 		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder()
-				.withMap(ImmutableMap.of("backend-scaling", 1)).build();
+				.withMap(ImmutableMap.of(BACKEND_SCALING_TXT, 1)).build();
 		
-		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of("backend-scaling", 1)));
+		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 1)));
 		assertThat("incorrect map", dcu.toRemove(), is(Collections.emptySet()));
 		
 		final DynamicConfigUpdate dcu2 = DynamicConfigUpdate.getBuilder()
-				.withMap(ImmutableMap.of("backend-scaling", 100000)).build();
+				.withMap(ImmutableMap.of(BACKEND_SCALING_TXT, 100000)).build();
 		
-		assertThat("incorrect set", dcu2.toSet(), is(ImmutableMap.of("backend-scaling", 100000)));
+		assertThat("incorrect set", dcu2.toSet(),
+				is(ImmutableMap.of(BACKEND_SCALING_TXT, 100000)));
 		assertThat("incorrect map", dcu2.toRemove(), is(Collections.emptySet()));
 	}
 	
 	@Test
 	public void buildUpdateOverrideMap() throws Exception {
 		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder()
-				.withMap(ImmutableMap.of("backend-scaling", 1))
+				.withMap(ImmutableMap.of(BACKEND_SCALING_TXT, 1))
 				.withBackendScaling(10)
 				.build();
 		
-		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of("backend-scaling", 10)));
+		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 10)));
 		assertThat("incorrect map", dcu.toRemove(), is(Collections.emptySet()));
 	}
 	
 	@Test
 	public void buildUpdateOverrideMapWithNoop() throws Exception {
 		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder()
-				.withMap(ImmutableMap.of("backend-scaling", 10))
+				.withMap(ImmutableMap.of(BACKEND_SCALING_TXT, 10))
 				.withMap(Collections.emptyMap())
 				.build();
 		
-		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of("backend-scaling", 10)));
+		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 10)));
 		assertThat("incorrect map", dcu.toRemove(), is(Collections.emptySet()));
 	}
 	
@@ -225,10 +228,10 @@ public class DynamicConfigTest {
 	public void buildUpdateOverrideSetters() throws Exception {
 		final DynamicConfigUpdate dcu = DynamicConfigUpdate.getBuilder()
 				.withBackendScaling(10)
-				.withMap(ImmutableMap.of("backend-scaling", 42))
+				.withMap(ImmutableMap.of(BACKEND_SCALING_TXT, 42))
 				.build();
 		
-		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of("backend-scaling", 42)));
+		assertThat("incorrect set", dcu.toSet(), is(ImmutableMap.of(BACKEND_SCALING_TXT, 42)));
 		assertThat("incorrect map", dcu.toRemove(), is(Collections.emptySet()));
 	}
 	
@@ -250,14 +253,14 @@ public class DynamicConfigTest {
 	
 	@Test
 	public void updateWithMapFail() throws Exception {
-		final String err = "backend-scaling must be an integer > 0";
+		final String err = "backend-file-retrieval-scaling must be an integer > 0";
 		failUpdateWithMap(
-				ImmutableMap.of("backend-scaling", 0), new IllegalArgumentException(err));
+				ImmutableMap.of(BACKEND_SCALING_TXT, 0), new IllegalArgumentException(err));
 		failUpdateWithMap(
-				ImmutableMap.of("backend-scaling", -1000), new IllegalArgumentException(err));
+				ImmutableMap.of(BACKEND_SCALING_TXT, -1000), new IllegalArgumentException(err));
 		failUpdateWithMap(
-				ImmutableMap.of("backend-scaling", "six"), new IllegalArgumentException(err));
-		failUpdateWithMap(ImmutableMap.of("backend-scaling", 1, "ayyy", "fonz", "baar", "foo"),
+				ImmutableMap.of(BACKEND_SCALING_TXT, "six"), new IllegalArgumentException(err));
+		failUpdateWithMap(ImmutableMap.of(BACKEND_SCALING_TXT, 1, "ayyy", "fonz", "baar", "foo"),
 				new IllegalArgumentException("Unexpected key in configuration map: ayyy"));
 		failUpdateWithMap(ImmutableMap.of("ribaldry", 1, "ayyyy", "fonz", "baar", "foo"),
 				new IllegalArgumentException("Unexpected key in configuration map: ayyyy"));
