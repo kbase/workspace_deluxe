@@ -70,6 +70,8 @@ import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
+import us.kbase.workspace.database.DynamicConfig;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
@@ -259,13 +261,8 @@ public class WorkspaceAdministrationTest {
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah"))).thenReturn(AdminRole.READ_ONLY);
 		
-		try {
-			mocks.admin.runCommand(new AuthToken("tok", "usah"), command, null);
-			fail("expected exception");
-		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, new IOException("whoopsie"));
-		}
-		
+		runCommandFail(
+				mocks.admin, new AuthToken("tok", "usah"), command, new IOException("whoopsie"));
 	}
 	
 	/* ***********************************************
@@ -284,7 +281,7 @@ public class WorkspaceAdministrationTest {
 				"addAdmin", "removeAdmin", "setWorkspaceOwner", "createWorkspace",
 				"setPermissions", "setWorkspaceDescription", "setGlobalPermission",
 				"saveObjects", "deleteWorkspace", "undeleteWorkspace", "grantModuleOwnership",
-				"removeModuleOwnership");
+				"removeModuleOwnership", "setConfig");
 		
 		for (final String command: commands) {
 			runCommandFail(
@@ -339,6 +336,7 @@ public class WorkspaceAdministrationTest {
 		commandToClass.put("undeleteWorkspace", "WorkspaceIdentity");
 		commandToClass.put("grantModuleOwnership", "GrantModuleOwnershipParams");
 		commandToClass.put("removeModuleOwnership", "RemoveModuleOwnershipParams");
+		commandToClass.put("setConfig", "SetConfigParams");
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
@@ -400,6 +398,8 @@ public class WorkspaceAdministrationTest {
 				new MapErr("GrantModuleOwnershipParams", "with_grant_option", "foo"));
 		commandToClass.put("removeModuleOwnership",
 				new MapErr("RemoveModuleOwnershipParams", "mod", set("foo", "bar")));
+		commandToClass.put("setConfig",
+				new MapErr("SetConfigParams", "set", set("foo", "bar")));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
@@ -428,6 +428,57 @@ public class WorkspaceAdministrationTest {
 	 * Command specific tests
 	 * ***********************************************
 	 */
+	
+	@Test
+	public void getConfig() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		final UObject command = new UObject(ImmutableMap.of("command", "getConfig"));
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.ws.getConfig()).thenReturn(DynamicConfig.getBuilder()
+				.withBackendScaling(4).build());
+		final Object ret = mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		assertThat("incorrect return", ret, is(ImmutableMap.of("config", ImmutableMap.of(
+				"backend-file-retrieval-scaling", 4))));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getConfig", WorkspaceAdministration.class));
+	}
+	
+	@Test
+	public void setConfig() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		final UObject command = new UObject(ImmutableMap.of(
+				"command", "setConfig",
+				"params", ImmutableMap.of("set", ImmutableMap.of(
+						"backend-file-retrieval-scaling", 89))));
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"setConfig", WorkspaceAdministration.class));
+		
+		verify(mocks.ws).setConfig(DynamicConfigUpdate.getBuilder()
+				.withBackendScaling(89).build());
+	}
+	
+	@Test
+	public void setConfigFail() throws Exception {
+		// test one failure scenario, failures are covered well in the DynamicConfigUpdate
+		// unit tests
+		final TestMocks mocks = initTestMocks();
+		final UObject command = new UObject(ImmutableMap.of(
+				"command", "setConfig",
+				"params", ImmutableMap.of("set", ImmutableMap.of(
+						"backend-file-retrieval-scaling", "foo"))));
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		
+		runCommandFail(mocks.admin, new AuthToken("tok", "fake"), command,
+				new IllegalArgumentException(
+						"backend-file-retrieval-scaling must be an integer > 0"));
+
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"setConfig", WorkspaceAdministration.class));
+	}
 	
 	@Test
 	public void listModRequests() throws Exception {

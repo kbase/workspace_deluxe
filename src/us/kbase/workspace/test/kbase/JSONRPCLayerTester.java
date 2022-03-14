@@ -109,7 +109,7 @@ public class JSONRPCLayerTester {
 	protected static final String USER1 = "user1";
 	protected static final String USER2 = "user2";
 	protected static final String USER3 = "user3";
-	protected static String STARUSER = "*";
+	protected static final String STARUSER = "*";
 	protected static AuthUser AUTH_USER1 = null;
 	protected static AuthUser AUTH_USER2 = null;
 	protected static WorkspaceServer SERVER2 = null;
@@ -117,12 +117,12 @@ public class JSONRPCLayerTester {
 	protected static WorkspaceClient CLIENT_NO_AUTH = null;
 	
 	protected static WorkspaceServer SERVER_AUTH_ADMINS = null;
-	protected static WorkspaceClient CLIENT_AA1 = null;
-	protected static WorkspaceClient CLIENT_AA2 = null;
-	protected static WorkspaceClient CLIENT_AA3 = null;
-	protected static String AUTH_ROLE_READ1 = "WS_READ_1";
-	protected static String AUTH_ROLE_READ2 = "WS_READ_2";
-	protected static String AUTH_ROLE_FULL = "WS_FULL";
+	protected static WorkspaceClient CLIENT_AA_ADMIN_FULL = null;
+	protected static WorkspaceClient CLIENT_AA_ADMIN_NONE = null;
+	protected static WorkspaceClient CLIENT_AA_ADMIN_READ = null;
+	protected static final String AUTH_ROLE_READ1 = "WS_READ_1";
+	protected static final String AUTH_ROLE_READ2 = "WS_READ_2";
+	protected static final String AUTH_ROLE_FULL = "WS_FULL";
 	
 	protected static ObjectMapper MAPPER = new ObjectMapper();
 	protected final static int MAX_UNIQUE_IDS_PER_CALL = 4;
@@ -228,12 +228,12 @@ public class JSONRPCLayerTester {
 		System.out.println("Started auth roles test server on port " + port2);
 		final URL wsurl2 = new URL("http://localhost:" + port2);
 		
-		CLIENT_AA1 = new WorkspaceClient(wsurl2, t1);
-		CLIENT_AA2 = new WorkspaceClient(wsurl2, t2);
-		CLIENT_AA3 = new WorkspaceClient(wsurl2, t3);
-		CLIENT_AA1.setIsInsecureHttpConnectionAllowed(true);
-		CLIENT_AA2.setIsInsecureHttpConnectionAllowed(true);
-		CLIENT_AA3.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_AA_ADMIN_FULL = new WorkspaceClient(wsurl2, t1);
+		CLIENT_AA_ADMIN_NONE = new WorkspaceClient(wsurl2, t2);
+		CLIENT_AA_ADMIN_READ = new WorkspaceClient(wsurl2, t3);
+		CLIENT_AA_ADMIN_FULL.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_AA_ADMIN_NONE.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_AA_ADMIN_READ.setIsInsecureHttpConnectionAllowed(true);
 		
 		SERVER2 = startupWorkspaceServer(mongohost, DB_WS_NAME_2, DB_TYPE_NAME_2);
 		CLIENT_FOR_SRV2 = new WorkspaceClient(new URL("http://localhost:" + 
