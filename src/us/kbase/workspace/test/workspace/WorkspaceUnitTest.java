@@ -42,6 +42,8 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.DynamicConfig;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
@@ -70,7 +72,7 @@ public class WorkspaceUnitTest {
 		assertThat(UNI.length(), is(2011));
 	}
 	
-	private TestMocks initMocks() {
+	private TestMocks initMocks() throws Exception {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final TypedObjectValidator val = mock(TypedObjectValidator.class);
 		final TempFilesManager tfm = mock(TempFilesManager.class);
@@ -102,6 +104,43 @@ public class WorkspaceUnitTest {
 			this.cfg = cfg;
 			this.ws = ws;
 			this.tfm = tfm;
+		}
+	}
+	
+	@Test
+	public void setConfigOnStartup() throws Exception {
+		final TestMocks mocks = initMocks();
+		final DynamicConfigUpdate d = DynamicConfigUpdate.getBuilder()
+				.withBackendScaling(1).build();
+		// will have been called in initMocks
+		verify(mocks.db).setConfig(d, false);
+	}
+	
+	@Test
+	public void setConfig() throws Exception {
+		final TestMocks mocks = initMocks();
+		mocks.ws.setConfig(DynamicConfigUpdate.getBuilder().withBackendScaling(21).build());
+		verify(mocks.db).setConfig(
+				DynamicConfigUpdate.getBuilder().withBackendScaling(21).build(), true);
+	}
+	
+	@Test
+	public void getConfig() throws Exception {
+		final TestMocks mocks = initMocks();
+		when(mocks.db.getConfig()).thenReturn(
+				DynamicConfig.getBuilder().withBackendScaling(6).build());
+		assertThat("incorrect config", mocks.ws.getConfig(), is(
+				DynamicConfig.getBuilder().withBackendScaling(6).build()
+				));
+	}
+	
+	@Test
+	public void setConfigFail() throws Exception {
+		try {
+			initMocks().ws.setConfig(null);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("config"));
 		}
 	}
 	
