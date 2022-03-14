@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -373,7 +374,8 @@ public class WorkspaceUnitTest {
 		when(mocks.db.getObjects(robjs, true, false, true)).thenReturn(data);
 		// arguments are a list of WOD builders and ByteArrayFileCacheManager, both of
 		// which are created in the method and are only equal based on identity
-		doThrow(new NoObjectDataException("oopsie")).when(mocks.db).addDataToObjects(any(), any());
+		doThrow(new NoObjectDataException("oopsie"))
+				.when(mocks.db).addDataToObjects(any(), any(), eq(1));
 		
 		failGetObjects(mocks.ws, objs, false, new CorruptWorkspaceDBException("oopsie"));
 	}

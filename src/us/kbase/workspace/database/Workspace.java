@@ -1070,6 +1070,7 @@ public class Workspace {
 	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
 	 * storage system.
 	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws InterruptedException if the operation is interrupted.
 	 */
 	public List<WorkspaceObjectData> getObjects(
 			final WorkspaceUser user,
@@ -1079,7 +1080,7 @@ public class Workspace {
 			final boolean asAdmin)
 			throws CorruptWorkspaceDBException,
 				WorkspaceCommunicationException, InaccessibleObjectException,
-				NoSuchReferenceException, TypedObjectExtractionException,
+				NoSuchReferenceException, TypedObjectExtractionException, InterruptedException,
 				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
 		if (requireNonNull(objs, "objs").size() > MAX_GET_OBJECTS_REQUEST) {
 			throw new IllegalArgumentException(String.format(
@@ -1133,7 +1134,7 @@ public class Workspace {
 			try {
 				final List<WorkspaceObjectData.Builder> f = toProc.stream().filter(p -> p != null)
 						.collect(Collectors.toList());
-				db.addDataToObjects(f, getDataManagerAndCheckObjectSize(f));
+				db.addDataToObjects(f, getDataManagerAndCheckObjectSize(f), 1);
 			} catch (NoObjectDataException e) { // should be impossible
 				throw new CorruptWorkspaceDBException(e.getLocalizedMessage(), e);
 			}
