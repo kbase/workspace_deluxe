@@ -47,7 +47,7 @@ import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.kbase.BytestreamIdHandlerFactory;
 import us.kbase.workspace.kbase.BytestreamIdHandlerFactory.BytestreamClientCloner;
 
-public class ShockIdHandlerFactoryTest {
+public class BytestreamIdHandlerFactoryTest {
 	
 	private static final List<String> MTL = Collections.emptyList();
 	
