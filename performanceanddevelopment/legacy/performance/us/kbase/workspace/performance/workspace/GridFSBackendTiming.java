@@ -1,8 +1,8 @@
-package us.kbase.workspace.performance.workspace;
+package legacy.performance.us.kbase.workspace.performance.workspace;
 
-import static us.kbase.workspace.performance.workspace.Common.getMD5s;
-import static us.kbase.workspace.performance.workspace.Common.getObjects;
-import static us.kbase.workspace.performance.workspace.Common.printStats;
+import static legacy.performance.us.kbase.workspace.performance.workspace.Common.getMD5s;
+import static legacy.performance.us.kbase.workspace.performance.workspace.Common.getObjects;
+import static legacy.performance.us.kbase.workspace.performance.workspace.Common.printStats;
 
 import java.util.List;
 

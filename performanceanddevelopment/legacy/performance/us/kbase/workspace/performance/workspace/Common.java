@@ -1,4 +1,4 @@
-package us.kbase.workspace.performance.workspace;
+package legacy.performance.us.kbase.workspace.performance.workspace;
 
 import java.io.File;
 import java.util.ArrayList;

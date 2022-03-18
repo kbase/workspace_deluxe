@@ -69,10 +69,7 @@ compile-typespec:
 		$(SERVICE).spec
 	rm lib/biokbase/workspace/authclient.py
 
-test: test-client test-service
-
-test-client: test-service
-	$(ANT) test_client_import
+test: test-service
 
 test-service:
 	$(ANT) test

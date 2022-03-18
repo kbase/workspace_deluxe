@@ -1,4 +1,4 @@
-package performance;
+package legacy.performance;
 
 import java.io.File;
 import java.io.IOException;

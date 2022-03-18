@@ -1,4 +1,4 @@
-package performance;
+package legacy.performance;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

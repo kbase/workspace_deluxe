@@ -1,7 +1,7 @@
-package us.kbase.workspace.performance.shockclient;
+package legacy.performance.us.kbase.workspace.performance.shockclient;
 
-import static us.kbase.workspace.performance.utils.Utils.makeString;
-import static us.kbase.workspace.performance.utils.Utils.printElapse;
+import static legacy.performance.us.kbase.workspace.performance.utils.Utils.makeString;
+import static legacy.performance.us.kbase.workspace.performance.utils.Utils.printElapse;
 
 import java.io.ByteArrayInputStream;
 import java.net.URL;
