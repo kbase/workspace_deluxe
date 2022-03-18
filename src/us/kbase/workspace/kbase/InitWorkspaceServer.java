@@ -55,7 +55,7 @@ import us.kbase.workspace.database.mongo.S3BlobStore;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
-import us.kbase.workspace.kbase.ShockIdHandlerFactory.ShockClientCloner;
+import us.kbase.workspace.kbase.BytestreamIdHandlerFactory.BytestreamClientCloner;
 import us.kbase.workspace.kbase.admin.AdministratorHandler;
 import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
 import us.kbase.workspace.kbase.admin.DefaultAdminHandler;
@@ -76,8 +76,7 @@ public class InitWorkspaceServer {
 	//			Test what happens in tomcat / Jetty first though.
 	// TODO CODE Drop all references to Glassfish and streamline Tomcat setup.
 	
-	public static final String COL_SHOCK_NODES = InitConstants.COL_SHOCK_NODES;
-	public static final String COL_S3_OBJECTS = InitConstants.COL_S3_OBJECTS;
+	public static final String COL_S3_OBJECTS = "s3_objects";
 	
 	private static final int ADMIN_CACHE_MAX_SIZE = 100; // seems like more than enough admins
 	private static final int ADMIN_CACHE_EXP_TIME_MS = 5 * 60 * 1000; // cache admin role for 5m
@@ -242,7 +241,7 @@ public class InitWorkspaceServer {
 		public TypeDefinitionDB typeDB;
 		public TypedObjectValidator validator;
 		public WorkspaceDatabase mongoWS;
-		public ShockIdHandlerFactory shockFac;
+		public BytestreamIdHandlerFactory shockFac;
 		public SampleIdHandlerFactory sampleFac;
 		public List<WorkspaceEventListener> listeners;
 	}
@@ -283,12 +282,12 @@ public class InitWorkspaceServer {
 		return deps;
 	}
 
-	private static ShockIdHandlerFactory getShockIdHandlerFactory(
+	private static BytestreamIdHandlerFactory getShockIdHandlerFactory(
 			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth)
 			throws WorkspaceInitException {
 		if (cfg.getBytestreamURL() == null) {
-			return new ShockIdHandlerFactory(null, null);
+			return new BytestreamIdHandlerFactory(null, null);
 		}
 		final AuthToken shockToken = getKBaseToken(
 				cfg.getBytestreamUser(), cfg.getBytestreamToken(), "shock", auth);
@@ -300,7 +299,7 @@ public class InitWorkspaceServer {
 					"Couldn't contact Shock server configured for Shock ID links: " +
 			e.getMessage(), e);
 		}
-		return new ShockIdHandlerFactory(bsc, new ShockClientCloner() {
+		return new BytestreamIdHandlerFactory(bsc, new BytestreamClientCloner() {
 					
 					@Override
 					public BasicShockClient clone(final BasicShockClient source)

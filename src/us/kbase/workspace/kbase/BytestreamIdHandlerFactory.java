@@ -36,24 +36,27 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
 import us.kbase.typedobj.idref.RemappedId;
 
-/** A handler factory for shock IDs. IDs are labeled as @id bytestream and are referred to
- * as bytestream data in error messages.
+// TODO BYTESTREAM_CLIENT redo the Shock client so it's called a Blobstore client or something.
+// Names are important but this is kind of low priority
+
+/** A handler factory for bytestream (aka KBase Blobstore) IDs.
  * 
- *  
- * Note that shock IDs may not have attributes, and any attributes supplied to
+ * Note that bytestream IDs may not have attributes, and any attributes supplied to
  * {@link us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceHandler#addId(Object, String, List)}
  * will be ignored.
+ * 
+ * The factory uses a Shock client for communicating with the KBase Blobstore.
  * 
  * @author gaprice@lbl.gov
  *
  */
-public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
+public class BytestreamIdHandlerFactory implements IdReferenceHandlerFactory {
 	
 	/** Given a Shock client, provides a new Shock client with no token.
 	 * @author gaprice@lbl.gov
 	 *
 	 */
-	public interface ShockClientCloner {
+	public interface BytestreamClientCloner {
 		
 		/** Clone the given client without a token.
 		 * @param source the source client.
@@ -68,17 +71,17 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 	/** The type of ID this ID handler processes. */
 	public static final IdReferenceType TYPE = new IdReferenceType("bytestream");
 	private final BasicShockClient adminClient;
-	private final ShockClientCloner cloner;
+	private final BytestreamClientCloner cloner;
 	
-	/** Create the shock ID handler.
-	 * @param adminClient a Shock client with a Shock administrator token. All nodes passed to
+	/** Create the bytestream ID handler.
+	 * @param adminClient a Shock client with a Blobstore administrator token. All nodes passed to
 	 * this handler will be owned by the administrator user. Pass null to 
 	 * cause an exception to be thrown if a shock id is encountered.
-	 * @param cloner a Shock client cloner.
+	 * @param cloner a bytestream client cloner.
 	 */
-	public ShockIdHandlerFactory(
+	public BytestreamIdHandlerFactory(
 			final BasicShockClient adminClient,
-			final ShockClientCloner cloner) {
+			final BytestreamClientCloner cloner) {
 		this.adminClient = adminClient;
 		this.cloner = adminClient == null ? null : requireNonNull(cloner, "cloner");
 	}
@@ -87,17 +90,17 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 	public <T> IdReferenceHandler<T> createHandler(
 			final Class<T> clazz,
 			final AuthToken userToken) {
-		return new ShockIdHandler<T>(requireNonNull(userToken, "userToken"));
+		return new BytestreamIdHandler<T>(requireNonNull(userToken, "userToken"));
 	}
 
 	@Override
 	public IdReferencePermissionHandler createPermissionHandler() {
-		return new ShockPermissionsHandler(null);
+		return new BytestreamPermissionsHandler(null);
 	}
 
 	@Override
 	public IdReferencePermissionHandler createPermissionHandler(final String userName) {
-		return new ShockPermissionsHandler(userName);
+		return new BytestreamPermissionsHandler(userName);
 	}
 
 	@Override
@@ -119,11 +122,11 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 		}
 	}
 	
-	private class ShockPermissionsHandler implements IdReferencePermissionHandler {
+	private class BytestreamPermissionsHandler implements IdReferencePermissionHandler {
 		
 		private final String user;
 
-		private ShockPermissionsHandler(final String userName) {
+		private BytestreamPermissionsHandler(final String userName) {
 			this.user = userName;
 		}
 
@@ -174,13 +177,13 @@ public class ShockIdHandlerFactory implements IdReferenceHandlerFactory {
 		}
 	}
 	
-	private class ShockIdHandler<T> extends IdReferenceHandler<T> {
+	private class BytestreamIdHandler<T> extends IdReferenceHandler<T> {
 
 		private final Map<T, Set<String>> ids = new HashMap<T, Set<String>>();
 		private final Map<String, String> remapped = new HashMap<>();
 		private final AuthToken userToken;
 		
-		private ShockIdHandler(final AuthToken userToken) {
+		private BytestreamIdHandler(final AuthToken userToken) {
 			this.userToken = requireNonNull(userToken, "userToken");
 		}
 		
