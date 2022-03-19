@@ -130,7 +130,7 @@ public class SampleServiceController {
 		} else {
 			this.port = port;
 		}
-		File ssIniFile = createSampleServiceDeployCfg(
+		final File ssIniFile = createSampleServiceDeployCfg(
 				arango,
 				authURL,
 				authToken,
@@ -139,8 +139,8 @@ public class SampleServiceController {
 				sampleFullAdminRole,
 				arangoParams);
 
-		String libDir = "lib";
-		Path libRoot = tempDir.resolve(libDir);
+		final String libDir = "lib";
+		final Path libRoot = tempDir.resolve(libDir);
 		FileUtils.copyDirectory(sampleServiceDir.toFile(), libRoot.toFile());
 
 		final String libDirPath = libRoot.toAbsolutePath().toString();
@@ -155,7 +155,7 @@ public class SampleServiceController {
 				String.format("%s.%sServer:application", SAMPLE_SERVICE_NAME, SAMPLE_SERVICE_NAME))
 				.redirectErrorStream(true)
 				.redirectOutput(logfile.toFile());
-		Map<String, String> env = samplepb.environment();
+		final Map<String, String> env = samplepb.environment();
 		env.put("KB_DEPLOYMENT_CONFIG", ssIniFile.getAbsolutePath().toString());
 		env.put("KB_SERVICE_NAME", SAMPLE_SERVICE_NAME);
 		env.put("PYTHONPATH", libDirPath);
