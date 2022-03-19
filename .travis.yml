@@ -68,6 +68,7 @@ install:
   
   # set up blobstore
   - wget -O blobstore https://github.com/kbase/blobstore/releases/download/v0.1.2/blobstore_linux_amd64
+  - chmod a+x blobstore
   - export BLOBEXE=$(pwd)/blobstore
   
   # install python dependencies
