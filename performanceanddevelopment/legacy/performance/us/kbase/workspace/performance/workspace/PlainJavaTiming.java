@@ -1,29 +1,27 @@
-package us.kbase.workspace.performance.workspace;
+package legacy.performance.us.kbase.workspace.performance.workspace;
 
-import static us.kbase.workspace.performance.workspace.Common.getMD5s;
-import static us.kbase.workspace.performance.workspace.Common.getShockNodes;
-import static us.kbase.workspace.performance.workspace.Common.printStats;
+import static legacy.performance.us.kbase.workspace.performance.workspace.Common.getMD5s;
+import static legacy.performance.us.kbase.workspace.performance.workspace.Common.getShockNodes;
+import static legacy.performance.us.kbase.workspace.performance.workspace.Common.printStats;
 
-import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.apache.commons.io.IOUtils;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
-import us.kbase.auth.AuthService;
-import us.kbase.shock.client.BasicShockClient;
-import us.kbase.shock.client.ShockNodeId;
-
-public class ShockClientTiming {
-	
+public class PlainJavaTiming {
 	private static final String WORKSPACE = "TestObjs";
 	private static final String WS_DB = "ws_test";
 	
 	private static final String SHOCK_URL = "http://localhost:7044";
 	
-	public static void main(String[] args) throws Exception {
+	public static void main(String args[]) throws Exception {
 		final String token = args[0];
 		if (token == null || token.trim().isEmpty()) {
 			throw new IllegalArgumentException("no token in args");
@@ -36,14 +34,18 @@ public class ShockClientTiming {
 		
 		final List<String> nodes = getShockNodes(db, md5s);
 		
-		final BasicShockClient cli = new BasicShockClient(new URL(SHOCK_URL),
-				AuthService.validateToken(token));
+		final URL shockURL = new URL(SHOCK_URL);
 		final List<Long> shockTimes = new LinkedList<>();
 		final long startShock = System.nanoTime();
 		int count = 1;
 		for (final String node: nodes) {
+			final URL nodeURL = new URL(shockURL.toString() + "/node/" + node + "/?download");
 			final long startNode = System.nanoTime();
-			cli.getFile(new ShockNodeId(node), new ByteArrayOutputStream());
+			final URLConnection con = nodeURL.openConnection();
+			con.setRequestProperty("Authorization", "OAuth " + token);
+			final InputStream io = con.getInputStream();
+			@SuppressWarnings("unused")
+			final String s = IOUtils.toString(io);
 			shockTimes.add(System.nanoTime() - startNode);
 			if (count % 10000 == 0) {
 				System.out.println(count);

@@ -1,6 +1,6 @@
-package us.kbase.workspace.performance.workspace;
+package legacy.performance.us.kbase.workspace.performance.workspace;
 
-import static us.kbase.workspace.performance.utils.Utils.printElapse;
+import static legacy.performance.us.kbase.workspace.performance.utils.Utils.printElapse;
 
 import java.util.HashSet;
 import java.util.Map;
