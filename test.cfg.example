@@ -9,10 +9,8 @@ test.jars.dir =
 # Minio exe file location 
 test.minio.exe = minio
 
-# Shock exe file location 
-test.shock.exe = /kb/deployment/bin/shock-server
-# Shock exe file version
-test.shock.version = 0.9.6
+# Blobstore exe file location 
+test.blobstore.exe = blobstore
 
 # MongoDB exe file location
 test.mongo.exe = /kb/runtime/bin/mongod
@@ -27,7 +25,6 @@ test.arango.exe=/path/to/arangoddbexecutable
 # This is the same path as provided to --javascript.startup-directory for the arangod executable.
 # In the downloaded tarball it is at /usr/share/arangodb3/js/.
 test.arango.js=/path/to/arangodjs
-
 
 # Temp directory for various database and server files. This path cannot have
 # any system specific information (e.g. ~, $HOME, etc)

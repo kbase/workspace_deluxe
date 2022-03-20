@@ -69,9 +69,9 @@ import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.kbase.HandleIdHandlerFactory;
 import us.kbase.workspace.test.WorkspaceServerThread;
+import us.kbase.workspace.test.controllers.blobstore.BlobstoreController;
 import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 import us.kbase.workspace.test.controllers.minio.MinioController;
-import us.kbase.workspace.test.controllers.shock.ShockController;
 
 public class HandleAndBytestreamIntegrationTest {
 
@@ -87,7 +87,7 @@ public class HandleAndBytestreamIntegrationTest {
 	
 	private static MongoController MONGO;
 	private static MinioController MINIO;
-	private static ShockController SHOCK;
+	private static BlobstoreController BLOB;
 	private static HandleServiceController HANDLE;
 	private static AuthController AUTH;
 	private static WorkspaceServer SERVER;
@@ -99,6 +99,7 @@ public class HandleAndBytestreamIntegrationTest {
 	private static ShockUserId SHOCK_USER2;
 	private static ShockUserId SHOCK_USER3;
 	private static final String HANDLE_ADMIN_ROLE = "HANDLE_ADMIN_ROLE";
+	private static final String BLOB_ADMIN_ROLE = "BLOB_ADMIN_ROLE";
 
 	private static WorkspaceClient CLIENT1;
 	private static WorkspaceClient CLIENT2;
@@ -112,13 +113,13 @@ public class HandleAndBytestreamIntegrationTest {
 	private static BasicShockClient SHOCK_CLIENT_1;
 	private static BasicShockClient SHOCK_CLIENT_2;
 	
-	private static ShockACLType READ_ACL = ShockACLType.READ;
+	private static final ShockACLType READ_ACL = ShockACLType.READ;
 
-	private static String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
-	private static String SHOCK_TYPE = "HandleByteStreamList.SList-0.1";
-	private static String HANDLE_REF_TYPE = "HandleByteStreamList.HRef-0.1";
+	private static final String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
+	private static final String SHOCK_TYPE = "HandleByteStreamList.SList-0.1";
+	private static final String HANDLE_REF_TYPE = "HandleByteStreamList.HRef-0.1";
 	
-	private static String HANDLE_SERVICE_TEST_DB = "handle_service_test_handle_db";
+	private static final String HANDLE_SERVICE_TEST_DB = "handle_service_test_handle_db";
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
@@ -158,35 +159,35 @@ public class HandleAndBytestreamIntegrationTest {
 		TestCommon.createAuthUser(authURL, USER3, "display3");
 		final String token3 = TestCommon.createLoginToken(authURL, USER3);
 		TestCommon.createCustomRole(authURL, HANDLE_ADMIN_ROLE, "handle admin role");
-		TestCommon.setUserRoles(authURL, USER3, Arrays.asList(HANDLE_ADMIN_ROLE));
+		TestCommon.createCustomRole(authURL, BLOB_ADMIN_ROLE, "blob admin role");
+		TestCommon.setUserRoles(authURL, USER3, Arrays.asList(HANDLE_ADMIN_ROLE, BLOB_ADMIN_ROLE));
 		final AuthToken t1 = new AuthToken(token1, USER1);
 		final AuthToken t2 = new AuthToken(token2, USER2);
 		HANDLE_SRVC_TOKEN = new AuthToken(token3, USER3);
 
-		SHOCK = new ShockController(
-				TestCommon.getShockExe(),
-				TestCommon.getShockVersion(),
+		BLOB = new BlobstoreController(
+				TestCommon.getBlobstoreExe(),
 				Paths.get(TestCommon.getTempDir()),
-				"user3",
 				mongohost,
-				"JSONRPCLayerHandleTest_ShockDB",
-				null,
-				null,
-				new URL(authURL.toString() + "/api/legacy/globus"));
-		final URL shockURL = new URL("http://localhost:" + SHOCK.getServerPort());
-		System.out.println("Shock controller version: " + SHOCK.getVersion());
-		if (SHOCK.getVersion() == null) {
-			System.out.println(
-					"Unregistered version - Shock may not start correctly");
-		}
-		System.out.println("Using Shock temp dir " + SHOCK.getTempDir());
-		WS_OWNED_SHOCK = new BasicShockClient(shockURL, HANDLE_SRVC_TOKEN);
-		SHOCK_CLIENT_1 = new BasicShockClient(shockURL, t1);
-		SHOCK_CLIENT_2 = new BasicShockClient(shockURL, t2);
+				HandleAndBytestreamIntegrationTest.class.getSimpleName() + "_test",
+				"localhost:" + MINIO.getServerPort(),
+				"blobstore",
+				minioUser,
+				minioKey,
+				"us-west-1",
+				authURL,
+				Arrays.asList(BLOB_ADMIN_ROLE));
+		final URL blobURL = new URL("http://localhost:" + BLOB.getPort());
+		System.out.println("started blobstore at " + blobURL);
+		System.out.println("Using Blobstore temp dir " + BLOB.getTempDir());
+		
+		WS_OWNED_SHOCK = new BasicShockClient(blobURL, HANDLE_SRVC_TOKEN);
+		SHOCK_CLIENT_1 = new BasicShockClient(blobURL, t1);
+		SHOCK_CLIENT_2 = new BasicShockClient(blobURL, t2);
 
 		HANDLE = new HandleServiceController(
 				MONGO,
-				shockURL.toString(),
+				blobURL.toString(),
 				HANDLE_SRVC_TOKEN,
 				Paths.get(TestCommon.getTempDir()),
 				new URL(authURL.toString()),
@@ -199,8 +200,7 @@ public class HandleAndBytestreamIntegrationTest {
 		SERVER = startupWorkspaceServer(mongohost,
 				"HandleAndShockTest",
 				"HandleAndShockTest_types",
-				shockURL,
-				t2,
+				blobURL,
 				HANDLE_SRVC_TOKEN,
 				HANDLE_SRVC_TOKEN,
 				miniohost,
@@ -234,8 +234,7 @@ public class HandleAndBytestreamIntegrationTest {
 			throw e;
 		}
 
-		BasicShockClient bsc = new BasicShockClient(new URL("http://localhost:"
-				+ SHOCK.getServerPort()), CLIENT1.getToken());
+		final BasicShockClient bsc = new BasicShockClient(blobURL, CLIENT1.getToken());
 		SHOCK_USER1 = addBasicNode(bsc).getACLs().getOwner();
 		bsc.updateToken(CLIENT2.getToken());
 		SHOCK_USER2 = addBasicNode(bsc).getACLs().getOwner();
@@ -290,7 +289,6 @@ public class HandleAndBytestreamIntegrationTest {
 			final String db,
 			final String typedb,
 			final URL shockURL,
-			final AuthToken shockToken,
 			final AuthToken handleToken,
 			final AuthToken shockLinkToken,
 			final String miniohost,
@@ -361,8 +359,8 @@ public class HandleAndBytestreamIntegrationTest {
 		if (HANDLE != null) {
 			HANDLE.destroy(TestCommon.getDeleteTempFiles(), false);
 		}
-		if (SHOCK != null) {
-			SHOCK.destroy(TestCommon.getDeleteTempFiles());
+		if (BLOB != null) {
+			BLOB.destroy(TestCommon.getDeleteTempFiles());
 		}
 		if (AUTH != null) {
 			AUTH.destroy(TestCommon.getDeleteTempFiles());
@@ -428,7 +426,7 @@ public class HandleAndBytestreamIntegrationTest {
 		String workspace = "basichandle";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		BasicShockClient bsc = new BasicShockClient(
-				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
+				new URL("http://localhost:" + BLOB.getPort()), CLIENT1.getToken());
 
 		final ShockNode node = addBasicNode(bsc);
 		String shock_id = node.getId().getId();
@@ -455,10 +453,10 @@ public class HandleAndBytestreamIntegrationTest {
 		}
 
 		/* should be impossible for a non-owner to save a handle containing
-		 * object where they don't own the shock nodes, even with all other
+		 * object where they don't own the shock nodes, even with read
 		 * privileges
 		 */
-		bsc.addToNodeAcl(new ShockNodeId(shock_id), Arrays.asList(USER2), ShockACLType.ALL);
+		bsc.addToNodeAcl(new ShockNodeId(shock_id), Arrays.asList(USER2), ShockACLType.READ);
 		String workspace2 = "basichandle2";
 		CLIENT2.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace2));
 		try {
@@ -476,8 +474,7 @@ public class HandleAndBytestreamIntegrationTest {
 					"other reason. The call cannot complete."));
 		}
 
-		bsc.removeFromNodeAcl(new ShockNodeId(shock_id),
-				Arrays.asList(USER2), ShockACLType.ALL);
+		bsc.removeFromNodeAcl(new ShockNodeId(shock_id), Arrays.asList(USER2), ShockACLType.READ);
 
 		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
 		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
@@ -577,11 +574,10 @@ public class HandleAndBytestreamIntegrationTest {
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		final ShockNode n1 = WS_OWNED_SHOCK.addNode(
 				new ByteArrayInputStream("contents".getBytes()), 8, "fname", "text");
-		n1.addToNodeAcl(Arrays.asList(USER1), ShockACLType.ALL);
-		// test that user1's write & delete creds are removed from the ws-owned node
+		n1.addToNodeAcl(Arrays.asList(USER1), ShockACLType.READ);
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkWriteAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkDeleteAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		checkWriteAcl(n1, Arrays.asList(SHOCK_USER3));
+		checkDeleteAcl(n1, Arrays.asList(SHOCK_USER3));
 		final ShockNode n2 = SHOCK_CLIENT_1.addNode(
 				new ByteArrayInputStream("contents2".getBytes()), 9, "fname2", "text2");
 		try {
@@ -598,10 +594,12 @@ public class HandleAndBytestreamIntegrationTest {
 			System.out.println(se.getData());
 			throw se;
 		}
+		assertThat("incorrect owner", n1.getACLs().getOwner(), is(SHOCK_USER3));
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		checkWriteAcl(n1, Arrays.asList(SHOCK_USER3));
 		checkDeleteAcl(n1, Arrays.asList(SHOCK_USER3));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1));
+		assertThat("incorrect owner", n2.getACLs().getOwner(), is(SHOCK_USER3));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		checkPublicRead(n1, false);
 		checkPublicRead(n2, false);
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
@@ -617,13 +615,13 @@ public class HandleAndBytestreamIntegrationTest {
 				.getData().get(0);
 		checkExternalIDError(od.getHandleError(), od.getHandleStacktrace());
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		// next with the update
 		od = CLIENT3.getObjects2(gop.withSkipExternalSystemUpdates(null))
 				.getData().get(0);
 		checkExternalIDError(od.getHandleError(), od.getHandleStacktrace());
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		
 		final Map<String, Object> data = od.getData().asClassInstance(
 				new TypeReference<Map<String, Object>>() {});
@@ -632,25 +630,25 @@ public class HandleAndBytestreamIntegrationTest {
 		assertThat("incorrect shock node", shockids.get(0), is(n1.getId().getId()));
 		final ShockNode new2 = WS_OWNED_SHOCK.getNode(new ShockNodeId(shockids.get(1)));
 		assertThat("node unexpectedly updated", new2.getId(), is(n2.getId()));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		
 		// get the object with user 1
 		CLIENT1.getObjects2(gop);
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		
 		// get the object with user 2
 		CLIENT2.getObjects2(gop);
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3, SHOCK_USER2));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
 		
 		// remove user 2 privs, and re get
 		WS_OWNED_SHOCK.removeFromNodeAcl(n1.getId(), Arrays.asList(USER2), ShockACLType.READ);
 		WS_OWNED_SHOCK.removeFromNodeAcl(n2.getId(), Arrays.asList(USER2), ShockACLType.READ);
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
 		CLIENT2.getObjects2(gop);
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3, SHOCK_USER2));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
 		
 		// check extracted IDS
 		assertThat("incorrect extracted ids", od.getExtractedIds().keySet(),
@@ -660,10 +658,12 @@ public class HandleAndBytestreamIntegrationTest {
 				is(set(n1.getId().getId(), n2.getId().getId())));
 		
 		// check nodes have the same contents
+		// TODO BLOBSTORE update tests when https://github.com/kbase/shock_java_client/issues/26
+		// is fixed
 		checkNode(WS_OWNED_SHOCK, n1.getId(), ImmutableMap.of("foo", "bar"),
-				"contents", "fname", "text");
+				"contents", "fname", null); // "text");
 		checkNode(WS_OWNED_SHOCK, n2.getId(), ImmutableMap.of("foo", "bar2"),
-				"contents2", "fname2", "text2");
+				"contents2", "fname2", null); //"text2");
 
 		checkPublicRead(n1, false);
 		checkPublicRead(n2, false);
@@ -673,7 +673,7 @@ public class HandleAndBytestreamIntegrationTest {
 		// get the object with anon user
 		CLIENT_NOAUTH.getObjects2(gop);
 		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER1, SHOCK_USER3, SHOCK_USER2));
+		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
 		checkPublicRead(n1, true);
 		checkPublicRead(n2, true);
 	}
@@ -804,7 +804,7 @@ public class HandleAndBytestreamIntegrationTest {
 				.withWorkspace(workspace).withGlobalread("r"));
 
 		BasicShockClient bsc = new BasicShockClient(
-				new URL("http://localhost:" + SHOCK.getServerPort()), CLIENT1.getToken());
+				new URL("http://localhost:" + BLOB.getPort()), CLIENT1.getToken());
 
 		final ShockNode node = addBasicNode(bsc);
 		String shock_id = node.getId().getId();

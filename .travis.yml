@@ -41,7 +41,7 @@ install:
   - export ARANGO_JS=$(pwd)/arangodb3-$ARANGODB_VER/usr/share/arangodb3/js/
 
   # set up handle service
-  - export HS_COMMIT=aae2f70120e75d2ccccab1b1c01dbb9e8327eee8
+  - export HS_COMMIT=08e18379817e16db920501b66ba62b66598f506c
   - export LOG_COMMIT=b549c557e3c519e0a55eadf7863a93db25cd6806
   - git clone https://github.com/kbase/handle_service2.git
   - cd handle_service2/
@@ -65,6 +65,11 @@ install:
   - cd ../..
   
   - cd $HOMEDIR
+  
+  # set up blobstore
+  - wget -O blobstore https://github.com/kbase/blobstore/releases/download/v0.1.2/blobstore_linux_amd64
+  - chmod a+x blobstore
+  - export BLOBEXE=$(pwd)/blobstore
   
   # install python dependencies
   - cd python_dependencies
@@ -94,8 +99,7 @@ script:
   - sed -i "s#^test.minio.exe.*#test.minio.exe=$MINIOD#" test.cfg
   - sed -i "s#^test.mongo.wired_tiger.*#test.mongo.wired_tiger=$WIRED_TIGER#" test.cfg
   - sed -i "s#^test.jars.dir.*#test.jars.dir=$JARSDIR#" test.cfg
-  - sed -i "s#^test.shock.version.*#test.shock.version=0.9.6#" test.cfg
-  - sed -i "s#^test.shock.exe.*#test.shock.exe=$SHOCKEXE#" test.cfg
+  - sed -i "s#^test.blobstore.exe.*#test.blobstore.exe=$BLOBEXE#" test.cfg
   - sed -i "s#^test.handleservice.dir.*#test.handleservice.dir=$HSDIR#" test.cfg
   - sed -i "s#^test.sampleservice.dir.*#test.sampleservice.dir=$SAMPLE_DIR#" test.cfg
   - sed -i "s#^test.arango.exe.*#test.arango.exe=$ARANGO_EXE#" test.cfg

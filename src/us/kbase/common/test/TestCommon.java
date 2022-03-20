@@ -43,8 +43,7 @@ import us.kbase.typedobj.core.TempFilesManager;
 public class TestCommon {
 	
 	public static final String MINIOEXE = "test.minio.exe";
-	public static final String SHOCKEXE = "test.shock.exe";
-	public static final String SHOCKVER = "test.shock.version";
+	public static final String BLOBSTOREEXE = "test.blobstore.exe";
 	public static final String MONGOEXE = "test.mongo.exe";
 	public static final String MONGO_USE_WIRED_TIGER = "test.mongo.useWiredTiger";
 	public static final String HANDLE_SERVICE_DIR = "test.handleservice.dir";
@@ -56,8 +55,6 @@ public class TestCommon {
 	
 	public static final String TEST_TEMP_DIR = "test.temp.dir";
 	public static final String KEEP_TEMP_DIR = "test.temp.dir.keep";
-	
-	public static final String TEST_TOKEN_PREFIX = "test.token";
 	
 	public static final String TEST_CONFIG_FILE_PROP_NAME = "test.cfg";
 	public static final String TEST_CONFIG_FILE_SECTION = "Workspacetest";
@@ -147,6 +144,10 @@ public class TestCommon {
 		return getTestProperty(MONGOEXE);
 	}
 	
+	public static String getBlobstoreExe() {
+		return getTestProperty(BLOBSTOREEXE);
+	}
+	
 	public static Path getArangoExe() {
 		return Paths.get(getTestProperty(ARANGOEXE));
 	}
@@ -157,14 +158,6 @@ public class TestCommon {
 
 	public static String getMinioExe() {
 		return getTestProperty(MINIOEXE);
-	}
-	
-	public static String getShockExe() {
-		return getTestProperty(SHOCKEXE);
-	}
-	
-	public static String getShockVersion() {
-		return getTestProperty(SHOCKVER);
 	}
 	
 	public static String getHandleServiceDir() {
