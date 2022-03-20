@@ -73,12 +73,12 @@ import us.kbase.workspace.test.controllers.handle.HandleServiceController;
 import us.kbase.workspace.test.controllers.minio.MinioController;
 import us.kbase.workspace.test.controllers.shock.ShockController;
 
-public class HandleAndShockTest {
+public class HandleAndBytestreamIntegrationTest {
 
-	/* The Handle ID tests were written years before the Shock ID tests, and cover a lot
-	 * of cases that are general to both ID types, such as making sure all the methods that
-	 * allow retrieving an object set the permissions correctly. As such, the Shock ID tests
-	 * concentrate on testing cases that are unique to Shock IDs.
+	/* The Handle ID tests were written years before the Bytestream (nee Shock) ID tests,
+	 * and cover a lot of cases that are general to both ID types, such as making sure all the
+	 * methods that allow retrieving an object set the permissions correctly. As such,
+	 * the Bytestream ID tests concentrate on testing cases that are unique to Bytestream IDs.
 	 */
 	
 	/* Also performs an integration test with a Minio backend. */
@@ -142,7 +142,7 @@ public class HandleAndShockTest {
 		final String miniohost = "http://localhost:" + MINIO.getServerPort();
 
 		// set up auth
-		final String dbname = HandleAndShockTest.class.getSimpleName() + "Auth";
+		final String dbname = HandleAndBytestreamIntegrationTest.class.getSimpleName() + "Auth";
 		AUTH = new AuthController(
 				TestCommon.getJarsDir(),
 				"localhost:" + MONGO.getServerPort(),
@@ -570,7 +570,7 @@ public class HandleAndShockTest {
 	}
 
 	@Test
-	public void saveAndGetWithShockIDs() throws Exception {
+	public void saveAndGetWithBytestreamIDs() throws Exception {
 		// tests shock nodes that are already owned by the WS (but readable by the user)
 		// as well as nodes merely owned by the user.
 		final String workspace = "basicshock";
@@ -698,32 +698,32 @@ public class HandleAndShockTest {
 		final String workspace = "shocksavefail";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 
-		saveWithShockIDFail(CLIENT1, workspace, null, new ServerException(
+		saveWithBytestreamIDFail(CLIENT1, workspace, null, new ServerException(
 				"Object #1, foo failed type checking:\ninstance type (null) not allowed for " +
 				"ID reference (allowed: [\"string\"]), at /ids/0", 1, "n"));
 
-		saveWithShockIDFail(CLIENT1, workspace, "badbytestreamid", new ServerException(
+		saveWithBytestreamIDFail(CLIENT1, workspace, "badbytestreamid", new ServerException(
 				"Object #1, foo failed type checking:\nUnparseable id badbytestreamid of " +
 				"type bytestream: Illegal bytestream ID: badbytestreamid at /ids/0", 1, "n"));
 
 		final String id = UUID.randomUUID().toString();
-		saveWithShockIDFail(CLIENT1, workspace, id, new ServerException(String.format(
+		saveWithBytestreamIDFail(CLIENT1, workspace, id, new ServerException(String.format(
 				"Object #1, foo has invalid reference: Bytestream node %s does not exist at " +
 				"/ids/0", id), 1, "n"));
 
 		final ShockNode sn = addBasicNode(WS_OWNED_SHOCK);
-		saveWithShockIDFail(CLIENT1, workspace, sn.getId().getId(), new ServerException(
+		saveWithBytestreamIDFail(CLIENT1, workspace, sn.getId().getId(), new ServerException(
 				String.format("Object #1, foo has invalid reference: User user1 cannot " +
 				"read bytestream node %s at /ids/0", sn.getId().getId()), 1, "n"));
 		
 		final ShockNode sn2 = addBasicNode(SHOCK_CLIENT_2);
 		sn2.addToNodeAcl(Arrays.asList(USER1), ShockACLType.READ);
-		saveWithShockIDFail(CLIENT1, workspace, sn2.getId().getId(), new ServerException(
+		saveWithBytestreamIDFail(CLIENT1, workspace, sn2.getId().getId(), new ServerException(
 				String.format("Object #1, foo has invalid reference: User user1 does not " +
 				"own bytestream node %s at /ids/0", sn2.getId().getId()), 1, "n"));
 	}
 
-	private void saveWithShockIDFail(
+	private void saveWithBytestreamIDFail(
 			final WorkspaceClient cli,
 			final String workspace,
 			final String id,
@@ -743,7 +743,7 @@ public class HandleAndShockTest {
 	}
 
 	@Test
-	public void getWithShockIDsFail() throws Exception {
+	public void getWithBytestreamIDsFail() throws Exception {
 		final String workspace = "shockgetfail";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 		final ShockNode n1 = addBasicNode(WS_OWNED_SHOCK);
@@ -768,7 +768,7 @@ public class HandleAndShockTest {
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace).withName("foo")))).getData().get(0);
 
-		getWithShockIDsFail(id, wod);
+		getWithBytestreamIDsFail(id, wod);
 
 		// anon user
 		CLIENT1.setGlobalPermission(new SetGlobalPermissionsParams()
@@ -777,10 +777,10 @@ public class HandleAndShockTest {
 				.withObjects(Arrays.asList(new ObjectSpecification()
 						.withWorkspace(workspace).withName("foo")))).getData().get(0);
 
-		getWithShockIDsFail(id, anonwod);
+		getWithBytestreamIDsFail(id, anonwod);
 	}
 
-	private void getWithShockIDsFail(final ShockNodeId id, final ObjectData wod) {
+	private void getWithBytestreamIDsFail(final ShockNodeId id, final ObjectData wod) {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(ImmutableMap.of("ids", Arrays.asList(
