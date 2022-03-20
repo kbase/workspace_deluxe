@@ -351,58 +351,6 @@
     <fail message="Test failure detected, check test results." if="test.failed" />
   </target>
 
-  <target name="test_quick_no_handle_coverage"
-          depends="test_quick_no_handle"
-          description="run most tests and generate test report">
-    <delete file="${test.reports.dir}/merged_jacoco.exec"/>
-    <jacoco:merge destfile="${test.reports.dir}/merged_jacoco.exec">
-      <fileset dir="${test.reports.dir}" includes="*.exec"/>
-    </jacoco:merge>
-    <jacoco:report>
-      <executiondata>
-        <file file="${test.reports.dir}/merged_jacoco.exec"/>
-      </executiondata>
-      <structure name="${package} Unit Tests">
-        <classfiles>
-          <fileset dir="${classes}">
-            <exclude name="**/test/**"/>
-          </fileset>
-        </classfiles>
-        <sourcefiles encoding="UTF-8">
-          <fileset dir="${src}">
-            <exclude name="**/test/**"/>
-          </fileset>
-        </sourcefiles>
-      </structure>
-      <html destdir="${test.reports.dir}/html"/>
-      <csv destfile="${test.reports.dir}/coverage-report.csv"/>
-      <xml destfile="${test.reports.dir}/coverage-report.xml"/>
-    </jacoco:report>
-  </target>
-
-  <target name="test_quick_no_handle"
-      depends="compile"
-      description="run tests other than the *LongTest.java and HandleAndShockTest tests">
-    <echo message="starting ${package} tests"/>
-    <delete file="${test.reports.dir}/ws.exec"/>
-    <jacoco:coverage destfile="${test.reports.dir}/ws.exec"
-         excludes="org/*:junit/*">
-      <junit fork="yes" maxmemory="3G" failureproperty="test.failed">
-        <classpath refid="test.classpath"/>
-        <formatter type="plain" usefile="false" />
-        <sysproperty key="test.cfg" value="./test.cfg"/>
-        <batchtest>
-          <fileset dir="${src}">
-            <include name="**/test/**/**Test.java"/>
-            <exclude name="**/test/**/**LongTest.java"/>
-            <exclude name="**/test/**/HandleAndShockTest.java"/>
-          </fileset>
-        </batchtest>
-      </junit>
-    </jacoco:coverage>
-    <fail message="Test failure detected, check test results." if="test.failed" />
-  </target>
-
   <target name="test_client_import" depends="compile" description="make sure the client jar contains all files">
     <javac destdir="${test}" srcdir="${test}" includeantruntime="false" target="1.6" source="1.6"
           debug="true" classpathref="test.client.import.classpath">

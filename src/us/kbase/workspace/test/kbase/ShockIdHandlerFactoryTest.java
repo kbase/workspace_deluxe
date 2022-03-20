@@ -44,8 +44,8 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSet.NoSuchIdException;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandlerException;
 import us.kbase.workspace.database.DependencyStatus;
-import us.kbase.workspace.kbase.ShockIdHandlerFactory;
-import us.kbase.workspace.kbase.ShockIdHandlerFactory.ShockClientCloner;
+import us.kbase.workspace.kbase.BytestreamIdHandlerFactory;
+import us.kbase.workspace.kbase.BytestreamIdHandlerFactory.BytestreamClientCloner;
 
 public class ShockIdHandlerFactoryTest {
 	
@@ -59,11 +59,11 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void type() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		assertThat("incorrect type", new ShockIdHandlerFactory(cli, cloner).getIDType(),
+		assertThat("incorrect type", new BytestreamIdHandlerFactory(cli, cloner).getIDType(),
 				is(new IdReferenceType("bytestream")));
-		assertThat("incorrect type", ShockIdHandlerFactory.TYPE,
+		assertThat("incorrect type", BytestreamIdHandlerFactory.TYPE,
 				is(new IdReferenceType("bytestream")));
 	}
 	
@@ -72,7 +72,7 @@ public class ShockIdHandlerFactoryTest {
 		final BasicShockClient cli = mock(BasicShockClient.class);
 		
 		try {
-			new ShockIdHandlerFactory(cli, null);
+			new BytestreamIdHandlerFactory(cli, null);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new NullPointerException("cloner"));
@@ -82,19 +82,19 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void getDependenciesNoop() throws Exception {
 		assertThat("incorrect dependencies",
-				new ShockIdHandlerFactory(null, null).getDependencyStatus(),
+				new BytestreamIdHandlerFactory(null, null).getDependencyStatus(),
 				is(Collections.emptyList()));
 	}
 	
 	@Test
 	public void getDependencies() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
 		when(cli.getRemoteVersion()).thenReturn("8.6.3-fake");
 		
 		assertThat("incorrect dependencies",
-				new ShockIdHandlerFactory(cli, cloner).getDependencyStatus(),
+				new BytestreamIdHandlerFactory(cli, cloner).getDependencyStatus(),
 				is(Arrays.asList(new DependencyStatus(
 						true, "OK", "Linked Shock for IDs", "8.6.3-fake"))));
 	}
@@ -102,12 +102,12 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void getDependenciesFailIOException() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
 		when(cli.getRemoteVersion()).thenThrow(new IOException("oh dang"));
 		
 		assertThat("incorrect dependencies",
-				new ShockIdHandlerFactory(cli, cloner).getDependencyStatus(),
+				new BytestreamIdHandlerFactory(cli, cloner).getDependencyStatus(),
 				is(Arrays.asList(new DependencyStatus(
 						false, "oh dang", "Linked Shock for IDs", "Unknown"))));
 	}
@@ -115,12 +115,12 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void getDependenciesFailInvalidShockURLException() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
 		when(cli.getRemoteVersion()).thenThrow(new InvalidShockUrlException("poopie"));
 		
 		assertThat("incorrect dependencies",
-				new ShockIdHandlerFactory(cli, cloner).getDependencyStatus(),
+				new BytestreamIdHandlerFactory(cli, cloner).getDependencyStatus(),
 				is(Arrays.asList(new DependencyStatus(
 						false, "poopie", "Linked Shock for IDs", "Unknown"))));
 	}
@@ -128,11 +128,11 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissionNoIDs() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferencePermissionHandler h1 = new ShockIdHandlerFactory(cli, cloner)
+		final IdReferencePermissionHandler h1 = new BytestreamIdHandlerFactory(cli, cloner)
 				.createPermissionHandler();
-		final IdReferencePermissionHandler h2 = new ShockIdHandlerFactory(cli, cloner)
+		final IdReferencePermissionHandler h2 = new BytestreamIdHandlerFactory(cli, cloner)
 				.createPermissionHandler("user");
 		
 		h1.addReadPermission(null);
@@ -147,9 +147,9 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissionNullUser() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferencePermissionHandler h = new ShockIdHandlerFactory(cli, cloner)
+		final IdReferencePermissionHandler h = new BytestreamIdHandlerFactory(cli, cloner)
 				.createPermissionHandler();
 		final UUID id1 = UUID.randomUUID();
 		final UUID id2 = UUID.randomUUID();
@@ -166,9 +166,9 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissionWithUser() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferencePermissionHandler h = new ShockIdHandlerFactory(cli, cloner)
+		final IdReferencePermissionHandler h = new BytestreamIdHandlerFactory(cli, cloner)
 				.createPermissionHandler("user1");
 		final UUID id1 = UUID.randomUUID();
 		final UUID id2 = UUID.randomUUID();
@@ -187,7 +187,7 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissionFailNoClient() throws Exception {
 		addReadPermissionFailWithAndWithoutUser(
-				new ShockIdHandlerFactory(null, null), "foo", set("id"),
+				new BytestreamIdHandlerFactory(null, null), "foo", set("id"),
 				new IdReferencePermissionHandlerException(
 						"There is no connection configured for bytestream storage and " +
 						"bytestream IDs cannot be processed."));
@@ -196,10 +196,10 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissionFailBadID() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 	
 		addReadPermissionFailWithAndWithoutUser(
-				new ShockIdHandlerFactory(cli, cloner), "foo",
+				new BytestreamIdHandlerFactory(cli, cloner), "foo",
 				set(UUID.randomUUID().toString(), "id"),
 				new IdReferencePermissionHandlerException("Illegal bytestream ID: id"));
 	}
@@ -207,7 +207,7 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissionFailIOError() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
 		final UUID id = UUID.randomUUID();
 		
@@ -218,7 +218,7 @@ public class ShockIdHandlerFactoryTest {
 						new ShockNodeId(id.toString()), Arrays.asList("foo"), ShockACLType.READ);
 	
 		addReadPermissionFailWithAndWithoutUser(
-				new ShockIdHandlerFactory(cli, cloner), "foo",
+				new BytestreamIdHandlerFactory(cli, cloner), "foo",
 				set(UUID.randomUUID().toString(), id.toString()),
 				new IdReferencePermissionHandlerException(String.format(
 						"There was an IO problem while attempting to set bytestream ACLs on " +
@@ -228,7 +228,7 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissionFailShockError() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
 		final UUID id = UUID.randomUUID();
 		
@@ -239,7 +239,7 @@ public class ShockIdHandlerFactoryTest {
 						new ShockNodeId(id.toString()), Arrays.asList("foo"), ShockACLType.READ);
 	
 		addReadPermissionFailWithAndWithoutUser(
-				new ShockIdHandlerFactory(cli, cloner), "foo",
+				new BytestreamIdHandlerFactory(cli, cloner), "foo",
 				set(UUID.randomUUID().toString(), id.toString()),
 				new IdReferencePermissionHandlerException(String.format(
 						"Bytestream storage reported a problem while attempting to set ACLs " +
@@ -247,7 +247,7 @@ public class ShockIdHandlerFactoryTest {
 	}
 	
 	private void addReadPermissionFailWithAndWithoutUser(
-			final ShockIdHandlerFactory fac,
+			final BytestreamIdHandlerFactory fac,
 			final String user,
 			final Collection<String> ids,
 			final Exception expected) {
@@ -268,10 +268,10 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void createHandlerFail() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
 		try {
-			new ShockIdHandlerFactory(cli, cloner).createHandler(Long.class, null);
+			new BytestreamIdHandlerFactory(cli, cloner).createHandler(Long.class, null);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new NullPointerException("userToken"));
@@ -281,9 +281,9 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void processIDsGetType() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<Long> h = new ShockIdHandlerFactory(cli, cloner)
+		final IdReferenceHandler<Long> h = new BytestreamIdHandlerFactory(cli, cloner)
 				.createHandler(Long.class, new AuthToken("token", "user"));
 		
 		assertThat("incorrect type", h.getIdType(), is(new IdReferenceType("bytestream")));
@@ -292,9 +292,9 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void processIDsNoIDs() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<Long> h = new ShockIdHandlerFactory(cli, cloner)
+		final IdReferenceHandler<Long> h = new BytestreamIdHandlerFactory(cli, cloner)
 				.createHandler(Long.class, new AuthToken("token", "user"));
 		
 		h.processIds();
@@ -309,9 +309,9 @@ public class ShockIdHandlerFactoryTest {
 		 * going through the entire process flow, so the tests are going to be largish.
 		 */
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "user"));
 		
 		final String id_foo_1 = UUID.randomUUID().toString();
@@ -380,9 +380,9 @@ public class ShockIdHandlerFactoryTest {
 	public void processIDsOwnedNodeWithWSOwnerOnlyInACL() throws Exception {
 		// no acls should be modified since only the owner exists in the acls.
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "user"));
 		
 		final String id = UUID.randomUUID().toString();
@@ -405,9 +405,9 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void processIDsOwnedNodeWithWriteUsers() throws Exception {
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "user"));
 		
 		final String id = UUID.randomUUID().toString();
@@ -432,9 +432,9 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void processIDsOwnedNodeWithDeleteUsers() throws Exception {
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "user"));
 		
 		final String id = UUID.randomUUID().toString();
@@ -459,9 +459,9 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void processIDsOwnedNodeWithWriteDeleteUsers() throws Exception {
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "user"));
 		
 		final String id = UUID.randomUUID().toString();
@@ -542,7 +542,7 @@ public class ShockIdHandlerFactoryTest {
 	
 	@Test
 	public void addIdImplFailNoClient() throws Exception {
-		final IdReferenceHandler<Long> h = new ShockIdHandlerFactory(null, null)
+		final IdReferenceHandler<Long> h = new BytestreamIdHandlerFactory(null, null)
 				.createHandler(Long.class, new AuthToken("token", "user"));
 		
 		addIdImplFail(h, 4L, "i", Arrays.asList("foo", "bar"), new IdReferenceException(
@@ -554,9 +554,9 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void addIdImplFailBadID() throws Exception {
 		final BasicShockClient cli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(cli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(cli, cloner)
 				.createHandler(String.class, new AuthToken("token", "user"));
 		
 		addIdImplFail(h, "foo", "id", Arrays.asList("foo", "bat"), new IdReferenceException(
@@ -610,9 +610,9 @@ public class ShockIdHandlerFactoryTest {
 			final IdReferenceHandlerException expected)
 			throws Exception {
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "user"));
 		
 		final String id = UUID.randomUUID().toString();
@@ -670,9 +670,9 @@ public class ShockIdHandlerFactoryTest {
 			final IdReferenceHandlerException expected)
 			throws Exception {
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "someuser"));
 		
 		final String id = "51b68baa-ef40-4be1-a072-03814d61280e";
@@ -692,9 +692,9 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void processIDsFailNotOwner() throws Exception {
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "someuser"));
 		
 		final String id = "51b68baa-ef40-4be1-a072-03814d61280e";
@@ -746,9 +746,9 @@ public class ShockIdHandlerFactoryTest {
 			final String deleteUser)
 			throws Exception {
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "someuser"));
 		
 		final String id = "51b68baa-ef40-4be1-a072-03814d61280e";
@@ -805,9 +805,9 @@ public class ShockIdHandlerFactoryTest {
 			final IdReferenceHandlerException expected)
 			throws Exception {
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "someuser"));
 		
 		final String id = "51b68baa-ef40-4be1-a072-03814d61280e";
@@ -856,9 +856,9 @@ public class ShockIdHandlerFactoryTest {
 	@Test
 	public void getRemappedIDFail() throws Exception {
 		final BasicShockClient adminCli = mock(BasicShockClient.class);
-		final ShockClientCloner cloner = mock(ShockClientCloner.class);
+		final BytestreamClientCloner cloner = mock(BytestreamClientCloner.class);
 		
-		final IdReferenceHandler<String> h = new ShockIdHandlerFactory(adminCli, cloner)
+		final IdReferenceHandler<String> h = new BytestreamIdHandlerFactory(adminCli, cloner)
 				.createHandler(String.class, new AuthToken("token", "user"));
 		
 		final String id = UUID.randomUUID().toString();
