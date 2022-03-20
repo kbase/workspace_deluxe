@@ -83,8 +83,6 @@ public class HandleAndBytestreamIntegrationTest {
 	
 	/* Also performs an integration test with a Minio backend. */
 
-	//TODO BLOBSTORE swap all Shock stuff for the blobstore, remove Shock binary from repo
-	
 	private static MongoController MONGO;
 	private static MinioController MINIO;
 	private static BlobstoreController BLOB;
@@ -95,9 +93,9 @@ public class HandleAndBytestreamIntegrationTest {
 	private static final String USER1 = "user1";
 	private static final String USER2 = "user2";
 	private static final String USER3 = "user3";
-	private static ShockUserId SHOCK_USER1;
-	private static ShockUserId SHOCK_USER2;
-	private static ShockUserId SHOCK_USER3;
+	private static ShockUserId BLOB_USER1;
+	private static ShockUserId BLOB_USER2;
+	private static ShockUserId BLOB_USER3;
 	private static final String HANDLE_ADMIN_ROLE = "HANDLE_ADMIN_ROLE";
 	private static final String BLOB_ADMIN_ROLE = "BLOB_ADMIN_ROLE";
 
@@ -109,14 +107,14 @@ public class HandleAndBytestreamIntegrationTest {
 	private static AuthToken HANDLE_SRVC_TOKEN;
 
 	private static AbstractHandleClient HANDLE_CLIENT;
-	private static BasicShockClient WS_OWNED_SHOCK;
-	private static BasicShockClient SHOCK_CLIENT_1;
-	private static BasicShockClient SHOCK_CLIENT_2;
+	private static BasicShockClient WS_OWNED_BLOB;
+	private static BasicShockClient BLOB_CLIENT_1;
+	private static BasicShockClient BLOB_CLIENT_2;
 	
 	private static final ShockACLType READ_ACL = ShockACLType.READ;
 
 	private static final String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
-	private static final String SHOCK_TYPE = "HandleByteStreamList.SList-0.1";
+	private static final String BLOB_TYPE = "HandleByteStreamList.SList-0.1";
 	private static final String HANDLE_REF_TYPE = "HandleByteStreamList.HRef-0.1";
 	
 	private static final String HANDLE_SERVICE_TEST_DB = "handle_service_test_handle_db";
@@ -169,7 +167,7 @@ public class HandleAndBytestreamIntegrationTest {
 				TestCommon.getBlobstoreExe(),
 				Paths.get(TestCommon.getTempDir()),
 				mongohost,
-				HandleAndBytestreamIntegrationTest.class.getSimpleName() + "_test",
+				HandleAndBytestreamIntegrationTest.class.getSimpleName() + "_blobstore_test",
 				"localhost:" + MINIO.getServerPort(),
 				"blobstore",
 				minioUser,
@@ -181,9 +179,9 @@ public class HandleAndBytestreamIntegrationTest {
 		System.out.println("started blobstore at " + blobURL);
 		System.out.println("Using Blobstore temp dir " + BLOB.getTempDir());
 		
-		WS_OWNED_SHOCK = new BasicShockClient(blobURL, HANDLE_SRVC_TOKEN);
-		SHOCK_CLIENT_1 = new BasicShockClient(blobURL, t1);
-		SHOCK_CLIENT_2 = new BasicShockClient(blobURL, t2);
+		WS_OWNED_BLOB = new BasicShockClient(blobURL, HANDLE_SRVC_TOKEN);
+		BLOB_CLIENT_1 = new BasicShockClient(blobURL, t1);
+		BLOB_CLIENT_2 = new BasicShockClient(blobURL, t2);
 
 		HANDLE = new HandleServiceController(
 				MONGO,
@@ -198,8 +196,8 @@ public class HandleAndBytestreamIntegrationTest {
 		System.out.println("Started Handle Service on port " + HANDLE.getHandleServerPort());
 
 		SERVER = startupWorkspaceServer(mongohost,
-				"HandleAndShockTest",
-				"HandleAndShockTest_types",
+				HandleAndBytestreamIntegrationTest.class.getSimpleName() + "_workspace_test",
+				HandleAndBytestreamIntegrationTest.class.getSimpleName() + "_workspace_test_types",
 				blobURL,
 				HANDLE_SRVC_TOKEN,
 				HANDLE_SRVC_TOKEN,
@@ -235,11 +233,11 @@ public class HandleAndBytestreamIntegrationTest {
 		}
 
 		final BasicShockClient bsc = new BasicShockClient(blobURL, CLIENT1.getToken());
-		SHOCK_USER1 = addBasicNode(bsc).getACLs().getOwner();
+		BLOB_USER1 = addBasicNode(bsc).getACLs().getOwner();
 		bsc.updateToken(CLIENT2.getToken());
-		SHOCK_USER2 = addBasicNode(bsc).getACLs().getOwner();
+		BLOB_USER2 = addBasicNode(bsc).getACLs().getOwner();
 		bsc.updateToken(HANDLE_SRVC_TOKEN);
-		SHOCK_USER3 = addBasicNode(bsc).getACLs().getOwner();
+		BLOB_USER3 = addBasicNode(bsc).getACLs().getOwner();
 
 		System.out.println("finished HandleService setup");
 	}
@@ -288,9 +286,9 @@ public class HandleAndBytestreamIntegrationTest {
 			final String mongohost,
 			final String db,
 			final String typedb,
-			final URL shockURL,
+			final URL bytestreamURL,
 			final AuthToken handleToken,
-			final AuthToken shockLinkToken,
+			final AuthToken bytestreamLinkToken,
 			final String miniohost,
 			final String minioUser,
 			final String minioKey)
@@ -321,14 +319,14 @@ public class HandleAndBytestreamIntegrationTest {
 		ws.add("backend-token", minioKey);
 		ws.add("backend-container", HANDLE_SERVICE_TEST_DB.replace('_', '-'));
 		ws.add("backend-region", "us-west");
-		ws.add("bytestream-url", shockURL.toString());
-		ws.add("bytestream-user", shockLinkToken.getUserName());
-		ws.add("bytestream-token", shockLinkToken.getToken());
+		ws.add("bytestream-url", bytestreamURL.toString());
+		ws.add("bytestream-user", bytestreamLinkToken.getUserName());
+		ws.add("bytestream-token", bytestreamLinkToken.getToken());
 		ws.add("ws-admin", USER2);
 		ws.add("handle-service-url", "http://localhost:" + HANDLE.getHandleServerPort());
 		ws.add("handle-service-token", handleToken.getToken());
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
-				.resolve("tempForHandleAndShockTest"));
+				.resolve("tempForHandleAndBytestreamTest"));
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
 
@@ -453,7 +451,7 @@ public class HandleAndBytestreamIntegrationTest {
 		}
 
 		/* should be impossible for a non-owner to save a handle containing
-		 * object where they don't own the shock nodes, even with read
+		 * object where they don't own the blob nodes, even with read
 		 * privileges
 		 */
 		bsc.addToNodeAcl(new ShockNodeId(shock_id), Arrays.asList(USER2), ShockACLType.READ);
@@ -476,12 +474,12 @@ public class HandleAndBytestreamIntegrationTest {
 
 		bsc.removeFromNodeAcl(new ShockNodeId(shock_id), Arrays.asList(USER2), ShockACLType.READ);
 
-		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
-		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
+		List<ShockUserId> oneuser = Arrays.asList(BLOB_USER1);
+		List<ShockUserId> twouser = Arrays.asList(BLOB_USER1, BLOB_USER2);
 
 		checkReadAcl(node, oneuser);
 
-		// test that user2 can get shock nodes even though permissions have
+		// test that user2 can get blob nodes even though permissions have
 		// been removed when user2 can read the workspace object
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
@@ -568,20 +566,20 @@ public class HandleAndBytestreamIntegrationTest {
 
 	@Test
 	public void saveAndGetWithBytestreamIDs() throws Exception {
-		// tests shock nodes that are already owned by the WS (but readable by the user)
+		// tests blob nodes that are already owned by the WS (but readable by the user)
 		// as well as nodes merely owned by the user.
-		final String workspace = "basicshock";
+		final String workspace = "basicblob";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-		final ShockNode n1 = WS_OWNED_SHOCK.addNode(
+		final ShockNode n1 = WS_OWNED_BLOB.addNode(
 				new ByteArrayInputStream("contents".getBytes()), 8, "fname", "text");
 		n1.addToNodeAcl(Arrays.asList(USER1), ShockACLType.READ);
-		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkWriteAcl(n1, Arrays.asList(SHOCK_USER3));
-		checkDeleteAcl(n1, Arrays.asList(SHOCK_USER3));
-		final ShockNode n2 = SHOCK_CLIENT_1.addNode(
+		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1));
+		checkWriteAcl(n1, Arrays.asList(BLOB_USER3));
+		checkDeleteAcl(n1, Arrays.asList(BLOB_USER3));
+		final ShockNode n2 = BLOB_CLIENT_1.addNode(
 				new ByteArrayInputStream("contents2".getBytes()), 9, "fname2", "text2");
 		try {
-			// expect n1 to stay the same, n2 to be changed to a new shock ID
+			// expect n1 to stay the same, n2 to be changed to a new blob ID
 			CLIENT1.saveObjects(new SaveObjectsParams()
 					.withWorkspace(workspace)
 					.withObjects(Arrays.asList(
@@ -589,17 +587,17 @@ public class HandleAndBytestreamIntegrationTest {
 							.withData(new UObject(ImmutableMap.of("ids", Arrays.asList(
 									n1.getId().getId(), n2.getId().getId()))))
 							.withName("foo")
-							.withType(SHOCK_TYPE))));
+							.withType(BLOB_TYPE))));
 		} catch (ServerException se) {
 			System.out.println(se.getData());
 			throw se;
 		}
-		assertThat("incorrect owner", n1.getACLs().getOwner(), is(SHOCK_USER3));
-		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkWriteAcl(n1, Arrays.asList(SHOCK_USER3));
-		checkDeleteAcl(n1, Arrays.asList(SHOCK_USER3));
-		assertThat("incorrect owner", n2.getACLs().getOwner(), is(SHOCK_USER3));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		assertThat("incorrect owner", n1.getACLs().getOwner(), is(BLOB_USER3));
+		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1));
+		checkWriteAcl(n1, Arrays.asList(BLOB_USER3));
+		checkDeleteAcl(n1, Arrays.asList(BLOB_USER3));
+		assertThat("incorrect owner", n2.getACLs().getOwner(), is(BLOB_USER3));
+		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1));
 		checkPublicRead(n1, false);
 		checkPublicRead(n2, false);
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
@@ -609,46 +607,46 @@ public class HandleAndBytestreamIntegrationTest {
 				.withObjects(Arrays.asList(new ObjectSpecification()
 						.withWorkspace(workspace).withName("foo")));
 
-		// get the object with the workspace user that owns linked shock nodes
+		// get the object with the workspace user that owns linked blob nodes
 		// first without updating ACLS
 		ObjectData od = CLIENT3.getObjects2(gop.withSkipExternalSystemUpdates(1L))
 				.getData().get(0);
 		checkExternalIDError(od.getHandleError(), od.getHandleStacktrace());
-		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1));
+		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1));
 		// next with the update
 		od = CLIENT3.getObjects2(gop.withSkipExternalSystemUpdates(null))
 				.getData().get(0);
 		checkExternalIDError(od.getHandleError(), od.getHandleStacktrace());
-		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1));
+		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1));
 		
 		final Map<String, Object> data = od.getData().asClassInstance(
 				new TypeReference<Map<String, Object>>() {});
 		@SuppressWarnings("unchecked")
 		final List<String> shockids = (List<String>) data.get("ids");
-		assertThat("incorrect shock node", shockids.get(0), is(n1.getId().getId()));
-		final ShockNode new2 = WS_OWNED_SHOCK.getNode(new ShockNodeId(shockids.get(1)));
+		assertThat("incorrect blob node", shockids.get(0), is(n1.getId().getId()));
+		final ShockNode new2 = WS_OWNED_BLOB.getNode(new ShockNodeId(shockids.get(1)));
 		assertThat("node unexpectedly updated", new2.getId(), is(n2.getId()));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1));
 		
 		// get the object with user 1
 		CLIENT1.getObjects2(gop);
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1));
 		
 		// get the object with user 2
 		CLIENT2.getObjects2(gop);
-		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
+		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1, BLOB_USER2));
+		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1, BLOB_USER2));
 		
 		// remove user 2 privs, and re get
-		WS_OWNED_SHOCK.removeFromNodeAcl(n1.getId(), Arrays.asList(USER2), ShockACLType.READ);
-		WS_OWNED_SHOCK.removeFromNodeAcl(n2.getId(), Arrays.asList(USER2), ShockACLType.READ);
-		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1));
+		WS_OWNED_BLOB.removeFromNodeAcl(n1.getId(), Arrays.asList(USER2), ShockACLType.READ);
+		WS_OWNED_BLOB.removeFromNodeAcl(n2.getId(), Arrays.asList(USER2), ShockACLType.READ);
+		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1));
+		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1));
 		CLIENT2.getObjects2(gop);
-		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
+		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1, BLOB_USER2));
+		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1, BLOB_USER2));
 		
 		// check extracted IDS
 		assertThat("incorrect extracted ids", od.getExtractedIds().keySet(),
@@ -660,9 +658,9 @@ public class HandleAndBytestreamIntegrationTest {
 		// check nodes have the same contents
 		// TODO BLOBSTORE update tests when https://github.com/kbase/shock_java_client/issues/26
 		// is fixed
-		checkNode(WS_OWNED_SHOCK, n1.getId(), ImmutableMap.of("foo", "bar"),
+		checkNode(WS_OWNED_BLOB, n1.getId(), ImmutableMap.of("foo", "bar"),
 				"contents", "fname", null); // "text");
-		checkNode(WS_OWNED_SHOCK, n2.getId(), ImmutableMap.of("foo", "bar2"),
+		checkNode(WS_OWNED_BLOB, n2.getId(), ImmutableMap.of("foo", "bar2"),
 				"contents2", "fname2", null); //"text2");
 
 		checkPublicRead(n1, false);
@@ -672,8 +670,8 @@ public class HandleAndBytestreamIntegrationTest {
 
 		// get the object with anon user
 		CLIENT_NOAUTH.getObjects2(gop);
-		checkReadAcl(n1, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
-		checkReadAcl(n2, Arrays.asList(SHOCK_USER3, SHOCK_USER1, SHOCK_USER2));
+		checkReadAcl(n1, Arrays.asList(BLOB_USER3, BLOB_USER1, BLOB_USER2));
+		checkReadAcl(n2, Arrays.asList(BLOB_USER3, BLOB_USER1, BLOB_USER2));
 		checkPublicRead(n1, true);
 		checkPublicRead(n2, true);
 	}
@@ -694,8 +692,8 @@ public class HandleAndBytestreamIntegrationTest {
 	}
 
 	@Test
-	public void saveWithShockIDFail() throws Exception {
-		final String workspace = "shocksavefail";
+	public void saveWithBlobstoreIDFail() throws Exception {
+		final String workspace = "blobsavefail";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
 
 		saveWithBytestreamIDFail(CLIENT1, workspace, null, new ServerException(
@@ -711,12 +709,12 @@ public class HandleAndBytestreamIntegrationTest {
 				"Object #1, foo has invalid reference: Bytestream node %s does not exist at " +
 				"/ids/0", id), 1, "n"));
 
-		final ShockNode sn = addBasicNode(WS_OWNED_SHOCK);
+		final ShockNode sn = addBasicNode(WS_OWNED_BLOB);
 		saveWithBytestreamIDFail(CLIENT1, workspace, sn.getId().getId(), new ServerException(
 				String.format("Object #1, foo has invalid reference: User user1 cannot " +
 				"read bytestream node %s at /ids/0", sn.getId().getId()), 1, "n"));
 		
-		final ShockNode sn2 = addBasicNode(SHOCK_CLIENT_2);
+		final ShockNode sn2 = addBasicNode(BLOB_CLIENT_2);
 		sn2.addToNodeAcl(Arrays.asList(USER1), ShockACLType.READ);
 		saveWithBytestreamIDFail(CLIENT1, workspace, sn2.getId().getId(), new ServerException(
 				String.format("Object #1, foo has invalid reference: User user1 does not " +
@@ -735,7 +733,7 @@ public class HandleAndBytestreamIntegrationTest {
 							new ObjectSaveData()
 							.withData(new UObject(ImmutableMap.of("ids", Arrays.asList(id))))
 							.withName("foo")
-							.withType(SHOCK_TYPE))));
+							.withType(BLOB_TYPE))));
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
@@ -744,9 +742,9 @@ public class HandleAndBytestreamIntegrationTest {
 
 	@Test
 	public void getWithBytestreamIDsFail() throws Exception {
-		final String workspace = "shockgetfail";
+		final String workspace = "blobgetfail";
 		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
-		final ShockNode n1 = addBasicNode(WS_OWNED_SHOCK);
+		final ShockNode n1 = addBasicNode(WS_OWNED_BLOB);
 		n1.addToNodeAcl(Arrays.asList(USER1), ShockACLType.READ);
 		final ShockNodeId id = n1.getId();
 		try {
@@ -757,7 +755,7 @@ public class HandleAndBytestreamIntegrationTest {
 							.withData(new UObject(ImmutableMap.of("ids", Arrays.asList(
 									id.getId()))))
 							.withName("foo")
-							.withType(SHOCK_TYPE))));
+							.withType(BLOB_TYPE))));
 		} catch (ServerException se) {
 			System.out.println(se.getData());
 			throw se;
@@ -826,8 +824,8 @@ public class HandleAndBytestreamIntegrationTest {
 						.withType(HANDLE_TYPE))));
 
 		// check that there's only one user in the ACL
-		List<ShockUserId> oneuser = Arrays.asList(SHOCK_USER1);
-		List<ShockUserId> twouser = Arrays.asList(SHOCK_USER1, SHOCK_USER2);
+		List<ShockUserId> oneuser = Arrays.asList(BLOB_USER1);
+		List<ShockUserId> twouser = Arrays.asList(BLOB_USER1, BLOB_USER2);
 
 		checkReadAcl(node, oneuser);
 
@@ -840,7 +838,7 @@ public class HandleAndBytestreamIntegrationTest {
 		checkExternalIDError(ret1.getHandleError(), ret1.getHandleStacktrace());
 		checkReadAcl(node, twouser);
 		checkPublicRead(node, false);
-		// check that anonymous users can get the object & shock nodes
+		// check that anonymous users can get the object & blob nodes
 		CLIENT_NOAUTH.getObjects2(new GetObjects2Params()
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace)
@@ -884,17 +882,17 @@ public class HandleAndBytestreamIntegrationTest {
 
 	private void checkReadAcl(final ShockNode node, final List<ShockUserId> users)
 			throws Exception {
-		assertThat("correct shock acls", node.getACLs().getRead(), is(users));
+		assertThat("correct blob acls", node.getACLs().getRead(), is(users));
 	}
 
 	private void checkWriteAcl(final ShockNode node, final List<ShockUserId> users)
 			throws Exception {
-		assertThat("correct shock acls", node.getACLs().getWrite(), is(users));
+		assertThat("correct blob acls", node.getACLs().getWrite(), is(users));
 	}
 
 	private void checkDeleteAcl(final ShockNode node, final List<ShockUserId> users)
 			throws Exception {
-		assertThat("correct shock acls", node.getACLs().getDelete(), is(users));
+		assertThat("correct blob acls", node.getACLs().getDelete(), is(users));
 	}
 
 	@Test
@@ -954,6 +952,5 @@ public class HandleAndBytestreamIntegrationTest {
 			assertThat("correct exception msg", e.getMessage(),
 					is("Maximum ID count of 4 exceeded"));
 		}
-
 	}
 }
