@@ -60,6 +60,8 @@ public class IdReferenceHandlerSetFactoryBuilder {
 		return new IdReferenceHandlerSetFactory(maxUniqueIdCount, factories, userToken);
 	}
 	
+	// TODO NAMING this is actually a general post processing mechanism, not just permissions.
+	// Come up with a reasonable name and rename this stuff.
 	/** Create a permission handler set that makes data associated with any
 	 * IDs publicly readable.
 	 * @return the new handler.
