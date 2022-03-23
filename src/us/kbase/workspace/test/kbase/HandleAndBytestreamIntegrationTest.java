@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -618,7 +619,7 @@ public class HandleAndBytestreamIntegrationTest {
 		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
 				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
 		final GetObjects2Params params = new GetObjects2Params()
-				// comment this out to check batching manually, need to add use debugger or
+				// comment this out to check batching manually, need to use debugger or
 				// print statements to see that the id handler is getting both handle IDs
 				.withBatchExternalSystemUpdates(1L)
 				.withObjects(Arrays.asList(
@@ -651,6 +652,66 @@ public class HandleAndBytestreamIntegrationTest {
 		assertThat("got correct error message", ret3.get(0).getHandleError(), is(err));
 		assertThat("incorrect stacktrace", ret3.get(0).getHandleStacktrace(), startsWith(stack));
 		checkExternalIDError(ret3.get(1).getHandleError(), ret3.get(1).getHandleStacktrace());
+	}
+	
+	@Test
+	public void handlesWithBatchUpdatesAndInaccessibleObjects() throws Exception {
+		/* Tests the case where objects are requested with handles, but some of them are
+		 * inaccessible and ignoreErrors is true.
+		 * Doesn't really need to use batch updates but exercises the external ID update loop
+		 */
+		final String rws = "inaccessiblehandle_read";
+		final String nws = "inaccessiblehandle_noaccess";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(rws));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(nws));
+		final BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + BLOB.getPort()), CLIENT1.getToken());
+
+		final ShockNode node1 = addBasicNode(bsc);
+		final ShockNode node2 = addBasicNode(bsc);
+		final String blob_id1 = node1.getId().getId();
+		final String blob_id2 = node2.getId().getId();
+		final String hid1 = createHandle(blob_id1, bsc.getShockUrl().toString(), "foo");
+		final String hid2 = createHandle(blob_id2, bsc.getShockUrl().toString(), "bar");
+		try {
+			CLIENT1.saveObjects(new SaveObjectsParams()
+					.withWorkspace(rws)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData()
+									.withData(new UObject(ImmutableMap.of(
+											"handles", Arrays.asList(hid1))))
+									.withName("foo")
+									.withType(HANDLE_TYPE)
+							))
+					);
+			CLIENT1.saveObjects(new SaveObjectsParams()
+					.withWorkspace(nws)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData()
+									.withData(new UObject(ImmutableMap.of(
+											"handles", Arrays.asList(hid2))))
+									.withName("bar")
+									.withType(HANDLE_TYPE)
+							))
+					);
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
+		
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(rws)
+				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
+		final GetObjects2Params params = new GetObjects2Params()
+				.withBatchExternalSystemUpdates(1L)
+				.withIgnoreErrors(1L)
+				.withObjects(Arrays.asList(
+						new ObjectSpecification().withWorkspace(rws).withObjid(1L),
+						new ObjectSpecification().withWorkspace(nws).withObjid(1L)
+						));
+		final List<ObjectData> ret1 = CLIENT2.getObjects2(params).getData();
+		checkExternalIDError(ret1.get(0).getHandleError(), ret1.get(0).getHandleStacktrace());
+		checkReadAcl(node1, Arrays.asList(BLOB_USER1, BLOB_USER2));
+		assertThat("expected null object", ret1.get(1), is(nullValue()));
 	}
 	
 	@Test
