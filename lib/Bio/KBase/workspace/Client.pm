@@ -2543,6 +2543,7 @@ GetObjects2Params is a reference to a hash where the following keys are defined:
 	ignoreErrors has a value which is a Workspace.boolean
 	no_data has a value which is a Workspace.boolean
 	skip_external_system_updates has a value which is a Workspace.boolean
+	batch_external_system_updates has a value which is a Workspace.boolean
 ObjectSpecification is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -2659,6 +2660,7 @@ GetObjects2Params is a reference to a hash where the following keys are defined:
 	ignoreErrors has a value which is a Workspace.boolean
 	no_data has a value which is a Workspace.boolean
 	skip_external_system_updates has a value which is a Workspace.boolean
+	batch_external_system_updates has a value which is a Workspace.boolean
 ObjectSpecification is a reference to a hash where the following keys are defined:
 	workspace has a value which is a Workspace.ws_name
 	wsid has a value which is a Workspace.ws_id
@@ -10576,10 +10578,16 @@ Input parameters for the get_objects2 function.
                 Default false.
         boolean no_data - return the provenance, references, and
                 object_info for this object without the object data. Default false.
-        boolean skip_external_system_updates - if the object contains any external IDs, don't
+        boolean skip_external_system_updates - if the objects contain any external IDs, don't
                 contact external systems to perform any updates for those IDs (often ACL updates,
                 e.g. for handle / blobstore / sample IDs). In some cases this can speed up fetching the
                 data. Default false.
+        boolean batch_external_system_updates - if the objects contain any external IDs,
+                send all external system updates in a batch to each external system when possible
+                rather than object by object. This can potentially speed up the updates, but the
+                drawback is that if the external update fails for any object, all the objects that
+                required updates for that system will be marked as having a failed update.
+                Has no effect if skip_external_system_updates is true. Default false.
 
 
 =item Definition
@@ -10592,6 +10600,7 @@ objects has a value which is a reference to a list where each element is a Works
 ignoreErrors has a value which is a Workspace.boolean
 no_data has a value which is a Workspace.boolean
 skip_external_system_updates has a value which is a Workspace.boolean
+batch_external_system_updates has a value which is a Workspace.boolean
 
 </pre>
 
@@ -10604,6 +10613,7 @@ objects has a value which is a reference to a list where each element is a Works
 ignoreErrors has a value which is a Workspace.boolean
 no_data has a value which is a Workspace.boolean
 skip_external_system_updates has a value which is a Workspace.boolean
+batch_external_system_updates has a value which is a Workspace.boolean
 
 
 =end text

@@ -27,10 +27,16 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *                 Default false.
  *         boolean no_data - return the provenance, references, and
  *                 object_info for this object without the object data. Default false.
- *         boolean skip_external_system_updates - if the object contains any external IDs, don't
+ *         boolean skip_external_system_updates - if the objects contain any external IDs, don't
  *                 contact external systems to perform any updates for those IDs (often ACL updates,
  *                 e.g. for handle / blobstore / sample IDs). In some cases this can speed up fetching the
  *                 data. Default false.
+ *         boolean batch_external_system_updates - if the objects contain any external IDs,
+ *                 send all external system updates in a batch to each external system when possible
+ *                 rather than object by object. This can potentially speed up the updates, but the
+ *                 drawback is that if the external update fails for any object, all the objects that
+ *                 required updates for that system will be marked as having a failed update.
+ *                 Has no effect if skip_external_system_updates is true. Default false.
  * </pre>
  * 
  */
@@ -40,7 +46,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "objects",
     "ignoreErrors",
     "no_data",
-    "skip_external_system_updates"
+    "skip_external_system_updates",
+    "batch_external_system_updates"
 })
 public class GetObjects2Params {
 
@@ -52,6 +59,8 @@ public class GetObjects2Params {
     private Long noData;
     @JsonProperty("skip_external_system_updates")
     private Long skipExternalSystemUpdates;
+    @JsonProperty("batch_external_system_updates")
+    private Long batchExternalSystemUpdates;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("objects")
@@ -114,6 +123,21 @@ public class GetObjects2Params {
         return this;
     }
 
+    @JsonProperty("batch_external_system_updates")
+    public Long getBatchExternalSystemUpdates() {
+        return batchExternalSystemUpdates;
+    }
+
+    @JsonProperty("batch_external_system_updates")
+    public void setBatchExternalSystemUpdates(Long batchExternalSystemUpdates) {
+        this.batchExternalSystemUpdates = batchExternalSystemUpdates;
+    }
+
+    public GetObjects2Params withBatchExternalSystemUpdates(Long batchExternalSystemUpdates) {
+        this.batchExternalSystemUpdates = batchExternalSystemUpdates;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -126,7 +150,7 @@ public class GetObjects2Params {
 
     @Override
     public String toString() {
-        return ((((((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", noData=")+ noData)+", skipExternalSystemUpdates=")+ skipExternalSystemUpdates)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((("GetObjects2Params"+" [objects=")+ objects)+", ignoreErrors=")+ ignoreErrors)+", noData=")+ noData)+", skipExternalSystemUpdates=")+ skipExternalSystemUpdates)+", batchExternalSystemUpdates=")+ batchExternalSystemUpdates)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

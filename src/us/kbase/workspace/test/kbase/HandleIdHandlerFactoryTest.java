@@ -148,21 +148,21 @@ public class HandleIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissionsFailNoUserUnauthorizedException() throws Exception {
 		addReadPermissionsFailNoUser(new UnauthorizedException("oh you naughty person"),
-				"Unable to contact the Handle Manager - the Workspace credentials were " +
+				"Unable to contact the Handle Service - the Workspace credentials were " +
 				"rejected: oh you naughty person");
 	}
 	
 	@Test
 	public void addReadPermissionsFailNoUserServerException() throws Exception {
 		addReadPermissionsFailNoUser(new ServerException("well poop", 1, "foo"),
-				"The Handle Manager reported a problem while attempting to set Handle ACLs: " +
+				"The Handle Service reported a problem while attempting to set Handle ACLs: " +
 				"well poop");
 	}
 	
 	@Test
 	public void addReadPermissionsFailNoUserJsonClientException() throws Exception {
 		addReadPermissionsFailNoUser(new JsonClientException("dang it to heck"),
-				"There was an unexpected problem while contacting the Handle Manager to set " +
+				"There was an unexpected problem while contacting the Handle Service to set " +
 				"Handle ACLs: dang it to heck");
 	}
 	
@@ -186,21 +186,21 @@ public class HandleIdHandlerFactoryTest {
 	@Test
 	public void addReadPermissionsFailWithUserUnauthorizedException() throws Exception {
 		addReadPermissionsFailWithUser(new UnauthorizedException("oh you naughty person"),
-				"Unable to contact the Handle Manager - the Workspace credentials were " +
+				"Unable to contact the Handle Service - the Workspace credentials were " +
 				"rejected: oh you naughty person");
 	}
 	
 	@Test
 	public void addReadPermissionsFailWithUserServerException() throws Exception {
 		addReadPermissionsFailWithUser(new ServerException("well poop", 1, "foo"),
-				"The Handle Manager reported a problem while attempting to set Handle ACLs: " +
+				"The Handle Service reported a problem while attempting to set Handle ACLs: " +
 				"well poop");
 	}
 	
 	@Test
 	public void addReadPermissionsFailWithUserJsonClientException() throws Exception {
 		addReadPermissionsFailWithUser(new JsonClientException("dang it to heck"),
-				"There was an unexpected problem while contacting the Handle Manager to set " +
+				"There was an unexpected problem while contacting the Handle Service to set " +
 				"Handle ACLs: dang it to heck");
 	}
 	
