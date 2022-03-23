@@ -452,7 +452,11 @@ public class WorkspaceServerMethods {
 				user, loi, noData, ignoreErrors, asAdmin);
 		resourcesToDelete.set(objects);
 		return new GetObjects2Results().withData(translateObjectData(
-				objects, user, true, longToBoolean(params.getSkipExternalSystemUpdates(), false)));
+				objects,
+				user,
+				longToBoolean(params.getSkipExternalSystemUpdates(), false),
+				longToBoolean(params.getBatchExternalSystemUpdates(), false),
+				true)); // log objects
 	}
 
 	private IdReferencePermissionHandlerSet getPermissionsHandler(final WorkspaceUser user) {
@@ -469,17 +473,19 @@ public class WorkspaceServerMethods {
 			final List<WorkspaceObjectData> objects, 
 			final WorkspaceUser user,
 			final boolean logObjects) {
-		return translateObjectData(objects, user, logObjects, false);
+		return translateObjectData(objects, user, false, false, logObjects);
 	}
 	
 	private List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
 			final WorkspaceUser user,
-			final boolean logObjects,
-			final boolean skipExternalACLUpdates) {
-		final Optional<IdReferencePermissionHandlerSet> handlers = skipExternalACLUpdates ? 
+			final boolean skipExternalSystemUpdates,
+			final boolean batchExternalSystemUpdates,
+			final boolean logObjects) {
+		final Optional<IdReferencePermissionHandlerSet> handlers = skipExternalSystemUpdates ? 
 				Optional.empty() : Optional.of(getPermissionsHandler(user));
-		return ArgUtils.translateObjectData(objects, handlers, logObjects);
+		return ArgUtils.translateObjectData(
+				objects, handlers, batchExternalSystemUpdates, logObjects);
 	}
 	
 	@SuppressWarnings("deprecation")

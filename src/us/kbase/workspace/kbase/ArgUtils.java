@@ -9,12 +9,15 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -397,20 +400,32 @@ public class ArgUtils {
 	 * @param objects the objects to convert.
 	 * @param permHandler any permissions handlers to invoke based on the contents of the object.
 	 * If not present, no permissions are updated.
+	 * @param batchExternalUpdates if true, send all external system updates in a batch to each
+	 * external system when possible rather than object by object. This can potentially
+	 * speed up the updates, but the drawback is that if the external update fails for any object,
+	 * all the objects that required updates for that system will be marked as having a failed
+	 * update. Has no effect if the permissions handler is not present.
 	 * @param logObjects if true, log the object ref and type.
 	 * @return the translated objects.
 	 */
 	public static List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
 			final Optional<IdReferencePermissionHandlerSet> permHandler,
+			final boolean batchExternalUpdates,
 			final boolean logObjects) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
+		Map<WorkspaceObjectData, PermError> errs = null;
+		if (batchExternalUpdates) {
+			errs = makeExternalIDsReadable(objects, permHandler);
+		}
 		for (final WorkspaceObjectData o: objects) {
 			if (o == null) {
 				ret.add(null);
 				continue;
 			}
-			final PermError error = makeExternalIDsReadable(o, permHandler);
+			if (!batchExternalUpdates) {
+				errs = makeExternalIDsReadable(Arrays.asList(o), permHandler);
+			}
 			final UObject data;
 			try {
 				data = o.hasData() ? o.getSerializedData().get().getUObject() : null;
@@ -436,8 +451,8 @@ public class ArgUtils {
 					.withCopySourceInaccessible(
 							o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))
-					.withHandleError(error.error)
-					.withHandleStacktrace(error.stackTrace));
+					.withHandleError(errs.get(o).error)
+					.withHandleStacktrace(errs.get(o).stackTrace));
 		}
 		return ret;
 	}
@@ -477,7 +492,8 @@ public class ArgUtils {
 		final List<us.kbase.workspace.ObjectProvenanceInfo> ret =
 				new ArrayList<us.kbase.workspace.ObjectProvenanceInfo>();
 		for (final WorkspaceObjectData o: objects) {
-			final PermError error = makeExternalIDsReadable(o, Optional.of(permHandler));
+			final PermError error = makeExternalIDsReadable(
+					Arrays.asList(o), Optional.of(permHandler)).get(o);
 			ret.add(new us.kbase.workspace.ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withProvenance(translateProvenanceActions(
@@ -513,29 +529,67 @@ public class ArgUtils {
 		@Override
 		public String toString() {
 			StringBuilder builder = new StringBuilder();
-			builder.append("HandleError [error=");
+			builder.append("PermError [error=");
 			builder.append(error);
 			builder.append(", stackTrace=");
 			builder.append(stackTrace);
 			builder.append("]");
 			return builder.toString();
 		}
-		
 	}
 
-	private static PermError makeExternalIDsReadable(
-			final WorkspaceObjectData o,
+	private static final PermError NULL_ERR = new PermError(null, null);
+	
+	private static Map<WorkspaceObjectData, PermError> makeExternalIDsReadable(
+			final List<WorkspaceObjectData> objects,
 			final Optional<IdReferencePermissionHandlerSet> permhandler) {
+		/* External services are generally going to fail quickly if setting an ACL fails,
+		 * since there's almost certainly something very wrong - this is all admin stuff and 
+		 * so regular failures shouldn't be an issue. As such, we just assign any errors
+		 * to all objects that were part of the call, as it's not clear which objects were
+		 * processed and which failed.
+		 * The alternative is to have all external services return exactly which IDs failed and
+		 * which succeeded, which means failing slowly and trying all IDs, which in most cases
+		 * is just going to waste time, because, again, there's something likely very wrong.
+		 * 
+		 * One exception is that nodes for handles can be deleted by the owner, unlike samples
+		 * or bytestream nodes. However, in KBase this should never happen so we don't consider
+		 * it here.
+		 */
+		final Map<WorkspaceObjectData, PermError> ret = objects.stream().filter(o -> o != null)
+				.collect(Collectors.toMap(o -> o, o -> NULL_ERR));
 		if (permhandler.isPresent()) {
-			for (final IdReferenceType t: o.getExtractedIds().keySet()) {
+			// This section could probably be more efficient, but there's very few types
+			// and it's going to be dominated by the network connections so meh
+			final Set<IdReferenceType> types = objects.stream().filter(o -> o != null)
+					.flatMap(o -> o.getExtractedIds().keySet().stream())
+					.collect(Collectors.toCollection(() -> new TreeSet<>()));
+			for (final IdReferenceType t: types) {
+				final Set<String> ids = new HashSet<>();
+				final List<WorkspaceObjectData> objs = new LinkedList<>();
+				for (final WorkspaceObjectData o: objects) {
+					// getExtractedIds never returns an empty list
+					if (o != null && o.getExtractedIds().get(t) != null) {
+						ids.addAll(o.getExtractedIds().get(t));
+						objs.add(o);
+					}
+				}
 				try {
-					permhandler.get().addReadPermission(t, o.getExtractedIds().get(t));
+					/* Each object has a max of 100K refs and there's a max of 10K objects per
+					 * get_objects2 call. That means that theoretically we could be sending 1B
+					 * ids here. However, in practice most object have very few refs so don't
+					 * worry about it for now. If needed later add a loop or throw an error if
+					 * there's too many IDs.
+					 */
+					permhandler.get().addReadPermission(t, ids);
 				} catch (IdReferencePermissionHandlerException e) {
-					return new PermError(e.getMessage(), ExceptionUtils.getStackTrace(e));
+					final PermError err = new PermError(
+							e.getMessage(), ExceptionUtils.getStackTrace(e));
+					objs.stream().forEach(o -> ret.put(o, err));
 				}
 			}
 		}
-		return new PermError(null, null);
+		return ret;
 	}
 
 	private static List<ProvenanceAction> translateProvenanceActions(

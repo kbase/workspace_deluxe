@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
 import us.kbase.auth.AuthToken;
@@ -108,11 +109,12 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 						"The workspace is not currently connected to the Handle Service " +
 						"and cannot process Handle ids.");
 			}
+			final List<String> lids = ids.stream().collect(Collectors.toList());
 			try {
 				if (user == null) {
-					client.setPublicRead(new LinkedList<>(ids));
+					client.setPublicRead(lids);
 				} else {
-					client.addReadAcl(new LinkedList<>(ids), user);
+					client.addReadAcl(lids, user);
 				}
 			} catch (IOException e) {
 				throw new IdReferencePermissionHandlerException(
@@ -120,17 +122,17 @@ public class HandleIdHandlerFactory implements IdReferenceHandlerFactory {
 								"Handle ACLs: " + e.getMessage(), e);
 			} catch (UnauthorizedException e) {
 				throw new IdReferencePermissionHandlerException(
-						"Unable to contact the Handle Manager - " +
+						"Unable to contact the Handle Service - " +
 								"the Workspace credentials were rejected: " +
 								e.getMessage(), e);
 			} catch (ServerException e) {
 				throw new IdReferencePermissionHandlerException(
-						"The Handle Manager reported a problem while attempting " +
+						"The Handle Service reported a problem while attempting " +
 								"to set Handle ACLs: " + e.getMessage(), e);
 			} catch (JsonClientException e) {
 				throw new IdReferencePermissionHandlerException(
 						"There was an unexpected problem while contacting the " +
-								"Handle Manager to set Handle ACLs: " +
+								"Handle Service to set Handle ACLs: " +
 								e.getMessage(), e);
 			}
 		}

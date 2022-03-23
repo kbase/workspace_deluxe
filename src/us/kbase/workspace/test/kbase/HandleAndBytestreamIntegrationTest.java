@@ -1,6 +1,7 @@
 package us.kbase.workspace.test.kbase;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -14,6 +15,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -116,6 +118,7 @@ public class HandleAndBytestreamIntegrationTest {
 	private static final String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
 	private static final String BLOB_TYPE = "HandleByteStreamList.SList-0.1";
 	private static final String HANDLE_REF_TYPE = "HandleByteStreamList.HRef-0.1";
+	private static final String EMPTY_TYPE = "HandleByteStreamList.Empty-0.1";
 	
 	private static final String HANDLE_SERVICE_TEST_DB = "handle_service_test_handle_db";
 
@@ -427,13 +430,9 @@ public class HandleAndBytestreamIntegrationTest {
 				new URL("http://localhost:" + BLOB.getPort()), CLIENT1.getToken());
 
 		final ShockNode node = addBasicNode(bsc);
-		String shock_id = node.getId().getId();
-		final Handle handle = new Handle();
-		handle.setId(shock_id);
-		handle.setFileName("empty_file");
-		handle.setUrl(bsc.getShockUrl().toString());
-		handle.setType("shock");
-		String handle_id = HANDLE_CLIENT.persistHandle(handle);
+		final String shock_id = node.getId().getId();
+		final String handle_id = createHandle(
+				shock_id, bsc.getShockUrl().toString(), "empty_file");
 
 		List<String> handleList = new LinkedList<String>();
 		handleList.add(handle_id);
@@ -493,6 +492,7 @@ public class HandleAndBytestreamIntegrationTest {
 		checkReadAcl(node, oneuser);
 		// without skipping ACL update
 		ret1 = CLIENT2.getObjects2(new GetObjects2Params()
+				.withBatchExternalSystemUpdates(0L) // testing default case with an input vs null
 				.withObjects(Arrays.asList(new ObjectSpecification()
 					.withWorkspace(workspace)
 					.withObjid(1L)))).getData().get(0);
@@ -556,14 +556,184 @@ public class HandleAndBytestreamIntegrationTest {
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
 		assertThat("got correct error message", wod.getHandleError(), 
-						is("The Handle Manager reported a problem while attempting to set Handle ACLs: 'Unable to set acl(s) on handles " + handle_id + "'"));
+						is("The Handle Service reported a problem while attempting to set Handle ACLs: 'Unable to set acl(s) on handles " + handle_id + "'"));
 		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
 						startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
 										"IdReferencePermissionHandlerException: " +
-										"The Handle Manager reported a problem while attempting to set Handle " +
+										"The Handle Service reported a problem while attempting to set Handle " +
 										"ACLs: 'Unable to set acl(s) on handles " + handle_id));
 	}
 
+	public String createHandle(final String blobID, final String url, final String fileName)
+			throws Exception {
+		return HANDLE_CLIENT.persistHandle(new Handle()
+				.withId(blobID)
+				.withFileName(fileName)
+				.withUrl(url)
+				.withType("shock"));
+	}
+
+	@Test
+	public void handlesWithBatchUpdates() throws Exception {
+		/* Tests the batch updates parameter. Note that this has no visible impact to the user
+		 * other than a possible performance improvement, which is not reasonable to test for
+		 * as the performance characteristics can vary wildly from test environment to test
+		 * environment.
+		 * As such, all this test really does is check that the blobstore nodes are updated as
+		 * expected and no errors occur.
+		 * I did manually check that the handle ID handler was getting the batched IDs vs.
+		 * single object IDs.
+		 */
+		
+		final String workspace = "batchhandle";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(workspace));
+		final BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + BLOB.getPort()), CLIENT1.getToken());
+
+		final ShockNode node1 = addBasicNode(bsc);
+		final ShockNode node2 = addBasicNode(bsc);
+		final String blob_id1 = node1.getId().getId();
+		final String blob_id2 = node2.getId().getId();
+		final String hid1 = createHandle(blob_id1, bsc.getShockUrl().toString(), "foo");
+		final String hid2 = createHandle(blob_id2, bsc.getShockUrl().toString(), "bar");
+
+		try {
+			CLIENT1.saveObjects(new SaveObjectsParams()
+					.withWorkspace(workspace)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData()
+									.withData(new UObject(ImmutableMap.of(
+											"handles", Arrays.asList(hid1))))
+									.withName("foo")
+									.withType(HANDLE_TYPE),
+							new ObjectSaveData()
+									.withData(new UObject(ImmutableMap.of(
+											"handles", Arrays.asList(hid2))))
+									.withName("bar")
+									.withType(HANDLE_TYPE)
+							))
+					);
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
+		
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(workspace)
+				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
+		final GetObjects2Params params = new GetObjects2Params()
+				// comment this out to check batching manually, need to use debugger or
+				// print statements to see that the id handler is getting both handle IDs
+				.withBatchExternalSystemUpdates(1L)
+				.withObjects(Arrays.asList(
+						new ObjectSpecification().withWorkspace(workspace).withObjid(1L),
+						new ObjectSpecification().withWorkspace(workspace).withObjid(2L)
+						));
+		final List<ObjectData> ret1 = CLIENT2.getObjects2(params).getData();
+		checkExternalIDError(ret1.get(0).getHandleError(), ret1.get(0).getHandleStacktrace());
+		checkExternalIDError(ret1.get(1).getHandleError(), ret1.get(1).getHandleStacktrace());
+		checkReadAcl(node1, Arrays.asList(BLOB_USER1, BLOB_USER2));
+		checkReadAcl(node2, Arrays.asList(BLOB_USER1, BLOB_USER2));
+		
+		// now test that if one node is inaccessible all nodes are marked as errored
+		node1.delete();
+		final String err = "The Handle Service reported a problem while attempting to set " +
+				"Handle ACLs: 'Unable to set acl(s) on handles " + hid1 + "'";
+		final String stack = "us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
+				"IdReferencePermissionHandlerException: " +
+				"The Handle Service reported a problem while attempting to " +
+				"set Handle ACLs: 'Unable to set acl(s) on handles " + hid1;
+		final List<ObjectData> ret2 = CLIENT2.getObjects2(params).getData();
+		for (final ObjectData od: ret2) {
+			assertThat("got correct error message", od.getHandleError(), is(err));
+			assertThat("incorrect stacktrace", od.getHandleStacktrace(), startsWith(stack));
+		}
+		
+		// finally test the same but without batching, so only one object should have an error
+		final List<ObjectData> ret3 = CLIENT2.getObjects2(
+				params.withBatchExternalSystemUpdates(0L)).getData();
+		assertThat("got correct error message", ret3.get(0).getHandleError(), is(err));
+		assertThat("incorrect stacktrace", ret3.get(0).getHandleStacktrace(), startsWith(stack));
+		checkExternalIDError(ret3.get(1).getHandleError(), ret3.get(1).getHandleStacktrace());
+	}
+	
+	@Test
+	public void handlesWithBatchUpdatesAndInaccessibleObjects() throws Exception {
+		/* Tests the case where objects are requested with handles, but some of them are
+		 * inaccessible and ignoreErrors is true.
+		 * Also tests the case where some of the objects don't have any handles.
+		 * Doesn't really need to use batch updates but exercises the external ID update loop
+		 */
+		final String rws = "inaccessiblehandle_read";
+		final String nws = "inaccessiblehandle_noaccess";
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(rws));
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace(nws));
+		final BasicShockClient bsc = new BasicShockClient(
+				new URL("http://localhost:" + BLOB.getPort()), CLIENT1.getToken());
+
+		final ShockNode node1 = addBasicNode(bsc);
+		final ShockNode node2 = addBasicNode(bsc);
+		final String blob_id1 = node1.getId().getId();
+		final String blob_id2 = node2.getId().getId();
+		final String hid1 = createHandle(blob_id1, bsc.getShockUrl().toString(), "foo");
+		final String hid2 = createHandle(blob_id2, bsc.getShockUrl().toString(), "bar");
+		try {
+			CLIENT1.saveObjects(new SaveObjectsParams()
+					.withWorkspace(rws)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData()
+									.withData(new UObject(ImmutableMap.of(
+											"handles", Arrays.asList(hid1))))
+									.withName("foo")
+									.withType(HANDLE_TYPE),
+							new ObjectSaveData()
+									.withData(new UObject(Collections.emptyMap()))
+									.withName("baz")
+									.withType(EMPTY_TYPE)
+							))
+					);
+			CLIENT1.saveObjects(new SaveObjectsParams()
+					.withWorkspace(nws)
+					.withObjects(Arrays.asList(
+							new ObjectSaveData()
+									.withData(new UObject(ImmutableMap.of(
+											"handles", Arrays.asList(hid2))))
+									.withName("bar")
+									.withType(HANDLE_TYPE)
+							))
+					);
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
+		
+		CLIENT1.setPermissions(new SetPermissionsParams().withWorkspace(rws)
+				.withUsers(Arrays.asList(USER2)).withNewPermission("r"));
+		final GetObjects2Params params = new GetObjects2Params()
+				.withBatchExternalSystemUpdates(1L)
+				.withIgnoreErrors(1L)
+				.withObjects(Arrays.asList(
+						new ObjectSpecification().withWorkspace(rws).withObjid(1L),
+						new ObjectSpecification().withWorkspace(rws).withObjid(2L),
+						// doesn't exist
+						new ObjectSpecification().withWorkspace(nws).withObjid(3L),
+						// not readable
+						new ObjectSpecification().withWorkspace(nws).withObjid(1L)
+						));
+		final List<ObjectData> ret;
+		try {
+			ret = CLIENT2.getObjects2(params).getData();
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
+		checkExternalIDError(ret.get(0).getHandleError(), ret.get(0).getHandleStacktrace());
+		checkExternalIDError(ret.get(1).getHandleError(), ret.get(1).getHandleStacktrace());
+		checkReadAcl(node1, Arrays.asList(BLOB_USER1, BLOB_USER2));
+		checkReadAcl(node2, Arrays.asList(BLOB_USER1));
+		assertThat("expected null object", ret.get(2), is(nullValue()));
+		assertThat("expected null object", ret.get(3), is(nullValue()));
+	}
+	
 	@Test
 	public void saveAndGetWithBytestreamIDs() throws Exception {
 		// tests blob nodes that are already owned by the WS (but readable by the user)
@@ -807,13 +977,9 @@ public class HandleAndBytestreamIntegrationTest {
 		final ShockNode node = addBasicNode(bsc);
 		String shock_id = node.getId().getId();
 
-		final Handle handle = new Handle();
-		handle.setId(shock_id);
-		handle.setFileName("empty_file");
-		handle.setUrl(bsc.getShockUrl().toString());
-		handle.setType("shock");
-		String handle_id = HANDLE_CLIENT.persistHandle(handle);
-
+		final String handle_id = createHandle(
+				shock_id, bsc.getShockUrl().toString(), "empty_file");
+		
 		List<String> handleList = new LinkedList<String>();
 		handleList.add(handle_id);
 		Map<String, Object> handleobj = new HashMap<String, Object>();
@@ -857,11 +1023,11 @@ public class HandleAndBytestreamIntegrationTest {
 		Map<String, Object> retdata = wod.getData().asClassInstance(Map.class);
 		assertThat("got correct data", retdata, is(handleobj));
 		assertThat("got correct error message", wod.getHandleError(),
-						is("The Handle Manager reported a problem while attempting to set Handle ACLs: 'Unable to set acl(s) on handles " + handle_id + "'"));
+						is("The Handle Service reported a problem while attempting to set Handle ACLs: 'Unable to set acl(s) on handles " + handle_id + "'"));
 		assertThat("incorrect stacktrace", wod.getHandleStacktrace(),
 						startsWith("us.kbase.typedobj.idref.IdReferencePermissionHandlerSet$" +
 										"IdReferencePermissionHandlerException: " +
-										"The Handle Manager reported a problem while attempting to set Handle " +
+										"The Handle Service reported a problem while attempting to set Handle " +
 										"ACLs: 'Unable to set acl(s) on handles " + handle_id));
 	}
 
