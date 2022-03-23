@@ -15,6 +15,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -117,6 +118,7 @@ public class HandleAndBytestreamIntegrationTest {
 	private static final String HANDLE_TYPE = "HandleByteStreamList.HList-0.1";
 	private static final String BLOB_TYPE = "HandleByteStreamList.SList-0.1";
 	private static final String HANDLE_REF_TYPE = "HandleByteStreamList.HRef-0.1";
+	private static final String EMPTY_TYPE = "HandleByteStreamList.Empty-0.1";
 	
 	private static final String HANDLE_SERVICE_TEST_DB = "handle_service_test_handle_db";
 
@@ -658,6 +660,7 @@ public class HandleAndBytestreamIntegrationTest {
 	public void handlesWithBatchUpdatesAndInaccessibleObjects() throws Exception {
 		/* Tests the case where objects are requested with handles, but some of them are
 		 * inaccessible and ignoreErrors is true.
+		 * Also tests the case where some of the objects don't have any handles.
 		 * Doesn't really need to use batch updates but exercises the external ID update loop
 		 */
 		final String rws = "inaccessiblehandle_read";
@@ -681,7 +684,11 @@ public class HandleAndBytestreamIntegrationTest {
 									.withData(new UObject(ImmutableMap.of(
 											"handles", Arrays.asList(hid1))))
 									.withName("foo")
-									.withType(HANDLE_TYPE)
+									.withType(HANDLE_TYPE),
+							new ObjectSaveData()
+									.withData(new UObject(Collections.emptyMap()))
+									.withName("baz")
+									.withType(EMPTY_TYPE)
 							))
 					);
 			CLIENT1.saveObjects(new SaveObjectsParams()
@@ -706,12 +713,25 @@ public class HandleAndBytestreamIntegrationTest {
 				.withIgnoreErrors(1L)
 				.withObjects(Arrays.asList(
 						new ObjectSpecification().withWorkspace(rws).withObjid(1L),
+						new ObjectSpecification().withWorkspace(rws).withObjid(2L),
+						// doesn't exist
+						new ObjectSpecification().withWorkspace(nws).withObjid(3L),
+						// not readable
 						new ObjectSpecification().withWorkspace(nws).withObjid(1L)
 						));
-		final List<ObjectData> ret1 = CLIENT2.getObjects2(params).getData();
-		checkExternalIDError(ret1.get(0).getHandleError(), ret1.get(0).getHandleStacktrace());
+		final List<ObjectData> ret;
+		try {
+			ret = CLIENT2.getObjects2(params).getData();
+		} catch (ServerException se) {
+			System.out.println(se.getData());
+			throw se;
+		}
+		checkExternalIDError(ret.get(0).getHandleError(), ret.get(0).getHandleStacktrace());
+		checkExternalIDError(ret.get(1).getHandleError(), ret.get(1).getHandleStacktrace());
 		checkReadAcl(node1, Arrays.asList(BLOB_USER1, BLOB_USER2));
-		assertThat("expected null object", ret1.get(1), is(nullValue()));
+		checkReadAcl(node2, Arrays.asList(BLOB_USER1));
+		assertThat("expected null object", ret.get(2), is(nullValue()));
+		assertThat("expected null object", ret.get(3), is(nullValue()));
 	}
 	
 	@Test

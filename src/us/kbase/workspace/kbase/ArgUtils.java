@@ -556,7 +556,7 @@ public class ArgUtils {
 		 * or bytestream nodes. However, in KBase this should never happen so we don't consider
 		 * it here.
 		 */
-		final Map<WorkspaceObjectData, PermError> ret = objects.stream()
+		final Map<WorkspaceObjectData, PermError> ret = objects.stream().filter(o -> o != null)
 				.collect(Collectors.toMap(o -> o, o -> NULL_ERR));
 		if (permhandler.isPresent()) {
 			// This section could probably be more efficient, but there's very few types
