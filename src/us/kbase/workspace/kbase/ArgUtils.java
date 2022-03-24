@@ -8,6 +8,12 @@ import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 import java.io.IOException;
 import java.text.ParseException;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -21,10 +27,6 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.DateTimeFormatterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,18 +64,21 @@ public class ArgUtils {
 		return LoggerFactory.getLogger(ArgUtils.class);
 	}
 	
-	private final static DateTimeFormatter DATE_PARSER =
-			new DateTimeFormatterBuilder()
-				.append(DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss"))
-				.appendOptional(DateTimeFormat.forPattern(".SSS").getParser())
-				.append(DateTimeFormat.forPattern("Z"))
-				.toFormatter();
+	private final static DateTimeFormatter DATE_PARSER = DateTimeFormatter
+			.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSS][.SS][.S][XXX][XX]"); // saucy datetimes here
 	
-	private final static DateTimeFormatter DATE_FORMATTER =
-			DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZoneUTC();
+	private final static DateTimeFormatter DATE_FORMATTER = DateTimeFormatter
+			.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(ZoneOffset.UTC);
 	
-	// TODO CODE switch to returning Instant. Used in lots of places so do this later.
-	public static Date chooseDate(
+	/** Given a string or epoch millisecond timestamp, return an {@link Instant} created from
+	 * the timestamp. Providing both timestamps is an error.
+	 * @param timestamp a string typestamp in ISO8601 format, using the Z timezone designator.
+	 * @param epochInMilliSec the Linux epoch time in milliseconds.
+	 * @param error a string to use if both timestamps are supplied.
+	 * @return the new instant or null if neither arguments are provided.
+	 * @throws ParseException if the text timestamp cannot be parsed.
+	 */
+	public static Instant chooseInstant(
 			final String timestamp,
 			final Long epochInMilliSec,
 			final String error)
@@ -82,29 +87,22 @@ public class ArgUtils {
 			throw new IllegalArgumentException(error);
 		}
 		if (timestamp != null) {
-			return parseDate(timestamp);
+			try {
+				final TemporalAccessor date =  DATE_PARSER.parseBest(
+						timestamp, ZonedDateTime::from, LocalDateTime::from);
+				if (date instanceof LocalDateTime) {
+					throw new IllegalArgumentException(String.format(
+							"Date '%s' does not have time zone information", timestamp));
+				}
+				return Instant.from(date);
+			} catch (DateTimeParseException e) {
+				throw new IllegalArgumentException("Unparseable date: " + e.getMessage(), e);
+			}
 		}
 		if (epochInMilliSec != null) {
-			return new Date(epochInMilliSec);
+			return Instant.ofEpochMilli(epochInMilliSec);
 		}
-		return null;
-	}
-	
-	/** Given a string or epoch millisecond timestamp, return an {@link Instant} created from
-	 * the timestamp. Providing both timestamps is an error.
-	 * @param timestamp a string typestamp in ISO8601 format, using the Z timezone designator.
-	 * @param epochInMilliSec the Linux epoch time in milliseconds.
-	 * @param error a string to use if both timestamps are supplied.
-	 * @return the new intant.
-	 * @throws ParseException if the text timestamp cannot be parsed.
-	 */
-	public static Instant chooseInstant(
-			final String timestamp,
-			final Long epochInMilliSec,
-			final String error)
-			throws ParseException {
-		final Date d = chooseDate(timestamp, epochInMilliSec, error);
-		return d == null ? null : d.toInstant();
+		return null; // TODO CODE at some point switch to optionals
 	}
 	
 	public static Provenance processProvenance(final WorkspaceUser user,
@@ -116,11 +114,11 @@ public class ArgUtils {
 		}
 		for (final ProvenanceAction a: actions) {
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
-			final Date d = chooseDate(a.getTime(), a.getEpoch(),
+			final Instant d = chooseInstant(a.getTime(), a.getEpoch(),
 					"Cannot specify both time and epoch in provenance " +
 							"action");
 			p.addAction(new Provenance.ProvenanceAction()
-					.withTime(d)
+					.withTime(d == null ? null : Date.from(d))
 					.withCaller(a.getCaller())
 					.withServiceName(a.getService())
 					.withServiceVersion(a.getServiceVer())
@@ -168,7 +166,7 @@ public class ArgUtils {
 			return ret;
 		}
 		for (final ExternalDataUnit edu: externalData) {
-			final Date d = chooseDate(edu.getResourceReleaseDate(),
+			final Instant d = chooseInstant(edu.getResourceReleaseDate(),
 					edu.getResourceReleaseEpoch(),
 					"Cannot specify both time and epoch in external " +
 							"data unit");
@@ -178,7 +176,7 @@ public class ArgUtils {
 					.withDataUrl(edu.getDataUrl())
 					.withDescription(edu.getDescription())
 					.withResourceName(edu.getResourceName())
-					.withResourceReleaseDate(d)
+					.withResourceReleaseDate(d == null ? null : Date.from(d))
 					.withResourceUrl(edu.getResourceUrl())
 					.withResourceVersion(edu.getResourceVersion())
 			);
@@ -186,32 +184,19 @@ public class ArgUtils {
 		return ret;
 	}
 
-	//TODO CODE why does this throw ParseException? 
-	private static Date parseDate(final String date) throws ParseException {
-		if (date == null) {
-			return null;
-		}
-		try {
-			return DATE_PARSER.parseDateTime(date).toDate();
-		} catch (IllegalArgumentException iae) {
-			throw new IllegalArgumentException("Unparseable date: " +
-					iae.getMessage());
-		}
-	}
-	
+	// TODO CODE remove this eventually when everything uses Instants
 	private static String formatDate(final Date date) {
 		if (date == null) {
 			return null;
 		}
-		return DATE_FORMATTER.print(new DateTime(date));
+		return formatDate(date.toInstant());
 	}
 	
 	private static String formatDate(final Instant date) {
 		if (date == null) {
 			return null;
 		}
-		return formatDate(Date.from(date));
-		
+		return DATE_FORMATTER.format(date);
 	}
 	
 	private static List<Object> translateMethodParametersToObject(

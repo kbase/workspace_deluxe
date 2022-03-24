@@ -2,7 +2,6 @@ package us.kbase.workspace.kbase;
 
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.checkLong;
-import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.ArgUtils.chooseInstant;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
@@ -522,16 +521,17 @@ public class WorkspaceServerMethods {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final Permission p = params.getPerm() == null ? null :
 				translatePermission(params.getPerm());
-		final Date after = chooseDate(params.getAfter(),
+		final Instant after = chooseInstant(params.getAfter(),
 				params.getAfterEpoch(),
 				"Cannot specify both timestamp and epoch for after parameter");
-		final Date before = chooseDate(params.getBefore(),
+		final Instant before = chooseInstant(params.getBefore(),
 				params.getBeforeEpoch(),
 				"Cannot specify both timestamp and epoch for before parameter");
 		return wsInfoToTuple(ws.listWorkspaces(user,
 				p, convertUsers(params.getOwners()),
 				new WorkspaceUserMetadata(params.getMeta()),
-				after, before,
+				after == null ? null : Date.from(after),
+				before == null ? null : Date.from(before),
 				longToBoolean(params.getExcludeGlobal()),
 				longToBoolean(params.getShowDeleted()),
 				longToBoolean(params.getShowOnlyDeleted())));

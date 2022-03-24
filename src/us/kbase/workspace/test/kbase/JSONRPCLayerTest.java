@@ -737,6 +737,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					is("Cannot specify both time and epoch in provenance action"));
 		}
 
+		// test time conversion to a standard format
 		saveProvWithGoodTime("provenance",
 				new StringEpoch("2013-04-26T23:52:06-0800"),
 				new StringEpoch(1367049126000L, "2013-04-27T07:52:06+0000"));
@@ -759,23 +760,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new StringEpoch(1367049126140L),
 				new StringEpoch(1367049126140L, "2013-04-27T07:52:06+0000"));
 
+		// most tests for bad dates are in the arg utils tests, so we just do a single case here
 		saveProvWithBadTime("2013-04-26T25:52:06-0800",
-				"Unparseable date: Cannot parse \"2013-04-26T25:52:06-0800\": Value 25 for hourOfDay must be in the range [0,23]");
-		saveProvWithBadTime("2013-04-26T23:52:06-8000",
-				"Unparseable date: Invalid format: \"2013-04-26T23:52:06-8000\" is malformed at \"8000\"");
-		saveProvWithBadTime("2013-04-35T23:52:06-0800",
-				"Unparseable date: Cannot parse \"2013-04-35T23:52:06-0800\": Value 35 for dayOfMonth must be in the range [1,30]");
-		saveProvWithBadTime("2013-13-26T23:52:06-0800",
-				"Unparseable date: Cannot parse \"2013-13-26T23:52:06-0800\": Value 13 for monthOfYear must be in the range [1,12]");
-		saveProvWithBadTime("2013-13-26T23:52:06.1111-0800",
-				"Unparseable date: Invalid format: \"2013-13-26T23:52:06.1111-0800\" is malformed at \"1-0800\"");
-		saveProvWithBadTime("2013-13-26T23:52:06.-0800",
-				"Unparseable date: Invalid format: \"2013-13-26T23:52:06.-0800\" is malformed at \".-0800\"");
-		saveProvWithBadTime("2013-12-26T23:52:06.55",
-				"Unparseable date: Invalid format: \"2013-12-26T23:52:06.55\" is too short");
-		saveProvWithBadTime("2013-12-26T23:52-0800",
-				"Unparseable date: Invalid format: \"2013-12-26T23:52-0800\" is malformed at \"-0800\"");
-
+				"Unparseable date: Text '2013-04-26T25:52:06-0800' could not be parsed: " +
+				"Invalid value for HourOfDay (valid values 0 - 23): 25");
+		
 		CLIENT1.setPermissions(new SetPermissionsParams().withId(wsid)
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("provenance")
@@ -2367,7 +2356,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				Arrays.asList(w2), true);
 
 		failListWorkspaceByDate("crappy date",
-				"Unparseable date: Invalid format: \"crappy date\"");
+				"Unparseable date: Text 'crappy date' could not be parsed at index 0");
 		try {
 			CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withAfter(beforeall).withAfterEpoch(1L));
@@ -2730,7 +2719,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o2), false);
 
 		failListObjectsByDate(ws, "crappy obj date",
-				"Unparseable date: Invalid format: \"crappy obj date\"");
+				"Unparseable date: Text 'crappy obj date' could not be parsed at index 0");
 		try {
 			CLIENT1.listObjects(new ListObjectsParams()
 				.withWorkspaces(Arrays.asList(ws))
