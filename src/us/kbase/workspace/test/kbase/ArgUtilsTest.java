@@ -18,6 +18,8 @@ public class ArgUtilsTest {
 	
 	@Test
 	public void chooseInstantSuccess() throws Exception {
+		checkChooseInstant(null, null, null);
+		
 		checkChooseInstant(null, -1000L, inst(-1000));
 		checkChooseInstant(null, 0L, inst(0));
 		checkChooseInstant(null, 1000L, inst(1000));
@@ -53,7 +55,8 @@ public class ArgUtilsTest {
 			final Instant expected)
 			throws Exception {
 		final Instant got = chooseInstant(timestamp, epochMillis, "foo");
-		assertThat("incorrect instant, got epoch of " + got.toEpochMilli(), got, is(expected));
+		assertThat("incorrect instant, got epoch of " + (got == null ? null : got.toEpochMilli()),
+				got, is(expected));
 	}
 
 	@Test
