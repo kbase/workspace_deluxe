@@ -262,7 +262,7 @@ public class ExternalData {
 		}
 
 		private String processString(final String input) {
-			return isNullOrEmpty(input) ? null : input.strip();
+			return isNullOrEmpty(input) ? null : input.trim();
 		}
 
 		private URL processURL(final String url) {
