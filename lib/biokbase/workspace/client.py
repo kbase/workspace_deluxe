@@ -791,7 +791,7 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. All fields are optional, but at least one field much be
+           output. All fields are optional, but at least one field must be
            present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
@@ -1152,7 +1152,7 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. All fields are optional, but at least one field much be
+           output. All fields are optional, but at least one field must be
            present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
@@ -1433,7 +1433,7 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. All fields are optional, but at least one field much be
+           output. All fields are optional, but at least one field must be
            present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
@@ -1896,7 +1896,7 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. All fields are optional, but at least one field much be
+           output. All fields are optional, but at least one field must be
            present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
@@ -2211,7 +2211,7 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. All fields are optional, but at least one field much be
+           output. All fields are optional, but at least one field must be
            present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
@@ -2716,7 +2716,7 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. All fields are optional, but at least one field much be
+           output. All fields are optional, but at least one field must be
            present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
