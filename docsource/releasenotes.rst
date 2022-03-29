@@ -15,8 +15,8 @@ BACKWARDS INCOMPATIBILIES:
 * ``get_objects2``, ``get_objects``, ``get_object_subset``, ``get_referenced_objects``, and
   ``get_object_provenance`` now only allow a maximum of 10,000 objects in the input list.
   Note the last 4 methods are deprecated and will be removed in a future release.
-* Provenance ``ExternalDataUnit``s now check that input URLs are valid URLs and require that at
-  least one field is present.
+* Provenance ``ExternalDataUnit`` structures now check that input URLs are valid URLs and require
+  that at least one field is present.
 
 UPDATES:
 
