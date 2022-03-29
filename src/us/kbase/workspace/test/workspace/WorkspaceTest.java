@@ -4777,32 +4777,38 @@ public class WorkspaceTest extends WorkspaceTester {
 		//check 1st ref
 		ws.setPermissions(user1, wsiSource1, Arrays.asList(user2), Permission.NONE);
 		checkCopyReference(user2, testobjs, testocs, nullnullref, tff);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff, true);
 		ws.setPermissions(user1, wsiSource1, Arrays.asList(user2), Permission.READ);
 		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
 		
 		ws.setObjectsDeleted(user1, Arrays.asList(source1), true);
 		checkCopyReference(user2, testobjs, testocs, nullnullref, tff);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff, true);
 		ws.setObjectsDeleted(user1, Arrays.asList(source1), false);
 		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
 		
 		ws.setWorkspaceDeleted(user1, wsiSource1, true);
 		checkCopyReference(user2, testobjs, testocs, nullnullref, tff);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff, true);
 		ws.setWorkspaceDeleted(user1, wsiSource1, false);
 		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
 		
 		//check 2nd ref
 		ws.setPermissions(user1, wsiSource2, Arrays.asList(user2), Permission.NONE);
 		checkCopyReference(user2, testobjs, testocs, refnullnull, fft);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff, true);
 		ws.setPermissions(user1, wsiSource2, Arrays.asList(user2), Permission.READ);
 		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
 		
 		ws.setObjectsDeleted(user1, Arrays.asList(source2), true);
 		checkCopyReference(user2, testobjs, testocs, refnullnull, fft);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff, true);
 		ws.setObjectsDeleted(user1, Arrays.asList(source2), false);
 		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
 		
 		ws.setWorkspaceDeleted(user1, wsiSource2, true);
 		checkCopyReference(user2, testobjs, testocs, refnullnull, fft);
+		checkCopyReference(user2, testobjs, testocs, refnullref, fff, true);
 		ws.setWorkspaceDeleted(user1, wsiSource2, false);
 		checkCopyReference(user2, testobjs, testocs, refnullref, fff);
 	}
@@ -4814,15 +4820,26 @@ public class WorkspaceTest extends WorkspaceTester {
 			final List<Reference> testRef,
 			final List<Boolean> copyAccessible)
 			throws Exception {
+		checkCopyReference(user, testobjs, testocs, testRef, copyAccessible, false);
+	}
+	
+	private void checkCopyReference(
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> testobjs,
+			final List<ObjectIdentifier> testocs,
+			final List<Reference> testRef,
+			final List<Boolean> copyAccessible,
+			final boolean asAdmin)
+			throws Exception {
 		
 		List<List<WorkspaceObjectData>> infos =
 				new LinkedList<List<WorkspaceObjectData>>();
 		
-		infos.add(ws.getObjects(user, testobjs, true, false, false));
-		final List<WorkspaceObjectData> objects = getObjects(ws, user, testobjs);
+		infos.add(ws.getObjects(user, testobjs, true, false, asAdmin));
+		final List<WorkspaceObjectData> objects = getObjects(ws, user, testobjs, asAdmin);
 		destroyGetObjectsResources(objects); // don't need the data
 		infos.add(objects);
-		final List<WorkspaceObjectData> objects2 = getObjects(ws, user, testocs);
+		final List<WorkspaceObjectData> objects2 = getObjects(ws, user, testocs, asAdmin);
 		destroyGetObjectsResources(objects2); // ditto
 		infos.add(objects2);
 		

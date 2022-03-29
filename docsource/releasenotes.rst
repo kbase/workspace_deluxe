@@ -27,6 +27,8 @@ UPDATES:
   ACLs rather than updating ACLs one at a time, which should speed up fetching objects with
   ``@id sample`` annotations.
 * The ``batch_external_system_updates`` option has been added to ``get_objects2``.
+* Fixed a bug where, in the administration ``getObjects`` call, the copy source for an object
+  would always be inaccessible unless the source workspace was public.
 
 VERSION: 0.12.1 (Released 1/25/2022)
 ------------------------------------

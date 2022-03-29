@@ -3,6 +3,7 @@ package us.kbase.workspace.test.kbase;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -1868,8 +1869,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> objs =
 				CLIENT1.saveObjects(soc);
 
-		ObjectIdentity nocopy = new ObjectIdentity().withWorkspace("copyrev")
-				.withName("myname");
+		ObjectIdentity nocopy = new ObjectIdentity().withWorkspace("copyrev").withName("myname");
 		checkObjectCopy(CLIENT1, nocopy, null, 0L);
 
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied =
@@ -1886,6 +1886,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		String ref = objs.get(1).getE7() + "/" + objs.get(1).getE1() + "/" + objs.get(1).getE5();
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("copyrev/myname")));
 		checkObjectCopy(CLIENT2, c, null, 1L);
+		checkObjectCopyAsAdmin(CLIENT2, c, ref, 0L);
 		CLIENT1.undeleteObjects(Arrays.asList(new ObjectIdentity().withRef("copyrev/myname")));
 		checkObjectCopy(CLIENT2, c, ref, 0L);
 
@@ -1912,29 +1913,57 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 
 	@SuppressWarnings("deprecation")
-	private void checkObjectCopy(WorkspaceClient cli, ObjectIdentity nocopy,
-			String ref, long copyInvisible) throws Exception {
+	private void checkObjectCopy(
+			final WorkspaceClient cli,
+			final ObjectIdentity nocopy,
+			final String ref,
+			final long copyInvisible)
+			throws Exception {
 
-		ObjectData objp = cli.getObjects2(new GetObjects2Params().withNoData(1L)
+		final ObjectData objp = cli.getObjects2(new GetObjects2Params().withNoData(1L)
 			.withObjects(toObjSpec(Arrays.asList(nocopy)))).getData().get(0);
-		assertThat("copy ref is correct", objp.getCopied(), is(ref));
-		assertThat("copy vis is correct", objp.getCopySourceInaccessible(), is(copyInvisible));
+		checkCopyRef(objp, ref, copyInvisible);
 		assertNull("got unrequested data", objp.getData());
-		ObjectData objo = cli.getObjects2(new GetObjects2Params().withNoData(0L)
+		final ObjectData objo = cli.getObjects2(new GetObjects2Params().withNoData(0L)
 			.withObjects(toObjSpec(Arrays.asList(nocopy)))).getData().get(0);
-		assertThat("copy ref is correct", objo.getCopied(), is(ref));
-		assertThat("copy vis is correct", objo.getCopySourceInaccessible(), is(copyInvisible));
+		checkCopyRef(objo, ref, copyInvisible);
 		ObjectData obj = cli.getObjects(Arrays.asList(nocopy)).get(0);
-		assertThat("copy ref is correct", obj.getCopied(), is(ref));
-		assertThat("copy vis is correct", obj.getCopySourceInaccessible(), is(copyInvisible));
+		checkCopyRef(obj, ref, copyInvisible);
 		obj = cli.getObjectSubset(objIDToSubObjID(Arrays.asList(nocopy))).get(0);
-		assertThat("copy ref is correct", obj.getCopied(), is(ref));
-		assertThat("copy vis is correct", obj.getCopySourceInaccessible(), is(copyInvisible));
-		us.kbase.workspace.ObjectProvenanceInfo prov =
+		checkCopyRef(obj, ref, copyInvisible);
+		final us.kbase.workspace.ObjectProvenanceInfo prov =
 				cli.getObjectProvenance(Arrays.asList(nocopy)).get(0);
 		assertThat("copy ref is correct", prov.getCopied(), is(ref));
 		assertThat("copy vis is correct", prov.getCopySourceInaccessible(), is(copyInvisible));
+	}
 
+	public void checkCopyRef(final ObjectData objp, final String ref, final long copyInvisible) {
+		assertThat("copy ref is correct", objp.getCopied(), is(ref));
+		assertThat("copy vis is correct", objp.getCopySourceInaccessible(), is(copyInvisible));
+	}
+	
+	private void checkObjectCopyAsAdmin(
+			final WorkspaceClient cli,
+			final ObjectIdentity nocopy,
+			final String ref,
+			final long copyInvisible)
+			throws Exception {
+		final GetObjects2Params gop = new GetObjects2Params()
+						.withObjects(toObjSpec(Arrays.asList(nocopy)))
+						.withNoData(1L);
+		final ImmutableMap<String, Object> admincmd = ImmutableMap.of(
+				"command", "getObjects",
+				"params", gop
+				);
+		final ObjectData objp = CLIENT2.administer(new UObject(admincmd))
+				.asClassInstance(GetObjects2Results.class).getData().get(0);
+		checkCopyRef(objp, ref, copyInvisible);
+		assertThat("got unrequested data", objp.getData(), is(nullValue()));
+		
+		gop.withNoData(0L);
+		final ObjectData objp2 = CLIENT2.administer(new UObject(admincmd))
+				.asClassInstance(GetObjects2Results.class).getData().get(0);
+		checkCopyRef(objp2, ref, copyInvisible);
 	}
 
 	@Test

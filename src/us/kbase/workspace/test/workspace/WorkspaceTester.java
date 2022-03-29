@@ -393,7 +393,16 @@ public class WorkspaceTester {
 			final WorkspaceUser user,
 			final List<ObjectIdentifier> objects)
 			throws Exception {
-		return ws.getObjects(user, objects, false, false, false);
+		return getObjects(ws, user, objects, false);
+	}
+	
+	public static List<WorkspaceObjectData> getObjects(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final List<ObjectIdentifier> objects,
+			final boolean asAdmin)
+			throws Exception {
+		return ws.getObjects(user, objects, false, false, asAdmin);
 	}
 	
 	protected void failSetWSDesc(
