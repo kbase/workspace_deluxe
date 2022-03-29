@@ -44,12 +44,12 @@ import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.provenance.ExternalData;
 
 /**
  * @author gaprice@lbl.gov
@@ -113,6 +113,7 @@ public class ArgUtils {
 			return p;
 		}
 		for (final ProvenanceAction a: actions) {
+			// TODO PROV what if a is null?
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
 			final Instant d = chooseInstant(a.getTime(), a.getEpoch(),
 					"Cannot specify both time and epoch in provenance " +
@@ -147,6 +148,7 @@ public class ArgUtils {
 			return ret;
 		}
 		for (final us.kbase.workspace.SubAction sa: subactions) {
+			// TODO PROV what if SA is null?
 			checkAddlArgs(sa.getAdditionalProperties(), sa.getClass());
 			ret.add(new SubAction()
 					.withCodeUrl(sa.getCodeUrl())
@@ -160,25 +162,29 @@ public class ArgUtils {
 	}
 
 	private static List<ExternalData> processExternalData(
-			final List<ExternalDataUnit> externalData) throws ParseException {
-		final List<ExternalData> ret = new LinkedList<ExternalData>();
+			final List<ExternalDataUnit> externalData)
+			throws ParseException {
+		final List<ExternalData> ret = new LinkedList<>();
 		if (externalData == null) {
 			return ret;
 		}
+		// TODO PROV include index of EDU and ProvenanceAction in error messages
 		for (final ExternalDataUnit edu: externalData) {
+			// TODO PROV what if edu is null?
 			final Instant d = chooseInstant(edu.getResourceReleaseDate(),
 					edu.getResourceReleaseEpoch(),
 					"Cannot specify both time and epoch in external " +
 							"data unit");
 			checkAddlArgs(edu.getAdditionalProperties(), edu.getClass());
-			ret.add(new ExternalData()
-					.withDataId(edu.getDataId())
-					.withDataUrl(edu.getDataUrl())
+			ret.add(ExternalData.getBuilder()
+					.withDataID(edu.getDataId())
+					.withDataURL(edu.getDataUrl())
 					.withDescription(edu.getDescription())
 					.withResourceName(edu.getResourceName())
-					.withResourceReleaseDate(d == null ? null : Date.from(d))
-					.withResourceUrl(edu.getResourceUrl())
+					.withResourceReleaseDate(d)
+					.withResourceURL(edu.getResourceUrl())
 					.withResourceVersion(edu.getResourceVersion())
+					.build()
 			);
 		}
 		return ret;
@@ -192,11 +198,16 @@ public class ArgUtils {
 		return formatDate(date.toInstant());
 	}
 	
+	// TODO CODE remove this eventually when everything uses Optional<Instant>s
 	private static String formatDate(final Instant date) {
 		if (date == null) {
 			return null;
 		}
 		return DATE_FORMATTER.format(date);
+	}
+	
+	private static String formatDate(final Optional<Instant> date) {
+		return date.map(d -> DATE_FORMATTER.format(d)).orElse(null);
 	}
 	
 	private static List<Object> translateMethodParametersToObject(
@@ -268,7 +279,7 @@ public class ArgUtils {
 				.withE2(info.getOwner().getUser())
 				.withE3(formatDate(info.getModDate()))
 				.withE4(info.getMaximumObjectID())
-				.withE5(translatePermission(info.getUserPermission())) 
+				.withE5(translatePermission(info.getUserPermission()))
 				.withE6(translatePermission(info.isGloballyReadable()));
 	}
 	
@@ -634,16 +645,16 @@ public class ArgUtils {
 			return ret; //this should never happen, but just in case
 		}
 		for (final ExternalData ed: externalData) {
-			final Date d = ed.getResourceReleaseDate();
+			final Optional<Instant> d = ed.getResourceReleaseDate();
 			ret.add(new ExternalDataUnit()
-					.withDataId(ed.getDataId())
-					.withDataUrl(ed.getDataUrl())
-					.withDescription(ed.getDescription())
-					.withResourceName(ed.getResourceName())
+					.withDataId(ed.getDataID().orElse(null))
+					.withDataUrl(ed.getDataURL().map(u -> u.toString()).orElse(null))
+					.withDescription(ed.getDescription().orElse(null))
+					.withResourceName(ed.getResourceName().orElse(null))
 					.withResourceReleaseDate(formatDate(d))
-					.withResourceReleaseEpoch(d == null ? null : d.getTime())
-					.withResourceUrl(ed.getResourceUrl())
-					.withResourceVersion(ed.getResourceVersion())
+					.withResourceReleaseEpoch(d.map(t -> t.toEpochMilli()).orElse(null))
+					.withResourceUrl(ed.getResourceURL().map(u -> u.toString()).orElse(null))
+					.withResourceVersion(ed.getResourceVersion().orElse(null))
 					);
 		}
 		return ret;

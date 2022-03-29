@@ -71,7 +71,6 @@ import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
-import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceSaveObject;
@@ -86,6 +85,7 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.S3BlobStore;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
+import us.kbase.workspace.database.provenance.ExternalData;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.minio.MinioController;
@@ -1031,8 +1031,7 @@ public class WorkspaceTester {
 		final List<WorkspaceObjectData> objects = getObjects(ws, foo, Arrays.asList(obj));
 		destroyGetObjectsResources(objects); // don't need the data
 		Provenance pgot = objects.get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot, refmap,
-				obj.getWorkspaceIdentifier().getId());
+		checkProvenanceCorrect(prov, pgot, refmap, obj.getWorkspaceIdentifier().getId());
 		Provenance pgot2 = ws.getObjects(foo, Arrays.asList(obj), true, false, false)
 				.get(0).getProvenance();
 		checkProvenanceCorrect(prov, pgot2,refmap,
@@ -1115,13 +1114,14 @@ public class WorkspaceTester {
 		while (giter.hasNext()) {
 			ExternalData g = giter.next();
 			ExternalData e = eiter.next();
-			assertThat("same data id", g.getDataId(), is (e.getDataId()));
-			assertThat("same data url", g.getDataUrl(), is (e.getDataUrl()));
-			assertThat("same description", g.getDescription(), is (e.getDescription()));
-			assertThat("same resource name", g.getResourceName(), is (e.getResourceName()));
-			assertThat("same resource rel date", g.getResourceReleaseDate(), is (e.getResourceReleaseDate()));
-			assertThat("same resource url", g.getResourceUrl(), is (e.getResourceUrl()));
-			assertThat("same resource ver", g.getResourceVersion(), is (e.getResourceVersion()));
+			assertThat("same data id", g.getDataID(), is(e.getDataID()));
+			assertThat("same data url", g.getDataURL(), is(e.getDataURL()));
+			assertThat("same description", g.getDescription(), is(e.getDescription()));
+			assertThat("same resource name", g.getResourceName(), is(e.getResourceName()));
+			assertThat("same resource rel date",
+					g.getResourceReleaseDate(), is(e.getResourceReleaseDate()));
+			assertThat("same resource url", g.getResourceURL(), is (e.getResourceURL()));
+			assertThat("same resource ver", g.getResourceVersion(), is(e.getResourceVersion()));
 		}
 	}
 

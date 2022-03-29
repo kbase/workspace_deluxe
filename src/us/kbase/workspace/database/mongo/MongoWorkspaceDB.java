@@ -73,7 +73,6 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.PermissionSet.Builder;
 import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
@@ -103,6 +102,7 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.database.provenance.ExternalData;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -2032,13 +2032,16 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			for (final ExternalData d: pa.getExternalData()) {
 				final Map<String, Object> dret = new HashMap<>();
 				extdata.add(dret);
-				dret.put(Fields.PROV_EXTDATA_DATA_ID, d.getDataId());
-				dret.put(Fields.PROV_EXTDATA_DATA_URL, d.getDataUrl());
-				dret.put(Fields.PROV_EXTDATA_DESCRIPTION, d.getDescription());
-				dret.put(Fields.PROV_EXTDATA_RESOURCE_DATE, d.getResourceReleaseDate());
-				dret.put(Fields.PROV_EXTDATA_RESOURCE_NAME, d.getResourceName());
-				dret.put(Fields.PROV_EXTDATA_RESOURCE_URL, d.getResourceUrl());
-				dret.put(Fields.PROV_EXTDATA_RESOURCE_VER, d.getResourceVersion());
+				dret.put(Fields.PROV_EXTDATA_DATA_ID, d.getDataID().orElse(null));
+				dret.put(Fields.PROV_EXTDATA_DATA_URL,
+						d.getDataURL().map(u -> u.toString()).orElse(null));
+				dret.put(Fields.PROV_EXTDATA_DESCRIPTION, d.getDescription().orElse(null));
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_DATE,
+						d.getResourceReleaseDate().orElse(null));
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_NAME, d.getResourceName().orElse(null));
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_URL,
+						d.getResourceURL().map(u -> u.toString()).orElse(null));
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_VER, d.getResourceVersion().orElse(null));
 			}
 			
 			final List<Map<String, Object>> subactions = new LinkedList<>();
@@ -2274,6 +2277,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				final boolean exceptIfMissing)
 			throws WorkspaceCommunicationException, NoSuchObjectException {
 		
+		// TODO CODE update these to return Documents instead of Maps
+		// document are easier to deal with w/ mongo stuff
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs =
 				resolveObjectIDs(objs, exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Map<ResolvedObjectID, Map<String, Object>> vers = 
@@ -2728,107 +2733,90 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			// this list is expected to be ordered in the same order as in the incoming
 			// provenance actions
 			final List<String> resolvedRefs) {
-		// also turns a lazybsonlist into a regularlist
+		// make a copy we can mutate
 		final List<String> rrcopy = new LinkedList<>(resolvedRefs);
 		final Provenance ret = new Provenance(
-				new WorkspaceUser((String) p.get(Fields.PROV_USER)),
-				(Date) p.get(Fields.PROV_DATE));
+				new WorkspaceUser(p.getString(Fields.PROV_USER)),
+				p.getDate(Fields.PROV_DATE));
 		// objects saved before version 0.4.1 will have null workspace IDs
-		ret.setWorkspaceID((Long) p.get(Fields.PROV_WS_ID));
-		
-		@SuppressWarnings("unchecked")
-		final List<Map<String, Object>> actions =
-				(List<Map<String, Object>>) p.get(Fields.PROV_ACTIONS);
-		for (final Map<String, Object> pa: actions) {
-			@SuppressWarnings("unchecked")
-			final List<Map<String, Object>> extdata = 
-					(List<Map<String, Object>>) pa.get(Fields.PROV_ACTION_EXTERNAL_DATA);
-			@SuppressWarnings("unchecked")
-			final List<Map<String, Object>> subdata = 
-					(List<Map<String, Object>>) pa.get(Fields.PROV_ACTION_SUB_ACTIONS);
+		ret.setWorkspaceID(p.getLong(Fields.PROV_WS_ID));
+		for (final Document pa: p.getList(Fields.PROV_ACTIONS, Document.class)) {
 			@SuppressWarnings("unchecked")
 			final Map<String, String> precustom =
 					(Map<String, String>) pa.get(Fields.PROV_ACTION_CUSTOM);
-			// for some reason mongo maps are not equal  to regular maps
+			// mongo maps are not equal to HashMaps, they implement Map but inherit from Object
 			final Map<String, String> custom = precustom == null ? null : new HashMap<>(precustom);
 			
 			// adds the correct references to each prov action based on the ordering of the 
 			// incoming reference list
-			final List<String> wsobjs = toList(pa, Fields.PROV_ACTION_WS_OBJS);
+			final List<String> wsobjs = pa.getList(Fields.PROV_ACTION_WS_OBJS, String.class);
 			final int refcnt = wsobjs == null ? 0 : wsobjs.size();
-			final List<String> actionRefs = new LinkedList<String>(rrcopy.subList(0, refcnt));
+			final List<String> actionRefs = new LinkedList<>(rrcopy.subList(0, refcnt));
 			rrcopy.subList(0, refcnt).clear();
 			
 			ret.addAction(new ProvenanceAction()
-					.withExternalData(toExternalData(extdata))
-					.withSubActions(toSubAction(subdata))
-					.withCaller((String) pa.get(Fields.PROV_ACTION_CALLER))
-					.withCommandLine((String) pa.get(Fields.PROV_ACTION_COMMAND_LINE))
+					.withExternalData(toExternalData(pa.getList(
+							Fields.PROV_ACTION_EXTERNAL_DATA, Document.class)))
+					.withSubActions(toSubAction(pa.getList(
+							Fields.PROV_ACTION_SUB_ACTIONS, Document.class)))
+					.withCaller(pa.getString(Fields.PROV_ACTION_CALLER))
+					.withCommandLine(pa.getString(Fields.PROV_ACTION_COMMAND_LINE))
 					.withCustom(custom)
-					.withDescription((String) pa.get(Fields.PROV_ACTION_DESCRIPTION))
-					.withIncomingArgs(toList(pa, Fields.PROV_ACTION_INCOMING_ARGS))
-					.withMethod((String) pa.get(Fields.PROV_ACTION_METHOD))
-					.withMethodParameters(toParamList(pa, Fields.PROV_ACTION_METHOD_PARAMS))
-					.withOutgoingArgs(toList(pa, Fields.PROV_ACTION_OUTGOING_ARGS))
-					.withScript((String) pa.get(Fields.PROV_ACTION_SCRIPT))
-					.withScriptVersion((String) pa.get(Fields.PROV_ACTION_SCRIPT_VER))
-					.withServiceName((String) pa.get(Fields.PROV_ACTION_SERVICE))
-					.withServiceVersion((String) pa.get(Fields.PROV_ACTION_SERVICE_VER))
-					.withTime((Date) pa.get(Fields.PROV_ACTION_TIME))
+					.withDescription(pa.getString(Fields.PROV_ACTION_DESCRIPTION))
+					.withIncomingArgs(pa.getList(Fields.PROV_ACTION_INCOMING_ARGS, String.class))
+					.withMethod(pa.getString(Fields.PROV_ACTION_METHOD))
+					.withMethodParameters(getParamList(pa))
+					.withOutgoingArgs(pa.getList(Fields.PROV_ACTION_OUTGOING_ARGS, String.class))
+					.withScript(pa.getString(Fields.PROV_ACTION_SCRIPT))
+					.withScriptVersion(pa.getString(Fields.PROV_ACTION_SCRIPT_VER))
+					.withServiceName(pa.getString(Fields.PROV_ACTION_SERVICE))
+					.withServiceVersion(pa.getString(Fields.PROV_ACTION_SERVICE_VER))
+					.withTime(pa.getDate(Fields.PROV_ACTION_TIME))
 					.withWorkspaceObjects(wsobjs)
 					.withResolvedObjects(actionRefs)
 					);
 		}
 		return ret;
 	}
-
-	private List<Object> toParamList(final Map<String, Object> container, final String field) {
-		// the param list is BasicDB* classes which for some reason aren't equal to
-		// the HashMaps and ArrayList they descend from
-		final List<Object> l = toList(container, field);
-		return MAPPER.convertValue(l, new TypeReference<List<Object>>() {});
+	
+	private List<Object> getParamList(final Document provaction) {
+		// if the param list has maps in it, they're Mongo Document objects under the hood.
+		// Need to run them through a converter to update them to standard maps, which aren't
+		// equal() to Mongo Documents
+		return MAPPER.convertValue(
+				provaction.getList(Fields.PROV_ACTION_METHOD_PARAMS, Object.class),
+				new TypeReference<List<Object>>() {});
 	}
 
-	private <T> List<T> toList(final Map<String, Object> container, final String field) {
-		@SuppressWarnings("unchecked")
-		final List<T> s = (List<T>) container.get(field);
-		return s;
-	}
-
-	private List<SubAction> toSubAction(final List<Map<String, Object>> subdata) {
-		final List<SubAction> subs = new LinkedList<>();
-		if (subdata != null) {
-			for (final Map<String, Object> s: subdata) {
-				subs.add(new SubAction()
-						.withCodeUrl((String) s.get(Fields.PROV_SUBACTION_CODE_URL))
-						.withCommit((String) s.get(Fields.PROV_SUBACTION_COMMIT))
-						.withEndpointUrl((String) s.get(Fields.PROV_SUBACTION_ENDPOINT_URL))
-						.withName((String) s.get(Fields.PROV_SUBACTION_NAME))
-						.withVer((String) s.get(Fields.PROV_SUBACTION_VER))
-						);
-			}
+	private List<SubAction> toSubAction(final List<Document> subdata) {
+		if (subdata == null) {
+			return null;
 		}
-		return subs;
+		return subdata.stream().map(s -> new SubAction()
+				.withCodeUrl(s.getString(Fields.PROV_SUBACTION_CODE_URL))
+				.withCommit(s.getString(Fields.PROV_SUBACTION_COMMIT))
+				.withEndpointUrl(s.getString(Fields.PROV_SUBACTION_ENDPOINT_URL))
+				.withName(s.getString(Fields.PROV_SUBACTION_NAME))
+				.withVer(s.getString(Fields.PROV_SUBACTION_VER)))
+				.collect(Collectors.toList());
 	}
 
-	private List<ExternalData> toExternalData(final List<Map<String, Object>> extdata) {
-		final List<ExternalData> eds = new LinkedList<>();
-		if (extdata != null) {
-			for (final Map<String, Object> ed: extdata) {
-					eds.add(new ExternalData()
-							.withDataId((String) ed.get(Fields.PROV_EXTDATA_DATA_ID))
-							.withDataUrl((String) ed.get(Fields.PROV_EXTDATA_DATA_URL))
-							.withDescription((String) ed.get(Fields.PROV_EXTDATA_DESCRIPTION))
-							.withResourceName((String) ed.get(Fields.PROV_EXTDATA_RESOURCE_NAME))
-							.withResourceReleaseDate(
-									(Date) ed.get(Fields.PROV_EXTDATA_RESOURCE_DATE))
-							.withResourceUrl((String) ed.get(Fields.PROV_EXTDATA_RESOURCE_URL))
-							.withResourceVersion(
-									(String) ed.get(Fields.PROV_EXTDATA_RESOURCE_VER))
-							);
-			}
+	private List<ExternalData> toExternalData(final List<Document> extdata) {
+		if (extdata == null) {
+			return null;
 		}
-		return eds;
+		return extdata.stream().map(e -> ExternalData.getBuilder()
+				.withDataID(e.getString(Fields.PROV_EXTDATA_DATA_ID))
+				.withDataURL(e.getString(Fields.PROV_EXTDATA_DATA_URL))
+				.withDescription(e.getString(Fields.PROV_EXTDATA_DESCRIPTION))
+				.withResourceName(e.getString(Fields.PROV_EXTDATA_RESOURCE_NAME))
+				.withResourceReleaseDate(
+						Optional.ofNullable(e.getDate(Fields.PROV_EXTDATA_RESOURCE_DATE))
+						.map(d -> d.toInstant()).orElse(null))
+				.withResourceURL(e.getString(Fields.PROV_EXTDATA_RESOURCE_URL))
+				.withResourceVersion(e.getString(Fields.PROV_EXTDATA_RESOURCE_VER))
+				.build())
+				.collect(Collectors.toList());
 	}
 
 	private static final Set<String> FLDS_VER_TYPE = newHashSet(
