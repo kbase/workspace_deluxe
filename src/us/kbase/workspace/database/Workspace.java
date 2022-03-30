@@ -1129,7 +1129,7 @@ public class Workspace {
 		res = null;
 		refdata.clear();
 		stddata.clear();
-		removeInaccessibleDataCopyReferences(user, toProc);
+		removeInaccessibleDataCopyReferences(user, toProc, asAdmin);
 		if (!noData) {
 			try {
 				final List<WorkspaceObjectData.Builder> f = toProc.stream().filter(p -> p != null)
@@ -1191,9 +1191,12 @@ public class Workspace {
 
 	private void removeInaccessibleDataCopyReferences(
 			final WorkspaceUser user,
-			final List<WorkspaceObjectData.Builder> data)
+			final List<WorkspaceObjectData.Builder> data,
+			final boolean asAdmin)
 			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		
+		if (asAdmin) {
+			return; // admins see all and know all
+		}
 		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
 		for (final WorkspaceObjectData.Builder d: data) {
 			if (d != null && d.getCopyReference().isPresent()) {
