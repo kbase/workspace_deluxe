@@ -81,7 +81,6 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
-import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -103,6 +102,7 @@ import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.SubAction;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
@@ -3455,13 +3455,17 @@ public class WorkspaceTest extends WorkspaceTester {
 		custom.put("foo", "bar");
 		custom.put("baz", "whee");
 		
-		List<SubAction> sa = new ArrayList<SubAction>();
-		sa.add(new SubAction()
-				.withCodeUrl("http://github.com/animeweirdo/tentaclegen")
-				.withCommit("aaaaaaaaaaaaaaaaaaaaaaaa")
-				.withEndpointUrl("http://tentacool.com/tentaclegen")
-				.withName("Tentacle Generator")
-				.withVer("102.1.0")
+		final List<SubAction> sa = Arrays.asList(
+				SubAction.getBuilder()
+					.withCodeURL("http://github.com/animeweirdo/tentaclegen")
+					.withCommit("aaaaaaaaaaaaaaaaaaaaaaaa")
+					.withEndpointURL("http://tentacool.com/tentaclegen")
+					.withName("Tentacle Generator")
+					.withVersion("102.1.0")
+					.build(),
+				// make sure all fields are tested with null entries
+				SubAction.getBuilder().withCommit("commit").build(),
+				SubAction.getBuilder().withVersion("v0.1.0").build()
 				);
 		
 		Provenance p = new Provenance(foo);

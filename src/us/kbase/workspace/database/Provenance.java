@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.Map;
 
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.SubAction;
 
 //TODO TEST unit tests
 //TODO JAVADOC
 //TODO MEM this should keep track of its size & punt if it gets too large
-//TODO CODE consider checking the syntax of urls
 //TODO CODE make this immutable and use builders.
 //TODO CODE don't allow nulls for lists/maps
 //TODO CODE this whole class needs a massive refactor
@@ -70,62 +70,6 @@ public class Provenance {
 
 	public List<ProvenanceAction> getActions() {
 		return new ArrayList<ProvenanceAction>(actions);
-	}
-	
-	public static class SubAction {
-		private String name;
-		private String ver;
-		private String codeUrl;
-		private String commit;
-		private String endpointUrl;
-		
-		public SubAction() {}
-
-		public String getName() {
-			return name;
-		}
-
-		public String getVer() {
-			return ver;
-		}
-
-		public String getCodeUrl() {
-			return codeUrl;
-		}
-
-		public String getCommit() {
-			return commit;
-		}
-
-		public String getEndpointUrl() {
-			return endpointUrl;
-		}
-
-		public SubAction withName(String name) {
-			this.name = name;
-			return this;
-		}
-
-		public SubAction withVer(String ver) {
-			this.ver = ver;
-			return this;
-		}
-
-		public SubAction withCodeUrl(String codeUrl) {
-			this.codeUrl = codeUrl;
-			return this;
-		}
-
-		public SubAction withCommit(String commit) {
-			this.commit = commit;
-			return this;
-		}
-
-		public SubAction withEndpointUrl(String endpointUrl) {
-			this.endpointUrl = endpointUrl;
-			return this;
-		}
-
 	}
 	
 	public static class ProvenanceAction {

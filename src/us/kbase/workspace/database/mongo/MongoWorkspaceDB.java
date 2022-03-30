@@ -74,7 +74,6 @@ import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.PermissionSet.Builder;
 import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
-import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
@@ -103,6 +102,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.SubAction;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -2049,11 +2049,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			for (final SubAction a: pa.getSubActions()) {
 				final Map<String, Object> aret = new HashMap<>();
 				subactions.add(aret);
-				aret.put(Fields.PROV_SUBACTION_CODE_URL, a.getCodeUrl());
-				aret.put(Fields.PROV_SUBACTION_COMMIT, a.getCommit());
-				aret.put(Fields.PROV_SUBACTION_ENDPOINT_URL, a.getEndpointUrl());
-				aret.put(Fields.PROV_SUBACTION_NAME, a.getName());
-				aret.put(Fields.PROV_SUBACTION_VER, a.getVer());
+				aret.put(Fields.PROV_SUBACTION_CODE_URL,
+						a.getCodeURL().map(u -> u.toString()).orElse(null));
+				aret.put(Fields.PROV_SUBACTION_COMMIT, a.getCommit().orElse(null));
+				aret.put(Fields.PROV_SUBACTION_ENDPOINT_URL,
+						a.getEndpointURL().map(u -> u.toString()).orElse(null));
+				aret.put(Fields.PROV_SUBACTION_NAME, a.getName().orElse(null));
+				aret.put(Fields.PROV_SUBACTION_VER, a.getVersion().orElse(null));
 			}
 		}
 		return ret;
@@ -2792,12 +2794,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (subdata == null) {
 			return null;
 		}
-		return subdata.stream().map(s -> new SubAction()
-				.withCodeUrl(s.getString(Fields.PROV_SUBACTION_CODE_URL))
+		return subdata.stream().map(s -> SubAction.getBuilder()
+				.withCodeURL(s.getString(Fields.PROV_SUBACTION_CODE_URL))
 				.withCommit(s.getString(Fields.PROV_SUBACTION_COMMIT))
-				.withEndpointUrl(s.getString(Fields.PROV_SUBACTION_ENDPOINT_URL))
+				.withEndpointURL(s.getString(Fields.PROV_SUBACTION_ENDPOINT_URL))
 				.withName(s.getString(Fields.PROV_SUBACTION_NAME))
-				.withVer(s.getString(Fields.PROV_SUBACTION_VER)))
+				.withVersion(s.getString(Fields.PROV_SUBACTION_VER))
+				.build())
 				.collect(Collectors.toList());
 	}
 

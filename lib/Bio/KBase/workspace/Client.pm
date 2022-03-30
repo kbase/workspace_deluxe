@@ -9501,6 +9501,8 @@ Information about a subaction that is invoked by a provenance action.
         The SubAction structure allows for specifying information about SAs
         that may dynamically change from PA invocation to PA invocation.
         
+        All fields are optional but at least one field must be present.
+        
         string name - the name of the SA.
         string ver - the version of SA.
         string code_url - a url pointing to the SA's codebase.

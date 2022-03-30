@@ -1,9 +1,5 @@
 package us.kbase.workspace.database.provenance;
 
-import static us.kbase.workspace.database.Util.isNullOrEmpty;
-
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.Instant;
 import java.util.Optional;
@@ -89,13 +85,6 @@ public class ExternalData {
 		return Optional.ofNullable(description);
 	}
 
-	/** Get a builder for an {@link ExternalData}.
-	 * @return the builder.
-	 */
-	public static Builder getBuilder() {
-		return new Builder();
-	}
-	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -157,6 +146,13 @@ public class ExternalData {
 		return true;
 	}
 
+	/** Get a builder for an {@link ExternalData}.
+	 * @return the builder.
+	 */
+	public static Builder getBuilder() {
+		return new Builder();
+	}
+	
 	/** A builder for an {@link ExternalData}. */
 	public static class Builder {
 		
@@ -176,7 +172,7 @@ public class ExternalData {
 		 * @return this builder.
 		 */
 		public Builder withResourceName(final String resourceName) {
-			this.resourceName = processString(resourceName);
+			this.resourceName = Common.processString(resourceName);
 			return this;
 		}
 		
@@ -186,7 +182,7 @@ public class ExternalData {
 		 * @return this builder.
 		 */
 		public Builder withResourceURL(final String resourceURL) {
-			this.resourceURL = processURL(resourceURL);
+			this.resourceURL = Common.processURL(resourceURL);
 			return this;
 		}
 
@@ -196,7 +192,7 @@ public class ExternalData {
 		 */
 		public Builder withResourceURL(final URL resourceURL) {
 			// TODO PROV integration error test
-			this.resourceURL = processURL(resourceURL);
+			this.resourceURL = Common.processURL(resourceURL);
 			return this;
 		}
 		
@@ -206,7 +202,7 @@ public class ExternalData {
 		 * @return this builder.
 		 */
 		public Builder withResourceVersion(final String resourceVersion) {
-			this.resourceVersion = processString(resourceVersion);
+			this.resourceVersion = Common.processString(resourceVersion);
 			return this;
 		}
 		
@@ -226,7 +222,7 @@ public class ExternalData {
 		 * @return this builder.
 		 */
 		public Builder withDataURL(final String dataURL) {
-			this.dataURL = processURL(dataURL);
+			this.dataURL = Common.processURL(dataURL);
 			return this;
 		}
 		
@@ -237,7 +233,7 @@ public class ExternalData {
 		 */
 		public Builder withDataURL(final URL dataURL) {
 			// TODO PROV integration error test
-			this.dataURL = processURL(dataURL);
+			this.dataURL = Common.processURL(dataURL);
 			return this;
 		}
 		
@@ -247,7 +243,7 @@ public class ExternalData {
 		 * @return this builder.
 		 */
 		public Builder withDataID(final String dataID) {
-			this.dataID = processString(dataID);
+			this.dataID = Common.processString(dataID);
 			return this;
 		}
 		
@@ -257,43 +253,10 @@ public class ExternalData {
 		 * @return this builder.
 		 */
 		public Builder withDescription(final String description) {
-			this.description = processString(description);
+			this.description = Common.processString(description);
 			return this;
 		}
 
-		private String processString(final String input) {
-			return isNullOrEmpty(input) ? null : input.trim();
-		}
-
-		private URL processURL(final String url) {
-			return isNullOrEmpty(url) ? null : checkURL(url);
-		}
-
-		private URL processURL(final URL url) {
-			return url == null ? null : checkURL(url);
-		}
-		
-		private URL checkURL(final String putativeURL) {
-			final URL url;
-			try {
-				url = new URL(putativeURL);
-			} catch (MalformedURLException e) {
-				throw new IllegalArgumentException(String.format(
-						"Illegal url '%s': %s", putativeURL, e.getLocalizedMessage()), e);
-			}
-			return checkURL(url);
-		}
-		
-		private URL checkURL(final URL url) {
-			try {
-				url.toURI();
-				return url;
-			} catch (URISyntaxException e) {
-				throw new IllegalArgumentException(String.format(
-						"Illegal url '%s': %s", url, e.getLocalizedMessage()), e);
-			}
-		}
-		
 		/** Build the {@link ExternalData}. At least one field must be populated.
 		 * @return the external data.
 		 */

@@ -66,7 +66,6 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.Types;
@@ -86,6 +85,7 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.S3BlobStore;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.SubAction;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 import us.kbase.workspace.test.controllers.minio.MinioController;
@@ -1107,11 +1107,11 @@ public class WorkspaceTester {
 		while (giter.hasNext()) {
 			SubAction g = giter.next();
 			SubAction e = eiter.next();
-			assertThat("same code url", g.getCodeUrl(), is (e.getCodeUrl()));
+			assertThat("same code url", g.getCodeURL(), is (e.getCodeURL()));
 			assertThat("same commit", g.getCommit(), is (e.getCommit()));
-			assertThat("same endpoint", g.getEndpointUrl(), is (e.getEndpointUrl()));
+			assertThat("same endpoint", g.getEndpointURL(), is (e.getEndpointURL()));
 			assertThat("same name", g.getName(), is (e.getName()));
-			assertThat("same ver", g.getVer(), is (e.getVer()));
+			assertThat("same ver", g.getVersion(), is (e.getVersion()));
 		}
 	}
 

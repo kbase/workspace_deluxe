@@ -402,6 +402,5 @@ public class ExternalDataTest {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
 					"At least one field in an external data unit must be provided"));
 		}
-		
 	}
 }
