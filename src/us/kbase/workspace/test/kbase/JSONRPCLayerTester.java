@@ -573,16 +573,26 @@ public class JSONRPCLayerTester {
 	}
 	
 	@SuppressWarnings("deprecation")
-	protected void checkProvenance(String user, ObjectIdentity id,
-			List<ProvenanceAction> prov, Map<String, String> refmap,
-			Map<StringEpoch, StringEpoch> timemap) throws Exception {
+	protected void checkProvenance(
+			final String user,
+			final ObjectIdentity id,
+			final List<ProvenanceAction> prov,
+			final Map<String, String> refmap,
+			final Map<StringEpoch, StringEpoch> timemap)
+			throws Exception {
 		Date tenback = getOlderDate(10 * 60 * 1000);
 		Date tenfor = getNewerDate(10 * 60 * 1000);
 		
 		//get objs 2 prov
-		ObjectData ret1p = CLIENT1.getObjects2(new GetObjects2Params()
-			.withNoData(1L)
-			.withObjects(Arrays.asList(toObjSpec(id)))).getData().get(0);
+		final ObjectData ret1p;
+		try {
+			ret1p = CLIENT1.getObjects2(new GetObjects2Params()
+					.withNoData(1L)
+					.withObjects(Arrays.asList(toObjSpec(id)))).getData().get(0);
+		} catch (ServerException e) {
+			System.err.println(e.getData());
+			throw e;
+		}
 		assertThat("user correct", ret1p.getCreator(), is(user));
 		assertThat("wsid correct", ret1p.getOrigWsid(), is(id.getWsid()));
 		Date created = DATE_FORMAT.parse(ret1p.getCreated());

@@ -10,6 +10,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import us.kbase.workspace.database.provenance.ExternalData;
+
 //TODO TEST unit tests
 //TODO JAVADOC
 //TODO MEM this should keep track of its size & punt if it gets too large
@@ -68,84 +70,6 @@ public class Provenance {
 
 	public List<ProvenanceAction> getActions() {
 		return new ArrayList<ProvenanceAction>(actions);
-	}
-	
-	public static class ExternalData {
-		
-		private String resourceName;
-		private String resourceUrl;
-		private String resourceVersion;
-		private Date resourceReleaseDate;
-		private String dataUrl;
-		private String dataId;
-		private String description;
-		
-		public ExternalData() {}
-
-		public String getResourceName() {
-			return resourceName;
-		}
-
-		public ExternalData withResourceName(String resourceName) {
-			this.resourceName = resourceName;
-			return this;
-		}
-
-		public String getResourceUrl() {
-			return resourceUrl;
-		}
-
-		public ExternalData withResourceUrl(String resourceUrl) {
-			this.resourceUrl = resourceUrl;
-			return this;
-		}
-
-		public String getResourceVersion() {
-			return resourceVersion;
-		}
-
-		public ExternalData withResourceVersion(String resourceVersion) {
-			this.resourceVersion = resourceVersion;
-			return this;
-		}
-
-		public Date getResourceReleaseDate() {
-			return resourceReleaseDate;
-		}
-		
-
-		public ExternalData withResourceReleaseDate(Date resourceReleaseDate) {
-			this.resourceReleaseDate = resourceReleaseDate;
-			return this;
-		}
-
-		public String getDataUrl() {
-			return dataUrl;
-		}
-
-		public ExternalData withDataUrl(String dataUrl) {
-			this.dataUrl = dataUrl;
-			return this;
-		}
-
-		public String getDataId() {
-			return dataId;
-		}
-		
-		public ExternalData withDataId(String dataId) {
-			this.dataId = dataId;
-			return this;
-		}
-
-		public String getDescription() {
-			return description;
-		}
-		
-		public ExternalData withDescription(String description) {
-			this.description = description;
-			return this;
-		}
-		
 	}
 	
 	public static class SubAction {

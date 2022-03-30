@@ -14,6 +14,7 @@ import static us.kbase.workspace.test.LongTextForTestUsage.TEXT100;
 import static us.kbase.workspace.test.LongTextForTestUsage.TEXT101;
 import static us.kbase.workspace.test.LongTextForTestUsage.TEXT256;
 import static us.kbase.workspace.test.LongTextForTestUsage.TEXT1000;
+import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.common.test.TestCommon.list;
 
@@ -79,7 +80,6 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Provenance.ExternalData;
 import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
@@ -102,6 +102,7 @@ import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
+import us.kbase.workspace.database.provenance.ExternalData;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
@@ -3434,17 +3435,21 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("auto1"), data, SAFE_TYPE1, null, emptyprov, false)),
 				getIdFactory());
 		
-		List<ExternalData> ed = new LinkedList<ExternalData>();
-		ed.add(new ExternalData()
-				.withDataId("data id")
-				.withDataUrl("http://somedata.org/somedata")
+		final ExternalData.Builder exb = ExternalData.getBuilder()
+				.withDataID("data id")
+				.withDataURL("http://somedata.org/somedata")
 				.withDescription("a description")
 				.withResourceName("resource")
-				.withResourceReleaseDate(new Date(62))
-				.withResourceUrl("http://somedata.org")
-				.withResourceVersion("1.2.3")
+				.withResourceReleaseDate(inst(62))
+				.withResourceURL("http://somedata.org")
+				.withResourceVersion("1.2.3");
+		final List<ExternalData> ed = Arrays.asList(
+				exb.build(),  // all fields present
+				exb.withDataID("data id2").build(),
+				// make sure all fields are tested with null entries
+				ExternalData.getBuilder().withDataID("data id3").build(),
+				ExternalData.getBuilder().withDescription("some data I found over there").build()
 				);
-		ed.add(new ExternalData().withDataId("data id2"));
 		
 		Map<String, String> custom = new HashMap<String, String>();
 		custom.put("foo", "bar");

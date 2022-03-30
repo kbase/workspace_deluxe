@@ -346,6 +346,7 @@ public class WorkspaceServerMethods {
 			throw new IllegalArgumentException("No data provided");
 		}
 		for (ObjectSaveData d: params.getObjects()) {
+			// TODO CODE what if d is null?
 			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
 			final ObjectIDNoWSNoVer oi;
 			try {
@@ -364,6 +365,7 @@ public class WorkspaceServerMethods {
 				throw new IllegalArgumentException(errprefix + " type error: "
 						+ iae.getLocalizedMessage(), iae);
 			}
+			// TODO PROV if prov processing error, include object index
 			final Provenance p = processProvenance(user, d.getProvenance());
 			final boolean hidden = longToBoolean(d.getHidden());
 			try {
