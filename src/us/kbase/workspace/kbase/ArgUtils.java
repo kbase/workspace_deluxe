@@ -44,12 +44,12 @@ import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.SubAction;
 
 /**
  * @author gaprice@lbl.gov
@@ -147,15 +147,17 @@ public class ArgUtils {
 		if (subactions == null) {
 			return ret;
 		}
+		// TODO PROV include index of SA and ProvenanceAction in error messages
 		for (final us.kbase.workspace.SubAction sa: subactions) {
 			// TODO PROV what if SA is null?
 			checkAddlArgs(sa.getAdditionalProperties(), sa.getClass());
-			ret.add(new SubAction()
-					.withCodeUrl(sa.getCodeUrl())
+			ret.add(SubAction.getBuilder()
+					.withCodeURL(sa.getCodeUrl())
 					.withCommit(sa.getCommit())
-					.withEndpointUrl(sa.getEndpointUrl())
+					.withEndpointURL(sa.getEndpointUrl())
 					.withName(sa.getName())
-					.withVer(sa.getVer())
+					.withVersion(sa.getVer())
+					.build()
 					);
 		}
 		return ret;
@@ -628,11 +630,11 @@ public class ArgUtils {
 		}
 		for (final SubAction sa: subActions) {
 			ret.add(new us.kbase.workspace.SubAction()
-					.withCodeUrl(sa.getCodeUrl())
-					.withCommit(sa.getCommit())
-					.withEndpointUrl(sa.getEndpointUrl())
-					.withName(sa.getName())
-					.withVer(sa.getVer())
+					.withCodeUrl(sa.getCodeURL().map(u -> u.toString()).orElse(null))
+					.withCommit(sa.getCommit().orElse(null))
+					.withEndpointUrl(sa.getEndpointURL().map(u -> u.toString()).orElse(null))
+					.withName(sa.getName().orElse(null))
+					.withVer(sa.getVersion().orElse(null))
 					);
 		}
 		return ret;

@@ -826,7 +826,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the
@@ -1187,7 +1188,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the
@@ -1468,7 +1470,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the
@@ -1931,7 +1934,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the
@@ -2246,7 +2250,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the
@@ -2751,7 +2756,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the

@@ -1937,7 +1937,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat("copy vis is correct", prov.getCopySourceInaccessible(), is(copyInvisible));
 	}
 
-	public void checkCopyRef(final ObjectData objp, final String ref, final long copyInvisible) {
+	private void checkCopyRef(final ObjectData objp, final String ref, final long copyInvisible) {
 		assertThat("copy ref is correct", objp.getCopied(), is(ref));
 		assertThat("copy vis is correct", objp.getCopySourceInaccessible(), is(copyInvisible));
 	}
