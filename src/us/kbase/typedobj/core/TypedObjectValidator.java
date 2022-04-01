@@ -72,7 +72,7 @@ public class TypedObjectValidator {
 	 * This object is used to fetch the typed object Json Schema documents and
 	 * JsonSchema objects which are used for validation
 	 */
-	protected TypeProvider typeProvider;
+	private TypeProvider typeProvider;
 	
 	
 	/**
@@ -91,7 +91,8 @@ public class TypedObjectValidator {
 		this.typeProvider = typeProvider;
 	}
 	
-	
+	// TODO MEMORY delete these methods that work on strings / JSON nodes. They'll kill memory
+	// use for any large objects and are only used in tests.
 	/**
 	 * Validate a Json String instance against the specified TypeDefId.  Returns a TypedObjectValidationReport
 	 * containing the results of the validation and any other KBase typed object specific information such

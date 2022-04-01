@@ -311,14 +311,14 @@ public class IdentifierUtilsTest {
 	public void failObjectIdentityWithKBRef() throws Exception {
 		final ObjectIdentity refoi = new ObjectIdentity().withRef("kb|ws.4.obj.3");
 		expectFailProcessObjectIdentifier(refoi, new IllegalArgumentException(
-				"Illegal number of separators / in object reference kb|ws.4.obj.3"));
+				"Illegal number of separators '/' in object reference 'kb|ws.4.obj.3'"));
 	}
 	
 	@Test
 	public void failObjectIdentityWithKBRefAndVer() throws Exception {
 		final ObjectIdentity refoi = new ObjectIdentity().withRef("kb|ws.4.obj.3.ver.2");
 		expectFailProcessObjectIdentifier(refoi, new IllegalArgumentException(
-				"Illegal number of separators / in object reference kb|ws.4.obj.3.ver.2"));
+				"Illegal number of separators '/' in object reference 'kb|ws.4.obj.3.ver.2'"));
 	}
 	
 	@Test
@@ -565,7 +565,7 @@ public class IdentifierUtilsTest {
 				new IllegalArgumentException(
 						"Error on ObjectSpecification #2: Invalid object " +
 						"reference (baz) at position #3: Illegal number of " +
-						"separators / in object reference baz"));
+						"separators '/' in object reference 'baz'"));
 	}
 	
 	@Test

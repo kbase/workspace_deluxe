@@ -956,11 +956,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.clear();
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
 		loi.add(new ObjectIdentity().withRef("kb|wss." + wsid + ".obj.2"));
-		failGetObjects(loi, "Error on ObjectIdentity #2: Illegal number of separators / in object reference kb|wss." + wsid + ".obj.2");
+		failGetObjects(loi, "Error on ObjectIdentity #2: Illegal number of separators '/' in "
+				+ "object reference 'kb|wss." + wsid + ".obj.2'");
 
 		loi.set(1, new ObjectIdentity().withRef("saveget/1"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid));
-		failGetObjects(loi, "Error on ObjectIdentity #3: Illegal number of separators / in object reference kb|ws." + wsid);
+		failGetObjects(loi, "Error on ObjectIdentity #3: Illegal number of separators '/' in "
+				+ "object reference 'kb|ws." + wsid + "'");
 
 		//there are 32 different ways to get this type of error. Just try a few.
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withName("2"));
@@ -2662,8 +2664,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		try {
 			CLIENT1.getObjectHistory(new ObjectIdentity().withRef("listObjs1/hidden/1/3"));
 		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Illegal number of separators / in object reference listObjs1/hidden/1/3"));
+			assertThat("correct excep message", se.getLocalizedMessage(), is(
+					"Illegal number of separators '/' in object reference 'listObjs1/hidden/1/3'")
+					);
 		}
 	}
 
