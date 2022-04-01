@@ -114,6 +114,129 @@ public class ObjectIdentifier {
 		return SubsetSelection.EMPTY;
 	}
 	
+	/** Validate an object reference. Notably, reference paths will cause an error.
+	 * If a reference path is permissible input, use {@link #validateReference(String, boolean)}.
+	 * @param reference the object reference.
+	 * @param absolute true to enforce absolute references, otherwise known as Unique Permanent
+	 * Addresses.
+	 */
+	public static void validateReference(final String reference, final boolean absolute) {
+		checkString(reference, "reference");
+		processReference(reference, null, true, absolute);
+	}
+	
+	/** Validate an object reference or reference path.
+	 * Example: "my_ws/my_obj/5;6/7;ws1/obj2;6/7/8"
+	 * In the example, only the last reference in the path is an absolute reference, otherwise
+	 * known as a Unique Permanent Address.
+	 *
+	 * @param reference the object reference or path.
+	 * @param absolute true to enforce absolute references, otherwise known as Unique Permanent
+	 * Addresses.
+	 */
+	public static void validateReferencePath(final String refpath, final boolean absolute) {
+		processReferencePath(refpath, null, absolute);
+	}
+	
+	private static void processReferencePath(
+			final String refpath,
+			final Builder builder,
+			final boolean absolute) {
+		checkString(refpath, "refpath");
+		String[] parts = refpath.split(REFERENCE_PATH_SEP);
+		// remove trailing whitespace after last REFERENCE_PATH_SEP
+		// also will ignore stuff like '1/1/1;   ;' since the parsing alg doesn't make a
+		// distinction. Fine for now
+		if (parts.length > 1 && parts[parts.length - 1].trim().isEmpty()) {
+			parts = Arrays.copyOf(parts, parts.length - 1);
+		}
+		final LinkedList<ObjectIdentifier> path = new LinkedList<>();
+		for (int i = 0; i < parts.length; i++) {
+			try {
+				if (i == 0) {
+					processReference(parts[i], builder, builder == null, absolute);
+				} else {
+					// could eliminate the path here when builder == null, YAGNI for now
+					path.add(processReference(parts[i], null, builder == null, absolute));
+				}
+			} catch (IllegalArgumentException e) {
+				final String errprefix = parts.length == 1 ?
+						"" : String.format("Reference path position %s: ", i + 1);
+				throw new IllegalArgumentException(errprefix + e.getLocalizedMessage(), e);
+			}
+		}
+		if (!path.isEmpty() & builder != null) {
+			builder.refpath = Collections.unmodifiableList(path); // needs to be immutable
+		}
+	}
+	
+	private static ObjectIdentifier processReference(
+			final String reference,
+			final Builder builder,
+			final boolean noReturn,
+			final boolean absolute) {
+		 // treat spaces in individual ref as errors
+		final String[] r = reference.trim().split(REFERENCE_SEP);
+		if (r.length != 2 && r.length != 3) {
+			throw new IllegalArgumentException(String.format(
+					"Illegal number of separators '%s' in object reference '%s'",
+					REFERENCE_SEP, reference));
+		}
+		// TODO CODE make a validation method for WI and avoid instantiating a class
+		WorkspaceIdentifier wsi;
+		try {
+			wsi = new WorkspaceIdentifier(Long.parseLong(r[0]));
+		} catch (NumberFormatException nfe) {
+			wsi = new WorkspaceIdentifier(r[0]);
+		}
+		long id = -1;
+		String name = null;
+		try {
+			id = checkID(Long.parseLong(r[1]));
+		} catch (NumberFormatException nfe) {
+			name = checkObjectName(r[1]);
+		}
+		final int version = r.length == 3 ?
+				checkVersion(parseInt(r[2], reference, "version")) : -1;
+		if (absolute && !isAbsolute(wsi, id, version)) {
+			throw new IllegalArgumentException(String.format(
+					"Reference %s is not absolute", reference));
+		}
+		if (noReturn) {
+			return null;
+		} else if (builder != null) {
+			builder.wsi = wsi;
+			builder.id = id;
+			builder.name = name;
+			builder.version = version;
+			return null;
+		}
+		else {
+			return new ObjectIdentifier(wsi, id, name, version);
+		}
+	}
+	
+	private static boolean isAbsolute(
+			final WorkspaceIdentifier wsi,
+			final long id,
+			final int version) {
+		return version > 0 && id > 0 && wsi.getId() != null;
+	}
+
+	private static long checkID(final Long id) {
+		if (id < 1) {
+			throw new IllegalArgumentException("Object id must be > 0");
+		}
+		return id;
+	}
+	
+	private static int checkVersion(final Integer version) {
+		if (version != null && version < 1) {
+			throw new IllegalArgumentException("Object version must be > 0");
+		}
+		return version == null ? -1 : version;
+	}
+	
 	/** Get an identifier string for the object. This is either the name or the ID, depending on
 	 * which is present.
 	 * @return the identifier string.
@@ -144,10 +267,13 @@ public class ObjectIdentifier {
 	/** Determine whether this object identifier must always point to the same object. This means
 	 * that permanent IDs rather than mutable names are present for the workspace and object
 	 * and a version is present.
+	 * 
+	 * Note that any identifiers in the reference path are not checked by this method, and must
+	 * be checked individually.
 	 * @return true if this object identifier is absolute.
 	 */
 	public boolean isAbsolute() {
-		return version > 0 && id > 0 && wsi.getId() != null;
+		return isAbsolute(wsi, id, version);
 	}
 	
 	/** Resolve the workspace for this identifier, guaranteeing it exists. Reference paths,
@@ -470,70 +596,11 @@ public class ObjectIdentifier {
 		
 		private Builder(final String reference) {
 			checkString(reference, "reference");
-			processReference(reference, true);
+			processReference(reference, this, false, false);
 		}
 
 		private Builder(final String refpath, boolean ignored) {
-			checkString(refpath, "refpath");
-			String[] parts = refpath.split(REFERENCE_PATH_SEP);
-			// remove trailing whitespace after last REFERENCE_PATH_SEP
-			// also will ignore stuff like '1/1/1;   ;' since the parsing alg doesn't make a
-			// distinction. Fine for now
-			if (parts.length > 1 && parts[parts.length - 1].trim().isEmpty()) {
-				parts = Arrays.copyOf(parts, parts.length - 1);
-			}
-			final LinkedList<ObjectIdentifier> path = new LinkedList<>();
-			for (int i = 0; i < parts.length; i++) {
-				try {
-					if (i == 0) {
-						processReference(parts[i], true);
-					} else {
-						path.add(processReference(parts[i], false));
-					}
-				} catch (IllegalArgumentException e) {
-					final String errprefix = parts.length == 1 ?
-							"" : String.format("Reference path position %s: ", i + 1);
-					throw new IllegalArgumentException(errprefix + e.getLocalizedMessage(), e);
-				}
-			}
-			if (!path.isEmpty()) {
-				this.refpath = Collections.unmodifiableList(path); // needs to be immutable
-			}
-		}
-		
-		private ObjectIdentifier processReference(final String reference, final boolean set) {
-			 // treat spaces in individual ref as errors
-			final String[] r = reference.trim().split(REFERENCE_SEP);
-			if (r.length != 2 && r.length != 3) {
-				throw new IllegalArgumentException(String.format(
-						"Illegal number of separators '%s' in object reference '%s'",
-						REFERENCE_SEP, reference));
-			}
-			WorkspaceIdentifier wsi;
-			try {
-				wsi = new WorkspaceIdentifier(Long.parseLong(r[0]));
-			} catch (NumberFormatException nfe) {
-				wsi = new WorkspaceIdentifier(r[0]);
-			}
-			long id = -1;
-			String name = null;
-			try {
-				id = checkID(Long.parseLong(r[1]));
-			} catch (NumberFormatException nfe) {
-				name = checkObjectName(r[1]);
-			}
-			final int version = r.length == 3 ?
-					checkVersion(parseInt(r[2], reference, "version")) : -1;
-			if (set) {
-				this.wsi = wsi;
-				this.id = id;
-				this.name = name;
-				this.version = version;
-				return null;
-			}
-			else {
-				return new ObjectIdentifier(wsi, id, name, version);
-			}
+			processReferencePath(refpath, this, false);
 		}
 
 		/** Set a name for the object. This will remove any previously set ID.
@@ -573,13 +640,6 @@ public class ObjectIdentifier {
 			return this;
 		}
 		
-		private long checkID(final Long id) {
-			if (id < 1) {
-				throw new IllegalArgumentException("Object id must be > 0");
-			}
-			return id;
-		}
-		
 		/** Behaves identically to {@link #withID(Long)}, except that optionally if a name
 		 * is already set an error can be thrown.
 		 * @param id the object's ID, which must be > 0. null is treated as a no-op.
@@ -600,13 +660,6 @@ public class ObjectIdentifier {
 		public Builder withVersion(final Integer version) {
 			this.version = checkVersion(version);
 			return this;
-		}
-		
-		private int checkVersion(final Integer version) {
-			if (version != null && version < 1) {
-				throw new IllegalArgumentException("Object version must be > 0");
-			}
-			return version == null ? -1 : version;
 		}
 		
 		/** Set whether this object identifier represents a target object for which the
