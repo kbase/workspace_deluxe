@@ -173,12 +173,12 @@ public class ObjectIdentifier {
 		}
 	}
 	
-	private static Integer parseInt(String s, String reference, String portion) {
+	private static Integer parseInt(final String s, final String reference, final String portion) {
 		try {
 			return Integer.parseInt(s);
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException(String.format(
-					"Unable to parse %s portion of object reference %s to an integer",
+					"Unable to parse %s portion of object reference '%s' to an integer",
 					portion, reference));
 		}
 	}

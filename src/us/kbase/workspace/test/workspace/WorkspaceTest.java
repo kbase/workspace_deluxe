@@ -2584,7 +2584,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		data.set(1, new WorkspaceSaveObject(obj3, data4, abstype0, null, emptyprov, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
 				"Object #2, obj3 has unparseable reference foo/bar/baz: Unable to parse version " +
-				"portion of object reference foo/bar/baz to an integer at /ref"));
+				"portion of object reference 'foo/bar/baz' to an integer at /ref"));
 		
 		Map<String, Object> data5 = new HashMap<String, Object>(data1);
 		data5.put("ref", null);
@@ -2612,7 +2612,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		data.set(1, new WorkspaceSaveObject(obj4, data3, abstype0, null, badids, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
 				"Object #2, obj4 has unparseable provenance reference foo/bar/baz: Unable to " +
-				"parse version portion of object reference foo/bar/baz to an integer"));
+				"parse version portion of object reference 'foo/bar/baz' to an integer"));
 		
 		badids = new Provenance(userfoo);
 		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList((String) null)));

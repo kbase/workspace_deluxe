@@ -646,7 +646,8 @@ public class ObjectIdentifierTest {
 				.with("f/1/0", new IllegalArgumentException("Object version must be > 0"))
 				.with("f/1/-10", new IllegalArgumentException("Object version must be > 0"))
 				.with("f/1/n", new IllegalArgumentException(
-						"Unable to parse version portion of object reference f/1/n to an integer"))
+						"Unable to parse version portion of object reference 'f/1/n' to an integer"
+						))
 				.build();
 		
 		for (final String ref: testCases.keySet()) {
@@ -706,7 +707,8 @@ public class ObjectIdentifierTest {
 						"Reference path position 2: Object version must be > 0"))
 				.with(f("%s%sf/1/n", one, one), new IllegalArgumentException(
 						"Reference path position 3: "
-						+ "Unable to parse version portion of object reference f/1/n to an integer"
+						+ "Unable to parse version portion of object reference 'f/1/n' to an "
+						+ "integer"
 						))
 				.build();
 		

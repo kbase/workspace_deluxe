@@ -38,7 +38,7 @@ public class ReferenceTest {
 		failMakeRef("foo/1/2", "ref foo/1/2 is not an absolute reference");
 		failMakeRef("1/foo/2", "ref 1/foo/2 is not an absolute reference");
 		failMakeRef("1/1/foo",
-				"Unable to parse version portion of object reference 1/1/foo to an integer");
+				"Unable to parse version portion of object reference '1/1/foo' to an integer");
 		failMakeRef("1/2/3/4", "Illegal number of separators '/' in object reference '1/2/3/4'");
 	}
 	
