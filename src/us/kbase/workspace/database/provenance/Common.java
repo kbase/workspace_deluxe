@@ -10,6 +10,8 @@ import java.net.URL;
  * Tests are all via testing the public provenance class APIs.
  */
 class Common {
+	
+	private Common() {};
 
 	static String processString(final String input) {
 		return isNullOrEmpty(input) ? null : input.trim();

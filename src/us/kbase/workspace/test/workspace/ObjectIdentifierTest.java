@@ -31,6 +31,10 @@ public class ObjectIdentifierTest {
 	
 	private static final WorkspaceIdentifier WSI = new WorkspaceIdentifier(100000000);
 	
+	private static ObjectIdentifier.Builder builder(final WorkspaceIdentifier wsi) {
+		return ObjectIdentifier.getBuilder(wsi);
+	}
+	
 	@Test
 	public void equals() throws Exception {
 		EqualsVerifier.forClass(ObjectIdentifier.class).usingGetClass().verify();
@@ -415,8 +419,17 @@ public class ObjectIdentifierTest {
 		assertThat("incorrect refpath", oi.getRefPath(), is(Arrays.asList(oi1)));
 		
 		// test modifying the returned path
+		failModifyRefPath(oi, oi2);
+		
+		// test from ref path string
+		final ObjectIdentifier roi = ObjectIdentifier.getBuilderFromRefPath("1/1/1;2/2/2").build();
+		failModifyRefPath(roi, oi2);
+		
+	}
+
+	public void failModifyRefPath(final ObjectIdentifier target, final ObjectIdentifier toAdd) {
 		try {
-			oi.getRefPath().add(oi2);
+			target.getRefPath().add(toAdd);
 			fail("expected exception");
 		} catch (UnsupportedOperationException e) {
 			// test passed
@@ -429,6 +442,7 @@ public class ObjectIdentifierTest {
 		final Optional<String> name;
 		final Optional<Long> id;
 		final Optional<Integer> version;
+		final List<ObjectIdentifier> refpath;
 
 		public RefTestCase(
 				final String ref,
@@ -441,6 +455,22 @@ public class ObjectIdentifierTest {
 			this.name = name;
 			this.id = id;
 			this.version = version;
+			this.refpath = null;
+		}
+		
+		public RefTestCase(
+				final String ref,
+				final WorkspaceIdentifier wsi,
+				final Optional<String> name,
+				final Optional<Long> id,
+				final Optional<Integer> version,
+				final List<ObjectIdentifier> refpath) {
+			this.ref = ref;
+			this.wsi = wsi;
+			this.name = name;
+			this.id = id;
+			this.version = version;
+			this.refpath = refpath;
 		}
 	}
 	
@@ -466,7 +496,7 @@ public class ObjectIdentifierTest {
 				new RefTestCase("1/1/60", w1, ES, opt(1L), opt(60)),
 				new RefTestCase("whoo/23/91", wwhoo, ES, opt(23L), opt(91)),
 				new RefTestCase("89/what", w89, opt("what"), EL, EI),
-				new RefTestCase("89/what/32", w89, opt("what"), EL, opt(32)),
+				new RefTestCase("   \t  89/what/32  \t  ", w89, opt("what"), EL, opt(32)),
 				new RefTestCase("whoo/6", wwhoo, ES, opt(6L), EI),
 				new RefTestCase("whoo/89/", wwhoo, ES, opt(89L), EI)  // trailing slash ok
 				);
@@ -474,11 +504,89 @@ public class ObjectIdentifierTest {
 		for (final RefTestCase t: tests) {
 			final ObjectIdentifier oi = ObjectIdentifier.getBuilder(t.ref).build();
 			
+			checkRefTestCase(oi, t);
+			
+			// test that the ref path builder processes refs identically
+			final ObjectIdentifier roi = ObjectIdentifier.getBuilderFromRefPath(t.ref).build();
+			
+			checkRefTestCase(roi, t);
+		}
+	}
+
+	public void checkRefTestCase(final ObjectIdentifier oi, final RefTestCase t) {
+		assertThat("incorrect wsi for ref " + t.ref, oi.getWorkspaceIdentifier(), is(t.wsi));
+		assertThat("incorrect name for ref " + t.ref, oi.getName(), is(t.name));
+		assertThat("incorrect id for ref " + t.ref, oi.getID(), is(t.id));
+		assertThat("incorrect version for ref" + t.ref, oi.getVersion(), is(t.version));
+		assertNoNonAddressState(oi);
+	}
+	
+	@Test
+	public void buildFromRefPath() throws Exception {
+		final WorkspaceIdentifier wfoo = new WorkspaceIdentifier("foo");
+		final WorkspaceIdentifier wufoo = new WorkspaceIdentifier("user1:foo");
+		final WorkspaceIdentifier wfoA = new WorkspaceIdentifier("fo.A-1_2");
+		final WorkspaceIdentifier wwhoo = new WorkspaceIdentifier("whoo");
+		final WorkspaceIdentifier w1 = new WorkspaceIdentifier(1);
+		final WorkspaceIdentifier w2 = new WorkspaceIdentifier(2);
+		final WorkspaceIdentifier w89 = new WorkspaceIdentifier(89);
+		final List<ObjectIdentifier> oi1 = list(
+				builder(w1).withID(2L).withVersion(3).build(),
+				builder(wfoo).withName("bar").build());
+		final List<ObjectIdentifier> oi2 = list(
+				builder(wfoA).withName("f|o.A-1_2").withVersion(1).build());
+		final List<ObjectIdentifier> oi3 = list(
+				builder(wwhoo).withID(89L).build(),
+				builder(w2).withID(3L).build(),
+				builder(wufoo).withName("baz").withVersion(1).build(),
+				builder(w1).withName(TEXT255).build());
+		final List<ObjectIdentifier> oi4 = list(builder(w1).withID(1L).withVersion(1).build());
+		final List<ObjectIdentifier> oi5 = list(builder(wufoo).withName("bat").build());
+		final List<ObjectIdentifier> oi6 = list(
+				builder(wwhoo).withName("whee").withVersion(3).build());
+		final List<ObjectIdentifier> oi7 = list(builder(w2).withID(101L).build());
+		final List<ObjectIdentifier> oi8 = list(builder(w1).withID(1L).withVersion(34).build());
+		final List<ObjectIdentifier> oi9 = list(
+				builder(wwhoo).withID(65L).withVersion(78).build());
+		final List<ObjectIdentifier> oi10 = list(builder(w89).withName("what").build());
+		final List<ObjectIdentifier> oi11 = list(
+				builder(w89).withName("what").withVersion(32).build());
+		final List<ObjectIdentifier> oi12 = list(builder(wwhoo).withID(6L).build());
+
+		// we use WorkspaceIdentifier under the hood to check the workspace ID and so don't 
+		// exhaustively test valid workspace IDs / Names here
+		final List<RefTestCase> tests = list(
+				// test trailing whitespace after ; separator ok
+				new RefTestCase("   fo.A-1_2/f|o.A-1_2/1   \t  ;  \t   1/2/3 ; foo/bar   ;    ",
+						wfoA, opt("f|o.A-1_2"), EL, opt(1), oi1),
+				new RefTestCase("1/" + TEXT255 + "  ;  fo.A-1_2/f|o.A-1_2/1",
+						w1, opt(TEXT255), EL, EI, oi2),
+				// check trailing slash ok
+				new RefTestCase("1/1/1;whoo/89/;2/3/  \t  ;user1:foo/baz/1;1/" + TEXT255,
+						w1, ES, opt(1L), opt(1), oi3),
+				new RefTestCase("user1:foo/bar  ;   1/1/1 \t \n", wufoo, opt("bar"), EL, EI, oi4),
+				new RefTestCase("foo/bar/1;user1:foo/bat", wfoo, opt("bar"), EL, opt(1), oi5),
+				new RefTestCase("2/49; whoo/whee/3", w2, ES, opt(49L), EI, oi6),
+				new RefTestCase("1/1/60;  2/101", w1, ES, opt(1L), opt(60), oi7),
+				new RefTestCase("whoo/23/91;1/1/34", wwhoo, ES, opt(23L), opt(91), oi8),
+				new RefTestCase("89/what;whoo/65/78", w89, opt("what"), EL, EI, oi9),
+				new RefTestCase("   \t  89/what/32  \t  ; 89/what",
+						w89, opt("what"), EL, opt(32), oi10),
+				new RefTestCase("whoo/6; 89/what/32", wwhoo, ES, opt(6L), EI, oi11),
+				new RefTestCase("whoo/89/;whoo/6", wwhoo, ES, opt(89L), EI, oi12)
+				);
+		
+		for (final RefTestCase t: tests) {
+			final ObjectIdentifier oi = ObjectIdentifier.getBuilderFromRefPath(t.ref).build();
+			
 			assertThat("incorrect wsi for ref " + t.ref, oi.getWorkspaceIdentifier(), is(t.wsi));
 			assertThat("incorrect name for ref " + t.ref, oi.getName(), is(t.name));
 			assertThat("incorrect id for ref " + t.ref, oi.getID(), is(t.id));
-			assertThat("incorrect version for ref f" + t.ref, oi.getVersion(), is(t.version));
-			assertNoNonAddressState(oi);
+			assertThat("incorrect version for ref " + t.ref, oi.getVersion(), is(t.version));
+			assertThat("incorrect refpath for ref " + t.ref, oi.getRefPath(), is(t.refpath));
+			assertThat("incorrect hasrefpath", oi.hasRefPath(), is(true));
+			assertThat("incorrect lookup", oi.isLookupRequired(), is(false));
+			assertThat("incorrect subset", oi.getSubSet(), is(SubsetSelection.EMPTY));
 		}
 	}
 	
@@ -508,17 +616,19 @@ public class ObjectIdentifierTest {
 	public void getBuilderRefFail() throws Exception {
 		// we use WorkspaceIdentifier under the hood to store the workspace ID and so don't 
 		// exhaustively test invalid workspace IDs / Names here
+		failGetBuilderRef(null, new IllegalArgumentException(
+				"reference cannot be null or the empty string"));
+		failGetBuilderRef("1/1/1;2/2/2", new IllegalArgumentException(
+				"Illegal number of separators '/' in object reference '1/1/1;2/2/2'"));
 		final Map<String, Exception> testCases = MapBuilder.<String, Exception>newHashMap()
-				.with(null, new IllegalArgumentException(
-						"reference cannot be null or the empty string"))
 				.with("  \t   ", new IllegalArgumentException(
-						"Illegal number of separators / in object reference   \t   "))
+						"Illegal number of separators '/' in object reference '  \t   '"))
 				.with("1", new IllegalArgumentException(
-						"Illegal number of separators / in object reference 1"))
+						"Illegal number of separators '/' in object reference '1'"))
 				.with("foo", new IllegalArgumentException(
-						"Illegal number of separators / in object reference foo"))
+						"Illegal number of separators '/' in object reference 'foo'"))
 				.with("foo/1/3/4", new IllegalArgumentException(
-						"Illegal number of separators / in object reference foo/1/3/4"))
+						"Illegal number of separators '/' in object reference 'foo/1/3/4'"))
 				.with("user1|foo/1/3", new IllegalArgumentException(
 						"Illegal character in workspace name user1|foo: |"))
 				.with("foo/b*ar/3", new IllegalArgumentException(
@@ -536,16 +646,92 @@ public class ObjectIdentifierTest {
 				.with("f/1/0", new IllegalArgumentException("Object version must be > 0"))
 				.with("f/1/-10", new IllegalArgumentException("Object version must be > 0"))
 				.with("f/1/n", new IllegalArgumentException(
-						"Unable to parse version portion of object reference f/1/n to an integer"))
+						"Unable to parse version portion of object reference 'f/1/n' to an integer"
+						))
 				.build();
 		
 		for (final String ref: testCases.keySet()) {
-			try {
-				ObjectIdentifier.getBuilder(ref);
-				fail("expected exception");
-			} catch (Exception got) {
-				TestCommon.assertExceptionCorrect(got, testCases.get(ref));
-			}
+			failGetBuilderRef(ref, testCases.get(ref));
+			failGetBuilderFromRefPath(ref, testCases.get(ref));
+		}
+	}
+	
+	private static final String f(final String formatString, final Object... args) {
+		return String.format(formatString, args);
+	}
+	
+	@Test
+	public void getBuilderFromRefPathFail() throws Exception {
+		failGetBuilderFromRefPath(null, new IllegalArgumentException(
+				"refpath cannot be null or the empty string"));
+		final String one = "1/1/1;";
+		final Map<String, Exception> testCases = MapBuilder.<String, Exception>newHashMap()
+				.with(f("%s  \t   ;   ", one), new IllegalArgumentException(
+						"Reference path position 2: "
+						+ "Illegal number of separators '/' in object reference '  \t   '"))
+				.with(f("%s%s1", one, one), new IllegalArgumentException(
+						"Reference path position 3: "
+						+ "Illegal number of separators '/' in object reference '1'"))
+				.with(f("foo;%s", one), new IllegalArgumentException(
+						"Reference path position 1: "
+						+ "Illegal number of separators '/' in object reference 'foo'"))
+				.with(f("%s%s%s%sfoo/1/3/4", one, one, one, one), new IllegalArgumentException(
+						"Reference path position 5: "
+						+ "Illegal number of separators '/' in object reference 'foo/1/3/4'"))
+				.with(f("%suser1|foo/1/3", one), new IllegalArgumentException(
+						"Reference path position 2: "
+						+ "Illegal character in workspace name user1|foo: |"))
+				.with(f("%s%sfoo/b*ar/3", one, one), new IllegalArgumentException(
+						"Reference path position 3: "
+						+ "Illegal character in object name b*ar: *"))
+				.with(f("foo/%s;%s", TEXT256, one), new IllegalArgumentException(
+						"Reference path position 1: "
+						+ "Object name exceeds the maximum length of 255"))
+				.with(f("%s0/bar/3", one), new IllegalArgumentException(
+						"Reference path position 2: Workspace id must be > 0"))
+				.with(f("%s%s-10000/bar/3", one, one), new IllegalArgumentException(
+						"Reference path position 3: Workspace id must be > 0"))
+				.with(f("%s/1/3", one), new IllegalArgumentException(
+						"Reference path position 2: "
+						+ "Workspace name cannot be null or the empty string"))
+				.with(f("%s%s%s1//3", one, one, one), new IllegalArgumentException(
+						"Reference path position 4: "
+						+ "Object name cannot be null or the empty string"))
+				.with(f("%sf/0/3", one), new IllegalArgumentException(
+						"Reference path position 2: Object id must be > 0"))
+				.with(f("f/-1/3;%s", one), new IllegalArgumentException(
+						"Reference path position 1: Object id must be > 0"))
+				.with(f("%s%s%s%s%sf/1/0", one, one, one, one, one), new IllegalArgumentException(
+						"Reference path position 6: Object version must be > 0"))
+				.with(f("%sf/1/-10", one), new IllegalArgumentException(
+						"Reference path position 2: Object version must be > 0"))
+				.with(f("%s%sf/1/n", one, one), new IllegalArgumentException(
+						"Reference path position 3: "
+						+ "Unable to parse version portion of object reference 'f/1/n' to an "
+						+ "integer"
+						))
+				.build();
+		
+		for (final String ref: testCases.keySet()) {
+			failGetBuilderFromRefPath(ref, testCases.get(ref));
+		}
+	}
+
+	private void failGetBuilderRef(final String ref, final Exception expected) {
+		try {
+			ObjectIdentifier.getBuilder(ref);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	private void failGetBuilderFromRefPath(final String ref, final Exception expected) {
+		try {
+			ObjectIdentifier.getBuilderFromRefPath(ref);
+			fail("expected exception for ref " + ref);
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
 		}
 	}
 	

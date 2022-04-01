@@ -5,7 +5,9 @@ import static us.kbase.workspace.database.Util.xorNameId;
 import static us.kbase.workspace.database.Util.noNulls;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +30,8 @@ public class ObjectIdentifier {
 	//this cannot be a legal object/workspace char
 	/** The separator between parts of a workspace reference to an object. */
 	public final static String REFERENCE_SEP = "/";
+	/** The separator between references in a reference path. */
+	public static final String REFERENCE_PATH_SEP = ";";
 	
 	private final WorkspaceIdentifier wsi;
 	private final String name;
@@ -169,12 +173,12 @@ public class ObjectIdentifier {
 		}
 	}
 	
-	private static Integer parseInt(String s, String reference, String portion) {
+	private static Integer parseInt(final String s, final String reference, final String portion) {
 		try {
 			return Integer.parseInt(s);
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException(String.format(
-					"Unable to parse %s portion of object reference %s to an integer",
+					"Unable to parse %s portion of object reference '%s' to an integer",
 					portion, reference));
 		}
 	}
@@ -401,13 +405,23 @@ public class ObjectIdentifier {
 		return new Builder(oi);
 	}
 	
-	/** Get a builder given an object reference.
+	/** Get a builder given an object reference. Notably, reference paths will cause an error.
+	 * If a reference path is permissible input, use {@link #getBuilderFromRefPath(String)}.
 	 * @param reference the object reference.
 	 * @return a new builder.
 	 */
 	public static Builder getBuilder(final String reference) {
-		// TODO CODE add a builder for a reference path like X/Y/Z;X/Y;X/Y/Z and replace parsers
 		return new Builder(reference);
+	}
+
+	/** Get a builder given an object reference or reference path.
+	 * Example: "my_ws/my_obj/5;6/7;ws1/obj2;6/7/8"
+	 *
+	 * @param reference the object reference or path.
+	 * @return a new builder.
+	 */
+	public static Builder getBuilderFromRefPath(final String refpath) {
+		return new Builder(refpath, true);
 	}
 	
 	/** Create a copy of the input builder.
@@ -421,7 +435,7 @@ public class ObjectIdentifier {
 	/** A builder for an {@link ObjectIdentifier}. */
 	public static class Builder {
 		
-		private final WorkspaceIdentifier wsi;
+		private WorkspaceIdentifier wsi;
 		private String name = null;
 		private long id = -1;
 		private int version = -1;
@@ -453,13 +467,46 @@ public class ObjectIdentifier {
 			this.lookup = b.lookup;
 			this.subset = b.subset;
 		}
-
-		public Builder(final String reference) {
+		
+		private Builder(final String reference) {
 			checkString(reference, "reference");
-			final String[] r = reference.split(REFERENCE_SEP);
+			processReference(reference, true);
+		}
+
+		private Builder(final String refpath, boolean ignored) {
+			checkString(refpath, "refpath");
+			String[] parts = refpath.split(REFERENCE_PATH_SEP);
+			// remove trailing whitespace after last REFERENCE_PATH_SEP
+			// also will ignore stuff like '1/1/1;   ;' since the parsing alg doesn't make a
+			// distinction. Fine for now
+			if (parts.length > 1 && parts[parts.length - 1].trim().isEmpty()) {
+				parts = Arrays.copyOf(parts, parts.length - 1);
+			}
+			final LinkedList<ObjectIdentifier> path = new LinkedList<>();
+			for (int i = 0; i < parts.length; i++) {
+				try {
+					if (i == 0) {
+						processReference(parts[i], true);
+					} else {
+						path.add(processReference(parts[i], false));
+					}
+				} catch (IllegalArgumentException e) {
+					final String errprefix = parts.length == 1 ?
+							"" : String.format("Reference path position %s: ", i + 1);
+					throw new IllegalArgumentException(errprefix + e.getLocalizedMessage(), e);
+				}
+			}
+			if (!path.isEmpty()) {
+				this.refpath = Collections.unmodifiableList(path); // needs to be immutable
+			}
+		}
+		
+		private ObjectIdentifier processReference(final String reference, final boolean set) {
+			 // treat spaces in individual ref as errors
+			final String[] r = reference.trim().split(REFERENCE_SEP);
 			if (r.length != 2 && r.length != 3) {
 				throw new IllegalArgumentException(String.format(
-						"Illegal number of separators %s in object reference %s",
+						"Illegal number of separators '%s' in object reference '%s'",
 						REFERENCE_SEP, reference));
 			}
 			WorkspaceIdentifier wsi;
@@ -468,12 +515,24 @@ public class ObjectIdentifier {
 			} catch (NumberFormatException nfe) {
 				wsi = new WorkspaceIdentifier(r[0]);
 			}
-			this.wsi = wsi;  // java complains if we assign directly
-			this.version = r.length == 3 ? checkVersion(parseInt(r[2], reference, "version")) : -1;
+			long id = -1;
+			String name = null;
 			try {
-				this.id = checkID(Long.parseLong(r[1]));
+				id = checkID(Long.parseLong(r[1]));
 			} catch (NumberFormatException nfe) {
-				this.name = checkObjectName(r[1]);
+				name = checkObjectName(r[1]);
+			}
+			final int version = r.length == 3 ?
+					checkVersion(parseInt(r[2], reference, "version")) : -1;
+			if (set) {
+				this.wsi = wsi;
+				this.id = id;
+				this.name = name;
+				this.version = version;
+				return null;
+			}
+			else {
+				return new ObjectIdentifier(wsi, id, name, version);
 			}
 		}
 

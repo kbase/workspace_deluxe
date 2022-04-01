@@ -1803,34 +1803,14 @@ public class Workspace {
 				final T associatedObject)
 				throws IdParseException {
 			// cannot be null or empty at this point
-			final String[] refs = id.trim().split(";");
-			final List<ObjectIdentifier> ois = new LinkedList<>();
-			for (int i = 0; i < refs.length; i++) {
-				try {
-					ois.add(ObjectIdentifier.getBuilder(refs[i].trim()).build());
-					//Illegal arg is probably not the right exception
-				} catch (IllegalArgumentException iae) {
-					final List<String> attribs = getAnyAttributeSet(associatedObject, id);
-					final String messagePrefix;
-					if (refs.length == 1) {
-						messagePrefix = "";
-					} else {
-						messagePrefix = String.format(
-								"ID parse error in reference string %s at position %s: ",
-								id, i + 1);
-					}
-					throw new IdParseException(messagePrefix + iae.getMessage(),
-							getIdType(), associatedObject, id, attribs, iae);
-				}
+			try {
+				return ObjectIdentifier.getBuilderFromRefPath(id).build();
+				//Illegal arg is probably not the right exception
+			} catch (IllegalArgumentException e) {
+				final List<String> attribs = getAnyAttributeSet(associatedObject, id);
+				throw new IdParseException(
+						e.getMessage(), getIdType(), associatedObject, id, attribs, e);
 			}
-			if (ois.size() == 1) {
-				return ois.get(0);
-			}
-			// probably not worth making a builder starting from a reference to avoid an
-			// extra OI instantiation
-			return ObjectIdentifier.getBuilder(ois.get(0))
-					.withReferencePath(ois.subList(1, ois.size()))
-					.build();
 		}
 
 		//use this method when an ID is bad regardless of the attribute set

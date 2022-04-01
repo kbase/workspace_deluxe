@@ -2584,7 +2584,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		data.set(1, new WorkspaceSaveObject(obj3, data4, abstype0, null, emptyprov, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
 				"Object #2, obj3 has unparseable reference foo/bar/baz: Unable to parse version " +
-				"portion of object reference foo/bar/baz to an integer at /ref"));
+				"portion of object reference 'foo/bar/baz' to an integer at /ref"));
 		
 		Map<String, Object> data5 = new HashMap<String, Object>(data1);
 		data5.put("ref", null);
@@ -2612,7 +2612,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		data.set(1, new WorkspaceSaveObject(obj4, data3, abstype0, null, badids, false));
 		failSave(userfoo, wspace, data, new TypedObjectValidationException(
 				"Object #2, obj4 has unparseable provenance reference foo/bar/baz: Unable to " +
-				"parse version portion of object reference foo/bar/baz to an integer"));
+				"parse version portion of object reference 'foo/bar/baz' to an integer"));
 		
 		badids = new Provenance(userfoo);
 		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList((String) null)));
@@ -3207,7 +3207,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		innertuple.set(0, Arrays.asList("foo", "YourMotherWasAHamster"));
 		failSave(user, wsi, objs, new TypedObjectValidationException(
 				"Object #1, foo has unparseable reference YourMotherWasAHamster: Illegal number " +
-				"of separators / in object reference YourMotherWasAHamster at /ws_2/0/1"));
+				"of separators '/' in object reference 'YourMotherWasAHamster' at /ws_2/0/1"));
 		
 		innertuple.set(0, Arrays.asList("foo", ref2));
 		data.remove("ws_any");
@@ -3802,19 +3802,16 @@ public class WorkspaceTest extends WorkspaceTester {
 		// also tests failing on objects with id attributes
 		failSave(u1, testws, fail, makeRefData("readws/4;;2/refref1/1"), type1, p1,
 				new TypedObjectValidationException("Object #1, fail has unparseable reference " +
-						"readws/4;;2/refref1/1: ID parse error in reference string " +
-						"readws/4;;2/refref1/1 at position 2: reference cannot be null or the " +
-						"empty string at /refs/0"));
+						"readws/4;;2/refref1/1: Reference path position 2: Illegal number of " +
+						"separators '/' in object reference '' at /refs/0"));
 		failSave(u1, testws, fail, makeRefData(" ; ; "), type2Ref, p1,
 				new TypedObjectValidationException("Object #1, fail has unparseable reference " +
-						" ; ; : ID parse error in reference string " +
-						" ; ;  at position 1: reference cannot be null or the " +
-						"empty string at /refs/0"));
+						" ; ; : Reference path position 1: Illegal number of " +
+						"separators '/' in object reference ' ' at /refs/0"));
 		failSave(u1, testws, fail, makeRefData("readws/4;1;2/refref1/1"), type12Ref, p1,
 				new TypedObjectValidationException("Object #1, fail has unparseable reference " +
-						"readws/4;1;2/refref1/1: ID parse error in reference string " +
-						"readws/4;1;2/refref1/1 at position 2: Illegal number of separators / " +
-						"in object reference 1 at /refs/0"));
+						"readws/4;1;2/refref1/1: Reference path position 2: Illegal number of " +
+						"separators '/' in object reference '1' at /refs/0"));
 		
 		// test fail save on bad reference type
 		failSave(u1, testws, fail,
@@ -3867,9 +3864,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				.withWorkspaceObjects(Arrays.asList("readws/4;;2/refref1/1")));
 		failSave(u1, testws, fail, mt, type1, pfail,
 				new TypedObjectValidationException("Object #1, fail has unparseable provenance " +
-						"reference readws/4;;2/refref1/1: ID parse error in reference string " +
-						"readws/4;;2/refref1/1 at position 2: reference cannot be null or the " +
-						"empty string"));
+						"reference readws/4;;2/refref1/1: Reference path position 2: " +
+						"Illegal number of separators '/' in object reference ''"));
 		
 		// inaccessible head
 		pfail = new Provenance(u1).addAction(new ProvenanceAction()

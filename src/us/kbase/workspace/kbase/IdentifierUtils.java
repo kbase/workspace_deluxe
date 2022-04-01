@@ -19,7 +19,8 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 
 public class IdentifierUtils {
 	
-	//TODO JAVADOC
+	// TODO JAVADOC
+	// TODO CODE check the ref parse code in ObjectIdentifer and see if this code can be simplified
 	
 	public static WorkspaceIdentifier processWorkspaceIdentifier(
 			final WorkspaceIdentity wsi) {
@@ -171,8 +172,7 @@ public class IdentifierUtils {
 			throw new IllegalArgumentException(
 					"No object specifications provided");
 		}
-		final List<ObjectIdentifier> objs =
-				new LinkedList<ObjectIdentifier>();
+		final List<ObjectIdentifier> objs = new LinkedList<>();
 		int objcount = 1;
 		for (final ObjectSpecification o: objects) {
 			if (o == null) {
@@ -244,8 +244,7 @@ public class IdentifierUtils {
 				.build();
 	}
 
-	private static void mutateObjSpecByRefString(
-			final ObjectSpecification o) {
+	private static void mutateObjSpecByRefString(final ObjectSpecification o) {
 		if (o.getRef() == null) {
 			return;
 		}

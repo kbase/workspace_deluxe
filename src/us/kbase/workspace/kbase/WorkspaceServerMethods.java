@@ -442,8 +442,6 @@ public class WorkspaceServerMethods {
 					InaccessibleObjectException, NoSuchReferenceException, NoSuchObjectException,
 					TypedObjectExtractionException, ReferenceSearchMaximumSizeExceededException,
 					InterruptedException {
-		// ugh, tried to see if we could code out the jpe and ioe but it's too much of a mess
-		// once you get into the byte array cache and JTS
 		checkAddlArgs(params.getAdditionalProperties(), GetObjects2Params.class);
 		final List<ObjectIdentifier> loi =
 				processObjectSpecifications(params.getObjects());
