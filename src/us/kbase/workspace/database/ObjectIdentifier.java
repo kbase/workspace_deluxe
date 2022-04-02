@@ -202,18 +202,16 @@ public class ObjectIdentifier {
 			throw new IllegalArgumentException(String.format(
 					"Reference %s is not absolute", reference));
 		}
-		if (noReturn) {
-			return null;
-		} else if (builder != null) {
+		ObjectIdentifier ret = null;
+		if (builder != null) {
 			builder.wsi = wsi;
 			builder.id = id;
 			builder.name = name;
 			builder.version = version;
-			return null;
+		} if (!noReturn) {
+			ret = new ObjectIdentifier(wsi, id, name, version);
 		}
-		else {
-			return new ObjectIdentifier(wsi, id, name, version);
-		}
+		return ret;
 	}
 	
 	private static boolean isAbsolute(
