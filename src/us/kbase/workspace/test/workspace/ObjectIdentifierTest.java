@@ -475,7 +475,7 @@ public class ObjectIdentifierTest {
 	}
 	
 	@Test
-	public void buildFromRef() throws Exception {
+	public void buildFromRefAndValidate() throws Exception {
 		final WorkspaceIdentifier wfoo = new WorkspaceIdentifier("foo");
 		final WorkspaceIdentifier wufoo = new WorkspaceIdentifier("user1:foo");
 		final WorkspaceIdentifier wfoA = new WorkspaceIdentifier("fo.A-1_2");
@@ -506,10 +506,14 @@ public class ObjectIdentifierTest {
 			
 			checkRefTestCase(oi, t);
 			
+			ObjectIdentifier.validateReference(t.ref, false); // no exception == passed
+			
 			// test that the ref path builder processes refs identically
 			final ObjectIdentifier roi = ObjectIdentifier.getBuilderFromRefPath(t.ref).build();
 			
 			checkRefTestCase(roi, t);
+			
+			ObjectIdentifier.validateReferencePath(t.ref, false); // no exception == passed
 		}
 	}
 
@@ -522,7 +526,7 @@ public class ObjectIdentifierTest {
 	}
 	
 	@Test
-	public void buildFromRefPath() throws Exception {
+	public void buildFromRefPathAndValidate() throws Exception {
 		final WorkspaceIdentifier wfoo = new WorkspaceIdentifier("foo");
 		final WorkspaceIdentifier wufoo = new WorkspaceIdentifier("user1:foo");
 		final WorkspaceIdentifier wfoA = new WorkspaceIdentifier("fo.A-1_2");
@@ -587,6 +591,8 @@ public class ObjectIdentifierTest {
 			assertThat("incorrect hasrefpath", oi.hasRefPath(), is(true));
 			assertThat("incorrect lookup", oi.isLookupRequired(), is(false));
 			assertThat("incorrect subset", oi.getSubSet(), is(SubsetSelection.EMPTY));
+			
+			ObjectIdentifier.validateReferencePath(t.ref, false); // no exception == passed
 		}
 	}
 	
@@ -613,12 +619,12 @@ public class ObjectIdentifierTest {
 	}
 	
 	@Test
-	public void getBuilderRefFail() throws Exception {
+	public void getBuilderRefAndValidateFail() throws Exception {
 		// we use WorkspaceIdentifier under the hood to store the workspace ID and so don't 
 		// exhaustively test invalid workspace IDs / Names here
-		failGetBuilderRef(null, new IllegalArgumentException(
+		failGetBuilderAndValidateRef(null, new IllegalArgumentException(
 				"reference cannot be null or the empty string"));
-		failGetBuilderRef("1/1/1;2/2/2", new IllegalArgumentException(
+		failGetBuilderAndValidateRef("1/1/1;2/2/2", new IllegalArgumentException(
 				"Illegal number of separators '/' in object reference '1/1/1;2/2/2'"));
 		final Map<String, Exception> testCases = MapBuilder.<String, Exception>newHashMap()
 				.with("  \t   ", new IllegalArgumentException(
@@ -651,8 +657,8 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		for (final String ref: testCases.keySet()) {
-			failGetBuilderRef(ref, testCases.get(ref));
-			failGetBuilderFromRefPath(ref, testCases.get(ref));
+			failGetBuilderAndValidateRef(ref, testCases.get(ref));
+			failGetBuilderFromRefPathAndValidate(ref, testCases.get(ref));
 		}
 	}
 	
@@ -661,8 +667,8 @@ public class ObjectIdentifierTest {
 	}
 	
 	@Test
-	public void getBuilderFromRefPathFail() throws Exception {
-		failGetBuilderFromRefPath(null, new IllegalArgumentException(
+	public void getBuilderFromRefPathAndValidateFail() throws Exception {
+		failGetBuilderFromRefPathAndValidate(null, new IllegalArgumentException(
 				"refpath cannot be null or the empty string"));
 		final String one = "1/1/1;";
 		final Map<String, Exception> testCases = MapBuilder.<String, Exception>newHashMap()
@@ -713,22 +719,35 @@ public class ObjectIdentifierTest {
 				.build();
 		
 		for (final String ref: testCases.keySet()) {
-			failGetBuilderFromRefPath(ref, testCases.get(ref));
+			failGetBuilderFromRefPathAndValidate(ref, testCases.get(ref));
 		}
 	}
 
-	private void failGetBuilderRef(final String ref, final Exception expected) {
+	private void failGetBuilderAndValidateRef(final String ref, final Exception expected) {
 		try {
 			ObjectIdentifier.getBuilder(ref);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
+		
+		try {
+			ObjectIdentifier.validateReference(ref, false);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
 	}
 	
-	private void failGetBuilderFromRefPath(final String ref, final Exception expected) {
+	private void failGetBuilderFromRefPathAndValidate(final String ref, final Exception expected) {
 		try {
 			ObjectIdentifier.getBuilderFromRefPath(ref);
+			fail("expected exception for ref " + ref);
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+		try {
+			ObjectIdentifier.validateReferencePath(ref, false);
 			fail("expected exception for ref " + ref);
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
@@ -860,6 +879,97 @@ public class ObjectIdentifierTest {
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
 					"Must provide one and only one of object name (was: null) or id (was: null)"));
+		}
+	}
+	
+	@Test
+	public void validateReferenceAbsolute() throws Exception {
+		// this only tests absolute references. The other conditions are tested in
+		// the getBuilderAndValidate tests.
+		for (final String ref: list("1/1/1", "100/1000/10000")) {
+			ObjectIdentifier.validateReference(ref, true);
+			ObjectIdentifier.validateReferencePath(ref, true);
+		}
+	}
+	
+	@Test
+	public void validateReferencePathAbsolute() throws Exception {
+		// this only tests absolute references. The other conditions are tested in
+		// the getBuilderFromRefPathAndValidate tests.
+		for (final String ref: list("1/1/1;6/6/6", "100/1000/10000;1/1/1;5/6/7")) {
+			ObjectIdentifier.validateReferencePath(ref, true);
+		}
+	}
+	
+	@Test
+	public void validateReferenceAbsoluteFail() throws Exception {
+		// this only tests failing absolute references. The other error conditions are tested in
+		// the getBuilderAndValidate tests.
+		for (final String ref: list("1/1", "foo/1", "1/foo", "foo/1/1", "1/foo/1")) {
+			failValidateReferenceAbsolute(ref);
+		}
+	}
+	
+	private class RefPathAbsoluteTestCase {
+		private String refpath;
+		private String ref;
+		private int position;
+
+		public RefPathAbsoluteTestCase(String refpath, String ref, int position) {
+			this.refpath = refpath;
+			this.ref = ref;
+			this.position = position;
+		}
+	}
+	
+	@Test
+	public void validateReferencePathAbsoluteFail() throws Exception {
+		// this only tests failing absolute reference paths. The other error conditions are
+		// tested in the getBuilderFromRefpathAndValidate tests.
+		final List<RefPathAbsoluteTestCase> testCases = list(
+				new RefPathAbsoluteTestCase("1/1/1;1/1", "1/1", 2),
+				new RefPathAbsoluteTestCase("foo/1;1/1/1", "foo/1", 1),
+				new RefPathAbsoluteTestCase("1/1/1;1/1/1;1/foo;1/1/1", "1/foo", 3),
+				new RefPathAbsoluteTestCase("1/1/1;1/1/1;1/1/1;foo/1/1", "foo/1/1", 4),
+				new RefPathAbsoluteTestCase("1/1/1;1/1/1;1/1/1;1/1/1;1/foo/1", "1/foo/1", 5)
+				);
+		for (final RefPathAbsoluteTestCase t: testCases) {
+			failValidateReferencePathAbsolute(t.refpath, f(
+					"Reference path position %s: Reference %s is not absolute",
+					t.position, t.ref));
+		}
+	}
+	private void failValidateReferenceAbsolute(final String ref) {
+		ObjectIdentifier.validateReference(ref, false); // should pass
+		final String err = f("Reference %s is not absolute", ref);
+		try {
+			ObjectIdentifier.validateReference(ref, true);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(err));
+		}
+		// test that the ref path processor behaves the same way
+		failValidateReferencePathAbsolute(ref, err);
+	}
+	
+	private void failValidateReferencePathAbsolute(final String ref, final String expected) {
+		ObjectIdentifier.validateReferencePath(ref, false); // should pass
+		try {
+			ObjectIdentifier.validateReferencePath(ref, true);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(expected));
+		}
+	}
+	
+	@Test
+	public void isAbsolute() throws Exception {
+		assertThat("incorrect absolute",
+				ObjectIdentifier.getBuilder("1/1/1").build().isAbsolute(), is(true));
+		
+		for (final String falseCase: list("1/1", "foo/1", "1/foo", "foo/1/1", "1/foo/1")) {
+			assertThat("incorrect absolute for ref " + falseCase,
+					ObjectIdentifier.getBuilder(falseCase).build().isAbsolute(), is(false));
 		}
 	}
 	
