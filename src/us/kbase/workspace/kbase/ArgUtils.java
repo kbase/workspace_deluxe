@@ -193,9 +193,6 @@ public class ArgUtils {
 
 	// TODO CODE remove this eventually when everything uses Instants
 	private static String formatDate(final Date date) {
-		if (date == null) {
-			return null;
-		}
 		return formatDate(date.toInstant());
 	}
 	
@@ -226,14 +223,7 @@ public class ArgUtils {
 
 	private static List<UObject> translateMethodParametersToUObject(
 			final List<Object> methodParams) {
-		if (methodParams == null) {
-			return null;
-		}
-		final List<UObject> params = new LinkedList<UObject>();
-		for (final Object uo: methodParams) {
-			params.add(new UObject(uo));
-		}
-		return params;
+		return methodParams.stream().map(o -> new UObject(o)).collect(Collectors.toList());
 	}
 	
 	public static List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>

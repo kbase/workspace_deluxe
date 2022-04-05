@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+import static us.kbase.common.test.TestCommon.list;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -819,7 +820,29 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		timemap.put(inputTime, expectedTime);
 		ObjectIdentity id = new ObjectIdentity().withWsid(wsid).withObjid(objid);
 		checkProvenance(USER1, id, prov, refmap, timemap);
-
+	}
+	
+	@Test
+	public void saveProvenanceFail() throws Exception {
+		// null item in provenance
+		final ProvenanceAction pa = new ProvenanceAction().withInputWsObjects(list("1/1/1", null));
+		saveBadObject(list(new ObjectSaveData()
+				.withName("foo")
+				.withData(new UObject(Collections.emptyMap()))
+				.withType(SAFE_TYPE1)
+				.withProvenance(list(pa))),
+				"Invalid workspace object provenenance reference at position 2: "
+				+ "refpath cannot be null or the empty string");
+		
+		// empty string in provenance
+		pa.withInputWsObjects(list("1/1/1", "2/2/2", "  \t   \n "));
+		saveBadObject(list(new ObjectSaveData()
+				.withName("foo")
+				.withData(new UObject(Collections.emptyMap()))
+				.withType(SAFE_TYPE1)
+				.withProvenance(list(pa))),
+				"Invalid workspace object provenenance reference at position 3: Illegal number "
+				+ "of separators '/' in object reference '  \t   \n '");
 	}
 
 	@Test
