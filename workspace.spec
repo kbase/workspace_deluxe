@@ -492,8 +492,8 @@ module Workspace {
 		A provenance action (PA) is an action taken while transforming one data
 		object to another. There may be several PAs taken in series. A PA is
 		typically running a script, running an api command, etc. All of the
-		following fields are optional, but more information provided equates to
-		better data provenance.
+		following fields are optional but at least one field must be present.
+		Furthermore, more information provided equates to better data provenance.
 		
 		resolved_ws_objects should never be set by the user; it is set by the
 		workspace service when returning data.

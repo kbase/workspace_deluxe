@@ -68,6 +68,7 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 
@@ -726,7 +727,7 @@ public class Workspace {
 			//maintain ordering
 			wo.getProvenance().setWorkspaceID(Long.valueOf(rwsi.getID()));
 			final List<Reference> provrefs = new LinkedList<Reference>();
-			for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
+			for (final ProvenanceAction action: wo.getProvenance().getActions()) {
 				for (final String ref: action.getWorkspaceObjects()) {
 					provrefs.add((Reference) idhandler.getRemappedId(WS_ID_TYPE, ref));
 				}
@@ -836,7 +837,7 @@ public class Workspace {
 			reports.put(wo, rep);
 			idhandler.associateObject(new IDAssociation(objcount, true));
 			try {
-				for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
+				for (final ProvenanceAction action: wo.getProvenance().getActions()) {
 					for (final String pref: action.getWorkspaceObjects()) {
 						if (pref == null) {
 							throw new TypedObjectValidationException(String.format(

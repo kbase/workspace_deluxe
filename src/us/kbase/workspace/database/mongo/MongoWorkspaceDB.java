@@ -73,7 +73,6 @@ import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.PermissionSet.Builder;
 import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
@@ -102,6 +101,7 @@ import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationExcept
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.database.provenance.SubAction;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -2001,6 +2001,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			p.provid = (ObjectId) provmap.get(p).get(Fields.MONGO_ID); // ew, side effect
 		}
 	}
+	
+	private <T> List<T> emptyToNull(final List<T> list) {
+		return list.isEmpty() ? null : list;
+	}
+	
+	private Map<String, String> emptyToNull(final Map<String, String> map) {
+		return map.isEmpty() ? null : map;
+	}
 
 	private Map<String, Object> toDocument(final Provenance p) {
 		final Map<String, Object> ret = new HashMap<>();
@@ -2012,20 +2020,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		for (final ProvenanceAction pa: p.getActions()) {
 			final Map<String, Object> paret = new HashMap<>();
 			actions.add(paret);
-			paret.put(Fields.PROV_ACTION_CALLER, pa.getCaller());
-			paret.put(Fields.PROV_ACTION_COMMAND_LINE, pa.getCommandLine());
-			paret.put(Fields.PROV_ACTION_CUSTOM, pa.getCustom());
-			paret.put(Fields.PROV_ACTION_DESCRIPTION, pa.getDescription());
-			paret.put(Fields.PROV_ACTION_INCOMING_ARGS, pa.getIncomingArgs());
-			paret.put(Fields.PROV_ACTION_METHOD, pa.getMethod());
-			paret.put(Fields.PROV_ACTION_METHOD_PARAMS, pa.getMethodParameters());
-			paret.put(Fields.PROV_ACTION_OUTGOING_ARGS, pa.getOutgoingArgs());
-			paret.put(Fields.PROV_ACTION_SCRIPT, pa.getScript());
-			paret.put(Fields.PROV_ACTION_SCRIPT_VER, pa.getScriptVersion());
-			paret.put(Fields.PROV_ACTION_SERVICE, pa.getServiceName());
-			paret.put(Fields.PROV_ACTION_SERVICE_VER, pa.getServiceVersion());
-			paret.put(Fields.PROV_ACTION_TIME, pa.getTime());
-			paret.put(Fields.PROV_ACTION_WS_OBJS, pa.getWorkspaceObjects());
+			paret.put(Fields.PROV_ACTION_CALLER, pa.getCaller().orElse(null));
+			paret.put(Fields.PROV_ACTION_COMMAND_LINE, pa.getCommandLine().orElse(null));
+			paret.put(Fields.PROV_ACTION_CUSTOM, emptyToNull(pa.getCustom()));
+			paret.put(Fields.PROV_ACTION_DESCRIPTION, pa.getDescription().orElse(null));
+			paret.put(Fields.PROV_ACTION_INCOMING_ARGS, emptyToNull(pa.getIncomingArgs()));
+			paret.put(Fields.PROV_ACTION_METHOD, pa.getMethod().orElse(null));
+			paret.put(Fields.PROV_ACTION_METHOD_PARAMS, emptyToNull(pa.getMethodParameters()));
+			paret.put(Fields.PROV_ACTION_OUTGOING_ARGS, emptyToNull(pa.getOutgoingArgs()));
+			paret.put(Fields.PROV_ACTION_SCRIPT, pa.getScript().orElse(null));
+			paret.put(Fields.PROV_ACTION_SCRIPT_VER, pa.getScriptVersion().orElse(null));
+			paret.put(Fields.PROV_ACTION_SERVICE, pa.getServiceName().orElse(null));
+			paret.put(Fields.PROV_ACTION_SERVICE_VER, pa.getServiceVersion().orElse(null));
+			paret.put(Fields.PROV_ACTION_TIME, pa.getTime().orElse(null));
+			paret.put(Fields.PROV_ACTION_WS_OBJS, emptyToNull(pa.getWorkspaceObjects()));
 			
 			final List<Map<String, Object>> extdata = new LinkedList<>();
 			paret.put(Fields.PROV_ACTION_EXTERNAL_DATA, extdata);
@@ -2756,7 +2764,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<String> actionRefs = new LinkedList<>(rrcopy.subList(0, refcnt));
 			rrcopy.subList(0, refcnt).clear();
 			
-			ret.addAction(new ProvenanceAction()
+			ret.addAction(ProvenanceAction.getBuilder()
 					.withExternalData(toExternalData(pa.getList(
 							Fields.PROV_ACTION_EXTERNAL_DATA, Document.class)))
 					.withSubActions(toSubAction(pa.getList(
@@ -2773,9 +2781,10 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.withScriptVersion(pa.getString(Fields.PROV_ACTION_SCRIPT_VER))
 					.withServiceName(pa.getString(Fields.PROV_ACTION_SERVICE))
 					.withServiceVersion(pa.getString(Fields.PROV_ACTION_SERVICE_VER))
-					.withTime(pa.getDate(Fields.PROV_ACTION_TIME))
+					.withTime(getInstant(pa, Fields.PROV_ACTION_TIME))
 					.withWorkspaceObjects(wsobjs)
 					.withResolvedObjects(actionRefs)
+					.build()
 					);
 		}
 		return ret;
@@ -2813,13 +2822,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				.withDataURL(e.getString(Fields.PROV_EXTDATA_DATA_URL))
 				.withDescription(e.getString(Fields.PROV_EXTDATA_DESCRIPTION))
 				.withResourceName(e.getString(Fields.PROV_EXTDATA_RESOURCE_NAME))
-				.withResourceReleaseDate(
-						Optional.ofNullable(e.getDate(Fields.PROV_EXTDATA_RESOURCE_DATE))
-						.map(d -> d.toInstant()).orElse(null))
+				.withResourceReleaseDate(getInstant(e, Fields.PROV_EXTDATA_RESOURCE_DATE))
 				.withResourceURL(e.getString(Fields.PROV_EXTDATA_RESOURCE_URL))
 				.withResourceVersion(e.getString(Fields.PROV_EXTDATA_RESOURCE_VER))
 				.build())
 				.collect(Collectors.toList());
+	}
+
+	public Instant getInstant(Document doc, final String field) {
+		return Optional.ofNullable(doc.getDate(field)).map(d -> d.toInstant()).orElse(null);
 	}
 
 	private static final Set<String> FLDS_VER_TYPE = newHashSet(

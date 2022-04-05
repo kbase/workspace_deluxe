@@ -676,7 +676,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					.withCustom(cs)
 					.withSubactions(sa)
 					.withTime("2013-04-26T12:52:06-0800"),
-				new ProvenanceAction());
+				new ProvenanceAction()
+					.withCaller("c")
+					// set arrays to empty lists since that's what the workspace will now return
+					.withIntermediateIncoming(Collections.emptyList())
+					.withMethodParams(Collections.emptyList())
+					.withIntermediateOutgoing(Collections.emptyList())
+					);
 		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE).withName("auto2")
 				.withProvenance(prov));
 		CLIENT1.saveObjects(sop);
@@ -781,14 +787,19 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			StringEpoch expectedTime) throws Exception {
 		UObject data = new UObject(new HashMap<String, Object>());
 
-		List<ProvenanceAction> prov = new LinkedList<ProvenanceAction>();;
+		List<ProvenanceAction> prov = new LinkedList<ProvenanceAction>();
+		final ProvenanceAction pa = new ProvenanceAction()
+				// workspace always returns lists for these now
+				.withIntermediateIncoming(Collections.emptyList())
+				.withIntermediateOutgoing(Collections.emptyList())
+				.withMethodParams(Collections.emptyList());
 		if (inputTime.time != null) {
-			prov.add(new ProvenanceAction().withTime(inputTime.time)
+			prov.add(pa.withTime(inputTime.time)
 					.withExternalData(Arrays.asList(
 							new ExternalDataUnit()
 								.withResourceReleaseDate(inputTime.time))));
 		} else {
-			prov.add(new ProvenanceAction().withEpoch(inputTime.epoch)
+			prov.add(pa.withEpoch(inputTime.epoch)
 					.withExternalData(Arrays.asList(
 							new ExternalDataUnit()
 								.withResourceReleaseEpoch(inputTime.epoch))));

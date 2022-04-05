@@ -720,18 +720,13 @@ public class JSONRPCLayerTester {
 			assertThat("desc equal", gotpa.getDescription(), is(exppa.getDescription()));
 			assertThat("inc args equal", gotpa.getIntermediateIncoming(), is(exppa.getIntermediateIncoming()));
 			assertThat("method equal", gotpa.getMethod(), is(exppa.getMethod()));
-			if (gotpa.getMethodParams() == null) {
-				assertThat("method param counts are both null", gotpa.getMethodParams(),
-						is(exppa.getMethodParams()));
-			} else {
-				assertThat("method param count equal", gotpa.getMethodParams().size(),
-						is(exppa.getMethodParams().size()));
-				Iterator<UObject> gotmeth = gotpa.getMethodParams().iterator();
-				Iterator<UObject> expmeth = exppa.getMethodParams().iterator();
-				while(gotmeth.hasNext()) {
-					assertThat("meth params equal", gotmeth.next().asClassInstance(Object.class),
-							is(expmeth.next().asClassInstance(Object.class)));
-				}
+			assertThat("method param count equal", gotpa.getMethodParams().size(),
+					is(exppa.getMethodParams().size()));
+			Iterator<UObject> gotmeth = gotpa.getMethodParams().iterator();
+			Iterator<UObject> expmeth = exppa.getMethodParams().iterator();
+			while (gotmeth.hasNext()) {
+				assertThat("meth params equal", gotmeth.next().asClassInstance(Object.class),
+						is(expmeth.next().asClassInstance(Object.class)));
 			}
 			assertThat("out args equal", gotpa.getIntermediateOutgoing(), is(exppa.getIntermediateOutgoing()));
 			assertThat("script equal", gotpa.getScript(), is(exppa.getScript()));

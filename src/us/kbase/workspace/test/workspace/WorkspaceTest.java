@@ -80,7 +80,6 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -102,6 +101,7 @@ import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.database.provenance.SubAction;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
@@ -1429,7 +1429,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		premeta2.put("meta2", "my hovercraft is full of eels");
 		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(premeta2);
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
-		p.addAction(new Provenance.ProvenanceAction().withServiceName("some service"));
+		p.addAction(ProvenanceAction.getBuilder().withServiceName("some service").build());
 		List<WorkspaceSaveObject> objects = new ArrayList<WorkspaceSaveObject>();
 		
 		try {
@@ -1714,8 +1714,7 @@ public class WorkspaceTest extends WorkspaceTester {
 		premeta2.put("meta2", "my hovercraft is full of eels");
 		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(premeta2);
 		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
-		p.addAction(new Provenance.ProvenanceAction()
-				.withServiceName("some service"));
+		p.addAction(ProvenanceAction.getBuilder().withServiceName("some service").build());
 		List<WorkspaceSaveObject> objects =
 				new ArrayList<WorkspaceSaveObject>();
 		
@@ -2602,30 +2601,10 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		
 		Provenance goodids = new Provenance(userfoo);
-		goodids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("typecheck/1/1")));
+		goodids.addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list("typecheck/1/1")).build());
 		data.set(1, new WorkspaceSaveObject(obj3, data3, abstype0, null, goodids, false));
 		ws.saveObjects(userfoo, wspace, data, getIdFactory()); //should work
-		
-		Provenance badids = new Provenance(userfoo);
-		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("foo/bar/baz")));
-		final ObjectIDNoWSNoVer obj4 = new ObjectIDNoWSNoVer("obj4");
-		data.set(1, new WorkspaceSaveObject(obj4, data3, abstype0, null, badids, false));
-		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2, obj4 has unparseable provenance reference foo/bar/baz: Unable to " +
-				"parse version portion of object reference 'foo/bar/baz' to an integer"));
-		
-		badids = new Provenance(userfoo);
-		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList((String) null)));
-		data.set(1, new WorkspaceSaveObject(obj4, data3, abstype0, null, badids, false));
-		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2, obj4 has a null provenance reference"));
-		
-		badids = new Provenance(userfoo);
-		badids.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("")));
-		data.set(1, new WorkspaceSaveObject(obj4, data3, abstype0, null, badids, false));
-		failSave(userfoo, wspace, data, new TypedObjectValidationException(
-				"Object #2, obj4 has invalid provenance reference: IDs may not be null or the " +
-				"empty string"));
 		
 		//test inaccessible references due to missing, deleted, or unreadable workspaces
 		Map<String, Object> refdata = new HashMap<String, Object>(data1);
@@ -2636,7 +2615,8 @@ public class WorkspaceTest extends WorkspaceTester {
 						"thereisnoworkspaceofthisname/2/1: Object 2 cannot be accessed: No " +
 						"workspace with name thereisnoworkspaceofthisname exists at /ref"));
 		Provenance nowsref = new Provenance(userfoo);
-		nowsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("thereisnoworkspaceofthisname/2/1")));
+		nowsref.addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list("thereisnoworkspaceofthisname/2/1")).build());
 		failSave(userfoo, wspace, new ObjectIDNoWSNoVer(67), data1, abstype0, nowsref,
 				new TypedObjectValidationException(
 						"Object #1, 67 has invalid provenance reference: No read access to id " +
@@ -2652,7 +2632,8 @@ public class WorkspaceTest extends WorkspaceTester {
 						"tobedeleted/2/1: Object 2 cannot be accessed: Workspace tobedeleted is " +
 						"deleted at /ref"));
 		Provenance delwsref = new Provenance(userfoo);
-		delwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("tobedeleted/2/1")));
+		delwsref.addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list("tobedeleted/2/1")).build());
 		failSave(userfoo, wspace, fail, data1, abstype0, delwsref,
 				new TypedObjectValidationException(
 						"Object #1, fail has invalid provenance reference: No read access to " +
@@ -2667,7 +2648,8 @@ public class WorkspaceTest extends WorkspaceTester {
 						"stingyworkspace/2/1: Object 2 cannot be accessed: User foo may not " +
 						"read workspace stingyworkspace at /ref"));
 		Provenance privwsref = new Provenance(userfoo);
-		privwsref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("stingyworkspace/2/1")));
+		privwsref.addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list("stingyworkspace/2/1")).build());
 		failSave(userfoo, wspace, fail, data1, abstype0, privwsref,
 				new TypedObjectValidationException(
 						"Object #1, fail has invalid provenance reference: No read access to " +
@@ -2685,7 +2667,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject(
 				getRandomName(), refdata, abstype1 , null, emptyprov, false)), getIdFactory());
 		Provenance goodref = new Provenance(userfoo);
-		goodref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(Arrays.asList("referencetesting/1/1")));
+		goodref.addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list("referencetesting/1/1")).build());
 		ws.saveObjects(userfoo, wspace, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), refdata, abstype1 , null, goodref,
 						false)), getIdFactory());
@@ -2698,8 +2681,8 @@ public class WorkspaceTest extends WorkspaceTester {
 						"referencetesting/2/1: No object with id 2 exists in workspace %s " +
 						 "(name referencetesting) at /ref", refwsid)));
 		Provenance noobjref = new Provenance(userfoo);
-		noobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(
-				Arrays.asList("referencetesting/2/1")));
+		noobjref.addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list("referencetesting/2/1")).build());
 		failSave(userfoo, wspace, fail, data1, abstype0, noobjref,
 				new TypedObjectValidationException(String.format(
 						"Object #1, fail has invalid provenance reference: There is no object " +
@@ -2719,8 +2702,8 @@ public class WorkspaceTest extends WorkspaceTester {
 						"referencetesting/2/1: Object 2 (name auto2) in workspace %s " +
 						"(name referencetesting) has been deleted at /ref", refwsid)));
 		Provenance delobjref = new Provenance(userfoo);
-		delobjref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(
-				Arrays.asList("referencetesting/2/1")));
+		delobjref.addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list("referencetesting/2/1")).build());
 		failSave(userfoo, wspace, fail, data1, abstype0, delobjref,
 				new TypedObjectValidationException(String.format(
 						"Object #1, fail has invalid provenance reference: There is no object " +
@@ -2734,8 +2717,8 @@ public class WorkspaceTest extends WorkspaceTester {
 						"referencetesting/1/2: No object with id 1 (name auto1) and version 2 " +
 						"exists in workspace %s (name referencetesting) at /ref", refwsid)));
 		Provenance noverref = new Provenance(userfoo);
-		noverref.addAction(new Provenance.ProvenanceAction().withWorkspaceObjects(
-				Arrays.asList("referencetesting/1/2")));
+		noverref.addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list("referencetesting/1/2")).build());
 		failSave(userfoo, wspace, fail, data1, abstype0, noverref,
 				new TypedObjectValidationException(String.format(
 						"Object #1, fail has invalid provenance reference: There is no object " +
@@ -2880,9 +2863,9 @@ public class WorkspaceTest extends WorkspaceTester {
 				mtprov, false));
 		ws.saveObjects(user, wsi, objs, getIdFactory(0));
 		
-		Provenance p = new Provenance(user).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList(
-						wsi.getName() + "/auto1", wsi.getName() + "/auto2")));
+		Provenance p = new Provenance(user).addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list(
+						wsi.getName() + "/auto1", wsi.getName() + "/auto2")).build());
 		objs.set(0, new WorkspaceSaveObject(getRandomName(), d, SAFE_TYPE1, null, p, false));
 		failSave(user, wsi, objs, new TypedObjectValidationException(String.format(
 				"Object #1, %s has invalid provenance reference: There is no object with id " +
@@ -3290,9 +3273,9 @@ public class WorkspaceTest extends WorkspaceTester {
 		failSave(user, wsi, objs1, fac, new TypedObjectValidationException(
 				"Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 7"));
 		
-		Provenance p = new Provenance(user).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList(
-						"maxids/auto1", "maxids/auto2", "maxids/auto1")));
+		Provenance p = new Provenance(user).addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list(
+						"maxids/auto1", "maxids/auto2", "maxids/auto1")).build());
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 10);
 		objs1.set(0, new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, p, false));
@@ -3469,25 +3452,27 @@ public class WorkspaceTest extends WorkspaceTester {
 				);
 		
 		Provenance p = new Provenance(foo);
-		p.addAction(new ProvenanceAction()
+		p.addAction(ProvenanceAction.getBuilder()
 				.withCaller("A caller")
 				.withCommandLine("A command line")
 				.withDescription("descrip")
-				.withIncomingArgs(Arrays.asList("a", "b", "c"))
+				.withIncomingArgs(list("a", "b", "c"))
 				.withMethod("method")
-				.withMethodParameters(Arrays.asList((Object) data, data, data))
-				.withOutgoingArgs(Arrays.asList("d", "e", "f"))
+				.withMethodParameters(list((Object) data, data, data))
+				.withOutgoingArgs(list("d", "e", "f"))
 				.withScript("script")
 				.withScriptVersion("2.1")
 				.withServiceName("service")
 				.withServiceVersion("3")
-				.withTime(new Date(45))
+				.withTime(inst(45))
 				.withExternalData(ed)
 				.withCustom(custom)
 				.withSubActions(sa)
-				.withWorkspaceObjects(Arrays.asList("provenance/auto3", "provenance/auto1/2")));
-		p.addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList("provenance/auto2/1", "provenance/auto1")));
+				.withWorkspaceObjects(list("provenance/auto3", "provenance/auto1/2"))
+				.build());
+		p.addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list("provenance/auto2/1", "provenance/auto1"))
+				.build());
 		
 		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
 				getRandomName(), data, SAFE_TYPE1, null, p, false)),
@@ -3537,19 +3522,20 @@ public class WorkspaceTest extends WorkspaceTester {
 				.get(0).getProvenance();
 		assertThat("Prov date constant", gotProv2.getDate(), is(dates.get(1)));
 		assertThat("Prov dates same", got2.getDate(), is(gotProv2.getDate()));
-		//make sure passing nulls for ws obj lists doesn't kill anything
-		Provenance p3 = new Provenance(foo);
-		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
+
+		// make sure passing nulls for ws obj lists doesn't kill anything
+		final Provenance p3 = new Provenance(foo).addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(null).withCaller("c").build());
 		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
 				getRandomName(), data, SAFE_TYPE1, null, p3, false)),
 				getIdFactory());
 		checkProvenanceCorrect(foo, p3, pidb.withID(6L).build(), new HashMap<>());
 		
-		Provenance p4 = new Provenance(foo);
-		ProvenanceAction pa = new ProvenanceAction();
-		pa.withWorkspaceObjects(null);
-		p4.addAction(pa);
-		p3.addAction(new ProvenanceAction().withWorkspaceObjects(null));
+		final Provenance p4 = new Provenance(foo)
+				.addAction(ProvenanceAction.getBuilder()
+						.withWorkspaceObjects(null).withCaller("c").build())
+				.addAction(ProvenanceAction.getBuilder()
+						.withWorkspaceObjects(null).withServiceName("s").build());
 		ws.saveObjects(foo, prov, Arrays.asList(new WorkspaceSaveObject(
 				getRandomName(), data, SAFE_TYPE1, null, p4, false)),
 				getIdFactory());
@@ -3568,7 +3554,7 @@ public class WorkspaceTest extends WorkspaceTester {
 			methparams.add(TEXT1000);
 		}
 		Provenance p = new Provenance(foo);
-		p.addAction(new ProvenanceAction().withMethodParameters(methparams));
+		p.addAction(ProvenanceAction.getBuilder().withMethodParameters(methparams).build());
 		ws.saveObjects(foo, prov, Arrays.asList( //should work
 				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null, p, false)),
 				getIdFactory());
@@ -3576,15 +3562,15 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		methparams.add(TEXT1000);
 		Provenance p2 = new Provenance(foo);
-		p2.addAction(new ProvenanceAction().withMethodParameters(methparams));
+		p2.addAction(ProvenanceAction.getBuilder().withMethodParameters(methparams).build());
 		try {
 			ws.saveObjects(foo, prov, Arrays.asList(
-					new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null, p, false)),
+					new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null, p2, false)),
 					getIdFactory());
 			fail("saved too big prov");
 		} catch (IllegalArgumentException iae) {
 			assertThat("correct exception", iae.getLocalizedMessage(),
-					is(String.format("Object #1, %s provenance size 1000318 exceeds limit of " +
+					is(String.format("Object #1, %s provenance size 1000322 exceeds limit of " +
 							"1000000", getLastRandomName())));
 		}
 	}
@@ -3722,8 +3708,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		// 2/5/1
 		final String refref1Name = "refref1"; // 2 hops
-		final Provenance p2withRef = new Provenance(u2).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList(ref1ref)));
+		final Provenance p2withRef = new Provenance(u2).addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list(ref1ref)).build());
 		saveObject(u2, privws, MT_MAP, MT_MAP, SAFE_TYPE1, refref1Name, p2withRef);
 		final String refref1ref = privws.getName() + "/" + refref1Name + "/" + 1;
 		
@@ -3763,22 +3749,23 @@ public class WorkspaceTest extends WorkspaceTester {
 		// test saving object with provenance references
 		final WorkspaceIdentifier testwsid = new WorkspaceIdentifier(3);
 		final ObjectIdentifier.Builder testwsidb = ObjectIdentifier.getBuilder(testwsid);
-		Provenance prefs = new Provenance(u1).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList(
+		Provenance prefs = new Provenance(u1).addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list(
 						"  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ",
-						"readws/readable")));
+						"readws/readable")).build());
 		saveObject(u1, testws, MT_MAP, MT_MAP, SAFE_TYPE1, "provtest1", prefs);
+		
 		checkProvenanceCorrect(
-				u1, prefs, testwsidb.withName("provtest1").build(), refPaths1);
+				u1, prefs, testwsidb.withName("provtest1").build(), trimKeys(refPaths1));
 
-		prefs = new Provenance(u1).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList(
+		prefs = new Provenance(u1).addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list(
 						"1/3/1 ; \n 2/ref2/1 ; 	privws/1",
 						"  	readws/4 ; 2/refref1/1;2/3 ;  	privws/delleaf; \n ",
-						"1/readableRef;readws/1")));
+						"1/readableRef;readws/1")).build());
 		saveObject(u1, testws, MT_MAP, MT_MAP, SAFE_TYPE1, "provtest2", prefs);
 		checkProvenanceCorrect(
-				u1, prefs, testwsidb.withName("provtest2").build(), refPaths2);
+				u1, prefs, testwsidb.withName("provtest2").build(), trimKeys(refPaths2));
 		
 		// test fail save on bad reference
 		// also tests failing on objects with id attributes
@@ -3848,36 +3835,32 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//bad ref
 		final Map<String, Object> mt = new HashMap<>();
-		Provenance pfail = new Provenance(u1).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList(
+		Provenance pfail = new Provenance(u1).addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list(
 						"  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ",
 						"readws/readable",
-						"1/3/1 ; \n 2/ref1/1 ; 	privws/1")));
+						"1/3/1 ; \n 2/ref1/1 ; 	privws/1")).build());
 		failSave(u1, testws, fail, mt, type1Ref, pfail,
 				new TypedObjectValidationException(
 						"Object #1, fail has invalid provenance reference: Reference path " +
 						"starting with 1/3/1, position 1: Object 1/3/1 does not contain a " +
 						"reference to 2/ref1/1"));
 		
-		// bad parse
-		pfail = new Provenance(u1).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList("readws/4;;2/refref1/1")));
-		failSave(u1, testws, fail, mt, type1, pfail,
-				new TypedObjectValidationException("Object #1, fail has unparseable provenance " +
-						"reference readws/4;;2/refref1/1: Reference path position 2: " +
-						"Illegal number of separators '/' in object reference ''"));
-		
 		// inaccessible head
-		pfail = new Provenance(u1).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList(
+		pfail = new Provenance(u1).addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list(
 						"  \nreadws/4 ; 2/refref1/1;2/3 ;  	2/leaf1/1;  ",
 						"readws/readable",
 						"1/3/1 ; \n 2/ref2/1 ; 	privws/1",
-						"1/5/1 ; 1/1/1")));
+						"1/5/1 ; 1/1/1")).build());
 		failSave(u1, testws, fail, mt, type1Ref, pfail,
 				new TypedObjectValidationException(
 						"Object #1, fail has invalid provenance reference: No read access to id " +
 						"1/5/1 ; 1/1/1: No object with id 5 exists in workspace 1 (name readws)"));
+	}
+
+	public Map<String, String> trimKeys(final Map<String, String> m) {
+		return m.keySet().stream().collect(Collectors.toMap(k -> k.trim(), k -> m.get(k)));
 	}
 
 	private void successSaveWithRefPaths(
@@ -4408,27 +4391,28 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, Object> data3 = makeRefData(refws + "/auto1");
 		
 		Provenance prov1 = new Provenance(user1);
-		prov1.addAction(new ProvenanceAction()
+		final ProvenanceAction.Builder pa1 = ProvenanceAction.getBuilder()
 				.withCommandLine("A command line")
 				.withDescription("descrip")
-				.withIncomingArgs(Arrays.asList("a", "b", "c"))
+				.withIncomingArgs(list("a", "b", "c"))
 				.withMethod("method")
-				.withMethodParameters(Arrays.asList((Object) meta1))
-				.withOutgoingArgs(Arrays.asList("d", "e", "f"))
+				.withMethodParameters(list((Object) meta1))
+				.withOutgoingArgs(list("d", "e", "f"))
 				.withScript("script")
 				.withScriptVersion("2.1")
 				.withServiceName("service")
 				.withServiceVersion("3")
-				.withTime(new Date(45))
-				.withWorkspaceObjects(Arrays.asList(refws + "/auto3", refws + "/auto2/2")));
-		prov1.addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList(refws + "/auto2/1", refws + "/auto1")));
+				.withTime(inst(45))
+				.withWorkspaceObjects(list(refws + "/auto3", refws + "/auto2/2"));
+		prov1.addAction(pa1.build());
+		prov1.addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list(refws + "/auto2/1", refws + "/auto1")).build());
 		Provenance prov2 = new Provenance(user1);
 		Provenance prov3 = new Provenance(user1);
-		prov2.addAction(new ProvenanceAction(prov1.getActions().get(0)).withServiceVersion("4")
-				.withWorkspaceObjects(Arrays.asList(refws + "/auto2")));
-		prov3.addAction(new ProvenanceAction(prov1.getActions().get(0)).withServiceVersion("5")
-				.withWorkspaceObjects(Arrays.asList(refws + "/auto3/1")));
+		prov2.addAction(pa1.withServiceVersion("4")
+				.withWorkspaceObjects(list(refws + "/auto2")).build());
+		prov3.addAction(pa1.withServiceVersion("5")
+				.withWorkspaceObjects(list(refws + "/auto3/1")).build());
 		
 		WorkspaceIdentifier cp1 = new WorkspaceIdentifier(ws1);
 		WorkspaceIdentifier cp2 = new WorkspaceIdentifier(ws2);
@@ -6935,11 +6919,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		WorkspaceUserMetadata meta2 = new WorkspaceUserMetadata(pmeta2);
 		
 		Provenance p1 = new Provenance(user);
-		p1.addAction(new ProvenanceAction().withDescription("provenance 1")
-				.withWorkspaceObjects(Arrays.asList("subData/auto1")));
+		p1.addAction(ProvenanceAction.getBuilder().withDescription("provenance 1")
+				.withWorkspaceObjects(list("subData/auto1")).build());
 		Provenance p2 = new Provenance(user);
-		p2.addAction(new ProvenanceAction().withDescription("provenance 2")
-				.withWorkspaceObjects(Arrays.asList("subData/auto2")));
+		p2.addAction(ProvenanceAction.getBuilder().withDescription("provenance 2")
+				.withWorkspaceObjects(list("subData/auto2")).build());
 
 		Map<String, Object> data1 = createData(
 				"{\"map\": {\"id1\": {\"id\": 1," +
@@ -7166,47 +7150,47 @@ public class WorkspaceTest extends WorkspaceTester {
 		Map<String, Object> refdata = new HashMap<String, Object>();
 		
 		refdata.put("refs", Arrays.asList("refstarget1/deletedref"));
-		ws.saveObjects(user1, wsisrc1, Arrays.asList(
+		ws.saveObjects(user1, wsisrc1, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("delrefptr"),
 						refdata, reftype, null, p1, false)), getIdFactory());
-		ws.setObjectsDeleted(user1, Arrays.asList(src1.withName("delrefptr").build()), true);
-		refdata.put("refs", Arrays.asList("refstarget1/unreadableref"));
-		ws.saveObjects(user2, wsisrc2noaccess, Arrays.asList(
+		ws.setObjectsDeleted(user1, list(src1.withName("delrefptr").build()), true);
+		refdata.put("refs", list("refstarget1/unreadableref"));
+		ws.saveObjects(user2, wsisrc2noaccess, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadrefptr"),
 						refdata, reftype, null, p1, false)), getIdFactory());
 		
-		ws.saveObjects(user1, wsisrc1, Arrays.asList(
+		ws.saveObjects(user1, wsisrc1, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("deletedprovrefptr"),
 						mtdata, SAFE_TYPE1, null,
-						new Provenance(user1).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget1/deletedprovref"))),
+						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
+						.withWorkspaceObjects(list("refstarget1/deletedprovref")).build()),
 						false)), getIdFactory());
 		ws.setObjectsDeleted(
-				user1, Arrays.asList(src1.withName("deletedprovrefptr").build()), true);
-		ws.saveObjects(user2, wsisrc2noaccess, Arrays.asList(
+				user1, list(src1.withName("deletedprovrefptr").build()), true);
+		ws.saveObjects(user2, wsisrc2noaccess, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadableprovrefptr"),
 						mtdata, SAFE_TYPE1, null,
-						new Provenance(user1).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget1/unreadableprovref"))),
+						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
+						.withWorkspaceObjects(list("refstarget1/unreadableprovref")).build()),
 						false)), getIdFactory());
 		
 		List<Set<ObjectInformation>> mtrefs = new ArrayList<Set<ObjectInformation>>();
 		mtrefs.add(new HashSet<ObjectInformation>());
-		for (String name: Arrays.asList("norefs", "deletedref", "unreadableref",
+		for (String name: list("norefs", "deletedref", "unreadableref",
 				"deletedprovref", "unreadableprovref")) {
 			assertThat("ref lists empty", ws.getReferencingObjects(
-					user1, Arrays.asList(tar1.withName(name).build())),
+					user1, list(tar1.withName(name).build())),
 					is(mtrefs));
 		}
 				
-		ws.saveObjects(user1, wsitar1, Arrays.asList(
+		ws.saveObjects(user1, wsitar1, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk"), mtdata, SAFE_TYPE1,
 						meta1, p1, false),
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk"), mtdata, SAFE_TYPE1,
 						meta2, p1, false),
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("single"), mtdata, SAFE_TYPE1,
 						meta1, p1, false)), getIdFactory());
-		ws.saveObjects(user2, wsitar2, Arrays.asList(
+		ws.saveObjects(user2, wsitar2, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk2"), mtdata, SAFE_TYPE1,
 						meta1, p1, false),
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stk2"), mtdata, SAFE_TYPE1,
@@ -7214,59 +7198,64 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("single2"), mtdata, SAFE_TYPE1,
 						meta1, p1, false)), getIdFactory());
 		
-		refdata.put("refs", Arrays.asList("refstarget1/stk/1"));
-		ObjectInformation stdref1 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+		refdata.put("refs", list("refstarget1/stk/1"));
+		ObjectInformation stdref1 = ws.saveObjects(user1, wsisrc1, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stdref"), refdata,
 						reftype, meta1,
-						new Provenance(user1).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget1/stk/1"))), false)),
+						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
+						.withWorkspaceObjects(list("refstarget1/stk/1")).build()), false)),
 						getIdFactory()).get(0);
-		refdata.put("refs", Arrays.asList("refstarget1/stk/2"));
-		ObjectInformation stdref2 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+		refdata.put("refs", list("refstarget1/stk/2"));
+		ObjectInformation stdref2 = ws.saveObjects(user1, wsisrc1, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stdref"), refdata,
 						reftype, meta2, new Provenance(user1), false)), 
 						getIdFactory()).get(0);
-		refdata.put("refs", Arrays.asList("refstarget1/stk"));
-		ObjectInformation hiddenref = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+		refdata.put("refs", list("refstarget1/stk"));
+		ObjectInformation hiddenref = ws.saveObjects(user1, wsisrc1, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("hiddenref"), refdata,
 						reftype, meta1, new Provenance(user1), true)),
 						getIdFactory()).get(0);
-		refdata.put("refs", Arrays.asList("refstarget2/stk2"));
+		refdata.put("refs", list("refstarget2/stk2"));
 		@SuppressWarnings("unused")
-		ObjectInformation delref = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+		ObjectInformation delref = ws.saveObjects(user1, wsisrc1, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("delref"), refdata,
 						reftype, meta1,
-						new Provenance(user1).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget1/stk/2"))), true)),
+						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
+						.withWorkspaceObjects(list("refstarget1/stk/2")).build()), true)),
 						getIdFactory()).get(0);
-		ws.setObjectsDeleted(user1, Arrays.asList(src1.withName("delref").build()), true);
+		ws.setObjectsDeleted(user1, list(src1.withName("delref").build()), true);
 		
-		refdata.put("refs", Arrays.asList("refstarget1/single"));
-		ObjectInformation readable = ws.saveObjects(user2, wsisrc2, Arrays.asList(
+		refdata.put("refs", list("refstarget1/single"));
+		ObjectInformation readable = ws.saveObjects(user2, wsisrc2, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("readable"), refdata,
 						reftype, meta2, new Provenance(user2), true)),
 						getIdFactory()).get(0);
 		
-		refdata.put("refs", Arrays.asList("refstarget2/stk2/2"));
+		refdata.put("refs", list("refstarget2/stk2/2"));
 		@SuppressWarnings("unused")
-		ObjectInformation unreadable = ws.saveObjects(user2, wsisrc2noaccess, Arrays.asList(
+		ObjectInformation unreadable = ws.saveObjects(user2, wsisrc2noaccess, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadable"), refdata,
 						reftype, meta1, new Provenance(user2), true)),
 						getIdFactory()).get(0);
 		
-		refdata.put("refs", Arrays.asList("refstarget2/single2/1"));
+		refdata.put("refs", list("refstarget2/single2/1"));
 		@SuppressWarnings("unused")
-		ObjectInformation wsdeletedreadable1 = ws.saveObjects(user1, wsisrcdel1, Arrays.asList(
+		ObjectInformation wsdeletedreadable1 = ws.saveObjects(user1, wsisrcdel1, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("wsdeletedreadable1"), refdata,
 						reftype, meta2, new Provenance(user1), false)),
 						getIdFactory()).get(0);
 		ws.setWorkspaceDeleted(user1, wsisrcdel1, true);
 		
-		refdata.put("refs", Arrays.asList("refstarget2/stk2/1"));
-		ObjectInformation globalrd = ws.saveObjects(user2, wsisrc2gl, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("globalrd"), refdata,
-						reftype, meta1, new Provenance(user2).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget1/single/1"))), false)),
+		refdata.put("refs", list("refstarget2/stk2/1"));
+		ObjectInformation globalrd = ws.saveObjects(user2, wsisrc2gl, list(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("globalrd"),
+						refdata,
+						reftype,
+						meta1,
+						new Provenance(user2).addAction(ProvenanceAction.getBuilder()
+								.withWorkspaceObjects(list("refstarget1/single/1")).build()),
+						false)),
 						getIdFactory()).get(0);
 		
 		List<ObjectIdentifier> objs = Arrays.asList(
@@ -7321,57 +7310,87 @@ public class WorkspaceTest extends WorkspaceTester {
 				is(Arrays.asList(2, 2, 1, 1)));
 		
 		
-		ObjectInformation pstdref1 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+		ObjectInformation pstdref1 = ws.saveObjects(user1, wsisrc1, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("pstdref"), mtdata,
 						SAFE_TYPE1, meta1,
-						new Provenance(user1).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget1/stk/1"))), false)),
+						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
+								.withWorkspaceObjects(list("refstarget1/stk/1")).build()), false)),
 						getIdFactory()).get(0);
-		ObjectInformation pstdref2 = ws.saveObjects(user1, wsisrc1, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("pstdref"), mtdata,
-						SAFE_TYPE1, meta2, new Provenance(user1).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget1/stk/2"))), false)),
+		ObjectInformation pstdref2 = ws.saveObjects(user1, wsisrc1, list(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("pstdref"),
+						mtdata,
+						SAFE_TYPE1,
+						meta2,
+						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
+								.withWorkspaceObjects(list("refstarget1/stk/2")).build()),
+						false)),
 						getIdFactory()).get(0);
-		ObjectInformation phiddenref = ws.saveObjects(user1, wsisrc1, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("phiddenref"), mtdata,
-						SAFE_TYPE1, meta1, new Provenance(user1).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget1/stk"))), true)),
+		ObjectInformation phiddenref = ws.saveObjects(user1, wsisrc1, list(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("phiddenref"),
+						mtdata,
+						SAFE_TYPE1,
+						meta1,
+						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
+								.withWorkspaceObjects(list("refstarget1/stk")).build()),
+						true)),
 						getIdFactory()).get(0);
 		@SuppressWarnings("unused")
-		ObjectInformation pdelref = ws.saveObjects(user1, wsisrc1, Arrays.asList(
+		ObjectInformation pdelref = ws.saveObjects(user1, wsisrc1, list(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("pdelref"), mtdata,
 						SAFE_TYPE1, meta1,
-						new Provenance(user1).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget2/stk2"))), true)),
+						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
+								.withWorkspaceObjects(list("refstarget2/stk2")).build()), true)),
 						getIdFactory()).get(0);
-		ws.setObjectsDeleted(user1, Arrays.asList(src1.withName("pdelref").build()), true);
+		ws.setObjectsDeleted(user1, list(src1.withName("pdelref").build()), true);
 		
-		ObjectInformation preadable = ws.saveObjects(user2, wsisrc2, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("preadable"), mtdata,
-						SAFE_TYPE1, meta2, new Provenance(user2).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget1/single"))), true)),
+		ObjectInformation preadable = ws.saveObjects(user2, wsisrc2, list(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("preadable"),
+						mtdata,
+						SAFE_TYPE1,
+						meta2,
+						new Provenance(user2).addAction(ProvenanceAction.getBuilder()
+								.withWorkspaceObjects(list("refstarget1/single")).build()),
+						true)),
 						getIdFactory()).get(0);
 		
 		@SuppressWarnings("unused")
-		ObjectInformation punreadable = ws.saveObjects(user2, wsisrc2noaccess, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("punreadable"), mtdata,
-						SAFE_TYPE1, meta1, new Provenance(user2).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget2/stk2/2"))), true)),
+		ObjectInformation punreadable = ws.saveObjects(user2, wsisrc2noaccess, list(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("punreadable"),
+						mtdata,
+						SAFE_TYPE1,
+						meta1,
+						new Provenance(user2).addAction(ProvenanceAction.getBuilder()
+								.withWorkspaceObjects(list("refstarget2/stk2/2")).build()),
+						true)),
 						getIdFactory()).get(0);
 		
 		ws.setWorkspaceDeleted(user1, wsisrcdel1, false);
 		@SuppressWarnings("unused")
-		ObjectInformation pwsdeletedreadable1 = ws.saveObjects(user1, wsisrcdel1, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("pwsdeletedreadable1"), mtdata,
-						SAFE_TYPE1, meta2, new Provenance(user1).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget2/single2/1"))), false)),
+		ObjectInformation pwsdeletedreadable1 = ws.saveObjects(user1, wsisrcdel1, list(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("pwsdeletedreadable1"),
+						mtdata,
+						SAFE_TYPE1,
+						meta2,
+						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
+								.withWorkspaceObjects(list("refstarget2/single2/1")).build()),
+						false)),
 						getIdFactory()).get(0);
 		ws.setWorkspaceDeleted(user1, wsisrcdel1, true);
 		
-		ObjectInformation pglobalrd = ws.saveObjects(user2, wsisrc2gl, Arrays.asList(
-				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("pglobalrd"), mtdata,
-						SAFE_TYPE1, meta1, new Provenance(user2).addAction(new ProvenanceAction()
-						.withWorkspaceObjects(Arrays.asList("refstarget2/stk2/1"))), false)),
+		ObjectInformation pglobalrd = ws.saveObjects(user2, wsisrc2gl, list(
+				new WorkspaceSaveObject(
+						new ObjectIDNoWSNoVer("pglobalrd"),
+						mtdata,
+						SAFE_TYPE1,
+						meta1,
+						new Provenance(user2).addAction(ProvenanceAction.getBuilder()
+								.withWorkspaceObjects(list("refstarget2/stk2/1")).build()),
+						false)),
 						getIdFactory()).get(0);
 		
 		// TODO TEST CODE these 3 lists are duplicated above. DRY things up
@@ -7559,13 +7578,13 @@ public class WorkspaceTest extends WorkspaceTester {
 				"}");
 		
 		Provenance pU2_1 = new Provenance(user2);
-		pU2_1.addAction(new ProvenanceAction().withCaller("random data"));
+		pU2_1.addAction(ProvenanceAction.getBuilder().withCaller("random data").build());
 		
 		Provenance pU1_1 = new Provenance(user2);
-		pU1_1.addAction(new ProvenanceAction().withMethod("method"));
+		pU1_1.addAction(ProvenanceAction.getBuilder().withMethod("method").build());
 		
 		Provenance pU2_2 = new Provenance(user2);
-		pU2_2.addAction(new ProvenanceAction().withDescription("a desc"));
+		pU2_2.addAction(ProvenanceAction.getBuilder().withDescription("a desc").build());
 		
 		Map<String, String> meta1 = new HashMap<String, String>();
 		meta1.put("some", "very special metadata");
@@ -7722,8 +7741,8 @@ public class WorkspaceTest extends WorkspaceTester {
 		/* LEVEL 2 REFS */
 		
 		final String refref1Name = "refref1"; // 2 hops
-		final Provenance p2withRef = new Provenance(user2).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(Arrays.asList(ref1ref)));
+		final Provenance p2withRef = new Provenance(user2).addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list(ref1ref)).build());
 		saveObject(user2, wsUser2, MT_MAP, MT_MAP, SAFE_TYPE1, refref1Name, p2withRef);
 		final String refref1ref = wsUser2.getName() + "/" + refref1Name + "/" + 1;
 		
@@ -8113,9 +8132,11 @@ public class WorkspaceTest extends WorkspaceTester {
 		 */
 		
 		saveObject(user2, wsiacc1, MT_MAP, mtdata, SAFE_TYPE1, "provref", new Provenance(user2)
-				.addAction(new ProvenanceAction().withWorkspaceObjects(list(leaf1r1))));
+				.addAction(ProvenanceAction.getBuilder().withWorkspaceObjects(list(leaf1r1))
+						.build()));
 		saveObject(user2, wsiacc2, MT_MAP, mtdata, SAFE_TYPE1, "provref2", new Provenance(user2)
-				.addAction(new ProvenanceAction().withWorkspaceObjects(list(leaf2r))));
+				.addAction(ProvenanceAction.getBuilder().withWorkspaceObjects(list(leaf2r))
+						.build()));
 		
 		// check one hop reference dive works
 		final HashMap<String, String> mtmap = new HashMap<String, String>();
@@ -8187,8 +8208,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				makeRefData(leaf1r1, leaf2r), reftype, deleted1, new Provenance(user2));
 		final ObjectIdentifier del1oi = un1b.withID(2L).withVersion(1).build();
 		final Reference del1ref = new Reference(3, 2, 1);
-		final Provenance p = new Provenance(user2).addAction(new ProvenanceAction()
-				.withWorkspaceObjects(list(leaf1r1, leaf2r)));
+		final Provenance p = new Provenance(user2).addAction(ProvenanceAction.getBuilder()
+				.withWorkspaceObjects(list(leaf1r1, leaf2r)).build());
 		final ObjectInformation del2 = saveObject(user2, wsiun2, meta1, makeRefData(),
 				reftype, deleted2, p);
 		final ObjectIdentifier del2oi = un2b.withID(3L).withVersion(1).build();
