@@ -318,7 +318,7 @@ public class ProvenanceActionTest {
 				.withServiceName("\tLOL Wombat\n")
 				.withServiceVersion("\n90\n")
 				.withSubActions(list(SubAction.getBuilder().withName("subby sub sub").build()))
-				.withTime(Instant.ofEpochMilli(20000))
+				.withTime(inst(20000))
 				.build();
 		
 		new ProvExpected()
@@ -341,7 +341,7 @@ public class ProvenanceActionTest {
 				.withService(opt("LOL Wombat"))
 				.withServiceVersion(opt("90"))
 				.withSubActions(list(SubAction.getBuilder().withName("subby sub sub").build()))
-				.withTime(opt(Instant.ofEpochMilli(20000)))
+				.withTime(opt(inst(20000)))
 				.withWsobjs(list("foo/bar/1;  7/8/9", "8/9"))
 				.assertCorrect(pa);
 	}
@@ -369,7 +369,7 @@ public class ProvenanceActionTest {
 				.withServiceName("\tLOL Wombat\n")
 				.withServiceVersion("\n90\n")
 				.withSubActions(list(SubAction.getBuilder().withName("subby sub sub").build()))
-				.withTime(Instant.ofEpochMilli(20000))
+				.withTime(inst(20000))
 				.withCommandLine(null)
 				.withCustom(null)
 				.withDescription(null)
@@ -420,7 +420,7 @@ public class ProvenanceActionTest {
 				.withServiceName("\tLOL Wombat\n")
 				.withServiceVersion("\n90\n")
 				.withSubActions(list(SubAction.getBuilder().withName("subby sub sub").build()))
-				.withTime(Instant.ofEpochMilli(20000))
+				.withTime(inst(20000))
 				.withCommandLine("   \t   ")
 				.withCustom(Collections.emptyMap())
 				.withDescription("   \t   ")

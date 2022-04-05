@@ -37,8 +37,6 @@ import us.kbase.workspace.database.ObjectIdentifier;
  */
 public class ProvenanceAction {
 	
-	// TODO NOW JAVADOC
-	
 	/* TODO PROVENANCE:LATER consider grouping fields together and field requirements. For example:
 	 * service, serviceVersion, method, and methodParameters should all be required to describe
 	 * a service call. (serviceEndpointURL might be a useful addition)

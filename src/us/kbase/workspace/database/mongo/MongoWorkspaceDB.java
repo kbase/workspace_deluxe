@@ -2829,7 +2829,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 				.collect(Collectors.toList());
 	}
 
-	public Instant getInstant(Document doc, final String field) {
+	private Instant getInstant(Document doc, final String field) {
 		return Optional.ofNullable(doc.getDate(field)).map(d -> d.toInstant()).orElse(null);
 	}
 

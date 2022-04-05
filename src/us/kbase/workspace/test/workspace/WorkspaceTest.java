@@ -7163,7 +7163,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("deletedprovrefptr"),
 						mtdata, SAFE_TYPE1, null,
 						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
-						.withWorkspaceObjects(list("refstarget1/deletedprovref")).build()),
+								.withWorkspaceObjects(list("refstarget1/deletedprovref")).build()),
 						false)), getIdFactory());
 		ws.setObjectsDeleted(
 				user1, list(src1.withName("deletedprovrefptr").build()), true);
@@ -7171,7 +7171,8 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("unreadableprovrefptr"),
 						mtdata, SAFE_TYPE1, null,
 						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
-						.withWorkspaceObjects(list("refstarget1/unreadableprovref")).build()),
+								.withWorkspaceObjects(list("refstarget1/unreadableprovref"))
+								.build()),
 						false)), getIdFactory());
 		
 		List<Set<ObjectInformation>> mtrefs = new ArrayList<Set<ObjectInformation>>();
@@ -7203,7 +7204,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("stdref"), refdata,
 						reftype, meta1,
 						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
-						.withWorkspaceObjects(list("refstarget1/stk/1")).build()), false)),
+								.withWorkspaceObjects(list("refstarget1/stk/1")).build()), false)),
 						getIdFactory()).get(0);
 		refdata.put("refs", list("refstarget1/stk/2"));
 		ObjectInformation stdref2 = ws.saveObjects(user1, wsisrc1, list(
@@ -7221,7 +7222,7 @@ public class WorkspaceTest extends WorkspaceTester {
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("delref"), refdata,
 						reftype, meta1,
 						new Provenance(user1).addAction(ProvenanceAction.getBuilder()
-						.withWorkspaceObjects(list("refstarget1/stk/2")).build()), true)),
+								.withWorkspaceObjects(list("refstarget1/stk/2")).build()), true)),
 						getIdFactory()).get(0);
 		ws.setObjectsDeleted(user1, list(src1.withName("delref").build()), true);
 		
