@@ -73,7 +73,6 @@ import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceSaveObject;
-import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
@@ -85,6 +84,7 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.S3BlobStore;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.database.provenance.SubAction;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
 import us.kbase.workspace.test.WorkspaceTestCommon;
@@ -1043,8 +1043,7 @@ public class WorkspaceTester {
 		checkProvenanceCorrect(prov, pgot, refmap, obj.getWorkspaceIdentifier().getId());
 		Provenance pgot2 = ws.getObjects(foo, Arrays.asList(obj), true, false, false)
 				.get(0).getProvenance();
-		checkProvenanceCorrect(prov, pgot2,refmap,
-				obj.getWorkspaceIdentifier().getId());
+		checkProvenanceCorrect(prov, pgot2,refmap, obj.getWorkspaceIdentifier().getId());
 		return Arrays.asList(pgot.getDate(), pgot2.getDate());
 	}
 	

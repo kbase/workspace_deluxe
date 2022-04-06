@@ -115,7 +115,8 @@ public class ObjectIdentifier {
 	}
 	
 	/** Validate an object reference. Notably, reference paths will cause an error.
-	 * If a reference path is permissible input, use {@link #validateReference(String, boolean)}.
+	 * If a reference path is permissible input, use
+	 * {@link #validateReferencePath(String, boolean)}.
 	 * @param reference the object reference.
 	 * @param absolute true to enforce absolute references, otherwise known as Unique Permanent
 	 * Addresses.

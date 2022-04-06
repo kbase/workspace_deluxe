@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.common.test.TestCommon.list;
+import static us.kbase.common.test.TestCommon.opt;
 import static us.kbase.common.test.TestCommon.set;
 
 import java.io.ByteArrayInputStream;
@@ -52,7 +53,6 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Provenance.ProvenanceAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
@@ -74,6 +74,7 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.database.provenance.ProvenanceAction;
 
 //TODO TEST start moving a bunch of the tests from Workspace test to here, and use mocks in workspace test.
 
@@ -136,7 +137,7 @@ public class MongoWorkspaceDBTest {
 		
 		final Provenance p = new Provenance(u, new Date(10000));
 		p.setWorkspaceID(1L);
-		p.addAction(new ProvenanceAction().withCaller("call"));
+		p.addAction(ProvenanceAction.getBuilder().withCaller("call").build());
 		
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
 		mocks.saveTestObject(wsid, u, p, "newobj", "Mod.Type-5.1",
@@ -166,7 +167,7 @@ public class MongoWorkspaceDBTest {
 		assertThat("incorrect action count", pgot.getActions().size(), is(1));
 		final ProvenanceAction pagot = pgot.getActions().get(0);
 		
-		assertThat("incorrect caller", pagot.getCaller(), is("call"));
+		assertThat("incorrect caller", pagot.getCaller(), is(opt("call")));
 	}
 	
 	@Test

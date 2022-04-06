@@ -40,7 +40,6 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
-import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.Provenance;
@@ -49,12 +48,9 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.database.provenance.SubAction;
 
-/**
- * @author gaprice@lbl.gov
- *
- */
 public class ArgUtils {
 	
 	// TODO JAVADOC
@@ -105,21 +101,23 @@ public class ArgUtils {
 		return null; // TODO CODE at some point switch to optionals
 	}
 	
-	public static Provenance processProvenance(final WorkspaceUser user,
-			final List<ProvenanceAction> actions) throws ParseException {
+	public static Provenance processProvenance(
+			final WorkspaceUser user,
+			final List<us.kbase.workspace.ProvenanceAction> actions)
+			throws ParseException {
 		
 		final Provenance p = new Provenance(user);
 		if (actions == null) {
 			return p;
 		}
-		for (final ProvenanceAction a: actions) {
+		for (final us.kbase.workspace.ProvenanceAction a: actions) {
 			// TODO PROV what if a is null?
 			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
 			final Instant d = chooseInstant(a.getTime(), a.getEpoch(),
 					"Cannot specify both time and epoch in provenance " +
 							"action");
-			p.addAction(new Provenance.ProvenanceAction()
-					.withTime(d == null ? null : Date.from(d))
+			p.addAction(ProvenanceAction.getBuilder()
+					.withTime(d)
 					.withCaller(a.getCaller())
 					.withServiceName(a.getService())
 					.withServiceVersion(a.getServiceVer())
@@ -136,6 +134,7 @@ public class ArgUtils {
 					.withSubActions(processSubActions(a.getSubactions()))
 					.withCustom(a.getCustom())
 					.withDescription(a.getDescription())
+					.build()
 			);
 		}
 		return p;
@@ -194,9 +193,6 @@ public class ArgUtils {
 
 	// TODO CODE remove this eventually when everything uses Instants
 	private static String formatDate(final Date date) {
-		if (date == null) {
-			return null;
-		}
 		return formatDate(date.toInstant());
 	}
 	
@@ -227,14 +223,7 @@ public class ArgUtils {
 
 	private static List<UObject> translateMethodParametersToUObject(
 			final List<Object> methodParams) {
-		if (methodParams == null) {
-			return null;
-		}
-		final List<UObject> params = new LinkedList<UObject>();
-		for (final Object uo: methodParams) {
-			params.add(new UObject(uo));
-		}
-		return params;
+		return methodParams.stream().map(o -> new UObject(o)).collect(Collectors.toList());
 	}
 	
 	public static List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>
@@ -590,23 +579,23 @@ public class ArgUtils {
 		return ret;
 	}
 
-	private static List<ProvenanceAction> translateProvenanceActions(
-			final List<Provenance.ProvenanceAction> actions) {
-		final List<ProvenanceAction> pas = new LinkedList<ProvenanceAction>();
-		for (final Provenance.ProvenanceAction a: actions) {
-			final Date d = a.getTime();
-			pas.add(new ProvenanceAction()
+	private static List<us.kbase.workspace.ProvenanceAction> translateProvenanceActions(
+			final List<ProvenanceAction> actions) {
+		final List<us.kbase.workspace.ProvenanceAction> pas = new LinkedList<>();
+		for (final ProvenanceAction a: actions) {
+			final Optional<Instant> d = a.getTime();
+			pas.add(new us.kbase.workspace.ProvenanceAction()
 					.withTime(formatDate(d))
-					.withEpoch(d == null ? null : d.getTime())
-					.withCaller(a.getCaller())
-					.withService(a.getServiceName())
-					.withServiceVer(a.getServiceVersion())
-					.withMethod(a.getMethod())
+					.withEpoch(d.map(t -> t.toEpochMilli()).orElse(null))
+					.withCaller(a.getCaller().orElse(null))
+					.withService(a.getServiceName().orElse(null))
+					.withServiceVer(a.getServiceVersion().orElse(null))
+					.withMethod(a.getMethod().orElse(null))
 					.withMethodParams(translateMethodParametersToUObject(
 							a.getMethodParameters()))
-					.withScript(a.getScript())
-					.withScriptVer(a.getScriptVersion())
-					.withScriptCommandLine(a.getCommandLine())
+					.withScript(a.getScript().orElse(null))
+					.withScriptVer(a.getScriptVersion().orElse(null))
+					.withScriptCommandLine(a.getCommandLine().orElse(null))
 					.withInputWsObjects(a.getWorkspaceObjects())
 					.withResolvedWsObjects(a.getResolvedObjects())
 					.withIntermediateIncoming(a.getIncomingArgs())
@@ -615,7 +604,7 @@ public class ArgUtils {
 							translateExternalDataUnits(a.getExternalData()))
 					.withCustom(a.getCustom())
 					.withSubactions(translateSubActions(a.getSubActions()))
-					.withDescription(a.getDescription())
+					.withDescription(a.getDescription().orElse(null))
 					);
 		}
 		return pas;

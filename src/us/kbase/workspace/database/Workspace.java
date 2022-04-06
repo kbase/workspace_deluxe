@@ -68,6 +68,7 @@ import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 
@@ -726,7 +727,7 @@ public class Workspace {
 			//maintain ordering
 			wo.getProvenance().setWorkspaceID(Long.valueOf(rwsi.getID()));
 			final List<Reference> provrefs = new LinkedList<Reference>();
-			for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
+			for (final ProvenanceAction action: wo.getProvenance().getActions()) {
 				for (final String ref: action.getWorkspaceObjects()) {
 					provrefs.add((Reference) idhandler.getRemappedId(WS_ID_TYPE, ref));
 				}
@@ -836,20 +837,15 @@ public class Workspace {
 			reports.put(wo, rep);
 			idhandler.associateObject(new IDAssociation(objcount, true));
 			try {
-				for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
+				for (final ProvenanceAction action: wo.getProvenance().getActions()) {
 					for (final String pref: action.getWorkspaceObjects()) {
-						if (pref == null) {
-							throw new TypedObjectValidationException(String.format(
-									"Object %s has a null provenance reference",
-									getObjectErrorId(wo, objcount)));
-						}
 						idhandler.addStringId(new IdReference<String>(WS_ID_TYPE, pref, null));
 					}
 				}
-			} catch (IdReferenceHandlerException ihre) {
-				throw new TypedObjectValidationException(String.format(
-						"Object %s has invalid provenance reference: ",
-						getObjectErrorId(wo, objcount)) + ihre.getMessage(), ihre);
+			} catch (IdReferenceHandlerException e) {
+				// thrown if ID is null or the empty string, which is impossible
+				throw new RuntimeException("This exception didn't actually happen. In fact "
+						+ "you're on extremely strong drugs. Pay me no heed", e);
 			} catch (TooManyIdsException tmie) {
 				throw wrapTooManyIDsException(objcount, idhandler, tmie);
 			}
@@ -867,16 +863,16 @@ public class Workspace {
 		try {
 			idhandler.processIDs();
 		} catch (IdParseException ipe) {
+			// Provenance references cannot throw a parse exception since they were parsed
+			// in the provenance data class, so we only have to worry about embedded refs
 			final IDAssociation idloc = (IDAssociation) ipe.getAssociatedObject();
 			final WorkspaceSaveObject wo = objects.get(idloc.objnum - 1);
 			throw new TypedObjectValidationException(String.format(
-					"Object %s has unparseable %sreference %s: %s%s",
+					"Object %s has unparseable reference %s: %s at %s",
 					getObjectErrorId(wo, idloc.objnum),
-					(idloc.provenance ? "provenance " : ""),
 					ipe.getId(),
 					ipe.getMessage(),
-					idloc.provenance ? "" : " at " +
-							getIDPath(reports.get(wo), ipe.getIdReference())),
+					getIDPath(reports.get(wo), ipe.getIdReference())),
 					ipe);
 		} catch (IdReferenceException ire) {
 			final IDAssociation idloc = (IDAssociation) ire.getAssociatedObject();

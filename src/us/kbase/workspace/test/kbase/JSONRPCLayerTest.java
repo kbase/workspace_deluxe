@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+import static us.kbase.common.test.TestCommon.list;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -676,7 +677,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					.withCustom(cs)
 					.withSubactions(sa)
 					.withTime("2013-04-26T12:52:06-0800"),
-				new ProvenanceAction());
+				new ProvenanceAction()
+					.withCaller("c")
+					// set arrays to empty lists since that's what the workspace will now return
+					.withIntermediateIncoming(Collections.emptyList())
+					.withMethodParams(Collections.emptyList())
+					.withIntermediateOutgoing(Collections.emptyList())
+					);
 		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE).withName("auto2")
 				.withProvenance(prov));
 		CLIENT1.saveObjects(sop);
@@ -781,14 +788,19 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			StringEpoch expectedTime) throws Exception {
 		UObject data = new UObject(new HashMap<String, Object>());
 
-		List<ProvenanceAction> prov = new LinkedList<ProvenanceAction>();;
+		List<ProvenanceAction> prov = new LinkedList<ProvenanceAction>();
+		final ProvenanceAction pa = new ProvenanceAction()
+				// workspace always returns lists for these now
+				.withIntermediateIncoming(Collections.emptyList())
+				.withIntermediateOutgoing(Collections.emptyList())
+				.withMethodParams(Collections.emptyList());
 		if (inputTime.time != null) {
-			prov.add(new ProvenanceAction().withTime(inputTime.time)
+			prov.add(pa.withTime(inputTime.time)
 					.withExternalData(Arrays.asList(
 							new ExternalDataUnit()
 								.withResourceReleaseDate(inputTime.time))));
 		} else {
-			prov.add(new ProvenanceAction().withEpoch(inputTime.epoch)
+			prov.add(pa.withEpoch(inputTime.epoch)
 					.withExternalData(Arrays.asList(
 							new ExternalDataUnit()
 								.withResourceReleaseEpoch(inputTime.epoch))));
@@ -808,7 +820,29 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		timemap.put(inputTime, expectedTime);
 		ObjectIdentity id = new ObjectIdentity().withWsid(wsid).withObjid(objid);
 		checkProvenance(USER1, id, prov, refmap, timemap);
-
+	}
+	
+	@Test
+	public void saveProvenanceFail() throws Exception {
+		// null item in provenance
+		final ProvenanceAction pa = new ProvenanceAction().withInputWsObjects(list("1/1/1", null));
+		saveBadObject(list(new ObjectSaveData()
+				.withName("foo")
+				.withData(new UObject(Collections.emptyMap()))
+				.withType(SAFE_TYPE1)
+				.withProvenance(list(pa))),
+				"Invalid workspace object provenenance reference at position 2: "
+				+ "refpath cannot be null or the empty string");
+		
+		// empty string in provenance
+		pa.withInputWsObjects(list("1/1/1", "2/2/2", "  \t   \n "));
+		saveBadObject(list(new ObjectSaveData()
+				.withName("foo")
+				.withData(new UObject(Collections.emptyMap()))
+				.withType(SAFE_TYPE1)
+				.withProvenance(list(pa))),
+				"Invalid workspace object provenenance reference at position 3: Illegal number "
+				+ "of separators '/' in object reference '  \t   \n '");
 	}
 
 	@Test
