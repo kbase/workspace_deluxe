@@ -2,6 +2,7 @@ package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 import static us.kbase.workspace.test.WorkspaceTestCommon.SAFE_DATA;
 import static us.kbase.workspace.test.WorkspaceTestCommon.SAFE_DATA_MD5;
 import static us.kbase.workspace.test.WorkspaceTestCommon.SAFE_DATA_SIZE;
@@ -54,7 +55,6 @@ import us.kbase.workspace.database.ListObjectsParameters.Builder;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.RefLimit;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -65,6 +65,7 @@ import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.test.WorkspaceTestCommon;
 
 /** Workspace library level integration tests that don't need to be run against multiple
@@ -196,7 +197,7 @@ public class WorkspaceIntegrationWithGridFSTest {
 			final int end,					// exclusive
 			final Function<Integer, TypeDefId> typeResolver)
 			throws Exception {
-		final Provenance p = new Provenance(USER);
+		final Provenance p = basicProv(USER);
 		final List<WorkspaceSaveObject> objects = IntStream.range(start, end)
 				.mapToObj(i -> new WorkspaceSaveObject(
 						objID("o" + (i + 1)), SAFE_DATA, typeResolver.apply(i), null, p, false))

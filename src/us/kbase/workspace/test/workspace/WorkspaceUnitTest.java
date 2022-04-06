@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.common.test.TestCommon.list;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.time.Instant;
 import java.util.Date;
@@ -37,6 +38,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.SubsetSelection;
@@ -51,7 +53,6 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
@@ -355,7 +356,7 @@ public class WorkspaceUnitTest {
 		final WorkspaceUser u = new WorkspaceUser("u1");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
-		final Provenance p = new Provenance(u);
+		final Provenance p = basicProv(u);
 		final List<ObjectIdentifier> objs = list(
 				ObjectIdentifier.getBuilder(wsi).withID(1L).build());
 		final Set<ObjectIDResolvedWS> robjs = set(new ObjectIDResolvedWS(rwsi, 1));
@@ -399,7 +400,7 @@ public class WorkspaceUnitTest {
 		final WorkspaceUser u = new WorkspaceUser("u1");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
-		final Provenance p = new Provenance(u);
+		final Provenance p = basicProv(u);
 		final List<ObjectIdentifier> objs = list(
 				ObjectIdentifier.getBuilder(wsi).withID(1L).build());
 		final Set<ObjectIDResolvedWS> robjs = set(new ObjectIDResolvedWS(rwsi, 1));
@@ -448,7 +449,7 @@ public class WorkspaceUnitTest {
 		final WorkspaceUser u = new WorkspaceUser("u1");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
-		final Provenance p = new Provenance(u);
+		final Provenance p = basicProv(u);
 		final ObjectIdentifier.Builder oi = ObjectIdentifier.getBuilder(wsi).withID(1L);
 		final List<ObjectIdentifier> objs = LongStream.range(1, 10001)
 				.mapToObj(i -> oi.withID(i).build()).collect(Collectors.toList());

@@ -725,7 +725,6 @@ public class Workspace {
 		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
 			//maintain ordering
-			wo.getProvenance().setWorkspaceID(Long.valueOf(rwsi.getID()));
 			final List<Reference> provrefs = new LinkedList<Reference>();
 			for (final ProvenanceAction action: wo.getProvenance().getActions()) {
 				for (final String ref: action.getWorkspaceObjects()) {
@@ -751,7 +750,7 @@ public class Workspace {
 			}
 			
 			final ValidatedTypedObject rep = reports.get(wo);
-			saveobjs.add(wo.resolve(rep, refs, provrefs, extractedIDs));
+			saveobjs.add(wo.resolve(rwsi, rep, refs, provrefs, extractedIDs));
 			ttlObjSize += rep.calculateRelabeledSize();
 			if (rep.getRelabeledSize() > rescfg.getMaxObjectSize()) {
 				throw new IllegalArgumentException(String.format(

@@ -78,4 +78,8 @@ class Common {
 		 */
 		return Collections.unmodifiableList(new ArrayList<>(list));
 	}
+	
+	static <T> List<T> getList(final List<T> list) {
+		return list == null ? Collections.emptyList() : list;
+	}
 }

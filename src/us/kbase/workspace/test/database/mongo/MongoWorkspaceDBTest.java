@@ -1,7 +1,6 @@
 package us.kbase.workspace.test.database.mongo;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -10,6 +9,7 @@ import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.common.test.TestCommon.list;
 import static us.kbase.common.test.TestCommon.opt;
 import static us.kbase.common.test.TestCommon.set;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -52,7 +52,6 @@ import us.kbase.typedobj.test.DummyValidatedTypedObject;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectInformation;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
@@ -74,6 +73,7 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.database.provenance.ProvenanceAction;
 
 //TODO TEST start moving a bunch of the tests from Workspace test to here, and use mocks in workspace test.
@@ -135,9 +135,10 @@ public class MongoWorkspaceDBTest {
 		final WorkspaceUser u = new WorkspaceUser("u");
 		mocks.mdb.createWorkspace(u, "ws", false, null, new WorkspaceUserMetadata());
 		
-		final Provenance p = new Provenance(u, new Date(10000));
-		p.setWorkspaceID(1L);
-		p.addAction(ProvenanceAction.getBuilder().withCaller("call").build());
+		final Provenance p = Provenance.getBuilder(u, inst(10000))
+				.withWorkspaceID(1L)
+				.withAction(ProvenanceAction.getBuilder().withCaller("call").build())
+				.build();
 		
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
 		mocks.saveTestObject(wsid, u, p, "newobj", "Mod.Type-5.1",
@@ -162,8 +163,8 @@ public class MongoWorkspaceDBTest {
 		
 		//TODO TEST add equals methods to provenance classes & test & use here
 		assertThat("incorrect user", pgot.getUser(), is(new WorkspaceUser("u")));
-		assertThat("incorrect date", pgot.getDate(), is(new Date(10000)));
-		assertThat("incorrect wsid", pgot.getWorkspaceID(), nullValue());
+		assertThat("incorrect date", pgot.getDate(), is(inst(10000)));
+		assertThat("incorrect wsid", pgot.getWorkspaceID(), is(Optional.empty()));
 		assertThat("incorrect action count", pgot.getActions().size(), is(1));
 		final ProvenanceAction pagot = pgot.getActions().get(0);
 		
@@ -179,8 +180,7 @@ public class MongoWorkspaceDBTest {
 		final WorkspaceUser u = new WorkspaceUser("u");
 		mocks.mdb.createWorkspace(u, "ws", false, null, new WorkspaceUserMetadata());
 		
-		final Provenance p = new Provenance(u, new Date(10000));
-		p.setWorkspaceID(1L);
+		final Provenance p = Provenance.getBuilder(u, inst(10000)).withWorkspaceID(1L).build();
 		
 		final ResolvedWorkspaceID wsid = new ResolvedWorkspaceID(1, "ws", false, false);
 		mocks.saveTestObject(wsid, u, p, "newobj", "Mod.Type-5.1",
@@ -317,7 +317,7 @@ public class MongoWorkspaceDBTest {
 		mocks.mdb.createWorkspace(u, "ws2", false, null, new WorkspaceUserMetadata());
 		
 		// save objects
-		final Provenance p = new Provenance(u);
+		final Provenance p = basicProv(u);
 		final String type = "Mod.Type-5.1";
 		
 		mocks.saveTestObject(wsid, u, p, "newobj", type, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 22L);
@@ -415,7 +415,7 @@ public class MongoWorkspaceDBTest {
 	}
 
 	private List<WorkspaceObjectData.Builder> addDataToObjectsSetup() {
-		final Provenance p = new Provenance(new WorkspaceUser("user1"));
+		final Provenance p = basicProv(new WorkspaceUser("user1"));
 		final List<WorkspaceObjectData.Builder> objects = list(
 				WorkspaceObjectData.getBuilder(
 						new ObjectInformation(
@@ -700,7 +700,7 @@ public class MongoWorkspaceDBTest {
 							o.getRep().getMD5().getMD5(),
 							o.getRep().getRelabeledSize(),
 							null),
-					new Provenance(u))
+					basicProv(u))
 					.withSubsetSelection(new SubsetSelection(list("baz"))));
 			counter++;
 		}
@@ -735,14 +735,14 @@ public class MongoWorkspaceDBTest {
 					new UObject(ImmutableMap.of("foo", "bar", "baz", "bat" + i)),
 					new TypeDefId("Mod.Meth"),
 					null,
-					new Provenance(new WorkspaceUser("u1")),
+					basicProv(new WorkspaceUser("u1")),
 					false);
 			final DummyValidatedTypedObject dummy = new DummyValidatedTypedObject(
 					AbsoluteTypeDefId.fromAbsoluteTypeString("Mod.Meth-1.0"),
 					wso.getData());
 			dummy.calculateRelabeledSize();
 			dummy.sort(new UTF8JsonSorterFactory(100000));
-			objects.add(wso.resolve(dummy, set(), list(), Collections.emptyMap()));
+			objects.add(wso.resolve(ws, dummy, set(), list(), Collections.emptyMap()));
 			
 		}
 		db.saveObjects(new WorkspaceUser("u1"), ws, objects);
