@@ -1048,8 +1048,31 @@ public class ProvenanceActionTest {
 	
 	@Test
 	public void buildFail() throws Exception {
+		failBuild(ProvenanceAction.getBuilder());
+		failBuild(ProvenanceAction.getBuilder()
+				.withCaller(null)
+				.withCommandLine(null)
+				.withCustom(null)
+				.withDescription(null)
+				.withExternalData(null)
+				.withIncomingArgs(null)
+				.withMethod(null)
+				.withMethodParameters(null)
+				.withOutgoingArgs(null)
+				.withResolvedObjects(null)
+				.withScript(null)
+				.withScriptVersion(null)
+				.withServiceName(null)
+				.withServiceVersion(null)
+				.withSubActions(null)
+				.withTime(null)
+				.withWorkspaceObjects(null)
+				);
+	}
+
+	public void failBuild(final ProvenanceAction.Builder b) {
 		try {
-			ProvenanceAction.getBuilder().build();
+			b.build();
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
