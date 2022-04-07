@@ -348,28 +348,47 @@ public class ExternalDataTest {
 	}
 
 	@Test
-	public void withURLFail() throws Exception {
+	public void withDataURLFail() throws Exception {
 		// string input
-		failWithURL("no such url", new IllegalArgumentException(
-				"Illegal url 'no such url': no protocol: no such url"));
+		failWithDataURL("no such url", new IllegalArgumentException(
+				"Illegal data url 'no such url': no protocol: no such url"));
 		// valid URL, but not URI, at least by Java's standards
-		failWithURL("https://foo^bar.com/", new IllegalArgumentException(
-				"Illegal url 'https://foo^bar.com/': Illegal character in authority at " +
+		failWithDataURL("https://foo^bar.com/", new IllegalArgumentException(
+				"Illegal data url 'https://foo^bar.com/': Illegal character in authority at " +
 				"index 8: https://foo^bar.com/"));
 		
 		// class input
-		failWithURL(new URL("https://foo^bar.com/"), new IllegalArgumentException(
-				"Illegal url 'https://foo^bar.com/': Illegal character in authority at " +
+		failWithDataURL(new URL("https://foo^bar.com/"), new IllegalArgumentException(
+				"Illegal data url 'https://foo^bar.com/': Illegal character in authority at " +
 				"index 8: https://foo^bar.com/"));
 	}
 	
-	private void failWithURL(final String url, final Exception expected) {
+	@Test
+	public void withResourceURLFail() throws Exception {
+		// string input
+		failWithResourceURL("no such url", new IllegalArgumentException(
+				"Illegal resource url 'no such url': no protocol: no such url"));
+		// valid URL, but not URI, at least by Java's standards
+		failWithResourceURL("https://foo^bar.com/", new IllegalArgumentException(
+				"Illegal resource url 'https://foo^bar.com/': Illegal character in authority at " +
+				"index 8: https://foo^bar.com/"));
+		
+		// class input
+		failWithResourceURL(new URL("https://foo^bar.com/"), new IllegalArgumentException(
+				"Illegal resource url 'https://foo^bar.com/': Illegal character in authority at " +
+				"index 8: https://foo^bar.com/"));
+	}
+	
+	private void failWithDataURL(final String url, final Exception expected) {
 		try {
 			ExternalData.getBuilder().withDataURL(url);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
+	}
+	
+	private void failWithResourceURL(final String url, final Exception expected) {
 		try {
 			ExternalData.getBuilder().withResourceURL(url);
 			fail("expected exception");
@@ -378,13 +397,16 @@ public class ExternalDataTest {
 		}
 	}
 	
-	private void failWithURL(final URL url, final Exception expected) {
+	private void failWithDataURL(final URL url, final Exception expected) {
 		try {
 			ExternalData.getBuilder().withDataURL(url);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
+	}
+	
+	private void failWithResourceURL(final URL url, final Exception expected) {
 		try {
 			ExternalData.getBuilder().withResourceURL(url);
 			fail("expected exception");

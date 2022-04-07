@@ -22,12 +22,12 @@ class Common {
 		return isNullOrEmpty(input) ? null : input.trim();
 	}
 
-	static URL processURL(final String url) {
-		return isNullOrEmpty(url) ? null : checkURL(url);
+	static URL processURL(final String url, final String name) {
+		return isNullOrEmpty(url) ? null : checkURL(url, name);
 	}
 
-	static URL processURL(final URL url) {
-		return url == null ? null : checkURL(url);
+	static URL processURL(final URL url, final String name) {
+		return url == null ? null : checkURL(url, name);
 	}
 	
 	static List<String> processSimpleStringList(final List<String> list, final String name) {
@@ -48,24 +48,24 @@ class Common {
 		}
 	}
 	
-	static URL checkURL(final String putativeURL) {
+	private static URL checkURL(final String putativeURL, final String name) {
 		final URL url;
 		try {
 			url = new URL(putativeURL);
 		} catch (MalformedURLException e) {
 			throw new IllegalArgumentException(String.format(
-					"Illegal url '%s': %s", putativeURL, e.getLocalizedMessage()), e);
+					"Illegal %s url '%s': %s", name, putativeURL, e.getLocalizedMessage()), e);
 		}
-		return checkURL(url);
+		return checkURL(url, name);
 	}
 	
-	static URL checkURL(final URL url) {
+	private static URL checkURL(final URL url, final String name) {
 		try {
 			url.toURI();
 			return url;
 		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException(String.format(
-					"Illegal url '%s': %s", url, e.getLocalizedMessage()), e);
+					"Illegal %s url '%s': %s", name, url, e.getLocalizedMessage()), e);
 		}
 	}
 	

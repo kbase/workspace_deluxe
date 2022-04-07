@@ -724,7 +724,6 @@ public class ProvenanceAction {
 					subActions == null &&
 					custom == null &&
 					description == null) {
-				// TODO PROV integration error test
 				throw new IllegalArgumentException(
 						"At least one field in a provenance action must be provided");
 			}

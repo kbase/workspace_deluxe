@@ -280,28 +280,47 @@ public class SubActionTest {
 	}
 	
 	@Test
-	public void withURLFail() throws Exception {
+	public void withCodeURLFail() throws Exception {
 		// string input
-		failWithURL("tincupstring://foo.com", new IllegalArgumentException(
-				"Illegal url 'tincupstring://foo.com': unknown protocol: tincupstring"));
+		failWithCodeURL("tincupstring://foo.com", new IllegalArgumentException(
+				"Illegal code url 'tincupstring://foo.com': unknown protocol: tincupstring"));
 		// valid URL, but not URI, at least by Java's standards
-		failWithURL("https://kb^ase.us/", new IllegalArgumentException(
-				"Illegal url 'https://kb^ase.us/': Illegal character in authority at " +
+		failWithCodeURL("https://kb^ase.us/", new IllegalArgumentException(
+				"Illegal code url 'https://kb^ase.us/': Illegal character in authority at " +
 				"index 8: https://kb^ase.us/"));
 		
 		// class input
-		failWithURL(new URL("https://kb^ase.us/"), new IllegalArgumentException(
-				"Illegal url 'https://kb^ase.us/': Illegal character in authority at " +
+		failWithCodeURL(new URL("https://kb^ase.us/"), new IllegalArgumentException(
+				"Illegal code url 'https://kb^ase.us/': Illegal character in authority at " +
 				"index 8: https://kb^ase.us/"));
 	}
 	
-	private void failWithURL(final String url, final Exception expected) {
+	@Test
+	public void withEndpointURLFail() throws Exception {
+		// string input
+		failWithEndpointURL("tincupstring://foo.com", new IllegalArgumentException(
+				"Illegal endpoint url 'tincupstring://foo.com': unknown protocol: tincupstring"));
+		// valid URL, but not URI, at least by Java's standards
+		failWithEndpointURL("https://kb^ase.us/", new IllegalArgumentException(
+				"Illegal endpoint url 'https://kb^ase.us/': Illegal character in authority at " +
+				"index 8: https://kb^ase.us/"));
+		
+		// class input
+		failWithEndpointURL(new URL("https://kb^ase.us/"), new IllegalArgumentException(
+				"Illegal endpoint url 'https://kb^ase.us/': Illegal character in authority at " +
+				"index 8: https://kb^ase.us/"));
+	}
+	
+	private void failWithCodeURL(final String url, final Exception expected) {
 		try {
 			SubAction.getBuilder().withCodeURL(url);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
+	}
+	
+	private void failWithEndpointURL(final String url, final Exception expected) {
 		try {
 			SubAction.getBuilder().withEndpointURL(url);
 			fail("expected exception");
@@ -310,13 +329,16 @@ public class SubActionTest {
 		}
 	}
 	
-	private void failWithURL(final URL url, final Exception expected) {
+	private void failWithCodeURL(final URL url, final Exception expected) {
 		try {
 			SubAction.getBuilder().withCodeURL(url);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
 		}
+	}
+	
+	private void failWithEndpointURL(final URL url, final Exception expected) {
 		try {
 			SubAction.getBuilder().withEndpointURL(url);
 			fail("expected exception");
