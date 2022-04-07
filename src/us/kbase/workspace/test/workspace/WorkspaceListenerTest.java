@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static us.kbase.common.test.TestCommon.set;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -42,7 +43,6 @@ import us.kbase.workspace.database.ObjectInfoWithModDate;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
@@ -1019,15 +1019,15 @@ public class WorkspaceListenerTest {
 		final WorkspaceSaveObject wso1 = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("foo1"),
 				new HashMap<>(),
-				new TypeDefId("foo.bar"), null, new Provenance(user), false);
+				new TypeDefId("foo.bar"), null, basicProv(user), false);
 		final WorkspaceSaveObject wso2 = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("foo2"),
 				new HashMap<>(),
-				new TypeDefId("foo.baz"), null, new Provenance(user), false);
+				new TypeDefId("foo.baz"), null, basicProv(user), false);
 		
-		final ResolvedSaveObject rso1 = wso1.resolve(vto1, set(), Collections.emptyList(),
+		final ResolvedSaveObject rso1 = wso1.resolve(rwsi, vto1, set(), Collections.emptyList(),
 				Collections.emptyMap());
-		final ResolvedSaveObject rso2 = wso2.resolve(vto1, set(), Collections.emptyList(),
+		final ResolvedSaveObject rso2 = wso2.resolve(rwsi, vto1, set(), Collections.emptyList(),
 				Collections.emptyMap());
 		
 		final ObjectInformation oi1 = new ObjectInformation(
@@ -1088,15 +1088,15 @@ public class WorkspaceListenerTest {
 		final WorkspaceSaveObject wso1 = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("foo1"),
 				new HashMap<>(),
-				new TypeDefId("foo.bar"), null, new Provenance(user), false);
+				new TypeDefId("foo.bar"), null, basicProv(user), false);
 		final WorkspaceSaveObject wso2 = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer("foo2"),
 				new HashMap<>(),
-				new TypeDefId("foo.baz"), null, new Provenance(user), false);
+				new TypeDefId("foo.baz"), null, basicProv(user), false);
 		
-		final ResolvedSaveObject rso1 = wso1.resolve(vto1, set(), Collections.emptyList(),
+		final ResolvedSaveObject rso1 = wso1.resolve(rwsi, vto1, set(), Collections.emptyList(),
 				Collections.emptyMap());
-		final ResolvedSaveObject rso2 = wso2.resolve(vto1, set(), Collections.emptyList(),
+		final ResolvedSaveObject rso2 = wso2.resolve(rwsi, vto1, set(), Collections.emptyList(),
 				Collections.emptyMap());
 		
 		final ObjectInformation oi1 = new ObjectInformation(

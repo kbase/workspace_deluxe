@@ -1,5 +1,7 @@
 package legacy.performance;
 
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.OutputStreamWriter;
@@ -36,7 +38,6 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
@@ -106,7 +107,7 @@ public class GetObjectsLibSpeedTest {
 				new WorkspaceSaveObject(//added obj name when autonaming removed
 						new ObjectIDNoWSNoVer(UUID.randomUUID().toString()
 								.replace("-", "")),
-						o, td, null, new Provenance(user), false)), fac);
+						o, td, null, basicProv(user), false)), fac);
 		o = null;
 		
 		ObjectIdentifier oi = ObjectIdentifier.getBuilder(wsi).withName("auto1").build(); 

@@ -72,7 +72,7 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.PermissionSet.Builder;
-import us.kbase.workspace.database.Provenance;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
@@ -2013,8 +2013,14 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private Map<String, Object> toDocument(final Provenance p) {
 		final Map<String, Object> ret = new HashMap<>();
 		ret.put(Fields.PROV_USER, p.getUser().getUser());
-		ret.put(Fields.PROV_DATE, p.getDate());
-		ret.put(Fields.PROV_WS_ID, p.getWorkspaceID());
+		// this is a bit of a hack, but the JSON representation of an Instant is ~30 chars bigger
+		// than a Date and not always the same length, which screws with the size calculations in
+		// tests when writing this map to JSON (which is also a bit of a hack, but doesn't need to
+		// be byte level accurate). Both instants and dates are accepted by Mongo so just use a
+		// Date here.
+		// Might make more sense to write BSON vs. JSON for the size calcs.
+		ret.put(Fields.PROV_DATE, Date.from(p.getDate()));
+		ret.put(Fields.PROV_WS_ID, p.getWorkspaceID().orElse(null));
 		final List<Map<String, Object>> actions = new LinkedList<>();
 		ret.put(Fields.PROV_ACTIONS, actions);
 		for (final ProvenanceAction pa: p.getActions()) {
@@ -2032,7 +2038,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			paret.put(Fields.PROV_ACTION_SCRIPT_VER, pa.getScriptVersion().orElse(null));
 			paret.put(Fields.PROV_ACTION_SERVICE, pa.getServiceName().orElse(null));
 			paret.put(Fields.PROV_ACTION_SERVICE_VER, pa.getServiceVersion().orElse(null));
-			paret.put(Fields.PROV_ACTION_TIME, pa.getTime().orElse(null));
+			paret.put(Fields.PROV_ACTION_TIME, pa.getTime().map(t -> Date.from(t)).orElse(null));
 			paret.put(Fields.PROV_ACTION_WS_OBJS, emptyToNull(pa.getWorkspaceObjects()));
 			
 			final List<Map<String, Object>> extdata = new LinkedList<>();
@@ -2745,11 +2751,11 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<String> resolvedRefs) {
 		// make a copy we can mutate
 		final List<String> rrcopy = new LinkedList<>(resolvedRefs);
-		final Provenance ret = new Provenance(
+		final Provenance.Builder ret = Provenance.getBuilder(
 				new WorkspaceUser(p.getString(Fields.PROV_USER)),
-				p.getDate(Fields.PROV_DATE));
-		// objects saved before version 0.4.1 will have null workspace IDs
-		ret.setWorkspaceID(p.getLong(Fields.PROV_WS_ID));
+				p.getDate(Fields.PROV_DATE).toInstant())
+				// objects saved before version 0.4.1 will have null workspace IDs
+				.withWorkspaceID(p.getLong(Fields.PROV_WS_ID));
 		for (final Document pa: p.getList(Fields.PROV_ACTIONS, Document.class)) {
 			@SuppressWarnings("unchecked")
 			final Map<String, String> precustom =
@@ -2764,7 +2770,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			final List<String> actionRefs = new LinkedList<>(rrcopy.subList(0, refcnt));
 			rrcopy.subList(0, refcnt).clear();
 			
-			ret.addAction(ProvenanceAction.getBuilder()
+			ret.withAction(ProvenanceAction.getBuilder()
 					.withExternalData(toExternalData(pa.getList(
 							Fields.PROV_ACTION_EXTERNAL_DATA, Document.class)))
 					.withSubActions(toSubAction(pa.getList(
@@ -2787,7 +2793,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 					.build()
 					);
 		}
-		return ret;
+		return ret.build();
 	}
 	
 	private List<Object> getParamList(final Document provaction) {

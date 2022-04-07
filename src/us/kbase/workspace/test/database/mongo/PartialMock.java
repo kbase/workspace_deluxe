@@ -22,13 +22,13 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectInformation;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.mongo.BlobStore;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.provenance.Provenance;
 
 /** Create a {@link MongoWorkspaceDB} instance with a real Mongo DB but all other dependencies
  * mocked. Useful for manipulating clock times or when actual object data is not involved in
@@ -82,6 +82,7 @@ public class PartialMock {
 						prov,
 						false)
 						.resolve(
+								wsid,
 								vto,
 								set(),
 								Collections.emptyList(),

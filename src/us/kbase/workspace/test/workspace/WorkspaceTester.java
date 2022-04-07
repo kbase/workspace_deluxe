@@ -65,7 +65,6 @@ import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.Types;
@@ -84,6 +83,7 @@ import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.S3BlobStore;
 import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.database.provenance.SubAction;
 import us.kbase.workspace.test.JsonTokenStreamOCStat;
@@ -1031,7 +1031,7 @@ public class WorkspaceTester {
 		}
 	}
 	
-	protected List<Date> checkProvenanceCorrect(
+	protected List<Instant> checkProvenanceCorrect(
 			final WorkspaceUser foo,
 			final Provenance prov,
 			final ObjectIdentifier obj,
@@ -1054,7 +1054,7 @@ public class WorkspaceTester {
 		assertThat("user equal", got.getUser(), is(expected.getUser()));
 		assertThat("same number actions", got.getActions().size(),
 				is(expected.getActions().size()));
-		assertThat("wsid correct", got.getWorkspaceID(), is(wsid));
+		assertThat("wsid correct", got.getWorkspaceID().get(), is(wsid));
 		if (refmap == null) {
 			assertThat("dates are the same", got.getDate(), is(expected.getDate()));
 		} else {

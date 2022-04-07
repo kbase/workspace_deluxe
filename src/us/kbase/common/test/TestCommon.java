@@ -283,6 +283,10 @@ public class TestCommon {
 		return Instant.ofEpochMilli(epoch);
 	}
 	
+	public static Instant now() {
+		return Instant.now();
+	}
+	
 	public static final Optional<String> ES = Optional.empty();
 	public static final Optional<Long> EL = Optional.empty();
 	public static final Optional<Integer> EI = Optional.empty();

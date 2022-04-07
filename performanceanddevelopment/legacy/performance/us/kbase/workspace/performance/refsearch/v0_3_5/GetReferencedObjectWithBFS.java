@@ -1,5 +1,7 @@
 package legacy.performance.us.kbase.workspace.performance.refsearch.v0_3_5; // note package changed from orig
 
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
+
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -17,23 +19,16 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefName;
-//import us.kbase.typedobj.core.TypedObjectValidator;
-//import us.kbase.typedobj.db.MongoTypeStorage;
-//import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
-//import us.kbase.workspace.database.DefaultReferenceParser;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
-import us.kbase.workspace.database.Provenance;
-//import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
-//import us.kbase.workspace.database.mongo.GridFSBlobStore;
-//import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
+import us.kbase.workspace.database.provenance.Provenance;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 
@@ -155,7 +150,7 @@ public class GetReferencedObjectWithBFS {
 		WorkspaceUser u2 = new WorkspaceUser("brcu2");
 		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(10).build().getFactory(null);
-		Provenance p = new Provenance(u1);
+		final Provenance p = basicProv(u1);
 		WorkspaceIdentifier read = new WorkspaceIdentifier("brcread");
 		WorkspaceIdentifier priv = new WorkspaceIdentifier("brcpriv");
 		for (int breadth = 1; breadth <= 10; breadth++) {
@@ -194,7 +189,7 @@ public class GetReferencedObjectWithBFS {
 			throws Exception {
 		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(100000).build().getFactory(null);
-		Provenance p = new Provenance(user);
+		final Provenance p = basicProv(user);
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		for (ObjectInformation oi: increfs) {
 			String ref = oi.getWorkspaceId() + "/" + oi.getObjectId() + "/" + oi.getVersion();
@@ -228,7 +223,7 @@ public class GetReferencedObjectWithBFS {
 		
 		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(10000).build().getFactory(null);
-		Provenance p = new Provenance(u1);
+		final Provenance p = basicProv(u1);
 		ObjectInformation o = WS.saveObjects(u1, priv, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(), LEAF_TYPE,
 						null, p, false)), fac).get(0);
@@ -261,7 +256,7 @@ public class GetReferencedObjectWithBFS {
 		refdata.put("refs", Arrays.asList(ref));
 		final IdReferenceHandlerSetFactory fac = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(10000).build().getFactory(null);
-		Provenance p = new Provenance(u1);
+		final Provenance p = basicProv(u1);
 		return WS.saveObjects(u1, priv, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), refdata, REF_TYPE, null, p, false)), fac)
 				.get(0);

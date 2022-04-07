@@ -2,8 +2,10 @@ package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static us.kbase.workspace.test.LongTextForTestUsage.TEXT1000;
 import static us.kbase.common.test.TestCommon.opt;
+import static us.kbase.workspace.test.LongTextForTestUsage.TEXT1000;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
+
 
 import java.io.File;
 import java.io.InputStream;
@@ -31,12 +33,12 @@ import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.provenance.Provenance;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -74,7 +76,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			UObject data = new UObject(tempFile);
 			ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
 					new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
-							new Provenance(userfoo), false)), getIdFactory());
+							basicProv(userfoo), false)), getIdFactory());
 		} finally {
 			tempFile.delete();
 		}
@@ -150,7 +152,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("tenKrefs");
 		WorkspaceInformation wi = ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
 		long wsid = wi.getId();
-		Provenance emptyprov = new Provenance(userfoo);
+		Provenance emptyprov = basicProv(userfoo);
 		Map<String, Object> torefdata = new HashMap<String, Object>();
 		torefdata.put("foo", 3.2);
 		torefdata.put("baz", "astring");
@@ -233,7 +235,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		}
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
-						new Provenance(userfoo), false)), getIdFactory());
+						basicProv(userfoo), false)), getIdFactory());
 		final List<WorkspaceObjectData> objects = getObjects(
 				ws,
 				userfoo,
@@ -259,7 +261,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		data.put(test, "foo");
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
-						new Provenance(userfoo), false)), getIdFactory());
+						basicProv(userfoo), false)), getIdFactory());
 		final List<WorkspaceObjectData> objects2 = getObjects(
 				ws,
 				userfoo,
@@ -284,7 +286,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 20000; i++) {
 			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
-					SAFE_TYPE1, null, new Provenance(user), false));
+					SAFE_TYPE1, null, basicProv(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		
@@ -333,7 +335,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		TypeDefId emptyType = new TypeDefId(new TypeDefName(mod, type2), 0, 1);
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("testGetObjectSubset");
 		ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
-		Provenance emptyprov = new Provenance(userfoo);
+		Provenance emptyprov = basicProv(userfoo);
 		InputStream is = new GZIPInputStream(this.getClass().getResourceAsStream("long_test_get_object_subset.json.gz.properties"));
 		Map<String, Object> data = UObject.getMapper().readValue(is, Map.class);
 		List<WorkspaceSaveObject> wsos = new LinkedList<WorkspaceSaveObject>();		

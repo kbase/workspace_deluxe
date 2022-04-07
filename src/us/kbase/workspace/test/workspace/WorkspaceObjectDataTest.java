@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 import static us.kbase.common.test.TestCommon.opt;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -24,11 +25,11 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ObjectInformation;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 
 public class WorkspaceObjectDataTest {
@@ -38,7 +39,8 @@ public class WorkspaceObjectDataTest {
 	private static final SubsetSelection OS = SubsetSelection.EMPTY;
 	
 	// Provenance really needs a rework and has no hashCode(), so we use identity equality for now
-	private static final Provenance PROV = new Provenance(new WorkspaceUser("foo"));
+	// TODO CODE now it does have a hashCode, so can rework any tests relying on identity eq
+	private static final Provenance PROV = basicProv(new WorkspaceUser("foo"));
 	private static final ObjectInformation INFO = new ObjectInformation(
 			1, "foo", "type", new Date(), 1, new WorkspaceUser("u"),
 			new ResolvedWorkspaceID(1, "bar", false, false), "chksum", 25, null);

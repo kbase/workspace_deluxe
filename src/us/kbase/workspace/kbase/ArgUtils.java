@@ -42,12 +42,12 @@ import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.database.provenance.SubAction;
 
@@ -106,9 +106,9 @@ public class ArgUtils {
 			final List<us.kbase.workspace.ProvenanceAction> actions)
 			throws ParseException {
 		
-		final Provenance p = new Provenance(user);
+		final Provenance.Builder p = Provenance.getBuilder(user, Instant.now());
 		if (actions == null) {
-			return p;
+			return p.build();
 		}
 		for (final us.kbase.workspace.ProvenanceAction a: actions) {
 			// TODO PROV what if a is null?
@@ -116,7 +116,7 @@ public class ArgUtils {
 			final Instant d = chooseInstant(a.getTime(), a.getEpoch(),
 					"Cannot specify both time and epoch in provenance " +
 							"action");
-			p.addAction(ProvenanceAction.getBuilder()
+			p.withAction(ProvenanceAction.getBuilder()
 					.withTime(d)
 					.withCaller(a.getCaller())
 					.withServiceName(a.getService())
@@ -137,7 +137,7 @@ public class ArgUtils {
 					.build()
 			);
 		}
-		return p;
+		return p.build();
 	}
 	
 	private static List<SubAction> processSubActions(
@@ -425,18 +425,15 @@ public class ArgUtils {
 					.withData(data)
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withPath(toObjectPath(o.getObjectInfo().getReferencePath()))
-					.withProvenance(translateProvenanceActions(
-							o.getProvenance().getActions()))
+					.withProvenance(translateProvenanceActions(o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
-					.withOrigWsid(o.getProvenance().getWorkspaceID())
-					.withCreated(formatDate(
-							o.getProvenance().getDate()))
-					.withEpoch(o.getProvenance().getDate().getTime())
+					.withOrigWsid(o.getProvenance().getWorkspaceID().orElse(null))
+					.withCreated(formatDate(o.getProvenance().getDate()))
+					.withEpoch(o.getProvenance().getDate().toEpochMilli())
 					.withRefs(o.getReferences())
 					.withCopied(o.getCopyReference().isPresent() ?
 							o.getCopyReference().get().getId() : null)
-					.withCopySourceInaccessible(
-							o.isCopySourceInaccessible() ? 1L: 0L)
+					.withCopySourceInaccessible(o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))
 					.withHandleError(errs.get(o).error)
 					.withHandleStacktrace(errs.get(o).stackTrace));
@@ -483,18 +480,15 @@ public class ArgUtils {
 					Arrays.asList(o), Optional.of(permHandler)).get(o);
 			ret.add(new us.kbase.workspace.ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
-					.withProvenance(translateProvenanceActions(
-							o.getProvenance().getActions()))
+					.withProvenance(translateProvenanceActions(o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
-					.withOrigWsid(o.getProvenance().getWorkspaceID())
-					.withCreated(formatDate(
-							o.getProvenance().getDate()))
-					.withEpoch(o.getProvenance().getDate().getTime())
+					.withOrigWsid(o.getProvenance().getWorkspaceID().orElse(null))
+					.withCreated(formatDate(o.getProvenance().getDate()))
+					.withEpoch(o.getProvenance().getDate().toEpochMilli())
 					.withRefs(o.getReferences())
 					.withCopied(o.getCopyReference().isPresent() ?
 							o.getCopyReference().get().getId() : null)
-					.withCopySourceInaccessible(
-						o.isCopySourceInaccessible() ? 1L: 0L)
+					.withCopySourceInaccessible(o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))
 					.withHandleError(error.error)
 					.withHandleStacktrace(error.stackTrace));

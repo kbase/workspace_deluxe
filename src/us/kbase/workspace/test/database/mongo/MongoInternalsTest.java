@@ -5,6 +5,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.now;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -53,7 +55,6 @@ import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
@@ -74,6 +75,7 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
 import com.mongodb.MongoClient;
@@ -237,7 +239,7 @@ public class MongoInternalsTest {
 		final WorkspaceUser user2 = new WorkspaceUser("whoop");
 		
 		final Map<String, String> mt = new HashMap<>();
-		final Provenance p = new Provenance(user1);
+		final Provenance p = basicProv(user1);
 		
 		// make a normal workspace & save objects
 		ws.createWorkspace(user2, "bar", false, null,
@@ -569,8 +571,8 @@ public class MongoInternalsTest {
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
 		meta.put("metastuff", "meta");
-		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
-		setWsidOnProvenance(wsid, p);
+		final Provenance p = Provenance.getBuilder(new WorkspaceUser("kbasetest2"), now())
+				.withWorkspaceID(wsid).build();
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		AbsoluteTypeDefId at = new AbsoluteTypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		
@@ -581,11 +583,12 @@ public class MongoInternalsTest {
 				new DummyValidatedTypedObject(at, wso.getData());
 		dummy.calculateRelabeledSize();
 		dummy.sort(new UTF8JsonSorterFactory(100000));
+		final ResolvedWorkspaceID rwsi = mwdb.resolveWorkspace(wsi);
 		ResolvedSaveObject rso = wso.resolve(
+				rwsi,
 				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
-		final ResolvedWorkspaceID rwsi = mwdb.resolveWorkspace(wsi);
 		mwdb.saveObjects(user, rwsi, Arrays.asList(rso));
 		
 		IDnPackage inp = startSaveObject(rwsi, rso, 3, at);
@@ -614,15 +617,6 @@ public class MongoInternalsTest {
 		assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
 	}
 
-	private void setWsidOnProvenance(long wsid, Provenance p)
-			throws NoSuchMethodException, IllegalAccessException,
-			InvocationTargetException {
-		Method setWsid = p.getClass().getDeclaredMethod("setWorkspaceID",
-				Long.class);
-		setWsid.setAccessible(true);
-		setWsid.invoke(p, Long.valueOf(wsid));
-	}
-	
 	@Test
 	public void setGetRaceCondition() throws Exception {
 		String objname = "testobj";
@@ -636,15 +630,15 @@ public class MongoInternalsTest {
 				.getId();
 		
 		final Map<String, Object> data = new HashMap<String, Object>();
-		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
-		setWsidOnProvenance(wsid, p);
+		final Provenance p = Provenance.getBuilder(new WorkspaceUser("kbasetest2"), now())
+				.withWorkspaceID(wsid).build();
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		AbsoluteTypeDefId at = new AbsoluteTypeDefId(
 				new TypeDefName("SomeModule", "AType"), 0, 1);
 		
-		ResolvedSaveObject rso = createResolvedWSObj(objname, data, p, t, at);
-		ResolvedSaveObject rso2 = createResolvedWSObj(objname2, data, p, t, at);
 		final ResolvedWorkspaceID rwsi = mwdb.resolveWorkspace(wsi);
+		ResolvedSaveObject rso = createResolvedWSObj(rwsi, objname, data, p, t, at);
+		ResolvedSaveObject rso2 = createResolvedWSObj(rwsi, objname2, data, p, t, at);
 		
 		startSaveObject(rwsi, rso, 1, at);
 		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2)); //objid 2
@@ -776,17 +770,23 @@ public class MongoInternalsTest {
 		}
 	}
 
-	private ResolvedSaveObject createResolvedWSObj(String objname,
-			final Map<String, Object> data, Provenance p, TypeDefId t,
-			AbsoluteTypeDefId at) throws Exception {
-		WorkspaceSaveObject wso = new WorkspaceSaveObject(
+	private ResolvedSaveObject createResolvedWSObj(
+			final ResolvedWorkspaceID rwsi,
+			final String objname,
+			final Map<String, Object> data,
+			final Provenance p,
+			final TypeDefId t,
+			final AbsoluteTypeDefId at)
+			throws Exception {
+		final WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer(objname),
 				new UObject(data), t, null, p, false);
 		final DummyValidatedTypedObject dummy =
 				new DummyValidatedTypedObject(at, wso.getData());
 		dummy.calculateRelabeledSize();
 		dummy.sort(new UTF8JsonSorterFactory(100000));
-		ResolvedSaveObject rso = wso.resolve(
+		final ResolvedSaveObject rso = wso.resolve(
+				rwsi,
 				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
@@ -854,7 +854,7 @@ public class MongoInternalsTest {
 		
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("refcount");
 		long wsid = ws.createWorkspace(userfoo, wspace.getName(), false, null, null).getId();
-		Provenance emptyprov = new Provenance(userfoo);
+		final Provenance emptyprov = basicProv(userfoo);
 		Map<String, Object> data1 = new HashMap<String, Object>();
 		data1.put("foo", 3);
 		
@@ -948,18 +948,19 @@ public class MongoInternalsTest {
 		long wsid = ws.createWorkspace(userfoo, copyrev.getName(), false, null, null).getId();
 		
 		Map<String, Object> data = new HashMap<String, Object>();
+		final Provenance p = basicProv(userfoo);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), new UObject(data), SAFE_TYPE, null,
-						new Provenance(userfoo), hide)), fac);
+						p, hide)), fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), new UObject(data), SAFE_TYPE, null,
-						new Provenance(userfoo), hide)), fac);
+						p, hide)), fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), new UObject(data), SAFE_TYPE,
-						null, new Provenance(userfoo), hide)), fac);
+						null, p, hide)), fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), new UObject(data), SAFE_TYPE,
-						null, new Provenance(userfoo), hide)), fac);
+						null, p, hide)), fac);
 		ws.copyObject(
 				userfoo,
 				ObjectIdentifier.getBuilder(copyrev).withID(2L).withVersion(2).build(),
@@ -1066,7 +1067,7 @@ public class MongoInternalsTest {
 		Map<String, Object> data = new HashMap<String, Object>();
 		ws.saveObjects(userfoo, dates, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), new UObject(data),
-						SAFE_TYPE, null, new Provenance(userfoo), false)),
+						SAFE_TYPE, null, basicProv(userfoo), false)),
 				fac);
 		Date orig = getDate(wsid, 1);
 		ws.copyObject(
@@ -1117,11 +1118,12 @@ public class MongoInternalsTest {
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		
 		final Map<String, Object> data = new HashMap<>();
+		final Provenance p = basicProv(user);
 		ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), new UObject(data),
-						SAFE_TYPE, null, new Provenance(user), false),
+						SAFE_TYPE, null, p, false),
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig2"), new UObject(data),
-						OTHER_TYPE_NO_VER, null, new Provenance(user), false)),
+						OTHER_TYPE_NO_VER, null, p, false)),
 				fac);
 	}
 	

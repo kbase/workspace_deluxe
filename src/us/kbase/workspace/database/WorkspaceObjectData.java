@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
+import us.kbase.workspace.database.provenance.Provenance;
 
 /** A package containing (optionally) a workspace object's data along with provenance and
  * information about the object.

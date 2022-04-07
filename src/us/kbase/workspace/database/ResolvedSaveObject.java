@@ -8,6 +8,7 @@ import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
+import us.kbase.workspace.database.provenance.Provenance;
 
 public class ResolvedSaveObject {
 	

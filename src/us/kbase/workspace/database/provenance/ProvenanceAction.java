@@ -65,9 +65,6 @@ public class ProvenanceAction {
 	private final String scriptVersion;
 	private final String commandLine;
 	private final List<String> wsobjs;
-	// there could be some checking between PAs in series to see if their in args are
-	// a subset of the out args of the previous PA, but I don't think this feature is actually
-	// used, so don't bother for now, and it would need to happen outside this class anyway.
 	private final List<String> incomingArgs;
 	private final List<String> outgoingArgs;
 	private final List<ExternalData> externalData;
@@ -156,7 +153,7 @@ public class ProvenanceAction {
 	 * @return the method parameters.
 	 */
 	public List<Object> getMethodParameters() {
-		return getList(methodParameters);
+		return Common.getList(methodParameters);
 	}
 
 	/** Get the name of the script that performed the action described in this
@@ -189,7 +186,7 @@ public class ProvenanceAction {
 	 * @return the workspace objects.
 	 */
 	public List<String> getWorkspaceObjects() {
-		return getList(wsobjs);
+		return Common.getList(wsobjs);
 	}
 
 	/** Get the incoming arguments to this provenance action from the prior provenance action.
@@ -199,7 +196,7 @@ public class ProvenanceAction {
 	 * @return the incoming arguments.
 	 */
 	public List<String> getIncomingArgs() {
-		return getList(incomingArgs);
+		return Common.getList(incomingArgs);
 	}
 
 	/** Get the outgoing arguments from this provenance action to the next provenance action.
@@ -210,21 +207,21 @@ public class ProvenanceAction {
 	 * @return the outgoing arguments.
 	 */
 	public List<String> getOutgoingArgs() {
-		return getList(outgoingArgs);
+		return Common.getList(outgoingArgs);
 	}
 
 	/** Get information about any external data used in this provenance action.
 	 * @return the external data.
 	 */
 	public List<ExternalData> getExternalData() {
-		return getList(externalData);
+		return Common.getList(externalData);
 	}
 
 	/** Get information about any sub actions taken as part of this provenance action.
 	 * @return the sub actions.
 	 */
 	public List<SubAction> getSubActions() {
-		return getList(subActions);
+		return Common.getList(subActions);
 	}
 
 	/** Get any custom provenance information for this action.
@@ -248,13 +245,9 @@ public class ProvenanceAction {
 	 * present.
 	 */
 	public List<String> getResolvedObjects() {
-		return getList(resolvedObjects);
+		return Common.getList(resolvedObjects);
 	}
 	
-	private <T> List<T> getList(final List<T> list) {
-		return list == null ? Collections.emptyList() : list;
-	}
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
