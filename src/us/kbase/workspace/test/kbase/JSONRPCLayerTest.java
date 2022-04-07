@@ -531,13 +531,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 	@Test
 	public void saveBadPackages() throws Exception {
-		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("savebadpkg")
-				.withDescription("foo"));
-		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("savebadpkg"));
+		final List<ObjectSaveData> objects = new ArrayList<>();
 		objects.add(new ObjectSaveData().withData(new UObject("some crap"))
 				.withType("SomeRandom.Type"));
-		SaveObjectsParams sop = new SaveObjectsParams()
-			.withWorkspace("permspriv").withObjects(objects);
+		final SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("permspriv")
+				.withObjects(objects);
 		sop.setAdditionalProperties("foo", "bar");
 		sop.setAdditionalProperties("baz", "faz");
 		try {
@@ -553,60 +552,65 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					is(new HashSet<String>(Arrays.asList("foo", "baz"))));
 		}
 
-		objects.get(0).setAdditionalProperties("wugga", "boo");
-		saveBadObject(objects, "Unexpected arguments in ObjectSaveData: wugga");
-
-		objects.set(0, new ObjectSaveData().withName("myname").withObjid(1L));
-		saveBadObject(objects, "Object 1: Must provide one and only one of object name " +
-				"(was: myname) or id (was: 1)");
+		final ObjectSaveData safe = new ObjectSaveData()
+				.withData(new UObject("foo"))
+				.withName("bar")
+				.withType(SAFE_TYPE);
+		
+		failSaveObjects(list(safe, new ObjectSaveData().withName("myname").withObjid(1L)),
+				"Object #2: Must provide one and only one of object name (was: myname) or id "
+				+ "(was: 1)");
 
 		objects.set(0, new ObjectSaveData());
-		saveBadObject(objects, "Object 1: Must provide one and only one of object name " +
+		failSaveObjects(objects, "Object #1: Must provide one and only one of object name " +
 				"(was: null) or id (was: null)");
 
 		objects.set(0, new ObjectSaveData().withName("myname+"));
-		saveBadObject(objects, "Object 1: Illegal character in object name myname+: +");
+		failSaveObjects(objects, "Object #1: Illegal character in object name myname+: +");
 
 		objects.set(0, new ObjectSaveData().withName(TEXT256));
-		saveBadObject(objects, "Object 1: Object name exceeds the maximum length of 255");
+		failSaveObjects(objects, "Object #1: Object name exceeds the maximum length of 255");
 
 		objects.set(0, new ObjectSaveData().withObjid(0L));
-		saveBadObject(objects, "Object 1: Object id must be > 0");
+		failSaveObjects(objects, "Object #1: Object id must be > 0");
+
+		final ObjectSaveData osd = new ObjectSaveData().withName("myname");
+		osd.setAdditionalProperties("wugga", "boo");
+		objects.set(0, osd);
+		failSaveObjects(list(safe, safe, osd),
+				"Object #3, myname: Unexpected arguments in ObjectSaveData: wugga");
 
 		objects.set(0, new ObjectSaveData().withName("foo"));
-		saveBadObject(objects, "Object 1, foo, has no data");
+		failSaveObjects(objects, "Object #1, foo: no data");
 
-		objects.add(0, new ObjectSaveData().withData(new UObject("foo")).withType("Foo.Bar")
-				.withName("foo"));
-		saveBadObject(objects, "Object 2, foo, has no data");
+		failSaveObjects(list(safe, new ObjectSaveData().withObjid(42L)), "Object #2, 42: no data");
 
-		objects.clear();
-		objects.add(new ObjectSaveData().withData(new UObject("foo")).withName("foo"));
-		saveBadObject(objects, "Object 1, foo, type error: Typestring cannot be null or the " +
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withName("foo"));
+		failSaveObjects(objects, "Object #1, foo: Typestring cannot be null or the " +
 				"empty string");
 
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType(null)
 				.withName("foo"));
-		saveBadObject(objects, "Object 1, foo, type error: Typestring cannot be null or the " +
+		failSaveObjects(objects, "Object #1, foo: Typestring cannot be null or the " +
 				"empty string");
 
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("")
 				.withName("foo"));
-		saveBadObject(objects, "Object 1, foo, type error: Typestring cannot be null or the " +
+		failSaveObjects(objects, "Object #1, foo: Typestring cannot be null or the " +
 				"empty string");
 
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo")
 				.withName("foo"));
-		saveBadObject(objects, "Object 1, foo, type error: Type foo could not be split into a " +
+		failSaveObjects(objects, "Object #1, foo: Type foo could not be split into a " +
 				"module and name");
 
-		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar-1.2.3")
-				.withName("foo"));
-		saveBadObject(objects, "Object 1, foo, type error: Type version string 1.2.3 could not " +
-				"be parsed to a version");
+		failSaveObjects(list(safe, safe, safe,
+				new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar-1.2.3")
+						.withObjid(1L)),
+				"Object #4, 1: Type version string 1.2.3 could not be parsed to a version");
 	}
-
-	protected void saveBadObject(List<ObjectSaveData> objects, String exception)
+	
+	private void failSaveObjects(final List<ObjectSaveData> objects, final String exception)
 			throws Exception {
 		try {
 			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("savebadpkg")
@@ -616,6 +620,23 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is(exception));
 		}
+	}
+	
+	@Test
+	public void saveObjectFailNull() throws Exception {
+		final SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("foo")
+				.withObjects(list(
+						new ObjectSaveData()
+								.withData(new UObject("foo"))
+								.withName("bar")
+								.withType(SAFE_TYPE),
+						new ObjectSaveData()
+								.withData(new UObject("foo"))
+								.withName("bat")
+								.withType(SAFE_TYPE),
+						null
+				));
+		failSaveObjects(sop, "Object #3: is null");
 	}
 
 	@Test
@@ -706,7 +727,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("save w/ prov w/ extra fields");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Unexpected arguments in ProvenanceAction: foo"));
+					is("Object #1, auto3: Provenance action #1: Unexpected arguments in "
+							+ "ProvenanceAction: foo"));
 		}
 
 		ExternalDataUnit edusingle = new ExternalDataUnit();
@@ -720,7 +742,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("save prov external data w/ extra fields");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Unexpected arguments in ExternalDataUnit: baz"));
+					is("Object #1, auto4: Provenance action #1: External data unit #1: "
+							+ "Unexpected arguments in ExternalDataUnit: baz"));
 		}
 
 		edusingle.getAdditionalProperties().clear();
@@ -732,7 +755,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("save prov external data w/ ambiguous time");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Cannot specify both time and epoch in external data unit"));
+					is("Object #1, auto4: Provenance action #1: External data unit #1: Cannot"
+							+ " specify both time and epoch in external data unit"));
 		}
 
 		pa.withExternalData(null).withTime("2013-04-26T12:52:06-0800")
@@ -742,7 +766,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("save prov w/ ambiguous time");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Cannot specify both time and epoch in provenance action"));
+					is("Object #1, auto4: Provenance action #1: Cannot specify both time and"
+							+ " epoch in provenance action"));
 		}
 
 		// test time conversion to a standard format
@@ -768,11 +793,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new StringEpoch(1367049126140L),
 				new StringEpoch(1367049126140L, "2013-04-27T07:52:06+0000"));
 
-		// most tests for bad dates are in the arg utils tests, so we just do a single case here
-		saveProvWithBadTime("2013-04-26T25:52:06-0800",
-				"Unparseable date: Text '2013-04-26T25:52:06-0800' could not be parsed: " +
-				"Invalid value for HourOfDay (valid values 0 - 23): 25");
-		
 		CLIENT1.setPermissions(new SetPermissionsParams().withId(wsid)
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("provenance")
@@ -782,6 +802,36 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				.withWsid(wsid), new ArrayList<ProvenanceAction>(),
 				new HashMap<String, String>(),
 				new HashMap<StringEpoch, StringEpoch>());
+	}
+	@Test
+	public void saveProvWithBadTime() throws Exception {
+		// most tests for bad dates are in the arg utils tests, so we just do a single case here
+		final String err = "Unparseable date: Text '2013-04-26T25:52:06-0800' could not be "
+				+ "parsed: Invalid value for HourOfDay (valid values 0 - 23): 25";
+		final ProvenanceAction pa = new ProvenanceAction().withTime("2013-04-26T25:52:06-0800");
+		final SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("provenance")
+				.withObjects(list(
+						new ObjectSaveData()
+								.withData(new UObject("foo"))
+								.withType(SAFE_TYPE)
+								.withName("foobarbaz")
+								.withProvenance(list(pa))));
+		failSaveObjects(sop, "Object #1, foobarbaz: Provenance action #1: " + err);
+		
+		pa.withTime(null).withExternalData(list(new ExternalDataUnit()
+				.withResourceReleaseDate("2013-04-26T25:52:06-0800")));
+		failSaveObjects(sop, "Object #1, foobarbaz: Provenance action #1: External data unit #1: "
+				+ err);
+	}
+
+	private void failSaveObjects(final SaveObjectsParams sop, final String exception)
+			throws Exception {
+		try {
+			CLIENT1.saveObjects(sop);
+			fail("expected exception");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(), is(exception));
+		}
 	}
 
 	private void saveProvWithGoodTime(String workspace, StringEpoch inputTime,
@@ -824,25 +874,54 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
 	@Test
 	public void saveProvenanceFail() throws Exception {
-		// null item in provenance
-		final ProvenanceAction pa = new ProvenanceAction().withInputWsObjects(list("1/1/1", null));
-		saveBadObject(list(new ObjectSaveData()
+		// Test a subset of cases that can cause a save failure because of provenance input
+		// Mostly tests the overall error handling mechanisms rather than testing every single
+		// failure case, which should be and are covered by unit tests.
+		final ObjectSaveData safe = new ObjectSaveData()
 				.withName("foo")
 				.withData(new UObject(Collections.emptyMap()))
-				.withType(SAFE_TYPE1)
-				.withProvenance(list(pa))),
-				"Invalid workspace object provenenance reference at position 2: "
-				+ "refpath cannot be null or the empty string");
+				.withType(SAFE_TYPE1);
+		final ProvenanceAction safep = new ProvenanceAction().withInputWsObjects(list("1/1/1"));
+		
+		final ObjectSaveData target = new ObjectSaveData()
+				.withData(new UObject(Collections.emptyMap()))
+				.withType(SAFE_TYPE1);
+
+		// null item in provenance
+		final ProvenanceAction pa = new ProvenanceAction().withInputWsObjects(list("1/1/1", null));
+		failSaveObjects(list(safe, safe, target.withProvenance(list(safep, pa)).withObjid(4L)),
+				"Object #3, 4: Provenance action #2: Invalid workspace object provenenance "
+				+ "reference at position 2: refpath cannot be null or the empty string");
 		
 		// empty string in provenance
 		pa.withInputWsObjects(list("1/1/1", "2/2/2", "  \t   \n "));
-		saveBadObject(list(new ObjectSaveData()
-				.withName("foo")
-				.withData(new UObject(Collections.emptyMap()))
-				.withType(SAFE_TYPE1)
-				.withProvenance(list(pa))),
-				"Invalid workspace object provenenance reference at position 3: Illegal number "
-				+ "of separators '/' in object reference '  \t   \n '");
+		failSaveObjects(list(target.withProvenance(list(pa)).withObjid(null).withName("foo")),
+				"Object #1, foo: Provenance action #1: Invalid workspace object provenenance "
+				+ "reference at position 3: Illegal number of separators '/' in object reference"
+				+ " '  \t   \n '");
+		
+		// Illegal URL in external data unit
+		final ProvenanceAction pa2 = new ProvenanceAction().withExternalData(list(
+				new ExternalDataUnit().withDataId("d"),
+				new ExternalDataUnit().withDataId("e"),
+				new ExternalDataUnit().withDataId("f"),
+				new ExternalDataUnit().withDataUrl("snailmail://1cyclotronroad.berkeley.ca")
+				));
+		failSaveObjects(list(safe, target.withProvenance(list(safep, safep, pa2))
+				.withName("thinger")),
+				"Object #2, thinger: Provenance action #3: External data unit #4: Illegal data"
+				+ " url 'snailmail://1cyclotronroad.berkeley.ca': unknown protocol: snailmail");
+		
+		// Empty sub action
+		final ProvenanceAction pa3 = new ProvenanceAction().withSubactions(list(
+				new SubAction().withCommit("c"),
+				new SubAction().withEndpointUrl(
+						"Isn't that an Avengers movie? wait that's something different")
+				));
+		failSaveObjects(list(target.withProvenance(list(pa3)).withObjid(789L).withName(null)),
+				"Object #1, 789: Provenance action #1: Sub action #2: Illegal endpoint url "
+				+ "'Isn't that an Avengers movie? wait that's something different': no protocol: "
+				+ "Isn't that an Avengers movie? wait that's something different");
 	}
 
 	@Test
@@ -1765,7 +1844,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("called save with too large meta");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Object 2, bar, save error: Metadata exceeds maximum of 16000B"));
+					is("Object #2, bar: Metadata exceeds maximum of 16000B"));
 		}
 		try {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta2")

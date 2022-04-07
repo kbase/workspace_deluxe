@@ -182,7 +182,7 @@ public class ExternalData {
 		 * @return this builder.
 		 */
 		public Builder withResourceURL(final String resourceURL) {
-			this.resourceURL = Common.processURL(resourceURL);
+			this.resourceURL = Common.processURL(resourceURL, "resource");
 			return this;
 		}
 
@@ -191,8 +191,7 @@ public class ExternalData {
 		 * @return this builder.
 		 */
 		public Builder withResourceURL(final URL resourceURL) {
-			// TODO PROV integration error test
-			this.resourceURL = Common.processURL(resourceURL);
+			this.resourceURL = Common.processURL(resourceURL, "resource");
 			return this;
 		}
 		
@@ -222,7 +221,7 @@ public class ExternalData {
 		 * @return this builder.
 		 */
 		public Builder withDataURL(final String dataURL) {
-			this.dataURL = Common.processURL(dataURL);
+			this.dataURL = Common.processURL(dataURL, "data");
 			return this;
 		}
 		
@@ -232,8 +231,7 @@ public class ExternalData {
 		 * @return this builder.
 		 */
 		public Builder withDataURL(final URL dataURL) {
-			// TODO PROV integration error test
-			this.dataURL = Common.processURL(dataURL);
+			this.dataURL = Common.processURL(dataURL, "data");
 			return this;
 		}
 		
@@ -269,7 +267,6 @@ public class ExternalData {
 					dataURL == null &&
 					dataID == null &&
 					description == null) {
-				// TODO PROV integration error test
 				throw new IllegalArgumentException(
 						"At least one field in an external data unit must be provided");
 			}

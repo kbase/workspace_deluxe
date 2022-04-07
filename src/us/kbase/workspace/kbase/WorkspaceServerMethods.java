@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 
@@ -340,42 +341,35 @@ public class WorkspaceServerMethods {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		final List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
-		int count = 1;
+		final List<WorkspaceSaveObject> woc = new LinkedList<>();
 		if (params.getObjects().isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}
-		for (ObjectSaveData d: params.getObjects()) {
-			// TODO CODE what if d is null?
-			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
-			final ObjectIDNoWSNoVer oi;
+		final ListIterator<ObjectSaveData> oit = params.getObjects().listIterator();
+		while (oit.hasNext()) {
+			final ObjectSaveData d = oit.next();
+			ObjectIDNoWSNoVer oi = null;
 			try {
+				if (d == null) {
+					throw new NullPointerException("is null");
+				}
 				oi = ObjectIDNoWSNoVer.create(d.getName(), d.getObjid());
-			} catch (IllegalArgumentException e) {
-				throw new IllegalArgumentException("Object " + count + ": " + e.getMessage(), e);
-			}
-			final String errprefix = "Object " + count + ", " + oi.getIdentifierString() + ",";
-			if (d.getData() == null) {
-				throw new IllegalArgumentException(errprefix + " has no data");
-			}
-			TypeDefId t;
-			try {
-				t = TypeDefId.fromTypeString(d.getType());
-			} catch (IllegalArgumentException iae) {
-				throw new IllegalArgumentException(errprefix + " type error: "
-						+ iae.getLocalizedMessage(), iae);
-			}
-			// TODO PROV if prov processing error, include object index
-			final Provenance p = processProvenance(user, d.getProvenance());
-			final boolean hidden = longToBoolean(d.getHidden());
-			try {
+				checkAddlArgs(d.getAdditionalProperties(), d.getClass());
+				if (d.getData() == null) {
+					throw new IllegalArgumentException("no data");
+				}
+				final TypeDefId t = TypeDefId.fromTypeString(d.getType());
+				final Provenance p = processProvenance(user, Instant.now(), d.getProvenance());
+				final boolean hidden = longToBoolean(d.getHidden());
 				woc.add(new WorkspaceSaveObject(oi, d.getData(), t, 
 						new WorkspaceUserMetadata(d.getMeta()), p, hidden));
-			} catch (MetadataException me) {
-				throw new IllegalArgumentException(errprefix + " save error: "
-						+ me.getLocalizedMessage(), me);
+			} catch (IllegalArgumentException | NullPointerException | MetadataException e) {
+				throw new IllegalArgumentException(String.format("Object #%s%s: %s",
+						oit.nextIndex(),
+						oi == null ? "" : String.format(", %s", oi.getIdentifierString()),
+						e.getLocalizedMessage()),
+						e);
 			}
-			count++;
 		}
 		params.setObjects(null); 
 		final IdReferenceHandlerSetFactory fac = idFacBuilder.getFactory(token);

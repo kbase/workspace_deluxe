@@ -29,6 +29,8 @@ UPDATES:
 * The ``batch_external_system_updates`` option has been added to ``get_objects2``.
 * Fixed a bug where, in the administration ``getObjects`` call, the copy source for an object
   would always be inaccessible unless the source workspace was public.
+* Error handling for saving objects has been improved for some cases and provides more
+  information about the nature and source of the error.
 
 VERSION: 0.12.1 (Released 1/25/2022)
 ------------------------------------

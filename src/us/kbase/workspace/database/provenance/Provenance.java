@@ -61,7 +61,7 @@ public class Provenance {
 	 * the workspace ID doesn't change, or a new provenance instance if the incoming workspace
 	 * ID is different.
 	 * @param workspaceID the new workspace ID.
-	 * @return this or a new Provenance.
+	 * @return this or a new {@link Provenance}.
 	 */
 	public Provenance updateWorkspaceID(final Long workspaceID) {
 		if (workspaceID == null) {
@@ -144,7 +144,7 @@ public class Provenance {
 		/** Set the ID of the workspace in which the data was originally saved. Passing null
 		 * removes any ID in the builder.
 		 * @param workspaceID the workspace ID.
-		 * @return this buider.
+		 * @return this builder.
 		 */
 		public Builder withWorkspaceID(final Long workspaceID) {
 			if (workspaceID == null) {

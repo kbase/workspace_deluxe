@@ -161,7 +161,7 @@ public class SubAction {
 		 * @return this builder.
 		 */
 		public Builder withCodeURL(final String codeURL) {
-			this.codeURL = Common.processURL(codeURL);
+			this.codeURL = Common.processURL(codeURL, "code");
 			return this;
 		}
 
@@ -170,8 +170,7 @@ public class SubAction {
 		 * @return this builder.
 		 */
 		public Builder withCodeURL(final URL codeURL) {
-			// TODO PROV integration error test
-			this.codeURL = Common.processURL(codeURL);
+			this.codeURL = Common.processURL(codeURL, "code");
 			return this;
 		}
 		
@@ -191,7 +190,7 @@ public class SubAction {
 		 * @return this builder.
 		 */
 		public Builder withEndpointURL(final String endpointURL) {
-			this.endpointURL = Common.processURL(endpointURL);
+			this.endpointURL = Common.processURL(endpointURL, "endpoint");
 			return this;
 		}
 		
@@ -200,8 +199,7 @@ public class SubAction {
 		 * @return this builder.
 		 */
 		public Builder withEndpointURL(final URL endpointURL) {
-			// TODO PROV integration error test
-			this.endpointURL = Common.processURL(endpointURL);
+			this.endpointURL = Common.processURL(endpointURL, "endpoint");
 			return this;
 		}
 		
@@ -215,7 +213,6 @@ public class SubAction {
 					codeURL == null &&
 					commit == null &&
 					endpointURL == null) {
-				// TODO PROV integration error test
 				throw new IllegalArgumentException(
 						"At least one field in a provenance sub action must be provided");
 			}

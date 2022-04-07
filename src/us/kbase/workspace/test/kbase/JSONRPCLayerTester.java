@@ -59,13 +59,11 @@ import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
-import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.RenameWorkspaceParams;
-import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.SubAction;
@@ -671,38 +669,6 @@ public class JSONRPCLayerTester {
 	protected Date getNewerDate(long ms) {
 		long now = new Date().getTime();
 		return new Date(now + ms);
-	}
-	
-	protected void saveProvWithBadTime(String time, String exception) throws Exception {
-		UObject data = new UObject(new HashMap<String, Object>());
-		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("provenance")
-				.withObjects(Arrays.asList(
-						new ObjectSaveData().withData(data).withType(SAFE_TYPE)
-						.withName(getRandomName())
-						.withProvenance(Arrays.asList(new ProvenanceAction()
-						.withTime(time)))));
-		try {
-			CLIENT1.saveObjects(sop);
-			fail("save w/ prov w/ bad time");
-		} catch (ServerException se) {
-			assertThat("correct exception", se.getLocalizedMessage(),
-					is(exception));
-		}
-		
-		sop.setObjects(Arrays.asList(new ObjectSaveData()
-				.withData(data).withType(SAFE_TYPE).withName(getRandomName())
-				.withProvenance(Arrays.asList(new ProvenanceAction()
-						.withExternalData(Arrays.asList(
-								new ExternalDataUnit()
-									.withResourceReleaseDate(time)))))));
-		
-		try {
-			CLIENT1.saveObjects(sop);
-			fail("save w/ prov w/ bad time");
-		} catch (ServerException se) {
-			assertThat("correct exception", se.getLocalizedMessage(),
-					is(exception));
-		}
 	}
 	
 	protected void checkProvenance(List<ProvenanceAction> expected,
