@@ -165,6 +165,15 @@ the same as ``mongodb-database``.
 .. warning:: Once any data has been saved by the workspace, changing the type database will
    result in unspecified behavior, including data corruption.
 
+mongodb-retrywrites
+"""""""""""""""""""
+
+**Required**: No
+
+**Description**: Setting for the
+`MongoDB retryWrites <https://www.mongodb.com/docs/manual/core/retryable-writes/>`_
+connection parameter. ``true`` is true, anything else is false. Defaults to false.
+
 mongodb-user
 """"""""""""
 **Required**: If the MongoDB instance requires authorization
