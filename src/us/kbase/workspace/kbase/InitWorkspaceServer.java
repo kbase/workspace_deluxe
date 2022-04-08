@@ -183,6 +183,7 @@ public class InitWorkspaceServer {
 					wsdeps.listeners);
 			ah = getAdminHandler(cfg, ws);
 		} catch (WorkspaceInitException | WorkspaceCommunicationException e) {
+			e.printStackTrace(System.err);
 			rep.reportFail(e.getLocalizedMessage());
 			rep.reportFail("Server startup failed - all calls will error out.");
 			return null;
