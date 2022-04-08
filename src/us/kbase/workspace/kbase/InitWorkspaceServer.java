@@ -346,15 +346,16 @@ public class InitWorkspaceServer {
 	public static MongoClient buildMongo(final KBaseWorkspaceConfig c, final String dbName)
 			throws WorkspaceInitException {
 		//TODO ZLATER MONGO handle shards & replica sets
+		final MongoClientOptions opts = MongoClientOptions.builder()
+				.retryWrites(c.getMongoRetryWrites()).build();
 		try {
 			if (c.getMongoUser() != null) {
 				final MongoCredential creds = MongoCredential.createCredential(
 						c.getMongoUser(), dbName, c.getMongoPassword().toCharArray());
 				// unclear if and when it's safe to clear the password
-				return new MongoClient(new ServerAddress(c.getHost()), creds,
-						MongoClientOptions.builder().retryWrites(c.getMongoRetryWrites()).build());
+				return new MongoClient(new ServerAddress(c.getHost()), creds, opts);
 			} else {
-				return new MongoClient(new ServerAddress(c.getHost()));
+				return new MongoClient(new ServerAddress(c.getHost()), opts);
 			}
 		} catch (MongoException e) {
 			LoggerFactory.getLogger(InitWorkspaceServer.class).error(
