@@ -31,6 +31,8 @@ UPDATES:
   would always be inaccessible unless the source workspace was public.
 * Error handling for saving objects has been improved for some cases and provides more
   information about the nature and source of the error.
+* Added the ``mongodb-retrywrites`` configuration setting in ``deploy.cfg``, defaulting to
+  ``false``.
 
 VERSION: 0.12.1 (Released 1/25/2022)
 ------------------------------------

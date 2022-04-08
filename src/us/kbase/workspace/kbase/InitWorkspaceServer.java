@@ -352,7 +352,7 @@ public class InitWorkspaceServer {
 						c.getMongoUser(), dbName, c.getMongoPassword().toCharArray());
 				// unclear if and when it's safe to clear the password
 				return new MongoClient(new ServerAddress(c.getHost()), creds,
-						MongoClientOptions.builder().build());
+						MongoClientOptions.builder().retryWrites(c.getMongoRetryWrites()).build());
 			} else {
 				return new MongoClient(new ServerAddress(c.getHost()));
 			}

@@ -177,6 +177,7 @@ public class KBaseWorkspaceConfigTest {
 		public String typeDBname = null;
 		public String mongoPwd = null;
 		public String mongoUser = null;
+		public boolean mongoRetryWrites = false;
 		public List<ListenerConfig> listenerConfigs = Collections.emptyList();
 		public BackendType backendType = null;
 		public URL backendURL = null;
@@ -298,6 +299,11 @@ public class KBaseWorkspaceConfigTest {
 			this.mongoUser = mongoUser;
 			return this;
 		}
+		
+		public ExpectedConfig withMongoRetryWrites(final boolean retrywrites) {
+			this.mongoRetryWrites = retrywrites;
+			return this;
+		}
 
 		public ExpectedConfig withParamReport(final String paramReport) {
 			this.paramReport = paramReport;
@@ -387,6 +393,8 @@ public class KBaseWorkspaceConfigTest {
 			assertThat("incorrect listeners", kwc.getListenerConfigs(), is(exp.listenerConfigs));
 			assertThat("incorrect mongo pwd", kwc.getMongoPassword(), is(exp.mongoPwd));
 			assertThat("incorrect mongo user", kwc.getMongoUser(), is(exp.mongoUser));
+			assertThat("incorrect mongo retrywrites",
+					kwc.getMongoRetryWrites(), is(exp.mongoRetryWrites));
 			assertThat("incorrect param report", kwc.getParamReport(), is(exp.paramReport));
 			assertThat("incorrect bytestream token",
 					kwc.getBytestreamToken(), is(exp.bytestreamToken));
@@ -465,6 +473,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
 				.with("mongodb-type-database", "     typedb     ")
+				.with("mongodb-retrywrites", "     true     ")
 				.with("temp-dir", "   temp   ")
 				.with("auth-service-url", "    " + AUTH_LEGACY_URL + "    ")
 				.with("auth2-service-url", "   " + CI_SERV + "auth     ")
@@ -501,6 +510,7 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-host=somehost\n" +
 				"mongodb-database=somedb\n" +
 				"mongodb-type-database=typedb\n" +
+				"mongodb-retrywrites=true\n" +
 				"mongodb-user=muser\n" +
 				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
@@ -530,6 +540,7 @@ public class KBaseWorkspaceConfigTest {
 						.withMongohost("somehost")
 						.withMongoDBname("somedb")
 						.withTypeDBname("typedb")
+						.withMongoRetryWrites(true)
 						.withMongoUser("muser")
 						.withMongoPwd("mpwd")
 						.withListenerConfigs(Arrays.asList(
@@ -562,6 +573,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-host", "somehost")
 				.with("mongodb-database", "somedb")
 				.with("mongodb-type-database", "     typedb     ")
+				.with("mongodb-retrywrites", "     \t     ")
 				.with("temp-dir", "temp")
 				.with("auth-service-url", AUTH_LEGACY_URL)
 				.with("auth2-service-url", CI_SERV + "auth")
