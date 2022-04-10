@@ -198,13 +198,14 @@ There are at least two implementation options:
   * When the maximum number of EDUs has been added for a particular object, any further attempts
     to add an EDU fail.
   * Add a new API to add EDUs to objects after save.
-  * Add a toggle to the ``get_objects2`` method to include all post-save EDUs, if present, in
+  * Add a toggle to the `get_objects2` method to include all post-save EDUs, if present, in
     the returned data structure.
-  * Since ``get_objects2`` can return 10K objects and this design allows 15MB of EDUs per object
+  * Since `get_objects2` can return 10K objects and this design allows 15MB of EDUs per object
     when serialized, that means up to 150GB of JSON EDU data could be returned in one call, which
     is clearly excessive. Worse, deserialized JSON data is often 5-20x larger in memory.
     * Store the sizes of the EDU objects and check sizes before returning the data. If the total
       size is more than some limit (100MB?) throw an error. 
+    * Add a field to `get_object_info3` that provides the total EDU size for an object.
     * If we wish to reduce memory usage pull the EDUs in batches and serialize, then discard
       the object data (is there a way to pull the raw BSON from Mongo rather than returning
       deserialized data?).
