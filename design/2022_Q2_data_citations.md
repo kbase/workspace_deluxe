@@ -193,14 +193,22 @@ A Kafka event will be sent any time an EDU is added to an object.
 There are at least two implementation options:
 
 1. Set a maximum number of EDUs that can be added to any particular object post-creation.
-  We propose 1000 here. In this case, all the EDUs can be stored in a single `MongoDB` object
+  We propose 1000 here. In this case, all the EDUs can be stored in a single `MongoDB` document
   with plenty of room (~15KB each for 1000) for each EDU.
   * When the maximum number of EDUs has been added for a particular object, any further attempts
     to add an EDU fail.
   * Add a new API to add EDUs to objects after save.
   * Add a toggle to the ``get_objects2`` method to include all post-save EDUs, if present, in
     the returned data structure.
-  * Work estimate: 2 weeks
+  * Since ``get_objects2`` can return 10K objects and this design allows 15MB of EDUs per object
+    when serialized, that means up to 150GB of JSON EDU data could be returned in one call, which
+    is clearly excessive. Worse, deserialized JSON data is often 5-20x larger in memory.
+    * Store the sizes of the EDU objects and check sizes before returning the data. If the total
+      size is more than some limit (100MB?) throw an error. 
+    * If we wish to reduce memory usage pull the EDUs in batches and serialize, then discard
+      the object data (is there a way to pull the raw BSON from Mongo rather than returning
+      deserialized data?).
+  * Work estimate: 3 weeks
 2. Allow any number of EDUs to be added to any particular object.
   * In this case, each EDU will get its own `MongoDB` document.
   * Add a new API to add EDUs to objects after save.
