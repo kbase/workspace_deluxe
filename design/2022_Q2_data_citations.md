@@ -76,7 +76,7 @@ One approach for representing names, as taken in the
 [KBase auth2 service](https://github.com/kbase/auth2), is to represent names by a single
 completely arbitrary string, which can handle most cases. We use the same approach here.
 
-Note that for all the cases below, the the EDUs in the `MongoDB` database are currently stored in
+Note that for all the cases below, the EDUs in the `MongoDB` database are currently stored in
 a list embedded in a list of provenance actions, which means they are unindexable. No features in
 this proposal require indexing so this case is not addressed.
 
