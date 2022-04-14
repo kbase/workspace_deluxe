@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
@@ -42,8 +43,7 @@ import us.kbase.typedobj.core.TempFilesManager;
 public class TestCommon {
 	
 	public static final String MINIOEXE = "test.minio.exe";
-	public static final String SHOCKEXE = "test.shock.exe";
-	public static final String SHOCKVER = "test.shock.version";
+	public static final String BLOBSTOREEXE = "test.blobstore.exe";
 	public static final String MONGOEXE = "test.mongo.exe";
 	public static final String MONGO_USE_WIRED_TIGER = "test.mongo.useWiredTiger";
 	public static final String HANDLE_SERVICE_DIR = "test.handleservice.dir";
@@ -55,8 +55,6 @@ public class TestCommon {
 	
 	public static final String TEST_TEMP_DIR = "test.temp.dir";
 	public static final String KEEP_TEMP_DIR = "test.temp.dir.keep";
-	
-	public static final String TEST_TOKEN_PREFIX = "test.token";
 	
 	public static final String TEST_CONFIG_FILE_PROP_NAME = "test.cfg";
 	public static final String TEST_CONFIG_FILE_SECTION = "Workspacetest";
@@ -146,6 +144,10 @@ public class TestCommon {
 		return getTestProperty(MONGOEXE);
 	}
 	
+	public static String getBlobstoreExe() {
+		return getTestProperty(BLOBSTOREEXE);
+	}
+	
 	public static Path getArangoExe() {
 		return Paths.get(getTestProperty(ARANGOEXE));
 	}
@@ -156,14 +158,6 @@ public class TestCommon {
 
 	public static String getMinioExe() {
 		return getTestProperty(MINIOEXE);
-	}
-	
-	public static String getShockExe() {
-		return getTestProperty(SHOCKEXE);
-	}
-	
-	public static String getShockVersion() {
-		return getTestProperty(SHOCKVER);
 	}
 	
 	public static String getHandleServiceDir() {
@@ -253,6 +247,7 @@ public class TestCommon {
 							break;
 					}
 				}
+				// this is weird. Should it just be a fail()?
 				assertThat("There are tempfiles: " + tfm.getTempFileList(),
 						tfm.isEmpty(), is(true));
 			}
@@ -275,12 +270,33 @@ public class TestCommon {
 	}
 	
 	@SafeVarargs
-	public static <T> Set<T> set(T... objects) {
+	public static <T> Set<T> set(final T... objects) {
 		return new HashSet<T>(Arrays.asList(objects));
+	}
+	
+	@SafeVarargs
+	public static <T> List<T> list(final T... objects) {
+		return Arrays.asList(objects);
 	}
 	
 	public static Instant inst(final long epoch) {
 		return Instant.ofEpochMilli(epoch);
+	}
+	
+	public static Instant now() {
+		return Instant.now();
+	}
+	
+	public static final Optional<String> ES = Optional.empty();
+	public static final Optional<Long> EL = Optional.empty();
+	public static final Optional<Integer> EI = Optional.empty();
+	
+	public static <T> Optional<T> opt(final T obj) {
+		return Optional.of(obj);
+	}
+	
+	public static <T> Optional<T> optn(final T obj) {
+		return Optional.ofNullable(obj);
 	}
 	
 	public static class LogEvent {

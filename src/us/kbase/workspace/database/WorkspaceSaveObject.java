@@ -9,8 +9,16 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
+import us.kbase.workspace.database.provenance.Provenance;
 
 public class WorkspaceSaveObject {
+	
+	// TODO TEST unit tests
+	// TODO JAVADOC
+	
+	// Unfortunately UObjects aren't necessarily immutable so there's no way to make this truly
+	// immutable - although maybe could check that the UObject wraps a JsonTokenStream in which
+	// case it should be immutable (double check)
 	
 	private final ObjectIDNoWSNoVer id;
 	private final UObject data;
@@ -69,13 +77,20 @@ public class WorkspaceSaveObject {
 
 	// provrefs *must* be in the same ordering as they are in the provenance actions
 	public ResolvedSaveObject resolve(
+			final ResolvedWorkspaceID wsid,
 			final ValidatedTypedObject rep,
 			final Set<Reference> references,
 			final List<Reference> provenancerefs,
 			final Map<IdReferenceType, Set<RemappedId>> extractedIDs) {
-		return new ResolvedSaveObject(this.id, this.userMeta,
-				this.provenance, this.hidden, rep, references,
-				provenancerefs, extractedIDs);
+		return new ResolvedSaveObject(
+				this.id,
+				this.userMeta,
+				this.provenance.updateWorkspaceID(wsid.getID()),
+				this.hidden,
+				rep,
+				references,
+				provenancerefs,
+				extractedIDs);
 	}
 	
 	@Override

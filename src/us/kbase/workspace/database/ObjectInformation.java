@@ -1,5 +1,7 @@
 package us.kbase.workspace.database;
 
+import static us.kbase.workspace.database.Util.noNulls;
+
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
@@ -45,12 +47,12 @@ public class ObjectInformation {
 	public ObjectInformation(
 			final long id,
 			final String name,
-			final String typeString,
+			final String typeString, // TODO CODE use absolute typedef?
 			final Date savedDate, //TODO CODE use instant
 			final int version,
 			final WorkspaceUser savedBy,
 			final ResolvedWorkspaceID workspaceID,
-			final String chksum,
+			final String chksum,  // TODO CODE use MD5? 
 			final long size,
 			final UncheckedUserMetadata meta) {
 		//no error checking for now, add if needed
@@ -123,7 +125,7 @@ public class ObjectInformation {
 		this.chksum = chksum;
 		this.size = size;
 		this.meta = meta;
-		this.refpath = Collections.unmodifiableList(refpath);
+		this.refpath = Collections.unmodifiableList(new LinkedList<>(refpath));
 	}
 	
 	/** Returns the id of the object.
@@ -200,7 +202,7 @@ public class ObjectInformation {
 	 * @return the object metadata.
 	 */
 	public UncheckedUserMetadata getUserMetaData() {
-		return meta;
+		return meta;  // TODO CODE switch to Optional
 	}
 
 	/** Returns the resolved reference path to this object from a user-accessible object. There may
@@ -220,10 +222,11 @@ public class ObjectInformation {
 	 * path.
 	 * @return a new ObjectInformation with an updated reference path.
 	 */
-	public ObjectInformation updateReferencePath(List<Reference> refpath) {
+	public ObjectInformation updateReferencePath(final List<Reference> refpath) {
 		if (refpath == null || refpath.isEmpty()) {
 			throw new IllegalArgumentException("refpath cannot be null or empty");
 		}
+		noNulls(refpath, "refpath cannot contain nulls");
 		if (!getLast(refpath).equals(getLast(this.refpath))) {
 			throw new IllegalArgumentException(
 					"refpath must end with the same reference as the current refpath");

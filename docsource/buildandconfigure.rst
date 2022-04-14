@@ -90,8 +90,8 @@ may optionally use:
   to Shock nodes.
 * The `Handle Service <https://github.com/kbase/handle_service2>`_
   to mediate linking workspace objects to Shock nodes (see :ref:`shockintegration`).
-* The `Sample Service <https://github.com/kbase/sample_service>`_ to allow linking workspace
-  objects to samples (see :ref:`sampleserviceintegration`).
+* The `Sample Service <https://github.com/kbase/sample_service>`_ version 0.1.1 and above
+  to allow linking workspace objects to samples (see :ref:`sampleserviceintegration`).
 * Apache Kafka as a notification service.
 
 The WSS is tested against:
@@ -164,6 +164,15 @@ the same as ``mongodb-database``.
 
 .. warning:: Once any data has been saved by the workspace, changing the type database will
    result in unspecified behavior, including data corruption.
+
+mongodb-retrywrites
+"""""""""""""""""""
+
+**Required**: No
+
+**Description**: Setting for the
+`MongoDB retryWrites <https://www.mongodb.com/docs/manual/core/retryable-writes/>`_
+connection parameter. ``true`` is true, anything else is false. Defaults to false.
 
 mongodb-user
 """"""""""""

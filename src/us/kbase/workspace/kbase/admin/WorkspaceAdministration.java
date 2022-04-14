@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Ticker;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableMap;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
@@ -46,6 +47,7 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
@@ -67,6 +69,9 @@ public class WorkspaceAdministration {
 	
 	//TODO JAVADOC
 	//TODO TEST unit tests
+	
+	private static final String GET_CONFIG = "getConfig";
+	private static final String SET_CONFIG = "setConfig";
 	
 	private static final String DENY_MOD_REQUEST = "denyModRequest";
 	private static final String APPROVE_MOD_REQUEST = "approveModRequest";
@@ -194,6 +199,17 @@ public class WorkspaceAdministration {
 		}
 		// should look into some sort of interface w/ registration instead of a massive if else
 		final String fn = (String) cmd.getCommand();
+		if (GET_CONFIG.contentEquals(fn)) {
+			getLogger().info(GET_CONFIG);
+			return ImmutableMap.of("config", ws.getConfig().toMap());
+		}
+		if (SET_CONFIG.equals(fn)) {
+			requireWrite(role);
+			getLogger().info(SET_CONFIG); // add parameters?
+			final SetConfigParams params = getParams(cmd, SetConfigParams.class);
+			ws.setConfig(DynamicConfigUpdate.getBuilder().withMap(params.set).build());
+			return null;
+		}
 		if (LIST_MOD_REQUESTS.equals(fn)) {
 			getLogger().info(LIST_MOD_REQUESTS);
 			return types.listModuleRegistrationRequests();
@@ -437,6 +453,13 @@ public class WorkspaceAdministration {
 			return null;
 		}
 		return wsmeth.validateUsers(Arrays.asList(cmd.getUser()), token).get(0);
+	}
+	
+	private static class SetConfigParams {
+		public Map<String, Object> set;
+		
+		@SuppressWarnings("unused")
+		public SetConfigParams() {}; // for jackson
 	}
 	
 	private static class SetWorkspaceOwnerParams {

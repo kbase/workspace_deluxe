@@ -43,12 +43,17 @@ public class KBaseWorkspaceConfig {
 	//TODO CODE use optionals instead of nulls.
 	//TODO CODE consider returning classes containing related parameters rather than individual parameters.
 	
-	//required deploy parameters
+	// mongodb parameters
 	private static final String HOST = "mongodb-host";
 	private static final String DB = "mongodb-database";
 	private static final String TYPE_DB = "mongodb-type-database";
-	//startup workspace admin user
+	private static final String MONGO_USER = "mongodb-user";
+	private static final String MONGO_PWD = "mongodb-pwd";
+	private static final String MONGO_RETRY_WRITES = "mongodb-retrywrites";
+	
+	// startup workspace admin user
 	private static final String WSADMIN = "ws-admin";
+
 	// backend params
 	private static final String BACKEND_TYPE = "backend-type";
 	private static final String BACKEND_USER = "backend-user";
@@ -57,9 +62,6 @@ public class KBaseWorkspaceConfig {
 	private static final String BACKEND_REGION = "backend-region";
 	private static final String BACKEND_CONTAINER = "backend-container";
 	private static final String BACKEND_SSC_SSL = "backend-trust-all-ssl-certificates";
-	//mongo db auth params:
-	private static final String MONGO_USER = "mongodb-user";
-	private static final String MONGO_PWD = "mongodb-pwd";
 	
 	//auth servers
 	private static final String KBASE_AUTH_URL = "auth-service-url";
@@ -110,6 +112,7 @@ public class KBaseWorkspaceConfig {
 	private final String host;
 	private final String db;
 	private final String typedb;
+	private final boolean mongoRetryWrites;
 	private final BackendType backendType;
 	private final Region backendRegion;
 	private final String backendContainer;
@@ -269,6 +272,7 @@ public class KBaseWorkspaceConfig {
 		host = nullIfEmpty(config.get(HOST));
 		db = nullIfEmpty(config.get(DB));
 		typedb = nullIfEmpty(config.get(TYPE_DB));
+		mongoRetryWrites = TRUE_STR.equals(nullIfEmpty(config.get(MONGO_RETRY_WRITES)));
 		if (db != null && db.equals(typedb)) {
 			paramErrors.add(String.format("The parameters %s and %s have the same value, %s",
 					DB, TYPE_DB, db));
@@ -457,7 +461,8 @@ public class KBaseWorkspaceConfig {
 		String params = "";
 		// TODO CODE move this up top where it's easier to see & alter, document
 		final List<String> paramSet = new LinkedList<String>(
-				Arrays.asList(HOST, DB, TYPE_DB, MONGO_USER, KBASE_AUTH_URL, KBASE_AUTH2_URL,
+				Arrays.asList(HOST, DB, TYPE_DB, MONGO_RETRY_WRITES, MONGO_USER,
+						KBASE_AUTH_URL, KBASE_AUTH2_URL,
 						KBASE_AUTH_ADMIN_READ_ONLY_ROLES, KBASE_AUTH_ADMIN_FULL_ROLES,
 						BACKEND_TYPE, BACKEND_URL, BACKEND_USER, BACKEND_REGION,
 						BACKEND_CONTAINER, BACKEND_SSC_SSL));
@@ -530,6 +535,10 @@ public class KBaseWorkspaceConfig {
 	
 	public String getTypeDBName() {
 		return typedb;
+	}
+	
+	public boolean getMongoRetryWrites() {
+		return mongoRetryWrites;
 	}
 
 	public URL getAuthURL() {
@@ -672,6 +681,7 @@ public class KBaseWorkspaceConfig {
 		result = prime * result + ((infoMessages == null) ? 0 : infoMessages.hashCode());
 		result = prime * result + ((listenerConfigs == null) ? 0 : listenerConfigs.hashCode());
 		result = prime * result + ((mongoPassword == null) ? 0 : mongoPassword.hashCode());
+		result = prime * result + (mongoRetryWrites ? 1231 : 1237);
 		result = prime * result + ((mongoUser == null) ? 0 : mongoUser.hashCode());
 		result = prime * result + ((paramReport == null) ? 0 : paramReport.hashCode());
 		result = prime * result + ((sampleServiceToken == null) ? 0 : sampleServiceToken.hashCode());
@@ -798,6 +808,8 @@ public class KBaseWorkspaceConfig {
 			if (other.mongoPassword != null)
 				return false;
 		} else if (!mongoPassword.equals(other.mongoPassword))
+			return false;
+		if (mongoRetryWrites != other.mongoRetryWrites)
 			return false;
 		if (mongoUser == null) {
 			if (other.mongoUser != null)

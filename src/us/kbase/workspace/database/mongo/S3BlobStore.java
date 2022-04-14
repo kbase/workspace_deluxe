@@ -33,8 +33,6 @@ import us.kbase.typedobj.core.Restreamable;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
-import us.kbase.workspace.database.exceptions.FileCacheIOException;
-import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
@@ -188,7 +186,7 @@ public class S3BlobStore implements BlobStore {
 		try {
 			final Document ret = col.find(new Document(Fields.S3_CHKSUM, md5.getMD5())).first();
 			if (ret == null) {
-				throw new NoSuchBlobException("No blob saved with chksum " + md5.getMD5());
+				throw new NoSuchBlobException("No blob saved with chksum " + md5.getMD5(), md5);
 			}
 			return ret;
 		} catch (MongoException me) {
@@ -200,17 +198,13 @@ public class S3BlobStore implements BlobStore {
 	@Override
 	public ByteArrayFileCache getBlob(final MD5 md5, final ByteArrayFileCacheManager bafcMan)
 			throws BlobStoreAuthorizationException, BlobStoreCommunicationException,
-				NoSuchBlobException, FileCacheLimitExceededException, FileCacheIOException {
+				NoSuchBlobException, IOException {
 		requireNonNull(bafcMan, "bafcMan");
 		final Document entry = getBlobEntry(requireNonNull(md5, "md5"));
 		final boolean sorted = entry.getBoolean(Fields.S3_SORTED);
 		final String key = entry.getString(Fields.S3_KEY);
 		try (final ResponseInputStream<GetObjectResponse> obj = s3.getClient().getObject(
-				GetObjectRequest.builder()
-					.bucket(bucket)
-					.key(key)
-					.build())
-			) {
+				GetObjectRequest.builder().bucket(bucket).key(key).build())) {
 			return bafcMan.createBAFC(obj, true, sorted);
 		} catch (NoSuchKeyException e) {
 			throw new BlobStoreCommunicationException(
@@ -219,11 +213,6 @@ public class S3BlobStore implements BlobStore {
 			throw new BlobStoreCommunicationException(
 					"Error getting S3 object: " + e.getMessage(), e);
 		} catch (IOException e) {
-			/* No good way to test this since ResponseInputStream is final (*&*^&*&) and the
-			 * workaround here https://stackoverflow.com/a/40018295/643675 didn't change
-			 * behavior in my hands.
-			 * Currently only closing the stream can throw the IOException.
-			 */
 			throw new BlobStoreCommunicationException("IO Error accessing blob: " +
 					e.getMessage(), e);
 		}

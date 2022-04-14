@@ -7,6 +7,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+import static us.kbase.common.test.TestCommon.list;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bson.Document;
 import org.ini4j.Ini;
 import org.ini4j.Profile.Section;
 import org.junit.After;
@@ -57,19 +59,18 @@ import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
-import us.kbase.workspace.ObjectSaveData;
 import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RenameObjectParams;
 import us.kbase.workspace.RenameWorkspaceParams;
-import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.SubAction;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspaceServer;
+import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
@@ -109,7 +110,7 @@ public class JSONRPCLayerTester {
 	protected static final String USER1 = "user1";
 	protected static final String USER2 = "user2";
 	protected static final String USER3 = "user3";
-	protected static String STARUSER = "*";
+	protected static final String STARUSER = "*";
 	protected static AuthUser AUTH_USER1 = null;
 	protected static AuthUser AUTH_USER2 = null;
 	protected static WorkspaceServer SERVER2 = null;
@@ -117,12 +118,12 @@ public class JSONRPCLayerTester {
 	protected static WorkspaceClient CLIENT_NO_AUTH = null;
 	
 	protected static WorkspaceServer SERVER_AUTH_ADMINS = null;
-	protected static WorkspaceClient CLIENT_AA1 = null;
-	protected static WorkspaceClient CLIENT_AA2 = null;
-	protected static WorkspaceClient CLIENT_AA3 = null;
-	protected static String AUTH_ROLE_READ1 = "WS_READ_1";
-	protected static String AUTH_ROLE_READ2 = "WS_READ_2";
-	protected static String AUTH_ROLE_FULL = "WS_FULL";
+	protected static WorkspaceClient CLIENT_AA_ADMIN_FULL = null;
+	protected static WorkspaceClient CLIENT_AA_ADMIN_NONE = null;
+	protected static WorkspaceClient CLIENT_AA_ADMIN_READ = null;
+	protected static final String AUTH_ROLE_READ1 = "WS_READ_1";
+	protected static final String AUTH_ROLE_READ2 = "WS_READ_2";
+	protected static final String AUTH_ROLE_FULL = "WS_FULL";
 	
 	protected static ObjectMapper MAPPER = new ObjectMapper();
 	protected final static int MAX_UNIQUE_IDS_PER_CALL = 4;
@@ -228,12 +229,12 @@ public class JSONRPCLayerTester {
 		System.out.println("Started auth roles test server on port " + port2);
 		final URL wsurl2 = new URL("http://localhost:" + port2);
 		
-		CLIENT_AA1 = new WorkspaceClient(wsurl2, t1);
-		CLIENT_AA2 = new WorkspaceClient(wsurl2, t2);
-		CLIENT_AA3 = new WorkspaceClient(wsurl2, t3);
-		CLIENT_AA1.setIsInsecureHttpConnectionAllowed(true);
-		CLIENT_AA2.setIsInsecureHttpConnectionAllowed(true);
-		CLIENT_AA3.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_AA_ADMIN_FULL = new WorkspaceClient(wsurl2, t1);
+		CLIENT_AA_ADMIN_NONE = new WorkspaceClient(wsurl2, t2);
+		CLIENT_AA_ADMIN_READ = new WorkspaceClient(wsurl2, t3);
+		CLIENT_AA_ADMIN_FULL.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_AA_ADMIN_NONE.setIsInsecureHttpConnectionAllowed(true);
+		CLIENT_AA_ADMIN_READ.setIsInsecureHttpConnectionAllowed(true);
 		
 		SERVER2 = startupWorkspaceServer(mongohost, DB_WS_NAME_2, DB_TYPE_NAME_2);
 		CLIENT_FOR_SRV2 = new WorkspaceClient(new URL("http://localhost:" + 
@@ -472,14 +473,14 @@ public class JSONRPCLayerTester {
 	}
 	@Before
 	public void clearDB() throws Exception {
-		@SuppressWarnings("resource")
-		final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort());
-		final MongoDatabase wsdb1 = mcli.getDatabase(DB_WS_NAME_1);
-		final MongoDatabase wsdb2 = mcli.getDatabase(DB_WS_NAME_2);
-		final MongoDatabase wsdb3 = mcli.getDatabase(DB_WS_NAME_AUTH2_ADMINS);
-		TestCommon.destroyDB(wsdb1);
-		TestCommon.destroyDB(wsdb2);
-		TestCommon.destroyDB(wsdb3);
+		try (final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort())) {
+			for (final String name: list(DB_WS_NAME_1, DB_WS_NAME_2, DB_WS_NAME_AUTH2_ADMINS)) {
+				final MongoDatabase wsdb = mcli.getDatabase(name);
+				TestCommon.destroyDB(wsdb);
+				wsdb.getCollection("dyncfg").insertOne(
+						new Document("key", DynamicConfig.KEY_BACKEND_SCALING).append("value", 1));
+			}
+		}
 	}
 	
 	@After
@@ -570,16 +571,26 @@ public class JSONRPCLayerTester {
 	}
 	
 	@SuppressWarnings("deprecation")
-	protected void checkProvenance(String user, ObjectIdentity id,
-			List<ProvenanceAction> prov, Map<String, String> refmap,
-			Map<StringEpoch, StringEpoch> timemap) throws Exception {
+	protected void checkProvenance(
+			final String user,
+			final ObjectIdentity id,
+			final List<ProvenanceAction> prov,
+			final Map<String, String> refmap,
+			final Map<StringEpoch, StringEpoch> timemap)
+			throws Exception {
 		Date tenback = getOlderDate(10 * 60 * 1000);
 		Date tenfor = getNewerDate(10 * 60 * 1000);
 		
 		//get objs 2 prov
-		ObjectData ret1p = CLIENT1.getObjects2(new GetObjects2Params()
-			.withNoData(1L)
-			.withObjects(Arrays.asList(toObjSpec(id)))).getData().get(0);
+		final ObjectData ret1p;
+		try {
+			ret1p = CLIENT1.getObjects2(new GetObjects2Params()
+					.withNoData(1L)
+					.withObjects(Arrays.asList(toObjSpec(id)))).getData().get(0);
+		} catch (ServerException e) {
+			System.err.println(e.getData());
+			throw e;
+		}
 		assertThat("user correct", ret1p.getCreator(), is(user));
 		assertThat("wsid correct", ret1p.getOrigWsid(), is(id.getWsid()));
 		Date created = DATE_FORMAT.parse(ret1p.getCreated());
@@ -660,38 +671,6 @@ public class JSONRPCLayerTester {
 		return new Date(now + ms);
 	}
 	
-	protected void saveProvWithBadTime(String time, String exception) throws Exception {
-		UObject data = new UObject(new HashMap<String, Object>());
-		SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("provenance")
-				.withObjects(Arrays.asList(
-						new ObjectSaveData().withData(data).withType(SAFE_TYPE)
-						.withName(getRandomName())
-						.withProvenance(Arrays.asList(new ProvenanceAction()
-						.withTime(time)))));
-		try {
-			CLIENT1.saveObjects(sop);
-			fail("save w/ prov w/ bad time");
-		} catch (ServerException se) {
-			assertThat("correct exception", se.getLocalizedMessage(),
-					is(exception));
-		}
-		
-		sop.setObjects(Arrays.asList(new ObjectSaveData()
-				.withData(data).withType(SAFE_TYPE).withName(getRandomName())
-				.withProvenance(Arrays.asList(new ProvenanceAction()
-						.withExternalData(Arrays.asList(
-								new ExternalDataUnit()
-									.withResourceReleaseDate(time)))))));
-		
-		try {
-			CLIENT1.saveObjects(sop);
-			fail("save w/ prov w/ bad time");
-		} catch (ServerException se) {
-			assertThat("correct exception", se.getLocalizedMessage(),
-					is(exception));
-		}
-	}
-	
 	protected void checkProvenance(List<ProvenanceAction> expected,
 			List<ProvenanceAction> got, Map<String, String> refmap,
 			Map<StringEpoch, StringEpoch> timemap) throws Exception {
@@ -707,18 +686,13 @@ public class JSONRPCLayerTester {
 			assertThat("desc equal", gotpa.getDescription(), is(exppa.getDescription()));
 			assertThat("inc args equal", gotpa.getIntermediateIncoming(), is(exppa.getIntermediateIncoming()));
 			assertThat("method equal", gotpa.getMethod(), is(exppa.getMethod()));
-			if (gotpa.getMethodParams() == null) {
-				assertThat("method param counts are both null", gotpa.getMethodParams(),
-						is(exppa.getMethodParams()));
-			} else {
-				assertThat("method param count equal", gotpa.getMethodParams().size(),
-						is(exppa.getMethodParams().size()));
-				Iterator<UObject> gotmeth = gotpa.getMethodParams().iterator();
-				Iterator<UObject> expmeth = exppa.getMethodParams().iterator();
-				while(gotmeth.hasNext()) {
-					assertThat("meth params equal", gotmeth.next().asClassInstance(Object.class),
-							is(expmeth.next().asClassInstance(Object.class)));
-				}
+			assertThat("method param count equal", gotpa.getMethodParams().size(),
+					is(exppa.getMethodParams().size()));
+			Iterator<UObject> gotmeth = gotpa.getMethodParams().iterator();
+			Iterator<UObject> expmeth = exppa.getMethodParams().iterator();
+			while (gotmeth.hasNext()) {
+				assertThat("meth params equal", gotmeth.next().asClassInstance(Object.class),
+						is(expmeth.next().asClassInstance(Object.class)));
 			}
 			assertThat("out args equal", gotpa.getIntermediateOutgoing(), is(exppa.getIntermediateOutgoing()));
 			assertThat("script equal", gotpa.getScript(), is(exppa.getScript()));

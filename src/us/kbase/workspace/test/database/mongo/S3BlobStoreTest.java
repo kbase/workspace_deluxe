@@ -453,7 +453,7 @@ public class S3BlobStoreTest {
 					AbortableInputStream.create(
 							new ByteArrayInputStream("\"input here\"".getBytes()))));
 		
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
 		
 		final ByteArrayFileCache ba = s.getBlob(md5, bafcMan);
 		
@@ -469,7 +469,7 @@ public class S3BlobStoreTest {
 		
 		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
 		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
 		
 		getBlobFail(s, null, bafcMan, new NullPointerException("md5"));
 		getBlobFail(s, md5, null, new NullPointerException("bafcMan"));
@@ -486,9 +486,12 @@ public class S3BlobStoreTest {
 				.thenReturn(m.cur);
 		when(m.cur.first()).thenReturn(null);
 		
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
-		getBlobFail(s, md5, bafcMan, new NoSuchBlobException(
-				"No blob saved with chksum 1fc5a11811de5142af444f5d482cd748"));
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
+		final Exception e = getBlobFail(s, md5, bafcMan, new NoSuchBlobException(
+				"No blob saved with chksum 1fc5a11811de5142af444f5d482cd748",
+				new MD5("1fc5a11811de5142af444f5d482cd748")));
+		assertThat("incorrect md5", ((NoSuchBlobException) e).getMD5(),
+				is(new MD5("1fc5a11811de5142af444f5d482cd748")));
 	}
 	
 	@Test
@@ -501,7 +504,7 @@ public class S3BlobStoreTest {
 		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
 				.thenThrow(new MongoException("heck"));
 		
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
 		getBlobFail(s, md5, bafcMan, new BlobStoreCommunicationException(
 				"Could not read from the mongo database"));
 	}
@@ -533,11 +536,40 @@ public class S3BlobStoreTest {
 				.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build()))
 			.thenThrow(thrown);
 		
-		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager(30, 40, null);
+		final ByteArrayFileCacheManager bafcMan = new ByteArrayFileCacheManager();
 		getBlobFail(s, md5, bafcMan, expected);
 	}
 	
-	private void getBlobFail(
+	@Test
+	public void getBlobFailCreateBAFC() throws Exception {
+		final Mocks m = new Mocks();
+		final ByteArrayFileCacheManager bafcm = mock(ByteArrayFileCacheManager.class);
+		
+		final S3BlobStore s = new S3BlobStore(m.col, m.s3clipre, "foo");
+		final MD5 md5 = new MD5("1fc5a11811de5142af444f5d482cd748");
+		
+		when(m.col.find(new Document("chksum", "1fc5a11811de5142af444f5d482cd748")))
+				.thenReturn(m.cur);
+		when(m.cur.first()).thenReturn(
+				new Document("chksum", "1fc5a11811de5142af444f5d482cd748")
+						.append("key", "68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9")
+						.append("sorted", true));
+		
+		when(m.s3cli.getObject(GetObjectRequest.builder().bucket("foo")
+				.key("68/47/1b/68471ba8-c6b3-4ab7-9fc1-3c9ff304d6d9").build()))
+			.thenReturn(new ResponseInputStream<GetObjectResponse>(
+					GetObjectResponse.builder().build(), // not currently used
+					AbortableInputStream.create(
+							new ByteArrayInputStream("\"input here\"".getBytes()))));
+		
+		when(bafcm.createBAFC(any(), eq(true), eq(true)))
+				.thenThrow(new IOException("doody butts"));
+
+		getBlobFail(s, md5, bafcm, new BlobStoreCommunicationException(
+				"IO Error accessing blob: doody butts"));
+	}
+	
+	private Exception getBlobFail(
 			final S3BlobStore s,
 			final MD5 md5,
 			final ByteArrayFileCacheManager man,
@@ -545,8 +577,10 @@ public class S3BlobStoreTest {
 		try {
 			s.getBlob(md5, man);
 			fail("expected exception");
+			return null; // can't actually get here...
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
+			return got;
 		}
 	}
 	

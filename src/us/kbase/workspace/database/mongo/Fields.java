@@ -111,13 +111,6 @@ public class Fields {
 	public static final String PROV_SUBACTION_COMMIT = "commit";
 	public static final String PROV_SUBACTION_ENDPOINT_URL = "endpointUrl";
 	
-	// shock fields
-	public static final String SHOCK_CHKSUM = "chksum";
-	public static final String SHOCK_NODE = "node";
-	public static final String SHOCK_VER = "ver";
-	// since 0.2.0, if missing assume false
-	public static final String SHOCK_SORTED = "sorted";
-	
 	// GridFS fields
 	// since 0.2.0, if missing assume false
 	public static final String GFS_SORTED = "sorted";
@@ -132,11 +125,14 @@ public class Fields {
 	// admin fields
 	public static final String ADMIN_NAME = "user";
 	
-	// configuration fields, since 0.4.1
-	public static final String CONFIG_KEY = "config";
-	public static final String CONFIG_VALUE = "config";
-	public static final String CONFIG_UPDATE = "inupdate";
-	public static final String CONFIG_SCHEMA_VERSION = "schemaver";
+	// schema configuration fields, since 0.4.1
+	// this was an unfortunate choice of name
+	public static final String SCHEMA_CONFIG_KEY = "config";
+	public static final String SCHEMA_CONFIG_VALUE = "config";
+	public static final String SCHEMA_CONFIG_UPDATE = "inupdate";
+	public static final String SCHEMA_CONFIG_VERSION = "schemaver";
 	
-	
+	// dynamic configuration keys, since 0.13.0
+	public static final String DYNAMIC_CONFIG_KEY = "key";
+	public static final String DYNAMIC_CONFIG_VALUE = "value";
 }

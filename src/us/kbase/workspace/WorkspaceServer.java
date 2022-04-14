@@ -59,7 +59,6 @@ import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
@@ -590,11 +589,11 @@ public class WorkspaceServer extends JsonServerServlet {
 				params.getWorkspace(), null, params.getId(), null,
 				params.getInstance());
 		final WorkspaceObjectData ret = ws.getObjects(
-				wsmeth.getUser(params.getAuth(), authPart),
-				Arrays.asList(oi)).get(0);
+				wsmeth.getUser(params.getAuth(), authPart), Arrays.asList(oi), false, false, false)
+				.get(0);
 		resourcesToDelete.set(Arrays.asList(ret));
 		returnVal = new GetObjectOutput()
-			.withData(ret.getSerializedData().getUObject())
+			.withData(ret.getSerializedData().get().getUObject())
 			.withMetadata(objInfoToMetaTuple(ret.getObjectInfo(), true));
         //END get_object
         return returnVal;
@@ -616,7 +615,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_object_provenance
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		returnVal = wsmeth.translateObjectProvInfo(
-				ws.getObjects(wsmeth.getUser(authPart), loi, true),
+				ws.getObjects(wsmeth.getUser(authPart), loi, true, false, false),
 				wsmeth.getUser(authPart), true);
         //END get_object_provenance
         return returnVal;
@@ -638,7 +637,7 @@ public class WorkspaceServer extends JsonServerServlet {
         //BEGIN get_objects
 		final List<ObjectIdentifier> loi = processObjectIdentifiers(objectIds);
 		final List<WorkspaceObjectData> objects =
-				ws.getObjects(wsmeth.getUser(authPart), loi);
+				ws.getObjects(wsmeth.getUser(authPart), loi, false, false, false);
 		resourcesToDelete.set(objects);
 		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
         //END get_objects
@@ -690,7 +689,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		final List<ObjectIdentifier> loi = processSubObjectIdentifiers(
 				subObjectIds);
 		final List<WorkspaceObjectData> objects =
-				ws.getObjects(wsmeth.getUser(authPart), loi);
+				ws.getObjects(wsmeth.getUser(authPart), loi, false, false, false);
 		resourcesToDelete.set(objects);
 		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
         //END get_object_subset
@@ -792,8 +791,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		if (refChains == null) {
 			throw new IllegalArgumentException("refChains may not be null");
 		}
-		final List<ObjectIdentifier> chains =
-				new LinkedList<ObjectIdentifier>();
+		final List<ObjectIdentifier> chains = new LinkedList<>();
 		int count = 1;
 		for (List<ObjectIdentity> loy: refChains) {
 			final List<ObjectIdentifier> lor;
@@ -809,12 +807,13 @@ public class WorkspaceServer extends JsonServerServlet {
 						"Error on object chain #%s: The minimum size of a reference chain is 2 ObjectIdentities",
 						count));
 			}
-			chains.add(new ObjectIDWithRefPath(
-					lor.get(0), lor.subList(1, lor.size())));
+			chains.add(ObjectIdentifier.getBuilder(lor.get(0))
+					.withReferencePath(lor.subList(1, lor.size()))
+					.build());
 			count++;
 		}
 		final List<WorkspaceObjectData> objects = ws.getObjects(
-				wsmeth.getUser(authPart), chains);
+				wsmeth.getUser(authPart), chains, false, false, false);
 		resourcesToDelete.set(objects);
 		returnVal = wsmeth.translateObjectData(objects, wsmeth.getUser(authPart), true);
         //END get_referenced_objects

@@ -77,8 +77,10 @@ public class ObjectReferenceSet {
 		if (!oi.isAbsolute()) {
 			throw new IllegalArgumentException("oi must be absolute");
 		}
-		return refs.contains(new Reference(oi.getWorkspaceIdentifier().getId(), oi.getId(),
-				oi.getVersion()));
+		return refs.contains(new Reference(
+				oi.getWorkspaceIdentifier().getId(),
+				oi.getID().get(),
+				oi.getVersion().get()));
 	}
 
 	@Override

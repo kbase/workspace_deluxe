@@ -29,7 +29,7 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.sampleservice.GetSampleACLsParams;
 import us.kbase.sampleservice.SampleACLs;
 import us.kbase.sampleservice.SampleServiceClient;
-import us.kbase.sampleservice.UpdateSampleACLsParams;
+import us.kbase.sampleservice.UpdateSamplesACLsParams;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.SimpleRemappedId;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet.IdReferenceException;
@@ -50,7 +50,7 @@ public class SampleIDHandlerFactoryTest {
 			final Object got,
 			final boolean matches) {
 		if (VERBOSE && !matches) {
-			System.out.printf("Expected:\n%s\nGot:\n%s\n", expected, got);
+			System.out.printf("**\nExpected:\n%s\nGot:\n%s\n", expected, got);
 		}
 	}
 	
@@ -81,21 +81,23 @@ public class SampleIDHandlerFactoryTest {
 		}
 	}
 	
-	private class UpdateSampleACLParamsMatcher implements ArgumentMatcher<UpdateSampleACLsParams> {
+	private class UpdateSamplesACLParamsMatcher
+			implements ArgumentMatcher<UpdateSamplesACLsParams> {
 		
-		private final UpdateSampleACLsParams expected;
+		private final UpdateSamplesACLsParams expected;
 
-		public UpdateSampleACLParamsMatcher(final UpdateSampleACLsParams p) {
+		public UpdateSamplesACLParamsMatcher(final UpdateSamplesACLsParams p) {
 			this.expected = p;
 		}
 		
 		@Override
-		public boolean matches(final UpdateSampleACLsParams got) {
+		public boolean matches(final UpdateSamplesACLsParams got) {
 			// how I wish the SDK generated hashCode and equals
 			final boolean matches = 
 					oEq(expected.getAdditionalProperties(), got.getAdditionalProperties())
 					&& oEq(expected.getAsAdmin(), got.getAsAdmin())
-					&& oEq(expected.getId(), got.getId())
+					// order unimportant
+					&& oEq(new HashSet<>(expected.getIds()), new HashSet<>(got.getIds()))
 					&& oEq(expected.getAdmin(), got.getAdmin())
 					&& oEq(expected.getAtLeast(), got.getAtLeast())
 					&& oEq(expected.getPublicRead(), got.getPublicRead())
@@ -190,12 +192,9 @@ public class SampleIDHandlerFactoryTest {
 		
 		h.addReadPermission(new HashSet<>(Arrays.asList("foo", "bar")));
 		
-		verify(mockcli).updateSampleAcls(argThat(new UpdateSampleACLParamsMatcher(
-				new UpdateSampleACLsParams()
-					.withAsAdmin(1L).withId("foo").withPublicRead(1L))));
-		verify(mockcli).updateSampleAcls(argThat(new UpdateSampleACLParamsMatcher(
-				new UpdateSampleACLsParams()
-					.withAsAdmin(1L).withId("bar").withPublicRead(1L))));
+		verify(mockcli).updateSamplesAcls(argThat(new UpdateSamplesACLParamsMatcher(
+				new UpdateSamplesACLsParams()
+					.withAsAdmin(1L).withIds(Arrays.asList("foo", "bar")).withPublicRead(1L))));
 	}
 	
 	@Test
@@ -207,12 +206,9 @@ public class SampleIDHandlerFactoryTest {
 		
 		h.addReadPermission(new HashSet<>(Arrays.asList("foo", "bar")));
 		
-		verify(cli).updateSampleAcls(argThat(new UpdateSampleACLParamsMatcher(
-				new UpdateSampleACLsParams().withAsAdmin(1L).withAtLeast(1L)
-						.withId("foo").withRead(Arrays.asList("user1")))));
-		verify(cli).updateSampleAcls(argThat(new UpdateSampleACLParamsMatcher(
-				new UpdateSampleACLsParams().withAsAdmin(1L).withAtLeast(1L)
-						.withId("bar").withRead(Arrays.asList("user1")))));
+		verify(cli).updateSamplesAcls(argThat(new UpdateSamplesACLParamsMatcher(
+				new UpdateSamplesACLsParams().withAsAdmin(1L).withAtLeast(1L)
+						.withIds(Arrays.asList("foo", "bar")).withRead(Arrays.asList("user1")))));
 	}
 	
 	@Test
@@ -268,10 +264,12 @@ public class SampleIDHandlerFactoryTest {
 		final IdReferencePermissionHandler h = new SampleIdHandlerFactory(cli)
 				.createPermissionHandler("user1");
 		
-		doThrow(thrown).when(cli).updateSampleAcls(
-				argThat(new UpdateSampleACLParamsMatcher(
-						new UpdateSampleACLsParams().withAsAdmin(1L).withAtLeast(1L)
-								.withId("bar").withRead(Arrays.asList("user1")))));
+		doThrow(thrown).when(cli).updateSamplesAcls(
+				argThat(new UpdateSamplesACLParamsMatcher(new UpdateSamplesACLsParams()
+						.withAsAdmin(1L)
+						.withAtLeast(1L)
+						.withIds(Arrays.asList("foo", "bar"))
+						.withRead(Arrays.asList("user1")))));
 		
 		addReadPermissionFail(h, Arrays.asList("foo", "bar"), expected);
 	}

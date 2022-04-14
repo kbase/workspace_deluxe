@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import java.util.Optional;
 import java.util.Set;
 
@@ -54,17 +55,20 @@ import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory.IdReferenceHandlerFa
 import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermissionHandler;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.ObjectResolver.ObjectResolution;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
+import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
+import us.kbase.workspace.database.provenance.ProvenanceAction;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 
@@ -87,6 +91,7 @@ public class Workspace {
 	 * for now this is low enough it's not really a concern.
 	 */
 	private final static int MAX_OBJECT_SEARCH_COUNT_DEFAULT = 10000;
+	private final static int MAX_GET_OBJECTS_REQUEST = 10000;
 	
 	private final static IdReferenceType WS_ID_TYPE = new IdReferenceType("ws");
 	
@@ -101,7 +106,8 @@ public class Workspace {
 			final WorkspaceDatabase db,
 			final ResourceUsageConfiguration cfg,
 			final TypedObjectValidator validator,
-			final TempFilesManager tfm) {
+			final TempFilesManager tfm)
+			throws WorkspaceCommunicationException {
 		this(db, cfg, validator, tfm, Collections.emptyList());
 	}
 	
@@ -110,8 +116,10 @@ public class Workspace {
 			final ResourceUsageConfiguration cfg,
 			final TypedObjectValidator validator,
 			final TempFilesManager tfm,
-			final List<WorkspaceEventListener> listeners) {
+			final List<WorkspaceEventListener> listeners)
+			throws WorkspaceCommunicationException {
 		this.db = requireNonNull(db, "db");
+		this.db.setConfig(DynamicConfigUpdate.getDefault(), false);
 		rescfg = requireNonNull(cfg, "cfg");
 		//TODO DBCONSIST check that a few object types exist to make sure the type provider is ok.
 		this.validator = requireNonNull(validator, "validator");
@@ -119,7 +127,6 @@ public class Workspace {
 		nonNull(listeners, "listeners");
 		noNulls(listeners, "null item in listeners");
 		this.listeners = Collections.unmodifiableList(listeners);
-		db.setResourceUsageConfiguration(rescfg);
 		this.maximumObjectSearchCount = MAX_OBJECT_SEARCH_COUNT_DEFAULT;
 	}
 	
@@ -144,7 +151,6 @@ public class Workspace {
 			throw new NullPointerException("rescfg cannot be null");
 		}
 		this.rescfg = rescfg;
-		db.setResourceUsageConfiguration(rescfg);
 	}
 	
 	public TempFilesManager getTempFilesManager() {
@@ -153,6 +159,27 @@ public class Workspace {
 	
 	public List<DependencyStatus> status() {
 		return db.status();
+	}
+	
+	/** Set the dynamic configuration for the workspace. This method should only be exposed
+	 * to workspace admins.
+	 * @param config the configuration
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 */
+	public void setConfig(final DynamicConfigUpdate config)
+			throws WorkspaceCommunicationException {
+		db.setConfig(requireNonNull(config, "config"), true);
+	}
+	
+	/** Get the dynamic configuration for the workspace. This method should only be exposed to
+	 * workspace admins.
+	 * @return the configuration.
+	 * @throws WorkspaceCommunicationException if a communication error occurs.
+	 * @throws CorruptWorkspaceDBException if a corrupt database is detected.
+	 */
+	public DynamicConfig getConfig()
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		return db.getConfig();
 	}
 	
 	public WorkspaceInformation createWorkspace(final WorkspaceUser user, 
@@ -698,9 +725,8 @@ public class Workspace {
 		int objcount = 1;
 		for (WorkspaceSaveObject wo: objects) {
 			//maintain ordering
-			wo.getProvenance().setWorkspaceID(Long.valueOf(rwsi.getID()));
 			final List<Reference> provrefs = new LinkedList<Reference>();
-			for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
+			for (final ProvenanceAction action: wo.getProvenance().getActions()) {
 				for (final String ref: action.getWorkspaceObjects()) {
 					provrefs.add((Reference) idhandler.getRemappedId(WS_ID_TYPE, ref));
 				}
@@ -724,7 +750,7 @@ public class Workspace {
 			}
 			
 			final ValidatedTypedObject rep = reports.get(wo);
-			saveobjs.add(wo.resolve(rep, refs, provrefs, extractedIDs));
+			saveobjs.add(wo.resolve(rwsi, rep, refs, provrefs, extractedIDs));
 			ttlObjSize += rep.calculateRelabeledSize();
 			if (rep.getRelabeledSize() > rescfg.getMaxObjectSize()) {
 				throw new IllegalArgumentException(String.format(
@@ -810,20 +836,15 @@ public class Workspace {
 			reports.put(wo, rep);
 			idhandler.associateObject(new IDAssociation(objcount, true));
 			try {
-				for (final Provenance.ProvenanceAction action: wo.getProvenance().getActions()) {
+				for (final ProvenanceAction action: wo.getProvenance().getActions()) {
 					for (final String pref: action.getWorkspaceObjects()) {
-						if (pref == null) {
-							throw new TypedObjectValidationException(String.format(
-									"Object %s has a null provenance reference",
-									getObjectErrorId(wo, objcount)));
-						}
 						idhandler.addStringId(new IdReference<String>(WS_ID_TYPE, pref, null));
 					}
 				}
-			} catch (IdReferenceHandlerException ihre) {
-				throw new TypedObjectValidationException(String.format(
-						"Object %s has invalid provenance reference: ",
-						getObjectErrorId(wo, objcount)) + ihre.getMessage(), ihre);
+			} catch (IdReferenceHandlerException e) {
+				// thrown if ID is null or the empty string, which is impossible
+				throw new RuntimeException("This exception didn't actually happen. In fact "
+						+ "you're on extremely strong drugs. Pay me no heed", e);
 			} catch (TooManyIdsException tmie) {
 				throw wrapTooManyIDsException(objcount, idhandler, tmie);
 			}
@@ -841,16 +862,16 @@ public class Workspace {
 		try {
 			idhandler.processIDs();
 		} catch (IdParseException ipe) {
+			// Provenance references cannot throw a parse exception since they were parsed
+			// in the provenance data class, so we only have to worry about embedded refs
 			final IDAssociation idloc = (IDAssociation) ipe.getAssociatedObject();
 			final WorkspaceSaveObject wo = objects.get(idloc.objnum - 1);
 			throw new TypedObjectValidationException(String.format(
-					"Object %s has unparseable %sreference %s: %s%s",
+					"Object %s has unparseable reference %s: %s at %s",
 					getObjectErrorId(wo, idloc.objnum),
-					(idloc.provenance ? "provenance " : ""),
 					ipe.getId(),
 					ipe.getMessage(),
-					idloc.provenance ? "" : " at " +
-							getIDPath(reports.get(wo), ipe.getIdReference())),
+					getIDPath(reports.get(wo), ipe.getIdReference())),
 					ipe);
 		} catch (IdReferenceException ire) {
 			final IDAssociation idloc = (IDAssociation) ire.getAssociatedObject();
@@ -1025,192 +1046,156 @@ public class Workspace {
 		return db.getObjectInformation(params.resolve(pset));
 	}
 	
+	/** Get data objects from the workspace.
+	 * @param user the user requesting the objects, or null for an anonymous user.
+	 * @param objs the requested objects; no more than 10,000.
+	 * @param noData true to return information about the object only, no data. E.g.
+	 * {@link WorkspaceObjectData#getSerializedData()} will be empty.
+	 * @param nullIfInaccessible instead of throwing an exception, if any object is not accessible
+	 * for any reason, including deletion, include a null in the returned list at its position.
+	 * @param asAdmin run this method as an admin, bypassing permissions checks.
+	 * @return the data objects.
+	 * @throws InaccessibleObjectException if any of the objects are inaccessible.
+	 * @throws NoSuchObjectException if a requested object doesn't exist.
+	 * @throws NoSuchReferenceException if a reference path is invalid.
+	 * @throws ReferenceSearchMaximumSizeExceededException if a valid path to an object could not
+	 * be found within the specified maximum size of the graph search.
+	 * @throws TypedObjectExtractionException if extracting a data subset from a data object
+	 * fails.
+	 * @throws WorkspaceCommunicationException if a communication error occurs when contacting the
+	 * storage system.
+	 * @throws CorruptWorkspaceDBException if corrupt data is found in the storage system.
+	 * @throws InterruptedException if the operation is interrupted.
+	 */
 	public List<WorkspaceObjectData> getObjects(
 			final WorkspaceUser user,
-			final List<ObjectIdentifier> loi)
-			throws CorruptWorkspaceDBException,
-				WorkspaceCommunicationException, InaccessibleObjectException,
-				NoSuchReferenceException, TypedObjectExtractionException,
-				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
-			
-		return getObjects(user, loi, false);
-	}
-	
-	public List<WorkspaceObjectData> getObjects(
-			final WorkspaceUser user,
-			final List<ObjectIdentifier> loi,
-			final boolean noData)
-			throws CorruptWorkspaceDBException,
-				WorkspaceCommunicationException, InaccessibleObjectException,
-				NoSuchReferenceException, TypedObjectExtractionException,
-				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
-		return getObjects(user, loi, noData, false, false);
-	}
-	
-	public List<WorkspaceObjectData> getObjects(
-			final WorkspaceUser user,
-			final List<ObjectIdentifier> loi,
+			final List<ObjectIdentifier> objs,
 			final boolean noData,
 			final boolean nullIfInaccessible,
 			final boolean asAdmin)
 			throws CorruptWorkspaceDBException,
 				WorkspaceCommunicationException, InaccessibleObjectException,
-				NoSuchReferenceException, TypedObjectExtractionException,
+				NoSuchReferenceException, TypedObjectExtractionException, InterruptedException,
 				ReferenceSearchMaximumSizeExceededException, NoSuchObjectException {
-		
+		if (requireNonNull(objs, "objs").size() > MAX_GET_OBJECTS_REQUEST) {
+			throw new IllegalArgumentException(String.format(
+					"At most %s objects can be requested at once", MAX_GET_OBJECTS_REQUEST));
+		}
+		noNulls(objs, "object list cannot contain nulls");
 		final ObjectResolver.Builder orb = ObjectResolver.getBuilder(db, user)
 				.withIgnoreInaccessible(nullIfInaccessible)
 				.withAsAdmin(asAdmin)
 				.withMaximumObjectsSearched(maximumObjectSearchCount);
-		for (final ObjectIdentifier oi: loi) {
+		for (final ObjectIdentifier oi: objs) {
 			orb.withObject(oi);
 		}
 		ObjectResolver res = orb.resolve();
 		
-		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> refpaths =
-				setupObjectPaths(res.getObjects(true), res);
-		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> stdpaths =
-				setupObjectPaths(res.getObjects(false), res);
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> stddata = getObjects(
+				res, false, !nullIfInaccessible, false, !nullIfInaccessible);
+		//objects cannot be missing at this stage
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> refdata = getObjects(
+				res, true, false, true, true);
 		
-		//TODO CODE make an overall resource manager that takes the config as an arg and handles returned data as well as mem & file limits 
-		final ByteArrayFileCacheManager dataMan = getDataManager(noData);
-		
-		//this is pretty gross, think about a better api here
-		Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> stddata = null;
-		Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> refdata = null;
-		try {
-			stddata = db.getObjects(stdpaths, dataMan, 0,
-					!nullIfInaccessible, false, !nullIfInaccessible);
-			refdata = db.getObjects(refpaths, dataMan, calculateDataSize(stddata),
-					//objects cannot be missing at this stage
-					false, true, true);
-			
-			refpaths.clear();
-			stdpaths.clear();
-			
-			final List<WorkspaceObjectData> ret = new ArrayList<>();
-			for (final ObjectIdentifier o: loi) {
-				final SubsetSelection ss;
-				if (o instanceof ObjIDWithRefPathAndSubset) {
-					ss = ((ObjIDWithRefPathAndSubset) o).getSubSet();
-				} else {
-					ss = SubsetSelection.EMPTY;
-				}
-				final WorkspaceObjectData wod;
-				final ObjectResolution objres = res.getObjectResolution(o);
-				if (objres.equals(ObjectResolution.INACCESSIBLE)) {
-					wod = null;
-				} else {
-					final ObjectIDResolvedWS resobj = res.getResolvedObject(o);
-					if (objres.equals(ObjectResolution.NO_PATH)) {
-						if (stddata.containsKey(resobj)) {
-							wod = stddata.get(resobj).get(ss);
-						} else {
-							wod = null; //object was deleted or missing
-						}
-					} else {
-						// since was resolved by path, object must exist
-						final WorkspaceObjectData prewod = refdata.get(resobj).get(ss);
-						wod = prewod.updateObjectReferencePath(res.getReferencePath(o));
-					}
-				}
-				ret.add(wod);
-			}
-			res = null;
-			refdata.clear();
-			stddata.clear();
-			removeInaccessibleDataCopyReferences(user, ret);
-			return ret;
-		} catch (RuntimeException | Error | CorruptWorkspaceDBException |
-				WorkspaceCommunicationException | NoSuchObjectException |
-				TypedObjectExtractionException e) {
-			destroyGetObjectsResources(stddata);
-			destroyGetObjectsResources(refdata);
-			throw e;
-		}
-	}
-
-	private void destroyGetObjectsResources(
-			final Map<ObjectIDResolvedWS, Map<SubsetSelection,
-					WorkspaceObjectData>> data) {
-		if (data == null) {
-			return;
-		}
-		for (final Map<SubsetSelection, WorkspaceObjectData> paths:
-				data.values()) {
-			for (final WorkspaceObjectData d: paths.values()) {
-				try {
-					d.destroy();
-				} catch (RuntimeException | Error e) {
-					//continue
-				}
-			}
-		}
-	}
-
-	private long calculateDataSize(
-			final Map<ObjectIDResolvedWS, Map<SubsetSelection,
-				WorkspaceObjectData>> stddata) {
-		long dataSize = 0;
-		for (final Map<SubsetSelection, WorkspaceObjectData> paths:
-				stddata.values()) {
-			for (final WorkspaceObjectData d: paths.values()) {
-				if (d.hasData()) {
-					dataSize += d.getSerializedData().getSize();
-				}
-			}
-			
-		}
-		return dataSize;
-	}
-
-	private ByteArrayFileCacheManager getDataManager(final boolean noData) {
-		if (noData) {
-			return null;
-		} else {
-			return new ByteArrayFileCacheManager(
-					rescfg.getMaxReturnedDataMemoryUsage(),
-					/* maximum possible disk usage is when subsetting objects
-					 * summing to 1G, since we have to pull the 1G objects and
-					 * then subset which could take up to another 1G. The 1G
-					 * originals will then be discarded
-					 */
-					rescfg.getMaxReturnedDataSize() * 2L,
-					tfm);
-		}
-	}
-
-	private Map<ObjectIDResolvedWS, Set<SubsetSelection>> setupObjectPaths(
-			final Set<ObjectIdentifier> objects,
-			final ObjectResolver res) {
-		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
-		for (final ObjectIdentifier o: objects) {
-			final ObjectIDResolvedWS roi = res.getResolvedObject(o);
-			if (!paths.containsKey(roi)) {
-				paths.put(roi, new HashSet<SubsetSelection>());
-			}
-			if (o instanceof ObjIDWithRefPathAndSubset) {
-				paths.get(roi).add(((ObjIDWithRefPathAndSubset) o).getSubSet());
+		final List<WorkspaceObjectData.Builder> toProc = new ArrayList<>();
+		for (final ObjectIdentifier o: objs) {
+			final WorkspaceObjectData.Builder wodb;
+			final ObjectResolution objres = res.getObjectResolution(o);
+			if (objres.equals(ObjectResolution.INACCESSIBLE)) {
+				wodb = null;
 			} else {
-				paths.get(roi).add(SubsetSelection.EMPTY);
+				final ObjectIDResolvedWS resobj = res.getResolvedObject(o);
+				if (objres.equals(ObjectResolution.NO_PATH)) {
+					if (stddata.containsKey(resobj)) {
+						wodb = addSubData(stddata.get(resobj), o.getSubSet());
+					} else {
+						wodb = null; //object was deleted or missing
+					}
+				} else {
+					// since was resolved by path, object must exist
+					wodb = WorkspaceObjectData.getBuilder(refdata.get(resobj))
+							// need a new builder since there may be many OIs to one OIRWS
+							.withSubsetSelection(o.getSubSet())
+							.withUpdatedReferencePath(res.getReferencePath(o));
+				}
+			}
+			toProc.add(wodb);
+		}
+		res = null;
+		refdata.clear();
+		stddata.clear();
+		removeInaccessibleDataCopyReferences(user, toProc, asAdmin);
+		if (!noData) {
+			try {
+				final List<WorkspaceObjectData.Builder> f = toProc.stream().filter(p -> p != null)
+						.collect(Collectors.toList());
+				db.addDataToObjects(
+						f,
+						getDataManagerAndCheckObjectSize(f),
+						db.getConfig().getBackendScaling().get());
+			} catch (NoObjectDataException e) { // should be impossible
+				throw new CorruptWorkspaceDBException(e.getLocalizedMessage(), e);
 			}
 		}
-		return paths;
+		// TODO CODE return optionals instead of nulls
+		return toProc.stream().map(b -> b == null ? null : b.build())
+				.collect(Collectors.toList());
+	}
+
+	private Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> getObjects(
+			final ObjectResolver res,
+			final boolean withPaths,
+			final boolean exceptIfDeleted,
+			final boolean includeDeleted,
+			final boolean exceptIfMissing)
+			throws NoSuchObjectException, WorkspaceCommunicationException,
+				CorruptWorkspaceDBException {
+		final Set<ObjectIDResolvedWS> stdpaths = res.getObjects(withPaths).stream()
+				.map(o -> res.getResolvedObject(o)).collect(Collectors.toSet());
+		return db.getObjects(stdpaths, exceptIfDeleted, includeDeleted, exceptIfMissing);
+	}
+
+	private WorkspaceObjectData.Builder addSubData(
+			final WorkspaceObjectData.Builder builder,
+			final SubsetSelection subSet) {
+		// If the subset is empty, we can just reuse the builder. Even if the data gets added
+		// multiple times it's no problem.
+		// If there's a subset we make a new builder in case there's a request for the same
+		// object with a different subset or no subset.
+		return subSet.isEmpty() ? builder :
+			WorkspaceObjectData.getBuilder(builder).withSubsetSelection(subSet);
+	}
+
+	private ByteArrayFileCacheManager getDataManagerAndCheckObjectSize(
+			final List<WorkspaceObjectData.Builder> objects) {
+		long size = 0;
+		long subsetSize = 0;
+		for (final WorkspaceObjectData.Builder b: objects) {
+			size += b.getObjectInfo().getSize();
+			subsetSize += b.getSubsetSelection().isEmpty() ? 0 : b.getObjectInfo().getSize();
+		}
+		if (size > rescfg.getMaxReturnedDataSize()) {
+			throw new IllegalArgumentException(String.format(
+					"Too much data requested from the workspace at once; " +
+					"data requested including potential subsets is %sB " + 
+					"which exceeds maximum of %s.", size, rescfg.getMaxReturnedDataSize()));
+		}
+		return new ByteArrayFileCacheManager(
+				size + subsetSize > rescfg.getMaxReturnedDataMemoryUsage() ? tfm : null);
 	}
 
 	private void removeInaccessibleDataCopyReferences(
 			final WorkspaceUser user,
-			final List<WorkspaceObjectData> data)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException {
-		
-		final Set<WorkspaceIdentifier> wsis =
-				new HashSet<WorkspaceIdentifier>();
-		for (final WorkspaceObjectData d: data) {
-			if (d != null && d.getCopyReference() != null) {
-				wsis.add(new WorkspaceIdentifier(
-						d.getCopyReference().getWorkspaceID()));
+			final List<WorkspaceObjectData.Builder> data,
+			final boolean asAdmin)
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		if (asAdmin) {
+			return; // admins see all and know all
+		}
+		final Set<WorkspaceIdentifier> wsis = new HashSet<>();
+		for (final WorkspaceObjectData.Builder d: data) {
+			if (d != null && d.getCopyReference().isPresent()) {
+				wsis.add(new WorkspaceIdentifier(d.getCopyReference().get().getWorkspaceID()));
 			}
 		}
 		if (wsis.isEmpty()) {
@@ -1220,8 +1205,7 @@ public class Workspace {
 		try {
 			rwsis = db.resolveWorkspaces(wsis, true);
 		} catch (NoSuchWorkspaceException nswe) {
-			throw new RuntimeException(
-					"Threw exception when explicitly told not to", nswe);
+			throw new RuntimeException("Threw exception when explicitly told not to", nswe);
 		}
 		Iterator<Entry<WorkspaceIdentifier, ResolvedWorkspaceID>> i =
 				rwsis.entrySet().iterator();
@@ -1232,8 +1216,7 @@ public class Workspace {
 		}
 		
 		//only includes workspaces that are at least readable
-		final PermissionSet perms = db.getPermissions(user,
-						new HashSet<ResolvedWorkspaceID>(rwsis.values()));
+		final PermissionSet perms = db.getPermissions(user, new HashSet<>(rwsis.values()));
 		i = rwsis.entrySet().iterator();
 		while (i.hasNext()) {
 			if (!perms.hasWorkspace(i.next().getValue())) {
@@ -1241,29 +1224,26 @@ public class Workspace {
 			}
 		}
 		
-		final Map<WorkspaceObjectData, ObjectIDResolvedWS> rois =
-				new HashMap<WorkspaceObjectData, ObjectIDResolvedWS>();
-		for (final WorkspaceObjectData d: data) {
-			if (d != null && d.getCopyReference() != null) {
-				final Reference cref = d.getCopyReference();
+		final Map<WorkspaceObjectData.Builder, ObjectIDResolvedWS> rois = new HashMap<>();
+		for (final WorkspaceObjectData.Builder d: data) {
+			if (d != null && d.getCopyReference().isPresent()) {
+				final Reference cref = d.getCopyReference().get();
 				final WorkspaceIdentifier wsi = new WorkspaceIdentifier(cref.getWorkspaceID());
 				if (!rwsis.containsKey(wsi)) {
-					d.setCopySourceInaccessible();
+					d.withCopySourceInaccessible();
 				} else {
-					rois.put(d, new ObjectIDResolvedWS(rwsis.get(wsi),
-							cref.getObjectID(), cref.getVersion()));
+					rois.put(d, new ObjectIDResolvedWS(
+							rwsis.get(wsi), cref.getObjectID(), cref.getVersion()));
 				}
 			}
 		}
 		
 		final Map<ObjectIDResolvedWS, Boolean> objexists =
-				db.getObjectExists(
-						new HashSet<ObjectIDResolvedWS>(rois.values())); 
+				db.getObjectExists(new HashSet<>(rois.values())); 
 		
-		for (final Entry<WorkspaceObjectData, ObjectIDResolvedWS> e:
-				rois.entrySet()) {
+		for (final Entry<WorkspaceObjectData.Builder, ObjectIDResolvedWS> e: rois.entrySet()) {
 			if (!objexists.get(e.getValue())) {
-				e.getKey().setCopySourceInaccessible();
+				e.getKey().withCopySourceInaccessible();
 			}
 		}
 	}
@@ -1818,31 +1798,14 @@ public class Workspace {
 				final T associatedObject)
 				throws IdParseException {
 			// cannot be null or empty at this point
-			final String[] refs = id.trim().split(";");
-			final List<ObjectIdentifier> ois = new LinkedList<>();
-			for (int i = 0; i < refs.length; i++) {
-				try {
-					ois.add(ObjectIdentifier.parseObjectReference(refs[i].trim()));
-					//Illegal arg is probably not the right exception
-				} catch (IllegalArgumentException iae) {
-					final List<String> attribs = getAnyAttributeSet(associatedObject, id);
-					final String messagePrefix;
-					if (refs.length == 1) {
-						messagePrefix = "";
-					} else {
-						messagePrefix = String.format(
-								"ID parse error in reference string %s at position %s: ",
-								id, i + 1);
-					}
-					throw new IdParseException(messagePrefix + iae.getMessage(),
-							getIdType(), associatedObject, id, attribs, iae);
-				}
+			try {
+				return ObjectIdentifier.getBuilderFromRefPath(id).build();
+				//Illegal arg is probably not the right exception
+			} catch (IllegalArgumentException e) {
+				final List<String> attribs = getAnyAttributeSet(associatedObject, id);
+				throw new IdParseException(
+						e.getMessage(), getIdType(), associatedObject, id, attribs, e);
 			}
-			if (ois.size() == 1) {
-				return ois.get(0);
-			}
-			return new ObjectIDWithRefPath(ois.get(0), ois.subList(1, ois.size()));
-			
 		}
 
 		//use this method when an ID is bad regardless of the attribute set

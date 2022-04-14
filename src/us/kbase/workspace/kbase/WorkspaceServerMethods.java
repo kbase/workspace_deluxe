@@ -2,7 +2,6 @@ package us.kbase.workspace.kbase;
 
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.checkLong;
-import static us.kbase.workspace.kbase.ArgUtils.chooseDate;
 import static us.kbase.workspace.kbase.ArgUtils.chooseInstant;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
@@ -26,6 +25,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 
@@ -68,7 +68,6 @@ import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.RefLimit;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.User;
@@ -88,6 +87,7 @@ import us.kbase.workspace.database.exceptions.NoSuchReferenceException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.database.refsearch.ReferenceSearchMaximumSizeExceededException;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 
@@ -341,40 +341,35 @@ public class WorkspaceServerMethods {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 				params.getWorkspace(), params.getId());
-		final List<WorkspaceSaveObject> woc = new ArrayList<WorkspaceSaveObject>();
-		int count = 1;
+		final List<WorkspaceSaveObject> woc = new LinkedList<>();
 		if (params.getObjects().isEmpty()) {
 			throw new IllegalArgumentException("No data provided");
 		}
-		for (ObjectSaveData d: params.getObjects()) {
-			checkAddlArgs(d.getAdditionalProperties(), d.getClass());
-			final ObjectIDNoWSNoVer oi;
+		final ListIterator<ObjectSaveData> oit = params.getObjects().listIterator();
+		while (oit.hasNext()) {
+			final ObjectSaveData d = oit.next();
+			ObjectIDNoWSNoVer oi = null;
 			try {
+				if (d == null) {
+					throw new NullPointerException("is null");
+				}
 				oi = ObjectIDNoWSNoVer.create(d.getName(), d.getObjid());
-			} catch (IllegalArgumentException e) {
-				throw new IllegalArgumentException("Object " + count + ": " + e.getMessage(), e);
-			}
-			final String errprefix = "Object " + count + ", " + oi.getIdentifierString() + ",";
-			if (d.getData() == null) {
-				throw new IllegalArgumentException(errprefix + " has no data");
-			}
-			TypeDefId t;
-			try {
-				t = TypeDefId.fromTypeString(d.getType());
-			} catch (IllegalArgumentException iae) {
-				throw new IllegalArgumentException(errprefix + " type error: "
-						+ iae.getLocalizedMessage(), iae);
-			}
-			final Provenance p = processProvenance(user, d.getProvenance());
-			final boolean hidden = longToBoolean(d.getHidden());
-			try {
+				checkAddlArgs(d.getAdditionalProperties(), d.getClass());
+				if (d.getData() == null) {
+					throw new IllegalArgumentException("no data");
+				}
+				final TypeDefId t = TypeDefId.fromTypeString(d.getType());
+				final Provenance p = processProvenance(user, Instant.now(), d.getProvenance());
+				final boolean hidden = longToBoolean(d.getHidden());
 				woc.add(new WorkspaceSaveObject(oi, d.getData(), t, 
 						new WorkspaceUserMetadata(d.getMeta()), p, hidden));
-			} catch (MetadataException me) {
-				throw new IllegalArgumentException(errprefix + " save error: "
-						+ me.getLocalizedMessage(), me);
+			} catch (IllegalArgumentException | NullPointerException | MetadataException e) {
+				throw new IllegalArgumentException(String.format("Object #%s%s: %s",
+						oit.nextIndex(),
+						oi == null ? "" : String.format(", %s", oi.getIdentifierString()),
+						e.getLocalizedMessage()),
+						e);
 			}
-			count++;
 		}
 		params.setObjects(null); 
 		final IdReferenceHandlerSetFactory fac = idFacBuilder.getFactory(token);
@@ -430,6 +425,7 @@ public class WorkspaceServerMethods {
 	 * many other objects.
 	 * @throws TypedObjectExtractionException if an error occurred extracting data from a typed
 	 * object.
+	 * @throws InterruptedException if the operation is interrupted.
 	 */
 	public GetObjects2Results getObjects(
 			final GetObjects2Params params,
@@ -438,9 +434,8 @@ public class WorkspaceServerMethods {
 			final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
 			throws CorruptWorkspaceDBException, WorkspaceCommunicationException,
 					InaccessibleObjectException, NoSuchReferenceException, NoSuchObjectException,
-					TypedObjectExtractionException, ReferenceSearchMaximumSizeExceededException {
-		// ugh, tried to see if we could code out the jpe and ioe but it's too much of a mess
-		// once you get into the byte array cache and JTS
+					TypedObjectExtractionException, ReferenceSearchMaximumSizeExceededException,
+					InterruptedException {
 		checkAddlArgs(params.getAdditionalProperties(), GetObjects2Params.class);
 		final List<ObjectIdentifier> loi =
 				processObjectSpecifications(params.getObjects());
@@ -450,7 +445,11 @@ public class WorkspaceServerMethods {
 				user, loi, noData, ignoreErrors, asAdmin);
 		resourcesToDelete.set(objects);
 		return new GetObjects2Results().withData(translateObjectData(
-				objects, user, true, longToBoolean(params.getSkipExternalSystemUpdates(), false)));
+				objects,
+				user,
+				longToBoolean(params.getSkipExternalSystemUpdates(), false),
+				longToBoolean(params.getBatchExternalSystemUpdates(), false),
+				true)); // log objects
 	}
 
 	private IdReferencePermissionHandlerSet getPermissionsHandler(final WorkspaceUser user) {
@@ -467,17 +466,19 @@ public class WorkspaceServerMethods {
 			final List<WorkspaceObjectData> objects, 
 			final WorkspaceUser user,
 			final boolean logObjects) {
-		return translateObjectData(objects, user, logObjects, false);
+		return translateObjectData(objects, user, false, false, logObjects);
 	}
 	
 	private List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
 			final WorkspaceUser user,
-			final boolean logObjects,
-			final boolean skipExternalACLUpdates) {
-		final Optional<IdReferencePermissionHandlerSet> handlers = skipExternalACLUpdates ? 
+			final boolean skipExternalSystemUpdates,
+			final boolean batchExternalSystemUpdates,
+			final boolean logObjects) {
+		final Optional<IdReferencePermissionHandlerSet> handlers = skipExternalSystemUpdates ? 
 				Optional.empty() : Optional.of(getPermissionsHandler(user));
-		return ArgUtils.translateObjectData(objects, handlers, logObjects);
+		return ArgUtils.translateObjectData(
+				objects, handlers, batchExternalSystemUpdates, logObjects);
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -514,16 +515,17 @@ public class WorkspaceServerMethods {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		final Permission p = params.getPerm() == null ? null :
 				translatePermission(params.getPerm());
-		final Date after = chooseDate(params.getAfter(),
+		final Instant after = chooseInstant(params.getAfter(),
 				params.getAfterEpoch(),
 				"Cannot specify both timestamp and epoch for after parameter");
-		final Date before = chooseDate(params.getBefore(),
+		final Instant before = chooseInstant(params.getBefore(),
 				params.getBeforeEpoch(),
 				"Cannot specify both timestamp and epoch for before parameter");
 		return wsInfoToTuple(ws.listWorkspaces(user,
 				p, convertUsers(params.getOwners()),
 				new WorkspaceUserMetadata(params.getMeta()),
-				after, before,
+				after == null ? null : Date.from(after),
+				before == null ? null : Date.from(before),
 				longToBoolean(params.getExcludeGlobal()),
 				longToBoolean(params.getShowDeleted()),
 				longToBoolean(params.getShowOnlyDeleted())));

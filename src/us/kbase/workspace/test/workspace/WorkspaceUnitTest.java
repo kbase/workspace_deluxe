@@ -3,12 +3,27 @@ package us.kbase.workspace.test.workspace;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.set;
+import static us.kbase.common.test.TestCommon.list;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.time.Instant;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.Test;
 
@@ -18,13 +33,24 @@ import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
+import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
+import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
+import us.kbase.workspace.database.exceptions.NoObjectDataException;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
 import us.kbase.common.test.TestCommon;
+import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.workspace.database.AllUsers;
+import us.kbase.workspace.database.ByteArrayFileCacheManager;
+import us.kbase.workspace.database.DynamicConfig;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
+import us.kbase.workspace.database.ObjectIDResolvedWS;
+import us.kbase.workspace.database.ObjectIdentifier;
+import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
@@ -49,7 +75,7 @@ public class WorkspaceUnitTest {
 		assertThat(UNI.length(), is(2011));
 	}
 	
-	private TestMocks initMocks() {
+	private TestMocks initMocks() throws Exception {
 		final WorkspaceDatabase db = mock(WorkspaceDatabase.class);
 		final TypedObjectValidator val = mock(TypedObjectValidator.class);
 		final TempFilesManager tfm = mock(TempFilesManager.class);
@@ -81,6 +107,43 @@ public class WorkspaceUnitTest {
 			this.cfg = cfg;
 			this.ws = ws;
 			this.tfm = tfm;
+		}
+	}
+	
+	@Test
+	public void setConfigOnStartup() throws Exception {
+		final TestMocks mocks = initMocks();
+		final DynamicConfigUpdate d = DynamicConfigUpdate.getBuilder()
+				.withBackendScaling(1).build();
+		// will have been called in initMocks
+		verify(mocks.db).setConfig(d, false);
+	}
+	
+	@Test
+	public void setConfig() throws Exception {
+		final TestMocks mocks = initMocks();
+		mocks.ws.setConfig(DynamicConfigUpdate.getBuilder().withBackendScaling(21).build());
+		verify(mocks.db).setConfig(
+				DynamicConfigUpdate.getBuilder().withBackendScaling(21).build(), true);
+	}
+	
+	@Test
+	public void getConfig() throws Exception {
+		final TestMocks mocks = initMocks();
+		when(mocks.db.getConfig()).thenReturn(
+				DynamicConfig.getBuilder().withBackendScaling(6).build());
+		assertThat("incorrect config", mocks.ws.getConfig(), is(
+				DynamicConfig.getBuilder().withBackendScaling(6).build()
+				));
+	}
+	
+	@Test
+	public void setConfigFail() throws Exception {
+		try {
+			initMocks().ws.setConfig(null);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("config"));
 		}
 	}
 	
@@ -279,5 +342,178 @@ public class WorkspaceUnitTest {
 				"new", false, input, new WorkspaceUserMetadata(), set());
 		
 		assertThat("incorrect wsinfo", wsinforet, is(wsinfo));
+	}
+	
+	@Test
+	public void getObjectsFailMissingData() throws Exception {
+		/* tests the case where there's an object in the database but no corresponding data
+		 * in the blobstore. Should never happen in practice.
+		 */
+		
+		final TestMocks mocks = initMocks();
+
+		final Date now = new Date();
+		final WorkspaceUser u = new WorkspaceUser("u1");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
+		final Provenance p = basicProv(u);
+		final List<ObjectIdentifier> objs = list(
+				ObjectIdentifier.getBuilder(wsi).withID(1L).build());
+		final Set<ObjectIDResolvedWS> robjs = set(new ObjectIDResolvedWS(rwsi, 1));
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> data = new HashMap<>();
+		data.put(
+				new ObjectIDResolvedWS(rwsi, 1),
+				WorkspaceObjectData.getBuilder(
+						new ObjectInformation(
+								1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null),
+						p)
+				);
+		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(mocks.db.getPermissions(null, set(rwsi))).thenReturn(PermissionSet.getBuilder(
+				null, Workspace.ALL_USERS)
+				.withWorkspace(rwsi, Permission.NONE, Permission.READ)
+				.build());
+		when(mocks.db.getObjects(robjs, true, false, true)).thenReturn(data);
+		when(mocks.db.getConfig()).thenReturn(
+				DynamicConfig.getBuilder().withBackendScaling(3).build());
+		// arguments are a list of WOD builders and ByteArrayFileCacheManager, both of
+		// which are created in the method and are only equal based on identity
+		doThrow(new NoObjectDataException("oopsie"))
+				.when(mocks.db).addDataToObjects(any(), any(), eq(3));
+		
+		failGetObjects(mocks.ws, objs, false, new CorruptWorkspaceDBException("oopsie"));
+	}
+	
+	@Test
+	public void getObjectsBackendScaling() throws Exception {
+		// Tests that the backend scaling parameter is passed correctly to the object data method.
+		getObjectsBackendScaling(1);
+		getObjectsBackendScaling(3);
+		getObjectsBackendScaling(5);
+		getObjectsBackendScaling(1000);
+	}
+	
+	private void getObjectsBackendScaling(final int scaling) throws Exception {
+		final TestMocks mocks = initMocks();
+
+		final Date now = new Date();
+		final WorkspaceUser u = new WorkspaceUser("u1");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
+		final Provenance p = basicProv(u);
+		final List<ObjectIdentifier> objs = list(
+				ObjectIdentifier.getBuilder(wsi).withID(1L).build());
+		final Set<ObjectIDResolvedWS> robjs = set(new ObjectIDResolvedWS(rwsi, 1));
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> data = new HashMap<>();
+		data.put(
+				new ObjectIDResolvedWS(rwsi, 1),
+				WorkspaceObjectData.getBuilder(
+						new ObjectInformation(
+								1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null),
+						p)
+				);
+		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(mocks.db.getPermissions(null, set(rwsi))).thenReturn(PermissionSet.getBuilder(
+				null, Workspace.ALL_USERS)
+				.withWorkspace(rwsi, Permission.NONE, Permission.READ)
+				.build());
+		when(mocks.db.getObjects(robjs, true, false, true)).thenReturn(data);
+		when(mocks.db.getConfig()).thenReturn(
+				DynamicConfig.getBuilder().withBackendScaling(scaling).build());
+		
+		final List<WorkspaceObjectData> got = mocks.ws.getObjects(null, objs, false, false, false);
+		assertThat("incorrect count", got.size(), is(1));
+		final WorkspaceObjectData wod = got.get(0);
+		// no overridden equals method for WOD as expected
+		assertThat("incorrect info", wod.getObjectInfo(), is(new ObjectInformation(
+				1, "foo", "type", now, 1, u, rwsi, "chcksm", 12, null)));
+		assertThat("incorrect prov", wod.getProvenance(), is(p));
+		assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
+		assertThat("incorrect copy ref", wod.getCopyReference(), is(Optional.empty()));
+		assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
+		assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
+		assertThat("incorrect has data", wod.hasData(), is(false));
+		assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(false));
+		assertThat("incorrect subset", wod.getSubsetSelection(), is(SubsetSelection.EMPTY));
+		
+		// WOD & builder have no equals, so any() it is for this test
+		verify(mocks.db)
+				.addDataToObjects(any(), any(ByteArrayFileCacheManager.class), eq(scaling));
+	}
+	
+	@Test
+	public void getObjects10K() throws Exception {
+		final TestMocks mocks = initMocks();
+		
+		final Date now = new Date();
+		final WorkspaceUser u = new WorkspaceUser("u1");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(1, "foo", false, false);
+		final Provenance p = basicProv(u);
+		final ObjectIdentifier.Builder oi = ObjectIdentifier.getBuilder(wsi).withID(1L);
+		final List<ObjectIdentifier> objs = LongStream.range(1, 10001)
+				.mapToObj(i -> oi.withID(i).build()).collect(Collectors.toList());
+		final Set<ObjectIDResolvedWS> robjs = LongStream.range(1, 10001)
+				.mapToObj(i -> new ObjectIDResolvedWS(rwsi, i)).collect(Collectors.toSet());
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> data = LongStream
+				.range(1, 10001)
+				.mapToObj(i -> i)
+				.collect(Collectors.toMap(
+						i -> new ObjectIDResolvedWS(rwsi, i),
+						i -> WorkspaceObjectData.getBuilder(
+								new ObjectInformation(
+										i, "foo" + i, "type", now, 1, u, rwsi, "chcksm", 12, null),
+								p)));
+		
+		when(mocks.db.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(mocks.db.getPermissions(null, set(rwsi))).thenReturn(PermissionSet.getBuilder(
+				null, Workspace.ALL_USERS)
+				.withWorkspace(rwsi, Permission.NONE, Permission.READ)
+				.build());
+		when(mocks.db.getObjects(robjs, true, false, true)).thenReturn(data);
+		
+		final List<WorkspaceObjectData> got = mocks.ws.getObjects(null, objs, true, false, false);
+		for (int i = 0; i < 1000; i++) {
+			// no overridden equals method for WOD as expected
+			final WorkspaceObjectData wod = got.get(i);
+			assertThat("incorrect info", wod.getObjectInfo(), is(new ObjectInformation(
+					i + 1, "foo" + (i + 1), "type", now, 1, u, rwsi, "chcksm", 12, null)));
+			assertThat("incorrect prov", wod.getProvenance(), is(p));
+			assertThat("incorrect data", wod.getSerializedData(), is(Optional.empty()));
+			assertThat("incorrect copy ref", wod.getCopyReference(), is(Optional.empty()));
+			assertThat("incorrect ext ids", wod.getExtractedIds(), is(Collections.emptyMap()));
+			assertThat("incorrect refs", wod.getReferences(), is(Collections.emptyList()));
+			assertThat("incorrect has data", wod.hasData(), is(false));
+			assertThat("incorrect copy inaccessible", wod.isCopySourceInaccessible(), is(false));
+			assertThat("incorrect subset", wod.getSubsetSelection(), is(SubsetSelection.EMPTY));
+		}
+	}
+	
+	@Test
+	public void getObjectsFailBadArgs() throws Exception {
+		final TestMocks mocks = initMocks();
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(1);
+		final ObjectIdentifier.Builder oi = ObjectIdentifier.getBuilder(wsi).withID(1L);
+		
+		failGetObjects(mocks.ws, null, false, new NullPointerException("objs"));
+		failGetObjects(mocks.ws, Arrays.asList(oi.build(), null), false, new NullPointerException(
+				"object list cannot contain nulls"));
+		final List<ObjectIdentifier> objs = LongStream.range(1, 10002)
+				.mapToObj(i -> oi.withID(i).build()).collect(Collectors.toList());
+		failGetObjects(mocks.ws, objs, false, new IllegalArgumentException(
+				"At most 10000 objects can be requested at once"));
+	}
+	
+	private void failGetObjects(
+			final Workspace ws,
+			final List<ObjectIdentifier> objs,
+			final boolean noData,
+			final Exception expected) {
+		try {
+			ws.getObjects(null, objs, noData, false, false);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
 	}
 }

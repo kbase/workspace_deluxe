@@ -102,6 +102,43 @@ List all workspace owners::
      u'yetanotheruser',
      u'jkbaumohl']
 
+.. _dynamicconfiguration:
+
+Managing the dynamic configuration
+----------------------------------
+
+Some configuration parameters can be changed dynamically, vs. the parameters in ``deploy.cfg``
+that require a server restart to change.
+
+Get the configuration::
+
+    wsadmin.administer({'command': 'getConfig'})
+    {'config': {'backend-file-retrieval-scaling': 1}}
+
+Set the configuration::
+
+    wsadmin.administer(
+        {'command': 'setConfig',
+         'params': {'set': {'backend-file-retrieval-scaling': 3}}
+         }) 
+
+    wsadmin.administer({'command': 'getConfig'})
+    {'config': {'backend-file-retrieval-scaling': 3}}
+
+Currently there is only one configuration parameter:
+
+backend-file-retrieval-scaling
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This parameter sets the parallelization factor to use when retrieving object data from file
+stores like ``S3`` or ``GridFS``. Each call to any of the methods that return object data
+(such as ``get_objects2``) will spawn a thread pool with up to this many threads to use for
+fetching data. This parameter can be tuned to speed up getting object data while not overloading
+the file backend with simultaneous requests. The value must be an integer and minimum value is 1.
+For example, if the parallelization factor is 10 and 1000 objects are requested, up to 10
+objects at a time will be simultaneously fetched from the backend. If set to the default value,
+then each data object is fetched serially.
+
 General workspace commands
 --------------------------
 

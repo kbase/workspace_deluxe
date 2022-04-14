@@ -1,7 +1,7 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayToHash;
-import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
+import static java.util.Objects.requireNonNull;
+import static us.kbase.workspace.database.Util.noNulls;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_ADMINS;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_WS_CNT;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACES;
@@ -9,7 +9,10 @@ import static us.kbase.workspace.database.mongo.CollectionNames.COL_WS_ACLS;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_OBJS;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_VERS;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_PROVENANCE;
-import static us.kbase.workspace.database.mongo.CollectionNames.COL_CONFIG;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_SCHEMA_CONFIG;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_DYNAMIC_CONFIG;
+import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaMongoArrayToHash;
+import static us.kbase.workspace.database.mongo.ObjectInfoUtils.metaHashToMongoArray;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -17,7 +20,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,6 +33,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -50,8 +58,9 @@ import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
+import us.kbase.workspace.database.DynamicConfig;
+import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.ObjectReferenceSet;
-import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataException;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.CopyResult;
@@ -63,16 +72,12 @@ import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.PermissionSet;
 import us.kbase.workspace.database.PermissionSet.Builder;
-import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Provenance.ExternalData;
-import us.kbase.workspace.database.Provenance.ProvenanceAction;
-import us.kbase.workspace.database.Provenance.SubAction;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedObjectID;
 import us.kbase.workspace.database.ResolvedObjectIDNoVer;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
-import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.TypeAndReference;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.User;
@@ -86,8 +91,7 @@ import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.WorkspaceUserMetadata.MetadataSizeException;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.DeletedObjectException;
-import us.kbase.workspace.database.exceptions.FileCacheIOException;
-import us.kbase.workspace.database.exceptions.FileCacheLimitExceededException;
+import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
 import us.kbase.workspace.database.exceptions.PreExistingWorkspaceException;
@@ -96,6 +100,9 @@ import us.kbase.workspace.database.exceptions.WorkspaceDBInitializationException
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreAuthorizationException;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
+import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.ProvenanceAction;
+import us.kbase.workspace.database.provenance.SubAction;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -134,6 +141,8 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	// could cause index build fail and corrupt data in the db
 	// Need to look into this before upgrading to 4.2
 
+	private static final long OBJECT_DATA_FETCH_TIMEOUT_SEC = 900;
+	
 	public static final AllUsers ALL_USERS = Workspace.ALL_USERS;
 
 	//TODO CONFIG this should really be configurable
@@ -147,7 +156,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	private static final String ERR_DB_COMM =
 			"There was a problem communicating with the database";
 	
-	private ResourceUsageConfiguration rescfg;
 	private final MongoDatabase wsmongo;
 	private final BlobStore blob;
 	private final QueryMethods query;
@@ -243,11 +251,17 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		admin.add(idxSpec(Fields.ADMIN_NAME, 1, IDX_UNIQ));
 		indexes.put(COL_ADMINS, admin);
 		
-		//config indexes
-		final LinkedList<IndexSpecification> cfg = new LinkedList<>();
+		//schema indexes
+		final LinkedList<IndexSpecification> schema = new LinkedList<>();
 		//ensure only one config object
-		cfg.add(idxSpec(Fields.CONFIG_KEY, 1, IDX_UNIQ));
-		indexes.put(COL_CONFIG, cfg);
+		schema.add(idxSpec(Fields.SCHEMA_CONFIG_KEY, 1, IDX_UNIQ));
+		indexes.put(COL_SCHEMA_CONFIG, schema);
+		
+		// dynamic config indexes
+		final LinkedList<IndexSpecification> dyncfg = new LinkedList<>();
+		// ensure no duplicate config items
+		dyncfg.add(idxSpec(Fields.DYNAMIC_CONFIG_KEY, 1, IDX_UNIQ));
+		indexes.put(COL_DYNAMIC_CONFIG, dyncfg);
 		
 		return indexes;
 	}
@@ -275,7 +289,6 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		if (workspaceDB == null || blobStore == null) {
 			throw new NullPointerException("No arguments can be null");
 		}
-		rescfg = new ResourceUsageConfigurationBuilder().build();
 		this.clock = clock;
 		wsmongo = workspaceDB;
 		query = new QueryMethods(wsmongo, (AllUsers) ALL_USERS, COL_WORKSPACES,
@@ -284,7 +297,7 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		blob = blobStore;
 		//TODO DBCONSIST check a few random types and make sure they exist
 		ensureIndexes(wsmongo);
-		checkConfig(wsmongo);
+		checkSchema(wsmongo);
 	}
 	
 	private static class IndexSpecification {
@@ -411,26 +424,20 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		return deps;
 	}
 	
-	@Override
-	public void setResourceUsageConfiguration(
-			final ResourceUsageConfiguration rescfg) {
-		this.rescfg = rescfg;
-	}
-	
-	private static void checkConfig(final MongoDatabase wsmongo)
+	private static void checkSchema(final MongoDatabase wsmongo)
 			throws WorkspaceCommunicationException, WorkspaceDBInitializationException,
 				CorruptWorkspaceDBException {
 		final Document cfg = new Document(
-				Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
-		cfg.put(Fields.CONFIG_UPDATE, false);
-		cfg.put(Fields.CONFIG_SCHEMA_VERSION, SCHEMA_VERSION);
+				Fields.SCHEMA_CONFIG_KEY, Fields.SCHEMA_CONFIG_VALUE);
+		cfg.put(Fields.SCHEMA_CONFIG_UPDATE, false);
+		cfg.put(Fields.SCHEMA_CONFIG_VERSION, SCHEMA_VERSION);
 		try {
-			wsmongo.getCollection(COL_CONFIG).insertOne(cfg);
+			wsmongo.getCollection(COL_SCHEMA_CONFIG).insertOne(cfg);
 		} catch (MongoWriteException mwe) {
 			if (isDuplicateKeyException(mwe)) {
 				//ok, the version doc is already there, this isn't the first
 				//startup
-				checkExtantConfigAndGetVersion(wsmongo, false, false);
+				checkExtantSchemaAndGetVersion(wsmongo, false, false);
 			} else {
 				// pretty hard to test this
 				throw new WorkspaceCommunicationException(ERR_DB_COMM, mwe);
@@ -440,15 +447,15 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 		}
 	}
 
-	static Optional<Integer> checkExtantConfigAndGetVersion(
+	static Optional<Integer> checkExtantSchemaAndGetVersion(
 			final MongoDatabase wsmongo,
 			final boolean allowNoConfig,
 			final boolean skipVersionCheck)
 			throws CorruptWorkspaceDBException, WorkspaceDBInitializationException,
 				WorkspaceCommunicationException {
-		final Document query = new Document(Fields.CONFIG_KEY, Fields.CONFIG_VALUE);
+		final Document query = new Document(Fields.SCHEMA_CONFIG_KEY, Fields.SCHEMA_CONFIG_VALUE);
 		try {
-			final MongoCursor<Document> cur = wsmongo.getCollection(COL_CONFIG).find(query)
+			final MongoCursor<Document> cur = wsmongo.getCollection(COL_SCHEMA_CONFIG).find(query)
 					.iterator();
 			if (!cur.hasNext()) {
 				if (allowNoConfig) {
@@ -464,18 +471,18 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 						"> 1 config objects found in the database. " +
 						"This should not happen, something is very wrong.");
 			}
-			final Integer schemaVer = (Integer)storedCfg.get(Fields.CONFIG_SCHEMA_VERSION);
+			final Integer schemaVer = (Integer)storedCfg.get(Fields.SCHEMA_CONFIG_VERSION);
 			if (!skipVersionCheck && schemaVer != SCHEMA_VERSION) {
 				throw new WorkspaceDBInitializationException(String.format(
 						"Incompatible database schema. Server is v%s, DB is v%s",
 						SCHEMA_VERSION,
-						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+						storedCfg.get(Fields.SCHEMA_CONFIG_VERSION)));
 			}
-			if ((Boolean)storedCfg.get(Fields.CONFIG_UPDATE)) {
+			if ((Boolean)storedCfg.get(Fields.SCHEMA_CONFIG_UPDATE)) {
 				throw new WorkspaceDBInitializationException(String.format(
 						"The database is in the middle of an update from " +
 						"v%s of the schema. Aborting startup.", 
-						storedCfg.get(Fields.CONFIG_SCHEMA_VERSION)));
+						storedCfg.get(Fields.SCHEMA_CONFIG_VERSION)));
 			}
 			return Optional.of(schemaVer);
 		} catch (MongoException me) {
@@ -515,6 +522,53 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 	}
 
 	private static final Set<String> FLDS_CREATE_WS = newHashSet(Fields.WS_DEL, Fields.WS_OWNER);
+	
+	@Override
+	public void setConfig(final DynamicConfigUpdate config, final boolean overwrite)
+			throws WorkspaceCommunicationException {
+		final Map<String, Object> cfg = requireNonNull(config, "config").toSet();
+		final String op = overwrite ? "$set" : "$setOnInsert";
+		try {
+			// could do an insertMany here but meh, performance is not going to be an issue
+			for (final String key: cfg.keySet()) {
+				wsmongo.getCollection(COL_DYNAMIC_CONFIG).updateOne(
+						new Document(Fields.DYNAMIC_CONFIG_KEY, key),
+						new Document(
+								op, new Document(Fields.DYNAMIC_CONFIG_VALUE, cfg.get(key))),
+						new UpdateOptions().upsert(true));
+			}
+			for (final String key: config.toRemove()) {
+				wsmongo.getCollection(COL_DYNAMIC_CONFIG).deleteOne(
+						new Document(Fields.DYNAMIC_CONFIG_KEY, key));
+			}
+		} catch (MongoException me) {
+			// not sure how to test this
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
+		}
+	}
+	
+	@Override
+	public DynamicConfig getConfig()
+			throws WorkspaceCommunicationException, CorruptWorkspaceDBException {
+		final Map<String, Object> values = new HashMap<>();
+		try {
+			// in the future might want to specify fields to pull
+			for (final Document d: wsmongo.getCollection(COL_DYNAMIC_CONFIG).find()) {
+				values.put(
+						d.getString(Fields.DYNAMIC_CONFIG_KEY),
+						d.get(Fields.DYNAMIC_CONFIG_VALUE));
+			}
+		} catch (MongoException me) {
+			// not sure how to test this
+			throw new WorkspaceCommunicationException(ERR_DB_COMM, me);
+		}
+		try {
+			return DynamicConfig.getBuilder().withMap(values).build();
+		} catch (IllegalArgumentException e) {
+			throw new CorruptWorkspaceDBException(
+					"Illegal configuration values found in database", e);
+		}
+	}
 	
 	@Override
 	public WorkspaceInformation createWorkspace(
@@ -1947,44 +2001,61 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			p.provid = (ObjectId) provmap.get(p).get(Fields.MONGO_ID); // ew, side effect
 		}
 	}
+	
+	private <T> List<T> emptyToNull(final List<T> list) {
+		return list.isEmpty() ? null : list;
+	}
+	
+	private Map<String, String> emptyToNull(final Map<String, String> map) {
+		return map.isEmpty() ? null : map;
+	}
 
 	private Map<String, Object> toDocument(final Provenance p) {
 		final Map<String, Object> ret = new HashMap<>();
 		ret.put(Fields.PROV_USER, p.getUser().getUser());
-		ret.put(Fields.PROV_DATE, p.getDate());
-		ret.put(Fields.PROV_WS_ID, p.getWorkspaceID());
+		// this is a bit of a hack, but the JSON representation of an Instant is ~30 chars bigger
+		// than a Date and not always the same length, which screws with the size calculations in
+		// tests when writing this map to JSON (which is also a bit of a hack, but doesn't need to
+		// be byte level accurate). Both instants and dates are accepted by Mongo so just use a
+		// Date here.
+		// Might make more sense to write BSON vs. JSON for the size calcs.
+		ret.put(Fields.PROV_DATE, Date.from(p.getDate()));
+		ret.put(Fields.PROV_WS_ID, p.getWorkspaceID().orElse(null));
 		final List<Map<String, Object>> actions = new LinkedList<>();
 		ret.put(Fields.PROV_ACTIONS, actions);
 		for (final ProvenanceAction pa: p.getActions()) {
 			final Map<String, Object> paret = new HashMap<>();
 			actions.add(paret);
-			paret.put(Fields.PROV_ACTION_CALLER, pa.getCaller());
-			paret.put(Fields.PROV_ACTION_COMMAND_LINE, pa.getCommandLine());
-			paret.put(Fields.PROV_ACTION_CUSTOM, pa.getCustom());
-			paret.put(Fields.PROV_ACTION_DESCRIPTION, pa.getDescription());
-			paret.put(Fields.PROV_ACTION_INCOMING_ARGS, pa.getIncomingArgs());
-			paret.put(Fields.PROV_ACTION_METHOD, pa.getMethod());
-			paret.put(Fields.PROV_ACTION_METHOD_PARAMS, pa.getMethodParameters());
-			paret.put(Fields.PROV_ACTION_OUTGOING_ARGS, pa.getOutgoingArgs());
-			paret.put(Fields.PROV_ACTION_SCRIPT, pa.getScript());
-			paret.put(Fields.PROV_ACTION_SCRIPT_VER, pa.getScriptVersion());
-			paret.put(Fields.PROV_ACTION_SERVICE, pa.getServiceName());
-			paret.put(Fields.PROV_ACTION_SERVICE_VER, pa.getServiceVersion());
-			paret.put(Fields.PROV_ACTION_TIME, pa.getTime());
-			paret.put(Fields.PROV_ACTION_WS_OBJS, pa.getWorkspaceObjects());
+			paret.put(Fields.PROV_ACTION_CALLER, pa.getCaller().orElse(null));
+			paret.put(Fields.PROV_ACTION_COMMAND_LINE, pa.getCommandLine().orElse(null));
+			paret.put(Fields.PROV_ACTION_CUSTOM, emptyToNull(pa.getCustom()));
+			paret.put(Fields.PROV_ACTION_DESCRIPTION, pa.getDescription().orElse(null));
+			paret.put(Fields.PROV_ACTION_INCOMING_ARGS, emptyToNull(pa.getIncomingArgs()));
+			paret.put(Fields.PROV_ACTION_METHOD, pa.getMethod().orElse(null));
+			paret.put(Fields.PROV_ACTION_METHOD_PARAMS, emptyToNull(pa.getMethodParameters()));
+			paret.put(Fields.PROV_ACTION_OUTGOING_ARGS, emptyToNull(pa.getOutgoingArgs()));
+			paret.put(Fields.PROV_ACTION_SCRIPT, pa.getScript().orElse(null));
+			paret.put(Fields.PROV_ACTION_SCRIPT_VER, pa.getScriptVersion().orElse(null));
+			paret.put(Fields.PROV_ACTION_SERVICE, pa.getServiceName().orElse(null));
+			paret.put(Fields.PROV_ACTION_SERVICE_VER, pa.getServiceVersion().orElse(null));
+			paret.put(Fields.PROV_ACTION_TIME, pa.getTime().map(t -> Date.from(t)).orElse(null));
+			paret.put(Fields.PROV_ACTION_WS_OBJS, emptyToNull(pa.getWorkspaceObjects()));
 			
 			final List<Map<String, Object>> extdata = new LinkedList<>();
 			paret.put(Fields.PROV_ACTION_EXTERNAL_DATA, extdata);
 			for (final ExternalData d: pa.getExternalData()) {
 				final Map<String, Object> dret = new HashMap<>();
 				extdata.add(dret);
-				dret.put(Fields.PROV_EXTDATA_DATA_ID, d.getDataId());
-				dret.put(Fields.PROV_EXTDATA_DATA_URL, d.getDataUrl());
-				dret.put(Fields.PROV_EXTDATA_DESCRIPTION, d.getDescription());
-				dret.put(Fields.PROV_EXTDATA_RESOURCE_DATE, d.getResourceReleaseDate());
-				dret.put(Fields.PROV_EXTDATA_RESOURCE_NAME, d.getResourceName());
-				dret.put(Fields.PROV_EXTDATA_RESOURCE_URL, d.getResourceUrl());
-				dret.put(Fields.PROV_EXTDATA_RESOURCE_VER, d.getResourceVersion());
+				dret.put(Fields.PROV_EXTDATA_DATA_ID, d.getDataID().orElse(null));
+				dret.put(Fields.PROV_EXTDATA_DATA_URL,
+						d.getDataURL().map(u -> u.toString()).orElse(null));
+				dret.put(Fields.PROV_EXTDATA_DESCRIPTION, d.getDescription().orElse(null));
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_DATE,
+						d.getResourceReleaseDate().orElse(null));
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_NAME, d.getResourceName().orElse(null));
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_URL,
+						d.getResourceURL().map(u -> u.toString()).orElse(null));
+				dret.put(Fields.PROV_EXTDATA_RESOURCE_VER, d.getResourceVersion().orElse(null));
 			}
 			
 			final List<Map<String, Object>> subactions = new LinkedList<>();
@@ -1992,11 +2063,13 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			for (final SubAction a: pa.getSubActions()) {
 				final Map<String, Object> aret = new HashMap<>();
 				subactions.add(aret);
-				aret.put(Fields.PROV_SUBACTION_CODE_URL, a.getCodeUrl());
-				aret.put(Fields.PROV_SUBACTION_COMMIT, a.getCommit());
-				aret.put(Fields.PROV_SUBACTION_ENDPOINT_URL, a.getEndpointUrl());
-				aret.put(Fields.PROV_SUBACTION_NAME, a.getName());
-				aret.put(Fields.PROV_SUBACTION_VER, a.getVer());
+				aret.put(Fields.PROV_SUBACTION_CODE_URL,
+						a.getCodeURL().map(u -> u.toString()).orElse(null));
+				aret.put(Fields.PROV_SUBACTION_COMMIT, a.getCommit().orElse(null));
+				aret.put(Fields.PROV_SUBACTION_ENDPOINT_URL,
+						a.getEndpointURL().map(u -> u.toString()).orElse(null));
+				aret.put(Fields.PROV_SUBACTION_NAME, a.getName().orElse(null));
+				aret.put(Fields.PROV_SUBACTION_VER, a.getVersion().orElse(null));
 			}
 		}
 		return ret;
@@ -2213,214 +2286,201 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			Fields.VER_COPIED);
 	
 	@Override
-	public Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>>
-			getObjects(
-				final Map<ObjectIDResolvedWS, Set<SubsetSelection>> objs,
-				final ByteArrayFileCacheManager dataMan,
-				final long usedDataAllocation,
+	public Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> getObjects(
+				final Set<ObjectIDResolvedWS> objs,
 				final boolean exceptIfDeleted,
 				final boolean includeDeleted,
 				final boolean exceptIfMissing)
-			throws WorkspaceCommunicationException, NoSuchObjectException,
-			TypedObjectExtractionException, CorruptWorkspaceDBException {
+			throws WorkspaceCommunicationException, NoSuchObjectException {
 		
+		// TODO CODE update these to return Documents instead of Maps
+		// document are easier to deal with w/ mongo stuff
 		final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs =
-				resolveObjectIDs(objs.keySet(), exceptIfDeleted, includeDeleted, exceptIfMissing);
+				resolveObjectIDs(objs, exceptIfDeleted, includeDeleted, exceptIfMissing);
 		final Map<ResolvedObjectID, Map<String, Object>> vers = 
 				queryVersions(
-						new HashSet<ResolvedObjectID>(resobjs.values()),
-						FLDS_VER_GET_OBJECT, !exceptIfMissing);
-		if (dataMan != null) {
-			checkTotalFileSize(usedDataAllocation, objs, resobjs, vers);
-		}
+						new HashSet<>(resobjs.values()), FLDS_VER_GET_OBJECT, !exceptIfMissing);
 		final Map<ObjectId, Provenance> provs = getProvenance(vers);
-		final Map<String, ByteArrayFileCache> chksumToData =
-				new HashMap<String, ByteArrayFileCache>();
-		final Map<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>> ret =
-				new HashMap<ObjectIDResolvedWS, Map<SubsetSelection, WorkspaceObjectData>>();
-		for (final ObjectIDResolvedWS o: objs.keySet()) {
+		final Map<ObjectIDResolvedWS, WorkspaceObjectData.Builder> ret = new HashMap<>();
+		for (final ObjectIDResolvedWS o: objs) {
 			final ResolvedObjectID roi = resobjs.get(o);
 			if (!vers.containsKey(roi)) {
 				continue; // works if roi is null or vers doesn't have the key
 			}
 			final Provenance prov = provs.get((ObjectId) vers.get(roi).get(Fields.VER_PROV));
-			final String copyref =
-					(String) vers.get(roi).get(Fields.VER_COPIED);
+			final String copyref = (String) vers.get(roi).get(Fields.VER_COPIED);
 			final Reference copied = copyref == null ? null : new Reference(copyref);
 			@SuppressWarnings("unchecked")
 			final Map<String, List<String>> extIDs =
 					(Map<String, List<String>>) vers.get(roi).get(Fields.VER_EXT_IDS);
 			@SuppressWarnings("unchecked")
 			final List<String> refs = (List<String>) vers.get(roi).get(Fields.VER_REF);
-			final ObjectInformation info = ObjectInfoUtils.generateObjectInfo(
-					roi, vers.get(roi));
-			if (dataMan == null) {
-				ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
-				ret.get(o).put(SubsetSelection.EMPTY, new WorkspaceObjectData(
-						info, prov, refs, copied, toExternalIDs(extIDs)));
-			} else {
-				try {
-					if (objs.get(o).isEmpty()) {
-						// this can never happen based on the Workspace code
-						throw new IllegalStateException(
-								"At least one SubsetSelection must be provided");
-					} else {
-						for (final SubsetSelection op: objs.get(o)) {
-							buildReturnedObjectData(
-									o, op, prov, refs, copied, extIDs, info,
-									chksumToData, dataMan, ret);
-						}
-					}
-				} catch (TypedObjectExtractionException |
-						WorkspaceCommunicationException |
-						CorruptWorkspaceDBException |
-						RuntimeException |
-						Error e) {
-					cleanUpTempObjectFiles(chksumToData, ret);
-					throw e;
-				}
-			}
+			final ObjectInformation info = ObjectInfoUtils.generateObjectInfo(roi, vers.get(roi));
+			ret.put(o, addExternalIDs(WorkspaceObjectData.getBuilder(info, prov)
+					.withReferences(refs)
+					.withCopyReference(copied),
+					extIDs));
 		}
 		return ret;
 	}
 
-	private Map<IdReferenceType, List<String>> toExternalIDs(
+	private WorkspaceObjectData.Builder addExternalIDs(
+			final WorkspaceObjectData.Builder wod,
 			final Map<String, List<String>> extIDs) {
-		if (extIDs == null) {
-			return Collections.emptyMap();
+		if (extIDs != null) {
+			extIDs.keySet().stream().forEach(
+					k -> wod.withExternalIDs(new IdReferenceType(k), extIDs.get(k)));
 		}
-		return extIDs.keySet().stream().collect(Collectors.toMap(
-				k -> new IdReferenceType(k),
-				k -> extIDs.get(k)));
+		return wod;
 	}
-
-	private void checkTotalFileSize(
-			final long usedDataAllocation,
-			final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths,
-			final Map<ObjectIDResolvedWS, ResolvedObjectID> resobjs,
-			final Map<ResolvedObjectID, Map<String, Object>> vers) {
-		//could take into account that identical md5s won't incur a real
-		//size penalty, but meh
-		long size = 0;
-		for (final ObjectIDResolvedWS o: paths.keySet()) {
-			// works if resobjs.get(o) is null or vers doesn't contain
-			if (vers.containsKey(resobjs.get(o))) {
-				final Set<SubsetSelection> ops = paths.get(o);
-				final long mult = ops.size() < 1 ? 1 : ops.size();
-				size += mult * (Long) vers.get(resobjs.get(o))
-						.get(Fields.VER_SIZE);
-			}
+	
+	@Override
+	public void addDataToObjects(
+			final Collection<WorkspaceObjectData.Builder> objects,
+			final ByteArrayFileCacheManager dataManager,
+			final int backendScaling)
+			throws WorkspaceCommunicationException, TypedObjectExtractionException,
+				NoObjectDataException, InterruptedException {
+		noNulls(requireNonNull(objects, "objects"), "null found in objects");
+		requireNonNull(dataManager, "dataManager");
+		if (backendScaling < 1) {
+			throw new IllegalArgumentException("backendScaling must be > 0");
 		}
-		// TODO CODE just pass constant into the constructor or method call
-		// vs. including the whole class
-		if (size + usedDataAllocation > rescfg.getMaxReturnedDataSize()) {
-			throw new IllegalArgumentException(String.format(
-					"Too much data requested from the workspace at once; " +
-					"data requested including potential subsets is %sB " + 
-					"which exceeds maximum of %s.", size + usedDataAllocation,
-					rescfg.getMaxReturnedDataSize()));
+		if (objects.isEmpty()) {
+			return;
+		}
+		final Map<String, List<WorkspaceObjectData.Builder>> chksum2obj = new HashMap<>();
+		for (final WorkspaceObjectData.Builder b: objects) {
+			if (!chksum2obj.containsKey(b.getObjectInfo().getCheckSum())) {
+				chksum2obj.put(b.getObjectInfo().getCheckSum(), new LinkedList<>());
+			}
+			chksum2obj.get(b.getObjectInfo().getCheckSum()).add(b);
+		}
+		final List<BackendFileCallable> callables = chksum2obj.entrySet().stream()
+				.map(e -> new BackendFileCallable(blob, e.getKey(), dataManager, e.getValue()))
+				.collect(Collectors.toList());
+		final ExecutorService eserv = Executors.newFixedThreadPool(
+				Math.min(backendScaling, chksum2obj.size()));
+		try {
+			final List<Future<Void>> futures = eserv.invokeAll(
+					callables, OBJECT_DATA_FETCH_TIMEOUT_SEC, TimeUnit.SECONDS);
+			for (final Future<Void> f: futures) {
+				f.get(); // trigger exceptions
+			}
+		} catch (ExecutionException e) { // just throw the 1st exception encountered
+			cleanUpTempObjectFiles(objects, callables);
+			// Wrap EE exceptions to get the full stack
+			final Throwable cause = e.getCause();
+			if (cause instanceof IOException) {
+				throw new WorkspaceCommunicationException(cause.getLocalizedMessage(), e);
+			} else if (cause instanceof BlobStoreCommunicationException) {
+				throw new WorkspaceCommunicationException(cause.getLocalizedMessage(), e);
+			} else if (cause instanceof BlobStoreAuthorizationException) {
+				throw new WorkspaceCommunicationException(
+						"Authorization error communicating with the backend storage system", e);
+			} else if (cause instanceof NoSuchBlobException) {
+				final ObjectInformation info = chksum2obj.get(((NoSuchBlobException) cause)
+						.getMD5().getMD5()).get(0).getObjectInfo();
+				throw new NoObjectDataException(String.format(
+						"No data present for object %s/%s/%s",
+						info.getWorkspaceId(), info.getObjectId(), info.getVersion()), e);
+			} else if (cause instanceof TypedObjectExtractionException) {
+				throw new TypedObjectExtractionException(cause.getLocalizedMessage(), e);
+			} else if (cause instanceof WorkspaceCommunicationException) {
+				throw new WorkspaceCommunicationException(cause.getLocalizedMessage(), e);
+			} else {
+				throw new RuntimeException("Unexpected error", e);
+			}
+		} catch (InterruptedException | RuntimeException | Error e) {
+			// no easy way to test this AFAICT
+			cleanUpTempObjectFiles(objects, callables);
+			throw e;
+		} finally {
+			eserv.shutdownNow();
+		}
+	}
+	
+	private static class BackendFileCallable implements Callable<Void> {
+
+		private final BlobStore blob;
+		private final String chksum;
+		private final ByteArrayFileCacheManager dataManager;
+		private ByteArrayFileCache cacheResult = null;
+		private final List<WorkspaceObjectData.Builder> wods;
+
+		private BackendFileCallable(
+				final BlobStore blob,
+				final String chksum,
+				final ByteArrayFileCacheManager dataManager,
+				final List<WorkspaceObjectData.Builder> wods) {
+			this.blob = blob;
+			this.chksum = chksum;
+			this.dataManager = dataManager;
+			this.wods = wods;
+		}
+
+		@Override
+		public Void call() throws BlobStoreAuthorizationException, BlobStoreCommunicationException,
+				NoSuchBlobException, IOException, WorkspaceCommunicationException,
+				TypedObjectExtractionException {
+			cacheResult = blob.getBlob(new MD5(chksum), dataManager);
+			for (final WorkspaceObjectData.Builder b: wods) {
+				/* might be subsetting the same object the same way multiple times, but
+				 * probably unlikely. If it becomes a problem memoize the subset
+				 */
+				b.withData(getDataSubSet(cacheResult, b.getSubsetSelection(), dataManager));
+			}
+			return null;
 		}
 	}
 
 	private void cleanUpTempObjectFiles(
-			final Map<String, ByteArrayFileCache> chksumToData,
-			final Map<ObjectIDResolvedWS, Map<SubsetSelection,
-				WorkspaceObjectData>> ret) {
-		for (final ByteArrayFileCache f: chksumToData.values()) {
+			final Collection<WorkspaceObjectData.Builder> objects,
+			final List<BackendFileCallable> callables) {
+		/* I assume (although this is a guess) that if a thread is interrupted while
+		 * ByteArrayFileCacheManager is writing to a file, an InterruptedIOException will be
+		 * thrown:
+		 * https://docs.oracle.com/javase/8/docs/api/java/io/InterruptedIOException.html
+		 * In that case the temp file will be cleaned up by BAFCM.
+		 * Not sure how to test that though. If the workspace starts leaving temp files all over
+		 * the place worth spending some time here, but for now hold off.
+		 */
+		for (final WorkspaceObjectData.Builder builder: objects) {
 			try {
-				f.destroy();
+				final WorkspaceObjectData built = builder.build();
+				if (built.hasData()) {
+					builder.withData(null);
+					built.destroy();
+				}
 			} catch (RuntimeException | Error e) {
-				//continue
+				// continue
+				// not really any way to test this
 			}
 		}
-		for (final Map<SubsetSelection, WorkspaceObjectData> m:
-			ret.values()) {
-			for (final WorkspaceObjectData wod: m.values()) {
+		for (final BackendFileCallable bfc: callables) {
+			if (bfc.cacheResult != null) {
 				try {
-					wod.destroy();
+					bfc.cacheResult.destroy();
 				} catch (RuntimeException | Error e) {
-					//continue
+					// continue
+					// not really any way to test this
 				}
 			}
 		}
 	}
-	
 
-	//yuck. Think more about the interface here
-	private void buildReturnedObjectData(
-			final ObjectIDResolvedWS o,
-			final SubsetSelection op,
-			final Provenance prov,
-			final List<String> refs,
-			final Reference copied,
-			final Map<String, List<String>> extIDs,
-			final ObjectInformation info,
-			final Map<String, ByteArrayFileCache> chksumToData,
-			final ByteArrayFileCacheManager bafcMan,
-			final Map<ObjectIDResolvedWS,
-					Map<SubsetSelection, WorkspaceObjectData>> ret)
-			throws TypedObjectExtractionException,
-			WorkspaceCommunicationException, CorruptWorkspaceDBException {
-		if (!ret.containsKey(o)) {
-			ret.put(o, new HashMap<SubsetSelection, WorkspaceObjectData>());
-		}
-		if (chksumToData.containsKey(info.getCheckSum())) {
-			/* might be subsetting the same object the same way multiple
-			 * times, but probably unlikely. If it becomes a problem
-			 * memoize the subset
-			 */
-			ret.get(o).put(op, new WorkspaceObjectData(getDataSubSet(
-					chksumToData.get(info.getCheckSum()), op, bafcMan),
-					info, prov, refs, copied, toExternalIDs(extIDs)));
-		} else {
-			final ByteArrayFileCache data;
-			try {
-				data = blob.getBlob(new MD5(info.getCheckSum()), bafcMan);
-			} catch (FileCacheIOException e) {
-				throw new WorkspaceCommunicationException(
-						e.getLocalizedMessage(), e);
-			} catch (FileCacheLimitExceededException e) {
-				throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
-						"Too much data requested from the workspace at once; " +
-						"data requested including subsets exceeds maximum of "
-						+ bafcMan.getMaxSizeOnDisk());
-			} catch (BlobStoreCommunicationException e) {
-				throw new WorkspaceCommunicationException(
-						e.getLocalizedMessage(), e);
-			} catch (BlobStoreAuthorizationException e) {
-				throw new WorkspaceCommunicationException(
-						"Authorization error communicating with the backend storage system",
-						e);
-			} catch (NoSuchBlobException e) {
-				throw new CorruptWorkspaceDBException(String.format(
-						"No data present for valid object %s.%s.%s",
-						info.getWorkspaceId(), info.getObjectId(),
-						info.getVersion()), e);
-			}
-			chksumToData.put(info.getCheckSum(), data);
-			ret.get(o).put(op, new WorkspaceObjectData(
-					getDataSubSet(data, op, bafcMan),
-					info, prov, refs, copied, toExternalIDs(extIDs)));
-		}
-	}
-	
-	private ByteArrayFileCache getDataSubSet(final ByteArrayFileCache data,
-			final SubsetSelection paths, final ByteArrayFileCacheManager bafcMan)
-			throws TypedObjectExtractionException,
-			WorkspaceCommunicationException {
+	private static ByteArrayFileCache getDataSubSet(
+			final ByteArrayFileCache data,
+			final SubsetSelection paths,
+			final ByteArrayFileCacheManager bafcMan)
+			throws TypedObjectExtractionException, WorkspaceCommunicationException {
 		if (paths.isEmpty()) {
 			return data;
 		}
 		try {
 			return bafcMan.getSubdataExtraction(data, paths);
-		} catch (FileCacheIOException e) {
-			throw new WorkspaceCommunicationException(
-					e.getLocalizedMessage(), e);
-		} catch (FileCacheLimitExceededException e) {
-			throw new IllegalArgumentException( //shouldn't happen if size was checked correctly beforehand
-					"Too much data requested from the workspace at once; " +
-					"data requested including subsets exceeds maximum of "
-					+ bafcMan.getMaxSizeOnDisk());
+		} catch (IOException e) {
+			throw new WorkspaceCommunicationException(e.getLocalizedMessage(), e);
 		}
 	}
 	
@@ -2689,107 +2749,94 @@ public class MongoWorkspaceDB implements WorkspaceDatabase {
 			// this list is expected to be ordered in the same order as in the incoming
 			// provenance actions
 			final List<String> resolvedRefs) {
-		// also turns a lazybsonlist into a regularlist
+		// make a copy we can mutate
 		final List<String> rrcopy = new LinkedList<>(resolvedRefs);
-		final Provenance ret = new Provenance(
-				new WorkspaceUser((String) p.get(Fields.PROV_USER)),
-				(Date) p.get(Fields.PROV_DATE));
-		// objects saved before version 0.4.1 will have null workspace IDs
-		ret.setWorkspaceID((Long) p.get(Fields.PROV_WS_ID));
-		
-		@SuppressWarnings("unchecked")
-		final List<Map<String, Object>> actions =
-				(List<Map<String, Object>>) p.get(Fields.PROV_ACTIONS);
-		for (final Map<String, Object> pa: actions) {
-			@SuppressWarnings("unchecked")
-			final List<Map<String, Object>> extdata = 
-					(List<Map<String, Object>>) pa.get(Fields.PROV_ACTION_EXTERNAL_DATA);
-			@SuppressWarnings("unchecked")
-			final List<Map<String, Object>> subdata = 
-					(List<Map<String, Object>>) pa.get(Fields.PROV_ACTION_SUB_ACTIONS);
+		final Provenance.Builder ret = Provenance.getBuilder(
+				new WorkspaceUser(p.getString(Fields.PROV_USER)),
+				p.getDate(Fields.PROV_DATE).toInstant())
+				// objects saved before version 0.4.1 will have null workspace IDs
+				.withWorkspaceID(p.getLong(Fields.PROV_WS_ID));
+		for (final Document pa: p.getList(Fields.PROV_ACTIONS, Document.class)) {
 			@SuppressWarnings("unchecked")
 			final Map<String, String> precustom =
 					(Map<String, String>) pa.get(Fields.PROV_ACTION_CUSTOM);
-			// for some reason mongo maps are not equal  to regular maps
+			// mongo maps are not equal to HashMaps, they implement Map but inherit from Object
 			final Map<String, String> custom = precustom == null ? null : new HashMap<>(precustom);
 			
 			// adds the correct references to each prov action based on the ordering of the 
 			// incoming reference list
-			final List<String> wsobjs = toList(pa, Fields.PROV_ACTION_WS_OBJS);
+			final List<String> wsobjs = pa.getList(Fields.PROV_ACTION_WS_OBJS, String.class);
 			final int refcnt = wsobjs == null ? 0 : wsobjs.size();
-			final List<String> actionRefs = new LinkedList<String>(rrcopy.subList(0, refcnt));
+			final List<String> actionRefs = new LinkedList<>(rrcopy.subList(0, refcnt));
 			rrcopy.subList(0, refcnt).clear();
 			
-			ret.addAction(new ProvenanceAction()
-					.withExternalData(toExternalData(extdata))
-					.withSubActions(toSubAction(subdata))
-					.withCaller((String) pa.get(Fields.PROV_ACTION_CALLER))
-					.withCommandLine((String) pa.get(Fields.PROV_ACTION_COMMAND_LINE))
+			ret.withAction(ProvenanceAction.getBuilder()
+					.withExternalData(toExternalData(pa.getList(
+							Fields.PROV_ACTION_EXTERNAL_DATA, Document.class)))
+					.withSubActions(toSubAction(pa.getList(
+							Fields.PROV_ACTION_SUB_ACTIONS, Document.class)))
+					.withCaller(pa.getString(Fields.PROV_ACTION_CALLER))
+					.withCommandLine(pa.getString(Fields.PROV_ACTION_COMMAND_LINE))
 					.withCustom(custom)
-					.withDescription((String) pa.get(Fields.PROV_ACTION_DESCRIPTION))
-					.withIncomingArgs(toList(pa, Fields.PROV_ACTION_INCOMING_ARGS))
-					.withMethod((String) pa.get(Fields.PROV_ACTION_METHOD))
-					.withMethodParameters(toParamList(pa, Fields.PROV_ACTION_METHOD_PARAMS))
-					.withOutgoingArgs(toList(pa, Fields.PROV_ACTION_OUTGOING_ARGS))
-					.withScript((String) pa.get(Fields.PROV_ACTION_SCRIPT))
-					.withScriptVersion((String) pa.get(Fields.PROV_ACTION_SCRIPT_VER))
-					.withServiceName((String) pa.get(Fields.PROV_ACTION_SERVICE))
-					.withServiceVersion((String) pa.get(Fields.PROV_ACTION_SERVICE_VER))
-					.withTime((Date) pa.get(Fields.PROV_ACTION_TIME))
+					.withDescription(pa.getString(Fields.PROV_ACTION_DESCRIPTION))
+					.withIncomingArgs(pa.getList(Fields.PROV_ACTION_INCOMING_ARGS, String.class))
+					.withMethod(pa.getString(Fields.PROV_ACTION_METHOD))
+					.withMethodParameters(getParamList(pa))
+					.withOutgoingArgs(pa.getList(Fields.PROV_ACTION_OUTGOING_ARGS, String.class))
+					.withScript(pa.getString(Fields.PROV_ACTION_SCRIPT))
+					.withScriptVersion(pa.getString(Fields.PROV_ACTION_SCRIPT_VER))
+					.withServiceName(pa.getString(Fields.PROV_ACTION_SERVICE))
+					.withServiceVersion(pa.getString(Fields.PROV_ACTION_SERVICE_VER))
+					.withTime(getInstant(pa, Fields.PROV_ACTION_TIME))
 					.withWorkspaceObjects(wsobjs)
 					.withResolvedObjects(actionRefs)
+					.build()
 					);
 		}
-		return ret;
+		return ret.build();
+	}
+	
+	private List<Object> getParamList(final Document provaction) {
+		// if the param list has maps in it, they're Mongo Document objects under the hood.
+		// Need to run them through a converter to update them to standard maps, which aren't
+		// equal() to Mongo Documents
+		return MAPPER.convertValue(
+				provaction.getList(Fields.PROV_ACTION_METHOD_PARAMS, Object.class),
+				new TypeReference<List<Object>>() {});
 	}
 
-	private List<Object> toParamList(final Map<String, Object> container, final String field) {
-		// the param list is BasicDB* classes which for some reason aren't equal to
-		// the HashMaps and ArrayList they descend from
-		final List<Object> l = toList(container, field);
-		return MAPPER.convertValue(l, new TypeReference<List<Object>>() {});
-	}
-
-	private <T> List<T> toList(final Map<String, Object> container, final String field) {
-		@SuppressWarnings("unchecked")
-		final List<T> s = (List<T>) container.get(field);
-		return s;
-	}
-
-	private List<SubAction> toSubAction(final List<Map<String, Object>> subdata) {
-		final List<SubAction> subs = new LinkedList<>();
-		if (subdata != null) {
-			for (final Map<String, Object> s: subdata) {
-				subs.add(new SubAction()
-						.withCodeUrl((String) s.get(Fields.PROV_SUBACTION_CODE_URL))
-						.withCommit((String) s.get(Fields.PROV_SUBACTION_COMMIT))
-						.withEndpointUrl((String) s.get(Fields.PROV_SUBACTION_ENDPOINT_URL))
-						.withName((String) s.get(Fields.PROV_SUBACTION_NAME))
-						.withVer((String) s.get(Fields.PROV_SUBACTION_VER))
-						);
-			}
+	private List<SubAction> toSubAction(final List<Document> subdata) {
+		if (subdata == null) {
+			return null;
 		}
-		return subs;
+		return subdata.stream().map(s -> SubAction.getBuilder()
+				.withCodeURL(s.getString(Fields.PROV_SUBACTION_CODE_URL))
+				.withCommit(s.getString(Fields.PROV_SUBACTION_COMMIT))
+				.withEndpointURL(s.getString(Fields.PROV_SUBACTION_ENDPOINT_URL))
+				.withName(s.getString(Fields.PROV_SUBACTION_NAME))
+				.withVersion(s.getString(Fields.PROV_SUBACTION_VER))
+				.build())
+				.collect(Collectors.toList());
 	}
 
-	private List<ExternalData> toExternalData(final List<Map<String, Object>> extdata) {
-		final List<ExternalData> eds = new LinkedList<>();
-		if (extdata != null) {
-			for (final Map<String, Object> ed: extdata) {
-					eds.add(new ExternalData()
-							.withDataId((String) ed.get(Fields.PROV_EXTDATA_DATA_ID))
-							.withDataUrl((String) ed.get(Fields.PROV_EXTDATA_DATA_URL))
-							.withDescription((String) ed.get(Fields.PROV_EXTDATA_DESCRIPTION))
-							.withResourceName((String) ed.get(Fields.PROV_EXTDATA_RESOURCE_NAME))
-							.withResourceReleaseDate(
-									(Date) ed.get(Fields.PROV_EXTDATA_RESOURCE_DATE))
-							.withResourceUrl((String) ed.get(Fields.PROV_EXTDATA_RESOURCE_URL))
-							.withResourceVersion(
-									(String) ed.get(Fields.PROV_EXTDATA_RESOURCE_VER))
-							);
-			}
+	private List<ExternalData> toExternalData(final List<Document> extdata) {
+		if (extdata == null) {
+			return null;
 		}
-		return eds;
+		return extdata.stream().map(e -> ExternalData.getBuilder()
+				.withDataID(e.getString(Fields.PROV_EXTDATA_DATA_ID))
+				.withDataURL(e.getString(Fields.PROV_EXTDATA_DATA_URL))
+				.withDescription(e.getString(Fields.PROV_EXTDATA_DESCRIPTION))
+				.withResourceName(e.getString(Fields.PROV_EXTDATA_RESOURCE_NAME))
+				.withResourceReleaseDate(getInstant(e, Fields.PROV_EXTDATA_RESOURCE_DATE))
+				.withResourceURL(e.getString(Fields.PROV_EXTDATA_RESOURCE_URL))
+				.withResourceVersion(e.getString(Fields.PROV_EXTDATA_RESOURCE_VER))
+				.build())
+				.collect(Collectors.toList());
+	}
+
+	private Instant getInstant(Document doc, final String field) {
+		return Optional.ofNullable(doc.getDate(field)).map(d -> d.toInstant()).orElse(null);
 	}
 
 	private static final Set<String> FLDS_VER_TYPE = newHashSet(

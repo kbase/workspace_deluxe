@@ -10,6 +10,11 @@ mongodb-host = localhost
 # Name of the workspace mongo database
 mongodb-database = workspace
 
+# Setting for the MongoDB retryWrites connection parameter.
+# See https://www.mongodb.com/docs/manual/core/retryable-writes/
+# 'true' is true, anything else is false.
+#mongodb-retrywrites = false
+
 # The user name for an account with readWrite access to the database
 #mongodb-user = add username here
 

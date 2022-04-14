@@ -1,12 +1,12 @@
 package us.kbase.workspace.database.mongo;
 
-import static us.kbase.workspace.database.ObjectIDNoWSNoVer.checkObjectName;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
-import us.kbase.workspace.database.ObjectIDNoWSNoVer;
+
+// TODO CODE is this class even necessary? can it be removed?
 
 //these class names are getting ridiculous, need to think of a better way
-public class ObjectIDResolvedWSNoVer {
+class ObjectIDResolvedWSNoVer {
 	
 	private final ResolvedWorkspaceID rwsi;
 	private final String name;
@@ -21,19 +21,7 @@ public class ObjectIDResolvedWSNoVer {
 		this.id = oid.getId();
 	}
 	
-	ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
-			final String name) {
-		if (rwsi == null) {
-			throw new IllegalArgumentException("rwsi cannot be null");
-		}
-		checkObjectName(name);
-		this.rwsi = rwsi;
-		this.name = name;
-		this.id = null;
-	}
-	
-	ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi,
-			final long id) {
+	ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi, final long id) {
 		if (rwsi == null) {
 			throw new IllegalArgumentException("rwsi cannot be null");
 		}
@@ -45,29 +33,11 @@ public class ObjectIDResolvedWSNoVer {
 		this.id = id;
 	}
 	
-	ObjectIDResolvedWSNoVer(final ResolvedWorkspaceID rwsi, 
-			final ObjectIDNoWSNoVer id) {
-		if (rwsi == null) {
-			throw new IllegalArgumentException("rwsi cannot be null");
-		}
-		if (id == null) {
-			throw new IllegalArgumentException("id cannot be null");
-		}
-		this.rwsi = rwsi;
-		if (id.getId().isPresent()) {
-			this.name = null;
-			this.id = id.getId().get();
-		} else {
-			this.name = id.getName().get();
-			this.id = null;
-		}
-	}
-	
-	public ResolvedWorkspaceID getWorkspaceIdentifier() {
+	ResolvedWorkspaceID getWorkspaceIdentifier() {
 		return rwsi;
 	}
 
-	public String getName() {
+	String getName() {
 		return name;
 	}
 
@@ -75,17 +45,9 @@ public class ObjectIDResolvedWSNoVer {
 		return id;
 	}
 
-	public String getIdentifierString() {
-		if (getId() == null) {
-			return getName();
-		}
-		return "" + getId();
-	}
-
 	@Override
 	public String toString() {
-		return "ObjectIDResolvedWSNoVer [rwsi=" + rwsi + ", name=" + name
-				+ ", id=" + id + "]";
+		return "ObjectIDResolvedWSNoVer [rwsi=" + rwsi + ", name=" + name + ", id=" + id + "]";
 	}
 
 	@Override

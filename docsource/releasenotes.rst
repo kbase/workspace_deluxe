@@ -3,13 +3,44 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.13.0 (Released 4/13/2022)
+------------------------------------
+
+BACKWARDS INCOMPATIBILIES:
+
+* The workspace now requires version 0.1.1 of the Sample service.
+* Fixed a bug that would only count the first instance of an object in a data request when
+  checking against the maximum data return size. Now if the same object appears twice in
+  a data request it will be counted twice as expected.
+* ``get_objects2``, ``get_objects``, ``get_object_subset``, ``get_referenced_objects``, and
+  ``get_object_provenance`` now only allow a maximum of 10,000 objects in the input list.
+  Note the last 4 methods are deprecated and will be removed in a future release.
+* Provenance ``ProvenanceAction``, ``ExternalDataUnit`` and ``SubAction`` structures now check
+  that input URLs are valid URLs and require that at least one field is present.
+
+UPDATES:
+
+* Added a dynamic configuration feature - see :ref:`dynamicconfiguration`
+* Dynamic configuration allows setting a scaling parameter that specifies how many parallel
+  connections can be made to the ``S3`` or ``GridFS`` backend when getting objects.
+* The sample service ACL update mechanism has been changed to use a bulk interface for updating
+  ACLs rather than updating ACLs one at a time, which should speed up fetching objects with
+  ``@id sample`` annotations.
+* The ``batch_external_system_updates`` option has been added to ``get_objects2``.
+* Fixed a bug where, in the administration ``getObjects`` call, the copy source for an object
+  would always be inaccessible unless the source workspace was public.
+* Error handling for saving objects has been improved for some cases and provides more
+  information about the nature and source of the error.
+* Added the ``mongodb-retrywrites`` configuration setting in ``deploy.cfg``, defaulting to
+  ``false``.
+
 VERSION: 0.12.1 (Released 1/25/2022)
 ------------------------------------
 
 UPDATES: 
 
 * The ``skip_external_system_updates`` option has been added to ``get_objects2``.
-* Added the ``--print-stacktrace`` option to the schema updater
+* Added the ``--print-stacktrace`` option to the schema updater.
 
 VERSION: 0.12.0 (Released 11/16/21)
 -----------------------------------

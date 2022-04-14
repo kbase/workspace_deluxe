@@ -5,6 +5,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.now;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -43,21 +45,16 @@ import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
-import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.typedobj.idref.RemappedId;
 import us.kbase.typedobj.test.DummyValidatedTypedObject;
-import us.kbase.workspace.database.ByteArrayFileCacheManager;
-import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.ResolvedSaveObject;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
@@ -69,7 +66,6 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
-import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.InaccessibleObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchObjectException;
 import us.kbase.workspace.database.exceptions.NoSuchWorkspaceException;
@@ -79,6 +75,7 @@ import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.IDName;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.ObjectSavePackage;
+import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.test.workspace.WorkspaceTester;
 
 import com.mongodb.MongoClient;
@@ -242,7 +239,7 @@ public class MongoInternalsTest {
 		final WorkspaceUser user2 = new WorkspaceUser("whoop");
 		
 		final Map<String, String> mt = new HashMap<>();
-		final Provenance p = new Provenance(user1);
+		final Provenance p = basicProv(user1);
 		
 		// make a normal workspace & save objects
 		ws.createWorkspace(user2, "bar", false, null,
@@ -252,7 +249,7 @@ public class MongoInternalsTest {
 				new WorkspaceSaveObject(getRandomName(),
 						new UObject(mt), SAFE_TYPE, null, p, false)),
 				fac);
-		final ObjectIdentifier stdobj = new ObjectIdentifier(std, 1);
+		final ObjectIdentifier stdobj = ObjectIdentifier.getBuilder(std).withID(1L).build();
 		ws.setPermissions(user2, std, Arrays.asList(user1), Permission.WRITE);
 		
 		// make a workspace to be cloned, save objects, and put into cloning
@@ -264,7 +261,7 @@ public class MongoInternalsTest {
 				new WorkspaceSaveObject(getRandomName(),
 						new UObject(mt), SAFE_TYPE, null, p, false)),
 				fac);
-		final ObjectIdentifier clnobj = new ObjectIdentifier(cloning, 1);
+		final ObjectIdentifier clnobj = ObjectIdentifier.getBuilder(cloning).withID(1L).build();
 		
 		final Document update = new Document("$set", new Document("cloning", true))
 				.append("$unset", new Document("name", "").append("moddate", ""));
@@ -282,11 +279,11 @@ public class MongoInternalsTest {
 		
 		//test copy to & from
 		WorkspaceTester.failCopy(ws, user1, stdobj,
-				new ObjectIdentifier(cloning, "foo"),
+				ObjectIdentifier.getBuilder(cloning).withName("foo").build(),
 				new InaccessibleObjectException("Object foo cannot be " +
 						"accessed: No workspace with id 2 exists", null));
 		WorkspaceTester.failCopy(ws, user1, clnobj,
-				new ObjectIdentifier(std, "foo"), noObjExcp);
+				ObjectIdentifier.getBuilder(std).withName("foo").build(), noObjExcp);
 		
 		//test get names by prefix
 		WorkspaceTester.failGetNamesByPrefix(ws, user1, Arrays.asList(cloning),
@@ -304,14 +301,14 @@ public class MongoInternalsTest {
 				noWSExcp);
 		
 		// test get referenced objects
-		final ObjectIDWithRefPath oc = new ObjectIDWithRefPath(
-				clnobj, Arrays.asList(stdobj));
+		final ObjectIdentifier oc = ObjectIdentifier.getBuilder(clnobj)
+				.withReferencePath(Arrays.asList(stdobj)).build();
 		WorkspaceTester.failGetReferencedObjects(ws, user1, Arrays.asList(oc),
 				noObjExcp, false, new HashSet<>(Arrays.asList(0)));
 		
 		// test get subset
-		final ObjIDWithRefPathAndSubset os = new ObjIDWithRefPathAndSubset(
-				clnobj, null, new SubsetSelection(Arrays.asList("/foo")));
+		final ObjectIdentifier os = ObjectIdentifier.getBuilder(clnobj)
+				.withSubsetSelection(new SubsetSelection(Arrays.asList("/foo"))).build();
 		WorkspaceTester.failGetSubset(ws, user1, Arrays.asList(os), noObjExcp);
 		
 		//test get ws desc
@@ -387,7 +384,7 @@ public class MongoInternalsTest {
 			assertThat("correct exception message", ioe.getLocalizedMessage(),
 					is(noObjExcp.getMessage()));
 			assertThat("correct object returned", ioe.getInaccessibleObject(),
-					is(new ObjectIdentifier(cloning, 1)));
+					is(ObjectIdentifier.getBuilder(cloning).withID(1L).build()));
 		}
 		
 		// test get workspace info
@@ -574,8 +571,8 @@ public class MongoInternalsTest {
 		moredata.put("foo", "bar");
 		data.put("fubar", moredata);
 		meta.put("metastuff", "meta");
-		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
-		setWsidOnProvenance(wsid, p);
+		final Provenance p = Provenance.getBuilder(new WorkspaceUser("kbasetest2"), now())
+				.withWorkspaceID(wsid).build();
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		AbsoluteTypeDefId at = new AbsoluteTypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		
@@ -586,11 +583,12 @@ public class MongoInternalsTest {
 				new DummyValidatedTypedObject(at, wso.getData());
 		dummy.calculateRelabeledSize();
 		dummy.sort(new UTF8JsonSorterFactory(100000));
+		final ResolvedWorkspaceID rwsi = mwdb.resolveWorkspace(wsi);
 		ResolvedSaveObject rso = wso.resolve(
+				rwsi,
 				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
-		final ResolvedWorkspaceID rwsi = mwdb.resolveWorkspace(wsi);
 		mwdb.saveObjects(user, rwsi, Arrays.asList(rso));
 		
 		IDnPackage inp = startSaveObject(rwsi, rso, 3, at);
@@ -619,15 +617,6 @@ public class MongoInternalsTest {
 		assertThat("objectid is revised to existing object", md.getObjectId(), is(1L));
 	}
 
-	private void setWsidOnProvenance(long wsid, Provenance p)
-			throws NoSuchMethodException, IllegalAccessException,
-			InvocationTargetException {
-		Method setWsid = p.getClass().getDeclaredMethod("setWorkspaceID",
-				Long.class);
-		setWsid.setAccessible(true);
-		setWsid.invoke(p, Long.valueOf(wsid));
-	}
-	
 	@Test
 	public void setGetRaceCondition() throws Exception {
 		String objname = "testobj";
@@ -641,15 +630,15 @@ public class MongoInternalsTest {
 				.getId();
 		
 		final Map<String, Object> data = new HashMap<String, Object>();
-		Provenance p = new Provenance(new WorkspaceUser("kbasetest2"));
-		setWsidOnProvenance(wsid, p);
+		final Provenance p = Provenance.getBuilder(new WorkspaceUser("kbasetest2"), now())
+				.withWorkspaceID(wsid).build();
 		TypeDefId t = new TypeDefId(new TypeDefName("SomeModule", "AType"), 0, 1);
 		AbsoluteTypeDefId at = new AbsoluteTypeDefId(
 				new TypeDefName("SomeModule", "AType"), 0, 1);
 		
-		ResolvedSaveObject rso = createResolvedWSObj(objname, data, p, t, at);
-		ResolvedSaveObject rso2 = createResolvedWSObj(objname2, data, p, t, at);
 		final ResolvedWorkspaceID rwsi = mwdb.resolveWorkspace(wsi);
+		ResolvedSaveObject rso = createResolvedWSObj(rwsi, objname, data, p, t, at);
+		ResolvedSaveObject rso2 = createResolvedWSObj(rwsi, objname2, data, p, t, at);
 		
 		startSaveObject(rwsi, rso, 1, at);
 		mwdb.saveObjects(user, rwsi, Arrays.asList(rso2)); //objid 2
@@ -770,36 +759,34 @@ public class MongoInternalsTest {
 	}
 
 	private void failGetObjectsNoSuchObjectExcp(
-			Set<ObjectIDResolvedWS> oidsetver, String msg)
-			throws WorkspaceCommunicationException,
-			CorruptWorkspaceDBException, TypedObjectExtractionException {
-		final Map<ObjectIDResolvedWS, Set<SubsetSelection>> paths =
-				new HashMap<ObjectIDResolvedWS, Set<SubsetSelection>>();
-		for (final ObjectIDResolvedWS o: oidsetver) {
-			paths.put(o, null);
-		}
-		final ByteArrayFileCacheManager man = new ByteArrayFileCacheManager(
-				10000, 10000, ws.getTempFilesManager());
+			final Set<ObjectIDResolvedWS> oidsetver,
+			final String msg)
+			throws WorkspaceCommunicationException {
 		try {
-			mwdb.getObjects(paths, man, 0, true, false, true);
+			mwdb.getObjects(oidsetver, true, false, true);
 			fail("operated on object with no version");
 		} catch (NoSuchObjectException nsoe) {
-			assertThat("correct exception message", nsoe.getMessage(),
-					is(msg));
+			assertThat("correct exception message", nsoe.getMessage(), is(msg));
 		}
 	}
 
-	private ResolvedSaveObject createResolvedWSObj(String objname,
-			final Map<String, Object> data, Provenance p, TypeDefId t,
-			AbsoluteTypeDefId at) throws Exception {
-		WorkspaceSaveObject wso = new WorkspaceSaveObject(
+	private ResolvedSaveObject createResolvedWSObj(
+			final ResolvedWorkspaceID rwsi,
+			final String objname,
+			final Map<String, Object> data,
+			final Provenance p,
+			final TypeDefId t,
+			final AbsoluteTypeDefId at)
+			throws Exception {
+		final WorkspaceSaveObject wso = new WorkspaceSaveObject(
 				new ObjectIDNoWSNoVer(objname),
 				new UObject(data), t, null, p, false);
 		final DummyValidatedTypedObject dummy =
 				new DummyValidatedTypedObject(at, wso.getData());
 		dummy.calculateRelabeledSize();
 		dummy.sort(new UTF8JsonSorterFactory(100000));
-		ResolvedSaveObject rso = wso.resolve(
+		final ResolvedSaveObject rso = wso.resolve(
+				rwsi,
 				dummy,
 				new HashSet<Reference>(), new LinkedList<Reference>(),
 				new HashMap<IdReferenceType, Set<RemappedId>>());
@@ -867,7 +854,7 @@ public class MongoInternalsTest {
 		
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("refcount");
 		long wsid = ws.createWorkspace(userfoo, wspace.getName(), false, null, null).getId();
-		Provenance emptyprov = new Provenance(userfoo);
+		final Provenance emptyprov = basicProv(userfoo);
 		Map<String, Object> data1 = new HashMap<String, Object>();
 		data1.put("foo", 3);
 		
@@ -904,8 +891,10 @@ public class MongoInternalsTest {
 		ws.createWorkspace(userfoo, wspace2.getName(), false, null, null).getId();
 		
 		for (int i = 1; i <= 16; i++) {
-			ws.copyObject(userfoo, new ObjectIdentifier(wspace, "auto" + (i + 4)),
-					new ObjectIdentifier(wspace2, "obj" + i));
+			ws.copyObject(userfoo,
+					ObjectIdentifier.getBuilder(wspace).withName("auto" + (i + 4)).build(),
+					ObjectIdentifier.getBuilder(wspace2).withName("obj" + i).build()
+					);
 		}
 		checkRefCounts(wsid, expected, 2);
 		
@@ -915,7 +904,8 @@ public class MongoInternalsTest {
 		checkRefCounts(wsid, expected, 3);
 		
 		for (int i = 1; i <= 16; i++) {
-			ws.revertObject(userfoo, new ObjectIdentifier(wspace3, "obj" + i));
+			ws.revertObject(
+					userfoo, ObjectIdentifier.getBuilder(wspace3).withName("obj" + i).build());
 		}
 		checkRefCounts(wsid, expected, 4);
 		
@@ -958,23 +948,33 @@ public class MongoInternalsTest {
 		long wsid = ws.createWorkspace(userfoo, copyrev.getName(), false, null, null).getId();
 		
 		Map<String, Object> data = new HashMap<String, Object>();
+		final Provenance p = basicProv(userfoo);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), new UObject(data), SAFE_TYPE, null,
-						new Provenance(userfoo), hide)), fac);
+						p, hide)), fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), new UObject(data), SAFE_TYPE, null,
-						new Provenance(userfoo), hide)), fac);
+						p, hide)), fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), new UObject(data), SAFE_TYPE,
-						null, new Provenance(userfoo), hide)), fac);
+						null, p, hide)), fac);
 		ws.saveObjects(userfoo, copyrev, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer(2), new UObject(data), SAFE_TYPE,
-						null, new Provenance(userfoo), hide)), fac);
-		ws.copyObject(userfoo, new ObjectIdentifier(copyrev, 2, 2),
-				new ObjectIdentifier(copyrev, "auto3"));
-		ws.copyObject(userfoo, new ObjectIdentifier(copyrev, 2),
-				new ObjectIdentifier(copyrev, "auto4"));
-		ws.revertObject(userfoo, new ObjectIdentifier(copyrev, "auto4", 2));
+						null, p, hide)), fac);
+		ws.copyObject(
+				userfoo,
+				ObjectIdentifier.getBuilder(copyrev).withID(2L).withVersion(2).build(),
+				ObjectIdentifier.getBuilder(copyrev).withName("auto3").build()
+				);
+		ws.copyObject(
+				userfoo,
+				ObjectIdentifier.getBuilder(copyrev).withID(2L).build(),
+				ObjectIdentifier.getBuilder(copyrev).withName("auto4").build()
+				);
+		ws.revertObject(
+				userfoo,
+				ObjectIdentifier.getBuilder(copyrev).withName("auto4").withVersion(2).build()
+				);
 		
 		checkRefCntInit(wsid, 3, 1);
 		checkRefCntInit(wsid, 4, 4);
@@ -1067,18 +1067,21 @@ public class MongoInternalsTest {
 		Map<String, Object> data = new HashMap<String, Object>();
 		ws.saveObjects(userfoo, dates, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), new UObject(data),
-						SAFE_TYPE, null, new Provenance(userfoo), false)),
+						SAFE_TYPE, null, basicProv(userfoo), false)),
 				fac);
 		Date orig = getDate(wsid, 1);
-		ws.copyObject(userfoo, new ObjectIdentifier(dates, "orig"),
-				new ObjectIdentifier(dates, "copy"));
+		ws.copyObject(
+				userfoo,
+				ObjectIdentifier.getBuilder(dates).withName("orig").build(),
+				ObjectIdentifier.getBuilder(dates).withName("copy").build()
+				);
 		Date copy = getDate(wsid, 2);
-		ObjectIdentifier copyobj = new ObjectIdentifier(dates, "copy");
+		ObjectIdentifier copyobj = ObjectIdentifier.getBuilder(dates).withName("copy").build();
 		ws.revertObject(userfoo, copyobj);
 		Date revert = getDate(wsid, 2);
 		ws.renameObject(userfoo, copyobj, "foobar");
 		Date rename = getDate(wsid, 2);
-		ObjectIdentifier foobar = new ObjectIdentifier(dates, "foobar");
+		ObjectIdentifier foobar = ObjectIdentifier.getBuilder(dates).withName("foobar").build();
 		ws.setObjectsDeleted(userfoo, Arrays.asList(foobar), true);
 		Date delete = getDate(wsid, 2);
 		ws.setObjectsDeleted(userfoo, Arrays.asList(foobar), false);
@@ -1115,11 +1118,12 @@ public class MongoInternalsTest {
 		ws.createWorkspace(user, wsi.getName(), false, null, null).getId();
 		
 		final Map<String, Object> data = new HashMap<>();
+		final Provenance p = basicProv(user);
 		ws.saveObjects(user, wsi, Arrays.asList(
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig"), new UObject(data),
-						SAFE_TYPE, null, new Provenance(user), false),
+						SAFE_TYPE, null, p, false),
 				new WorkspaceSaveObject(new ObjectIDNoWSNoVer("orig2"), new UObject(data),
-						OTHER_TYPE_NO_VER, null, new Provenance(user), false)),
+						OTHER_TYPE_NO_VER, null, p, false)),
 				fac);
 	}
 	
@@ -1166,8 +1170,9 @@ public class MongoInternalsTest {
 		
 		typeFieldsSetUp();
 
-		ws.copyObject(user, new ObjectIdentifier(wsi, 1), new ObjectIdentifier(wsi, "new1"));
-		ws.copyObject(user, new ObjectIdentifier(wsi, 2), new ObjectIdentifier(wsi, "new2"));
+		final ObjectIdentifier.Builder b = ObjectIdentifier.getBuilder(wsi);
+		ws.copyObject(user, b.withID(1L).build(), b.withName("new1").build());
+		ws.copyObject(user, b.withID(2L).build(), b.withName("new2").build());
 		checkTypeFields(1, 3, 4);
 	}
 	
@@ -1179,8 +1184,8 @@ public class MongoInternalsTest {
 		
 		typeFieldsSetUp();
 		
-		ws.revertObject(user, new ObjectIdentifier(wsi, 1));
-		ws.revertObject(user, new ObjectIdentifier(wsi, 2));
+		ws.revertObject(user, ObjectIdentifier.getBuilder(wsi).withID(1L).build());
+		ws.revertObject(user, ObjectIdentifier.getBuilder(wsi).withID(2L).build());
 
 		checkTypeFields(1, 1, 2, 2, 2);
 	}

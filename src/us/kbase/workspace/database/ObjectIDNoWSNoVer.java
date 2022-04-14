@@ -87,8 +87,9 @@ public class ObjectIDNoWSNoVer {
 	 * <li>contains only a-z, A-Z, 0-9, and the characters |_.-</li>
 	 * <ul>
 	 * @param name the name of the object.
+	 * @return the input name.
 	 */
-	public static void checkObjectName(final String name) {
+	public static String checkObjectName(final String name) {
 		checkString(name, "Object name", MAX_NAME_LENGTH);
 		
 		Matcher m = OBJ_NAME_INVALID.matcher(name);
@@ -100,6 +101,7 @@ public class ObjectIDNoWSNoVer {
 		if (m.find()) {
 			throw new IllegalArgumentException("Object names cannot be integers: " + name);
 		}
+		return name;
 	}
 
 	@Override

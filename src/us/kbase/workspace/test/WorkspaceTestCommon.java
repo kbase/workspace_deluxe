@@ -1,5 +1,7 @@
 package us.kbase.workspace.test;
 
+import static us.kbase.common.test.TestCommon.now;
+
 import java.util.Arrays;
 import java.util.Map;
 
@@ -9,6 +11,7 @@ import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.provenance.Provenance;
 
 public class WorkspaceTestCommon {
 	
@@ -74,5 +77,9 @@ public class WorkspaceTestCommon {
 				"};",
 				null, null, null, false, null);
 		t.releaseTypes(user, "SomeModule");
+	}
+	
+	public static Provenance basicProv(final WorkspaceUser u) {
+		return Provenance.getBuilder(u, now()).build();
 	}
 }

@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -28,13 +29,13 @@ import com.mongodb.client.MongoDatabase;
 
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.mongo.MongoWorkspaceDB;
 import us.kbase.workspace.database.mongo.SchemaUpdater;
-import us.kbase.workspace.database.mongo.SchemaUpdater.SchemaUpdateException;;
+import us.kbase.workspace.database.mongo.SchemaUpdater.SchemaUpdateException;
+import us.kbase.workspace.database.provenance.Provenance;
 
 public class SchemaUpdaterTest {
 	
@@ -88,7 +89,7 @@ public class SchemaUpdaterTest {
 		final ResolvedWorkspaceID ws2 = new ResolvedWorkspaceID(2, "two", false, false);
 		final ResolvedWorkspaceID ws3 = new ResolvedWorkspaceID(3, "three", false, false);
 		
-		final Provenance p = new Provenance(u);
+		final Provenance p = basicProv(u);
 		pm.saveTestObject(ws1, u, p, "o1", "Mod1.Type1-7.2", MD5PRE + "01", 1);
 		pm.saveTestObject(ws1, u, p, "o2", "Mod1.Type1-7.2", MD5PRE + "02", 1);
 		pm.saveTestObject(ws1, u, p, "o2", "Mod1.Type1-7.2", MD5PRE + "03", 1);

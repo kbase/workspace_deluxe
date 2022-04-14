@@ -3,10 +3,12 @@ package us.kbase.workspace.test.kbase;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
+import static us.kbase.common.test.TestCommon.list;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -97,7 +99,7 @@ import com.google.common.collect.ImmutableMap;
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
-	private static final String VER = "0.12.1";
+	private static final String VER = "0.13.0";
 
 	@Test
 	public void ver() throws Exception {
@@ -529,13 +531,12 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 
 	@Test
 	public void saveBadPackages() throws Exception {
-		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("savebadpkg")
-				.withDescription("foo"));
-		List<ObjectSaveData> objects = new ArrayList<ObjectSaveData>();
+		CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("savebadpkg"));
+		final List<ObjectSaveData> objects = new ArrayList<>();
 		objects.add(new ObjectSaveData().withData(new UObject("some crap"))
 				.withType("SomeRandom.Type"));
-		SaveObjectsParams sop = new SaveObjectsParams()
-			.withWorkspace("permspriv").withObjects(objects);
+		final SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("permspriv")
+				.withObjects(objects);
 		sop.setAdditionalProperties("foo", "bar");
 		sop.setAdditionalProperties("baz", "faz");
 		try {
@@ -551,60 +552,65 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					is(new HashSet<String>(Arrays.asList("foo", "baz"))));
 		}
 
-		objects.get(0).setAdditionalProperties("wugga", "boo");
-		saveBadObject(objects, "Unexpected arguments in ObjectSaveData: wugga");
-
-		objects.set(0, new ObjectSaveData().withName("myname").withObjid(1L));
-		saveBadObject(objects, "Object 1: Must provide one and only one of object name " +
-				"(was: myname) or id (was: 1)");
+		final ObjectSaveData safe = new ObjectSaveData()
+				.withData(new UObject("foo"))
+				.withName("bar")
+				.withType(SAFE_TYPE);
+		
+		failSaveObjects(list(safe, new ObjectSaveData().withName("myname").withObjid(1L)),
+				"Object #2: Must provide one and only one of object name (was: myname) or id "
+				+ "(was: 1)");
 
 		objects.set(0, new ObjectSaveData());
-		saveBadObject(objects, "Object 1: Must provide one and only one of object name " +
+		failSaveObjects(objects, "Object #1: Must provide one and only one of object name " +
 				"(was: null) or id (was: null)");
 
 		objects.set(0, new ObjectSaveData().withName("myname+"));
-		saveBadObject(objects, "Object 1: Illegal character in object name myname+: +");
+		failSaveObjects(objects, "Object #1: Illegal character in object name myname+: +");
 
 		objects.set(0, new ObjectSaveData().withName(TEXT256));
-		saveBadObject(objects, "Object 1: Object name exceeds the maximum length of 255");
+		failSaveObjects(objects, "Object #1: Object name exceeds the maximum length of 255");
 
 		objects.set(0, new ObjectSaveData().withObjid(0L));
-		saveBadObject(objects, "Object 1: Object id must be > 0");
+		failSaveObjects(objects, "Object #1: Object id must be > 0");
+
+		final ObjectSaveData osd = new ObjectSaveData().withName("myname");
+		osd.setAdditionalProperties("wugga", "boo");
+		objects.set(0, osd);
+		failSaveObjects(list(safe, safe, osd),
+				"Object #3, myname: Unexpected arguments in ObjectSaveData: wugga");
 
 		objects.set(0, new ObjectSaveData().withName("foo"));
-		saveBadObject(objects, "Object 1, foo, has no data");
+		failSaveObjects(objects, "Object #1, foo: no data");
 
-		objects.add(0, new ObjectSaveData().withData(new UObject("foo")).withType("Foo.Bar")
-				.withName("foo"));
-		saveBadObject(objects, "Object 2, foo, has no data");
+		failSaveObjects(list(safe, new ObjectSaveData().withObjid(42L)), "Object #2, 42: no data");
 
-		objects.clear();
-		objects.add(new ObjectSaveData().withData(new UObject("foo")).withName("foo"));
-		saveBadObject(objects, "Object 1, foo, type error: Typestring cannot be null or the " +
+		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withName("foo"));
+		failSaveObjects(objects, "Object #1, foo: Typestring cannot be null or the " +
 				"empty string");
 
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType(null)
 				.withName("foo"));
-		saveBadObject(objects, "Object 1, foo, type error: Typestring cannot be null or the " +
+		failSaveObjects(objects, "Object #1, foo: Typestring cannot be null or the " +
 				"empty string");
 
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("")
 				.withName("foo"));
-		saveBadObject(objects, "Object 1, foo, type error: Typestring cannot be null or the " +
+		failSaveObjects(objects, "Object #1, foo: Typestring cannot be null or the " +
 				"empty string");
 
 		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo")
 				.withName("foo"));
-		saveBadObject(objects, "Object 1, foo, type error: Type foo could not be split into a " +
+		failSaveObjects(objects, "Object #1, foo: Type foo could not be split into a " +
 				"module and name");
 
-		objects.set(0, new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar-1.2.3")
-				.withName("foo"));
-		saveBadObject(objects, "Object 1, foo, type error: Type version string 1.2.3 could not " +
-				"be parsed to a version");
+		failSaveObjects(list(safe, safe, safe,
+				new ObjectSaveData().withData(new UObject("foo")).withType("foo.bar-1.2.3")
+						.withObjid(1L)),
+				"Object #4, 1: Type version string 1.2.3 could not be parsed to a version");
 	}
-
-	protected void saveBadObject(List<ObjectSaveData> objects, String exception)
+	
+	private void failSaveObjects(final List<ObjectSaveData> objects, final String exception)
 			throws Exception {
 		try {
 			CLIENT1.saveObjects(new SaveObjectsParams().withWorkspace("savebadpkg")
@@ -614,6 +620,23 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			assertThat("correct exception message", e.getLocalizedMessage(),
 					is(exception));
 		}
+	}
+	
+	@Test
+	public void saveObjectFailNull() throws Exception {
+		final SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("foo")
+				.withObjects(list(
+						new ObjectSaveData()
+								.withData(new UObject("foo"))
+								.withName("bar")
+								.withType(SAFE_TYPE),
+						new ObjectSaveData()
+								.withData(new UObject("foo"))
+								.withName("bat")
+								.withType(SAFE_TYPE),
+						null
+				));
+		failSaveObjects(sop, "Object #3: is null");
 	}
 
 	@Test
@@ -675,7 +698,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 					.withCustom(cs)
 					.withSubactions(sa)
 					.withTime("2013-04-26T12:52:06-0800"),
-				new ProvenanceAction());
+				new ProvenanceAction()
+					.withCaller("c")
+					// set arrays to empty lists since that's what the workspace will now return
+					.withIntermediateIncoming(Collections.emptyList())
+					.withMethodParams(Collections.emptyList())
+					.withIntermediateOutgoing(Collections.emptyList())
+					);
 		objects.add(new ObjectSaveData().withData(data).withType(SAFE_TYPE).withName("auto2")
 				.withProvenance(prov));
 		CLIENT1.saveObjects(sop);
@@ -698,7 +727,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("save w/ prov w/ extra fields");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Unexpected arguments in ProvenanceAction: foo"));
+					is("Object #1, auto3: Provenance action #1: Unexpected arguments in "
+							+ "ProvenanceAction: foo"));
 		}
 
 		ExternalDataUnit edusingle = new ExternalDataUnit();
@@ -712,7 +742,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("save prov external data w/ extra fields");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Unexpected arguments in ExternalDataUnit: baz"));
+					is("Object #1, auto4: Provenance action #1: External data unit #1: "
+							+ "Unexpected arguments in ExternalDataUnit: baz"));
 		}
 
 		edusingle.getAdditionalProperties().clear();
@@ -724,7 +755,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("save prov external data w/ ambiguous time");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Cannot specify both time and epoch in external data unit"));
+					is("Object #1, auto4: Provenance action #1: External data unit #1: Cannot"
+							+ " specify both time and epoch in external data unit"));
 		}
 
 		pa.withExternalData(null).withTime("2013-04-26T12:52:06-0800")
@@ -734,9 +766,11 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("save prov w/ ambiguous time");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Cannot specify both time and epoch in provenance action"));
+					is("Object #1, auto4: Provenance action #1: Cannot specify both time and"
+							+ " epoch in provenance action"));
 		}
 
+		// test time conversion to a standard format
 		saveProvWithGoodTime("provenance",
 				new StringEpoch("2013-04-26T23:52:06-0800"),
 				new StringEpoch(1367049126000L, "2013-04-27T07:52:06+0000"));
@@ -759,23 +793,6 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new StringEpoch(1367049126140L),
 				new StringEpoch(1367049126140L, "2013-04-27T07:52:06+0000"));
 
-		saveProvWithBadTime("2013-04-26T25:52:06-0800",
-				"Unparseable date: Cannot parse \"2013-04-26T25:52:06-0800\": Value 25 for hourOfDay must be in the range [0,23]");
-		saveProvWithBadTime("2013-04-26T23:52:06-8000",
-				"Unparseable date: Invalid format: \"2013-04-26T23:52:06-8000\" is malformed at \"8000\"");
-		saveProvWithBadTime("2013-04-35T23:52:06-0800",
-				"Unparseable date: Cannot parse \"2013-04-35T23:52:06-0800\": Value 35 for dayOfMonth must be in the range [1,30]");
-		saveProvWithBadTime("2013-13-26T23:52:06-0800",
-				"Unparseable date: Cannot parse \"2013-13-26T23:52:06-0800\": Value 13 for monthOfYear must be in the range [1,12]");
-		saveProvWithBadTime("2013-13-26T23:52:06.1111-0800",
-				"Unparseable date: Invalid format: \"2013-13-26T23:52:06.1111-0800\" is malformed at \"1-0800\"");
-		saveProvWithBadTime("2013-13-26T23:52:06.-0800",
-				"Unparseable date: Invalid format: \"2013-13-26T23:52:06.-0800\" is malformed at \".-0800\"");
-		saveProvWithBadTime("2013-12-26T23:52:06.55",
-				"Unparseable date: Invalid format: \"2013-12-26T23:52:06.55\" is too short");
-		saveProvWithBadTime("2013-12-26T23:52-0800",
-				"Unparseable date: Invalid format: \"2013-12-26T23:52-0800\" is malformed at \"-0800\"");
-
 		CLIENT1.setPermissions(new SetPermissionsParams().withId(wsid)
 				.withNewPermission("w").withUsers(Arrays.asList(USER2)));
 		CLIENT2.saveObjects(new SaveObjectsParams().withWorkspace("provenance")
@@ -786,19 +803,54 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				new HashMap<String, String>(),
 				new HashMap<StringEpoch, StringEpoch>());
 	}
+	@Test
+	public void saveProvWithBadTime() throws Exception {
+		// most tests for bad dates are in the arg utils tests, so we just do a single case here
+		final String err = "Unparseable date: Text '2013-04-26T25:52:06-0800' could not be "
+				+ "parsed: Invalid value for HourOfDay (valid values 0 - 23): 25";
+		final ProvenanceAction pa = new ProvenanceAction().withTime("2013-04-26T25:52:06-0800");
+		final SaveObjectsParams sop = new SaveObjectsParams().withWorkspace("provenance")
+				.withObjects(list(
+						new ObjectSaveData()
+								.withData(new UObject("foo"))
+								.withType(SAFE_TYPE)
+								.withName("foobarbaz")
+								.withProvenance(list(pa))));
+		failSaveObjects(sop, "Object #1, foobarbaz: Provenance action #1: " + err);
+		
+		pa.withTime(null).withExternalData(list(new ExternalDataUnit()
+				.withResourceReleaseDate("2013-04-26T25:52:06-0800")));
+		failSaveObjects(sop, "Object #1, foobarbaz: Provenance action #1: External data unit #1: "
+				+ err);
+	}
+
+	private void failSaveObjects(final SaveObjectsParams sop, final String exception)
+			throws Exception {
+		try {
+			CLIENT1.saveObjects(sop);
+			fail("expected exception");
+		} catch (ServerException se) {
+			assertThat("correct exception", se.getLocalizedMessage(), is(exception));
+		}
+	}
 
 	private void saveProvWithGoodTime(String workspace, StringEpoch inputTime,
 			StringEpoch expectedTime) throws Exception {
 		UObject data = new UObject(new HashMap<String, Object>());
 
-		List<ProvenanceAction> prov = new LinkedList<ProvenanceAction>();;
+		List<ProvenanceAction> prov = new LinkedList<ProvenanceAction>();
+		final ProvenanceAction pa = new ProvenanceAction()
+				// workspace always returns lists for these now
+				.withIntermediateIncoming(Collections.emptyList())
+				.withIntermediateOutgoing(Collections.emptyList())
+				.withMethodParams(Collections.emptyList());
 		if (inputTime.time != null) {
-			prov.add(new ProvenanceAction().withTime(inputTime.time)
+			prov.add(pa.withTime(inputTime.time)
 					.withExternalData(Arrays.asList(
 							new ExternalDataUnit()
 								.withResourceReleaseDate(inputTime.time))));
 		} else {
-			prov.add(new ProvenanceAction().withEpoch(inputTime.epoch)
+			prov.add(pa.withEpoch(inputTime.epoch)
 					.withExternalData(Arrays.asList(
 							new ExternalDataUnit()
 								.withResourceReleaseEpoch(inputTime.epoch))));
@@ -818,7 +870,58 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		timemap.put(inputTime, expectedTime);
 		ObjectIdentity id = new ObjectIdentity().withWsid(wsid).withObjid(objid);
 		checkProvenance(USER1, id, prov, refmap, timemap);
+	}
+	
+	@Test
+	public void saveProvenanceFail() throws Exception {
+		// Test a subset of cases that can cause a save failure because of provenance input
+		// Mostly tests the overall error handling mechanisms rather than testing every single
+		// failure case, which should be and are covered by unit tests.
+		final ObjectSaveData safe = new ObjectSaveData()
+				.withName("foo")
+				.withData(new UObject(Collections.emptyMap()))
+				.withType(SAFE_TYPE1);
+		final ProvenanceAction safep = new ProvenanceAction().withInputWsObjects(list("1/1/1"));
+		
+		final ObjectSaveData target = new ObjectSaveData()
+				.withData(new UObject(Collections.emptyMap()))
+				.withType(SAFE_TYPE1);
 
+		// null item in provenance
+		final ProvenanceAction pa = new ProvenanceAction().withInputWsObjects(list("1/1/1", null));
+		failSaveObjects(list(safe, safe, target.withProvenance(list(safep, pa)).withObjid(4L)),
+				"Object #3, 4: Provenance action #2: Invalid workspace object provenenance "
+				+ "reference at position 2: refpath cannot be null or the empty string");
+		
+		// empty string in provenance
+		pa.withInputWsObjects(list("1/1/1", "2/2/2", "  \t   \n "));
+		failSaveObjects(list(target.withProvenance(list(pa)).withObjid(null).withName("foo")),
+				"Object #1, foo: Provenance action #1: Invalid workspace object provenenance "
+				+ "reference at position 3: Illegal number of separators '/' in object reference"
+				+ " '  \t   \n '");
+		
+		// Illegal URL in external data unit
+		final ProvenanceAction pa2 = new ProvenanceAction().withExternalData(list(
+				new ExternalDataUnit().withDataId("d"),
+				new ExternalDataUnit().withDataId("e"),
+				new ExternalDataUnit().withDataId("f"),
+				new ExternalDataUnit().withDataUrl("snailmail://1cyclotronroad.berkeley.ca")
+				));
+		failSaveObjects(list(safe, target.withProvenance(list(safep, safep, pa2))
+				.withName("thinger")),
+				"Object #2, thinger: Provenance action #3: External data unit #4: Illegal data"
+				+ " url 'snailmail://1cyclotronroad.berkeley.ca': unknown protocol: snailmail");
+		
+		// Empty sub action
+		final ProvenanceAction pa3 = new ProvenanceAction().withSubactions(list(
+				new SubAction().withCommit("c"),
+				new SubAction().withEndpointUrl(
+						"Isn't that an Avengers movie? wait that's something different")
+				));
+		failSaveObjects(list(target.withProvenance(list(pa3)).withObjid(789L).withName(null)),
+				"Object #1, 789: Provenance action #1: Sub action #2: Illegal endpoint url "
+				+ "'Isn't that an Avengers movie? wait that's something different': no protocol: "
+				+ "Isn't that an Avengers movie? wait that's something different");
 	}
 
 	@Test
@@ -906,6 +1009,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		ObjectData objo = CLIENT1.getObjects2(new GetObjects2Params()
 			.withObjects(toObjSpec(Arrays.asList(ojbid)))
 			.withSkipExternalSystemUpdates(1L) // should have no effect
+			.withBatchExternalSystemUpdates(1L) // should have no effect
 			).getData().get(0);
 		assertThat("extracted ids empty", objo.getExtractedIds(), is(exp));
 		@SuppressWarnings("deprecation")
@@ -965,11 +1069,13 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		loi.clear();
 		loi.add(new ObjectIdentity().withRef("saveget/2"));
 		loi.add(new ObjectIdentity().withRef("kb|wss." + wsid + ".obj.2"));
-		failGetObjects(loi, "Error on ObjectIdentity #2: Illegal number of separators / in object reference kb|wss." + wsid + ".obj.2");
+		failGetObjects(loi, "Error on ObjectIdentity #2: Illegal number of separators '/' in "
+				+ "object reference 'kb|wss." + wsid + ".obj.2'");
 
 		loi.set(1, new ObjectIdentity().withRef("saveget/1"));
 		loi.add(new ObjectIdentity().withRef("kb|ws." + wsid));
-		failGetObjects(loi, "Error on ObjectIdentity #3: Illegal number of separators / in object reference kb|ws." + wsid);
+		failGetObjects(loi, "Error on ObjectIdentity #3: Illegal number of separators '/' in "
+				+ "object reference 'kb|ws." + wsid + "'");
 
 		//there are 32 different ways to get this type of error. Just try a few.
 		loi.set(2, new ObjectIdentity().withRef("kb|ws." + wsid).withName("2"));
@@ -1738,7 +1844,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("called save with too large meta");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getLocalizedMessage(),
-					is("Object 2, bar, save error: Metadata exceeds maximum of 16000B"));
+					is("Object #2, bar: Metadata exceeds maximum of 16000B"));
 		}
 		try {
 			CLIENT1.createWorkspace(new CreateWorkspaceParams().withWorkspace("bigmeta2")
@@ -1878,8 +1984,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		List<Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>>> objs =
 				CLIENT1.saveObjects(soc);
 
-		ObjectIdentity nocopy = new ObjectIdentity().withWorkspace("copyrev")
-				.withName("myname");
+		ObjectIdentity nocopy = new ObjectIdentity().withWorkspace("copyrev").withName("myname");
 		checkObjectCopy(CLIENT1, nocopy, null, 0L);
 
 		Tuple11<Long, String, String, String, Long, String, Long, String, String, Long, Map<String, String>> copied =
@@ -1896,6 +2001,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		String ref = objs.get(1).getE7() + "/" + objs.get(1).getE1() + "/" + objs.get(1).getE5();
 		CLIENT1.deleteObjects(Arrays.asList(new ObjectIdentity().withRef("copyrev/myname")));
 		checkObjectCopy(CLIENT2, c, null, 1L);
+		checkObjectCopyAsAdmin(CLIENT2, c, ref, 0L);
 		CLIENT1.undeleteObjects(Arrays.asList(new ObjectIdentity().withRef("copyrev/myname")));
 		checkObjectCopy(CLIENT2, c, ref, 0L);
 
@@ -1922,29 +2028,57 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 
 	@SuppressWarnings("deprecation")
-	private void checkObjectCopy(WorkspaceClient cli, ObjectIdentity nocopy,
-			String ref, long copyInvisible) throws Exception {
+	private void checkObjectCopy(
+			final WorkspaceClient cli,
+			final ObjectIdentity nocopy,
+			final String ref,
+			final long copyInvisible)
+			throws Exception {
 
-		ObjectData objp = cli.getObjects2(new GetObjects2Params().withNoData(1L)
+		final ObjectData objp = cli.getObjects2(new GetObjects2Params().withNoData(1L)
 			.withObjects(toObjSpec(Arrays.asList(nocopy)))).getData().get(0);
-		assertThat("copy ref is correct", objp.getCopied(), is(ref));
-		assertThat("copy vis is correct", objp.getCopySourceInaccessible(), is(copyInvisible));
+		checkCopyRef(objp, ref, copyInvisible);
 		assertNull("got unrequested data", objp.getData());
-		ObjectData objo = cli.getObjects2(new GetObjects2Params().withNoData(0L)
+		final ObjectData objo = cli.getObjects2(new GetObjects2Params().withNoData(0L)
 			.withObjects(toObjSpec(Arrays.asList(nocopy)))).getData().get(0);
-		assertThat("copy ref is correct", objo.getCopied(), is(ref));
-		assertThat("copy vis is correct", objo.getCopySourceInaccessible(), is(copyInvisible));
+		checkCopyRef(objo, ref, copyInvisible);
 		ObjectData obj = cli.getObjects(Arrays.asList(nocopy)).get(0);
-		assertThat("copy ref is correct", obj.getCopied(), is(ref));
-		assertThat("copy vis is correct", obj.getCopySourceInaccessible(), is(copyInvisible));
+		checkCopyRef(obj, ref, copyInvisible);
 		obj = cli.getObjectSubset(objIDToSubObjID(Arrays.asList(nocopy))).get(0);
-		assertThat("copy ref is correct", obj.getCopied(), is(ref));
-		assertThat("copy vis is correct", obj.getCopySourceInaccessible(), is(copyInvisible));
-		us.kbase.workspace.ObjectProvenanceInfo prov =
+		checkCopyRef(obj, ref, copyInvisible);
+		final us.kbase.workspace.ObjectProvenanceInfo prov =
 				cli.getObjectProvenance(Arrays.asList(nocopy)).get(0);
 		assertThat("copy ref is correct", prov.getCopied(), is(ref));
 		assertThat("copy vis is correct", prov.getCopySourceInaccessible(), is(copyInvisible));
+	}
 
+	private void checkCopyRef(final ObjectData objp, final String ref, final long copyInvisible) {
+		assertThat("copy ref is correct", objp.getCopied(), is(ref));
+		assertThat("copy vis is correct", objp.getCopySourceInaccessible(), is(copyInvisible));
+	}
+	
+	private void checkObjectCopyAsAdmin(
+			final WorkspaceClient cli,
+			final ObjectIdentity nocopy,
+			final String ref,
+			final long copyInvisible)
+			throws Exception {
+		final GetObjects2Params gop = new GetObjects2Params()
+						.withObjects(toObjSpec(Arrays.asList(nocopy)))
+						.withNoData(1L);
+		final ImmutableMap<String, Object> admincmd = ImmutableMap.of(
+				"command", "getObjects",
+				"params", gop
+				);
+		final ObjectData objp = CLIENT2.administer(new UObject(admincmd))
+				.asClassInstance(GetObjects2Results.class).getData().get(0);
+		checkCopyRef(objp, ref, copyInvisible);
+		assertThat("got unrequested data", objp.getData(), is(nullValue()));
+		
+		gop.withNoData(0L);
+		final ObjectData objp2 = CLIENT2.administer(new UObject(admincmd))
+				.asClassInstance(GetObjects2Results.class).getData().get(0);
+		checkCopyRef(objp2, ref, copyInvisible);
 	}
 
 	@Test
@@ -2366,7 +2500,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				Arrays.asList(w2), true);
 
 		failListWorkspaceByDate("crappy date",
-				"Unparseable date: Invalid format: \"crappy date\"");
+				"Unparseable date: Text 'crappy date' could not be parsed at index 0");
 		try {
 			CLIENT1.listWorkspaceInfo(new ListWorkspaceInfoParams()
 				.withAfter(beforeall).withAfterEpoch(1L));
@@ -2643,8 +2777,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		try {
 			CLIENT1.getObjectHistory(new ObjectIdentity().withRef("listObjs1/hidden/1/3"));
 		} catch (ServerException se) {
-			assertThat("correct excep message", se.getLocalizedMessage(),
-					is("Illegal number of separators / in object reference listObjs1/hidden/1/3"));
+			assertThat("correct excep message", se.getLocalizedMessage(), is(
+					"Illegal number of separators '/' in object reference 'listObjs1/hidden/1/3'")
+					);
 		}
 	}
 
@@ -2729,7 +2864,7 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		compareObjectInfo(CLIENT1.listObjects(lop), Arrays.asList(o2), false);
 
 		failListObjectsByDate(ws, "crappy obj date",
-				"Unparseable date: Invalid format: \"crappy obj date\"");
+				"Unparseable date: Text 'crappy obj date' could not be parsed at index 0");
 		try {
 			CLIENT1.listObjects(new ListObjectsParams()
 				.withWorkspaces(Arrays.asList(ws))
@@ -3393,10 +3528,45 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	}
 
 	@Test
+	public void adminGetSetConfig() throws Exception {
+		final Map<String, Object> gcCmd = ImmutableMap.of("command", "getConfig");
+		failAdmin(CLIENT_AA_ADMIN_NONE, gcCmd, "User " + USER2 + " is not an admin");
+		final Object ret = CLIENT_AA_ADMIN_READ.administer(new UObject(gcCmd))
+				.asClassInstance(Object.class);
+		assertThat("incorrect config", ret, is(ImmutableMap.of(
+				"config", ImmutableMap.of("backend-file-retrieval-scaling", 1))));
+		
+		final Map<String, Object> command = ImmutableMap.of(
+				"command", "setConfig",
+				"params", ImmutableMap.of("set", ImmutableMap.of(
+						"backend-file-retrieval-scaling", 4)));
+		failAdmin(CLIENT_AA_ADMIN_READ, command,
+				"Full administration rights required for this command");
+		CLIENT_AA_ADMIN_FULL.administer(new UObject(command));
+		final Object ret2 = CLIENT_AA_ADMIN_FULL.administer(new UObject(gcCmd))
+				.asClassInstance(Object.class);
+		assertThat("incorrect config", ret2, is(ImmutableMap.of(
+				"config", ImmutableMap.of("backend-file-retrieval-scaling", 4))));
+		
+		final Map<String, Object> badcommand = ImmutableMap.of(
+				"command", "setConfig",
+				"params", ImmutableMap.of("set", ImmutableMap.of(
+						"backend-file-retrieval-scaling", 8,
+						"hello-im-a-hacker", 10000000)));
+		failAdmin(CLIENT_AA_ADMIN_FULL, badcommand,
+				"Unexpected key in configuration map: hello-im-a-hacker");
+		final Object ret3 = CLIENT_AA_ADMIN_FULL.administer(new UObject(gcCmd))
+				.asClassInstance(Object.class);
+		assertThat("incorrect config", ret3, is(ImmutableMap.of(
+				"config", ImmutableMap.of("backend-file-retrieval-scaling", 4))));
+	}
+	
+	@Test
 	public void adminAddRemoveList() throws Exception {
 		checkAdmins(CLIENT2, Arrays.asList(USER2));
 		failAdmin(CLIENT1, "{\"command\": \"listAdmins\"}", "User " + USER1 + " is not an admin");
-		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}", "I don't know how to process the command: listAdmin");
+		failAdmin(CLIENT2, "{\"command\": \"listAdmin\"}",
+				"I don't know how to process the command: listAdmin");
 		failAdmin(CLIENT2, "{\"command\": \"addAdmin\"," +
 						   " \"user\": \"thisisnotavalidkbaseuserihopeorthistestwillfail\"}",
 				"User thisisnotavalidkbaseuserihopeorthistestwillfail is not a valid user");
@@ -3447,15 +3617,16 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		params.put("command", "createWorkspace");
 		params.put("user", "user3");
 		params.put("params", new CreateWorkspaceParams().withWorkspace("ws"));
-		CLIENT_AA1.administer(new UObject(params)); // has full admin role
+		CLIENT_AA_ADMIN_FULL.administer(new UObject(params)); 
 
 		// has read only role
-		failAdmin(CLIENT_AA3, params, "Full administration rights required for this command");
-		failAdmin(CLIENT_AA2, params, "user2 is not an admin"); // has no role
+		failAdmin(CLIENT_AA_ADMIN_READ, params,
+				"Full administration rights required for this command");
+		failAdmin(CLIENT_AA_ADMIN_NONE, params, "user2 is not an admin");
 
 		params.put("command", "getWorkspaceInfo");
 		params.put("params", new WorkspaceIdentity().withId(1L));
-		final List<Object> wsinfo = CLIENT_AA3.administer(new UObject(params))
+		final List<Object> wsinfo = CLIENT_AA_ADMIN_READ.administer(new UObject(params))
 				.asClassInstance(new TypeReference<List<Object>>() {});
 		assertThat("incorrect ws id", wsinfo.get(0), is(1));
 		assertThat("incorrect ws name", wsinfo.get(1), is("ws"));

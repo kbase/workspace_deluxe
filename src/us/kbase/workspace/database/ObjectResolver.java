@@ -187,7 +187,7 @@ public class ObjectResolver {
 		final Set<ObjectIdentifier> lookup = new HashSet<>();
 		List<ObjectIdentifier> nolookup = new LinkedList<>();
 		for (final ObjectIdentifier o: objects) {
-			if (o instanceof ObjectIDWithRefPath && ((ObjectIDWithRefPath) o).isLookupRequired()) {
+			if (o.isLookupRequired()) {
 				lookup.add(o);
 			} else {
 				nolookup.add(o);
@@ -203,16 +203,15 @@ public class ObjectResolver {
 		}
 		nolookup = null; //gc
 		
-		final List<ObjectIDWithRefPath> refpaths = new LinkedList<>();
+		final List<ObjectIdentifier> refpaths = new LinkedList<>();
 		final Map<ObjectIdentifier, ObjectIDResolvedWS> heads = new HashMap<>();
 		for (final ObjectIdentifier o: objects) {
 			if (lookup.contains(o)) { // need to do a lookup on this one, skip
 				refpaths.add(null); //maintain count for error reporting
 			} else if (!ws.containsKey(o)) { // skip, workspace wasn't resolved
 				// error reporting is off, so no need to keep track of location in list
-			} else if (o instanceof ObjectIDWithRefPath &&
-					((ObjectIDWithRefPath) o).hasRefPath()) {
-				refpaths.add((ObjectIDWithRefPath) o);
+			} else if (o.hasRefPath()) {
+				refpaths.add(o);
 				heads.put(o, ws.get(o));
 			} else {
 				refpaths.add(null); // maintain count for error reporting
@@ -399,8 +398,8 @@ public class ObjectResolver {
 	private InaccessibleObjectException generateInaccessibleObjectException(
 			final ObjectIdentifier o)
 			throws InaccessibleObjectException {
-		final String verString = o.getVersion() == null ? "The latest version of " :
-				String.format("Version %s of ", o.getVersion());
+		final String verString = !o.getVersion().isPresent() ? "The latest version of " :
+				String.format("Version %s of ", o.getVersion().get());
 		final String userStr = user == null ? "anonymous users" : "user " + user.getUser();
 		return new InaccessibleObjectException(String.format(
 				"%sobject %s in workspace %s is not accessible to %s",
@@ -423,7 +422,7 @@ public class ObjectResolver {
 	}
 	
 	private void resolveReferencePaths(
-			final List<ObjectIDWithRefPath> objsWithRefpaths,
+			final List<ObjectIdentifier> objsWithRefpaths,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> heads)
 			throws WorkspaceCommunicationException,
 				InaccessibleObjectException, CorruptWorkspaceDBException,
@@ -434,7 +433,7 @@ public class ObjectResolver {
 		}
 		//TODO CODE should probably have a limit on total path size per call, like 10000 or so
 		final List<ObjectIdentifier> allRefPathEntries = new LinkedList<>();
-		for (final ObjectIDWithRefPath oc: objsWithRefpaths) {
+		for (final ObjectIdentifier oc: objsWithRefpaths) {
 			if (oc != null) {
 				/* allow nulls in list to maintain object count in the case
 				 * calling method input includes objectIDs with and without
@@ -456,7 +455,7 @@ public class ObjectResolver {
 				getObjectOutgoingReferences(resolvedRefPathObjs, true, true);
 		
 		int chnum = 1;
-		for (final ObjectIDWithRefPath owrp: objsWithRefpaths) {
+		for (final ObjectIdentifier owrp: objsWithRefpaths) {
 			if (owrp != null) {
 				final ObjectReferenceSet refs = headrefs.get(heads.get(owrp));
 				if (refs != null) {
@@ -496,7 +495,7 @@ public class ObjectResolver {
 	}
 	
 	private List<Reference> getResolvedRefPath(
-			final ObjectIDWithRefPath head,
+			final ObjectIdentifier head,  // expected to have a ref path
 			final ObjectReferenceSet headrefs,
 			final Map<ObjectIdentifier, ObjectIDResolvedWS> resRefPathObjs,
 			final Map<ObjectIDResolvedWS, ObjectReferenceSet> outgoingRefs,

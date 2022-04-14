@@ -6,22 +6,27 @@ import static us.kbase.workspace.kbase.KBasePermissions.PERM_READ;
 import static us.kbase.workspace.kbase.KBasePermissions.translatePermission;
 
 import java.io.IOException;
-import java.text.ParseException;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.DateTimeFormatterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,21 +40,17 @@ import us.kbase.typedobj.idref.IdReferencePermissionHandlerSet.IdReferencePermis
 import us.kbase.typedobj.idref.IdReferenceType;
 import us.kbase.workspace.ExternalDataUnit;
 import us.kbase.workspace.ObjectData;
-import us.kbase.workspace.ProvenanceAction;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
-import us.kbase.workspace.database.Provenance;
-import us.kbase.workspace.database.Provenance.ExternalData;
-import us.kbase.workspace.database.Provenance.SubAction;
 import us.kbase.workspace.database.Reference;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.provenance.ExternalData;
+import us.kbase.workspace.database.provenance.Provenance;
+import us.kbase.workspace.database.provenance.ProvenanceAction;
+import us.kbase.workspace.database.provenance.SubAction;
 
-/**
- * @author gaprice@lbl.gov
- *
- */
 public class ArgUtils {
 	
 	// TODO JAVADOC
@@ -59,84 +60,90 @@ public class ArgUtils {
 		return LoggerFactory.getLogger(ArgUtils.class);
 	}
 	
-	private final static DateTimeFormatter DATE_PARSER =
-			new DateTimeFormatterBuilder()
-				.append(DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss"))
-				.appendOptional(DateTimeFormat.forPattern(".SSS").getParser())
-				.append(DateTimeFormat.forPattern("Z"))
-				.toFormatter();
+	private final static DateTimeFormatter DATE_PARSER = DateTimeFormatter
+			.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSS][.SS][.S][XXX][XX]"); // saucy datetimes here
 	
-	private final static DateTimeFormatter DATE_FORMATTER =
-			DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZoneUTC();
-	
-	// TODO CODE switch to returning Instant. Used in lots of places so do this later.
-	public static Date chooseDate(
-			final String timestamp,
-			final Long epochInMilliSec,
-			final String error)
-			throws ParseException {
-		if (timestamp != null && epochInMilliSec != null) {
-			throw new IllegalArgumentException(error);
-		}
-		if (timestamp != null) {
-			return parseDate(timestamp);
-		}
-		if (epochInMilliSec != null) {
-			return new Date(epochInMilliSec);
-		}
-		return null;
-	}
+	private final static DateTimeFormatter DATE_FORMATTER = DateTimeFormatter
+			.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").withZone(ZoneOffset.UTC);
 	
 	/** Given a string or epoch millisecond timestamp, return an {@link Instant} created from
 	 * the timestamp. Providing both timestamps is an error.
 	 * @param timestamp a string typestamp in ISO8601 format, using the Z timezone designator.
 	 * @param epochInMilliSec the Linux epoch time in milliseconds.
-	 * @param error a string to use if both timestamps are supplied.
-	 * @return the new intant.
-	 * @throws ParseException if the text timestamp cannot be parsed.
+	 * @param error an error string to use if both timestamps are supplied.
+	 * @return the new instant or null if neither argument is provided.
 	 */
 	public static Instant chooseInstant(
 			final String timestamp,
 			final Long epochInMilliSec,
-			final String error)
-			throws ParseException {
-		final Date d = chooseDate(timestamp, epochInMilliSec, error);
-		return d == null ? null : d.toInstant();
+			final String error) {
+		if (timestamp != null && epochInMilliSec != null) {
+			throw new IllegalArgumentException(error);
+		}
+		if (timestamp != null) {
+			try {
+				final TemporalAccessor date =  DATE_PARSER.parseBest(
+						timestamp, ZonedDateTime::from, LocalDateTime::from);
+				if (date instanceof LocalDateTime) {
+					throw new IllegalArgumentException(String.format(
+							"Date '%s' does not have time zone information", timestamp));
+				}
+				return Instant.from(date);
+			} catch (DateTimeParseException e) {
+				throw new IllegalArgumentException("Unparseable date: " + e.getMessage(), e);
+			}
+		}
+		if (epochInMilliSec != null) {
+			return Instant.ofEpochMilli(epochInMilliSec);
+		}
+		return null;
 	}
 	
-	public static Provenance processProvenance(final WorkspaceUser user,
-			final List<ProvenanceAction> actions) throws ParseException {
+	public static Provenance processProvenance(
+			final WorkspaceUser user,
+			final Instant time,
+			final List<us.kbase.workspace.ProvenanceAction> actions) {
 		
-		final Provenance p = new Provenance(user);
+		final Provenance.Builder p = Provenance.getBuilder(user, time);
 		if (actions == null) {
-			return p;
+			return p.build();
 		}
-		for (final ProvenanceAction a: actions) {
-			checkAddlArgs(a.getAdditionalProperties(), a.getClass());
-			final Date d = chooseDate(a.getTime(), a.getEpoch(),
-					"Cannot specify both time and epoch in provenance " +
-							"action");
-			p.addAction(new Provenance.ProvenanceAction()
-					.withTime(d)
-					.withCaller(a.getCaller())
-					.withServiceName(a.getService())
-					.withServiceVersion(a.getServiceVer())
-					.withMethod(a.getMethod())
-					.withMethodParameters(translateMethodParametersToObject(
-							a.getMethodParams()))
-					.withScript(a.getScript())
-					.withScriptVersion(a.getScriptVer())
-					.withCommandLine(a.getScriptCommandLine())
-					.withWorkspaceObjects(a.getInputWsObjects())
-					.withIncomingArgs(a.getIntermediateIncoming())
-					.withOutgoingArgs(a.getIntermediateOutgoing())
-					.withExternalData(processExternalData(a.getExternalData()))
-					.withSubActions(processSubActions(a.getSubactions()))
-					.withCustom(a.getCustom())
-					.withDescription(a.getDescription())
-			);
+		final ListIterator<us.kbase.workspace.ProvenanceAction> li = actions.listIterator();
+		while (li.hasNext()) {
+			final us.kbase.workspace.ProvenanceAction a = li.next();
+			try {
+				if (a == null) {
+					throw new NullPointerException("is null");
+				}
+				checkAddlArgs(a.getAdditionalProperties(), a.getClass());
+				final Instant d = chooseInstant(a.getTime(), a.getEpoch(),
+						"Cannot specify both time and epoch in provenance action");
+				p.withAction(ProvenanceAction.getBuilder()
+						.withTime(d)
+						.withCaller(a.getCaller())
+						.withServiceName(a.getService())
+						.withServiceVersion(a.getServiceVer())
+						.withMethod(a.getMethod())
+						.withMethodParameters(translateMethodParametersToObject(
+								a.getMethodParams()))
+						.withScript(a.getScript())
+						.withScriptVersion(a.getScriptVer())
+						.withCommandLine(a.getScriptCommandLine())
+						.withWorkspaceObjects(a.getInputWsObjects())
+						.withIncomingArgs(a.getIntermediateIncoming())
+						.withOutgoingArgs(a.getIntermediateOutgoing())
+						.withExternalData(processExternalData(a.getExternalData()))
+						.withSubActions(processSubActions(a.getSubactions()))
+						.withCustom(a.getCustom())
+						.withDescription(a.getDescription())
+						.build()
+				);
+			} catch (IllegalArgumentException | NullPointerException e) {
+				throw new IllegalArgumentException(String.format("Provenance action #%s: %s",
+						li.nextIndex(), e.getLocalizedMessage()), e);
+			}
 		}
-		return p;
+		return p.build();
 	}
 	
 	private static List<SubAction> processSubActions(
@@ -145,70 +152,77 @@ public class ArgUtils {
 		if (subactions == null) {
 			return ret;
 		}
-		for (final us.kbase.workspace.SubAction sa: subactions) {
-			checkAddlArgs(sa.getAdditionalProperties(), sa.getClass());
-			ret.add(new SubAction()
-					.withCodeUrl(sa.getCodeUrl())
-					.withCommit(sa.getCommit())
-					.withEndpointUrl(sa.getEndpointUrl())
-					.withName(sa.getName())
-					.withVer(sa.getVer())
-					);
+		final ListIterator<us.kbase.workspace.SubAction> si = subactions.listIterator();
+		while (si.hasNext()) {
+			final us.kbase.workspace.SubAction sa = si.next();
+			try {
+				if (sa == null) {
+					throw new NullPointerException("is null");
+				}
+				checkAddlArgs(sa.getAdditionalProperties(), sa.getClass());
+				ret.add(SubAction.getBuilder()
+						.withCodeURL(sa.getCodeUrl())
+						.withCommit(sa.getCommit())
+						.withEndpointURL(sa.getEndpointUrl())
+						.withName(sa.getName())
+						.withVersion(sa.getVer())
+						.build()
+						);
+			} catch (IllegalArgumentException | NullPointerException e) {
+				throw new IllegalArgumentException(String.format("Sub action #%s: %s",
+						si.nextIndex(), e.getLocalizedMessage()), e);
+			}
+			
 		}
 		return ret;
 	}
 
 	private static List<ExternalData> processExternalData(
-			final List<ExternalDataUnit> externalData) throws ParseException {
-		final List<ExternalData> ret = new LinkedList<ExternalData>();
+			final List<ExternalDataUnit> externalData) {
+		final List<ExternalData> ret = new LinkedList<>();
 		if (externalData == null) {
 			return ret;
 		}
-		for (final ExternalDataUnit edu: externalData) {
-			final Date d = chooseDate(edu.getResourceReleaseDate(),
-					edu.getResourceReleaseEpoch(),
-					"Cannot specify both time and epoch in external " +
-							"data unit");
-			checkAddlArgs(edu.getAdditionalProperties(), edu.getClass());
-			ret.add(new ExternalData()
-					.withDataId(edu.getDataId())
-					.withDataUrl(edu.getDataUrl())
-					.withDescription(edu.getDescription())
-					.withResourceName(edu.getResourceName())
-					.withResourceReleaseDate(d)
-					.withResourceUrl(edu.getResourceUrl())
-					.withResourceVersion(edu.getResourceVersion())
-			);
+		final ListIterator<ExternalDataUnit> ei = externalData.listIterator();
+		while (ei.hasNext()) {
+			final ExternalDataUnit edu = ei.next();
+			try {
+				if (edu == null) {
+					throw new NullPointerException("is null");
+				}
+				final Instant d = chooseInstant(edu.getResourceReleaseDate(),
+						edu.getResourceReleaseEpoch(),
+						"Cannot specify both time and epoch in external data unit");
+				checkAddlArgs(edu.getAdditionalProperties(), edu.getClass());
+				ret.add(ExternalData.getBuilder()
+						.withDataID(edu.getDataId())
+						.withDataURL(edu.getDataUrl())
+						.withDescription(edu.getDescription())
+						.withResourceName(edu.getResourceName())
+						.withResourceReleaseDate(d)
+						.withResourceURL(edu.getResourceUrl())
+						.withResourceVersion(edu.getResourceVersion())
+						.build()
+				);
+			} catch (IllegalArgumentException | NullPointerException e) {
+				throw new IllegalArgumentException(String.format("External data unit #%s: %s",
+						ei.nextIndex(), e.getLocalizedMessage()), e);
+			}
 		}
 		return ret;
 	}
 
-	//TODO CODE why does this throw ParseException? 
-	private static Date parseDate(final String date) throws ParseException {
-		if (date == null) {
-			return null;
-		}
-		try {
-			return DATE_PARSER.parseDateTime(date).toDate();
-		} catch (IllegalArgumentException iae) {
-			throw new IllegalArgumentException("Unparseable date: " +
-					iae.getMessage());
-		}
-	}
-	
+	// TODO CODE remove this eventually when everything uses Instants
 	private static String formatDate(final Date date) {
-		if (date == null) {
-			return null;
-		}
-		return DATE_FORMATTER.print(new DateTime(date));
+		return formatDate(date.toInstant());
 	}
 	
 	private static String formatDate(final Instant date) {
-		if (date == null) {
-			return null;
-		}
-		return formatDate(Date.from(date));
-		
+		return DATE_FORMATTER.format(date);
+	}
+	
+	private static String formatDate(final Optional<Instant> date) {
+		return date.map(d -> DATE_FORMATTER.format(d)).orElse(null);
 	}
 	
 	private static List<Object> translateMethodParametersToObject(
@@ -226,14 +240,7 @@ public class ArgUtils {
 
 	private static List<UObject> translateMethodParametersToUObject(
 			final List<Object> methodParams) {
-		if (methodParams == null) {
-			return null;
-		}
-		final List<UObject> params = new LinkedList<UObject>();
-		for (final Object uo: methodParams) {
-			params.add(new UObject(uo));
-		}
-		return params;
+		return methodParams.stream().map(o -> new UObject(o)).collect(Collectors.toList());
 	}
 	
 	public static List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String, String>>>
@@ -280,7 +287,7 @@ public class ArgUtils {
 				.withE2(info.getOwner().getUser())
 				.withE3(formatDate(info.getModDate()))
 				.withE4(info.getMaximumObjectID())
-				.withE5(translatePermission(info.getUserPermission())) 
+				.withE5(translatePermission(info.getUserPermission()))
 				.withE6(translatePermission(info.isGloballyReadable()));
 	}
 	
@@ -397,23 +404,35 @@ public class ArgUtils {
 	 * @param objects the objects to convert.
 	 * @param permHandler any permissions handlers to invoke based on the contents of the object.
 	 * If not present, no permissions are updated.
+	 * @param batchExternalUpdates if true, send all external system updates in a batch to each
+	 * external system when possible rather than object by object. This can potentially
+	 * speed up the updates, but the drawback is that if the external update fails for any object,
+	 * all the objects that required updates for that system will be marked as having a failed
+	 * update. Has no effect if the permissions handler is not present.
 	 * @param logObjects if true, log the object ref and type.
 	 * @return the translated objects.
 	 */
 	public static List<ObjectData> translateObjectData(
 			final List<WorkspaceObjectData> objects, 
 			final Optional<IdReferencePermissionHandlerSet> permHandler,
+			final boolean batchExternalUpdates,
 			final boolean logObjects) {
 		final List<ObjectData> ret = new ArrayList<ObjectData>();
+		Map<WorkspaceObjectData, PermError> errs = null;
+		if (batchExternalUpdates) {
+			errs = makeExternalIDsReadable(objects, permHandler);
+		}
 		for (final WorkspaceObjectData o: objects) {
 			if (o == null) {
 				ret.add(null);
 				continue;
 			}
-			final PermError error = makeExternalIDsReadable(o, permHandler);
+			if (!batchExternalUpdates) {
+				errs = makeExternalIDsReadable(Arrays.asList(o), permHandler);
+			}
 			final UObject data;
 			try {
-				data = o.getSerializedData() == null ? null : o.getSerializedData().getUObject();
+				data = o.hasData() ? o.getSerializedData().get().getUObject() : null;
 			} catch (IOException e) {
 				// impossible to test in integration tests, shouldn't occur
 				throw new RuntimeException(
@@ -423,21 +442,18 @@ public class ArgUtils {
 					.withData(data)
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
 					.withPath(toObjectPath(o.getObjectInfo().getReferencePath()))
-					.withProvenance(translateProvenanceActions(
-							o.getProvenance().getActions()))
+					.withProvenance(translateProvenanceActions(o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
-					.withOrigWsid(o.getProvenance().getWorkspaceID())
-					.withCreated(formatDate(
-							o.getProvenance().getDate()))
-					.withEpoch(o.getProvenance().getDate().getTime())
+					.withOrigWsid(o.getProvenance().getWorkspaceID().orElse(null))
+					.withCreated(formatDate(o.getProvenance().getDate()))
+					.withEpoch(o.getProvenance().getDate().toEpochMilli())
 					.withRefs(o.getReferences())
-					.withCopied(o.getCopyReference() == null ? null :
-						o.getCopyReference().getId())
-					.withCopySourceInaccessible(
-							o.isCopySourceInaccessible() ? 1L: 0L)
+					.withCopied(o.getCopyReference().isPresent() ?
+							o.getCopyReference().get().getId() : null)
+					.withCopySourceInaccessible(o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))
-					.withHandleError(error.error)
-					.withHandleStacktrace(error.stackTrace));
+					.withHandleError(errs.get(o).error)
+					.withHandleStacktrace(errs.get(o).stackTrace));
 		}
 		return ret;
 	}
@@ -477,21 +493,19 @@ public class ArgUtils {
 		final List<us.kbase.workspace.ObjectProvenanceInfo> ret =
 				new ArrayList<us.kbase.workspace.ObjectProvenanceInfo>();
 		for (final WorkspaceObjectData o: objects) {
-			final PermError error = makeExternalIDsReadable(o, Optional.of(permHandler));
+			final PermError error = makeExternalIDsReadable(
+					Arrays.asList(o), Optional.of(permHandler)).get(o);
 			ret.add(new us.kbase.workspace.ObjectProvenanceInfo()
 					.withInfo(objInfoToTuple(o.getObjectInfo(), logObjects))
-					.withProvenance(translateProvenanceActions(
-							o.getProvenance().getActions()))
+					.withProvenance(translateProvenanceActions(o.getProvenance().getActions()))
 					.withCreator(o.getProvenance().getUser().getUser())
-					.withOrigWsid(o.getProvenance().getWorkspaceID())
-					.withCreated(formatDate(
-							o.getProvenance().getDate()))
-					.withEpoch(o.getProvenance().getDate().getTime())
+					.withOrigWsid(o.getProvenance().getWorkspaceID().orElse(null))
+					.withCreated(formatDate(o.getProvenance().getDate()))
+					.withEpoch(o.getProvenance().getDate().toEpochMilli())
 					.withRefs(o.getReferences())
-					.withCopied(o.getCopyReference() == null ? null :
-						o.getCopyReference().getId())
-					.withCopySourceInaccessible(
-						o.isCopySourceInaccessible() ? 1L: 0L)
+					.withCopied(o.getCopyReference().isPresent() ?
+							o.getCopyReference().get().getId() : null)
+					.withCopySourceInaccessible(o.isCopySourceInaccessible() ? 1L: 0L)
 					.withExtractedIds(toRawExternalIDs(o.getExtractedIds()))
 					.withHandleError(error.error)
 					.withHandleStacktrace(error.stackTrace));
@@ -509,52 +523,79 @@ public class ArgUtils {
 			this.error = error;
 			this.stackTrace = stackTrace;
 		}
-
-		@Override
-		public String toString() {
-			StringBuilder builder = new StringBuilder();
-			builder.append("HandleError [error=");
-			builder.append(error);
-			builder.append(", stackTrace=");
-			builder.append(stackTrace);
-			builder.append("]");
-			return builder.toString();
-		}
-		
 	}
 
-	private static PermError makeExternalIDsReadable(
-			final WorkspaceObjectData o,
+	private static final PermError NULL_ERR = new PermError(null, null);
+	
+	private static Map<WorkspaceObjectData, PermError> makeExternalIDsReadable(
+			final List<WorkspaceObjectData> objects,
 			final Optional<IdReferencePermissionHandlerSet> permhandler) {
+		/* External services are generally going to fail quickly if setting an ACL fails,
+		 * since there's almost certainly something very wrong - this is all admin stuff and 
+		 * so regular failures shouldn't be an issue. As such, we just assign any errors
+		 * to all objects that were part of the call, as it's not clear which objects were
+		 * processed and which failed.
+		 * The alternative is to have all external services return exactly which IDs failed and
+		 * which succeeded, which means failing slowly and trying all IDs, which in most cases
+		 * is just going to waste time, because, again, there's something likely very wrong.
+		 * 
+		 * One exception is that nodes for handles can be deleted by the owner, unlike samples
+		 * or bytestream nodes. However, in KBase this should never happen so we don't consider
+		 * it here.
+		 */
+		final Map<WorkspaceObjectData, PermError> ret = objects.stream().filter(o -> o != null)
+				.collect(Collectors.toMap(o -> o, o -> NULL_ERR));
 		if (permhandler.isPresent()) {
-			for (final IdReferenceType t: o.getExtractedIds().keySet()) {
+			// This section could probably be more efficient, but there's very few types
+			// and it's going to be dominated by the network connections so meh
+			final Set<IdReferenceType> types = objects.stream().filter(o -> o != null)
+					.flatMap(o -> o.getExtractedIds().keySet().stream())
+					.collect(Collectors.toCollection(() -> new TreeSet<>()));
+			for (final IdReferenceType t: types) {
+				final Set<String> ids = new HashSet<>();
+				final List<WorkspaceObjectData> objs = new LinkedList<>();
+				for (final WorkspaceObjectData o: objects) {
+					// getExtractedIds never returns an empty list
+					if (o != null && o.getExtractedIds().get(t) != null) {
+						ids.addAll(o.getExtractedIds().get(t));
+						objs.add(o);
+					}
+				}
 				try {
-					permhandler.get().addReadPermission(t, o.getExtractedIds().get(t));
+					/* Each object has a max of 100K refs and there's a max of 10K objects per
+					 * get_objects2 call. That means that theoretically we could be sending 1B
+					 * ids here. However, in practice most object have very few refs so don't
+					 * worry about it for now. If needed later add a loop or throw an error if
+					 * there's too many IDs.
+					 */
+					permhandler.get().addReadPermission(t, ids);
 				} catch (IdReferencePermissionHandlerException e) {
-					return new PermError(e.getMessage(), ExceptionUtils.getStackTrace(e));
+					final PermError err = new PermError(
+							e.getMessage(), ExceptionUtils.getStackTrace(e));
+					objs.stream().forEach(o -> ret.put(o, err));
 				}
 			}
 		}
-		return new PermError(null, null);
+		return ret;
 	}
 
-	private static List<ProvenanceAction> translateProvenanceActions(
-			final List<Provenance.ProvenanceAction> actions) {
-		final List<ProvenanceAction> pas = new LinkedList<ProvenanceAction>();
-		for (final Provenance.ProvenanceAction a: actions) {
-			final Date d = a.getTime();
-			pas.add(new ProvenanceAction()
+	private static List<us.kbase.workspace.ProvenanceAction> translateProvenanceActions(
+			final List<ProvenanceAction> actions) {
+		final List<us.kbase.workspace.ProvenanceAction> pas = new LinkedList<>();
+		for (final ProvenanceAction a: actions) {
+			final Optional<Instant> d = a.getTime();
+			pas.add(new us.kbase.workspace.ProvenanceAction()
 					.withTime(formatDate(d))
-					.withEpoch(d == null ? null : d.getTime())
-					.withCaller(a.getCaller())
-					.withService(a.getServiceName())
-					.withServiceVer(a.getServiceVersion())
-					.withMethod(a.getMethod())
+					.withEpoch(d.map(t -> t.toEpochMilli()).orElse(null))
+					.withCaller(a.getCaller().orElse(null))
+					.withService(a.getServiceName().orElse(null))
+					.withServiceVer(a.getServiceVersion().orElse(null))
+					.withMethod(a.getMethod().orElse(null))
 					.withMethodParams(translateMethodParametersToUObject(
 							a.getMethodParameters()))
-					.withScript(a.getScript())
-					.withScriptVer(a.getScriptVersion())
-					.withScriptCommandLine(a.getCommandLine())
+					.withScript(a.getScript().orElse(null))
+					.withScriptVer(a.getScriptVersion().orElse(null))
+					.withScriptCommandLine(a.getCommandLine().orElse(null))
 					.withInputWsObjects(a.getWorkspaceObjects())
 					.withResolvedWsObjects(a.getResolvedObjects())
 					.withIntermediateIncoming(a.getIncomingArgs())
@@ -563,7 +604,7 @@ public class ArgUtils {
 							translateExternalDataUnits(a.getExternalData()))
 					.withCustom(a.getCustom())
 					.withSubactions(translateSubActions(a.getSubActions()))
-					.withDescription(a.getDescription())
+					.withDescription(a.getDescription().orElse(null))
 					);
 		}
 		return pas;
@@ -571,18 +612,14 @@ public class ArgUtils {
 	
 	private static List<us.kbase.workspace.SubAction> translateSubActions(
 			List<SubAction> subActions) {
-		final List<us.kbase.workspace.SubAction> ret =
-				new LinkedList<us.kbase.workspace.SubAction>();
-		if (subActions == null) {
-			return ret;
-		}
+		final List<us.kbase.workspace.SubAction> ret = new LinkedList<>();
 		for (final SubAction sa: subActions) {
 			ret.add(new us.kbase.workspace.SubAction()
-					.withCodeUrl(sa.getCodeUrl())
-					.withCommit(sa.getCommit())
-					.withEndpointUrl(sa.getEndpointUrl())
-					.withName(sa.getName())
-					.withVer(sa.getVer())
+					.withCodeUrl(sa.getCodeURL().map(u -> u.toString()).orElse(null))
+					.withCommit(sa.getCommit().orElse(null))
+					.withEndpointUrl(sa.getEndpointURL().map(u -> u.toString()).orElse(null))
+					.withName(sa.getName().orElse(null))
+					.withVer(sa.getVersion().orElse(null))
 					);
 		}
 		return ret;
@@ -590,21 +627,18 @@ public class ArgUtils {
 
 	private static List<ExternalDataUnit> translateExternalDataUnits(
 			List<ExternalData> externalData) {
-		final List<ExternalDataUnit> ret = new LinkedList<ExternalDataUnit>();
-		if (externalData == null) {
-			return ret; //this should never happen, but just in case
-		}
+		final List<ExternalDataUnit> ret = new LinkedList<>();
 		for (final ExternalData ed: externalData) {
-			final Date d = ed.getResourceReleaseDate();
+			final Optional<Instant> d = ed.getResourceReleaseDate();
 			ret.add(new ExternalDataUnit()
-					.withDataId(ed.getDataId())
-					.withDataUrl(ed.getDataUrl())
-					.withDescription(ed.getDescription())
-					.withResourceName(ed.getResourceName())
+					.withDataId(ed.getDataID().orElse(null))
+					.withDataUrl(ed.getDataURL().map(u -> u.toString()).orElse(null))
+					.withDescription(ed.getDescription().orElse(null))
+					.withResourceName(ed.getResourceName().orElse(null))
 					.withResourceReleaseDate(formatDate(d))
-					.withResourceReleaseEpoch(d == null ? null : d.getTime())
-					.withResourceUrl(ed.getResourceUrl())
-					.withResourceVersion(ed.getResourceVersion())
+					.withResourceReleaseEpoch(d.map(t -> t.toEpochMilli()).orElse(null))
+					.withResourceUrl(ed.getResourceURL().map(u -> u.toString()).orElse(null))
+					.withResourceVersion(ed.getResourceVersion().orElse(null))
 					);
 		}
 		return ret;

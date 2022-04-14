@@ -37,14 +37,14 @@ public class Reference implements RemappedId {
 	 * @param ref a reference string.
 	 */
 	public Reference(final String ref) {
-		final ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(ref);
+		final ObjectIdentifier oi = ObjectIdentifier.getBuilder(ref).build();
 		if (!oi.isAbsolute()) {
 			throw new IllegalArgumentException(String.format(
 					"ref %s is not an absolute reference", ref));
 		}
 		workspaceID = oi.getWorkspaceIdentifier().getId();
-		objectID = oi.getId();
-		version = oi.getVersion();
+		objectID = oi.getID().get();
+		version = oi.getVersion().get();
 	}
 
 	/** Returns the ID of the workspace for this object.

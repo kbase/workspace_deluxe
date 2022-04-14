@@ -2,6 +2,10 @@ package us.kbase.workspace.test.workspace;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static us.kbase.common.test.TestCommon.opt;
+import static us.kbase.workspace.test.LongTextForTestUsage.TEXT1000;
+import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
+
 
 import java.io.File;
 import java.io.InputStream;
@@ -26,16 +30,15 @@ import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TypeDefId;
 import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
-import us.kbase.workspace.database.ObjIDWithRefPathAndSubset;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
-import us.kbase.workspace.database.Provenance;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.database.provenance.Provenance;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -73,7 +76,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			UObject data = new UObject(tempFile);
 			ws.saveObjects(userfoo, bigdataws, Arrays.asList( //should work
 					new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
-							new Provenance(userfoo), false)), getIdFactory());
+							basicProv(userfoo), false)), getIdFactory());
 		} finally {
 			tempFile.delete();
 		}
@@ -93,8 +96,11 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		
 		//printMem("*** released refs ***");
 		
-		ByteArrayFileCache newdata = ws.getObjects(userfoo, 
-				Arrays.asList(new ObjectIdentifier(bigdataws, 1))).get(0).getSerializedData();
+		final ByteArrayFileCache newdata = getObjects(
+				ws,
+				userfoo,
+				Arrays.asList(ObjectIdentifier.getBuilder(bigdataws).withID(1L).build()))
+				.get(0).getSerializedData().get();
 //		printMem("*** retrieved object ***");
 //		System.gc();
 //		printMem("*** ran gc after retrieve ***");
@@ -146,7 +152,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("tenKrefs");
 		WorkspaceInformation wi = ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
 		long wsid = wi.getId();
-		Provenance emptyprov = new Provenance(userfoo);
+		Provenance emptyprov = basicProv(userfoo);
 		Map<String, Object> torefdata = new HashMap<String, Object>();
 		torefdata.put("foo", 3.2);
 		torefdata.put("baz", "astring");
@@ -178,8 +184,10 @@ public class WorkspaceLongTest extends WorkspaceTester {
 						emptyprov, false)),
 				getIdFactory());
 		
-		WorkspaceObjectData wod = ws.getObjects(userfoo,
-				Arrays.asList(new ObjectIdentifier(wspace, "last")))
+		WorkspaceObjectData wod = getObjects(
+				ws,
+				userfoo,
+				Arrays.asList(ObjectIdentifier.getBuilder(wspace).withName("last").build()))
 				.get(0);
 		try {
 			@SuppressWarnings("unchecked")
@@ -188,10 +196,10 @@ public class WorkspaceLongTest extends WorkspaceTester {
 			Map<String, String> retrefs = (Map<String, String>) ret.get("map");
 			for (Entry<String, String> es: retrefs.entrySet()) {
 				long expected = Long.parseLong(es.getValue().split(" ")[1]);
-				ObjectIdentifier oi = ObjectIdentifier.parseObjectReference(es.getKey());
+				ObjectIdentifier oi = ObjectIdentifier.getBuilder(es.getKey()).build();
 				assertThat("reference ws is correct", oi.getWorkspaceIdentifier().getId(), is(wsid));
-				assertThat("reference id is correct", oi.getId(), is(expected));
-				assertThat("reference ver is correct", oi.getVersion(), is(1));
+				assertThat("reference id is correct", oi.getID(), is(opt(expected)));
+				assertThat("reference ver is correct", oi.getVersion(), is(opt(1)));
 			}
 		} finally {
 			destroyGetObjectsResources(Arrays.asList(wod));
@@ -227,9 +235,11 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		}
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
-						new Provenance(userfoo), false)), getIdFactory());
-		final List<WorkspaceObjectData> objects = ws.getObjects(
-				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 1)));
+						basicProv(userfoo), false)), getIdFactory());
+		final List<WorkspaceObjectData> objects = getObjects(
+				ws,
+				userfoo,
+				Arrays.asList(ObjectIdentifier.getBuilder(unicode).withID(1L).build()));
 		final Map<String, Object> newdata;
 		try {
 			@SuppressWarnings("unchecked")
@@ -251,9 +261,11 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		data.put(test, "foo");
 		ws.saveObjects(userfoo, unicode, Arrays.asList(
 				new WorkspaceSaveObject(getRandomName(), data, SAFE_TYPE1, null,
-						new Provenance(userfoo), false)), getIdFactory());
-		final List<WorkspaceObjectData> objects2 = ws.getObjects(
-				userfoo, Arrays.asList(new ObjectIdentifier(unicode, 2)));
+						basicProv(userfoo), false)), getIdFactory());
+		final List<WorkspaceObjectData> objects2 = getObjects(
+				ws,
+				userfoo,
+				Arrays.asList(ObjectIdentifier.getBuilder(unicode).withID(2L).build()));
 		try {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> newdata2 = (Map<String, Object>) getData(objects2.get(0));
@@ -274,7 +286,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		List<WorkspaceSaveObject> objs = new LinkedList<WorkspaceSaveObject>();
 		for (int i = 0; i < 20000; i++) {
 			objs.add(new WorkspaceSaveObject(getRandomName(), new HashMap<String, String>(),
-					SAFE_TYPE1, null, new Provenance(user), false));
+					SAFE_TYPE1, null, basicProv(user), false));
 		}
 		ws.saveObjects(user, wsi, objs, getIdFactory());
 		
@@ -323,7 +335,7 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		TypeDefId emptyType = new TypeDefId(new TypeDefName(mod, type2), 0, 1);
 		WorkspaceIdentifier wspace = new WorkspaceIdentifier("testGetObjectSubset");
 		ws.createWorkspace(userfoo, wspace.getName(), false, null, null);
-		Provenance emptyprov = new Provenance(userfoo);
+		Provenance emptyprov = basicProv(userfoo);
 		InputStream is = new GZIPInputStream(this.getClass().getResourceAsStream("long_test_get_object_subset.json.gz.properties"));
 		Map<String, Object> data = UObject.getMapper().readValue(is, Map.class);
 		List<WorkspaceSaveObject> wsos = new LinkedList<WorkspaceSaveObject>();		
@@ -337,8 +349,8 @@ public class WorkspaceLongTest extends WorkspaceTester {
 		int iterCount1 = 100;
 		for (int iter = 0; iter < iterCount1; iter++) {
 			long time1 = System.currentTimeMillis();
-			WorkspaceObjectData wod1 = ws.getObjects(userfoo,
-					Arrays.asList(new ObjectIdentifier(wspace, oi.getObjectId()))).get(0);
+			WorkspaceObjectData wod1 = getObjects(ws, userfoo, Arrays.asList(
+					ObjectIdentifier.getBuilder(wspace).withID(oi.getObjectId()).build())).get(0);
 			Map<String, Object> ret1 = (Map<String, Object>) getData(wod1);
 			String data1 = UObject.getMapper().writeValueAsString(ret1);
 			Map<String, Object> contigIdsToFeatures = (Map<String, Object>)ret1.get("data");
@@ -393,10 +405,9 @@ public class WorkspaceLongTest extends WorkspaceTester {
 				included.add("data/" + contigId + "/" + rnd.nextInt(featureCount));
 			long time2 = System.currentTimeMillis();
 			List<ObjectIdentifier> a = new LinkedList<ObjectIdentifier>();
-			a.add(new ObjIDWithRefPathAndSubset(
-					new ObjectIdentifier(wspace, oi.getObjectId()), null,
-						new SubsetSelection(included)));
-			WorkspaceObjectData wod2 = ws.getObjects(userfoo, a).get(0);
+			a.add(ObjectIdentifier.getBuilder(wspace).withID(oi.getObjectId())
+					.withSubsetSelection(new SubsetSelection(included)).build());
+			WorkspaceObjectData wod2 = getObjects(ws, userfoo, a).get(0);
 			String data2 = UObject.getMapper().writeValueAsString(getData(wod2));
 			time2 = System.currentTimeMillis() - time2;
 			avgTime2 += time2;

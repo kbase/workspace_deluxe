@@ -710,71 +710,72 @@ class Workspace(object):
            action. A provenance action (PA) is an action taken while
            transforming one data object to another. There may be several PAs
            taken in series. A PA is typically running a script, running an
-           api command, etc. All of the following fields are optional, but
-           more information provided equates to better data provenance.
-           resolved_ws_objects should never be set by the user; it is set by
-           the workspace service when returning data. On input, only one of
-           the time or epoch may be supplied. Both are supplied on output.
-           The maximum size of the entire provenance object, including all
-           actions, is 1MB. timestamp time - the time the action was started
-           epoch epoch - the time the action was started. string caller - the
-           name or id of the invoker of this provenance action. In most
-           cases, this will be the same for all PAs. string service - the
-           name of the service that performed this action. string service_ver
-           - the version of the service that performed this action. string
-           method - the method of the service that performed this action.
-           list<UnspecifiedObject> method_params - the parameters of the
-           method that performed this action. If an object in the parameters
-           is a workspace object, also put the object reference in the
-           input_ws_object list. string script - the name of the script that
-           performed this action. string script_ver - the version of the
-           script that performed this action. string script_command_line -
-           the command line provided to the script that performed this
-           action. If workspace objects were provided in the command line,
-           also put the object reference in the input_ws_object list.
-           list<ref_string> input_ws_objects - the workspace objects that
-           were used as input to this action; typically these will also be
-           present as parts of the method_params or the script_command_line
-           arguments. A reference path into the object graph may be supplied.
-           list<obj_ref> resolved_ws_objects - the workspace objects ids from
-           input_ws_objects resolved to permanent workspace object references
-           by the workspace service. list<string> intermediate_incoming - if
-           the previous action produced output that 1) was not stored in a
-           referrable way, and 2) is used as input for this action, provide
-           it with an arbitrary and unique ID here, in the order of the input
-           arguments to this action. These IDs can be used in the
-           method_params argument. list<string> intermediate_outgoing - if
-           this action produced output that 1) was not stored in a referrable
-           way, and 2) is used as input for the next action, provide it with
-           an arbitrary and unique ID here, in the order of the output values
-           from this action. These IDs can be used in the
-           intermediate_incoming argument in the next action.
-           list<ExternalDataUnit> external_data - data external to the
-           workspace that was either imported to the workspace or used to
-           create a workspace object. list<SubAction> subactions - the
-           subactions taken as a part of this action. mapping<string, string>
-           custom - user definable custom provenance fields and their values.
-           string description - a free text description of this action.) ->
-           structure: parameter "time" of type "timestamp" (A time in the
-           format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z
-           (representing the UTC timezone) or the difference in time to UTC
-           in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time)
-           2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC
-           time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
-           since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "caller"
-           of String, parameter "service" of String, parameter "service_ver"
-           of String, parameter "method" of String, parameter "method_params"
-           of list of unspecified object, parameter "script" of String,
-           parameter "script_ver" of String, parameter "script_command_line"
-           of String, parameter "input_ws_objects" of list of type
-           "ref_string" (A chain of objects with references to one another as
-           a string. A single string that is semantically identical to
-           ref_chain above. Represents a path from one workspace object to
-           another through an arbitrarily number of intermediate objects
-           where each object has a dependency or provenance reference to the
-           next object. Each entry is an obj_ref as defined earlier. Entries
-           are separated by semicolons. Whitespace is ignored. Examples:
-           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           api command, etc. All of the following fields are optional but at
+           least one field must be present. Furthermore, more information
+           provided equates to better data provenance. resolved_ws_objects
+           should never be set by the user; it is set by the workspace
+           service when returning data. On input, only one of the time or
+           epoch may be supplied. Both are supplied on output. The maximum
+           size of the entire provenance object, including all actions, is
+           1MB. timestamp time - the time the action was started epoch epoch
+           - the time the action was started. string caller - the name or id
+           of the invoker of this provenance action. In most cases, this will
+           be the same for all PAs. string service - the name of the service
+           that performed this action. string service_ver - the version of
+           the service that performed this action. string method - the method
+           of the service that performed this action. list<UnspecifiedObject>
+           method_params - the parameters of the method that performed this
+           action. If an object in the parameters is a workspace object, also
+           put the object reference in the input_ws_object list. string
+           script - the name of the script that performed this action. string
+           script_ver - the version of the script that performed this action.
+           string script_command_line - the command line provided to the
+           script that performed this action. If workspace objects were
+           provided in the command line, also put the object reference in the
+           input_ws_object list. list<ref_string> input_ws_objects - the
+           workspace objects that were used as input to this action;
+           typically these will also be present as parts of the method_params
+           or the script_command_line arguments. A reference path into the
+           object graph may be supplied. list<obj_ref> resolved_ws_objects -
+           the workspace objects ids from input_ws_objects resolved to
+           permanent workspace object references by the workspace service.
+           list<string> intermediate_incoming - if the previous action
+           produced output that 1) was not stored in a referrable way, and 2)
+           is used as input for this action, provide it with an arbitrary and
+           unique ID here, in the order of the input arguments to this
+           action. These IDs can be used in the method_params argument.
+           list<string> intermediate_outgoing - if this action produced
+           output that 1) was not stored in a referrable way, and 2) is used
+           as input for the next action, provide it with an arbitrary and
+           unique ID here, in the order of the output values from this
+           action. These IDs can be used in the intermediate_incoming
+           argument in the next action. list<ExternalDataUnit> external_data
+           - data external to the workspace that was either imported to the
+           workspace or used to create a workspace object. list<SubAction>
+           subactions - the subactions taken as a part of this action.
+           mapping<string, string> custom - user definable custom provenance
+           fields and their values. string description - a free text
+           description of this action.) -> structure: parameter "time" of
+           type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where
+           Z is either the character Z (representing the UTC timezone) or the
+           difference in time to UTC in the format +/-HHMM, eg:
+           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
+           time) 2013-04-03T08:56:32Z (UTC time)), parameter "epoch" of type
+           "epoch" (A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in
+           milliseconds.), parameter "caller" of String, parameter "service"
+           of String, parameter "service_ver" of String, parameter "method"
+           of String, parameter "method_params" of list of unspecified
+           object, parameter "script" of String, parameter "script_ver" of
+           String, parameter "script_command_line" of String, parameter
+           "input_ws_objects" of list of type "ref_string" (A chain of
+           objects with references to one another as a string. A single
+           string that is semantically identical to ref_chain above.
+           Represents a path from one workspace object to another through an
+           arbitrarily number of intermediate objects where each object has a
+           dependency or provenance reference to the next object. Each entry
+           is an obj_ref as defined earlier. Entries are separated by
+           semicolons. Whitespace is ignored. Examples: 3/5/6;
+           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
            parameter "resolved_ws_objects" of list of type "obj_ref" (A
            string that uniquely identifies an object in the workspace
            service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
@@ -791,7 +792,8 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. string resource_name - the name of the resource, for
+           output. All fields are optional, but at least one field must be
+           present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
            version of the resource timestamp resource_release_date - the
@@ -825,7 +827,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the
@@ -1070,71 +1073,72 @@ class Workspace(object):
            action. A provenance action (PA) is an action taken while
            transforming one data object to another. There may be several PAs
            taken in series. A PA is typically running a script, running an
-           api command, etc. All of the following fields are optional, but
-           more information provided equates to better data provenance.
-           resolved_ws_objects should never be set by the user; it is set by
-           the workspace service when returning data. On input, only one of
-           the time or epoch may be supplied. Both are supplied on output.
-           The maximum size of the entire provenance object, including all
-           actions, is 1MB. timestamp time - the time the action was started
-           epoch epoch - the time the action was started. string caller - the
-           name or id of the invoker of this provenance action. In most
-           cases, this will be the same for all PAs. string service - the
-           name of the service that performed this action. string service_ver
-           - the version of the service that performed this action. string
-           method - the method of the service that performed this action.
-           list<UnspecifiedObject> method_params - the parameters of the
-           method that performed this action. If an object in the parameters
-           is a workspace object, also put the object reference in the
-           input_ws_object list. string script - the name of the script that
-           performed this action. string script_ver - the version of the
-           script that performed this action. string script_command_line -
-           the command line provided to the script that performed this
-           action. If workspace objects were provided in the command line,
-           also put the object reference in the input_ws_object list.
-           list<ref_string> input_ws_objects - the workspace objects that
-           were used as input to this action; typically these will also be
-           present as parts of the method_params or the script_command_line
-           arguments. A reference path into the object graph may be supplied.
-           list<obj_ref> resolved_ws_objects - the workspace objects ids from
-           input_ws_objects resolved to permanent workspace object references
-           by the workspace service. list<string> intermediate_incoming - if
-           the previous action produced output that 1) was not stored in a
-           referrable way, and 2) is used as input for this action, provide
-           it with an arbitrary and unique ID here, in the order of the input
-           arguments to this action. These IDs can be used in the
-           method_params argument. list<string> intermediate_outgoing - if
-           this action produced output that 1) was not stored in a referrable
-           way, and 2) is used as input for the next action, provide it with
-           an arbitrary and unique ID here, in the order of the output values
-           from this action. These IDs can be used in the
-           intermediate_incoming argument in the next action.
-           list<ExternalDataUnit> external_data - data external to the
-           workspace that was either imported to the workspace or used to
-           create a workspace object. list<SubAction> subactions - the
-           subactions taken as a part of this action. mapping<string, string>
-           custom - user definable custom provenance fields and their values.
-           string description - a free text description of this action.) ->
-           structure: parameter "time" of type "timestamp" (A time in the
-           format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z
-           (representing the UTC timezone) or the difference in time to UTC
-           in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time)
-           2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC
-           time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
-           since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "caller"
-           of String, parameter "service" of String, parameter "service_ver"
-           of String, parameter "method" of String, parameter "method_params"
-           of list of unspecified object, parameter "script" of String,
-           parameter "script_ver" of String, parameter "script_command_line"
-           of String, parameter "input_ws_objects" of list of type
-           "ref_string" (A chain of objects with references to one another as
-           a string. A single string that is semantically identical to
-           ref_chain above. Represents a path from one workspace object to
-           another through an arbitrarily number of intermediate objects
-           where each object has a dependency or provenance reference to the
-           next object. Each entry is an obj_ref as defined earlier. Entries
-           are separated by semicolons. Whitespace is ignored. Examples:
-           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           api command, etc. All of the following fields are optional but at
+           least one field must be present. Furthermore, more information
+           provided equates to better data provenance. resolved_ws_objects
+           should never be set by the user; it is set by the workspace
+           service when returning data. On input, only one of the time or
+           epoch may be supplied. Both are supplied on output. The maximum
+           size of the entire provenance object, including all actions, is
+           1MB. timestamp time - the time the action was started epoch epoch
+           - the time the action was started. string caller - the name or id
+           of the invoker of this provenance action. In most cases, this will
+           be the same for all PAs. string service - the name of the service
+           that performed this action. string service_ver - the version of
+           the service that performed this action. string method - the method
+           of the service that performed this action. list<UnspecifiedObject>
+           method_params - the parameters of the method that performed this
+           action. If an object in the parameters is a workspace object, also
+           put the object reference in the input_ws_object list. string
+           script - the name of the script that performed this action. string
+           script_ver - the version of the script that performed this action.
+           string script_command_line - the command line provided to the
+           script that performed this action. If workspace objects were
+           provided in the command line, also put the object reference in the
+           input_ws_object list. list<ref_string> input_ws_objects - the
+           workspace objects that were used as input to this action;
+           typically these will also be present as parts of the method_params
+           or the script_command_line arguments. A reference path into the
+           object graph may be supplied. list<obj_ref> resolved_ws_objects -
+           the workspace objects ids from input_ws_objects resolved to
+           permanent workspace object references by the workspace service.
+           list<string> intermediate_incoming - if the previous action
+           produced output that 1) was not stored in a referrable way, and 2)
+           is used as input for this action, provide it with an arbitrary and
+           unique ID here, in the order of the input arguments to this
+           action. These IDs can be used in the method_params argument.
+           list<string> intermediate_outgoing - if this action produced
+           output that 1) was not stored in a referrable way, and 2) is used
+           as input for the next action, provide it with an arbitrary and
+           unique ID here, in the order of the output values from this
+           action. These IDs can be used in the intermediate_incoming
+           argument in the next action. list<ExternalDataUnit> external_data
+           - data external to the workspace that was either imported to the
+           workspace or used to create a workspace object. list<SubAction>
+           subactions - the subactions taken as a part of this action.
+           mapping<string, string> custom - user definable custom provenance
+           fields and their values. string description - a free text
+           description of this action.) -> structure: parameter "time" of
+           type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where
+           Z is either the character Z (representing the UTC timezone) or the
+           difference in time to UTC in the format +/-HHMM, eg:
+           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
+           time) 2013-04-03T08:56:32Z (UTC time)), parameter "epoch" of type
+           "epoch" (A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in
+           milliseconds.), parameter "caller" of String, parameter "service"
+           of String, parameter "service_ver" of String, parameter "method"
+           of String, parameter "method_params" of list of unspecified
+           object, parameter "script" of String, parameter "script_ver" of
+           String, parameter "script_command_line" of String, parameter
+           "input_ws_objects" of list of type "ref_string" (A chain of
+           objects with references to one another as a string. A single
+           string that is semantically identical to ref_chain above.
+           Represents a path from one workspace object to another through an
+           arbitrarily number of intermediate objects where each object has a
+           dependency or provenance reference to the next object. Each entry
+           is an obj_ref as defined earlier. Entries are separated by
+           semicolons. Whitespace is ignored. Examples: 3/5/6;
+           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
            parameter "resolved_ws_objects" of list of type "obj_ref" (A
            string that uniquely identifies an object in the workspace
            service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
@@ -1151,7 +1155,8 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. string resource_name - the name of the resource, for
+           output. All fields are optional, but at least one field must be
+           present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
            version of the resource timestamp resource_release_date - the
@@ -1185,7 +1190,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the
@@ -1350,71 +1356,71 @@ class Workspace(object):
            is an action taken while transforming one data object to another.
            There may be several PAs taken in series. A PA is typically
            running a script, running an api command, etc. All of the
-           following fields are optional, but more information provided
-           equates to better data provenance. resolved_ws_objects should
-           never be set by the user; it is set by the workspace service when
-           returning data. On input, only one of the time or epoch may be
-           supplied. Both are supplied on output. The maximum size of the
-           entire provenance object, including all actions, is 1MB. timestamp
-           time - the time the action was started epoch epoch - the time the
-           action was started. string caller - the name or id of the invoker
-           of this provenance action. In most cases, this will be the same
-           for all PAs. string service - the name of the service that
-           performed this action. string service_ver - the version of the
-           service that performed this action. string method - the method of
-           the service that performed this action. list<UnspecifiedObject>
-           method_params - the parameters of the method that performed this
-           action. If an object in the parameters is a workspace object, also
-           put the object reference in the input_ws_object list. string
-           script - the name of the script that performed this action. string
-           script_ver - the version of the script that performed this action.
-           string script_command_line - the command line provided to the
-           script that performed this action. If workspace objects were
-           provided in the command line, also put the object reference in the
-           input_ws_object list. list<ref_string> input_ws_objects - the
-           workspace objects that were used as input to this action;
-           typically these will also be present as parts of the method_params
-           or the script_command_line arguments. A reference path into the
-           object graph may be supplied. list<obj_ref> resolved_ws_objects -
-           the workspace objects ids from input_ws_objects resolved to
-           permanent workspace object references by the workspace service.
-           list<string> intermediate_incoming - if the previous action
-           produced output that 1) was not stored in a referrable way, and 2)
-           is used as input for this action, provide it with an arbitrary and
-           unique ID here, in the order of the input arguments to this
-           action. These IDs can be used in the method_params argument.
-           list<string> intermediate_outgoing - if this action produced
-           output that 1) was not stored in a referrable way, and 2) is used
-           as input for the next action, provide it with an arbitrary and
-           unique ID here, in the order of the output values from this
-           action. These IDs can be used in the intermediate_incoming
-           argument in the next action. list<ExternalDataUnit> external_data
-           - data external to the workspace that was either imported to the
-           workspace or used to create a workspace object. list<SubAction>
-           subactions - the subactions taken as a part of this action.
-           mapping<string, string> custom - user definable custom provenance
-           fields and their values. string description - a free text
-           description of this action.) -> structure: parameter "time" of
-           type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where
-           Z is either the character Z (representing the UTC timezone) or the
-           difference in time to UTC in the format +/-HHMM, eg:
-           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
-           time) 2013-04-03T08:56:32Z (UTC time)), parameter "epoch" of type
-           "epoch" (A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in
-           milliseconds.), parameter "caller" of String, parameter "service"
-           of String, parameter "service_ver" of String, parameter "method"
-           of String, parameter "method_params" of list of unspecified
-           object, parameter "script" of String, parameter "script_ver" of
-           String, parameter "script_command_line" of String, parameter
-           "input_ws_objects" of list of type "ref_string" (A chain of
-           objects with references to one another as a string. A single
-           string that is semantically identical to ref_chain above.
-           Represents a path from one workspace object to another through an
-           arbitrarily number of intermediate objects where each object has a
-           dependency or provenance reference to the next object. Each entry
-           is an obj_ref as defined earlier. Entries are separated by
-           semicolons. Whitespace is ignored. Examples: 3/5/6;
-           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           following fields are optional but at least one field must be
+           present. Furthermore, more information provided equates to better
+           data provenance. resolved_ws_objects should never be set by the
+           user; it is set by the workspace service when returning data. On
+           input, only one of the time or epoch may be supplied. Both are
+           supplied on output. The maximum size of the entire provenance
+           object, including all actions, is 1MB. timestamp time - the time
+           the action was started epoch epoch - the time the action was
+           started. string caller - the name or id of the invoker of this
+           provenance action. In most cases, this will be the same for all
+           PAs. string service - the name of the service that performed this
+           action. string service_ver - the version of the service that
+           performed this action. string method - the method of the service
+           that performed this action. list<UnspecifiedObject> method_params
+           - the parameters of the method that performed this action. If an
+           object in the parameters is a workspace object, also put the
+           object reference in the input_ws_object list. string script - the
+           name of the script that performed this action. string script_ver -
+           the version of the script that performed this action. string
+           script_command_line - the command line provided to the script that
+           performed this action. If workspace objects were provided in the
+           command line, also put the object reference in the input_ws_object
+           list. list<ref_string> input_ws_objects - the workspace objects
+           that were used as input to this action; typically these will also
+           be present as parts of the method_params or the
+           script_command_line arguments. A reference path into the object
+           graph may be supplied. list<obj_ref> resolved_ws_objects - the
+           workspace objects ids from input_ws_objects resolved to permanent
+           workspace object references by the workspace service. list<string>
+           intermediate_incoming - if the previous action produced output
+           that 1) was not stored in a referrable way, and 2) is used as
+           input for this action, provide it with an arbitrary and unique ID
+           here, in the order of the input arguments to this action. These
+           IDs can be used in the method_params argument. list<string>
+           intermediate_outgoing - if this action produced output that 1) was
+           not stored in a referrable way, and 2) is used as input for the
+           next action, provide it with an arbitrary and unique ID here, in
+           the order of the output values from this action. These IDs can be
+           used in the intermediate_incoming argument in the next action.
+           list<ExternalDataUnit> external_data - data external to the
+           workspace that was either imported to the workspace or used to
+           create a workspace object. list<SubAction> subactions - the
+           subactions taken as a part of this action. mapping<string, string>
+           custom - user definable custom provenance fields and their values.
+           string description - a free text description of this action.) ->
+           structure: parameter "time" of type "timestamp" (A time in the
+           format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z
+           (representing the UTC timezone) or the difference in time to UTC
+           in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time)
+           2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC
+           time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
+           since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "caller"
+           of String, parameter "service" of String, parameter "service_ver"
+           of String, parameter "method" of String, parameter "method_params"
+           of list of unspecified object, parameter "script" of String,
+           parameter "script_ver" of String, parameter "script_command_line"
+           of String, parameter "input_ws_objects" of list of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
            parameter "resolved_ws_objects" of list of type "obj_ref" (A
            string that uniquely identifies an object in the workspace
            service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
@@ -1431,7 +1437,8 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. string resource_name - the name of the resource, for
+           output. All fields are optional, but at least one field must be
+           present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
            version of the resource timestamp resource_release_date - the
@@ -1465,7 +1472,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the
@@ -1525,68 +1533,76 @@ class Workspace(object):
            Default false. boolean no_data - return the provenance,
            references, and object_info for this object without the object
            data. Default false. boolean skip_external_system_updates - if the
-           object contains any external IDs, don't contact external systems
+           objects contain any external IDs, don't contact external systems
            to perform any updates for those IDs (often ACL updates, e.g. for
            handle / blobstore / sample IDs). In some cases this can speed up
-           fetching the data. Default false.) -> structure: parameter
-           "objects" of list of type "ObjectSpecification" (An Object
-           Specification (OS). Inherits from ObjectIdentity (OI). Specifies
-           which object, and which parts of that object, to retrieve from the
-           Workspace Service. The fields wsid, workspace, objid, name, and
-           ver are identical to the OI fields. The ref field's behavior is
-           extended from OI. It maintains its previous behavior, but now also
-           can act as a reference string. See reference following below for
-           more information. REFERENCE FOLLOWING: Reference following
-           guarantees that a user that has access to an object can always see
-           a) objects that are referenced inside the object and b) objects
-           that are referenced in the object's provenance. This ensures that
-           the user has visibility into the entire provenance of the object
-           and the object's object dependencies (e.g. references). The user
-           must have at least read access to the object specified in this SO,
-           but need not have access to any further objects in the reference
-           chain, and those objects may be deleted. Optional reference
-           following fields: Note that only one of the following fields may
-           be specified. ref_chain obj_path - a path to the desired object
-           from the object specified in this OS. In other words, the object
-           specified in this OS is assumed to be accessible to the user, and
-           the objects in the object path represent a chain of references to
-           the desired object at the end of the object path. If the
-           references are all valid, the desired object will be returned. -
-           OR - list<obj_ref> obj_ref_path - shorthand for the obj_path. - OR
-           - ref_chain to_obj_path - identical to obj_path, except that the
-           path is TO the object specified in this OS, rather than from the
-           object. In other words the object specified by wsid/objid/ref etc.
-           is the end of the path, and to_obj_path is the rest of the path.
-           The user must have access to the first object in the to_obj_path.
-           - OR - list<obj_ref> to_obj_ref_path - shorthand for the
-           to_obj_path. - OR - ref_string ref - A string representing a
-           reference path from one object to another. Unlike the previous
-           reference following options, the ref_string represents the ENTIRE
-           path from the source object to the target object. As with the OI
-           object, the ref field may contain a single reference. - OR -
-           boolean find_refence_path - This is the last, slowest, and most
-           expensive resort for getting a referenced object - do not use this
-           method unless the path to the object is unavailable by any other
-           means. Setting the find_refence_path parameter to true means that
-           the workspace service will search through the object reference
-           graph from the object specified in this OS to find an object that
-           1) the user can access, and 2) has an unbroken reference path to
-           the target object. If the search succeeds, the object will be
-           returned as normal. Note that the search will automatically fail
-           after a certain (but much larger than necessary for the vast
-           majority of cases) number of objects are traversed. OBJECT
-           SUBSETS: When selecting a subset of an array in an object, the
-           returned array is compressed to the size of the subset, but the
-           ordering of the array is maintained. For example, if the array
-           stored at the 'feature' key of a Genome object has 4000 entries,
-           and the object paths provided are: /feature/7 /feature/3015
-           /feature/700 The returned feature array will be of length three
-           and the entries will consist, in order, of the 7th, 700th, and
-           3015th entries of the original array. Optional object subset
-           fields: list<object_path> included - the portions of the object to
-           include in the object subset. boolean strict_maps - if true, throw
-           an exception if the subset specification traverses a non-existent
-           map key (default false) boolean strict_arrays - if true, throw an
+           fetching the data. Default false. boolean
+           batch_external_system_updates - if the objects contain any
+           external IDs, send all external system updates in a batch to each
+           external system when possible rather than object by object. This
+           can potentially speed up the updates, but the drawback is that if
+           the external update fails for any object, all the objects that
+           required updates for that system will be marked as having a failed
+           update. Has no effect if skip_external_system_updates is true.
+           Default false.) -> structure: parameter "objects" of list of type
+           "ObjectSpecification" (An Object Specification (OS). Inherits from
+           ObjectIdentity (OI). Specifies which object, and which parts of
+           that object, to retrieve from the Workspace Service. The fields
+           wsid, workspace, objid, name, and ver are identical to the OI
+           fields. The ref field's behavior is extended from OI. It maintains
+           its previous behavior, but now also can act as a reference string.
+           See reference following below for more information. REFERENCE
+           FOLLOWING: Reference following guarantees that a user that has
+           access to an object can always see a) objects that are referenced
+           inside the object and b) objects that are referenced in the
+           object's provenance. This ensures that the user has visibility
+           into the entire provenance of the object and the object's object
+           dependencies (e.g. references). The user must have at least read
+           access to the object specified in this SO, but need not have
+           access to any further objects in the reference chain, and those
+           objects may be deleted. Optional reference following fields: Note
+           that only one of the following fields may be specified. ref_chain
+           obj_path - a path to the desired object from the object specified
+           in this OS. In other words, the object specified in this OS is
+           assumed to be accessible to the user, and the objects in the
+           object path represent a chain of references to the desired object
+           at the end of the object path. If the references are all valid,
+           the desired object will be returned. - OR - list<obj_ref>
+           obj_ref_path - shorthand for the obj_path. - OR - ref_chain
+           to_obj_path - identical to obj_path, except that the path is TO
+           the object specified in this OS, rather than from the object. In
+           other words the object specified by wsid/objid/ref etc. is the end
+           of the path, and to_obj_path is the rest of the path. The user
+           must have access to the first object in the to_obj_path. - OR -
+           list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path. -
+           OR - ref_string ref - A string representing a reference path from
+           one object to another. Unlike the previous reference following
+           options, the ref_string represents the ENTIRE path from the source
+           object to the target object. As with the OI object, the ref field
+           may contain a single reference. - OR - boolean find_refence_path -
+           This is the last, slowest, and most expensive resort for getting a
+           referenced object - do not use this method unless the path to the
+           object is unavailable by any other means. Setting the
+           find_refence_path parameter to true means that the workspace
+           service will search through the object reference graph from the
+           object specified in this OS to find an object that 1) the user can
+           access, and 2) has an unbroken reference path to the target
+           object. If the search succeeds, the object will be returned as
+           normal. Note that the search will automatically fail after a
+           certain (but much larger than necessary for the vast majority of
+           cases) number of objects are traversed. OBJECT SUBSETS: When
+           selecting a subset of an array in an object, the returned array is
+           compressed to the size of the subset, but the ordering of the
+           array is maintained. For example, if the array stored at the
+           'feature' key of a Genome object has 4000 entries, and the object
+           paths provided are: /feature/7 /feature/3015 /feature/700 The
+           returned feature array will be of length three and the entries
+           will consist, in order, of the 7th, 700th, and 3015th entries of
+           the original array. Optional object subset fields:
+           list<object_path> included - the portions of the object to include
+           in the object subset. boolean strict_maps - if true, throw an
+           exception if the subset specification traverses a non-existent map
+           key (default false) boolean strict_arrays - if true, throw an
            exception if the subset specification exceeds the size of an array
            (default true)) -> structure: parameter "workspace" of type
            "ws_name" (A string used as a name for a workspace. Any string
@@ -1716,7 +1732,8 @@ class Workspace(object):
            false, other = true.), parameter "no_data" of type "boolean" (A
            boolean. 0 = false, other = true.), parameter
            "skip_external_system_updates" of type "boolean" (A boolean. 0 =
-           false, other = true.)
+           false, other = true.), parameter "batch_external_system_updates"
+           of type "boolean" (A boolean. 0 = false, other = true.)
         :returns: instance of type "GetObjects2Results" (Results from the
            get_objects2 function. list<ObjectData> data - the returned
            objects.) -> structure: parameter "data" of list of type
@@ -1803,71 +1820,71 @@ class Workspace(object):
            is an action taken while transforming one data object to another.
            There may be several PAs taken in series. A PA is typically
            running a script, running an api command, etc. All of the
-           following fields are optional, but more information provided
-           equates to better data provenance. resolved_ws_objects should
-           never be set by the user; it is set by the workspace service when
-           returning data. On input, only one of the time or epoch may be
-           supplied. Both are supplied on output. The maximum size of the
-           entire provenance object, including all actions, is 1MB. timestamp
-           time - the time the action was started epoch epoch - the time the
-           action was started. string caller - the name or id of the invoker
-           of this provenance action. In most cases, this will be the same
-           for all PAs. string service - the name of the service that
-           performed this action. string service_ver - the version of the
-           service that performed this action. string method - the method of
-           the service that performed this action. list<UnspecifiedObject>
-           method_params - the parameters of the method that performed this
-           action. If an object in the parameters is a workspace object, also
-           put the object reference in the input_ws_object list. string
-           script - the name of the script that performed this action. string
-           script_ver - the version of the script that performed this action.
-           string script_command_line - the command line provided to the
-           script that performed this action. If workspace objects were
-           provided in the command line, also put the object reference in the
-           input_ws_object list. list<ref_string> input_ws_objects - the
-           workspace objects that were used as input to this action;
-           typically these will also be present as parts of the method_params
-           or the script_command_line arguments. A reference path into the
-           object graph may be supplied. list<obj_ref> resolved_ws_objects -
-           the workspace objects ids from input_ws_objects resolved to
-           permanent workspace object references by the workspace service.
-           list<string> intermediate_incoming - if the previous action
-           produced output that 1) was not stored in a referrable way, and 2)
-           is used as input for this action, provide it with an arbitrary and
-           unique ID here, in the order of the input arguments to this
-           action. These IDs can be used in the method_params argument.
-           list<string> intermediate_outgoing - if this action produced
-           output that 1) was not stored in a referrable way, and 2) is used
-           as input for the next action, provide it with an arbitrary and
-           unique ID here, in the order of the output values from this
-           action. These IDs can be used in the intermediate_incoming
-           argument in the next action. list<ExternalDataUnit> external_data
-           - data external to the workspace that was either imported to the
-           workspace or used to create a workspace object. list<SubAction>
-           subactions - the subactions taken as a part of this action.
-           mapping<string, string> custom - user definable custom provenance
-           fields and their values. string description - a free text
-           description of this action.) -> structure: parameter "time" of
-           type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where
-           Z is either the character Z (representing the UTC timezone) or the
-           difference in time to UTC in the format +/-HHMM, eg:
-           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
-           time) 2013-04-03T08:56:32Z (UTC time)), parameter "epoch" of type
-           "epoch" (A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in
-           milliseconds.), parameter "caller" of String, parameter "service"
-           of String, parameter "service_ver" of String, parameter "method"
-           of String, parameter "method_params" of list of unspecified
-           object, parameter "script" of String, parameter "script_ver" of
-           String, parameter "script_command_line" of String, parameter
-           "input_ws_objects" of list of type "ref_string" (A chain of
-           objects with references to one another as a string. A single
-           string that is semantically identical to ref_chain above.
-           Represents a path from one workspace object to another through an
-           arbitrarily number of intermediate objects where each object has a
-           dependency or provenance reference to the next object. Each entry
-           is an obj_ref as defined earlier. Entries are separated by
-           semicolons. Whitespace is ignored. Examples: 3/5/6;
-           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           following fields are optional but at least one field must be
+           present. Furthermore, more information provided equates to better
+           data provenance. resolved_ws_objects should never be set by the
+           user; it is set by the workspace service when returning data. On
+           input, only one of the time or epoch may be supplied. Both are
+           supplied on output. The maximum size of the entire provenance
+           object, including all actions, is 1MB. timestamp time - the time
+           the action was started epoch epoch - the time the action was
+           started. string caller - the name or id of the invoker of this
+           provenance action. In most cases, this will be the same for all
+           PAs. string service - the name of the service that performed this
+           action. string service_ver - the version of the service that
+           performed this action. string method - the method of the service
+           that performed this action. list<UnspecifiedObject> method_params
+           - the parameters of the method that performed this action. If an
+           object in the parameters is a workspace object, also put the
+           object reference in the input_ws_object list. string script - the
+           name of the script that performed this action. string script_ver -
+           the version of the script that performed this action. string
+           script_command_line - the command line provided to the script that
+           performed this action. If workspace objects were provided in the
+           command line, also put the object reference in the input_ws_object
+           list. list<ref_string> input_ws_objects - the workspace objects
+           that were used as input to this action; typically these will also
+           be present as parts of the method_params or the
+           script_command_line arguments. A reference path into the object
+           graph may be supplied. list<obj_ref> resolved_ws_objects - the
+           workspace objects ids from input_ws_objects resolved to permanent
+           workspace object references by the workspace service. list<string>
+           intermediate_incoming - if the previous action produced output
+           that 1) was not stored in a referrable way, and 2) is used as
+           input for this action, provide it with an arbitrary and unique ID
+           here, in the order of the input arguments to this action. These
+           IDs can be used in the method_params argument. list<string>
+           intermediate_outgoing - if this action produced output that 1) was
+           not stored in a referrable way, and 2) is used as input for the
+           next action, provide it with an arbitrary and unique ID here, in
+           the order of the output values from this action. These IDs can be
+           used in the intermediate_incoming argument in the next action.
+           list<ExternalDataUnit> external_data - data external to the
+           workspace that was either imported to the workspace or used to
+           create a workspace object. list<SubAction> subactions - the
+           subactions taken as a part of this action. mapping<string, string>
+           custom - user definable custom provenance fields and their values.
+           string description - a free text description of this action.) ->
+           structure: parameter "time" of type "timestamp" (A time in the
+           format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z
+           (representing the UTC timezone) or the difference in time to UTC
+           in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time)
+           2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC
+           time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
+           since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "caller"
+           of String, parameter "service" of String, parameter "service_ver"
+           of String, parameter "method" of String, parameter "method_params"
+           of list of unspecified object, parameter "script" of String,
+           parameter "script_ver" of String, parameter "script_command_line"
+           of String, parameter "input_ws_objects" of list of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
            parameter "resolved_ws_objects" of list of type "obj_ref" (A
            string that uniquely identifies an object in the workspace
            service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
@@ -1884,7 +1901,8 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. string resource_name - the name of the resource, for
+           output. All fields are optional, but at least one field must be
+           present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
            version of the resource timestamp resource_release_date - the
@@ -1918,7 +1936,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the
@@ -2117,71 +2136,71 @@ class Workspace(object):
            is an action taken while transforming one data object to another.
            There may be several PAs taken in series. A PA is typically
            running a script, running an api command, etc. All of the
-           following fields are optional, but more information provided
-           equates to better data provenance. resolved_ws_objects should
-           never be set by the user; it is set by the workspace service when
-           returning data. On input, only one of the time or epoch may be
-           supplied. Both are supplied on output. The maximum size of the
-           entire provenance object, including all actions, is 1MB. timestamp
-           time - the time the action was started epoch epoch - the time the
-           action was started. string caller - the name or id of the invoker
-           of this provenance action. In most cases, this will be the same
-           for all PAs. string service - the name of the service that
-           performed this action. string service_ver - the version of the
-           service that performed this action. string method - the method of
-           the service that performed this action. list<UnspecifiedObject>
-           method_params - the parameters of the method that performed this
-           action. If an object in the parameters is a workspace object, also
-           put the object reference in the input_ws_object list. string
-           script - the name of the script that performed this action. string
-           script_ver - the version of the script that performed this action.
-           string script_command_line - the command line provided to the
-           script that performed this action. If workspace objects were
-           provided in the command line, also put the object reference in the
-           input_ws_object list. list<ref_string> input_ws_objects - the
-           workspace objects that were used as input to this action;
-           typically these will also be present as parts of the method_params
-           or the script_command_line arguments. A reference path into the
-           object graph may be supplied. list<obj_ref> resolved_ws_objects -
-           the workspace objects ids from input_ws_objects resolved to
-           permanent workspace object references by the workspace service.
-           list<string> intermediate_incoming - if the previous action
-           produced output that 1) was not stored in a referrable way, and 2)
-           is used as input for this action, provide it with an arbitrary and
-           unique ID here, in the order of the input arguments to this
-           action. These IDs can be used in the method_params argument.
-           list<string> intermediate_outgoing - if this action produced
-           output that 1) was not stored in a referrable way, and 2) is used
-           as input for the next action, provide it with an arbitrary and
-           unique ID here, in the order of the output values from this
-           action. These IDs can be used in the intermediate_incoming
-           argument in the next action. list<ExternalDataUnit> external_data
-           - data external to the workspace that was either imported to the
-           workspace or used to create a workspace object. list<SubAction>
-           subactions - the subactions taken as a part of this action.
-           mapping<string, string> custom - user definable custom provenance
-           fields and their values. string description - a free text
-           description of this action.) -> structure: parameter "time" of
-           type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where
-           Z is either the character Z (representing the UTC timezone) or the
-           difference in time to UTC in the format +/-HHMM, eg:
-           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
-           time) 2013-04-03T08:56:32Z (UTC time)), parameter "epoch" of type
-           "epoch" (A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in
-           milliseconds.), parameter "caller" of String, parameter "service"
-           of String, parameter "service_ver" of String, parameter "method"
-           of String, parameter "method_params" of list of unspecified
-           object, parameter "script" of String, parameter "script_ver" of
-           String, parameter "script_command_line" of String, parameter
-           "input_ws_objects" of list of type "ref_string" (A chain of
-           objects with references to one another as a string. A single
-           string that is semantically identical to ref_chain above.
-           Represents a path from one workspace object to another through an
-           arbitrarily number of intermediate objects where each object has a
-           dependency or provenance reference to the next object. Each entry
-           is an obj_ref as defined earlier. Entries are separated by
-           semicolons. Whitespace is ignored. Examples: 3/5/6;
-           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           following fields are optional but at least one field must be
+           present. Furthermore, more information provided equates to better
+           data provenance. resolved_ws_objects should never be set by the
+           user; it is set by the workspace service when returning data. On
+           input, only one of the time or epoch may be supplied. Both are
+           supplied on output. The maximum size of the entire provenance
+           object, including all actions, is 1MB. timestamp time - the time
+           the action was started epoch epoch - the time the action was
+           started. string caller - the name or id of the invoker of this
+           provenance action. In most cases, this will be the same for all
+           PAs. string service - the name of the service that performed this
+           action. string service_ver - the version of the service that
+           performed this action. string method - the method of the service
+           that performed this action. list<UnspecifiedObject> method_params
+           - the parameters of the method that performed this action. If an
+           object in the parameters is a workspace object, also put the
+           object reference in the input_ws_object list. string script - the
+           name of the script that performed this action. string script_ver -
+           the version of the script that performed this action. string
+           script_command_line - the command line provided to the script that
+           performed this action. If workspace objects were provided in the
+           command line, also put the object reference in the input_ws_object
+           list. list<ref_string> input_ws_objects - the workspace objects
+           that were used as input to this action; typically these will also
+           be present as parts of the method_params or the
+           script_command_line arguments. A reference path into the object
+           graph may be supplied. list<obj_ref> resolved_ws_objects - the
+           workspace objects ids from input_ws_objects resolved to permanent
+           workspace object references by the workspace service. list<string>
+           intermediate_incoming - if the previous action produced output
+           that 1) was not stored in a referrable way, and 2) is used as
+           input for this action, provide it with an arbitrary and unique ID
+           here, in the order of the input arguments to this action. These
+           IDs can be used in the method_params argument. list<string>
+           intermediate_outgoing - if this action produced output that 1) was
+           not stored in a referrable way, and 2) is used as input for the
+           next action, provide it with an arbitrary and unique ID here, in
+           the order of the output values from this action. These IDs can be
+           used in the intermediate_incoming argument in the next action.
+           list<ExternalDataUnit> external_data - data external to the
+           workspace that was either imported to the workspace or used to
+           create a workspace object. list<SubAction> subactions - the
+           subactions taken as a part of this action. mapping<string, string>
+           custom - user definable custom provenance fields and their values.
+           string description - a free text description of this action.) ->
+           structure: parameter "time" of type "timestamp" (A time in the
+           format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z
+           (representing the UTC timezone) or the difference in time to UTC
+           in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time)
+           2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC
+           time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
+           since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "caller"
+           of String, parameter "service" of String, parameter "service_ver"
+           of String, parameter "method" of String, parameter "method_params"
+           of list of unspecified object, parameter "script" of String,
+           parameter "script_ver" of String, parameter "script_command_line"
+           of String, parameter "input_ws_objects" of list of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
            parameter "resolved_ws_objects" of list of type "obj_ref" (A
            string that uniquely identifies an object in the workspace
            service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
@@ -2198,7 +2217,8 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. string resource_name - the name of the resource, for
+           output. All fields are optional, but at least one field must be
+           present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
            version of the resource timestamp resource_release_date - the
@@ -2232,7 +2252,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the
@@ -2621,71 +2642,71 @@ class Workspace(object):
            is an action taken while transforming one data object to another.
            There may be several PAs taken in series. A PA is typically
            running a script, running an api command, etc. All of the
-           following fields are optional, but more information provided
-           equates to better data provenance. resolved_ws_objects should
-           never be set by the user; it is set by the workspace service when
-           returning data. On input, only one of the time or epoch may be
-           supplied. Both are supplied on output. The maximum size of the
-           entire provenance object, including all actions, is 1MB. timestamp
-           time - the time the action was started epoch epoch - the time the
-           action was started. string caller - the name or id of the invoker
-           of this provenance action. In most cases, this will be the same
-           for all PAs. string service - the name of the service that
-           performed this action. string service_ver - the version of the
-           service that performed this action. string method - the method of
-           the service that performed this action. list<UnspecifiedObject>
-           method_params - the parameters of the method that performed this
-           action. If an object in the parameters is a workspace object, also
-           put the object reference in the input_ws_object list. string
-           script - the name of the script that performed this action. string
-           script_ver - the version of the script that performed this action.
-           string script_command_line - the command line provided to the
-           script that performed this action. If workspace objects were
-           provided in the command line, also put the object reference in the
-           input_ws_object list. list<ref_string> input_ws_objects - the
-           workspace objects that were used as input to this action;
-           typically these will also be present as parts of the method_params
-           or the script_command_line arguments. A reference path into the
-           object graph may be supplied. list<obj_ref> resolved_ws_objects -
-           the workspace objects ids from input_ws_objects resolved to
-           permanent workspace object references by the workspace service.
-           list<string> intermediate_incoming - if the previous action
-           produced output that 1) was not stored in a referrable way, and 2)
-           is used as input for this action, provide it with an arbitrary and
-           unique ID here, in the order of the input arguments to this
-           action. These IDs can be used in the method_params argument.
-           list<string> intermediate_outgoing - if this action produced
-           output that 1) was not stored in a referrable way, and 2) is used
-           as input for the next action, provide it with an arbitrary and
-           unique ID here, in the order of the output values from this
-           action. These IDs can be used in the intermediate_incoming
-           argument in the next action. list<ExternalDataUnit> external_data
-           - data external to the workspace that was either imported to the
-           workspace or used to create a workspace object. list<SubAction>
-           subactions - the subactions taken as a part of this action.
-           mapping<string, string> custom - user definable custom provenance
-           fields and their values. string description - a free text
-           description of this action.) -> structure: parameter "time" of
-           type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where
-           Z is either the character Z (representing the UTC timezone) or the
-           difference in time to UTC in the format +/-HHMM, eg:
-           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
-           time) 2013-04-03T08:56:32Z (UTC time)), parameter "epoch" of type
-           "epoch" (A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in
-           milliseconds.), parameter "caller" of String, parameter "service"
-           of String, parameter "service_ver" of String, parameter "method"
-           of String, parameter "method_params" of list of unspecified
-           object, parameter "script" of String, parameter "script_ver" of
-           String, parameter "script_command_line" of String, parameter
-           "input_ws_objects" of list of type "ref_string" (A chain of
-           objects with references to one another as a string. A single
-           string that is semantically identical to ref_chain above.
-           Represents a path from one workspace object to another through an
-           arbitrarily number of intermediate objects where each object has a
-           dependency or provenance reference to the next object. Each entry
-           is an obj_ref as defined earlier. Entries are separated by
-           semicolons. Whitespace is ignored. Examples: 3/5/6;
-           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           following fields are optional but at least one field must be
+           present. Furthermore, more information provided equates to better
+           data provenance. resolved_ws_objects should never be set by the
+           user; it is set by the workspace service when returning data. On
+           input, only one of the time or epoch may be supplied. Both are
+           supplied on output. The maximum size of the entire provenance
+           object, including all actions, is 1MB. timestamp time - the time
+           the action was started epoch epoch - the time the action was
+           started. string caller - the name or id of the invoker of this
+           provenance action. In most cases, this will be the same for all
+           PAs. string service - the name of the service that performed this
+           action. string service_ver - the version of the service that
+           performed this action. string method - the method of the service
+           that performed this action. list<UnspecifiedObject> method_params
+           - the parameters of the method that performed this action. If an
+           object in the parameters is a workspace object, also put the
+           object reference in the input_ws_object list. string script - the
+           name of the script that performed this action. string script_ver -
+           the version of the script that performed this action. string
+           script_command_line - the command line provided to the script that
+           performed this action. If workspace objects were provided in the
+           command line, also put the object reference in the input_ws_object
+           list. list<ref_string> input_ws_objects - the workspace objects
+           that were used as input to this action; typically these will also
+           be present as parts of the method_params or the
+           script_command_line arguments. A reference path into the object
+           graph may be supplied. list<obj_ref> resolved_ws_objects - the
+           workspace objects ids from input_ws_objects resolved to permanent
+           workspace object references by the workspace service. list<string>
+           intermediate_incoming - if the previous action produced output
+           that 1) was not stored in a referrable way, and 2) is used as
+           input for this action, provide it with an arbitrary and unique ID
+           here, in the order of the input arguments to this action. These
+           IDs can be used in the method_params argument. list<string>
+           intermediate_outgoing - if this action produced output that 1) was
+           not stored in a referrable way, and 2) is used as input for the
+           next action, provide it with an arbitrary and unique ID here, in
+           the order of the output values from this action. These IDs can be
+           used in the intermediate_incoming argument in the next action.
+           list<ExternalDataUnit> external_data - data external to the
+           workspace that was either imported to the workspace or used to
+           create a workspace object. list<SubAction> subactions - the
+           subactions taken as a part of this action. mapping<string, string>
+           custom - user definable custom provenance fields and their values.
+           string description - a free text description of this action.) ->
+           structure: parameter "time" of type "timestamp" (A time in the
+           format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z
+           (representing the UTC timezone) or the difference in time to UTC
+           in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time)
+           2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC
+           time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
+           since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "caller"
+           of String, parameter "service" of String, parameter "service_ver"
+           of String, parameter "method" of String, parameter "method_params"
+           of list of unspecified object, parameter "script" of String,
+           parameter "script_ver" of String, parameter "script_command_line"
+           of String, parameter "input_ws_objects" of list of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
            parameter "resolved_ws_objects" of list of type "obj_ref" (A
            string that uniquely identifies an object in the workspace
            service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
@@ -2702,7 +2723,8 @@ class Workspace(object):
            data unit. A piece of data from a source outside the Workspace. On
            input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
-           output. string resource_name - the name of the resource, for
+           output. All fields are optional, but at least one field must be
+           present. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
            example http://genome.jgi.doe.gov string resource_version -
            version of the resource timestamp resource_release_date - the
@@ -2736,7 +2758,8 @@ class Workspace(object):
            updated between a PA invoked on day T and another PA invoked on
            day T+1. The SubAction structure allows for specifying information
            about SAs that may dynamically change from PA invocation to PA
-           invocation. string name - the name of the SA. string ver - the
+           invocation. All fields are optional but at least one field must be
+           present. string name - the name of the SA. string ver - the
            version of SA. string code_url - a url pointing to the SA's
            codebase. string commit - a version control commit ID for the SA.
            string endpoint_url - a url pointing to the access point for the

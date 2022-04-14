@@ -75,6 +75,7 @@ public class Util {
 	 * @param message the message for the exception.
 	 */
 	public static void nonNull(final Object o, final String message) {
+		// TODO CODE replace with requireNonNull
 		if (o == null) {
 			throw new NullPointerException(message);
 		}

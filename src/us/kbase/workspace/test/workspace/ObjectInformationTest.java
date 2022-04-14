@@ -3,8 +3,10 @@ package us.kbase.workspace.test.workspace;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -13,6 +15,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
 import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Reference;
@@ -22,6 +25,12 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 
 public class ObjectInformationTest {
+	
+	@Test
+	public void equals() throws Exception {
+		EqualsVerifier.forClass(ObjectInformation.class).usingGetClass().verify();
+		
+	}
 
 	@Test
 	public void constructor() {
@@ -45,6 +54,31 @@ public class ObjectInformationTest {
 				is(new UncheckedUserMetadata(meta)));
 		assertThat("incorrect ref path", oi.getReferencePath(),
 				is(Arrays.asList(new Reference(4, 1, 3))));
+	}
+	
+	@Test
+	public void refPathImmutable() throws Exception {
+		final ObjectInformation oi = new ObjectInformation(1L, "foo", "type", new Date(), 3,
+				new WorkspaceUser("bar"), new ResolvedWorkspaceID(4, "whee", false, false),
+				"sum", 5L, new UncheckedUserMetadata(new HashMap<>()));
+		
+		failModifyReferencePath(oi);
+		final List<Reference> incomingPath = new LinkedList<>(
+				Arrays.asList(new Reference(1, 1, 1), new Reference(4, 1, 3)));
+		final ObjectInformation oi2 = oi.updateReferencePath(incomingPath);
+		incomingPath.remove(0);
+		assertThat("incorrect ref path", oi2.getReferencePath(), is(Arrays.asList(
+				new Reference(1, 1, 1), new Reference(4, 1, 3))));
+		failModifyReferencePath(oi2);
+	}
+
+	public void failModifyReferencePath(final ObjectInformation oi) {
+		try {
+			oi.getReferencePath().add(new Reference(1, 1, 1));
+			fail("expected exception");
+		} catch (UnsupportedOperationException e) {
+			// test passes
+		}
 	}
 	
 	@Test
@@ -180,21 +214,29 @@ public class ObjectInformationTest {
 	
 	@Test
 	public void failUpdateRefPathNull() {
-		failUpdateRefPath(null, "refpath cannot be null or empty");
+		failUpdateRefPath(null, new IllegalArgumentException("refpath cannot be null or empty"));
 	}
 	
 	@Test
 	public void failUpdateRefPathEmpty() {
-		failUpdateRefPath(new LinkedList<Reference>(), "refpath cannot be null or empty");
+		failUpdateRefPath(Collections.emptyList(), new IllegalArgumentException(
+				"refpath cannot be null or empty"));
+	}
+	
+	@Test
+	public void failUpdateRefPathNullInPath() {
+		failUpdateRefPath(Arrays.asList(new Reference(7, 7, 7), null, new Reference(3, 3, 1)),
+				new NullPointerException("refpath cannot contain nulls"));
 	}
 	
 	@Test
 	public void failUpdateRefPathMisMatch() {
 		failUpdateRefPath(Arrays.asList(new Reference(7, 7, 7), new Reference(3, 3, 1)),
-				"refpath must end with the same reference as the current refpath");
+				new IllegalArgumentException(
+						"refpath must end with the same reference as the current refpath"));
 	}
 	
-	private void failUpdateRefPath(final List<Reference> refpath, final String exp) {
+	private void failUpdateRefPath(final List<Reference> refpath, final Exception expected) {
 		final ObjectInformation oi = new ObjectInformation(1L, "foo", "type", new Date(), 3,
 				new WorkspaceUser("bar"), new ResolvedWorkspaceID(4, "whee", false, false),
 				"sum", 5L,
@@ -202,8 +244,8 @@ public class ObjectInformationTest {
 		try {
 			oi.updateReferencePath(refpath);
 			fail("updated bad refpath");
-		} catch (IllegalArgumentException e) {
-			assertThat("incorrect exception message", e.getMessage(), is(exp));
+		} catch (Exception got) {
+			assertExceptionCorrect(got, expected);
 		}
 	}
 }

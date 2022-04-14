@@ -2,7 +2,7 @@ package us.kbase.workspace.database.mongo;
 
 import static java.util.Objects.requireNonNull;
 import static us.kbase.workspace.database.mongo.CollectionNames.COL_WORKSPACE_VERS;
-import static us.kbase.workspace.database.mongo.CollectionNames.COL_CONFIG;
+import static us.kbase.workspace.database.mongo.CollectionNames.COL_SCHEMA_CONFIG;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -91,10 +91,10 @@ public class SchemaUpdater {
 						processedtypes, types.size(), t, res.getModifiedCount(), processedobjs));
 			}
 			if (complete && schemaVer.get() < MongoWorkspaceDB.SCHEMA_VERSION) {
-				db.getCollection(COL_CONFIG).updateOne(
-						new Document(Fields.CONFIG_KEY, Fields.CONFIG_VALUE),
+				db.getCollection(COL_SCHEMA_CONFIG).updateOne(
+						new Document(Fields.SCHEMA_CONFIG_KEY, Fields.SCHEMA_CONFIG_VALUE),
 						new Document("$set", new Document(
-								Fields.CONFIG_SCHEMA_VERSION, MongoWorkspaceDB.SCHEMA_VERSION))
+								Fields.SCHEMA_CONFIG_VERSION, MongoWorkspaceDB.SCHEMA_VERSION))
 				);
 			}
 			return processedobjs;
@@ -112,7 +112,7 @@ public class SchemaUpdater {
 		final Optional<Integer> schemaVer;
 		try {
 			MongoWorkspaceDB.ensureIndexes(requireNonNull(db, "db"));
-			schemaVer = MongoWorkspaceDB.checkExtantConfigAndGetVersion(db, true, true);
+			schemaVer = MongoWorkspaceDB.checkExtantSchemaAndGetVersion(db, true, true);
 		} catch (CorruptWorkspaceDBException | WorkspaceDBInitializationException |
 				WorkspaceCommunicationException e) {
 			throw new SchemaUpdateException("Couldn't initialize database: " +

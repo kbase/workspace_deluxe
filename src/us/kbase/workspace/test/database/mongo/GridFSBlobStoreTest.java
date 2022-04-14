@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.assertExceptionCorrect;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
@@ -35,26 +34,23 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.Restreamable;
-import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.ByteArrayFileCacheManager.ByteArrayFileCache;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.mongo.GridFSBlobStore;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
-import us.kbase.workspace.database.mongo.exceptions.BlobStoreException;
+import us.kbase.workspace.database.mongo.exceptions.NoSuchBlobException;
 
 public class GridFSBlobStoreTest {
 	
 	private static GridFSBlobStore gfsb;
 	private static GridFSBucket gfs;
 	private static MongoController mongo;
-	private static TempFilesManager tfm;
 	
 	private static final String a32 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		tfm = new TempFilesManager(new File(TestCommon.getTempDir()));
 		mongo = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
 				TestCommon.useWiredTigerEngine());
@@ -127,8 +123,7 @@ public class GridFSBlobStoreTest {
 					new ByteArrayInputStream(s.getBytes("UTF-8")),
 					tcase.getKey());
 			
-			final ByteArrayFileCache d = gfsb.getBlob(md5,
-					new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
+			final ByteArrayFileCache d = gfsb.getBlob(md5, new ByteArrayFileCacheManager());
 			assertThat("data returned marked as unsorted", d.isSorted(), is(tcase.getValue()));
 			final String returned = IOUtils.toString(d.getJSON());
 			assertThat("Didn't get same data back from store", returned, is(s));
@@ -159,23 +154,20 @@ public class GridFSBlobStoreTest {
 		String data = "this is a blob yo";
 		gfsb.saveBlob(md1, new StringRestreamable(data), true);
 		MD5 md1copy = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
-		ByteArrayFileCache d = gfsb.getBlob(md1copy, 
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
+		ByteArrayFileCache d = gfsb.getBlob(md1copy, new ByteArrayFileCacheManager());
 		assertThat("data returned marked as sorted", d.isSorted(), is(true));
 		String returned = IOUtils.toString(d.getJSON());
 		assertThat("Didn't get same data back from store", returned, is(data));
 		gfsb.saveBlob(md1, new StringRestreamable(data), true); //should be able to save the same thing twice with no error
 		
 		gfsb.saveBlob(md1, new StringRestreamable(data), false); //this should do nothing
-		assertThat("sorted still true", gfsb.getBlob(md1copy,
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm))
+		assertThat("sorted still true", gfsb.getBlob(md1copy, new ByteArrayFileCacheManager())
 					.isSorted(), is(true));
 		
 		MD5 md2 = new MD5("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2");
 		String data2 = "this is also a blob yo";
 		gfsb.saveBlob(md2, new StringRestreamable(data2), false);
-		d = gfsb.getBlob(md2,
-				new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
+		d = gfsb.getBlob(md2, new ByteArrayFileCacheManager());
 		assertThat("data returned marked as unsorted", d.isSorted(), is(false));
 		
 		gfsb.removeBlob(md1);
@@ -220,12 +212,12 @@ public class GridFSBlobStoreTest {
 	@Test
 	public void getNonExistantBlob() throws Exception {
 		try {
-			gfsb.getBlob(new MD5(a32),
-					new ByteArrayFileCacheManager(16000000, 2000000000L, tfm));
+			gfsb.getBlob(new MD5(a32), new ByteArrayFileCacheManager());
 			fail("getblob should throw exception");
-		} catch (BlobStoreException wbe) {
-			assertThat("wrong exception message from failed getblob",
-					wbe.getLocalizedMessage(), is("Attempt to retrieve non-existant blob with chksum " + a32));
+		} catch (NoSuchBlobException nsbe) {
+			assertThat("wrong exception message from failed getblob", nsbe.getLocalizedMessage(),
+					is("Attempt to retrieve non-existant blob with chksum " + a32));
+			assertThat("incorrect md5", nsbe.getMD5(), is(new MD5(a32)));
 		}
 	}
 	

@@ -21,7 +21,6 @@ import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.TestException;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
-import us.kbase.workspace.database.ObjectIDWithRefPath;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectReferenceSet;
 import us.kbase.workspace.database.ObjectResolver;
@@ -51,7 +50,7 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsfoo");
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier obj = new ObjectIdentifier(wsi, "objfoo");
+		final ObjectIdentifier obj = ObjectIdentifier.getBuilder(wsi).withName("objfoo").build();
 		final ObjectIDResolvedWS objresws = new ObjectIDResolvedWS(rwsi, "objfoo");
 		
 		when(wsdb.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -81,7 +80,7 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsfoo");
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier obj = new ObjectIdentifier(wsi, "objfoo");
+		final ObjectIdentifier obj = ObjectIdentifier.getBuilder(wsi).withName("objfoo").build();
 		
 		when(wsdb.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
 		when(wsdb.getPermissions(user, set(rwsi))).thenReturn(
@@ -104,7 +103,7 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsfoo");
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier obj = new ObjectIdentifier(wsi, "objfoo");
+		final ObjectIdentifier obj = ObjectIdentifier.getBuilder(wsi).withName("objfoo").build();
 		
 		when(wsdb.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
 		when(wsdb.getPermissions(user, set(rwsi))).thenReturn(
@@ -134,7 +133,7 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsfoo");
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier obj = new ObjectIdentifier(wsi, "objfoo");
+		final ObjectIdentifier obj = ObjectIdentifier.getBuilder(wsi).withName("objfoo").build();
 		final ObjectIDResolvedWS objresws = new ObjectIDResolvedWS(rwsi, "objfoo");
 		
 		when(wsdb.resolveWorkspaces(set(wsi), false)).thenReturn(ImmutableMap.of(wsi, rwsi));
@@ -166,12 +165,11 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier head = new ObjectIdentifier(wsi1, "objfoo");
-		final ObjectIdentifier path1 = new ObjectIdentifier(wsi1, "objfoo2");
-		final ObjectIdentifier path2 = new ObjectIdentifier(wsi2, "objfoo");
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(head, Arrays.asList(
-				path1, path2, pathend));
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi1).withName("objfoo")
+				.withReferencePath(Arrays.asList(
+						ObjectIdentifier.getBuilder(wsi1).withName("objfoo2").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo2").build())).build();
 		
 		final ObjectIDResolvedWS headresws = new ObjectIDResolvedWS(rwsi1, "objfoo");
 		final ObjectIDResolvedWS path1resws = new ObjectIDResolvedWS(rwsi1, "objfoo2");
@@ -231,12 +229,11 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("wsfoo1");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier head = new ObjectIdentifier(wsi1, "objfoo");
-		final ObjectIdentifier path1 = new ObjectIdentifier(wsi1, "objfoo2");
-		final ObjectIdentifier path2 = new ObjectIdentifier(wsi2, "objfoo");
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(head, Arrays.asList(
-				path1, path2, pathend));
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi1).withName("objfoo")
+				.withReferencePath(Arrays.asList(
+						ObjectIdentifier.getBuilder(wsi1).withName("objfoo2").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo2").build())).build();
 		
 		when(wsdb.resolveWorkspaces(set(wsi1), false)).thenReturn(ImmutableMap.of(wsi1, rwsi1));
 		when(wsdb.getPermissions(user, set(rwsi1))).thenReturn(
@@ -262,12 +259,11 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("wsfoo1");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier head = new ObjectIdentifier(wsi1, "objfoo");
-		final ObjectIdentifier path1 = new ObjectIdentifier(wsi1, "objfoo2");
-		final ObjectIdentifier path2 = new ObjectIdentifier(wsi2, "objfoo");
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(head, Arrays.asList(
-				path1, path2, pathend));
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi1).withName("objfoo")
+				.withReferencePath(Arrays.asList(
+						ObjectIdentifier.getBuilder(wsi1).withName("objfoo2").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo2").build())).build();
 		
 		when(wsdb.resolveWorkspaces(set(wsi1), false)).thenReturn(ImmutableMap.of(wsi1, rwsi1));
 		when(wsdb.getPermissions(user, set(rwsi1))).thenReturn(
@@ -296,12 +292,11 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("wsfoo1");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier head = new ObjectIdentifier(wsi1, "objfoo");
-		final ObjectIdentifier path1 = new ObjectIdentifier(wsi1, "objfoo2");
-		final ObjectIdentifier path2 = new ObjectIdentifier(wsi2, "objfoo");
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(head, Arrays.asList(
-				path1, path2, pathend));
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi1).withName("objfoo")
+				.withReferencePath(Arrays.asList(
+						ObjectIdentifier.getBuilder(wsi1).withName("objfoo2").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo2").build())).build();
 		
 		final ObjectIDResolvedWS headresws = new ObjectIDResolvedWS(rwsi1, "objfoo");
 		
@@ -332,12 +327,11 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("wsfoo1");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier head = new ObjectIdentifier(wsi1, "objfoo");
-		final ObjectIdentifier path1 = new ObjectIdentifier(wsi1, "objfoo2");
-		final ObjectIdentifier path2 = new ObjectIdentifier(wsi2, "objfoo");
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(head, Arrays.asList(
-				path1, path2, pathend));
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi1).withName("objfoo")
+				.withReferencePath(Arrays.asList(
+						ObjectIdentifier.getBuilder(wsi1).withName("objfoo2").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo2").build())).build();
 		
 		final ObjectIDResolvedWS headresws = new ObjectIDResolvedWS(rwsi1, "objfoo");
 		
@@ -372,12 +366,11 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier head = new ObjectIdentifier(wsi1, "objfoo");
-		final ObjectIdentifier path1 = new ObjectIdentifier(wsi1, "objfoo2");
-		final ObjectIdentifier path2 = new ObjectIdentifier(wsi2, "objfoo");
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(head, Arrays.asList(
-				path1, path2, pathend));
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi1).withName("objfoo")
+				.withReferencePath(Arrays.asList(
+						ObjectIdentifier.getBuilder(wsi1).withName("objfoo2").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo2").build())).build();
 		
 		final ObjectIDResolvedWS headresws = new ObjectIDResolvedWS(rwsi1, "objfoo");
 		final ObjectIDResolvedWS path1resws = new ObjectIDResolvedWS(rwsi1, "objfoo2");
@@ -435,12 +428,11 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("wsfoo1");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier head = new ObjectIdentifier(wsi1, "objfoo");
-		final ObjectIdentifier path1 = new ObjectIdentifier(wsi1, "objfoo2");
-		final ObjectIdentifier path2 = new ObjectIdentifier(wsi2, "objfoo");
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(head, Arrays.asList(
-				path1, path2, pathend));
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi1).withName("objfoo")
+				.withReferencePath(Arrays.asList(
+						ObjectIdentifier.getBuilder(wsi1).withName("objfoo2").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo2").build())).build();
 		
 		final ObjectIDResolvedWS headresws = new ObjectIDResolvedWS(rwsi1, "objfoo");
 		
@@ -470,12 +462,11 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi1 = new WorkspaceIdentifier("wsfoo1");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier head = new ObjectIdentifier(wsi1, "objfoo");
-		final ObjectIdentifier path1 = new ObjectIdentifier(wsi1, "objfoo2");
-		final ObjectIdentifier path2 = new ObjectIdentifier(wsi2, "objfoo");
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(head, Arrays.asList(
-				path1, path2, pathend));
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi1).withName("objfoo")
+				.withReferencePath(Arrays.asList(
+						ObjectIdentifier.getBuilder(wsi1).withName("objfoo2").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo").build(),
+						ObjectIdentifier.getBuilder(wsi2).withName("objfoo2").build())).build();
 		
 		final ObjectIDResolvedWS headresws = new ObjectIDResolvedWS(rwsi1, "objfoo");
 		
@@ -508,8 +499,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference pathendref = new Reference("4/1/1");
@@ -553,8 +544,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference pathendref = new Reference("4/1/1");
@@ -595,8 +586,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference pathendref = new Reference("4/1/1");
@@ -641,8 +632,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference pathendref = new Reference("4/1/1");
@@ -683,8 +674,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference pathendref = new Reference("4/1/1");
@@ -730,8 +721,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference pathendref = new Reference("4/1/1");
@@ -772,8 +763,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference pathendref = new Reference("4/1/1");
@@ -815,8 +806,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference pathendref = new Reference("4/1/1");
@@ -863,8 +854,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference headref = new Reference("3/6/3");
@@ -929,8 +920,8 @@ public class ObjectResolverTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
@@ -951,8 +942,8 @@ public class ObjectResolverTest {
 		
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
@@ -980,8 +971,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
 		final ResolvedWorkspaceID rwsireadable = new ResolvedWorkspaceID(5, "wsfoo3", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference headref = new Reference("3/6/3");
@@ -1040,8 +1031,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
 		final ResolvedWorkspaceID rwsireadable = new ResolvedWorkspaceID(5, "wsfoo3", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference headref = new Reference("3/6/3");
@@ -1105,8 +1096,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference headref = new Reference("3/6/3");
@@ -1168,8 +1159,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference headref = new Reference("3/6/3");
@@ -1236,8 +1227,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		
@@ -1271,8 +1262,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		
@@ -1310,8 +1301,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
@@ -1338,8 +1329,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
@@ -1371,8 +1362,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference headref = new Reference("3/6/3");
@@ -1446,8 +1437,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference headref = new Reference("3/6/3");
@@ -1517,8 +1508,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		final Reference headref = new Reference("3/6/3");
@@ -1593,8 +1584,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		
@@ -1629,8 +1620,8 @@ public class ObjectResolverTest {
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
 		final ResolvedWorkspaceID rwsi2 = new ResolvedWorkspaceID(4, "wsfoo2", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		final ObjectIDResolvedWS pathendresws = new ObjectIDResolvedWS(rwsi2, "objfoo2");
 		
@@ -1668,8 +1659,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
@@ -1701,8 +1692,8 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi2 = new WorkspaceIdentifier("wsfoo2");
 		final ResolvedWorkspaceID rwsi1 = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier pathend = new ObjectIdentifier(wsi2, "objfoo2");
-		final ObjectIDWithRefPath objpath = new ObjectIDWithRefPath(pathend);
+		final ObjectIdentifier objpath = ObjectIdentifier.getBuilder(wsi2).withName("objfoo2")
+				.withLookupRequired(true).build();
 		
 		when(wsdb.getPermissions(user, Permission.READ, false)).thenReturn(
 				PermissionSet.getBuilder(user, new AllUsers('*'))
@@ -1731,9 +1722,9 @@ public class ObjectResolverTest {
 		final WorkspaceUser user = new WorkspaceUser("userfoo");
 		final WorkspaceIdentifier wsi = new WorkspaceIdentifier("wsfoo");
 		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(3, "wsfoo", false, false);
-		final ObjectIdentifier objid = new ObjectIdentifier(wsi, "objfoo");
-		
-		final ObjectIDWithRefPath obj = new ObjectIDWithRefPath(objid);
+		final ObjectIdentifier obj = ObjectIdentifier.getBuilder(wsi).withName("objfoo")
+				.withLookupRequired(true).build();
+
 		final ObjectIDResolvedWS objresws = new ObjectIDResolvedWS(rwsi, "objfoo");
 		final Reference ref = new Reference("3/24/1");
 		final Reference topref = new Reference("3/27/1");

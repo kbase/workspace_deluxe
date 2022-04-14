@@ -167,7 +167,7 @@ public class MongoStartUpTest {
 			final boolean skipVersionCheck)
 			throws Exception {
 		final Method m = MongoWorkspaceDB.class.getDeclaredMethod(
-				"checkExtantConfigAndGetVersion",
+				"checkExtantSchemaAndGetVersion",
 				MongoDatabase.class,
 				boolean.class,
 				boolean.class);
@@ -273,6 +273,7 @@ public class MongoStartUpTest {
 		final Set<String> names = new HashSet<>();
 		final Set<String> expected = set(
 				"config",
+				"dyncfg",
 				"workspaces",
 				"workspaceACLs",
 				"workspaceObjects",
@@ -325,6 +326,27 @@ public class MongoStartUpTest {
 		createIndexes("indexesConfig");
 		setNamespace(expectedIndexes, "indexesConfig.config");
 		assertThat("incorrect indexes", getIndexes(wsdb, "config"), is(expectedIndexes));
+	}
+	
+	@Test
+	public void indexesDynamicConfig() throws Exception {
+		final Set<Document> expectedIndexes = set(
+				new Document("v", INDEX_VER)
+						.append("unique", true)
+						.append("key", new Document("key", 1))
+						.append("name", "key_1")
+						.append("ns", "MongoStartUpTest.dyncfg"),
+				new Document("v", INDEX_VER)
+						.append("key", new Document("_id", 1))
+						.append("name", "_id_")
+						.append("ns", "MongoStartUpTest.dyncfg")
+				);
+		assertThat("incorrect indexes", getIndexes(db, "dyncfg"), is(expectedIndexes));
+		
+		final MongoDatabase wsdb = mongoClient.getDatabase("indexesDynConfig");
+		createIndexes("indexesDynConfig");
+		setNamespace(expectedIndexes, "indexesDynConfig.dyncfg");
+		assertThat("incorrect indexes", getIndexes(wsdb, "dyncfg"), is(expectedIndexes));
 	}
 	
 	@Test
