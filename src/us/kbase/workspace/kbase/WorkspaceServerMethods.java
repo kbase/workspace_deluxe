@@ -96,9 +96,9 @@ public class WorkspaceServerMethods {
 	// TODO TEST unit
 	// TODO JAVADOC
 	
-	final private Workspace ws;
-	final private Types types;
-	final private ConfigurableAuthService auth;
+	private final Workspace ws;
+	private final Types types;
+	private final ConfigurableAuthService auth;
 	private final IdReferenceHandlerSetFactoryBuilder idFacBuilder;
 	
 	public WorkspaceServerMethods(
@@ -110,6 +110,13 @@ public class WorkspaceServerMethods {
 		this.types = types;
 		this.idFacBuilder = idFacBuilder;
 		this.auth = auth;
+	}
+	
+	/** Get the core workspace instance underlying this server -> core translation layer.
+	 * @return the workspace.
+	 */
+	public Workspace getWorkspace() {
+		return ws;
 	}
 	
 	/** Get the status of any dependencies of the workspace service.
