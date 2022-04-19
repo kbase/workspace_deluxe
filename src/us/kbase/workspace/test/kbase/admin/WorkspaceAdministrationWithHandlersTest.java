@@ -81,11 +81,17 @@ import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.AdminRole;
+import us.kbase.workspace.kbase.admin.AdministrationCommandSetBuilder;
 import us.kbase.workspace.kbase.admin.AdministratorHandler;
 import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
+import us.kbase.workspace.kbase.admin.WorkspaceAdministration.AdminCommandSpecification;
+import us.kbase.workspace.kbase.admin.WorkspaceAdministration.UserValidator;
 
-public class WorkspaceAdministrationTest {
+public class WorkspaceAdministrationWithHandlersTest {
+	
+	// Tests the workspace admin class with the standard set of handlers installed via the
+	// handler set builder
 	
 	// these tests are waaaay more complicated than then need to be because the SDK
 	// doesn't create equals & hashCode methods for its generated classes.
@@ -158,12 +164,17 @@ public class WorkspaceAdministrationTest {
 		final WorkspaceServerMethods wsmeth = mock(WorkspaceServerMethods.class);
 		when(wsmeth.getWorkspace()).thenReturn(ws);
 		final Types types = mock(Types.class);
+		final Map<String, AdminCommandSpecification> handlers = AdministrationCommandSetBuilder
+				.build(wsmeth, types);
+		final UserValidator userVal = (user, token) -> AdministrationCommandSetBuilder
+				.getUser(wsmeth, user, token);
 		final AdministratorHandler ah = mock(AdministratorHandler.class);
 		final WorkspaceAdministration admin;
 		if (ticker == null) {
-			admin = new WorkspaceAdministration(wsmeth, types, ah, cacheSize, cacheTimeMS);
+			admin = new WorkspaceAdministration(ah, handlers, userVal, cacheSize, cacheTimeMS);
 		} else {
-			admin = new WorkspaceAdministration(wsmeth, types, ah, cacheSize, cacheTimeMS, ticker);
+			admin = new WorkspaceAdministration(
+					ah, handlers, userVal, cacheSize, cacheTimeMS, ticker);
 		}
 		return new TestMocks(ws, wsmeth, types, ah, ticker, admin);
 	}
@@ -446,7 +457,7 @@ public class WorkspaceAdministrationTest {
 				"backend-file-retrieval-scaling", 4))));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"getConfig", WorkspaceAdministration.class));
+				"getConfig", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -460,7 +471,7 @@ public class WorkspaceAdministrationTest {
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"setConfig", WorkspaceAdministration.class));
+				"setConfig", AdministrationCommandSetBuilder.class));
 		
 		verify(mocks.ws).setConfig(DynamicConfigUpdate.getBuilder()
 				.withBackendScaling(89).build());
@@ -482,7 +493,7 @@ public class WorkspaceAdministrationTest {
 						"backend-file-retrieval-scaling must be an integer > 0"));
 
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"setConfig", WorkspaceAdministration.class));
+				"setConfig", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -502,7 +513,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect return", o.get(0).getModuleName(), is("mod"));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"listModRequests", WorkspaceAdministration.class));
+				"listModRequests", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -517,7 +528,7 @@ public class WorkspaceAdministrationTest {
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"approveModRequest somemod", WorkspaceAdministration.class));
+				"approveModRequest somemod", AdministrationCommandSetBuilder.class));
 		
 		verify(mocks.types).resolveModuleRegistration("somemod", true);
 	}
@@ -534,7 +545,7 @@ public class WorkspaceAdministrationTest {
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"denyModRequest somemod", WorkspaceAdministration.class));
+				"denyModRequest somemod", AdministrationCommandSetBuilder.class));
 		
 		verify(mocks.types).resolveModuleRegistration("somemod", false);
 	}
@@ -634,7 +645,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("meta correct", gross.getE9(), is(Collections.emptyMap()));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"setWorkspaceOwner 3 owner", WorkspaceAdministration.class));
+				"setWorkspaceOwner 3 owner", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -680,7 +691,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("meta correct", gross.getE9(), is(Collections.emptyMap()));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"setWorkspaceOwner 10 usern", WorkspaceAdministration.class));
+				"setWorkspaceOwner 10 usern", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -726,7 +737,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect return", gross, is(grossret)); // rely on identity
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"createWorkspace 7 user1", WorkspaceAdministration.class));
+				"createWorkspace 7 user1", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -756,7 +767,7 @@ public class WorkspaceAdministrationTest {
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"setPermissions 24 a u1 u2", WorkspaceAdministration.class));
+				"setPermissions 24 a u1 u2", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -775,7 +786,7 @@ public class WorkspaceAdministrationTest {
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"setWorkspaceDescription 8", WorkspaceAdministration.class));
+				"setWorkspaceDescription 8", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -796,7 +807,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect description", desc, is("desc1"));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"getWorkspaceDescription null ws1", WorkspaceAdministration.class));
+				"getWorkspaceDescription null ws1", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -830,7 +841,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect perms", perms, is(ImmutableMap.of("user", "a", "user2", "r")));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"getPermissions 3 null", WorkspaceAdministration.class));
+				"getPermissions 3 null", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -861,7 +872,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect perms", perms, is(ImmutableMap.of("user3", "w", "user10", "r")));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"getPermissions null foo auser", WorkspaceAdministration.class));
+				"getPermissions null foo auser", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -902,7 +913,8 @@ public class WorkspaceAdministrationTest {
 				ImmutableMap.of("user3", "w", "user10", "r"))));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"getPermissionsMass 2 workspaces in input", WorkspaceAdministration.class));
+				"getPermissionsMass 2 workspaces in input",
+				AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -940,7 +952,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("meta correct", gross.getE9(), is(Collections.emptyMap()));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"getWorkspaceInfo 10", WorkspaceAdministration.class));
+				"getWorkspaceInfo 10", AdministrationCommandSetBuilder.class));
 	}
 
 	@Test
@@ -970,7 +982,7 @@ public class WorkspaceAdministrationTest {
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"setGlobalPermission 65 r auser", WorkspaceAdministration.class));
+				"setGlobalPermission 65 r auser", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1044,7 +1056,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect tuple", l.get(0), is(supergross)); // rely on identity
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"saveObjects auser", WorkspaceAdministration.class));
+				"saveObjects auser", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1161,7 +1173,7 @@ public class WorkspaceAdministrationTest {
 								Arrays.asList("25/3/22"))));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"getObjectInfo", WorkspaceAdministration.class));
+				"getObjectInfo", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1227,7 +1239,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect return", res, is(Arrays.asList(sg1, sg2)));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"getObjectHistory", WorkspaceAdministration.class));
+				"getObjectHistory", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1357,7 +1369,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect dat", res.getData(), is(Arrays.asList(od1, od2)));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"getObjects", WorkspaceAdministration.class));
+				"getObjects", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1432,7 +1444,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect return", res, is(Arrays.asList(g1, g2)));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"listWorkspaces user1", WorkspaceAdministration.class));
+				"listWorkspaces user1", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1468,7 +1480,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect ws", res.getWorkspaces(), is(Arrays.asList(3L, 4L)));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"listWorkspaceIDs user1", WorkspaceAdministration.class));
+				"listWorkspaceIDs user1", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1561,7 +1573,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect res", res, is(Arrays.asList(sg1, sg2)));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"listObjects user: user1", WorkspaceAdministration.class));
+				"listObjects user: user1", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1651,7 +1663,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect res", res, is(Arrays.asList(sg1, sg2)));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"listObjects adminuser", WorkspaceAdministration.class));
+				"listObjects adminuser", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1668,7 +1680,7 @@ public class WorkspaceAdministrationTest {
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"deleteWorkspace 7", WorkspaceAdministration.class));
+				"deleteWorkspace 7", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1685,7 +1697,7 @@ public class WorkspaceAdministrationTest {
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"undeleteWorkspace 8", WorkspaceAdministration.class));
+				"undeleteWorkspace 8", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1705,7 +1717,7 @@ public class WorkspaceAdministrationTest {
 		assertThat("incorrect users", ret, is(Arrays.asList("u1", "u2")));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"listWorkspaceOwners", WorkspaceAdministration.class));
+				"listWorkspaceOwners", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1737,7 +1749,7 @@ public class WorkspaceAdministrationTest {
 				eq(true));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"grantModuleOwnership ModName owner", WorkspaceAdministration.class));
+				"grantModuleOwnership ModName owner", AdministrationCommandSetBuilder.class));
 	}
 	
 	@Test
@@ -1767,7 +1779,7 @@ public class WorkspaceAdministrationTest {
 				eq(true));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"removeModuleOwnership ModName owner", WorkspaceAdministration.class));
+				"removeModuleOwnership ModName owner", AdministrationCommandSetBuilder.class));
 	}
 	
 	/* *****************************************
