@@ -1,0 +1,47 @@
+---
+name: Build & Tag Image on PR
+'on':
+  pull_request:
+    branches:
+    - develop
+    - main
+    - master
+    types:
+    - closed
+    - edited
+    - opened
+    - ready_for_review
+    - reopened
+    - synchronize
+    - workflow_dispatch
+jobs:
+  docker_build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check Out GitHub Repo
+      if: github.event.pull_request.draft == false
+      with:
+        ref: "${{ github.event.pull_request.head.sha }}"
+      uses: actions/checkout@v2
+    - name: Check Source Branch
+      if: github.head_ref != 'develop' && (github.base_ref == 'master' || github.base_ref == 'main')
+      run: echo "PRs must be made to develop branch before merging to main/master"; exit 1
+    - name: Build And Push To Packages
+      if: github.event.pull_request.draft == false && github.event.action != 'closed' && github.event.pull_request.merged != true
+      env:
+        PR: "${{ github.event.pull_request.number }}"
+        SHA: "${{ github.event.pull_request.head.sha }}"
+        DOCKER_ACTOR: "${{ secrets.GHCR_USERNAME }}"
+        DOCKER_TOKEN: "${{ secrets.GHCR_TOKEN }}"
+      run: "curl https://raw.githubusercontent.com/kbase/.github/main/workflow-templates/scripts/pr_build.sh | bash"
+  tag_on_merge:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Tag Latest Image On Merge
+      if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+      env:
+        PR: "${{ github.event.pull_request.number }}"
+        SHA: "${{ github.event.pull_request.head.sha }}"
+        DOCKER_ACTOR: "${{ secrets.GHCR_USERNAME }}"
+        DOCKER_TOKEN: "${{ secrets.GHCR_TOKEN }}"
+      run: "curl https://raw.githubusercontent.com/kbase/.github/main/workflow-templates/scripts/tag_on_pr_merge.sh | bash"
