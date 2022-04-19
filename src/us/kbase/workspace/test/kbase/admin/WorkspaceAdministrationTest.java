@@ -143,23 +143,28 @@ public class WorkspaceAdministrationTest {
 	}
 	
 	private TestMocks initTestMocks() {
-		final Workspace ws = mock(Workspace.class);
-		final WorkspaceServerMethods wsmeth = mock(WorkspaceServerMethods.class);
-		final Types types = mock(Types.class);
-		final AdministratorHandler ah = mock(AdministratorHandler.class);
-		final WorkspaceAdministration admin = new WorkspaceAdministration(
-				ws, wsmeth, types, ah, 0, 0);
-		return new TestMocks(ws, wsmeth, types, ah, null, admin);
+		return initTestMocks(0, 0, null);
 	}
 	
 	private TestMocks initTestMocks(final int cacheSize, final int cacheTimeMS) {
+		return initTestMocks(cacheSize, cacheTimeMS, new FakeTicker());
+	}
+		
+	private TestMocks initTestMocks(
+			final int cacheSize,
+			final int cacheTimeMS,
+			final FakeTicker ticker) {
 		final Workspace ws = mock(Workspace.class);
 		final WorkspaceServerMethods wsmeth = mock(WorkspaceServerMethods.class);
+		when(wsmeth.getWorkspace()).thenReturn(ws);
 		final Types types = mock(Types.class);
 		final AdministratorHandler ah = mock(AdministratorHandler.class);
-		final FakeTicker ticker = new FakeTicker();
-		final WorkspaceAdministration admin = new WorkspaceAdministration(
-				ws, wsmeth, types, ah, cacheSize, cacheTimeMS, ticker);
+		final WorkspaceAdministration admin;
+		if (ticker == null) {
+			admin = new WorkspaceAdministration(wsmeth, types, ah, cacheSize, cacheTimeMS);
+		} else {
+			admin = new WorkspaceAdministration(wsmeth, types, ah, cacheSize, cacheTimeMS, ticker);
+		}
 		return new TestMocks(ws, wsmeth, types, ah, ticker, admin);
 	}
 	

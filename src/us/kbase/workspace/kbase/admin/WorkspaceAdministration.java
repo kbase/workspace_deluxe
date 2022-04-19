@@ -49,7 +49,6 @@ import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.database.Types;
-import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
@@ -66,9 +65,6 @@ import us.kbase.workspace.kbase.WorkspaceServerMethods;
  *
  */
 public class WorkspaceAdministration {
-	
-	//TODO JAVADOC
-	//TODO TEST unit tests
 	
 	private static final String GET_CONFIG = "getConfig";
 	private static final String SET_CONFIG = "setConfig";
@@ -107,7 +103,6 @@ public class WorkspaceAdministration {
 	private final static ObjectMapper MAPPER = new ObjectMapper()
 			.registerModule(new JacksonTupleModule());
 	
-	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
 	private final Types types;
 	private final AdministratorHandler admin;
@@ -122,26 +117,26 @@ public class WorkspaceAdministration {
 	 * @param cacheTimeInMS the maximum time an {@link AdminRole} will be cached in milliseconds.
 	 */
 	public WorkspaceAdministration(
-			final Workspace ws, 
 			final WorkspaceServerMethods wsmeth,
 			final Types types,
 			final AdministratorHandler admin,
 			final int maxCacheSize,
 			final int cacheTimeInMS) {
-		this(ws, wsmeth, types, admin, maxCacheSize, cacheTimeInMS, Ticker.systemTicker());
+		this(wsmeth, types, admin, maxCacheSize, cacheTimeInMS, Ticker.systemTicker());
 	}
 	
 	/** This constructor should only be used for tests. */
 	public WorkspaceAdministration(
-			final Workspace ws, 
 			final WorkspaceServerMethods wsmeth,
 			final Types types,
 			final AdministratorHandler admin,
 			final int maxCacheSize,
 			final int cacheTimeInMS,
 			final Ticker ticker) {
-		this.ws = ws;
 		this.types = types;
+		// TODO CODE some of the code here calls the underlying workspace instance.
+		// probably better to not do that and just call the service translation layer when
+		// possible.
 		this.wsmeth = wsmeth;
 		this.admin = admin;
 		adminCache = CacheBuilder.newBuilder()
@@ -176,6 +171,14 @@ public class WorkspaceAdministration {
 		}
 	}
 
+	/** Run an administration command.
+	 * @param token the administrator's token.
+	 * @param command the command to run. This is expected to contain an {@link AdminCommand}
+	 * class instance.
+	 * @param resourcesToDelete a container for deleted once the command is complete.
+	 * @return the result of the command.
+	 * @throws Exception if any exception occurs.
+	 */
 	public Object runCommand(
 			final AuthToken token,
 			final UObject command,
@@ -198,16 +201,17 @@ public class WorkspaceAdministration {
 			throw ioe;
 		}
 		// should look into some sort of interface w/ registration instead of a massive if else
-		final String fn = (String) cmd.getCommand();
+		final String fn = cmd.getCommand();
 		if (GET_CONFIG.contentEquals(fn)) {
 			getLogger().info(GET_CONFIG);
-			return ImmutableMap.of("config", ws.getConfig().toMap());
+			return ImmutableMap.of("config", wsmeth.getWorkspace().getConfig().toMap());
 		}
 		if (SET_CONFIG.equals(fn)) {
 			requireWrite(role);
 			getLogger().info(SET_CONFIG); // add parameters?
 			final SetConfigParams params = getParams(cmd, SetConfigParams.class);
-			ws.setConfig(DynamicConfigUpdate.getBuilder().withMap(params.set).build());
+			wsmeth.getWorkspace().setConfig(DynamicConfigUpdate.getBuilder().withMap(params.set)
+					.build());
 			return null;
 		}
 		if (LIST_MOD_REQUESTS.equals(fn)) {
@@ -253,7 +257,9 @@ public class WorkspaceAdministration {
 			final SetWorkspaceOwnerParams params = getParams(cmd, SetWorkspaceOwnerParams.class);
 			
 			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.wsi);
-			final WorkspaceInformation info = ws.setWorkspaceOwner(null, wsi,
+			final WorkspaceInformation info = wsmeth.getWorkspace().setWorkspaceOwner(
+					null,
+					wsi,
 					params.new_user == null ? null : getUser(params.new_user, token),
 					Optional.ofNullable(params.new_name), true);
 			getLogger().info(SET_WORKSPACE_OWNER + " " + info.getId() + " " +
@@ -283,14 +289,15 @@ public class WorkspaceAdministration {
 					cmd, SetWorkspaceDescriptionParams.class);
 			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 					params.getWorkspace(), params.getId());
-			final long id = ws.setWorkspaceDescription(null, wsi, params.getDescription(), true);
+			final long id = wsmeth.getWorkspace().setWorkspaceDescription(
+					null, wsi, params.getDescription(), true);
 			getLogger().info(SET_WORKSPACE_DESCRIPTION + " " + id);
 			return null;
 		}
 		if (GET_WORKSPACE_DESCRIPTION.equals(fn)) {
 			final WorkspaceIdentity wsi = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wsid = processWorkspaceIdentifier(wsi);
-			final String desc = ws.getWorkspaceDescription(null, wsid, true);
+			final String desc = wsmeth.getWorkspace().getWorkspaceDescription(null, wsid, true);
 			// TODO FEATURE would be better if could always provide ID vs. name
 			getLogger().info(GET_WORKSPACE_DESCRIPTION + " " + wsi.getId() + " " +
 					wsi.getWorkspace());
@@ -323,7 +330,8 @@ public class WorkspaceAdministration {
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
 							params.getWorkspace(), params.getId());
-			final WorkspaceInformation info = ws.getWorkspaceInformationAsAdmin(wsi);
+			final WorkspaceInformation info = wsmeth.getWorkspace().
+					getWorkspaceInformationAsAdmin(wsi);
 			getLogger().info(GET_WORKSPACE_INFO + " " + info.getId());
 			return wsInfoToTuple(info);
 		}
@@ -388,7 +396,7 @@ public class WorkspaceAdministration {
 			requireWrite(role);
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
-			final long id = ws.setWorkspaceDeleted(null, wksp, true, true);
+			final long id = wsmeth.getWorkspace().setWorkspaceDeleted(null, wksp, true, true);
 			getLogger().info(DELETE_WS + " " + id);
 			return null;
 		}
@@ -396,13 +404,13 @@ public class WorkspaceAdministration {
 			requireWrite(role);
 			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
 			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
-			final long id = ws.setWorkspaceDeleted(null, wksp, false, true);
+			final long id = wsmeth.getWorkspace().setWorkspaceDeleted(null, wksp, false, true);
 			getLogger().info(UNDELETE_WS + " " + id);
 			return null;
 		}
 		if (LIST_WORKSPACE_OWNERS.equals(fn)) {
 			getLogger().info(LIST_WORKSPACE_OWNERS);
-			return usersToStrings(ws.getAllWorkspaceOwners());
+			return usersToStrings(wsmeth.getWorkspace().getAllWorkspaceOwners());
 		}
 		if (GRANT_MODULE_OWNERSHIP.equals(fn)) {
 			requireWrite(role);
@@ -436,7 +444,7 @@ public class WorkspaceAdministration {
 
 	private WorkspaceUser getUser(final AdminCommand cmd, final AuthToken token)
 			throws IOException, AuthException {
-		return getUser((String) cmd.getUser(), token);
+		return getUser(cmd.getUser(), token);
 	}
 
 	private WorkspaceUser getUser(final String user, final AuthToken token)
