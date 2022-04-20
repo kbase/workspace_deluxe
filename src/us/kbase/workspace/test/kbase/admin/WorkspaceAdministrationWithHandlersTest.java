@@ -85,7 +85,6 @@ import us.kbase.workspace.kbase.admin.AdministrationCommandSetBuilder;
 import us.kbase.workspace.kbase.admin.AdministratorHandler;
 import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
-import us.kbase.workspace.kbase.admin.WorkspaceAdministration.AdminCommandSpecification;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.UserValidator;
 
 public class WorkspaceAdministrationWithHandlersTest {
@@ -164,18 +163,14 @@ public class WorkspaceAdministrationWithHandlersTest {
 		final WorkspaceServerMethods wsmeth = mock(WorkspaceServerMethods.class);
 		when(wsmeth.getWorkspace()).thenReturn(ws);
 		final Types types = mock(Types.class);
-		final Map<String, AdminCommandSpecification> handlers = AdministrationCommandSetBuilder
-				.build(wsmeth, types);
-		final UserValidator userVal = (user, token) -> AdministrationCommandSetBuilder
-				.getUser(wsmeth, user, token);
+		final UserValidator userVal = (user, token) -> wsmeth.validateUser(user, token);
 		final AdministratorHandler ah = mock(AdministratorHandler.class);
-		final WorkspaceAdministration admin;
-		if (ticker == null) {
-			admin = new WorkspaceAdministration(ah, handlers, userVal, cacheSize, cacheTimeMS);
-		} else {
-			admin = new WorkspaceAdministration(
-					ah, handlers, userVal, cacheSize, cacheTimeMS, ticker);
-		}
+		final WorkspaceAdministration admin = AdministrationCommandSetBuilder.install(
+				WorkspaceAdministration.getBuilder(ah, userVal), wsmeth, types)
+				.withCacheMaxSize(cacheSize)
+				.withCacheTimeMS(cacheTimeMS)
+				.withCacheTicker(ticker)
+				.build();
 		return new TestMocks(ws, wsmeth, types, ah, ticker, admin);
 	}
 	
@@ -310,10 +305,12 @@ public class WorkspaceAdministrationWithHandlersTest {
 	}
 	
 	@Test
-	public void failNullUser() throws Exception {
+	public void failOnValidateUser() throws Exception {
 		final TestMocks mocks = initTestMocks();
 		
 		when(mocks.ah.getAdminRole(new AuthToken("t", "user1"))).thenReturn(AdminRole.ADMIN);
+		when(mocks.wsmeth.validateUser(null, new AuthToken("t", "user1")))
+				.thenThrow(new NullPointerException("User may not be null"));
 		
 		final List<String> commands = Arrays.asList("addAdmin", "removeAdmin", "createWorkspace",
 				"setGlobalPermission", "saveObjects", "listWorkspaces", "listWorkspaceIDs");
@@ -359,8 +356,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 					"user", "u1"));
 			
 			when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
-			when(mocks.wsmeth.validateUsers(Arrays.asList("u1"), new AuthToken("tok", "fake")))
-					.thenReturn(Arrays.asList(new WorkspaceUser("u1")));
+			when(mocks.wsmeth.validateUser("u1", new AuthToken("tok", "fake")))
+					.thenReturn(new WorkspaceUser("u1"));
 			
 			runCommandFail(mocks.admin, new AuthToken("tok", "fake"), command,
 					new NullPointerException(
@@ -419,8 +416,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah")))
 				.thenReturn(AdminRole.ADMIN);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("fake"), new AuthToken("tok", "usah")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("fake")));
+		when(mocks.wsmeth.validateUser("fake", new AuthToken("tok", "usah")))
+				.thenReturn(new WorkspaceUser("fake"));
 		
 		for (final String commandStr: commandToClass.keySet()) {
 			final MapErr me = commandToClass.get(commandStr);
@@ -578,8 +575,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 				"user", "someuser"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("someuser"), new AuthToken("tok", "fake")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("someuser")));
+		when(mocks.wsmeth.validateUser("someuser", new AuthToken("tok", "fake")))
+				.thenReturn(new WorkspaceUser("someuser"));
 		
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
@@ -597,8 +594,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 				"user", "someuser"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("someuser"), new AuthToken("tok", "fake")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("someuser")));
+		when(mocks.wsmeth.validateUser("someuser", new AuthToken("tok", "fake")))
+				.thenReturn(new WorkspaceUser("someuser"));
 		
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
@@ -659,8 +656,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 						"new_name", "usern:foo")));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("usern"), new AuthToken("tok", "fake")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("usern")));
+		when(mocks.wsmeth.validateUser("usern", new AuthToken("tok", "fake")))
+				.thenReturn(new WorkspaceUser("usern"));
 		when(mocks.ws.setWorkspaceOwner(
 				// really ws will throw an exception if a null user is passed
 				null, new WorkspaceIdentifier("myws"), new WorkspaceUser("usern"),
@@ -713,8 +710,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 						.withE3("user1");
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("user1"), new AuthToken("tok", "fake")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("user1")));
+		when(mocks.wsmeth.validateUser("user1", new AuthToken("tok", "fake")))
+				.thenReturn(new WorkspaceUser("user1"));
 		when(mocks.wsmeth.createWorkspace(
 				argThat(new ArgumentMatcher<CreateWorkspaceParams>() {
 
@@ -853,8 +850,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 				"params", ImmutableMap.of("workspace", "foo")));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("auser"), new AuthToken("tok", "fake")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("auser")));
+		when(mocks.wsmeth.validateUser("auser", new AuthToken("tok", "fake")))
+				.thenReturn(new WorkspaceUser("auser"));
 		when(mocks.wsmeth.getPermissions(argThat(new ArgumentMatcher<WorkspaceIdentity>() {
 
 						@Override
@@ -964,8 +961,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 				"params", ImmutableMap.of("workspace", "foo", "new_permission", "r")));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("auser"), new AuthToken("tok", "fake")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("auser")));
+		when(mocks.wsmeth.validateUser("auser", new AuthToken("tok", "fake")))
+				.thenReturn(new WorkspaceUser("auser"));
 		when(mocks.wsmeth.setGlobalPermission(
 				argThat(new ArgumentMatcher<SetGlobalPermissionsParams>() {
 
@@ -1018,8 +1015,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 						.withE11(Collections.emptyMap());
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("auser"), new AuthToken("tok", "fake")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("auser")));
+		when(mocks.wsmeth.validateUser("auser", new AuthToken("tok", "fake")))
+				.thenReturn(new WorkspaceUser("auser"));
 		when(mocks.wsmeth.saveObjects(argThat(new ArgumentMatcher<SaveObjectsParams>() {
 
 					@Override
@@ -1416,8 +1413,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 						.withE9(Collections.emptyMap());
 
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("user1"), new AuthToken("tok", "fake")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("user1")));
+		when(mocks.wsmeth.validateUser("user1", new AuthToken("tok", "fake")))
+				.thenReturn(new WorkspaceUser("user1"));
 		when(mocks.wsmeth.listWorkspaceInfo(
 				argThat(new ArgumentMatcher<ListWorkspaceInfoParams>() {
 		
@@ -1456,8 +1453,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 				"params", ImmutableMap.of("perm", "w", "excludeGlobal", 0)));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("user1"), new AuthToken("tok", "fake")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("user1")));
+		when(mocks.wsmeth.validateUser("user1", new AuthToken("tok", "fake")))
+				.thenReturn(new WorkspaceUser("user1"));
 		when(mocks.wsmeth.listWorkspaceIDs(argThat(new ArgumentMatcher<ListWorkspaceIDsParams>() {
 		
 					@Override
@@ -1536,8 +1533,8 @@ public class WorkspaceAdministrationWithHandlersTest {
 							.withE11(Collections.emptyMap());
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
-		when(mocks.wsmeth.validateUsers(Arrays.asList("user1"), new AuthToken("tok", "fake")))
-				.thenReturn(Arrays.asList(new WorkspaceUser("user1")));
+		when(mocks.wsmeth.validateUser("user1", new AuthToken("tok", "fake")))
+				.thenReturn(new WorkspaceUser("user1"));
 		when(mocks.wsmeth.listObjects(argThat(new ArgumentMatcher<ListObjectsParams>() {
 		
 					@Override
@@ -1818,15 +1815,13 @@ public class WorkspaceAdministrationWithHandlersTest {
 		runCommandFail(mocks.admin, token, new UObject(ImmutableMap.of("command", "addAdmin")),
 				new IllegalArgumentException("User fake is not an admin"));
 		
-		when(mocks.wsmeth.validateUsers(Arrays.asList("foo"), token))
-				.thenReturn(Arrays.asList(new WorkspaceUser("foo")));
+		when(mocks.wsmeth.validateUser("foo", token)).thenReturn(new WorkspaceUser("foo"));
 		
 		mocks.ticker.advance(1);
 		mocks.admin.runCommand(token, new UObject(ImmutableMap.of("command", "removeAdmin",
 				"user", "foo")), null);
 		
-		when(mocks.wsmeth.validateUsers(Arrays.asList("bar"), token))
-				.thenReturn(Arrays.asList(new WorkspaceUser("bar")));
+		when(mocks.wsmeth.validateUser("bar", token)).thenReturn(new WorkspaceUser("bar"));
 		
 		mocks.ticker.advance(4999999);
 		mocks.admin.runCommand(token, new UObject(ImmutableMap.of("command", "removeAdmin",
@@ -1867,8 +1862,7 @@ public class WorkspaceAdministrationWithHandlersTest {
 		when(mocks.ah.getAdminRole(token2)).thenReturn(AdminRole.NONE);
 		when(mocks.ah.getAdminRole(token3)).thenReturn(AdminRole.ADMIN);
 		
-		when(mocks.wsmeth.validateUsers(Arrays.asList("foo"), token1))
-				.thenReturn(Arrays.asList(new WorkspaceUser("foo")));
+		when(mocks.wsmeth.validateUser("foo", token1)).thenReturn(new WorkspaceUser("foo"));
 		
 		mocks.admin.runCommand(token1, new UObject(ImmutableMap.of("command", "removeAdmin",
 				"user", "foo")), null);
@@ -1876,8 +1870,7 @@ public class WorkspaceAdministrationWithHandlersTest {
 		runCommandFail(mocks.admin, token2, new UObject(ImmutableMap.of("command", "addAdmin")),
 				new IllegalArgumentException("User user2 is not an admin"));
 		
-		when(mocks.wsmeth.validateUsers(Arrays.asList("bar"), token3))
-				.thenReturn(Arrays.asList(new WorkspaceUser("bar")));
+		when(mocks.wsmeth.validateUser("bar", token3)).thenReturn(new WorkspaceUser("bar"));
 		
 		mocks.admin.runCommand(token3, new UObject(ImmutableMap.of("command", "removeAdmin",
 				"user", "bar")), null);
@@ -1904,8 +1897,7 @@ public class WorkspaceAdministrationWithHandlersTest {
 		when(mocks.ah.getAdminRole(token2))
 				.thenReturn(AdminRole.NONE, AdminRole.ADMIN, AdminRole.NONE);
 		
-		when(mocks.wsmeth.validateUsers(Arrays.asList("user2"), token1))
-				.thenReturn(Arrays.asList(new WorkspaceUser("user2")));
+		when(mocks.wsmeth.validateUser("user2", token1)).thenReturn(new WorkspaceUser("user2"));
 		
 		runCommandFail(mocks.admin, token2, new UObject(ImmutableMap.of("command", "listAdmins")),
 				new IllegalArgumentException("User user2 is not an admin"));

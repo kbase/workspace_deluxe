@@ -5,7 +5,6 @@ import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifie
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -46,6 +45,7 @@ import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.AdminCommandSpecification;
+import us.kbase.workspace.kbase.admin.WorkspaceAdministration.Builder;
 
 /** Builds the standard set of administration command handlers. */
 public class AdministrationCommandSetBuilder {
@@ -85,40 +85,41 @@ public class AdministrationCommandSetBuilder {
 	
 	private AdministrationCommandSetBuilder() {};
 	
-	/** Build the handlers.
+	/** Install the handlers.
+	 * @param builder a administration interface builder.
 	 * @param wsmeth a workspace server methods instance.
 	 * @param types a types instance.
-	 * @return the handlers.
+	 * @return the updated builder.
 	 */
-	public static Map<String, AdminCommandSpecification> build(
+	public static Builder install(
+			final WorkspaceAdministration.Builder builder,
 			// TODO CODE some of the code here calls the underlying workspace instance.
 			// probably better to not do that and just call the service translation layer when
 			// possible.
 			final WorkspaceServerMethods wsmeth,
 			final Types types) {
 		
-		final Map<String, AdminCommandSpecification> handlers = new HashMap<>();
-		installTypeHandlers(types, wsmeth, handlers); // TODO CODE wsmeth should not be in there
-		installDynamicConfigHandlers(wsmeth, handlers);
-		installPermissionHandlers(wsmeth, handlers);
-		installWorkspaceHandlers(wsmeth, handlers);
-		installListWorkspaceHandlers(wsmeth, handlers);
-		installDeleteWorkspaceHandlers(wsmeth, handlers);
-		installObjectHandlers(wsmeth, handlers);
-		return handlers;
+		installTypeHandlers(types, wsmeth, builder); // TODO CODE wsmeth should not be in there
+		installDynamicConfigHandlers(wsmeth, builder);
+		installPermissionHandlers(wsmeth, builder);
+		installWorkspaceHandlers(wsmeth, builder);
+		installListWorkspaceHandlers(wsmeth, builder);
+		installDeleteWorkspaceHandlers(wsmeth, builder);
+		installObjectHandlers(wsmeth, builder);
+		return builder;
 	}
 	
 	private static void installTypeHandlers(
 			final Types types,
 			final WorkspaceServerMethods wsmeth,
-			final Map<String, AdminCommandSpecification> handlers) {
-		handlers.put(LIST_MOD_REQUESTS, new AdminCommandSpecification(
+			final WorkspaceAdministration.Builder builder) {
+		builder.withCommand(new AdminCommandSpecification(
 			LIST_MOD_REQUESTS,
 			(cmd, token, toDelete) -> {
 				getLogger().info(LIST_MOD_REQUESTS);
 				return types.listModuleRegistrationRequests();
 			}));
-		handlers.put(APPROVE_MOD_REQUEST,new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			APPROVE_MOD_REQUEST,
 			(cmd, token, toDelete) -> {
 				final String mod = cmd.getModule();
@@ -127,7 +128,7 @@ public class AdministrationCommandSetBuilder {
 				return null;
 			},
 			true));
-		handlers.put(DENY_MOD_REQUEST, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			DENY_MOD_REQUEST,
 			(cmd, token, toDelete) -> {
 				final String mod = cmd.getModule();
@@ -136,7 +137,7 @@ public class AdministrationCommandSetBuilder {
 				return null;
 			},
 			true));
-		handlers.put(GRANT_MODULE_OWNERSHIP, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			GRANT_MODULE_OWNERSHIP,
 			(cmd, token, toDelete) -> {
 				final GrantModuleOwnershipParams params = getParams(cmd,
@@ -147,7 +148,7 @@ public class AdministrationCommandSetBuilder {
 				return null;
 			},
 			true));
-		handlers.put(REMOVE_MODULE_OWNERSHIP, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			REMOVE_MODULE_OWNERSHIP,
 			(cmd, token, toDelete) -> {
 				final RemoveModuleOwnershipParams params = getParams(cmd,
@@ -162,14 +163,14 @@ public class AdministrationCommandSetBuilder {
 	
 	private static void installDynamicConfigHandlers(
 			final WorkspaceServerMethods wsmeth,
-			final Map<String, AdminCommandSpecification> handlers) {
-		handlers.put(GET_CONFIG, new AdminCommandSpecification(
+			final WorkspaceAdministration.Builder builder) {
+		builder.withCommand(new AdminCommandSpecification(
 			GET_CONFIG,
 			(cmd, token, toDelete) -> {
 				getLogger().info(GET_CONFIG);
 				return ImmutableMap.of("config", wsmeth.getWorkspace().getConfig().toMap());
 			}));
-		handlers.put(SET_CONFIG, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			SET_CONFIG,
 			(cmd, token, toDelete) -> {
 				getLogger().info(SET_CONFIG); // add parameters?
@@ -183,8 +184,8 @@ public class AdministrationCommandSetBuilder {
 
 	private static void installPermissionHandlers(
 			final WorkspaceServerMethods wsmeth,
-			final Map<String, AdminCommandSpecification> handlers) {
-		handlers.put(SET_PERMISSIONS, new AdminCommandSpecification(
+			final WorkspaceAdministration.Builder builder) {
+		builder.withCommand(new AdminCommandSpecification(
 			SET_PERMISSIONS,
 			(cmd, token, toDelete) -> {
 				final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
@@ -194,10 +195,10 @@ public class AdministrationCommandSetBuilder {
 				return null;
 			},
 			true));
-		handlers.put(SET_GLOBAL_PERMISSION, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			SET_GLOBAL_PERMISSION,
 			(cmd, token, toDelete) -> {
-				final WorkspaceUser user = getUser(wsmeth, cmd, token);
+				final WorkspaceUser user = wsmeth.validateUser(cmd.getUser(), token);
 				final SetGlobalPermissionsParams params = getParams(cmd,
 						SetGlobalPermissionsParams.class);
 				final long id = wsmeth.setGlobalPermission(params, user);
@@ -206,11 +207,11 @@ public class AdministrationCommandSetBuilder {
 				return null;
 			},
 			true));
-		handlers.put(GET_PERMISSIONS, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			GET_PERMISSIONS,
 			(cmd, token, toDelete) -> {
 				final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
-				final WorkspaceUser user = getNullableUser(wsmeth, cmd, token);
+				final WorkspaceUser user = validateNullableUser(wsmeth, cmd, token);
 				final Map<String, String> perms;
 				if (user == null) {
 					perms = wsmeth.getPermissions(Arrays.asList(params), null, true)
@@ -223,7 +224,7 @@ public class AdministrationCommandSetBuilder {
 						params.getWorkspace() + (user == null ? "" : " " + user.getUser()));
 				return perms;
 			}));
-		handlers.put(GET_PERMISSIONS_MASS, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			GET_PERMISSIONS_MASS,
 			(cmd, token, toDelete) -> {
 				final GetPermissionsMassParams params = getParams(
@@ -239,11 +240,11 @@ public class AdministrationCommandSetBuilder {
 	
 	private static void installWorkspaceHandlers(
 			final WorkspaceServerMethods wsmeth,
-			final Map<String, AdminCommandSpecification> handlers) {
-		handlers.put(CREATE_WORKSPACE, new AdminCommandSpecification(
+			final WorkspaceAdministration.Builder builder) {
+		builder.withCommand(new AdminCommandSpecification(
 			CREATE_WORKSPACE,
 			(cmd, token, toDelete) -> {
-				final WorkspaceUser user = getUser(wsmeth, cmd, token);
+				final WorkspaceUser user = wsmeth.validateUser(cmd.getUser(), token);
 				final CreateWorkspaceParams params = getParams(cmd, CreateWorkspaceParams.class);
 				final Tuple9<Long, String, String, String, Long, String, String, String,
 				Map<String, String>> ws =  wsmeth.createWorkspace(params, user);
@@ -251,7 +252,7 @@ public class AdministrationCommandSetBuilder {
 				return ws;
 			},
 			true));
-		handlers.put(SET_WORKSPACE_OWNER, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			SET_WORKSPACE_OWNER,
 			(cmd, token, toDelete) -> {
 				final SetWorkspaceOwnerParams params = getParams(
@@ -260,14 +261,15 @@ public class AdministrationCommandSetBuilder {
 				final WorkspaceInformation info = wsmeth.getWorkspace().setWorkspaceOwner(
 						null,
 						wsi,
-						params.new_user == null ? null : getUser(wsmeth, params.new_user, token),
+						params.new_user == null ?
+								null : wsmeth.validateUser(params.new_user, token),
 						Optional.ofNullable(params.new_name), true);
 				getLogger().info(SET_WORKSPACE_OWNER + " " + info.getId() + " " +
 						info.getOwner().getUser());
 				return wsInfoToTuple(info);
 			}, 
 			true));
-		handlers.put(SET_WORKSPACE_DESCRIPTION, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			SET_WORKSPACE_DESCRIPTION,
 			(cmd, token, toDelete) -> {
 				final SetWorkspaceDescriptionParams params = getParams(
@@ -280,7 +282,7 @@ public class AdministrationCommandSetBuilder {
 				return null;
 			},
 			true));
-		handlers.put(GET_WORKSPACE_DESCRIPTION, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			GET_WORKSPACE_DESCRIPTION,
 			(cmd, token, toDelete) -> {
 				final WorkspaceIdentity wsi = getParams(cmd, WorkspaceIdentity.class);
@@ -292,7 +294,7 @@ public class AdministrationCommandSetBuilder {
 						wsi.getWorkspace());
 				return desc;
 			}));
-		handlers.put(GET_WORKSPACE_INFO, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			GET_WORKSPACE_INFO,
 			(cmd, token, toDelete) -> {
 				final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
@@ -307,11 +309,11 @@ public class AdministrationCommandSetBuilder {
 
 	private static void installObjectHandlers(
 			final WorkspaceServerMethods wsmeth,
-			final Map<String, AdminCommandSpecification> handlers) {
-		handlers.put(SAVE_OBJECTS,new AdminCommandSpecification(
+			final WorkspaceAdministration.Builder builder) {
+		builder.withCommand(new AdminCommandSpecification(
 			SAVE_OBJECTS,
 			(cmd, token, toDelete) -> {
-				final WorkspaceUser user = getUser(wsmeth, cmd, token);
+				final WorkspaceUser user = wsmeth.validateUser(cmd.getUser(), token);
 				final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
 				//method has its own logging
 				getLogger().info(SAVE_OBJECTS + " " + user.getUser());
@@ -320,7 +322,7 @@ public class AdministrationCommandSetBuilder {
 			true));
 		// TODO CODE for the next 3 methods, is passing the admin user really necessary?
 		// Check at some point, maybe remove
-		handlers.put(GET_OBJECT_INFO, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			GET_OBJECT_INFO,
 			(cmd, token, toDelete) -> {
 				final GetObjectInfo3Params params = getParams(cmd, GetObjectInfo3Params.class);
@@ -328,7 +330,7 @@ public class AdministrationCommandSetBuilder {
 				return wsmeth.getObjectInformation(
 						params, new WorkspaceUser(token.getUserName()), true);
 			}));
-		handlers.put(GET_OBJECT_HIST, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			GET_OBJECT_HIST,
 			(cmd, token, toDelete) -> {
 				final ObjectIdentity params = getParams(cmd, ObjectIdentity.class);
@@ -336,7 +338,7 @@ public class AdministrationCommandSetBuilder {
 				return wsmeth.getObjectHistory(
 						params, new WorkspaceUser(token.getUserName()), true);
 			}));
-		handlers.put(GET_OBJECTS, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			GET_OBJECTS,
 			(cmd, token, resourcesToDelete) -> {
 				final GetObjects2Params params = getParams(cmd, GetObjects2Params.class);
@@ -344,11 +346,11 @@ public class AdministrationCommandSetBuilder {
 				return wsmeth.getObjects(params, new WorkspaceUser(token.getUserName()), true,
 						resourcesToDelete);
 			}));
-		handlers.put(LIST_OBJECTS, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			LIST_OBJECTS,
 			(cmd, token, resourcesToDelete) -> {
 				final ListObjectsParams params = getParams(cmd, ListObjectsParams.class);
-				final WorkspaceUser user = getNullableUser(wsmeth, cmd, token);
+				final WorkspaceUser user = validateNullableUser(wsmeth, cmd, token);
 				final String ustr = user == null ? "adminuser" : "user: " + user.getUser();
 				getLogger().info(LIST_OBJECTS + " " + ustr);
 				return wsmeth.listObjects(params, user, user == null);
@@ -357,25 +359,25 @@ public class AdministrationCommandSetBuilder {
 	
 	private static void installListWorkspaceHandlers(
 			final WorkspaceServerMethods wsmeth,
-			final Map<String, AdminCommandSpecification> handlers) {
-		handlers.put(LIST_WORKSPACES, new AdminCommandSpecification(
+			final WorkspaceAdministration.Builder builder) {
+		builder.withCommand(new AdminCommandSpecification(
 			LIST_WORKSPACES,
 			(cmd, token, resourcesToDelete) -> {
-				final WorkspaceUser user = getUser(wsmeth, cmd, token);
+				final WorkspaceUser user = wsmeth.validateUser(cmd.getUser(), token);
 				final ListWorkspaceInfoParams params = getParams(
 						cmd, ListWorkspaceInfoParams.class);
 				getLogger().info(LIST_WORKSPACES + " " + user.getUser());
 				return wsmeth.listWorkspaceInfo(params, user);
 			}));
-		handlers.put(LIST_WORKSPACE_IDS, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			LIST_WORKSPACE_IDS,
 			(cmd, token, resourcesToDelete) -> {
-				final WorkspaceUser user = getUser(wsmeth, cmd, token);
+				final WorkspaceUser user = wsmeth.validateUser(cmd.getUser(), token);
 				final ListWorkspaceIDsParams params = getParams(cmd, ListWorkspaceIDsParams.class);
 				getLogger().info(LIST_WORKSPACE_IDS + " " + user.getUser());
 				return wsmeth.listWorkspaceIDs(params, user);
 			}));
-		handlers.put(LIST_WORKSPACE_OWNERS, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			LIST_WORKSPACE_OWNERS,
 			(cmd, token, resourcesToDelete) -> {
 				getLogger().info(LIST_WORKSPACE_OWNERS);
@@ -386,8 +388,8 @@ public class AdministrationCommandSetBuilder {
 
 	private static void installDeleteWorkspaceHandlers(
 			final WorkspaceServerMethods wsmeth,
-			final Map<String, AdminCommandSpecification> handlers) {
-		handlers.put(DELETE_WS, new AdminCommandSpecification(
+			final WorkspaceAdministration.Builder builder) {
+		builder.withCommand(new AdminCommandSpecification(
 			DELETE_WS,
 			(cmd, token, toDelete) -> {
 				final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
@@ -397,7 +399,7 @@ public class AdministrationCommandSetBuilder {
 				return null;
 			},
 			true));
-		handlers.put(UNDELETE_WS, new AdminCommandSpecification(
+		builder.withCommand(new AdminCommandSpecification(
 			UNDELETE_WS,
 			(cmd, token, toDelete) -> {
 				final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
@@ -444,35 +446,7 @@ public class AdministrationCommandSetBuilder {
 		return LoggerFactory.getLogger(AdministrationCommandSetBuilder.class);
 	}
 	
-	private static WorkspaceUser getUser(
-			final WorkspaceServerMethods wsmeth,
-			final AdminCommand cmd,
-			final AuthToken token)
-			throws IOException, AuthException {
-		return getUser(wsmeth, cmd.getUser(), token);
-	}
-
-	/** Validate and get a user.
-	 * @param wsmeth a workspace server methods instance.
-	 * @param user the KBase user name.
-	 * @param token a valid KBase token, which need not be for the user to be validated.
-	 * @return the user name.
-	 * @throws IOException if an IOException occurs.
-	 * @throws AuthException if an error occurs validating the user.
-	 */
-	public static WorkspaceUser getUser(
-			final WorkspaceServerMethods wsmeth,
-			final String user,
-			final AuthToken token)
-			throws IOException, AuthException {
-		if (user == null) {
-			throw new NullPointerException("User may not be null");
-		}
-		// TODO NOW what happens if we don't do the null check? Can we move it into validateUsers?
-		return wsmeth.validateUsers(Arrays.asList(user), token).get(0);
-	}
-	
-	private static WorkspaceUser getNullableUser(
+	private static WorkspaceUser validateNullableUser(
 			final WorkspaceServerMethods wsmeth,
 			final AdminCommand cmd,
 			final AuthToken token)
@@ -480,7 +454,7 @@ public class AdministrationCommandSetBuilder {
 		if (cmd.getUser() == null) {
 			return null;
 		}
-		return wsmeth.validateUsers(Arrays.asList(cmd.getUser()), token).get(0);
+		return wsmeth.validateUser(cmd.getUser(), token);
 	}
 	
 }
