@@ -71,6 +71,7 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.LocalTypeServerMethods;
+import us.kbase.workspace.kbase.TypeServerMethods;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.AdminRole;
 import us.kbase.workspace.kbase.admin.AdministrationCommandSetInstaller;
@@ -104,7 +105,7 @@ public class AdministrationCommandSetInstallerTest {
 		private final Workspace ws;
 		private final WorkspaceServerMethods wsmeth;
 		private final Types types;
-		private final LocalTypeServerMethods tsm;
+		private final TypeServerMethods tsm;
 		private final AdministratorHandler ah;
 		private final WorkspaceAdministration admin;
 		
@@ -112,7 +113,7 @@ public class AdministrationCommandSetInstallerTest {
 				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final Types types,
-				final LocalTypeServerMethods tsm,
+				final TypeServerMethods tsm,
 				final AdministratorHandler ah,
 				final WorkspaceAdministration admin) {
 			this.ws = ws;

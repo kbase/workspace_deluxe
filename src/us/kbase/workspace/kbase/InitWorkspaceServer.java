@@ -106,12 +106,12 @@ public class InitWorkspaceServer {
 	public static class WorkspaceInitResults {
 		private final WorkspaceServerMethods wsmeth;
 		private final WorkspaceAdministration wsadmin;
-		private final LocalTypeServerMethods types;
+		private final TypeServerMethods types;
 		
 		public WorkspaceInitResults(
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
-				final LocalTypeServerMethods types) {
+				final TypeServerMethods types) {
 			super();
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
@@ -126,7 +126,7 @@ public class InitWorkspaceServer {
 			return wsadmin;
 		}
 		
-		public LocalTypeServerMethods getTypes() {
+		public TypeServerMethods getTypes() {
 			return types;
 		}
 	}

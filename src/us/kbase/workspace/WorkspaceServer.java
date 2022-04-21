@@ -63,7 +63,7 @@ import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig;
-import us.kbase.workspace.kbase.LocalTypeServerMethods;
+import us.kbase.workspace.kbase.TypeServerMethods;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 //END_HEADER
 
@@ -104,7 +104,7 @@ public class WorkspaceServer extends JsonServerServlet {
 	
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
-	private final LocalTypeServerMethods types;
+	private final TypeServerMethods types;
 	private final WorkspaceAdministration wsadmin;
 	
 	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
@@ -195,7 +195,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		}
 		
 		WorkspaceServerMethods wsmeth = null;
-		LocalTypeServerMethods types = null;
+		TypeServerMethods types = null;
 		WorkspaceAdministration wsadmin = null;
 		//TODO TEST add server startup tests
 		if (cfg.hasErrors()) {
