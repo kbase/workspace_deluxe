@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -56,11 +57,14 @@ import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
 import us.kbase.workspace.kbase.BytestreamIdHandlerFactory.BytestreamClientCloner;
+import us.kbase.workspace.kbase.admin.AdministrationCommandSetBuilder;
 import us.kbase.workspace.kbase.admin.AdministratorHandler;
 import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
 import us.kbase.workspace.kbase.admin.DefaultAdminHandler;
 import us.kbase.workspace.kbase.admin.KBaseAuth2AdminHandler;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
+import us.kbase.workspace.kbase.admin.WorkspaceAdministration.AdminCommandSpecification;
+import us.kbase.workspace.kbase.admin.WorkspaceAdministration.UserValidator;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
@@ -197,8 +201,12 @@ public class InitWorkspaceServer {
 				.withFactory(wsdeps.sampleFac)
 				.build();
 		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, types, builder, auth);
-		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				wsmeth, types, ah, ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
+		final Map<String, AdminCommandSpecification> handlers = AdministrationCommandSetBuilder
+				.build(wsmeth, types);
+		final UserValidator userVal = (user, token) -> AdministrationCommandSetBuilder
+				.getUser(wsmeth, user, token);
+		final WorkspaceAdministration wsadmin = new WorkspaceAdministration(
+				ah, handlers, userVal, ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),
