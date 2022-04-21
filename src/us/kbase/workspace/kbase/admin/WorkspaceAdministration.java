@@ -4,8 +4,12 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +44,18 @@ public class WorkspaceAdministration {
 	private static final String REMOVE_ADMIN = "removeAdmin";
 	private static final String ADD_ADMIN = "addAdmin";
 	private static final String LIST_ADMINS = "listAdmins";
+	
+	/** Commands that are reserved for use by {@link WorkspaceAdministration}. Attempting
+	 * to install a command with one of these names is an error.
+	 */
+	public static final Set<String> RESERVED_COMMANDS = Collections.unmodifiableSet(new HashSet<>(
+			Arrays.asList(REMOVE_ADMIN, ADD_ADMIN, LIST_ADMINS)));
+	
+	/** The default maximum size of the admin user cache. */
+	public static final int DEFAULT_CACHE_MAX_SIZE = 100; // seems like more than enough admins
+	
+	/** The default amount time an administrator will be cached in milliseconds. */
+	public static final int DEFAULT_CACHE_EXP_TIME_MS = 5 * 60 * 1000; // cache admin role for 5m
 	
 	/** An interface for handling an administration command. */
 	@FunctionalInterface
@@ -141,25 +157,7 @@ public class WorkspaceAdministration {
 	private final Map<String, AdminCommandSpecification> commandHandlers;
 	private final UserValidator userValidator;
 	
-	/** Create the workspace administration instance.
-	 * @param admin an administrator handler.
-	 * @param maxCacheSize the maximum number of {@link AdminRole}s to cache.
-	 * @param cacheTimeInMS the maximum time an {@link AdminRole} will be cached in milliseconds.
-	 */
-	public WorkspaceAdministration(
-			final AdministratorHandler admin,
-			// TODO NOW this is temporary to reduce PR size. Change to a builder & add unit tests
-			// Also redo javadoc after that
-			final Map<String, AdminCommandSpecification> commandHandlers,
-			final UserValidator userValidator,
-			final int maxCacheSize,
-			final int cacheTimeInMS) {
-		this(admin, commandHandlers, userValidator, maxCacheSize,
-				cacheTimeInMS, Ticker.systemTicker());
-	}
-	
-	/** This constructor should only be used for tests. */
-	public WorkspaceAdministration(
+	private WorkspaceAdministration(
 			final AdministratorHandler admin,
 			final Map<String, AdminCommandSpecification> commandHandlers,
 			final UserValidator userValidator,
@@ -275,5 +273,96 @@ public class WorkspaceAdministration {
 		}
 		checkRequireWrite(commandHandlers.get(fn), role);
 		return commandHandlers.get(fn).runCommand(cmd, token, resourcesToDelete);
+	}
+	
+	/** Get a builder for a {@link WorkspaceAdministration}.
+	 * @param admin an administrator handler instance.
+	 * @param userValidator a user validator instance.
+	 * @return the builder.
+	 */
+	public static final Builder getBuilder(
+			final AdministratorHandler admin,
+			final UserValidator userValidator) {
+		return new Builder(admin, userValidator);
+	}
+	
+	// TODO NOW unit tests for this class. PR is getting too big
+	
+	/** A builder for a {@link WorkspaceAdministration}. */
+	public static class Builder {
+		
+		private final AdministratorHandler admin;
+		private final UserValidator userValidator;
+		private final Map<String, AdminCommandSpecification> commandHandlers = new HashMap<>();
+		private int maxCacheSize = DEFAULT_CACHE_MAX_SIZE;
+		private int cacheTimeInMS = DEFAULT_CACHE_EXP_TIME_MS;
+		private Ticker ticker = Ticker.systemTicker();
+		
+		private Builder(final AdministratorHandler admin, final UserValidator userValidator) {
+			this.admin = requireNonNull(admin, "admin");
+			this.userValidator = requireNonNull(userValidator, "userValidator");
+		}
+		
+		/** Set the maximum number of users to be kept in the administrator cache. The cache
+		 * prevents multiple rapid lookups of the admin status of users, which are
+		 * likely to be over network connections and therefore expensive.
+		 * @param maxCacheSize the maximum number of users, defaulting to
+		 * {@link WorkspaceAdministration#DEFAULT_CACHE_MAX_SIZE}.
+		 * @return this builder.
+		 */
+		public Builder withCacheMaxSize(final int maxCacheSize) {
+			if (maxCacheSize < 0) {
+				throw new IllegalArgumentException("maxCacheSize must be >= 0");
+			}
+			this.maxCacheSize = maxCacheSize;
+			return this;
+		}
+		
+		/** Set the amount of time users remain in the administrator cache. Any change in status
+		 * at the source of the administrator information will not be reflected until the user
+		 * expires from the cache.
+		 * @param cacheTimeMS the cache time in milliseconds, defaulting to
+		 * {@link WorkspaceAdministration#DEFAULT_CACHE_MAX_SIZE}.
+		 * @return this builder.
+		 */
+		public Builder withCacheTimeMS(final int cacheTimeMS) {
+			if (cacheTimeMS < 0) {
+				throw new IllegalArgumentException("cacheTimeMS must be >= 0");
+			}
+			this.cacheTimeInMS = cacheTimeMS;
+			return this;
+		}
+		
+		/** Set the ticker for the administrator; generally only useful for testing purposes.
+		 * @param ticker the ticker. Null input is silently ignored.
+		 * @return this builder.
+		 */
+		public Builder withCacheTicker(final Ticker ticker) {
+			if (ticker != null) {
+				this.ticker = ticker;
+			}
+			return this;
+		}
+		
+		/** Add an admin command to the administration instance. Cannot be a reserved command in
+		 * {@link WorkspaceAdministration#RESERVED_COMMANDS}.
+		 * @param spec the admin command.
+		 * @return this builder.
+		 */
+		public Builder withCommand(final AdminCommandSpecification spec) {
+			if (RESERVED_COMMANDS.contains(requireNonNull(spec, "spec").getName())) {
+				throw new IllegalArgumentException("Reserved command: " + spec.getName());
+			}
+			commandHandlers.put(spec.getName(), spec);
+			return this;
+		}
+		
+		/** Build the {@link WorkspaceAdministration}.
+		 * @return the administration instance.
+		 */
+		public WorkspaceAdministration build() {
+			return new WorkspaceAdministration(
+					admin, commandHandlers, userValidator, maxCacheSize, cacheTimeInMS, ticker);
+		}
 	}
 }

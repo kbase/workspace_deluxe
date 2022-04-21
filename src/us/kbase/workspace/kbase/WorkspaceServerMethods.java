@@ -153,12 +153,12 @@ public class WorkspaceServerMethods {
 		return new WorkspaceUser(token.getUserName());
 	}
 	
-	public List<WorkspaceUser> convertUsers(final List<String> users) {
+	private List<WorkspaceUser> convertUsers(final List<String> users) {
 		final List<WorkspaceUser> wsusers = new ArrayList<WorkspaceUser>();
 		if (users == null) {
 			return null;
 		}
-		for (String u: users) {
+		for (final String u: users) {
 			wsusers.add(new WorkspaceUser(u));
 		}
 		return wsusers;
@@ -242,7 +242,23 @@ public class WorkspaceServerMethods {
 		return ws.setPermissions(user, wsi, users, p, asAdmin);
 	}
 	
-	public List<WorkspaceUser> validateUsers(final List<String> users, final AuthToken token)
+	/** Validate that a user exists in the KBase auth system.
+	 * @param user the user name, cannot be null.
+	 * @param token any valid KBase auth token - does not have to be for the given user.
+	 * @return the user.
+	 * @throws IOException if an IO error occurs.
+	 * @throws AuthException if an error occurs communicating with the auth service.
+	 * @throws IllegalArgumentException if the user is invalid.
+	 */
+	public WorkspaceUser validateUser(final String user, final AuthToken token)
+			throws IOException, AuthException {
+		if (user == null) {
+			throw new NullPointerException("User may not be null");
+		}
+		return validateUsers(Arrays.asList(user), token).get(0);
+	}
+	
+	private List<WorkspaceUser> validateUsers(final List<String> users, final AuthToken token)
 			throws IOException, AuthException {
 		final List<WorkspaceUser> wsusers = convertUsers(users);
 		final Map<String, Boolean> userok;
