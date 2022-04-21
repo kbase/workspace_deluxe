@@ -242,7 +242,7 @@ public class WorkspaceAdministration {
 	 * @param token the administrator's token.
 	 * @param command the command to run. This is expected to contain an {@link AdminCommand}
 	 * class instance.
-	 * @param resourcesToDelete a container for deleted once the command is complete.
+	 * @param resourcesToDelete a container for data to be deleted once the command is complete.
 	 * @return the result of the command.
 	 * @throws Exception if any exception occurs.
 	 */
@@ -285,8 +285,6 @@ public class WorkspaceAdministration {
 			final UserValidator userValidator) {
 		return new Builder(admin, userValidator);
 	}
-	
-	// TODO NOW unit tests for this class. PR is getting too big
 	
 	/** A builder for a {@link WorkspaceAdministration}. */
 	public static class Builder {
