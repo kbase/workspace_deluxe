@@ -35,7 +35,6 @@ import us.kbase.auth.ConfigurableAuthService;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.exceptions.TypedObjectExtractionException;
 import us.kbase.typedobj.exceptions.TypedObjectSchemaException;
@@ -48,7 +47,6 @@ import us.kbase.workspace.GetObjectInfo3Params;
 import us.kbase.workspace.GetObjectInfo3Results;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GetObjects2Results;
-import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListObjectsParams;
 import us.kbase.workspace.ListWorkspaceIDsParams;
 import us.kbase.workspace.ListWorkspaceIDsResults;
@@ -56,7 +54,6 @@ import us.kbase.workspace.ListWorkspaceInfoParams;
 import us.kbase.workspace.ObjectData;
 import us.kbase.workspace.ObjectIdentity;
 import us.kbase.workspace.ObjectSaveData;
-import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
@@ -69,7 +66,6 @@ import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.Permission;
 import us.kbase.workspace.database.RefLimit;
-import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.User;
 import us.kbase.workspace.database.UserWorkspaceIDs;
 import us.kbase.workspace.database.Workspace;
@@ -97,17 +93,14 @@ public class WorkspaceServerMethods {
 	// TODO JAVADOC
 	
 	private final Workspace ws;
-	private final Types types;
 	private final ConfigurableAuthService auth;
 	private final IdReferenceHandlerSetFactoryBuilder idFacBuilder;
 	
 	public WorkspaceServerMethods(
 			final Workspace ws,
-			final Types types,
 			final IdReferenceHandlerSetFactoryBuilder idFacBuilder,
 			final ConfigurableAuthService auth) {
 		this.ws = ws;
-		this.types = types;
 		this.idFacBuilder = idFacBuilder;
 		this.auth = auth;
 	}
@@ -147,10 +140,7 @@ public class WorkspaceServerMethods {
 	}
 	
 	public WorkspaceUser getUser(final AuthToken token) {
-		if (token == null) {
-			return null;
-		}
-		return new WorkspaceUser(token.getUserName());
+		return token == null ? null : new WorkspaceUser(token.getUserName());
 	}
 	
 	private List<WorkspaceUser> convertUsers(final List<String> users) {
@@ -512,24 +502,6 @@ public class WorkspaceServerMethods {
 		return ArgUtils.translateObjectProvInfo(objects, getPermissionsHandler(user), logObjects);
 	}
 	
-	public void grantModuleOwnership(final GrantModuleOwnershipParams params,
-			final WorkspaceUser user, boolean asAdmin)
-			throws TypeStorageException, NoSuchPrivilegeException {
-		checkAddlArgs(params.getAdditionalProperties(),
-				GrantModuleOwnershipParams.class);
-		types.grantModuleOwnership(params.getMod(), params.getNewOwner(),
-				longToBoolean(params.getWithGrantOption()), user, asAdmin);
-	}
-
-	public void removeModuleOwnership(final RemoveModuleOwnershipParams params,
-			final WorkspaceUser user, final boolean asAdmin)
-			throws NoSuchPrivilegeException, TypeStorageException {
-		checkAddlArgs(params.getAdditionalProperties(),
-				RemoveModuleOwnershipParams.class);
-		types.removeModuleOwnership(params.getMod(), params.getOldOwner(),
-				user, asAdmin);
-	}
-
 	public List<Tuple9<Long, String, String, String, Long, String, String, String, Map<String,String>>>
 			listWorkspaceInfo(final ListWorkspaceInfoParams params,
 			final WorkspaceUser user)

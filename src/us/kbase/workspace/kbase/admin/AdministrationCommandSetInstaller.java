@@ -38,11 +38,11 @@ import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.SetWorkspaceDescriptionParams;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
-import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
+import us.kbase.workspace.kbase.LocalTypeServerMethods;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.AdminCommandSpecification;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.Builder;
@@ -95,11 +95,11 @@ public class AdministrationCommandSetInstaller {
 			final WorkspaceAdministration.Builder builder,
 			// TODO CODE some of the code here calls the underlying workspace instance.
 			// probably better to not do that and just call the service translation layer when
-			// possible.
+			// possible - e.g. if it's not an admin-only command.
 			final WorkspaceServerMethods wsmeth,
-			final Types types) {
+			final LocalTypeServerMethods types) {
 		
-		installTypeHandlers(types, wsmeth, builder); // TODO CODE wsmeth should not be in there
+		installTypeHandlers(types, builder);
 		installDynamicConfigHandlers(wsmeth, builder);
 		installPermissionHandlers(wsmeth, builder);
 		installWorkspaceHandlers(wsmeth, builder);
@@ -110,21 +110,20 @@ public class AdministrationCommandSetInstaller {
 	}
 	
 	private static void installTypeHandlers(
-			final Types types,
-			final WorkspaceServerMethods wsmeth,
+			final LocalTypeServerMethods types,
 			final WorkspaceAdministration.Builder builder) {
 		builder.withCommand(new AdminCommandSpecification(
 			LIST_MOD_REQUESTS,
 			(cmd, token, toDelete) -> {
 				getLogger().info(LIST_MOD_REQUESTS);
-				return types.listModuleRegistrationRequests();
+				return types.getTypes().listModuleRegistrationRequests();
 			}));
 		builder.withCommand(new AdminCommandSpecification(
 			APPROVE_MOD_REQUEST,
 			(cmd, token, toDelete) -> {
 				final String mod = cmd.getModule();
 				getLogger().info(APPROVE_MOD_REQUEST + " " + mod);
-				types.resolveModuleRegistration(mod, true);
+				types.getTypes().resolveModuleRegistration(mod, true);
 				return null;
 			},
 			true));
@@ -133,7 +132,7 @@ public class AdministrationCommandSetInstaller {
 			(cmd, token, toDelete) -> {
 				final String mod = cmd.getModule();
 				getLogger().info(DENY_MOD_REQUEST + " " + mod);
-				types.resolveModuleRegistration(mod, false);
+				types.getTypes().resolveModuleRegistration(mod, false);
 				return null;
 			},
 			true));
@@ -144,7 +143,7 @@ public class AdministrationCommandSetInstaller {
 						GrantModuleOwnershipParams.class);
 				getLogger().info(GRANT_MODULE_OWNERSHIP + " " + params.getMod() +
 						" " + params.getNewOwner());
-				wsmeth.grantModuleOwnership(params, null, true);
+				types.grantModuleOwnership(params, null, true);
 				return null;
 			},
 			true));
@@ -155,7 +154,7 @@ public class AdministrationCommandSetInstaller {
 						RemoveModuleOwnershipParams.class);
 				getLogger().info(REMOVE_MODULE_OWNERSHIP + " " + params.getMod() +
 						" " + params.getOldOwner());
-				wsmeth.removeModuleOwnership(params, null, true);
+				types.removeModuleOwnership(params, null, true);
 				return null;
 			},
 			true));

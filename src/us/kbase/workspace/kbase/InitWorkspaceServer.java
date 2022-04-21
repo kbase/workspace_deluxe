@@ -104,25 +104,18 @@ public class InitWorkspaceServer {
 	}
 	
 	public static class WorkspaceInitResults {
-		private final Workspace ws;
 		private final WorkspaceServerMethods wsmeth;
 		private final WorkspaceAdministration wsadmin;
-		private final Types types;
+		private final LocalTypeServerMethods types;
 		
 		public WorkspaceInitResults(
-				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
-				final Types types) {
+				final LocalTypeServerMethods types) {
 			super();
-			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
 			this.types = types;
-		}
-
-		public Workspace getWs() {
-			return ws;
 		}
 
 		public WorkspaceServerMethods getWsmeth() {
@@ -133,7 +126,7 @@ public class InitWorkspaceServer {
 			return wsadmin;
 		}
 		
-		public Types getTypes() {
+		public LocalTypeServerMethods getTypes() {
 			return types;
 		}
 	}
@@ -188,14 +181,15 @@ public class InitWorkspaceServer {
 			return null;
 		}
 		rep.reportInfo(String.format("Initialized %s backend", cfg.getBackendType().name()));
-		final Types types = new Types(wsdeps.typeDB);
+		// TODO CODE maybe merge these 2 classes?
+		final LocalTypeServerMethods types = new LocalTypeServerMethods(new Types(wsdeps.typeDB));
 		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(maxUniqueIdCountPerCall)
 				.withFactory(new HandleIdHandlerFactory(hsc))
 				.withFactory(wsdeps.shockFac)
 				.withFactory(wsdeps.sampleFac)
 				.build();
-		final WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, types, builder, auth);
+		final WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, builder, auth);
 		final UserValidator userVal = (user, token) -> wsmeth.validateUser(user, token);
 		final WorkspaceAdministration wsadmin = AdministrationCommandSetInstaller.install(
 				WorkspaceAdministration.getBuilder(ah, userVal), wsmeth, types).build();
@@ -205,7 +199,7 @@ public class InitWorkspaceServer {
 				Runtime.getRuntime().totalMemory(),
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
-		return new WorkspaceInitResults(ws, wsmeth, wsadmin, types);
+		return new WorkspaceInitResults(wsmeth, wsadmin, types);
 	}
 	
 	private static AdministratorHandler getAdminHandler(
