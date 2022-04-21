@@ -56,7 +56,7 @@ import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
 import us.kbase.workspace.kbase.BytestreamIdHandlerFactory.BytestreamClientCloner;
-import us.kbase.workspace.kbase.admin.AdministrationCommandSetBuilder;
+import us.kbase.workspace.kbase.admin.AdministrationCommandSetInstaller;
 import us.kbase.workspace.kbase.admin.AdministratorHandler;
 import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
 import us.kbase.workspace.kbase.admin.DefaultAdminHandler;
@@ -197,7 +197,7 @@ public class InitWorkspaceServer {
 				.build();
 		final WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, types, builder, auth);
 		final UserValidator userVal = (user, token) -> wsmeth.validateUser(user, token);
-		final WorkspaceAdministration wsadmin = AdministrationCommandSetBuilder.install(
+		final WorkspaceAdministration wsadmin = AdministrationCommandSetInstaller.install(
 				WorkspaceAdministration.getBuilder(ah, userVal), wsmeth, types).build();
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
