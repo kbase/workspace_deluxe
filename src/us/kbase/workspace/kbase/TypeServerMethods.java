@@ -26,56 +26,59 @@ import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.TypeInfo;
+import us.kbase.workspace.WorkspaceServer;
 
+/** The documentation for the methods here is identical to the corresponding methods in
+ * {@link WorkspaceServer}. Refer to that class for documentation.
+ */
 public interface TypeServerMethods {
-	
-	// TODO JAVADOC
 	
 	void grantModuleOwnership(
 			final GrantModuleOwnershipParams params,
-			final AuthToken authPart,
+			final AuthToken token,
 			final boolean asAdmin)
 			throws TypeStorageException, NoSuchPrivilegeException;
 	
 	void removeModuleOwnership(
 			final RemoveModuleOwnershipParams params,
-			final AuthToken authPart,
+			final AuthToken token,
 			final boolean asAdmin)
 			throws NoSuchPrivilegeException, TypeStorageException;
 
-	void requestModuleOwnership(final String mod, final AuthToken authPart)
+	void requestModuleOwnership(final String mod, final AuthToken token)
 			throws TypeStorageException;
 	
 	Map<String,String> registerTypespec(
 			final RegisterTypespecParams params,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws SpecParseException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchModuleException;
 
 	Long registerTypespecCopy(
 			final RegisterTypespecCopyParams params,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws UnauthorizedException, MalformedURLException, IOException, JsonClientException,
 				NoSuchModuleException, TypeStorageException, SpecParseException,
 				NoSuchPrivilegeException;
 
-	List<String> releaseModule(final String mod, final AuthToken authPart)
+	List<String> releaseModule(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException;
 	
-	List<String> listModules(final ListModulesParams params) throws TypeStorageException;
+	List<String> listModules(final ListModulesParams params)
+			throws TypeStorageException;
 
 	ModuleVersions listModuleVersions(
 			final ListModuleVersionsParams params,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchTypeException;
 	
 	ModuleInfo getModuleInfo(
 			final GetModuleInfoParams params,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException;
 	
-	String getJsonschema(final String type, final AuthToken authPart)
+	String getJsonschema(final String type, final AuthToken token)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException;
 
 	Map<String,List<String>> translateFromMD5Types(final List<String> md5Types)
@@ -83,25 +86,25 @@ public interface TypeServerMethods {
 	
 	Map<String,String> translateToMD5Types(
 			final List<String> semTypes,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException;
 	
-	TypeInfo getTypeInfo(final String type, final AuthToken authPart)
+	TypeInfo getTypeInfo(final String type, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException;
 	
-	List<TypeInfo> getAllTypeInfo(final String mod, final AuthToken authPart)
+	List<TypeInfo> getAllTypeInfo(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchTypeException;
 	
-	FuncInfo getFuncInfo(final String func, final AuthToken authPart)
+	FuncInfo getFuncInfo(final String func, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException;
 	
-	List<FuncInfo> getAllFuncInfo(final String mod, final AuthToken authPart)
+	List<FuncInfo> getAllFuncInfo(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchFuncException;
 
 	Map<String,Map<String,String>> listAllTypes(
 			final ListAllTypesParams params,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws TypeStorageException, NoSuchModuleException;
 }
