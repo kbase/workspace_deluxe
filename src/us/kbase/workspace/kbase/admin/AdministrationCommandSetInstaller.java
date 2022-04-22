@@ -48,7 +48,7 @@ import us.kbase.workspace.kbase.admin.WorkspaceAdministration.AdminCommandSpecif
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.Builder;
 
 /** Builds the standard set of administration command handlers. */
-public class AdministrationCommandSetBuilder {
+public class AdministrationCommandSetInstaller {
 	
 	private static final String GET_CONFIG = "getConfig";
 	private static final String SET_CONFIG = "setConfig";
@@ -83,7 +83,7 @@ public class AdministrationCommandSetBuilder {
 	private final static ObjectMapper MAPPER = new ObjectMapper()
 			.registerModule(new JacksonTupleModule());
 	
-	private AdministrationCommandSetBuilder() {};
+	private AdministrationCommandSetInstaller() {};
 	
 	/** Install the handlers.
 	 * @param builder a administration interface builder.
@@ -443,7 +443,7 @@ public class AdministrationCommandSetBuilder {
 	}
 	
 	private static Logger getLogger() {
-		return LoggerFactory.getLogger(AdministrationCommandSetBuilder.class);
+		return LoggerFactory.getLogger(AdministrationCommandSetInstaller.class);
 	}
 	
 	private static WorkspaceUser validateNullableUser(
