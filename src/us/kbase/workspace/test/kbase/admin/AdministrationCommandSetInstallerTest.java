@@ -70,6 +70,7 @@ import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
+import us.kbase.workspace.kbase.LocalTypeServerMethods;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.AdminRole;
 import us.kbase.workspace.kbase.admin.AdministrationCommandSetInstaller;
@@ -103,6 +104,7 @@ public class AdministrationCommandSetInstallerTest {
 		private final Workspace ws;
 		private final WorkspaceServerMethods wsmeth;
 		private final Types types;
+		private final LocalTypeServerMethods tsm;
 		private final AdministratorHandler ah;
 		private final WorkspaceAdministration admin;
 		
@@ -110,11 +112,13 @@ public class AdministrationCommandSetInstallerTest {
 				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final Types types,
+				final LocalTypeServerMethods tsm,
 				final AdministratorHandler ah,
 				final WorkspaceAdministration admin) {
 			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.types = types;
+			this.tsm = tsm;
 			this.ah = ah;
 			this.admin = admin;
 		}
@@ -125,14 +129,16 @@ public class AdministrationCommandSetInstallerTest {
 		final WorkspaceServerMethods wsmeth = mock(WorkspaceServerMethods.class);
 		when(wsmeth.getWorkspace()).thenReturn(ws);
 		final Types types = mock(Types.class);
+		final LocalTypeServerMethods tsm = mock(LocalTypeServerMethods.class);
+		when(tsm.getTypes()).thenReturn(types);
 		final UserValidator userVal = (user, token) -> wsmeth.validateUser(user, token);
 		final AdministratorHandler ah = mock(AdministratorHandler.class);
 		final WorkspaceAdministration admin = AdministrationCommandSetInstaller.install(
-				WorkspaceAdministration.getBuilder(ah, userVal), wsmeth, types)
+				WorkspaceAdministration.getBuilder(ah, userVal), wsmeth, tsm)
 				.withCacheMaxSize(0)
 				.withCacheTimeMS(0)
 				.build();
-		return new TestMocks(ws, wsmeth, types, ah, admin);
+		return new TestMocks(ws, wsmeth, types, tsm, ah, admin);
 	}
 	
 	private void runCommandFail(
@@ -1545,7 +1551,7 @@ public class AdministrationCommandSetInstallerTest {
 
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
-		verify(mocks.wsmeth).grantModuleOwnership(
+		verify(mocks.tsm).grantModuleOwnership(
 				argThat(new ArgumentMatcher<GrantModuleOwnershipParams>() {
 		
 					@Override
@@ -1576,7 +1582,7 @@ public class AdministrationCommandSetInstallerTest {
 
 		mocks.admin.runCommand(new AuthToken("tok", "fake"), command, null);
 		
-		verify(mocks.wsmeth).removeModuleOwnership(
+		verify(mocks.tsm).removeModuleOwnership(
 				argThat(new ArgumentMatcher<RemoveModuleOwnershipParams>() {
 		
 					@Override
