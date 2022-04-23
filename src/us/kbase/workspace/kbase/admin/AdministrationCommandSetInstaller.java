@@ -1,5 +1,6 @@
 package us.kbase.workspace.kbase.admin;
 
+import static java.util.Objects.requireNonNull;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 
@@ -43,6 +44,8 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.kbase.LocalTypeServerMethods;
+import us.kbase.workspace.kbase.WorkspaceDelegator;
+import us.kbase.workspace.kbase.WorkspaceDelegator.WorkspaceDelegationException;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.AdminCommandSpecification;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.Builder;
@@ -86,7 +89,7 @@ public class AdministrationCommandSetInstaller {
 	private AdministrationCommandSetInstaller() {};
 	
 	/** Install the handlers.
-	 * @param builder a administration interface builder.
+	 * @param builder an administration interface builder.
 	 * @param wsmeth a workspace server methods instance.
 	 * @param types a types instance.
 	 * @return the updated builder.
@@ -99,7 +102,8 @@ public class AdministrationCommandSetInstaller {
 			final WorkspaceServerMethods wsmeth,
 			final LocalTypeServerMethods types) {
 		
-		installTypeHandlers(types, builder);
+		requireNonNull(wsmeth, "wsmeth");
+		installTypeHandlers(requireNonNull(types, "type"), requireNonNull(builder, "builder"));
 		installDynamicConfigHandlers(wsmeth, builder);
 		installPermissionHandlers(wsmeth, builder);
 		installWorkspaceHandlers(wsmeth, builder);
@@ -109,6 +113,89 @@ public class AdministrationCommandSetInstaller {
 		return builder;
 	}
 	
+	/** Install the handlers, delegating type related commands to another workspace service.
+	 * @param builder an administration interface builder.
+	 * @param wsmeth a workspace server methods instance.
+	 * @param delegator a workspace method delegator.
+	 * @return the updated builder.
+	 */
+	public static Builder install(
+			final WorkspaceAdministration.Builder builder,
+			// see note above about calling the underlying workspace instance.
+			final WorkspaceServerMethods wsmeth,
+			final WorkspaceDelegator delegator) {
+
+		requireNonNull(wsmeth, "wsmeth");
+		installTypeHandlers(
+				requireNonNull(delegator, "delegator"), requireNonNull(builder, "builder"));
+		installDynamicConfigHandlers(wsmeth, builder);
+		installPermissionHandlers(wsmeth, builder);
+		installWorkspaceHandlers(wsmeth, builder);
+		installListWorkspaceHandlers(wsmeth, builder);
+		installDeleteWorkspaceHandlers(wsmeth, builder);
+		installObjectHandlers(wsmeth, builder);
+		return builder;
+	}
+	
+	private static void installTypeHandlers(
+			final WorkspaceDelegator delegator,
+			final Builder builder) {
+		builder.withCommand(new AdminCommandSpecification(
+				LIST_MOD_REQUESTS,
+				(cmd, token, toDelete) -> {
+					getLogger().info(LIST_MOD_REQUESTS +
+							" delegated to " + delegator.getTargetWorkspace());
+					return delegate(delegator, cmd, token);
+				}));
+		builder.withCommand(new AdminCommandSpecification(
+			APPROVE_MOD_REQUEST,
+			(cmd, token, toDelete) -> {
+				getLogger().info(APPROVE_MOD_REQUEST + " " + cmd.getModule() +
+						" delegated to " + delegator.getTargetWorkspace());
+				return delegate(delegator, cmd, token);
+			},
+			true));
+		builder.withCommand(new AdminCommandSpecification(
+			DENY_MOD_REQUEST,
+			(cmd, token, toDelete) -> {
+				getLogger().info(DENY_MOD_REQUEST + " " + cmd.getModule() +
+						" delegated to " + delegator.getTargetWorkspace());
+				return delegate(delegator, cmd, token);
+			},
+			true));
+		builder.withCommand(new AdminCommandSpecification(
+			GRANT_MODULE_OWNERSHIP,
+			(cmd, token, toDelete) -> {
+				final GrantModuleOwnershipParams params = getParams(cmd,
+						GrantModuleOwnershipParams.class);
+				getLogger().info(GRANT_MODULE_OWNERSHIP + " " + params.getMod() +
+						" " + params.getNewOwner() +
+						" delegated to " + delegator.getTargetWorkspace());
+				return delegate(delegator, cmd, token);
+			},
+			true));
+		builder.withCommand(new AdminCommandSpecification(
+			REMOVE_MODULE_OWNERSHIP,
+			(cmd, token, toDelete) -> {
+				final RemoveModuleOwnershipParams params = getParams(cmd,
+						RemoveModuleOwnershipParams.class);
+				getLogger().info(REMOVE_MODULE_OWNERSHIP + " " + params.getMod() +
+						" " + params.getOldOwner() +
+						" delegated to " + delegator.getTargetWorkspace());
+				return delegate(delegator, cmd, token);
+			},
+			true));
+	}
+
+	public static Object delegate(
+			final WorkspaceDelegator delegator,
+			final AdminCommand cmd,
+			final AuthToken token)
+			throws WorkspaceDelegationException {
+		final UObject res = delegator.delegate(token, c -> c.administer(new UObject(cmd)));
+		return res == null ? null : res.isNull() ? null : res.asClassInstance(Object.class);
+	}
+
 	private static void installTypeHandlers(
 			final LocalTypeServerMethods types,
 			final WorkspaceAdministration.Builder builder) {
