@@ -34,6 +34,7 @@ import us.kbase.typedobj.core.JsonDocumentLocation;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefName;
+import us.kbase.typedobj.core.TypeProvider.TypeFetchException;
 import us.kbase.typedobj.core.ValidatedTypedObject;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
@@ -82,6 +83,8 @@ public class Workspace {
 	//TODO CODE look into eliminating all the DB implementation specific classes, too much of a pain just to ensure not moving objects between implementations
 	//TODO CODE wrap event listeners in try/catch, catch everything & log & continue
 	
+	// TODO CODE this whole * = all users thing is a mess. It needs to go. First try and
+	// just remove it from everywhere but the MongoDB level and maybe the JSONRPC level
 	public static final AllUsers ALL_USERS = new AllUsers('*');
 	
 	private final static int MAX_WS_DESCRIPTION = 1000;
@@ -826,9 +829,8 @@ public class Workspace {
 			final List<WorkspaceSaveObject> objects,
 			final IdReferenceHandlerSet<IDAssociation> idhandler)
 			throws TypeStorageException, TypedObjectSchemaException,
-			TypedObjectValidationException {
-		final Map<WorkspaceSaveObject, ValidatedTypedObject> reports = 
-				new HashMap<WorkspaceSaveObject, ValidatedTypedObject>();
+				TypedObjectValidationException {
+		final Map<WorkspaceSaveObject, ValidatedTypedObject> reports = new HashMap<>();
 		int objcount = 1;
 		for (final WorkspaceSaveObject wo: objects) {
 			idhandler.associateObject(new IDAssociation(objcount, false));
@@ -846,7 +848,7 @@ public class Workspace {
 				throw new RuntimeException("This exception didn't actually happen. In fact "
 						+ "you're on extremely strong drugs. Pay me no heed", e);
 			} catch (TooManyIdsException tmie) {
-				throw wrapTooManyIDsException(objcount, idhandler, tmie);
+				throw wrapTooManyIDsException(wo, objcount, idhandler.getMaximumIdCount(), tmie);
 			}
 			objcount++;
 		}
@@ -918,32 +920,33 @@ public class Workspace {
 			final IdReferenceHandlerSet<IDAssociation> idhandler,
 			final int objcount)
 			throws TypeStorageException, TypedObjectSchemaException,
-			TypedObjectValidationException {
+				TypedObjectValidationException {
 		final ValidatedTypedObject rep;
 		try {
 			rep = validator.validate(wo.getData(), wo.getType(), idhandler);
 		} catch (NoSuchTypeException nste) {
 			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking:\n",
-					getObjectErrorId(wo, objcount))
+					"Object %s failed type checking:\n", getObjectErrorId(wo, objcount))
 					+ nste.getLocalizedMessage(), nste);
 		} catch (NoSuchModuleException nsme) {
 			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking:\n",
-					getObjectErrorId(wo, objcount))
+					"Object %s failed type checking:\n", getObjectErrorId(wo, objcount))
 					+ nsme.getLocalizedMessage(), nsme);
 		} catch (TooManyIdsException e) {
-			throw wrapTooManyIDsException(objcount, idhandler, e);
+			throw wrapTooManyIDsException(wo, objcount, idhandler.getMaximumIdCount(), e);
 		} catch (JsonParseException jpe) {
 			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking ",
-					getObjectErrorId(wo, objcount)) + 
-					"- a fatal JSON processing error occurred: "
-					+ jpe.getMessage(), jpe);
+					"Object %s failed type checking ", getObjectErrorId(wo, objcount)) + 
+					"- a fatal JSON processing error occurred: " + jpe.getMessage(), jpe);
 		} catch (IOException ioe) {
 			throw new TypedObjectValidationException(String.format(
-					"A fatal IO error occured while type checking object %s: ",
-					getObjectErrorId(wo, objcount)) + ioe.getMessage(), ioe);
+					"Object %s failed type checking ", getObjectErrorId(wo, objcount)) + 
+					"- a fatal IO error occurred: " + ioe.getMessage(), ioe);
+		} catch (TypeFetchException tfe) {
+			throw new TypedObjectValidationException(String.format(
+					"Object %s failed type checking ", getObjectErrorId(wo, objcount)) + 
+					"- a fatal error occurred attempting to fetch the type specification: "
+					+ tfe.getMessage(), tfe);
 		}
 		if (!rep.isInstanceValid()) {
 			final List<String> e = rep.getErrorMessages();
@@ -956,14 +959,15 @@ public class Workspace {
 	}
 	
 	private TypedObjectValidationException wrapTooManyIDsException(
+			final WorkspaceSaveObject wo,
 			final int objcount,
-			final IdReferenceHandlerSet<IDAssociation> idhandler,
+			final int maximumIDCount,
 			final TooManyIdsException e) {
 		return new TypedObjectValidationException(String.format(
-				"Failed type checking at object #%s - the number of " +
+				"Object %s failed type checking - the number of " +
 				"unique IDs in the saved objects exceeds the maximum " +
 				"allowed, %s",
-				objcount, idhandler.getMaximumIdCount()), e);
+				getObjectErrorId(wo, objcount), maximumIDCount), e);
 	}
 
 	//should definitely make an options builder

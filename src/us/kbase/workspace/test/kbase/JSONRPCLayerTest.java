@@ -1928,7 +1928,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("saved object with too many refs");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getMessage(),
-					is("Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 4"));
+					is("Object #1, auto3 failed type checking - the number of unique IDs in the "
+						+ "saved objects exceeds the maximum allowed, 4"));
 		}
 
 	}

@@ -9,17 +9,18 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static us.kbase.common.test.TestCommon.set;
+import static us.kbase.common.test.TestCommon.now;
 import static us.kbase.common.test.TestCommon.list;
+import static us.kbase.common.test.TestCommon.set;
 import static us.kbase.workspace.test.WorkspaceTestCommon.basicProv;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ import java.util.stream.LongStream;
 
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.google.common.collect.ImmutableMap;
 
 import us.kbase.workspace.database.Workspace;
@@ -34,20 +36,33 @@ import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceIdentifier;
 import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
+import us.kbase.workspace.database.WorkspaceSaveObject;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.WorkspaceUserMetadata;
 import us.kbase.workspace.database.exceptions.CorruptWorkspaceDBException;
 import us.kbase.workspace.database.exceptions.NoObjectDataException;
 import us.kbase.workspace.database.provenance.Provenance;
 import us.kbase.workspace.exceptions.WorkspaceAuthorizationException;
+import us.kbase.auth.AuthToken;
+import us.kbase.common.service.UObject;
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.SubsetSelection;
 import us.kbase.typedobj.core.TempFilesManager;
+import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeProvider.TypeFetchException;
 import us.kbase.typedobj.core.TypedObjectValidator;
+import us.kbase.typedobj.core.ValidatedTypedObject;
+import us.kbase.typedobj.exceptions.NoSuchModuleException;
+import us.kbase.typedobj.exceptions.NoSuchTypeException;
+import us.kbase.typedobj.exceptions.TypedObjectValidationException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSet.TooManyIdsException;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactory;
+import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
 import us.kbase.workspace.database.AllUsers;
 import us.kbase.workspace.database.ByteArrayFileCacheManager;
 import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
+import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ObjectIDResolvedWS;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.ObjectInformation;
@@ -496,7 +511,7 @@ public class WorkspaceUnitTest {
 		final ObjectIdentifier.Builder oi = ObjectIdentifier.getBuilder(wsi).withID(1L);
 		
 		failGetObjects(mocks.ws, null, false, new NullPointerException("objs"));
-		failGetObjects(mocks.ws, Arrays.asList(oi.build(), null), false, new NullPointerException(
+		failGetObjects(mocks.ws, list(oi.build(), null), false, new NullPointerException(
 				"object list cannot contain nulls"));
 		final List<ObjectIdentifier> objs = LongStream.range(1, 10002)
 				.mapToObj(i -> oi.withID(i).build()).collect(Collectors.toList());
@@ -514,6 +529,171 @@ public class WorkspaceUnitTest {
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	private final String SAVE_OBJECT_FAIL_VAL_TYPE_STRING = "Mod.Type-3.2";
+	private final int SAVE_OBJECT_FAIL_VAL_MAX_IDS = 602214;
+	private final UObject SAVE_OBJECT_FAIL_GOOD_DATA = new UObject(ImmutableMap.of("a", "b"));
+	private final UObject SAVE_OBJECT_FAIL_BAD_DATA = new UObject(ImmutableMap.of("c", "d"));
+	private final WorkspaceSaveObject SAVE_OBJECT_FAIL_MEDIOCRE_OBJECT = new WorkspaceSaveObject(
+			new ObjectIDNoWSNoVer(67),
+			SAVE_OBJECT_FAIL_GOOD_DATA,
+			TypeDefId.fromTypeString(SAVE_OBJECT_FAIL_VAL_TYPE_STRING),
+			new WorkspaceUserMetadata(),
+			Provenance.getBuilder(new WorkspaceUser("u"), now()).build(),
+			false);
+	
+	private WorkspaceSaveObject saveObjectValidationFailGetBadObject(final ObjectIDNoWSNoVer id) {
+		return new WorkspaceSaveObject(
+				id,
+				SAVE_OBJECT_FAIL_BAD_DATA,
+				TypeDefId.fromTypeString(SAVE_OBJECT_FAIL_VAL_TYPE_STRING),
+				new WorkspaceUserMetadata(),
+				Provenance.getBuilder(new WorkspaceUser("u"), now()).build(),
+				false);
+	}
+	@Test
+
+	public void saveObjectValidationFailNoSuchModuleException() throws Exception {
+		failSaveObjectValidationException(
+				list(saveObjectValidationFailGetBadObject(new ObjectIDNoWSNoVer(42))),
+				new NoSuchModuleException("no mod"),
+				new TypedObjectValidationException(
+						"Object #1, 42 failed type checking:\nno mod"));
+	}
+	
+	@Test
+	public void saveObjectValidationFailNoSuchTypeException() throws Exception {
+		final WorkspaceSaveObject obj = SAVE_OBJECT_FAIL_MEDIOCRE_OBJECT;
+		
+		final WorkspaceSaveObject badobject = saveObjectValidationFailGetBadObject(
+				new ObjectIDNoWSNoVer("my_name"));
+		failSaveObjectValidationException(
+				list(obj, badobject),
+				new NoSuchTypeException("no type"),
+				new TypedObjectValidationException(
+						"Object #2, my_name failed type checking:\nno type"));
+	}
+	
+	@Test
+	public void saveObjectValidationFailTooManyIDsException() throws Exception {
+		final WorkspaceSaveObject obj = SAVE_OBJECT_FAIL_MEDIOCRE_OBJECT;
+		
+		final WorkspaceSaveObject badobject = saveObjectValidationFailGetBadObject(
+				new ObjectIDNoWSNoVer(893));
+		failSaveObjectValidationException(
+				list(obj, obj, badobject, obj),
+				new TooManyIdsException("OMG I totally can't handle all these eyedeeeeees"),
+				new TypedObjectValidationException(
+						"Object #3, 893 failed type checking - the number of unique IDs in the "
+						+ "saved objects exceeds the maximum allowed, "
+						+ SAVE_OBJECT_FAIL_VAL_MAX_IDS));
+	}
+	
+	@Test
+	public void saveObjectValidationFailJsonParseException() throws Exception {
+		final WorkspaceSaveObject obj = SAVE_OBJECT_FAIL_MEDIOCRE_OBJECT;
+		
+		final WorkspaceSaveObject badobject = saveObjectValidationFailGetBadObject(
+				new ObjectIDNoWSNoVer("my_other_name"));
+		failSaveObjectValidationException(
+				list(obj, obj, obj, badobject, obj, obj),
+				new JsonParseException(null, "parse parse parse crap"),
+				new TypedObjectValidationException(
+						"Object #4, my_other_name failed type checking - a fatal JSON "
+						+ "processing error occurred: parse parse parse crap"));
+	}
+	
+	@Test
+	public void saveObjectValidationFailIOException() throws Exception {
+		final WorkspaceSaveObject obj = SAVE_OBJECT_FAIL_MEDIOCRE_OBJECT;
+		
+		final WorkspaceSaveObject badobject = saveObjectValidationFailGetBadObject(
+				new ObjectIDNoWSNoVer(2));
+		failSaveObjectValidationException(
+				list(badobject, obj, obj),
+				new IOException("The tubes are down again, someone unclog them"),
+				new TypedObjectValidationException(
+						"Object #1, 2 failed type checking - a fatal IO "
+						+ "error occurred: The tubes are down again, someone unclog them"));
+	}
+	
+	@Test
+	public void saveObjectValidationFailTypeFetchException() throws Exception {
+		final WorkspaceSaveObject obj = SAVE_OBJECT_FAIL_MEDIOCRE_OBJECT;
+		
+		final WorkspaceSaveObject badobject = saveObjectValidationFailGetBadObject(
+				new ObjectIDNoWSNoVer("fetching"));
+		failSaveObjectValidationException(
+				list(obj, badobject, obj, obj),
+				new TypeFetchException("the types won't come when you call them, wtf"),
+				new TypedObjectValidationException(
+						"Object #2, fetching failed type checking - a fatal error occurred "
+						+ "attempting to fetch the type specification: the types won't come "
+						+ "when you call them, wtf"));
+	}
+
+	public void failSaveObjectValidationException(
+			final List<WorkspaceSaveObject> objects,
+			final Exception thown,
+			final Exception expected)
+			throws Exception {
+		final TestMocks mocks = initMocks();
+		
+		final WorkspaceUser user = new WorkspaceUser("u");
+		final WorkspaceIdentifier wsi = new WorkspaceIdentifier(6);
+		final ResolvedWorkspaceID rwsi = new ResolvedWorkspaceID(6, "foo", false, false);
+		final ValidatedTypedObject vto = mock(ValidatedTypedObject.class);
+
+		when(mocks.db.resolveWorkspaces(set(wsi))).thenReturn(ImmutableMap.of(wsi, rwsi));
+		when(mocks.db.getPermissions(user, set(rwsi))).thenReturn(PermissionSet
+				.getBuilder(user, Workspace.ALL_USERS)
+				.withWorkspace(rwsi, Permission.WRITE, Permission.NONE)
+				.build());
+		
+		when(mocks.val.validate(
+				// We use identity equality on the data for mock matching since UObject doesn't
+				// have an equals method (which it shouldn't)
+				eq(SAVE_OBJECT_FAIL_GOOD_DATA),
+				eq(TypeDefId.fromTypeString(SAVE_OBJECT_FAIL_VAL_TYPE_STRING)),
+				// Don't worry about checking the ID handler is correct, that's not the point of
+				// this test
+				any()))
+				.thenReturn(vto);
+		when(vto.isInstanceValid()).thenReturn(true);
+		
+		when(mocks.val.validate(
+				eq(SAVE_OBJECT_FAIL_BAD_DATA),
+				eq(TypeDefId.fromTypeString(SAVE_OBJECT_FAIL_VAL_TYPE_STRING)),
+				any()))
+				.thenThrow(thown);
+		
+		final Exception got = failSaveObjects(
+				mocks.ws,
+				user,
+				wsi,
+				objects,
+				IdReferenceHandlerSetFactoryBuilder.getBuilder(SAVE_OBJECT_FAIL_VAL_MAX_IDS)
+						.build().getFactory(new AuthToken("t", "u")),
+				expected);
+		TestCommon.assertExceptionCorrect(got.getCause(), thown);
+	}
+	
+	private Exception failSaveObjects(
+			final Workspace ws,
+			final WorkspaceUser user,
+			final WorkspaceIdentifier wsi,
+			final List<WorkspaceSaveObject> objects,
+			final IdReferenceHandlerSetFactory idHandlerFac,
+			final Exception expected) {
+		try {
+			ws.saveObjects(user, wsi, objects, idHandlerFac);
+			fail("expected exception");
+			return null;
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+			return got;
 		}
 	}
 }
