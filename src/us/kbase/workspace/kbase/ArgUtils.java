@@ -118,7 +118,7 @@ public class ArgUtils {
 				checkAddlArgs(a.getAdditionalProperties(), a.getClass());
 				final Instant d = chooseInstant(a.getTime(), a.getEpoch(),
 						"Cannot specify both time and epoch in provenance action");
-				p.withAction(ProvenanceAction.getBuilder()
+				final ProvenanceAction.Builder pa = ProvenanceAction.getBuilder()
 						.withTime(d)
 						.withCaller(a.getCaller())
 						.withServiceName(a.getService())
@@ -135,9 +135,10 @@ public class ArgUtils {
 						.withExternalData(processExternalData(a.getExternalData()))
 						.withSubActions(processSubActions(a.getSubactions()))
 						.withCustom(a.getCustom())
-						.withDescription(a.getDescription())
-						.build()
-				);
+						.withDescription(a.getDescription());
+				if (!pa.isEmpty()) { // requiring non-empty PAs broke external code unfortunately
+					p.withAction(pa.build());
+				}
 			} catch (IllegalArgumentException | NullPointerException e) {
 				throw new IllegalArgumentException(String.format("Provenance action #%s: %s",
 						li.nextIndex(), e.getLocalizedMessage()), e);
