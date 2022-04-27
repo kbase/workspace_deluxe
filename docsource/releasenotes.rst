@@ -3,6 +3,14 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.13.1 (Released TBD)
+------------------------------
+
+UPDATES:
+
+* ``save_objects`` will no longer throw an error if an empty ``ProvenanceAction`` is included in
+  the call. Rather, empty ``ProvenanceAction`` instances will be silently omitted from the list.
+
 VERSION: 0.13.0 (Released 4/13/2022)
 ------------------------------------
 

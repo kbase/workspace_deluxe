@@ -701,12 +701,11 @@ public class ProvenanceAction {
 			}
 		}
 		
-		/** Build the {@link ProvenanceAction}. At least one field must be set before the build
-		 * attempt.
-		 * @return the provenance action.
+		/** Check the builder has any fields set.
+		 * @return true if no fields are set, false otherwise.
 		 */
-		public ProvenanceAction build() {
-			if (	// ew
+		public boolean isEmpty() {
+			return
 					time == null &&
 					caller == null &&
 					service == null &&
@@ -723,7 +722,15 @@ public class ProvenanceAction {
 					externalData == null &&
 					subActions == null &&
 					custom == null &&
-					description == null) {
+					description == null;
+		}
+		
+		/** Build the {@link ProvenanceAction}. At least one field must be set before the build
+		 * attempt.
+		 * @return the provenance action.
+		 */
+		public ProvenanceAction build() {
+			if (isEmpty()) {
 				throw new IllegalArgumentException(
 						"At least one field in a provenance action must be provided");
 			}
