@@ -331,7 +331,7 @@ public class WorkspaceAdministration {
 			return this;
 		}
 		
-		/** Set the ticker for the administrator; generally only useful for testing purposes.
+		/** Set the ticker for the administrator cache; generally only useful for testing purposes.
 		 * @param ticker the ticker. Null input is silently ignored.
 		 * @return this builder.
 		 */
