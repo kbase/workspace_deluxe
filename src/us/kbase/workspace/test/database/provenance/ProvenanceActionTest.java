@@ -166,6 +166,81 @@ public class ProvenanceActionTest {
 	}
 	
 	@Test
+	public void isEmpty() throws Exception {
+		// Test with each field individually to test the at least one field set requirement
+		// Except resolved objects, which must be paired with workspace objects
+		
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().isEmpty(), is(true));
+		
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withCaller("caller").isEmpty(), is(false));
+
+		
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withCommandLine("--dostuff").isEmpty(), is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withCustom(ImmutableMap.of("foo", "bar")).isEmpty(),
+				is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withDescription("desc").isEmpty(), is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withExternalData(list(
+						ExternalData.getBuilder().withDataID("dataid").build())
+						).isEmpty(), is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withIncomingArgs(list("foo", "bar")).isEmpty(),
+				is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withMethod("meth").isEmpty(), is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withMethodParameters(list(list("foo"))).isEmpty(),
+				is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withOutgoingArgs(list("yay")).isEmpty(), is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder()
+						.withWorkspaceObjects(list("foo/bar;baz/bat", "65/3/81"))
+						.withResolvedObjects(list("1/1/1", "65/3/81"))
+						.isEmpty(),
+				is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withScript("script").isEmpty(), is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withScriptVersion("sver").isEmpty(), is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withServiceName("serv").isEmpty(), is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withServiceVersion("servver").isEmpty(), is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withSubActions(list(
+						SubAction.getBuilder().withName("n").build()
+						)).isEmpty(),
+				is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withTime(inst(100000)).isEmpty(), is(false));
+
+		assertThat("incorrect isEmpty",
+				ProvenanceAction.getBuilder().withWorkspaceObjects(list("foo/bar", "1/w/1"))
+						.isEmpty(),
+				is(false));
+	}
+	
+	@Test
 	public void buildMinimal() throws Exception {
 		// test with each field individually to test the at least one field set requirement
 		// Except resolved objects, which must be paired with workspace objects

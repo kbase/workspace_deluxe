@@ -56,11 +56,13 @@ import us.kbase.workspace.database.mongo.S3ClientWithPresign;
 import us.kbase.workspace.database.mongo.exceptions.BlobStoreCommunicationException;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
 import us.kbase.workspace.kbase.BytestreamIdHandlerFactory.BytestreamClientCloner;
+import us.kbase.workspace.kbase.admin.AdministrationCommandSetInstaller;
 import us.kbase.workspace.kbase.admin.AdministratorHandler;
 import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
 import us.kbase.workspace.kbase.admin.DefaultAdminHandler;
 import us.kbase.workspace.kbase.admin.KBaseAuth2AdminHandler;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
+import us.kbase.workspace.kbase.admin.WorkspaceAdministration.UserValidator;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
@@ -77,9 +79,6 @@ public class InitWorkspaceServer {
 	// TODO CODE Drop all references to Glassfish and streamline Tomcat setup.
 	
 	public static final String COL_S3_OBJECTS = "s3_objects";
-	
-	private static final int ADMIN_CACHE_MAX_SIZE = 100; // seems like more than enough admins
-	private static final int ADMIN_CACHE_EXP_TIME_MS = 5 * 60 * 1000; // cache admin role for 5m
 	
 	private static int maxUniqueIdCountPerCall = 100000;
 
@@ -105,25 +104,18 @@ public class InitWorkspaceServer {
 	}
 	
 	public static class WorkspaceInitResults {
-		private final Workspace ws;
 		private final WorkspaceServerMethods wsmeth;
 		private final WorkspaceAdministration wsadmin;
-		private final Types types;
+		private final TypeServerMethods types;
 		
 		public WorkspaceInitResults(
-				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
-				final Types types) {
+				final TypeServerMethods types) {
 			super();
-			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
 			this.types = types;
-		}
-
-		public Workspace getWs() {
-			return ws;
 		}
 
 		public WorkspaceServerMethods getWsmeth() {
@@ -134,7 +126,7 @@ public class InitWorkspaceServer {
 			return wsadmin;
 		}
 		
-		public Types getTypes() {
+		public TypeServerMethods getTypes() {
 			return types;
 		}
 	}
@@ -189,23 +181,25 @@ public class InitWorkspaceServer {
 			return null;
 		}
 		rep.reportInfo(String.format("Initialized %s backend", cfg.getBackendType().name()));
-		final Types types = new Types(wsdeps.typeDB);
+		// TODO CODE maybe merge these 2 classes?
+		final LocalTypeServerMethods types = new LocalTypeServerMethods(new Types(wsdeps.typeDB));
 		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
 				.getBuilder(maxUniqueIdCountPerCall)
 				.withFactory(new HandleIdHandlerFactory(hsc))
 				.withFactory(wsdeps.shockFac)
 				.withFactory(wsdeps.sampleFac)
 				.build();
-		WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, types, builder, auth);
-		WorkspaceAdministration wsadmin = new WorkspaceAdministration(
-				ws, wsmeth, types, ah, ADMIN_CACHE_MAX_SIZE, ADMIN_CACHE_EXP_TIME_MS);
+		final WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, builder, auth);
+		final UserValidator userVal = (user, token) -> wsmeth.validateUser(user, token);
+		final WorkspaceAdministration wsadmin = AdministrationCommandSetInstaller.install(
+				WorkspaceAdministration.getBuilder(ah, userVal), wsmeth, types).build();
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),
 				Runtime.getRuntime().totalMemory(),
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
-		return new WorkspaceInitResults(ws, wsmeth, wsadmin, types);
+		return new WorkspaceInitResults(wsmeth, wsadmin, types);
 	}
 	
 	private static AdministratorHandler getAdminHandler(

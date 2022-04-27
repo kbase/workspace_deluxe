@@ -4,6 +4,10 @@ import us.kbase.common.service.UObject;
 
 public class AdminCommand {
 	
+	// TODO JAVADOC
+	
+	// this class is only instantiated from JSON.
+	
 	private String command;
 	private String module;
 	private String user;
@@ -26,7 +30,4 @@ public class AdminCommand {
 	public UObject getParams() {
 		return params;
 	}
-	
-	
-
 }
