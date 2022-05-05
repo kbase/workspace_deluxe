@@ -435,6 +435,24 @@ public class AdministrationCommandSetInstallerTest {
 	}
 	
 	@Test
+	public void getTypeDelegationTarget() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getTypeDelegationTarget"));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> o = (Map<String, Object>) mocks.admin.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		assertThat("incorrect return", o, is(MapBuilder.<String, Object>newHashMap()
+				.with("delegateTarget", null).build()));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getTypeDelegationTarget", AdministrationCommandSetInstaller.class));
+	}
+	
+	@Test
 	public void listModRequests() throws Exception {
 		final TestMocks mocks = initTestMocks();
 		
@@ -1978,4 +1996,25 @@ public class AdministrationCommandSetInstallerTest {
 					AdministrationCommandSetInstaller.class));
 		}
 	}
+	
+	@Test
+	public void typeDelegationsGetTypeDelegationTarget() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getTypeDelegationTarget"));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.del.getTargetWorkspace()).thenReturn(
+				new URL("http://internal.kbase.us/services/ws"));
+		
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> o = (Map<String, Object>) mocks.admindel.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		assertThat("incorrect return", o, is(MapBuilder.<String, Object>newHashMap()
+				.with("delegateTarget", "http://internal.kbase.us/services/ws").build()));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getTypeDelegationTarget", AdministrationCommandSetInstaller.class));
+	}
+	
 }
