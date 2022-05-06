@@ -6,6 +6,7 @@ import static java.nio.charset.StandardCharsets.UTF_16;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -90,14 +91,15 @@ public class DelegatingTypeProvider implements TypeProvider {
 	@Override
 	public ResolvedType getTypeJsonSchema(final TypeDefId typeDefId)
 			throws NoSuchTypeException, NoSuchModuleException, TypeFetchException {
-		final String abstype;
-		if (requireNonNull(typeDefId, "typeDefId").isAbsolute()) {
-			abstype = typeDefId.getTypeString();
-		} else {
-			// populates the jsonschema cache as well as the type cache
-			abstype = resolveType(typeDefId);
+		if (requireNonNull(typeDefId, "typeDefId").getMd5() != null) {
+			throw new IllegalArgumentException("MD5 types are not allowed");
 		}
-		return getJsonSchema(abstype);
+		if (typeDefId.isAbsolute()) {
+			return getJsonSchema(typeDefId.getTypeString(), true);
+		} else {
+			// resolveType populates the jsonschema cache as well as the type cache
+			return getJsonSchema(resolveType(typeDefId), false);
+		}
 	}
 	
 	private static class GodDammitWrapper extends RuntimeException {
@@ -107,6 +109,13 @@ public class DelegatingTypeProvider implements TypeProvider {
 			super(cause);
 		}
 	}
+	
+	/* NOTE FOR FUTURE ME (and other future devs)
+	 * The way the two caches interact here is easy to screw up and add race conditions or
+	 * outdated information to the cache if you're not careful
+	 * If you're making changes keep race conditions in mind and make sure your changes won't
+	 * cause the cache to be polluted with out of date values.
+	 */
 	
 	private String resolveType(final TypeDefId type)
 			throws NoSuchModuleException, NoSuchTypeException, TypeFetchException {
@@ -125,7 +134,7 @@ public class DelegatingTypeProvider implements TypeProvider {
 		}
 	}
 
-	private ResolvedType getJsonSchema(final String absoluteType)
+	private ResolvedType getJsonSchema(final String absoluteType, final boolean updateTypeCache)
 			throws TypeFetchException, NoSuchTypeException, NoSuchModuleException {
 		final byte[] jsonSchema;
 		try {
@@ -134,9 +143,13 @@ public class DelegatingTypeProvider implements TypeProvider {
 			handleException(e);
 			return null; // impossible to get here but codecov will whine just the same
 		}
-		return new ResolvedType(
-				AbsoluteTypeDefId.fromAbsoluteTypeString(absoluteType),
-				new String(jsonSchema, UTF_8));
+		if (updateTypeCache) {
+			// We want to update the type cache *after* the json schema cache is populated,
+			// otherwise there might be pointers in the type cache to things in the jsonschema
+			// cache that haven't completed the write, although that'd take microsecond timing
+			updateTypeCache(absoluteType);
+		}
+		return new ResolvedType(abstype(absoluteType), new String(jsonSchema, UTF_8));
 	}
 	
 	private byte[] getJsonSchema(
@@ -150,9 +163,53 @@ public class DelegatingTypeProvider implements TypeProvider {
 						return incomingJSONSchema;
 					}
 					final TypeInfo ti = getTypeInfo(abstype);
-					// TODO NOW update type cache if prefix types are present and < current type
 					return ti.getJsonSchema().getBytes(UTF_8);
 				});
+	}
+	
+	private AbsoluteTypeDefId abstype(final String absoluteTypeString) {
+		return AbsoluteTypeDefId.fromAbsoluteTypeString(absoluteTypeString);
+	}
+	
+	private void updateTypeCache(final String absoluteTypeString) {
+		/* Only update the type cache if
+		 * 1. There's already entries in the cache for this type
+		 * 2. This type is newer than the entries
+		 * The incoming absolute type may not be the most recent version of the type, so only
+		 * update the cache if we know it's out of date. Otherwise let the cache loading
+		 * mechanism do its thing, which *will* fetch the most recent version of the type.
+		 * Adding a new entry here might add an entry pointing to a super old version of the type.
+		 * 
+		 * This prevents inconsistent results like getting a newer version of a type when
+		 * specifying the absolute type than when specifying a non-absolute type, which should
+		 * never happen. It does not ensure the type cache is completely up to date with the
+		 * most recent version of the type.
+		 */
+		final AbsoluteTypeDefId absType = abstype(absoluteTypeString);
+		final BiFunction<String, String, String> reMapFn = (key, oldvalue) ->
+				gt(absType, abstype(oldvalue)) ? absoluteTypeString : oldvalue;
+		
+		final String major = new TypeDefId(absType.getType(), absType.getMajorVersion())
+				.getTypeString();
+		// e.g. Module.Type-3
+		typeCache.asMap().computeIfPresent(major, reMapFn);
+		// e.g. Module.Type
+		typeCache.asMap().computeIfPresent(absType.getType().getTypeString(), reMapFn);
+	}
+	
+	// no md5 types allowed here
+	private boolean gt(final AbsoluteTypeDefId t1, AbsoluteTypeDefId t2) {
+		// Ideally we'd implement a comparable in the type def ID class for this stuff but
+		// MD5 types make that impossible, and the mixing of MD5 and semantic version types
+		// is too baked into the type DB to split them into separate classes easily, which
+		// is what should be done
+		if (t1.getMajorVersion() > t2.getMajorVersion()) {
+			return true;
+		} else if (t1.getMajorVersion() == t2.getMajorVersion() &&
+				t1.getMinorVersion() > t2.getMinorVersion()) {
+			return true;
+		}
+		return false;
 	}
 
 	private void handleException(final GodDammitWrapper e)
