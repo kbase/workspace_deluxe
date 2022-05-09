@@ -265,8 +265,30 @@ public class TypeDelegationTest {
 		return res == null ? null : res.asClassInstance(Object.class);
 	}
 	
-	public Object listModRequests(final WorkspaceClient cli) throws Exception {
+	private Object listModRequests(final WorkspaceClient cli) throws Exception {
 		return admin(cli, ImmutableMap.of("command", "listModRequests"));
+	}
+	
+	private void createModule(
+			final String mod,
+			final WorkspaceClient cli,
+			final WorkspaceClient cli_admin)
+			throws Exception {
+		cli.requestModuleOwnership(mod);
+		
+		final Object approveMod = admin(cli_admin, ImmutableMap.of(
+				"command", "approveModRequest", "module", mod));
+		assertThat("incorrect approve mod", approveMod, is(nullValue()));
+	}
+	
+	private void checkOwners(
+			final String mod,
+			final WorkspaceClient cli,
+			final List<String> owners)
+			throws Exception {
+		final ModuleInfo modinfo = cli.getModuleInfo(
+				new GetModuleInfoParams().withMod(mod));
+		assertThat("incorrect owners", modinfo.getOwners(), is(owners));
 	}
 	
 	@Test
@@ -485,22 +507,14 @@ public class TypeDelegationTest {
 		// grantModuleOwnership
 		DELEGATION_CLIENT.grantModuleOwnership(new GrantModuleOwnershipParams()
 				.withMod("MyMod").withNewOwner(USER2));
-		final ModuleInfo modD2 = DELEGATION_CLIENT.getModuleInfo(
-				new GetModuleInfoParams().withMod("MyMod"));
-		assertThat("incorrect owners", modD2.getOwners(), is(list(USER1, USER2)));
-		final ModuleInfo modT2 = TYPE_CLIENT.getModuleInfo(
-				new GetModuleInfoParams().withMod("MyMod"));
-		assertThat("incorrect owners", modT2.getOwners(), is(list(USER1, USER2)));
+		checkOwners("MyMod", DELEGATION_CLIENT, list(USER1, USER2));
+		checkOwners("MyMod", TYPE_CLIENT, list(USER1, USER2));
 		
 		// removeModuleOwnership
 		DELEGATION_CLIENT.removeModuleOwnership(new RemoveModuleOwnershipParams()
 				.withMod("MyMod").withOldOwner(USER2));
-		final ModuleInfo modD3 = DELEGATION_CLIENT.getModuleInfo(
-				new GetModuleInfoParams().withMod("MyMod"));
-		assertThat("incorrect owners", modD3.getOwners(), is(list(USER1)));
-		final ModuleInfo modT3 = TYPE_CLIENT.getModuleInfo(
-				new GetModuleInfoParams().withMod("MyMod"));
-		assertThat("incorrect owners", modT3.getOwners(), is(list(USER1)));
+		checkOwners("MyMod", DELEGATION_CLIENT, list(USER1));
+		checkOwners("MyMod", TYPE_CLIENT, list(USER1));
 	}
 	
 	@Test
@@ -549,21 +563,38 @@ public class TypeDelegationTest {
 				.withMod("MyMod2"));
 		checkModuleInfo(modinfT, expected);
 	}
-
-	public void createModule(
-			final String mod,
-			final WorkspaceClient cli,
-			final WorkspaceClient cli_admin)
-			throws Exception {
-		cli.requestModuleOwnership(mod);
+	
+	@Test
+	public void adminGrantAndRemoveModuleOwnership() throws Exception {
+		createModule("MyMod2", DELEGATION_CLIENT, DELEGATION_CLIENT_ADMIN);
 		
-		final Object approveMod = admin(cli_admin, ImmutableMap.of(
-				"command", "approveModRequest", "module", mod));
-		assertThat("incorrect approve mod", approveMod, is(nullValue()));
+		DELEGATION_CLIENT_ADMIN.administer(new UObject(ImmutableMap.of(
+				"command", "grantModuleOwnership",
+				"params", new GrantModuleOwnershipParams()
+				.withMod("MyMod2")
+				// type DB bug, user names are not validated for this command
+				.withNewOwner("user3"))));
+
+		// another type DB bug - you can't get module info without registering a spec
+		DELEGATION_CLIENT.registerTypespec(new RegisterTypespecParams()
+			.withDryrun(0L)
+			.withNewTypes(list("Foo"))
+			.withSpec(MYMOD2_SPEC)
+		);
+		
+		checkOwners("MyMod2", DELEGATION_CLIENT, list(USER1, "user3"));
+		checkOwners("MyMod2", TYPE_CLIENT, list(USER1, "user3"));
+		
+		DELEGATION_CLIENT_ADMIN.administer(new UObject(ImmutableMap.of(
+				"command", "removeModuleOwnership",
+				"params", new RemoveModuleOwnershipParams()
+						.withMod("MyMod2")
+						.withOldOwner("user3"))));
+		
+		checkOwners("MyMod2", DELEGATION_CLIENT, list(USER1));
+		checkOwners("MyMod2", TYPE_CLIENT, list(USER1));
 	}
 	
-	
-	// TODO NOW admin func for grant / remove module ownership
 	// TODO NOW tests for saving objects
 	// TODO NOW tests for saving objects and failing due to errors thrown from the delegating type
 	// provider
