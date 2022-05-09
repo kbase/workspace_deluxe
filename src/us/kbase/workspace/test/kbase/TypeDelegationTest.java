@@ -38,6 +38,7 @@ import us.kbase.workspace.ListModuleVersionsParams;
 import us.kbase.workspace.ListModulesParams;
 import us.kbase.workspace.ModuleInfo;
 import us.kbase.workspace.ModuleVersions;
+import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.TypeInfo;
@@ -87,19 +88,39 @@ public class TypeDelegationTest {
 			+ "\"scalar_type\":\"int\"}}],\"return_type\":[{\"name\":\"ret\","
 			+ "\"type\":{\"!\":\"Bio::KBase::KIDL::KBT::Scalar\",\"annotations\":{},"
 			+ "\"scalar_type\":\"int\"}}]}";
+	private static final String MYMOD2_SPEC =
+			"module MyMod2 {\n" +
+			"    typedef structure {\n" +
+			"        int foo;\n" +
+			"    } Foo;\n" +
+			"};\n";
+	private static final String MYMOD2_FOO_SCHEMA =
+			"{\n  \"id\" : \"Foo\",\n  \"description\" : \"\",\n  \"type\" : \"object\",\n"
+			+ "  \"original-type\" : \"kidl-structure\",\n"
+			+ "  \"properties\" : {\n    \"foo\" : {\n      \"type\" : \"integer\",\n"
+			+ "      \"original-type\" : \"kidl-int\"\n    }\n  },\n"
+			+ "  \"additionalProperties\" : true,\n  \"required\" : [ \"foo\" ]\n}";
 	
 	private static final String CLS = TypeDelegationTest.class.getSimpleName();
 	private static final String DB_NAME_WS_PRIMARY = CLS + "_primary_ws";
 	private static final String DB_NAME_WS_PRIMARY_TYPES = CLS + "_primary_types";
 	private static final String DB_NAME_WS_SECONDARY = CLS + "_secondary_ws";
+	private static final String DB_NAME_WS_REMOTE = CLS + "_remote_ws";
+	private static final String DB_NAME_WS_REMOTE_TYPES = CLS + "_remote_types";
 	
 	private static WorkspaceServer TYPE_SERVER;
 	private static URL TYPE_SERVER_URL;
 	private static WorkspaceServer DELEGATION_SERVER;
+	// This is a server that's not part of the delegation cluster.
+	// Used for testing transfer of typespecs from one server to another.
+	private static WorkspaceServer REMOTE_SERVER;
+	private static URL REMOTE_SERVER_URL;
 	private static WorkspaceClient TYPE_CLIENT;
 	private static WorkspaceClient TYPE_CLIENT_ADMIN;
 	private static WorkspaceClient DELEGATION_CLIENT;
 	private static WorkspaceClient DELEGATION_CLIENT_ADMIN;
+	private static WorkspaceClient REMOTE_CLIENT;
+	private static WorkspaceClient REMOTE_CLIENT_ADMIN;
 	private static final String USER1 = "user1";
 	private static final String USER2 = "user2";
 	
@@ -112,8 +133,9 @@ public class TypeDelegationTest {
 		MONGO = new MongoController(TestCommon.getMongoExe(),
 				Paths.get(TestCommon.getTempDir()),
 				TestCommon.useWiredTigerEngine());
-		System.out.println("Using mongo temp dir " + MONGO.getTempDir());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
+		System.out.println(String.format("Started monngo at %s with temp dir %s",
+				mongohost, MONGO.getTempDir()));
 		
 		// set up auth
 		final String dbname = JSONRPCLayerTester.class.getSimpleName() + "Auth";
@@ -123,7 +145,7 @@ public class TypeDelegationTest {
 				dbname,
 				Paths.get(TestCommon.getTempDir()));
 		final URL authURL = new URL("http://localhost:" + AUTHC.getServerPort() + "/testmode");
-		System.out.println("started auth server at " + authURL);
+		System.out.println("started auth server at " + authURL + "\n");
 		TestCommon.createAuthUser(authURL, USER1, "display1");
 		final String token1 = TestCommon.createLoginToken(authURL, USER1);
 		TestCommon.createAuthUser(authURL, USER2, "display2");
@@ -147,7 +169,7 @@ public class TypeDelegationTest {
 				new ResourceUsageConfigurationBuilder().build());
 		
 		int typeport = TYPE_SERVER.getServerPort();
-		System.out.println("Started test type server on port " + typeport);
+		System.out.println("Started test type server on port " + typeport + "\n");
 		TYPE_SERVER_URL = new URL("http://localhost:" + typeport);
 		TYPE_CLIENT = new WorkspaceClient(TYPE_SERVER_URL, t1);
 		TYPE_CLIENT_ADMIN = new WorkspaceClient(TYPE_SERVER_URL, t2);
@@ -170,12 +192,35 @@ public class TypeDelegationTest {
 				new ResourceUsageConfigurationBuilder().build());
 		
 		int delport = DELEGATION_SERVER.getServerPort();
-		System.out.println("Started test delegating server on port " + delport);
+		System.out.println("Started test delegating server on port " + delport + "\n");
 		final URL wsurl_del = new URL("http://localhost:" + delport);
 		DELEGATION_CLIENT = new WorkspaceClient(wsurl_del, t1);
 		DELEGATION_CLIENT_ADMIN = new WorkspaceClient(wsurl_del, t2);
 		DELEGATION_CLIENT.setIsInsecureHttpConnectionAllowed(true);
 		DELEGATION_CLIENT_ADMIN.setIsInsecureHttpConnectionAllowed(true);
+		
+		REMOTE_SERVER = startupWorkspaceServer(
+				mongohost,
+				DB_NAME_WS_REMOTE,
+				DB_NAME_WS_REMOTE_TYPES,
+				null,
+				AUTHC.getServerPort(),
+				null,
+				null,
+				null,
+				USER2,
+				CLS + "_temp_remote",
+				100000,
+				new LinkedList<>(),
+				new ResourceUsageConfigurationBuilder().build());
+		
+		int remport = REMOTE_SERVER.getServerPort();
+		System.out.println("Started test remote server on port " + remport + "\n");
+		REMOTE_SERVER_URL = new URL("http://localhost:" + remport);
+		REMOTE_CLIENT = new WorkspaceClient(REMOTE_SERVER_URL, t1);
+		REMOTE_CLIENT_ADMIN = new WorkspaceClient(REMOTE_SERVER_URL, t2);
+		REMOTE_CLIENT.setIsInsecureHttpConnectionAllowed(true);
+		REMOTE_CLIENT_ADMIN.setIsInsecureHttpConnectionAllowed(true);
 	}
 	
 	@AfterClass
@@ -185,6 +230,9 @@ public class TypeDelegationTest {
 		}
 		if (DELEGATION_SERVER != null) {
 			DELEGATION_SERVER.stopServer();
+		}
+		if (REMOTE_SERVER != null) {
+			REMOTE_SERVER.stopServer();
 		}
 		if (AUTHC != null) {
 			AUTHC.destroy(TestCommon.getDeleteTempFiles());
@@ -197,9 +245,11 @@ public class TypeDelegationTest {
 	@Before
 	public void clearDB() throws Exception {
 		// since we're testing types, we nuke the type database as well as the workspace db
+		final List<String> dbs = list(
+				DB_NAME_WS_PRIMARY, DB_NAME_WS_PRIMARY_TYPES, DB_NAME_WS_SECONDARY,
+				DB_NAME_WS_REMOTE, DB_NAME_WS_REMOTE_TYPES);
 		try (final MongoClient mcli = new MongoClient("localhost:" + MONGO.getServerPort())) {
-			for (final String name: list(
-					DB_NAME_WS_PRIMARY, DB_NAME_WS_PRIMARY_TYPES, DB_NAME_WS_SECONDARY)) {
+			for (final String name: dbs) {
 				final MongoDatabase wsdb = mcli.getDatabase(name);
 				TestCommon.destroyDB(wsdb);
 				// this will also insert into the type db but the collection is unused so meh
@@ -285,11 +335,7 @@ public class TypeDelegationTest {
 		 * grantModuleOwnership
 		 * removeModuleOwnership
 		 */
-		DELEGATION_CLIENT.requestModuleOwnership("MyMod");
-		
-		final Object approveMod = admin(DELEGATION_CLIENT_ADMIN, ImmutableMap.of(
-				"command", "approveModRequest", "module", "MyMod"));
-		assertThat("incorrect approve mod", approveMod, is(nullValue()));
+		createModule("MyMod", DELEGATION_CLIENT, DELEGATION_CLIENT_ADMIN);
 		
 		// check that the module shows up on both servers
 		final List<String> listModD = DELEGATION_CLIENT.listModules(new ListModulesParams());
@@ -457,7 +503,66 @@ public class TypeDelegationTest {
 		assertThat("incorrect owners", modT3.getOwners(), is(list(USER1)));
 	}
 	
-	// TODO NOW compile remote test 
+	@Test
+	public void registerTypespecCopy() throws Exception {
+		/* Copy a typespec from the remote server to the target type server via a delegating
+		 * workspace
+		 */
+		
+		createModule("MyMod2", REMOTE_CLIENT, REMOTE_CLIENT_ADMIN);
+		
+		final Map<String, String> reg = REMOTE_CLIENT.registerTypespec(
+				new RegisterTypespecParams()
+					.withDryrun(0L)
+					.withNewTypes(list("Foo"))
+					.withSpec(MYMOD2_SPEC)
+				);
+		assertThat("incorrect comp result", reg, is(ImmutableMap.of(
+				"MyMod2.Foo-0.1", MYMOD2_FOO_SCHEMA)));
+		
+		final List<String> rel = REMOTE_CLIENT.releaseModule("MyMod2");
+		assertThat("incorrect release", rel, is(list("MyMod2.Foo-1.0")));
+		
+		// The module must exist on the local workspace server to copy the typespec into it
+		// The error message when this is not the case sucks
+		createModule("MyMod2", DELEGATION_CLIENT, DELEGATION_CLIENT_ADMIN);
+		
+		final long modver = DELEGATION_CLIENT.registerTypespecCopy(
+				new RegisterTypespecCopyParams()
+						.withExternalWorkspaceUrl(REMOTE_SERVER_URL.toString())
+						.withMod("MyMod2"));
+		
+		final ModuleInfo expected = new ModuleInfo()
+				.withChsum("7356b72b399ea4112e6c538019ccd466")
+				.withDescription("")
+				.withFunctions(list())
+				.withIncludedSpecVersion(Collections.emptyMap())
+				.withIsReleased(0L)
+				.withOwners(list(USER1))
+				.withSpec(MYMOD2_SPEC)
+				.withTypes(ImmutableMap.of("MyMod2.Foo-0.1", MYMOD2_FOO_SCHEMA))
+				.withVer(modver);
+		final ModuleInfo modinfD = DELEGATION_CLIENT.getModuleInfo(new GetModuleInfoParams()
+				.withMod("MyMod2"));
+		checkModuleInfo(modinfD, expected);
+		final ModuleInfo modinfT = TYPE_CLIENT.getModuleInfo(new GetModuleInfoParams()
+				.withMod("MyMod2"));
+		checkModuleInfo(modinfT, expected);
+	}
+
+	public void createModule(
+			final String mod,
+			final WorkspaceClient cli,
+			final WorkspaceClient cli_admin)
+			throws Exception {
+		cli.requestModuleOwnership(mod);
+		
+		final Object approveMod = admin(cli_admin, ImmutableMap.of(
+				"command", "approveModRequest", "module", mod));
+		assertThat("incorrect approve mod", approveMod, is(nullValue()));
+	}
+	
+	
 	// TODO NOW admin func for grant / remove module ownership
 	// TODO NOW tests for saving objects
 	// TODO NOW tests for saving objects and failing due to errors thrown from the delegating type
