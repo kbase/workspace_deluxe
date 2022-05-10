@@ -14,26 +14,6 @@ import us.kbase.workspace.WorkspaceClient;
 /** Assists with delegating commands to another workspace instance. */
 public class WorkspaceDelegator {
 	
-	/** Thrown when delegating a workspace call to another workspace fails. */
-	public static class WorkspaceDelegationException extends Exception {
-		private static final long serialVersionUID = 1L;
-		
-		/** Create the exception.
-		 * @param message the exception message.
-		 */
-		public WorkspaceDelegationException(final String message) {
-			super(message);
-		}
-		
-		/** Create the exception.
-		 * @param message the exception message.
-		 * @param cause the cause of the exception, if any.
-		 */
-		public WorkspaceDelegationException(final String message, final Throwable cause) {
-			super(message, cause);
-		}
-	}
-	
 	/** Provides a workspace client. */
 	public interface WorkspaceClientProvider {
 		
@@ -100,10 +80,10 @@ public class WorkspaceDelegator {
 	 * @param token the user's token or null if none is provided.
 	 * @param cmd the command to run.
 	 * @return the result of the command.
-	 * @throws WorkspaceDelegationException if the delegation fails.
+	 * @throws TypeDelegationException if the delegation fails.
 	 */
 	public <T> T delegate(final AuthToken token, final WorkspaceCommand<T> cmd)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		final WorkspaceClient client;
 		try {
 			if (token == null) {
@@ -126,10 +106,10 @@ public class WorkspaceDelegator {
 			// This is nasty tricksy hobbitses stuff right here. Don't want the data to show up
 			// in the exception message but don't want to lose it either
 			// Surely there's some better way to handle this but I'm not seeing one for now
-			throw new WorkspaceDelegationException(e.getMessage(),
-					new WorkspaceDelegationException(e.getData(), e));
+			throw new TypeDelegationException(e.getMessage(),
+					new TypeDelegationException(e.getData(), e));
 		} catch (JsonClientException | IOException e) {
-			throw new WorkspaceDelegationException(e.getMessage(), e);
+			throw new TypeDelegationException(e.getMessage(), e);
 		}
 	}
 

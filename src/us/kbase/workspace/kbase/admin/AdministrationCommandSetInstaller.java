@@ -45,8 +45,8 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.kbase.LocalTypeServerMethods;
+import us.kbase.workspace.kbase.TypeDelegationException;
 import us.kbase.workspace.kbase.WorkspaceDelegator;
-import us.kbase.workspace.kbase.WorkspaceDelegator.WorkspaceDelegationException;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.AdminCommandSpecification;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.Builder;
@@ -206,11 +206,11 @@ public class AdministrationCommandSetInstaller {
 			true));
 	}
 
-	public static Object delegate(
+	private static Object delegate(
 			final WorkspaceDelegator delegator,
 			final AdminCommand cmd,
 			final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		final UObject res = delegator.delegate(token, c -> c.administer(new UObject(cmd)));
 		return res == null ? null : res.isNull() ? null : res.asClassInstance(Object.class);
 	}

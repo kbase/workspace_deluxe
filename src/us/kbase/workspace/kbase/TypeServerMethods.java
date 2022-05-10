@@ -27,7 +27,6 @@ import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.TypeInfo;
 import us.kbase.workspace.WorkspaceServer;
-import us.kbase.workspace.kbase.WorkspaceDelegator.WorkspaceDelegationException;
 
 /** The documentation for the methods here is identical to the corresponding methods in
  * {@link WorkspaceServer}. Refer to that class for documentation.
@@ -38,81 +37,81 @@ public interface TypeServerMethods {
 			final GrantModuleOwnershipParams params,
 			final AuthToken token,
 			final boolean asAdmin)
-			throws TypeStorageException, NoSuchPrivilegeException, WorkspaceDelegationException;
+			throws TypeStorageException, NoSuchPrivilegeException, TypeDelegationException;
 	
 	void removeModuleOwnership(
 			final RemoveModuleOwnershipParams params,
 			final AuthToken token,
 			final boolean asAdmin)
-			throws NoSuchPrivilegeException, TypeStorageException, WorkspaceDelegationException;
+			throws NoSuchPrivilegeException, TypeStorageException, TypeDelegationException;
 
 	void requestModuleOwnership(final String mod, final AuthToken token)
-			throws TypeStorageException, WorkspaceDelegationException;
+			throws TypeStorageException, TypeDelegationException;
 	
 	Map<String,String> registerTypespec(
 			final RegisterTypespecParams params,
 			final AuthToken token)
 			throws SpecParseException, TypeStorageException, NoSuchPrivilegeException,
-				NoSuchModuleException, WorkspaceDelegationException;
+				NoSuchModuleException, TypeDelegationException;
 
 	Long registerTypespecCopy(
 			final RegisterTypespecCopyParams params,
 			final AuthToken token)
 			throws UnauthorizedException, MalformedURLException, IOException, JsonClientException,
 				NoSuchModuleException, TypeStorageException, SpecParseException,
-				NoSuchPrivilegeException, WorkspaceDelegationException;
+				NoSuchPrivilegeException, TypeDelegationException;
 
 	List<String> releaseModule(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
-				WorkspaceDelegationException;
+				TypeDelegationException;
 	
 	List<String> listModules(final ListModulesParams params)
-			throws TypeStorageException, WorkspaceDelegationException;
+			throws TypeStorageException, TypeDelegationException;
 
 	ModuleVersions listModuleVersions(
 			final ListModuleVersionsParams params,
 			final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
-				NoSuchTypeException, WorkspaceDelegationException;
+				NoSuchTypeException, TypeDelegationException;
 	
 	ModuleInfo getModuleInfo(
 			final GetModuleInfoParams params,
 			final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
-				WorkspaceDelegationException;
+				TypeDelegationException;
 	
 	String getJsonschema(final String type, final AuthToken token)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException,
-				WorkspaceDelegationException;
+				TypeDelegationException;
 
 	Map<String,List<String>> translateFromMD5Types(final List<String> md5Types)
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException,
-				WorkspaceDelegationException;
+				TypeDelegationException;
 	
 	Map<String,String> translateToMD5Types(
 			final List<String> semTypes,
 			final AuthToken token)
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException,
-				WorkspaceDelegationException;
+				TypeDelegationException;
 	
 	TypeInfo getTypeInfo(final String type, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException,
-				WorkspaceDelegationException;
+				TypeDelegationException;
 	
 	List<TypeInfo> getAllTypeInfo(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
-				NoSuchTypeException, WorkspaceDelegationException;
+				NoSuchTypeException, TypeDelegationException;
 	
 	FuncInfo getFuncInfo(final String func, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException,
-				WorkspaceDelegationException;
+				TypeDelegationException;
 	
 	List<FuncInfo> getAllFuncInfo(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
-				NoSuchFuncException, WorkspaceDelegationException;
+				NoSuchFuncException, TypeDelegationException;
 
 	Map<String,Map<String,String>> listAllTypes(
 			final ListAllTypesParams params,
 			final AuthToken token)
-			throws TypeStorageException, NoSuchModuleException, WorkspaceDelegationException;
+			throws TypeStorageException, NoSuchModuleException, TypeDelegationException;
 }
