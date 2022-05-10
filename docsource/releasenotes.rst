@@ -3,6 +3,13 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.13.2 (Released TBD)
+------------------------------
+
+UPDATES:
+
+* Type delegation has been added. See :ref:`workspacescaling` for more information.
+
 VERSION: 0.13.1 (Released 4/27/2022)
 ------------------------------------
 

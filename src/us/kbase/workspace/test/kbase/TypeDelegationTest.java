@@ -188,7 +188,6 @@ public class TypeDelegationTest {
 		
 		DELEGATION_SERVER = startupWorkspaceServer(
 				mongohost,
-				// TODO NOW document this
 				DB_NAME_WS, // delegating WS can write to the same WS DB, just not the type DB
 				null,
 				TYPE_SERVER_URL,

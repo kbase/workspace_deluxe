@@ -7,6 +7,7 @@ Server Administrator Documentation
    buildandconfigure
    test
    events
+   workspacescaling
    resourcereqs
    administrationinterface
    upgrades

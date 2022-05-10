@@ -52,7 +52,6 @@ public class KBaseWorkspaceConfig {
 	private static final String MONGO_RETRY_WRITES = "mongodb-retrywrites";
 	
 	// type delegating parameters
-	// TODO NOW_TYPES document when this feature is enabled, add to deploy.cfg + template
 	private static final String TYPE_DELEGATION_TARGET = "type-delegation-target";
 	
 	// startup workspace admin user

@@ -144,7 +144,6 @@ public class AdministrationCommandSetInstaller {
 	private static void installTypeDelegationTargetHandler(
 			final TypeClient delegator,
 			final Builder builder) {
-		// TODO NOW_TYPES document when this feature is enabled
 		builder.withCommand(new AdminCommandSpecification(
 			GET_TYPE_DELEGATION_TARGET,
 			(cmd, token, toDelete) -> {
