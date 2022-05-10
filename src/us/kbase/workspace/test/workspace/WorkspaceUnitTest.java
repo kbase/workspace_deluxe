@@ -560,7 +560,7 @@ public class WorkspaceUnitTest {
 				list(saveObjectValidationFailGetBadObject(new ObjectIDNoWSNoVer(42))),
 				new NoSuchModuleException("no mod"),
 				new TypedObjectValidationException(
-						"Object #1, 42 failed type checking:\nno mod"));
+						"Object #1, 42 failed type checking: no mod"));
 	}
 	
 	@Test
@@ -573,7 +573,7 @@ public class WorkspaceUnitTest {
 				list(obj, badobject),
 				new NoSuchTypeException("no type"),
 				new TypedObjectValidationException(
-						"Object #2, my_name failed type checking:\nno type"));
+						"Object #2, my_name failed type checking: no type"));
 	}
 	
 	@Test

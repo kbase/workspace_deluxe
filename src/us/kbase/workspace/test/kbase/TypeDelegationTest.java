@@ -25,22 +25,30 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.auth.AuthToken;
+import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.common.test.MapBuilder;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.test.auth2.authcontroller.AuthController;
+import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.FuncInfo;
 import us.kbase.workspace.GetModuleInfoParams;
+import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListAllTypesParams;
 import us.kbase.workspace.ListModuleVersionsParams;
 import us.kbase.workspace.ListModulesParams;
 import us.kbase.workspace.ModuleInfo;
 import us.kbase.workspace.ModuleVersions;
+import us.kbase.workspace.ObjectData;
+import us.kbase.workspace.ObjectSaveData;
+import us.kbase.workspace.ObjectSpecification;
 import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
+import us.kbase.workspace.SaveObjectsParams;
+import us.kbase.workspace.SetPermissionsParams;
 import us.kbase.workspace.TypeInfo;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
@@ -102,9 +110,8 @@ public class TypeDelegationTest {
 			+ "  \"additionalProperties\" : true,\n  \"required\" : [ \"foo\" ]\n}";
 	
 	private static final String CLS = TypeDelegationTest.class.getSimpleName();
-	private static final String DB_NAME_WS_PRIMARY = CLS + "_primary_ws";
-	private static final String DB_NAME_WS_PRIMARY_TYPES = CLS + "_primary_types";
-	private static final String DB_NAME_WS_SECONDARY = CLS + "_secondary_ws";
+	private static final String DB_NAME_WS = CLS + "_ws";
+	private static final String DB_NAME_WS_TYPES = CLS + "_types";
 	private static final String DB_NAME_WS_REMOTE = CLS + "_remote_ws";
 	private static final String DB_NAME_WS_REMOTE_TYPES = CLS + "_remote_types";
 	
@@ -134,7 +141,7 @@ public class TypeDelegationTest {
 				Paths.get(TestCommon.getTempDir()),
 				TestCommon.useWiredTigerEngine());
 		final String mongohost = "localhost:" + MONGO.getServerPort();
-		System.out.println(String.format("Started monngo at %s with temp dir %s",
+		System.out.println(String.format("Started mongo at %s with temp dir %s",
 				mongohost, MONGO.getTempDir()));
 		
 		// set up auth
@@ -155,8 +162,8 @@ public class TypeDelegationTest {
 		
 		TYPE_SERVER = startupWorkspaceServer(
 				mongohost,
-				DB_NAME_WS_PRIMARY,
-				DB_NAME_WS_PRIMARY_TYPES,
+				DB_NAME_WS,
+				DB_NAME_WS_TYPES,
 				null,
 				AUTHC.getServerPort(),
 				null,
@@ -178,7 +185,8 @@ public class TypeDelegationTest {
 		
 		DELEGATION_SERVER = startupWorkspaceServer(
 				mongohost,
-				DB_NAME_WS_SECONDARY,
+				// TODO NOW document this
+				DB_NAME_WS, // delegating WS can write to the same WS DB, just not the type DB
 				null,
 				TYPE_SERVER_URL,
 				AUTHC.getServerPort(),
@@ -245,11 +253,9 @@ public class TypeDelegationTest {
 	@Before
 	public void clearDB() throws Exception {
 		// since we're testing types, we nuke the type database as well as the workspace db
-		final List<String> dbs = list(
-				DB_NAME_WS_PRIMARY, DB_NAME_WS_PRIMARY_TYPES, DB_NAME_WS_SECONDARY,
-				DB_NAME_WS_REMOTE, DB_NAME_WS_REMOTE_TYPES);
 		try (final MongoClient mcli = new MongoClient("localhost:" + MONGO.getServerPort())) {
-			for (final String name: dbs) {
+			for (final String name: list(
+					DB_NAME_WS, DB_NAME_WS_TYPES, DB_NAME_WS_REMOTE, DB_NAME_WS_REMOTE_TYPES)) {
 				final MongoDatabase wsdb = mcli.getDatabase(name);
 				TestCommon.destroyDB(wsdb);
 				// this will also insert into the type db but the collection is unused so meh
@@ -595,9 +601,93 @@ public class TypeDelegationTest {
 		checkOwners("MyMod2", TYPE_CLIENT, list(USER1));
 	}
 	
-	// TODO NOW tests for saving objects
-	// TODO NOW tests for saving objects and failing due to errors thrown from the delegating type
-	// provider
+	@Test
+	public void saveObject() throws Exception {
+		/* Tests saving an object to a workspace that delegates type info
+		 * Double checked that delegation was actually happening by putting a print statement
+		 * in the delegating type provider class
+		 */
+		createModule("MyMod2", TYPE_CLIENT, TYPE_CLIENT_ADMIN);
+		TYPE_CLIENT.registerTypespec(new RegisterTypespecParams()
+				.withDryrun(0L)
+				.withNewTypes(list("Foo"))
+				.withSpec(MYMOD2_SPEC)
+			);
+		TYPE_CLIENT.releaseModule("MyMod2");
+		
+		TYPE_CLIENT.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws"));
+		DELEGATION_CLIENT.saveObjects(new SaveObjectsParams()
+				.withId(1L)
+				.withObjects(list(new ObjectSaveData()
+						.withName("mysuperneatobj")
+						.withType("MyMod2.Foo")
+						.withData(new UObject(ImmutableMap.of("foo", 42)))
+						))
+				);
+		final ObjectData ret = TYPE_CLIENT.getObjects2(new GetObjects2Params()
+				.withObjects(list(new ObjectSpecification().withRef("1/1")))).getData().get(0);
+		assertThat("incorrect name", ret.getInfo().getE2(), is("mysuperneatobj"));
+		assertThat("incorrect type", ret.getInfo().getE3(), is("MyMod2.Foo-1.0"));
+		assertThat("incorrect data", ret.getData().asClassInstance(Map.class),
+				is(ImmutableMap.of("foo", 42)));
+	}
+	
+	@Test
+	public void saveObjectFail() throws Exception {
+		/* Tests a few cases of type related failures to save an object. In particular, checks
+		 * that errors thrown from the delegating type provider are handled correctly.
+		 * Not really easily possible to test a TypeFetchError, can test it manually by
+		 * uncommenting the line below that shuts down the type server.
+		 */
+		TYPE_CLIENT.createWorkspace(new CreateWorkspaceParams().withWorkspace("ws"));
+		TYPE_CLIENT.setPermissions(new SetPermissionsParams()
+				.withId(1L).withUsers(list(USER2)).withNewPermission("w"));
+		final SaveObjectsParams p = new SaveObjectsParams()
+				.withId(1L)
+				.withObjects(list(new ObjectSaveData()
+						.withName("mysuperneatobj")
+						.withType("MyMod2.Foo")
+						.withData(new UObject(ImmutableMap.of("foo", 42)))
+						));
+		// TYPE_SERVER.stopServer();
+		
+		// no such module errors
+		failSaveObjects(DELEGATION_CLIENT_ADMIN, p,
+				"Object #1, mysuperneatobj failed type checking: Module doesn't exist: MyMod2");
+		// Although there are other no such module errors in the type DB code path, can't seem to
+		// figure out how to trigger them without an in depth code review - if it's even possible
+
+		createModule("MyMod2", TYPE_CLIENT, TYPE_CLIENT_ADMIN);
+		
+		// no such type errors
+		failSaveObjects(DELEGATION_CLIENT_ADMIN, p,
+				"Object #1, mysuperneatobj failed type checking: Unable to locate type: "
+						+ "MyMod2.Foo");
+		
+		TYPE_CLIENT.registerTypespec(new RegisterTypespecParams()
+				.withDryrun(0L)
+				.withNewTypes(list("Foo"))
+				.withSpec(MYMOD2_SPEC)
+			);
+		
+		failSaveObjects(DELEGATION_CLIENT_ADMIN, p,
+				"Object #1, mysuperneatobj failed type checking: This type wasn't released yet "
+				+ "and you should be an owner to access unreleased version information");
+	}
+	
+	private void failSaveObjects(
+			final WorkspaceClient cli,
+			final SaveObjectsParams params,
+			final String expectedException) {
+		try {
+			cli.saveObjects(params);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(
+					got, new ServerException(expectedException, -1, "foo"));
+		}
+	}
+	
 	// TODO NOW admin & std tests for a few methods that fail due to errors from the workspace
 	// delegator
 
