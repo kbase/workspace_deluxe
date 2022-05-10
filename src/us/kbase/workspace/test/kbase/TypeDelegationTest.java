@@ -1,5 +1,6 @@
 package us.kbase.workspace.test.kbase;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -31,6 +32,7 @@ import us.kbase.common.test.MapBuilder;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.test.auth2.authcontroller.AuthController;
+import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.workspace.CreateWorkspaceParams;
 import us.kbase.workspace.FuncInfo;
 import us.kbase.workspace.GetModuleInfoParams;
@@ -54,6 +56,7 @@ import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.kbase.LocalTypeServerMethods;
 
 /* Tests 2 workspaces, one of which delegates type handling to the other.
  * Doesn't do in depth type tests; those are relegated to the regular JSONRPCTest classes.
@@ -571,6 +574,25 @@ public class TypeDelegationTest {
 	}
 	
 	@Test
+	public void typeMethodFail() throws Exception {
+		/* Tests a failure when calling a type method to ensure the workspace
+		 * delegator handles exceptions correctly
+		 */
+		try {
+			DELEGATION_CLIENT.getModuleInfo(new GetModuleInfoParams().withMod("Fake"));
+			fail("expected exception");
+		} catch (ServerException got) {
+			TestCommon.assertExceptionCorrect(
+					got, new ServerException("Module doesn't exist: Fake", -1, "fake"));
+			assertThat(
+					"check type server stack trace is in the exception data from the "
+					+ "delegating server",
+					got.getData(),
+					containsString(LocalTypeServerMethods.class.getSimpleName()));
+		}
+	}
+	
+	@Test
 	public void adminGrantAndRemoveModuleOwnership() throws Exception {
 		createModule("MyMod2", DELEGATION_CLIENT, DELEGATION_CLIENT_ADMIN);
 		
@@ -599,6 +621,27 @@ public class TypeDelegationTest {
 		
 		checkOwners("MyMod2", DELEGATION_CLIENT, list(USER1));
 		checkOwners("MyMod2", TYPE_CLIENT, list(USER1));
+	}
+	
+	@Test
+	public void adminMethodFail() throws Exception {
+		/* Tests a failure when calling an admin method to ensure the workspace
+		 * delegator handles exceptions correctly
+		 */
+		try {
+			DELEGATION_CLIENT_ADMIN.administer(new UObject(ImmutableMap.of(
+					"command", "approveModRequest",
+					"module", "Fake")));
+			fail("expected exception");
+		} catch (ServerException got) {
+			TestCommon.assertExceptionCorrect(
+					got, new ServerException("There is no request for module Fake", -1, "fake"));
+			assertThat(
+					"check type server stack trace is in the exception data from the "
+					+ "delegating server",
+					got.getData(),
+					containsString(TypeDefinitionDB.class.getSimpleName()));
+		}
 	}
 	
 	@Test
@@ -688,9 +731,6 @@ public class TypeDelegationTest {
 		}
 	}
 	
-	// TODO NOW admin & std tests for a few methods that fail due to errors from the workspace
-	// delegator
-
 	private void checkModuleInfo(final ModuleInfo got, final ModuleInfo expected) {
 		// the SDK classes not having equals sucks
 		assertThat("incorrect add props",
