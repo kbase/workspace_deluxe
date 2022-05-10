@@ -13,7 +13,7 @@ With type delegation, one workspace can be set as the central type handler while
 workspaces delegate type operations to that workspace. The single workspace handles all writes
 and reads to the type database; since the load on the type database is extremely low compared
 to the workspace proper, this allows scaling the high load portion of the work the Workspace
-handles. It also means that only the the type handling Workspace becomes a single point of
+handles. It also means that only the type handling Workspace becomes a single point of
 failure - many Workspace instances can be deployed behind a load balancer to provide redundancy
 in case one fails.
 

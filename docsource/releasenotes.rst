@@ -9,6 +9,7 @@ VERSION: 0.13.2 (Released TBD)
 UPDATES:
 
 * Type delegation has been added. See :ref:`workspacescaling` for more information.
+* The ``get_func_info`` and ``get_all_func_info`` methods are deprecated.
 
 VERSION: 0.13.1 (Released 4/27/2022)
 ------------------------------------

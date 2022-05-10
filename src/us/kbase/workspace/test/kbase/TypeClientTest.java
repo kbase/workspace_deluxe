@@ -25,7 +25,6 @@ import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestCommon;
-import us.kbase.workspace.FuncInfo;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListAllTypesParams;
@@ -297,30 +296,34 @@ public class TypeClientTest {
 		
 	}
 
+	@SuppressWarnings("deprecation")
 	@Test
 	public void getFuncInfo() throws Exception {
 		final TestMocks m = initTestMocks(new URL("https://gfi.com"));
 		
-		final FuncInfo fi = new FuncInfo().withDescription("some function or other");
+		final us.kbase.workspace.FuncInfo fi = new us.kbase.workspace.FuncInfo()
+				.withDescription("some function or other");
 		when(m.wcp.getClient(new URL("https://gfi.com"))).thenReturn(m.wc);
 		when(m.wc.getFuncInfo("funcky chicken")).thenReturn(fi);
 
-		final FuncInfo res = m.tc.getFuncInfo("funcky chicken", null);
+		final us.kbase.workspace.FuncInfo res = m.tc.getFuncInfo("funcky chicken", null);
 		assertThat("incorrect result", res, is(fi));
 		verify(m.wc, never()).setIsInsecureHttpConnectionAllowed(true);
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Test
 	public void getAllFuncInfo() throws Exception {
 		final TestMocks m = initTestMocks(new URL("http://gafi1111.com"));
 		
-		final FuncInfo fi = new FuncInfo().withDescription("some function or other");
+		final us.kbase.workspace.FuncInfo fi = new us.kbase.workspace.FuncInfo()
+				.withDescription("some function or other");
 		when(m.wcp.getClient(new URL("http://gafi1111.com"), new AuthToken(
 						"password123", "Executive VP of Network Security")))
 				.thenReturn(m.wc);
 		when(m.wc.getAllFuncInfo("somemod")).thenReturn(list(fi));
 
-		final List<FuncInfo> res = m.tc.getAllFuncInfo("somemod", new AuthToken(
+		final List<us.kbase.workspace.FuncInfo> res = m.tc.getAllFuncInfo("somemod", new AuthToken(
 				"password123", "Executive VP of Network Security"));
 		assertThat("incorrect result", res, is(list(fi)));
 		verify(m.wc).setIsInsecureHttpConnectionAllowed(true);

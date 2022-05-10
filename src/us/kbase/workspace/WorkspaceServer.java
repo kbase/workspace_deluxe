@@ -94,7 +94,6 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 	//TODO DOCS workspace glossary
-    // TODO NOW deprecate the func info methods
     // TODO NOW log to stdout
 
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
@@ -1427,6 +1426,7 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_func_info</p>
      * <pre>
+     * @deprecated
      * </pre>
      * @param   func   instance of original type "func_string" (A function string for referencing a funcdef. Specifies the function and its version in a single string in the format [modulename].[funcname]-[major].[minor]: modulename - a string. The name of the module containing the function. funcname - a string. The name of the function as assigned by the funcdef statement. major - an integer. The major version of the function. A change in the major version implies the function has changed in a non-backwards compatible way. minor - an integer. The minor version of the function. A change in the minor version implies that the function has changed in a way that is backwards compatible with previous function definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyFunc-3.1)
      * @return   parameter "info" of type {@link us.kbase.workspace.FuncInfo FuncInfo}
@@ -1443,6 +1443,7 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_all_func_info</p>
      * <pre>
+     * @deprecated
      * </pre>
      * @param   mod   instance of original type "modulename" (A module name defined in a KIDL typespec.)
      * @return   parameter "info" of list of type {@link us.kbase.workspace.FuncInfo FuncInfo}
