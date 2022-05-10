@@ -247,9 +247,8 @@ public class InitWorkspaceServer {
 		final TypeProvider typeProvider;
 		final TypeServerMethods types;
 		if (typeDelegator.isPresent()) {
-			types = new DelegatingTypeServerMethods(typeDelegator.get().delegator);
-			typeProvider = DelegatingTypeProvider.getBuilder(typeDelegator.get().delegationClient)
-					.build();
+			types = typeDelegator.get().delegator;
+			typeProvider = typeDelegator.get().typeProvider;
 		} else {
 			// see https://jira.mongodb.org/browse/JAVA-2656
 			final MongoDatabase mongoTypes = buildMongo(cfg, cfg.getTypeDBName())
@@ -304,13 +303,13 @@ public class InitWorkspaceServer {
 	}
 	
 	private static class TypeDelegation {
-		private final WorkspaceClient delegationClient;
-		private final WorkspaceDelegator delegator;
+		private final TypeProvider typeProvider;
+		private final TypeClient delegator;
 
 		public TypeDelegation(
-				final WorkspaceClient delegationClient,
-				final WorkspaceDelegator delegator) {
-			this.delegationClient = delegationClient;
+				final TypeProvider typeProvider,
+				final TypeClient delegator) {
+			this.typeProvider = typeProvider;
 			this.delegator = delegator;
 		}
 	}
@@ -336,10 +335,10 @@ public class InitWorkspaceServer {
 			cli.setIsInsecureHttpConnectionAllowed(true);
 		}
 		return Optional.of(new TypeDelegation(
-				cli,
-				new WorkspaceDelegator(
+				DelegatingTypeProvider.getBuilder(cli).build(),
+				new TypeClient(
 						cfg.getTypeDelegationTarget(),
-						new WorkspaceDelegator.WorkspaceClientProvider() {
+						new TypeClient.WorkspaceClientProvider() {
 			
 							@Override
 							public WorkspaceClient getClient(
