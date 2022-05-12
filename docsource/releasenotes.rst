@@ -3,6 +3,18 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.14.0 (Released TBD)
+------------------------------
+
+BACKWARDS INCOMPATIBILIES:
+
+* The workspace now logs to standard out rather than syslog.
+* The ``KB_SERVICE_NAME`` environment variable is now ignored.
+
+UPDATES:
+
+* The ``auth-service-url`` configuration parameter has been removed.
+
 VERSION: 0.13.2 (Released TBD)
 ------------------------------
 
