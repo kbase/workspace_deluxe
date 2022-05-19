@@ -3028,7 +3028,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 	
 	private WorkspaceSaveObject renameWSO(final WorkspaceSaveObject obj, final String name) {
-		return new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), obj.getData(), obj.getType(),
+		return new WorkspaceSaveObject(saveName(name), obj.getData(), obj.getType(),
 				obj.getUserMeta(), obj.getProvenance(), obj.isHidden());
 	}
 
@@ -3280,12 +3280,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//should work
 		final List<WorkspaceSaveObject> objs1 = Arrays.asList(new WorkspaceSaveObject(
-				getRandomName(), data1, listidtype, null, emptyprov, false));
+				saveName("my_neato_object_name"),
+				data1,
+				listidtype,
+				null,
+				emptyprov,
+				false));
 		ws.saveObjects(user, wsi, objs1, fac);
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 7);
 		failSave(user, wsi, objs1, fac, new TypedObjectValidationException(
-				"Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 7"));
+				"Object #1, my_neato_object_name failed type checking - the "
+				+ "number of unique IDs in the saved objects exceeds the maximum allowed, 7"));
 		
 		final Provenance p = Provenance.getBuilder(user, now())
 				.withAction(ProvenanceAction.getBuilder().withWorkspaceObjects(list(
@@ -3293,17 +3299,24 @@ public class WorkspaceTest extends WorkspaceTester {
 				.build();
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 10);
-		objs1.set(0, new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, p, false));
+		objs1.set(0, new WorkspaceSaveObject(
+				saveName("othername"),
+				data1,
+				listidtype,
+				null,
+				p,
+				false));
 		//should work
 		ws.saveObjects(user, wsi, objs1, fac);
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 9);
 		failSave(user, wsi, objs1, fac, new TypedObjectValidationException(
-				"Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 9"));
+				"Object #1, othername failed type checking - the number of unique IDs in the "
+				+ "saved objects exceeds the maximum allowed, 9"));
 		
 		final List<WorkspaceSaveObject> objs2 = Arrays.asList(
-				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, emptyprov,
+				new WorkspaceSaveObject(saveName("o1"), data1, listidtype, null, emptyprov,
 						false),
-				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, emptyprov,
+				new WorkspaceSaveObject(saveName("o2"), data1, listidtype, null, emptyprov,
 						false));
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 16);
@@ -3313,12 +3326,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 15);
 		failSave(user, wsi, objs2, fac, new TypedObjectValidationException(
-				"Failed type checking at object #2 - the number of unique IDs in the saved objects exceeds the maximum allowed, 15"));
+				"Object #2, o2 failed type checking - the number of unique IDs in the "
+						+ "saved objects exceeds the maximum allowed, 15"));
 		
 		final List<WorkspaceSaveObject> objs3 = Arrays.asList(
-				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, p,
+				new WorkspaceSaveObject(saveName("o3"), data1, listidtype, null, p,
 						false),
-				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, p,
+				new WorkspaceSaveObject(saveName("o4"), data1, listidtype, null, p,
 						false));
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 20);
 		
@@ -3327,7 +3341,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 19);
 		failSave(user, wsi, objs3, fac, new TypedObjectValidationException(
-				"Failed type checking at object #2 - the number of unique IDs in the saved objects exceeds the maximum allowed, 19"));
+				"Object #2, o4 failed type checking - the number of unique IDs in the "
+						+ "saved objects exceeds the maximum allowed, 19"));
+	}
+
+	public ObjectIDNoWSNoVer saveName(final String name) {
+		return new ObjectIDNoWSNoVer(name);
 	}
 
 	private IdReferenceHandlerSetFactory makeFacForMaxIDTests(List<String> idtypes,

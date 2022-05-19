@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
 import us.kbase.typedobj.core.TypeProvider.ResolvedType;
+import us.kbase.typedobj.core.TypeProvider.TypeFetchException;
 import us.kbase.typedobj.exceptions.*;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
@@ -109,6 +110,7 @@ public class TypedObjectValidator {
 	 * @throws TooManyIdsException 
 	 * @throws IOException 
 	 * @throws JsonParseException 
+	 * @throws TypeFetchException if type information could not be fetched.
 	 */
 	public ValidatedTypedObject validate(final String instance,
 			final TypeDefId type, final IdReferenceHandlerSet<?> handlers)
@@ -116,7 +118,7 @@ public class TypedObjectValidator {
 			TypeStorageException, TypedObjectValidationException,
 			TypedObjectSchemaException,
 			TooManyIdsException, IdReferenceHandlerException,
-			JsonParseException, IOException {
+			JsonParseException, IOException, TypeFetchException {
 		// parse the instance document into a JsonNode
 		ObjectMapper mapper = new ObjectMapper();
 		final JsonNode instanceRootNode;
@@ -147,13 +149,14 @@ public class TypedObjectValidator {
 	 * @throws TooManyIdsException 
 	 * @throws IOException 
 	 * @throws JsonParseException 
+	 * @throws TypeFetchException if type information could not be fetched.
 	 */
 	public ValidatedTypedObject validate(final JsonNode instanceRootNode,
 			final TypeDefId typeDefId, final IdReferenceHandlerSet<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException,
 			TooManyIdsException, IdReferenceHandlerException,
-			JsonParseException, IOException {
+			JsonParseException, IOException, TypeFetchException {
 		final UObject obj;
 		try {
 			obj = new UObject(new JsonTokenStream(instanceRootNode), null);
@@ -172,7 +175,8 @@ public class TypedObjectValidator {
 			final TypeDefId typeDefId,
 			final IdReferenceHandlerSet<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException,
-				TypedObjectSchemaException, TooManyIdsException, JsonParseException, IOException {
+				TypedObjectSchemaException, TooManyIdsException, JsonParseException, IOException,
+				TypeFetchException {
 		final List<String> errors = new ArrayList<>();
 		final ResolvedType rtype = typeProvider.getTypeJsonSchema(typeDefId);
 		final JsonTokenValidationSchema schema =

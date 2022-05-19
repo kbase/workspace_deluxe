@@ -9,6 +9,26 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 /** Provides type definitions to the TypedObjectValidator. */
 public interface TypeProvider {
 
+	/** An error thrown when type information could not be fetched from a remote resource. */ 
+	public static class TypeFetchException extends Exception {
+		private static final long serialVersionUID = 1L;
+
+		/** Create the exception.
+		 * @param message the exception message.
+		 */
+		public TypeFetchException(final String message) {
+			super(message);
+		}
+
+		/** Create the exception.
+		 * @param message the exception message.
+		 * @param cause the cause of the exception.
+		 */
+		public TypeFetchException(final String message, final Throwable cause) {
+			super(message, cause);
+		}
+	}
+	
 	/** A resolved type and its JSONSchema. */
 	public static class ResolvedType {
 		private final AbsoluteTypeDefId type;
@@ -70,15 +90,17 @@ public interface TypeProvider {
 	}
 	
 	/** Retrieves the resolved type and JsonSchema type definition document for the
-	 * specified type.
+	 * specified type. Unreleased types are not returned unless the type definition ID is
+	 * absolute.
 	 * @param type a type id.
 	 * @return the resolved type with JSONSchema.
 	 * @throws TypeStorageException if an error occurs with the type storage
 	 * engine.
 	 * @throws NoSuchModuleException if the module for the type does not exist.
 	 * @throws NoSuchTypeException if the type does not exist.
+	 * @throws TypeFetchException if an error occurred while fetching the type.
 	 */
 	public ResolvedType getTypeJsonSchema(final TypeDefId type)
 			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException;
+				TypeStorageException, TypeFetchException;
 }
