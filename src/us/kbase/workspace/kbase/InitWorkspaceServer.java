@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -182,10 +183,14 @@ public class InitWorkspaceServer {
 		} catch (WorkspaceInitException e) {
 			// tested manually, if you make changes test again
 			final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			e.printStackTrace(new PrintStream(baos, true, UTF_8));
-			rep.reportFail(e.getLocalizedMessage());
-			rep.reportFail(baos.toString(UTF_8));
-			rep.reportFail("Server startup failed - all calls will error out.");
+			try {
+				e.printStackTrace(new PrintStream(baos, true, UTF_8.name()));
+				rep.reportFail(e.getLocalizedMessage());
+				rep.reportFail(baos.toString(UTF_8.name()));
+				rep.reportFail("Server startup failed - all calls will error out.");
+			} catch (UnsupportedEncodingException uee) {
+				throw new RuntimeException("Welp that's weird", uee);
+			}
 			return null;
 		}
 		rep.reportInfo(String.format("Initialized %s backend", cfg.getBackendType().name()));
