@@ -22,7 +22,9 @@ import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.test.TestCommon;
 import us.kbase.typedobj.core.AbsoluteTypeDefId;
+import us.kbase.typedobj.core.MD5;
 import us.kbase.typedobj.core.TypeDefId;
+import us.kbase.typedobj.core.TypeDefName;
 import us.kbase.typedobj.core.TypeProvider.ResolvedType;
 import us.kbase.typedobj.core.TypeProvider.TypeFetchException;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
@@ -90,7 +92,7 @@ public class DelegatingTypeProviderTest {
 	}
 	
 	private TestMocks initMocks() {
-		return initMocks(0, 0, 1024 * 1024);
+		return _initMocks(0, 0, 1024 * 1024, null, false);
 	}
 	
 	private TestMocks initMocks(
@@ -135,6 +137,8 @@ public class DelegatingTypeProviderTest {
 		return AbsoluteTypeDefId.fromAbsoluteTypeString(type);
 	}
 	
+	// #### Basic type lookup tests without regard for caching ####
+	
 	@Test
 	public void getJsonSchemaForNonAbsoluteType() throws Exception {
 		final TestMocks m = initMocks();
@@ -160,6 +164,123 @@ public class DelegatingTypeProviderTest {
 		
 		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-6.2")),
 				is(new ResolvedType(atype("Foo.Bar-6.2"), "jsonschema here")));
+	}
+
+	// #### Test updating the type cache after populating the json schema cache ####
+	
+	@Test
+	public void jsonSchemaTypeCacheUpatedNoUpdateOnEmptyCache() throws Exception {
+		/* Tests that an empty type cache isn't updated when requesting an absolute type */
+		final TestMocks m = initMocks(50000, 50000, 2000000); // no eviction
+		
+		when(m.ws.getTypeInfo("Foo.Bar-6.2")).thenReturn(
+				new TypeInfo()
+					.withJsonSchema("jsonschema here")
+					.withTypeDef("Foo.Bar-6.2"),
+				(TypeInfo) null); // ensure only called once
+		
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-6.2")),
+				is(new ResolvedType(atype("Foo.Bar-6.2"), "jsonschema here")));
+		
+		// If these mocks are called, it means the type cache wasn't updated above
+		// Since the jsonschema cache is already populated the jsonschema returned will be ignored
+		when(m.ws.getTypeInfo("Foo.Bar-6")).thenReturn(
+				new TypeInfo()
+					.withJsonSchema("jsonschema 2 here")
+					.withTypeDef("Foo.Bar-6.2"),
+				(TypeInfo) null); // ensure only called once
+		when(m.ws.getTypeInfo("Foo.Bar")).thenReturn(
+				new TypeInfo()
+					.withJsonSchema("jsonschema 3 here")
+					.withTypeDef("Foo.Bar-6.2"),
+				(TypeInfo) null); // ensure only called once
+		
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-6")),
+				is(new ResolvedType(atype("Foo.Bar-6.2"), "jsonschema here")));
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar")),
+				is(new ResolvedType(atype("Foo.Bar-6.2"), "jsonschema here")));
+		
+		// ensure the mocks were called as expected
+		verify(m.ws).getTypeInfo("Foo.Bar-6");
+		verify(m.ws).getTypeInfo("Foo.Bar");
+	}
+	
+	@Test
+	public void jsonSchemaTypeCacheUpatedNoUpdateOnNewerTypes() throws Exception {
+		/* Tests that an type cache isn't updated when requesting an absolute type
+		 * if the type cache already has newer entries
+		 */
+		final TestMocks m = initMocks(50000, 50000, 2000000); // no eviction
+		
+		when(m.ws.getTypeInfo("Foo.Bar")).thenReturn(
+				new TypeInfo()
+					.withJsonSchema("jsonschema 1 here")
+					.withTypeDef("Foo.Bar-7.22"),
+				(TypeInfo) null); // ensure only called once
+		when(m.ws.getTypeInfo("Foo.Bar-6")).thenReturn(
+				new TypeInfo()
+					.withJsonSchema("jsonschema 2 here")
+					.withTypeDef("Foo.Bar-6.33"),
+				(TypeInfo) null); // ensure only called once
+		when(m.ws.getTypeInfo("Foo.Bar-6.32")).thenReturn(
+				new TypeInfo()
+					.withJsonSchema("jsonschema 3 here")
+					.withTypeDef("Foo.Bar-6.32"),
+				(TypeInfo) null); // ensure only called once
+		
+		// populate the type and jsonschema caches
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar")),
+				is(new ResolvedType(atype("Foo.Bar-7.22"), "jsonschema 1 here")));
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-6")),
+				is(new ResolvedType(atype("Foo.Bar-6.33"), "jsonschema 2 here")));
+		// this should not affect the type cache
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-6.32")),
+				is(new ResolvedType(atype("Foo.Bar-6.32"), "jsonschema 3 here")));
+		
+		// we confirm that by pulling the non-absolute types and checking they haven't changed
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar")),
+				is(new ResolvedType(atype("Foo.Bar-7.22"), "jsonschema 1 here")));
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-6")),
+				is(new ResolvedType(atype("Foo.Bar-6.33"), "jsonschema 2 here")));
+	}
+	
+	@Test
+	public void jsonSchemaTypeCacheUpate() throws Exception {
+		/* Tests that an type cache is updated when requesting an absolute type
+		 * if the type cache only has older entries
+		 */
+		final TestMocks m = initMocks(50000, 50000, 2000000); // no eviction
+		
+		when(m.ws.getTypeInfo("Foo.Bar")).thenReturn(
+				new TypeInfo()
+					.withJsonSchema("jsonschema 1 here")
+					.withTypeDef("Foo.Bar-6.33"),
+				(TypeInfo) null); // ensure only called once
+		when(m.ws.getTypeInfo("Foo.Bar-7")).thenReturn(
+				new TypeInfo()
+					.withJsonSchema("jsonschema 2 here")
+					.withTypeDef("Foo.Bar-7.22"),
+				(TypeInfo) null); // ensure only called once
+		when(m.ws.getTypeInfo("Foo.Bar-7.23")).thenReturn(
+				new TypeInfo()
+					.withJsonSchema("jsonschema 3 here")
+					.withTypeDef("Foo.Bar-7.23"),
+				(TypeInfo) null); // ensure only called once
+		
+		// populate the type and jsonschema caches
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar")),
+				is(new ResolvedType(atype("Foo.Bar-6.33"), "jsonschema 1 here")));
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-7")),
+				is(new ResolvedType(atype("Foo.Bar-7.22"), "jsonschema 2 here")));
+		// this should update the type cache
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-7.23")),
+				is(new ResolvedType(atype("Foo.Bar-7.23"), "jsonschema 3 here")));
+		
+		// we confirm that by pulling the non-absolute types and checking they haven't changed
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar")),
+				is(new ResolvedType(atype("Foo.Bar-7.23"), "jsonschema 3 here")));
+		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-7")),
+				is(new ResolvedType(atype("Foo.Bar-7.23"), "jsonschema 3 here")));
 	}
 	
 	// #### Build error tests ####
@@ -214,6 +335,17 @@ public class DelegatingTypeProviderTest {
 						"jsonschemaCacheMaxSize must be >= 1048576"));
 			}
 		}
+	}
+	
+	// #### Bad argument error tests ####
+	
+	@Test
+	public void getJsonSchemaFailBadArgs() throws Exception {
+		final TestMocks m = initMocks();
+		failGetJsonSchema(m.p, null, new NullPointerException("typeDefId"));
+		final TypeDefId type = new TypeDefId(new TypeDefName("Mod.Type"),
+				new MD5("3a1ffc589411f0775ac659454cafa585"));
+		failGetJsonSchema(m.p, type, new IllegalArgumentException("MD5 types are not allowed"));
 	}
 	
 	// #### Type fetch error tests ####
