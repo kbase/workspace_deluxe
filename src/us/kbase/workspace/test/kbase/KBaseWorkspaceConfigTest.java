@@ -175,6 +175,7 @@ public class KBaseWorkspaceConfigTest {
 		public String mongohost = null;
 		public String mongoDBname = null;
 		public String typeDBname = null;
+		public URL typeDelegationTarget = null;
 		public String mongoPwd = null;
 		public String mongoUser = null;
 		public boolean mongoRetryWrites = false;
@@ -344,6 +345,11 @@ public class KBaseWorkspaceConfigTest {
 			this.typeDBname = typeDBname;
 			return this;
 		}
+		
+		public ExpectedConfig withTypeDelegationTarget(final URL typeDelegationTarget) {
+			this.typeDelegationTarget = typeDelegationTarget;
+			return this;
+		}
 
 		public ExpectedConfig withWorkspaceAdmin(final String workspaceAdmin) {
 			this.workspaceAdmin = workspaceAdmin;
@@ -406,6 +412,8 @@ public class KBaseWorkspaceConfigTest {
 			assertThat("incorrect sample url", kwc.getSampleServiceURL(), is(exp.sampleServiceURL));
 			assertThat("incorrect temp dir", kwc.getTempDir(), is(exp.tempDir));
 			assertThat("incorrect type db", kwc.getTypeDBName(), is(exp.typeDBname));
+			assertThat("incorrect type delegation",
+					kwc.getTypeDelegationTarget(), is(exp.typeDelegationTarget));
 			assertThat("incorrect ws admin", kwc.getWorkspaceAdmin(), is(exp.workspaceAdmin));
 			assertThat("incorrect has err", kwc.hasErrors(), is(exp.hasErrors));
 			assertThat("incorrect ignore hs",
@@ -467,12 +475,13 @@ public class KBaseWorkspaceConfigTest {
 	}
 	
 	@Test
-	public void configMaximalS3() throws Exception {
+	public void configMaximalS3AndDelegateTypes() throws Exception {
 		// also tests full sample service config
 		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
-				.with("mongodb-type-database", "     typedb     ")
+				.with("mongodb-type-database", "this should be overridden")
+				.with("type-delegation-target", "     http://localhost:12345     ")
 				.with("mongodb-retrywrites", "     true     ")
 				.with("temp-dir", "   temp   ")
 				.with("auth-service-url", "    " + AUTH_LEGACY_URL + "    ")
@@ -509,7 +518,7 @@ public class KBaseWorkspaceConfigTest {
 		final String paramReport =
 				"mongodb-host=somehost\n" +
 				"mongodb-database=somedb\n" +
-				"mongodb-type-database=typedb\n" +
+				"type-delegation-target=http://localhost:12345\n" +
 				"mongodb-retrywrites=true\n" +
 				"mongodb-user=muser\n" +
 				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
@@ -539,7 +548,7 @@ public class KBaseWorkspaceConfigTest {
 						.withWorkspaceAdmin("wsadminuser")
 						.withMongohost("somehost")
 						.withMongoDBname("somedb")
-						.withTypeDBname("typedb")
+						.withTypeDelegationTarget(new URL("http://localhost:12345"))
 						.withMongoRetryWrites(true)
 						.withMongoUser("muser")
 						.withMongoPwd("mpwd")
@@ -687,6 +696,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-host", null)
 				.with("mongodb-database", null)
 				.with("mongodb-type-database", null)
+				.with("type-delegation-target", null)
 				.with("mongodb-user", "user")
 				.with("mongodb-pwd", null)
 				.with("temp-dir", null)
@@ -708,9 +718,10 @@ public class KBaseWorkspaceConfigTest {
 		final List<String> errors = Arrays.asList(
 				String.format(MISSING_PARAM, "mongodb-host"),
 				String.format(MISSING_PARAM, "mongodb-database"),
-				String.format(MISSING_PARAM, "mongodb-type-database"),
 				String.format(MISSING_PARAM, "temp-dir"),
 				String.format(MISSING_PARAM, "backend-type"),
+				"Must provide param mongodb-type-database or type-delegation-target in "
+						+ "config file",
 				String.format(MISSING_PARAM, "auth-service-url"),
 				String.format(MISSING_PARAM, "auth2-service-url"),
 				"If sample-service-url is supplied, sample-service-administrator-token is " +
@@ -740,6 +751,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-host", "   \t    ")
 				.with("mongodb-database", "   \t    ")
 				.with("mongodb-type-database", "   \t    ")
+				.with("type-delegation-target", "   \t   ")
 				.with("mongodb-user", "   \t    ")
 				.with("mongodb-pwd", "pwd")
 				.with("backend-type", "   \t    ")
@@ -761,9 +773,10 @@ public class KBaseWorkspaceConfigTest {
 		final List<String> errors = Arrays.asList(
 				String.format(MISSING_PARAM, "mongodb-host"),
 				String.format(MISSING_PARAM, "mongodb-database"),
-				String.format(MISSING_PARAM, "mongodb-type-database"),
 				String.format(MISSING_PARAM, "temp-dir"),
 				String.format(MISSING_PARAM, "backend-type"),
+				"Must provide param mongodb-type-database or type-delegation-target in "
+						+ "config file",
 				String.format(MISSING_PARAM, "auth-service-url"),
 				String.format(MISSING_PARAM, "auth2-service-url"),
 				"If sample-service-url is supplied, sample-service-administrator-token is " +
@@ -793,6 +806,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
 				.with("mongodb-type-database", "    typedb   ")
+				.with("type-delegation-target", "  crappy ass url for type delegation  ")
 				.with("backend-type", "S3")
 				.with("backend-token", "   bet   ")
 				.with("backend-user", "   buser  ")
@@ -813,6 +827,7 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-host=somehost\n" +
 				"mongodb-database=somedb\n" +
 				"mongodb-type-database=typedb\n" +
+				"type-delegation-target=crappy ass url for type delegation\n" +
 				"auth-service-url=crappy ass url\n" +
 				"auth2-service-url=crappy ass url2\n" +
 				"backend-type=S3\n" +
@@ -825,6 +840,7 @@ public class KBaseWorkspaceConfigTest {
 		final String err = "Invalid url for parameter %s: crappy ass url%s";
 		
 		final List<String> errors = Arrays.asList(
+				String.format(err, "type-delegation-target", " for type delegation"),
 				String.format(err, "auth-service-url", ""),
 				String.format(err, "auth2-service-url", "2"),
 				String.format(err, "backend-url", " for backend"),
