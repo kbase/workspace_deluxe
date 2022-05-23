@@ -9,6 +9,7 @@ import static us.kbase.workspace.test.kbase.JSONRPCLayerTester.startupWorkspaceS
 
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,17 @@ import us.kbase.common.test.MapBuilder;
 import us.kbase.common.test.TestCommon;
 import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.test.auth2.authcontroller.AuthController;
+import us.kbase.workspace.FuncInfo;
+import us.kbase.workspace.GetModuleInfoParams;
+import us.kbase.workspace.GrantModuleOwnershipParams;
+import us.kbase.workspace.ListAllTypesParams;
+import us.kbase.workspace.ListModuleVersionsParams;
+import us.kbase.workspace.ListModulesParams;
+import us.kbase.workspace.ModuleInfo;
+import us.kbase.workspace.ModuleVersions;
+import us.kbase.workspace.RegisterTypespecParams;
+import us.kbase.workspace.RemoveModuleOwnershipParams;
+import us.kbase.workspace.TypeInfo;
 import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceServer;
 import us.kbase.workspace.database.DynamicConfig;
@@ -36,10 +48,45 @@ import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 
 /* Tests 2 workspaces, one of which delegates type handling to the other.
  * Doesn't do in depth type tests; those are relegated to the regular JSONRPCTest classes.
- * Mostly just checks that the methods to indeed delegate, since under the hood the delegators
+ * Mostly just checks that the methods do indeed delegate, since under the hood the delegators
  * just pass requests and responses as is.
  */
 public class TypeDelegationTest {
+	
+	private static final String MYMOD_SPEC =
+			"module MyMod {\n" +
+			"    /* @optional foo */\n" +
+			"    typedef structure {\n" +
+			"        int foo;\n" +
+			"    } Trivial;\n" +
+			"    funcdef myfunc(int req) returns (int ret);\n" +
+			"};\n";
+	private static final String MYMOD_TRIVIAL_SCHEMA =
+			"{\n  \"id\" : \"Trivial\",\n  \"description\" : \"@optional foo\",\n"
+			+ "  \"type\" : \"object\",\n  \"original-type\" : \"kidl-structure\",\n"
+			+ "  \"properties\" : {\n    \"foo\" : {\n      \"type\" : \"integer\",\n"
+			+ "      \"original-type\" : \"kidl-int\"\n    }\n  },\n"
+			+ "  \"additionalProperties\" : true\n}";
+	// TODO CODE WTF is the parsing struct used for anyway? Can we ditch it?
+	private static final String MYMOD_TRIVIAL_PARSING_STRUCT =
+			"{\"!\":\"Bio::KBase::KIDL::KBT::Typedef\","
+			+ "\"alias_type\":{\"!\":\"Bio::KBase::KIDL::KBT::Struct\",\"annotations\":{},"
+			+ "\"items\":[{\"!\":\"Bio::KBase::KIDL::KBT::StructItem\","
+			+ "\"item_type\":{\"!\":\"Bio::KBase::KIDL::KBT::Scalar\",\"annotations\":{},"
+			+ "\"scalar_type\":\"int\"},\"name\":\"foo\",\"nullable\":\"0\"}],"
+			+ "\"name\":\"Trivial\"},\"annotations\":{\"metadata\":{\"ws\":{}},"
+			+ "\"optional\":[\"foo\"],\"searchable_ws_subset\":{\"fields\":{},\"keys\":{}},"
+			+ "\"unknown_annotations\":{}},\"comment\":\"@optional foo\",\"module\":\"MyMod\","
+			+ "\"name\":\"Trivial\"}";
+	private static final String MYMOD_MYFUNC_PARSING_STRUCT =
+			"{\"!\":\"Bio::KBase::KIDL::KBT::Funcdef\","
+			+ "\"annotations\":{\"unknown_annotations\":{}},\"async\":\"0\","
+			+ "\"authentication\":\"none\",\"comment\":\"\",\"name\":\"myfunc\","
+			+ "\"parameters\":[{\"name\":\"req\","
+			+ "\"type\":{\"!\":\"Bio::KBase::KIDL::KBT::Scalar\",\"annotations\":{},"
+			+ "\"scalar_type\":\"int\"}}],\"return_type\":[{\"name\":\"ret\","
+			+ "\"type\":{\"!\":\"Bio::KBase::KIDL::KBT::Scalar\",\"annotations\":{},"
+			+ "\"scalar_type\":\"int\"}}]}";
 	
 	private static final String CLS = TypeDelegationTest.class.getSimpleName();
 	private static final String DB_NAME_WS_PRIMARY = CLS + "_primary_ws";
@@ -174,7 +221,7 @@ public class TypeDelegationTest {
 	
 	@Test
 	public void delegationTarget() throws Exception {
-		// checks the two delegation target methods
+		// checks the delegation target method
 		final Object ret = admin(
 				DELEGATION_CLIENT_ADMIN, ImmutableMap.of("command", "getTypeDelegationTarget"));
 		assertThat("incorrect mod reqs", ret, is(ImmutableMap.of(
@@ -212,5 +259,276 @@ public class TypeDelegationTest {
 		assertThat("incorrect mod reqs", ret4, is(list()));
 		final Object ret5 = listModRequests(TYPE_CLIENT_ADMIN);
 		assertThat("incorrect mod reqs", ret5, is(list()));
+	}
+	
+	@Test
+	public void registerSpecAndCheck() throws Exception {
+		/* Runs through registering a type spec and then doing all the other stuff you can do
+		 * with a spec, since the set up is already done
+		 * 
+		 * checks:
+		 * requestModuleOwnership
+		 * admin approveModRequest
+		 * listModules
+		 * registerTypeSpec
+		 * releaseModule
+		 * listModuleVersions
+		 * getAllFuncInfo
+		 * getFuncInfo
+		 * getAllTypeInfo
+		 * getTypeInfo
+		 * getModuleInfo
+		 * getJsonSchema
+		 * listAllTypes
+		 * translateFromMD5Types
+		 * translateToMD5Types
+		 * grantModuleOwnership
+		 * removeModuleOwnership
+		 */
+		DELEGATION_CLIENT.requestModuleOwnership("MyMod");
+		
+		final Object approveMod = admin(DELEGATION_CLIENT_ADMIN, ImmutableMap.of(
+				"command", "approveModRequest", "module", "MyMod"));
+		assertThat("incorrect approve mod", approveMod, is(nullValue()));
+		
+		// check that the module shows up on both servers
+		final List<String> listModD = DELEGATION_CLIENT.listModules(new ListModulesParams());
+		assertThat("incorrect mod info", listModD, is(list("MyMod")));
+		final List<String> listModT = TYPE_CLIENT.listModules(new ListModulesParams());
+		assertThat("incorrect mod info", listModT, is(list("MyMod")));
+		
+		final Map<String, String> reg = DELEGATION_CLIENT.registerTypespec(
+				new RegisterTypespecParams()
+					.withDryrun(0L)
+					.withNewTypes(list("Trivial"))
+					.withSpec(MYMOD_SPEC)
+				);
+		assertThat("incorrect comp result", reg, is(ImmutableMap.of(
+				"MyMod.Trivial-0.1", MYMOD_TRIVIAL_SCHEMA)));
+		
+		final List<String> rel = DELEGATION_CLIENT.releaseModule("MyMod");
+		assertThat("incorrect release", rel, is(list("MyMod.Trivial-1.0")));
+		
+		// *** Run all the non-admin methods on both servers
+		
+		// listModuleVersions
+		final ModuleVersions modversD = DELEGATION_CLIENT.listModuleVersions(
+				new ListModuleVersionsParams().withMod("MyMod"));
+		final long prereleaseModVer = modversD.getVers().get(0);
+		final long releaseModVer = modversD.getVers().get(1);
+		// Can't predict timestamps easily, so we just fill them in from the output
+		final ModuleVersions expectedModVers = new ModuleVersions()
+				.withMod("MyMod")
+				// TODO BUGFIX ModuleVersions has a released_vers field which was added
+				// to the spec but never implemented and is always null. Remove it from the spec
+				// and properly document how the method works - there's differences if you're an
+				// owner and also if you supply a type or a module.
+				.withReleasedVers(null)
+				.withVers(list(prereleaseModVer, releaseModVer));
+		checkModVers(modversD, expectedModVers);
+		final ModuleVersions modversT = DELEGATION_CLIENT.listModuleVersions(
+				new ListModuleVersionsParams().withMod("MyMod"));
+		checkModVers(modversT, expectedModVers);
+		
+		// getFuncInfo
+		final FuncInfo expectedFuncInfo = new FuncInfo()
+				.withDescription("")
+				.withFuncDef("MyMod.myfunc-1.0")
+				.withFuncVers(list("MyMod.myfunc-0.1", "MyMod.myfunc-1.0"))
+				// TODO CHECK why isn't this including all mod vers?
+				.withModuleVers(list(releaseModVer))
+				.withParsingStructure(MYMOD_MYFUNC_PARSING_STRUCT)
+				.withReleasedFuncVers(list("MyMod.myfunc-1.0"))
+				.withReleasedModuleVers(list(releaseModVer))
+				.withSpecDef("funcdef myfunc(int req) returns (int ret) authentication none;")
+				.withUsedTypeDefs(list());
+		final FuncInfo funcD = DELEGATION_CLIENT.getFuncInfo("MyMod.myfunc");
+		checkFuncInfo(funcD, expectedFuncInfo);
+		final FuncInfo funcT = TYPE_CLIENT.getFuncInfo("MyMod.myfunc");
+		checkFuncInfo(funcT, expectedFuncInfo);
+		// getAllFuncInfo
+		final List<FuncInfo> allFuncD = DELEGATION_CLIENT.getAllFuncInfo("MyMod");
+		assertThat("incorrect func count", allFuncD.size(), is(1));
+		checkFuncInfo(allFuncD.get(0), expectedFuncInfo);
+		final List<FuncInfo> allFuncT = TYPE_CLIENT.getAllFuncInfo("MyMod");
+		assertThat("incorrect func count", allFuncT.size(), is(1));
+		checkFuncInfo(allFuncT.get(0), expectedFuncInfo);
+		
+		// getTypeInfo
+		final TypeInfo expectedTypeInfo = new TypeInfo()
+				.withDescription("@optional foo")
+				.withJsonSchema(MYMOD_TRIVIAL_SCHEMA)
+				// TODO CHECK why isn't this including all mod vers?
+				.withModuleVers(list(releaseModVer))
+				.withParsingStructure(MYMOD_TRIVIAL_PARSING_STRUCT)
+				.withReleasedModuleVers(list(releaseModVer))
+				.withReleasedTypeVers(list("MyMod.Trivial-1.0"))
+				.withSpecDef("/*\n@optional foo\n*/\ntypedef structure {\n  int foo;\n} Trivial;")
+				.withTypeDef("MyMod.Trivial-1.0")
+				.withTypeVers(list("MyMod.Trivial-0.1", "MyMod.Trivial-1.0"))
+				.withUsedTypeDefs(list())
+				.withUsingFuncDefs(list())
+				.withUsingTypeDefs(list());
+		final TypeInfo typesD = DELEGATION_CLIENT.getTypeInfo("MyMod.Trivial");
+		checkTypeInfo(typesD, expectedTypeInfo);
+		final TypeInfo typesT = TYPE_CLIENT.getTypeInfo("MyMod.Trivial");
+		checkTypeInfo(typesT, expectedTypeInfo);
+		// getAllTypeInfo
+		final List<TypeInfo> allTypesD = DELEGATION_CLIENT.getAllTypeInfo("MyMod");
+		assertThat("incorrect type count", allTypesD.size(), is(1));
+		checkTypeInfo(allTypesD.get(0), expectedTypeInfo);
+		final List<TypeInfo> allTypesT = TYPE_CLIENT.getAllTypeInfo("MyMod");
+		assertThat("incorrect type count", allTypesT.size(), is(1));
+		checkTypeInfo(allTypesT.get(0), expectedTypeInfo);
+		
+		// getModuleInfo
+		final ModuleInfo expectedModuleInfo = new ModuleInfo()
+				.withChsum("ad539ae2166a3796e024218ee74259e7")
+				.withDescription("")
+				.withFunctions(list("MyMod.myfunc-1.0"))
+				.withIncludedSpecVersion(Collections.emptyMap())
+				.withIsReleased(1L)
+				.withOwners(list(USER1))
+				.withSpec(MYMOD_SPEC)
+				.withTypes(ImmutableMap.of("MyMod.Trivial-1.0", MYMOD_TRIVIAL_SCHEMA))
+				.withVer(releaseModVer);
+		final ModuleInfo modD = DELEGATION_CLIENT.getModuleInfo(
+				new GetModuleInfoParams().withMod("MyMod"));
+		checkModuleInfo(modD, expectedModuleInfo);
+		final ModuleInfo modT = TYPE_CLIENT.getModuleInfo(
+				new GetModuleInfoParams().withMod("MyMod"));
+		checkModuleInfo(modT, expectedModuleInfo);
+		
+		// getJsonSchema
+		final String jsonD = DELEGATION_CLIENT.getJsonschema("MyMod.Trivial");
+		assertThat("incorrect json", jsonD, is(MYMOD_TRIVIAL_SCHEMA));
+		final String jsonT = TYPE_CLIENT.getJsonschema("MyMod.Trivial");
+		assertThat("incorrect json", jsonT, is(MYMOD_TRIVIAL_SCHEMA));
+		
+		// listAllTypes
+		final Map<String, Map<String, String>> expectedListAllTypes = ImmutableMap.of(
+				"MyMod", ImmutableMap.of("Trivial", "1.0"));
+		final Map<String, Map<String, String>> listAllTypesD = DELEGATION_CLIENT.listAllTypes(
+				new ListAllTypesParams());
+		assertThat("incorrect all types", listAllTypesD, is(expectedListAllTypes));
+		final Map<String, Map<String, String>> listAllTypesT = TYPE_CLIENT.listAllTypes(
+				new ListAllTypesParams());
+		assertThat("incorrect all types", listAllTypesT, is(expectedListAllTypes));
+		
+		// translate to MD5 types
+		final ImmutableMap<String, String> translateToExpected = ImmutableMap.of(
+				"MyMod.Trivial-1.0", "MyMod.Trivial-afc7b655b7baedae2f237fc0c45b6579");
+		final Map<String, String> md5typesD = DELEGATION_CLIENT.translateToMD5Types(
+				list("MyMod.Trivial-1.0"));
+		assertThat("incorrect MD5 types", md5typesD, is(translateToExpected));
+		final Map<String, String> md5typesT = TYPE_CLIENT.translateToMD5Types(
+				list("MyMod.Trivial-1.0"));
+		assertThat("incorrect MD5 types", md5typesT, is(translateToExpected));
+		
+		// translate from MD5 types
+		final ImmutableMap<String, List<String>> translateFromExpected = ImmutableMap.of(
+				"MyMod.Trivial-afc7b655b7baedae2f237fc0c45b6579",
+				list("MyMod.Trivial-0.1", "MyMod.Trivial-1.0"));
+		final Map<String, List<String>> stdTypesD = DELEGATION_CLIENT.translateFromMD5Types(
+				list("MyMod.Trivial-afc7b655b7baedae2f237fc0c45b6579"));
+		assertThat("incorrect types", stdTypesD, is(translateFromExpected));
+		final Map<String, List<String>> stdTypesT = TYPE_CLIENT.translateFromMD5Types(
+				list("MyMod.Trivial-afc7b655b7baedae2f237fc0c45b6579"));
+		assertThat("incorrect types", stdTypesT, is(translateFromExpected));
+		
+		// grantModuleOwnership
+		DELEGATION_CLIENT.grantModuleOwnership(new GrantModuleOwnershipParams()
+				.withMod("MyMod").withNewOwner(USER2));
+		final ModuleInfo modD2 = DELEGATION_CLIENT.getModuleInfo(
+				new GetModuleInfoParams().withMod("MyMod"));
+		assertThat("incorrect owners", modD2.getOwners(), is(list(USER1, USER2)));
+		final ModuleInfo modT2 = TYPE_CLIENT.getModuleInfo(
+				new GetModuleInfoParams().withMod("MyMod"));
+		assertThat("incorrect owners", modT2.getOwners(), is(list(USER1, USER2)));
+		
+		// removeModuleOwnership
+		DELEGATION_CLIENT.removeModuleOwnership(new RemoveModuleOwnershipParams()
+				.withMod("MyMod").withOldOwner(USER2));
+		final ModuleInfo modD3 = DELEGATION_CLIENT.getModuleInfo(
+				new GetModuleInfoParams().withMod("MyMod"));
+		assertThat("incorrect owners", modD3.getOwners(), is(list(USER1)));
+		final ModuleInfo modT3 = TYPE_CLIENT.getModuleInfo(
+				new GetModuleInfoParams().withMod("MyMod"));
+		assertThat("incorrect owners", modT3.getOwners(), is(list(USER1)));
+	}
+	
+	// TODO NOW compile remote test 
+	// TODO NOW admin func for grant / remove module ownership
+	// TODO NOW tests for saving objects
+	// TODO NOW tests for saving objects and failing due to errors thrown from the delegating type
+	// provider
+	// TODO NOW admin & std tests for a few methods that fail due to errors from the workspace
+	// delegator
+
+	private void checkModuleInfo(final ModuleInfo got, final ModuleInfo expected) {
+		// the SDK classes not having equals sucks
+		assertThat("incorrect add props",
+				got.getAdditionalProperties(), is(expected.getAdditionalProperties()));
+		assertThat("incorrect chsum", got.getChsum(), is(expected.getChsum()));
+		assertThat("incorrect desc", got.getDescription(), is(expected.getDescription()));
+		assertThat("incorrect funcs", got.getFunctions(), is(expected.getFunctions()));
+		assertThat("incorrect incl spec vers",
+				got.getIncludedSpecVersion(), is(expected.getIncludedSpecVersion()));
+		assertThat("incorrect is rel", got.getIsReleased(), is(expected.getIsReleased()));
+		assertThat("incorrect owners", got.getOwners(), is(expected.getOwners()));
+		assertThat("incorrect spec", got.getSpec(), is(expected.getSpec()));
+		assertThat("incorrect types", got.getTypes(), is(expected.getTypes()));
+		assertThat("incorrect ver", got.getVer(), is(expected.getVer()));
+	}
+	
+	private void checkTypeInfo(final TypeInfo got, final TypeInfo expected) {
+		// the SDK classes not having equals suucks
+		assertThat("incorrect add props",
+				got.getAdditionalProperties(), is(expected.getAdditionalProperties()));
+		assertThat("incorrect desc", got.getDescription(), is(expected.getDescription()));
+		assertThat("incorrect schema",
+				got.getJsonSchema(), is(expected.getJsonSchema()));
+		assertThat("incorrect mod vers", got.getModuleVers(), is(expected.getModuleVers()));
+		assertThat("incorrect parsing struct",
+				got.getParsingStructure(), is(expected.getParsingStructure()));
+		assertThat("incorrect released mod vers",
+				got.getReleasedModuleVers(), is(expected.getReleasedModuleVers()));
+		assertThat("incorrect released tvers",
+				got.getReleasedTypeVers(), is(expected.getReleasedTypeVers()));
+		assertThat("incorrect spec def", got.getSpecDef(), is(expected.getSpecDef()));
+		assertThat("incorrect type def", got.getTypeDef(), is(expected.getTypeDef()));
+		assertThat("incorrect tvers", got.getTypeVers(), is(expected.getTypeVers()));
+		assertThat("incorrect used tdefs", got.getUsedTypeDefs(), is(expected.getUsedTypeDefs()));
+		assertThat("incorrect using fdefs",
+				got.getUsingFuncDefs(), is(expected.getUsingFuncDefs()));
+		assertThat("incorrect using tdefs",
+				got.getUsingTypeDefs(), is(expected.getUsingTypeDefs()));
+	}
+	
+	private void checkFuncInfo(final FuncInfo got, final FuncInfo expected) {
+		// the SDK classes not having equals suuuucks
+		assertThat("incorrect add props",
+				got.getAdditionalProperties(), is(expected.getAdditionalProperties()));
+		assertThat("incorrect desc", got.getDescription(), is(expected.getDescription()));
+		assertThat("incorrect fdef", got.getFuncDef(), is(expected.getFuncDef()));
+		assertThat("incorrect fvers", got.getFuncVers(), is(expected.getFuncVers()));
+		assertThat("incorrect mod vers", got.getModuleVers(), is(expected.getModuleVers()));
+		assertThat("incorrect parsing struct",
+				got.getParsingStructure(), is(expected.getParsingStructure()));
+		assertThat("incorrect released fvers",
+				got.getReleasedFuncVers(), is(expected.getReleasedFuncVers()));
+		assertThat("incorrect released mod vers",
+				got.getReleasedModuleVers(), is(expected.getReleasedModuleVers()));
+		assertThat("incorrect spec def", got.getSpecDef(), is(expected.getSpecDef()));
+		assertThat("incorrect used tdefs", got.getUsedTypeDefs(), is(expected.getUsedTypeDefs()));
+	}
+	
+	private void checkModVers(final ModuleVersions got, final ModuleVersions expected) {
+		// the SDK classes not having equals suuuuuuuucks
+		assertThat("incorrect add props",
+				got.getAdditionalProperties(), is(expected.getAdditionalProperties()));
+		assertThat("incorrect mod", got.getMod(), is(expected.getMod()));
+		assertThat("incorrect rel vers", got.getReleasedVers(), is(expected.getReleasedVers()));
+		assertThat("incorrect vers", got.getVers(), is(expected.getVers()));
 	}
 }
