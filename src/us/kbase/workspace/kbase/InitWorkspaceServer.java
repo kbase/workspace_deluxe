@@ -76,7 +76,6 @@ import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 public class InitWorkspaceServer {
 	
-	// TODO NOW_TYPES delegation integration tests for saving objects, incl type fetch errors
 	// TODO NOW_TYPES document type delegation setup, constraints, caching,
 	// and long term type server split plans in rst
 	// Note that if the bootstrap admin for each server is not also an admin in all other

@@ -2408,27 +2408,27 @@ public class WorkspaceTest extends WorkspaceTester {
 		final ObjectIDNoWSNoVer fail = new ObjectIDNoWSNoVer("fail");
 		failSave(userfoo, wspace, fail, data1, new TypeDefId("NoModHere.Foo"), emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nModule doesn't exist: NoModHere"));
+						"Object #1, fail failed type checking: Module doesn't exist: NoModHere"));
 		failSave(userfoo, wspace, fail, data1, new TypeDefId("SomeModule.Foo"), emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"Object #1, fail failed type checking: Unable to locate type: " +
 						"SomeModule.Foo"));
 		
 		failSave(userfoo, wspace, fail, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"Object #1, fail failed type checking: This type wasn't released yet " +
 						"and you should be an owner to access unreleased version information"));
 		failSave(userfoo, wspace, fail, data1, relmintype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"Object #1, fail failed type checking: Unable to locate type: " +
 						"TestTypeChecking.CheckType-1"));
 		failSave(userfoo, wspace, fail, data1, abstype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"Object #1, fail failed type checking: Unable to locate type: " +
 						"TestTypeChecking.CheckType-1.0"));
 		failSave(userfoo, wspace, fail, data1, relmaxtype, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nThis type wasn't released yet " + 
+						"Object #1, fail failed type checking: This type wasn't released yet " + 
 						"and you should be an owner to access unreleased version information"));
 		
 		types.releaseTypes(userfoo, mod);
@@ -2444,14 +2444,14 @@ public class WorkspaceTest extends WorkspaceTester {
 				getIdFactory());
 		failSave(userfoo, wspace, fail, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"Object #1, fail failed type checking: This type wasn't released yet " +
 						"and you should be an owner to access unreleased version information"));
 		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
 				getRandomName(), data1, relmintype1, null, emptyprov, false)),
 				getIdFactory());
 		failSave(userfoo, wspace, fail, data1, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"Object #1, fail failed type checking: Unable to locate type: " +
 						"TestTypeChecking.CheckType-2"));
 		
 		types.compileNewTypeSpec(userfoo, specTypeCheck2, null, null, null, false, null);
@@ -2474,7 +2474,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
 		failSave(userfoo, wspace, fail, data1, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"Object #1, fail failed type checking: This type wasn't released yet " +
 						"and you should be an owner to access unreleased version information"));
 		
 		
@@ -2501,7 +2501,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
 		failSave(userfoo, wspace, fail, newdata, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"Object #1, fail failed type checking: This type wasn't released yet " +
 						"and you should be an owner to access unreleased version information"));
 		
 		types.releaseTypes(userfoo, mod);

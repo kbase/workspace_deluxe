@@ -926,11 +926,11 @@ public class Workspace {
 			rep = validator.validate(wo.getData(), wo.getType(), idhandler);
 		} catch (NoSuchTypeException nste) {
 			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking:\n", getObjectErrorId(wo, objcount))
+					"Object %s failed type checking: ", getObjectErrorId(wo, objcount))
 					+ nste.getLocalizedMessage(), nste);
 		} catch (NoSuchModuleException nsme) {
 			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking:\n", getObjectErrorId(wo, objcount))
+					"Object %s failed type checking: ", getObjectErrorId(wo, objcount))
 					+ nsme.getLocalizedMessage(), nsme);
 		} catch (TooManyIdsException e) {
 			throw wrapTooManyIDsException(wo, objcount, idhandler.getMaximumIdCount(), e);
