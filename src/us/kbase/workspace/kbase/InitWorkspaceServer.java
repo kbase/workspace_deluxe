@@ -1,7 +1,12 @@
 package us.kbase.workspace.kbase;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -10,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -29,6 +35,7 @@ import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
+import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.sampleservice.SampleServiceClient;
 import us.kbase.shock.client.BasicShockClient;
@@ -36,15 +43,16 @@ import us.kbase.shock.client.exceptions.InvalidShockUrlException;
 import us.kbase.shock.client.exceptions.ShockHttpException;
 import us.kbase.typedobj.core.LocalTypeProvider;
 import us.kbase.typedobj.core.TempFilesManager;
+import us.kbase.typedobj.core.TypeProvider;
 import us.kbase.typedobj.core.TypedObjectValidator;
 import us.kbase.typedobj.db.MongoTypeStorage;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.TypeStorageException;
 import us.kbase.typedobj.idref.IdReferenceHandlerSetFactoryBuilder;
+import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
 import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
-import us.kbase.workspace.database.WorkspaceDatabase;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.exceptions.WorkspaceCommunicationException;
 import us.kbase.workspace.database.exceptions.WorkspaceDBException;
@@ -62,16 +70,23 @@ import us.kbase.workspace.kbase.admin.AdministratorHandlerException;
 import us.kbase.workspace.kbase.admin.DefaultAdminHandler;
 import us.kbase.workspace.kbase.admin.KBaseAuth2AdminHandler;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
-import us.kbase.workspace.kbase.admin.WorkspaceAdministration.UserValidator;
 import us.kbase.workspace.listener.ListenerInitializationException;
 import us.kbase.workspace.listener.WorkspaceEventListener;
 import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 public class InitWorkspaceServer {
 	
+	// TODO NOW_TYPES delegation integration tests for 6 admin type methods
+	// TODO NOW_TYPES delegation integration tests for 17 standard type methods
+	// TODO NOW_TYPES delegation integration tests for saving objects, incl type fetch errors
+	// TODO NOW_TYPES document type delegation setup, constraints, caching,
+	// and long term type server split plans in rst
+	// Note that if the bootstrap admin for each server is not also an admin in all other
+	// servers confusion will ensue. Does this matter for auth2 based admins? Check
+	
 	// TODO TEST unittests... are going to be a real pain.
 	// TODO JAVADOC
-	// TODO CODE try and clean this mess up a little. Nulls everywhere, long methods.
+	// TODO CODE try and clean this mess up. Nulls everywhere, long methods.
 	//			some places report errors to the InitReporter, some throw exceptions.
 	// TODO CODE drop the idea of reporting all errors and going into fail mode.
 	//			Just throw an exception immediately, much simpler.
@@ -146,6 +161,7 @@ public class InitWorkspaceServer {
 			return null;
 		} 
 		
+		// TODO CODE move this into buildWorkspace. Change so rep isn't used for fails
 		AbstractHandleClient hsc = null;
 		if (!cfg.ignoreHandleService()) {
 			final AuthToken handleMgrToken = getHandleToken(cfg, rep, auth);
@@ -161,45 +177,30 @@ public class InitWorkspaceServer {
 		rep.reportInfo("Starting server using connection parameters:\n" + cfg.getParamReport());
 		rep.reportInfo("Temporary file location: " + tfm.getTempDir());
 
-		final WorkspaceDependencies wsdeps;
-		final AdministratorHandler ah;
-		final Workspace ws;
+		final WorkspaceInitResults init;
 		try {
-			wsdeps = getDependencies(cfg, auth, rep);
-			// TODO CODE build ws in getDependencies & return in class
-			ws = new Workspace(
-					wsdeps.mongoWS,
-					new ResourceUsageConfigurationBuilder().build(),
-					wsdeps.validator,
-					tfm,
-					wsdeps.listeners);
-			ah = getAdminHandler(cfg, ws);
-		} catch (WorkspaceInitException | WorkspaceCommunicationException e) {
-			e.printStackTrace(System.err);
-			rep.reportFail(e.getLocalizedMessage());
-			rep.reportFail("Server startup failed - all calls will error out.");
+			init = buildWorkspace(cfg, auth, hsc, tfm, rep);
+		} catch (WorkspaceInitException e) {
+			// tested manually, if you make changes test again
+			final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			try {
+				e.printStackTrace(new PrintStream(baos, true, UTF_8.name()));
+				rep.reportFail(e.getLocalizedMessage());
+				rep.reportFail(baos.toString(UTF_8.name()));
+				rep.reportFail("Server startup failed - all calls will error out.");
+			} catch (UnsupportedEncodingException uee) {
+				throw new RuntimeException("Welp that's weird", uee);
+			}
 			return null;
 		}
 		rep.reportInfo(String.format("Initialized %s backend", cfg.getBackendType().name()));
-		// TODO CODE maybe merge these 2 classes?
-		final LocalTypeServerMethods types = new LocalTypeServerMethods(new Types(wsdeps.typeDB));
-		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
-				.getBuilder(maxUniqueIdCountPerCall)
-				.withFactory(new HandleIdHandlerFactory(hsc))
-				.withFactory(wsdeps.shockFac)
-				.withFactory(wsdeps.sampleFac)
-				.build();
-		final WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, builder, auth);
-		final UserValidator userVal = (user, token) -> wsmeth.validateUser(user, token);
-		final WorkspaceAdministration wsadmin = AdministrationCommandSetInstaller.install(
-				WorkspaceAdministration.getBuilder(ah, userVal), wsmeth, types).build();
 		final String mem = String.format(
 				"Started workspace server instance %s. Free mem: %s Total mem: %s, Max mem: %s",
 				++instanceCount, Runtime.getRuntime().freeMemory(),
 				Runtime.getRuntime().totalMemory(),
 				Runtime.getRuntime().maxMemory());
 		rep.reportInfo(mem);
-		return new WorkspaceInitResults(wsmeth, wsadmin, types);
+		return init;
 	}
 	
 	private static AdministratorHandler getAdminHandler(
@@ -232,49 +233,133 @@ public class InitWorkspaceServer {
 		}
 	}
 
-	private static class WorkspaceDependencies {
-		public TypeDefinitionDB typeDB;
-		public TypedObjectValidator validator;
-		public WorkspaceDatabase mongoWS;
-		public BytestreamIdHandlerFactory shockFac;
-		public SampleIdHandlerFactory sampleFac;
-		public List<WorkspaceEventListener> listeners;
-	}
-	
-	private static WorkspaceDependencies getDependencies(
+	private static WorkspaceInitResults buildWorkspace(
 			final KBaseWorkspaceConfig cfg,
 			final ConfigurableAuthService auth,
+			final AbstractHandleClient hsc,
+			final TempFilesManager tfm,
 			final InitReporter rep) // DO NOT use the rep to report failures. Throw instead.
 			throws WorkspaceInitException {
+		// this method is a bit long but it's more or less trivial what's going on here
 		
-		final WorkspaceDependencies deps = new WorkspaceDependencies();
 		final MongoDatabase db = buildMongo(cfg, cfg.getDBname()).getDatabase(cfg.getDBname());
 		
 		final BlobStore bs = setupBlobStore(db, cfg, auth);
 		
-		// see https://jira.mongodb.org/browse/JAVA-2656
-		final MongoDatabase typeDB = buildMongo(cfg, cfg.getTypeDBName())
-				.getDatabase(cfg.getTypeDBName());
-		
-		try {
-			deps.typeDB = new TypeDefinitionDB(new MongoTypeStorage(typeDB));
-		} catch (TypeStorageException e) {
-			throw new WorkspaceInitException("Couldn't set up the type database: "
-					+ e.getLocalizedMessage(), e);
+		final Optional<TypeDelegation> typeDelegator = getTypeDelegator(cfg, rep);
+		final TypeProvider typeProvider;
+		final TypeServerMethods types;
+		if (typeDelegator.isPresent()) {
+			types = new DelegatingTypeServerMethods(typeDelegator.get().delegator);
+			typeProvider = DelegatingTypeProvider.getBuilder(typeDelegator.get().delegationClient)
+					.build();
+		} else {
+			// see https://jira.mongodb.org/browse/JAVA-2656
+			final MongoDatabase mongoTypes = buildMongo(cfg, cfg.getTypeDBName())
+					.getDatabase(cfg.getTypeDBName());
+			final TypeDefinitionDB typeDB;
+			try {
+				typeDB = new TypeDefinitionDB(new MongoTypeStorage(mongoTypes));
+			} catch (TypeStorageException e) {
+				throw new WorkspaceInitException("Couldn't set up the type database: "
+						+ e.getLocalizedMessage(), e);
+			}
+			// merge these 2 classes?
+			types = new LocalTypeServerMethods(new Types(typeDB));
+			typeProvider = new LocalTypeProvider(typeDB);
 		}
-		deps.validator = new TypedObjectValidator(new LocalTypeProvider(deps.typeDB));
+		final MongoWorkspaceDB mongoWS;
 		try {
-			deps.mongoWS = new MongoWorkspaceDB(db, bs);
+			mongoWS = new MongoWorkspaceDB(db, bs);
 		} catch (WorkspaceDBException wde) {
 			throw new WorkspaceInitException(
 					"Error initializing the workspace database: " +
 					wde.getLocalizedMessage(), wde);
 		}
-		deps.shockFac = getShockIdHandlerFactory(cfg, auth);
-		deps.sampleFac = getSampleIdHandlerFactory(cfg, auth, rep);
-		
-		deps.listeners = loadListeners(cfg);
-		return deps;
+		final Workspace ws;
+		try {
+			ws = new Workspace(
+					mongoWS,
+					new ResourceUsageConfigurationBuilder().build(),
+					new TypedObjectValidator(typeProvider),
+					tfm,
+					loadListeners(cfg));
+		} catch (WorkspaceCommunicationException e) { // this is really hard to test
+			throw new WorkspaceInitException(e.getMessage(), e);
+		}
+		final IdReferenceHandlerSetFactoryBuilder builder = IdReferenceHandlerSetFactoryBuilder
+				.getBuilder(maxUniqueIdCountPerCall)
+				.withFactory(new HandleIdHandlerFactory(hsc))
+				.withFactory(getShockIdHandlerFactory(cfg, auth))
+				.withFactory(getSampleIdHandlerFactory(cfg, auth, rep))
+				.build();
+		final WorkspaceServerMethods wsmeth = new WorkspaceServerMethods(ws, builder, auth);
+		final WorkspaceAdministration.Builder adminbuilder = WorkspaceAdministration.getBuilder(
+				getAdminHandler(cfg, ws), (user, token) -> wsmeth.validateUser(user, token));
+		if (typeDelegator.isPresent()) {
+			AdministrationCommandSetInstaller.install(
+					adminbuilder, wsmeth, typeDelegator.get().delegator);
+		} else {
+			AdministrationCommandSetInstaller.install(
+					adminbuilder, wsmeth, (LocalTypeServerMethods) types);
+		}
+		return new WorkspaceInitResults(wsmeth, adminbuilder.build(), types);
+	}
+	
+	private static class TypeDelegation {
+		private final WorkspaceClient delegationClient;
+		private final WorkspaceDelegator delegator;
+
+		public TypeDelegation(
+				final WorkspaceClient delegationClient,
+				final WorkspaceDelegator delegator) {
+			this.delegationClient = delegationClient;
+			this.delegator = delegator;
+		}
+	}
+
+	private static Optional<TypeDelegation> getTypeDelegator(
+			final KBaseWorkspaceConfig cfg,
+			final InitReporter rep) // DO NOT use the rep to report failures. Throw instead.
+			throws WorkspaceInitException {
+		if (cfg.getTypeDelegationTarget() == null) {
+			return Optional.empty();
+		}
+		final WorkspaceClient cli = new WorkspaceClient(cfg.getTypeDelegationTarget());
+		try {
+			cli.ver();
+		} catch (IOException | JsonClientException e) {
+			// this code was tested manually. If you make changes retest
+			throw new WorkspaceInitException(
+					"Failed contacting type delegation workspace: " + e.getMessage(), e);
+		}
+		if (cfg.getTypeDelegationTarget().getProtocol().equals("http")) {
+			rep.reportInfo("Warning - the Type Delegation url uses insecure http. " +
+					"https is recommended.");
+			cli.setIsInsecureHttpConnectionAllowed(true);
+		}
+		return Optional.of(new TypeDelegation(
+				cli,
+				new WorkspaceDelegator(
+						cfg.getTypeDelegationTarget(),
+						new WorkspaceDelegator.WorkspaceClientProvider() {
+			
+							@Override
+							public WorkspaceClient getClient(
+									final URL workspaceURL,
+									final AuthToken token)
+									throws UnauthorizedException, IOException {
+								return new WorkspaceClient(workspaceURL, token);
+							}
+							
+							@Override
+							public WorkspaceClient getClient(final URL workspaceURL)
+									throws UnauthorizedException, IOException {
+								return cli;
+							}
+						}
+				)
+		));
 	}
 
 	private static BytestreamIdHandlerFactory getShockIdHandlerFactory(
@@ -330,6 +415,8 @@ public class InitWorkspaceServer {
 					"thrown, but here we are", e);
 		}
 		if (cfg.getSampleServiceURL().getProtocol().equals("http")) {
+			// TODO CODE move all this warning code to the config class
+			// easier to unit test, less code in this disaster of a class
 			rep.reportInfo("Warning - the Sample Service url uses insecure http. " +
 					"https is recommended.");
 			cli.setIsInsecureHttpConnectionAllowed(true);
