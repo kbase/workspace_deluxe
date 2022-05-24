@@ -103,7 +103,6 @@ public class WorkspaceUnitTest {
 	
 	private class TestMocks {
 		private final WorkspaceDatabase db;
-		@SuppressWarnings("unused")
 		private final TypedObjectValidator val;
 		@SuppressWarnings("unused")
 		private final ResourceUsageConfiguration cfg;

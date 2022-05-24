@@ -21,10 +21,10 @@ import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UnauthorizedException;
 import us.kbase.common.test.TestCommon;
 import us.kbase.workspace.WorkspaceClient;
+import us.kbase.workspace.kbase.TypeDelegationException;
 import us.kbase.workspace.kbase.WorkspaceDelegator;
 import us.kbase.workspace.kbase.WorkspaceDelegator.WorkspaceClientProvider;
 import us.kbase.workspace.kbase.WorkspaceDelegator.WorkspaceCommand;
-import us.kbase.workspace.kbase.WorkspaceDelegator.WorkspaceDelegationException;
 
 public class WorkspaceDelegatorTest {
 	
@@ -140,7 +140,7 @@ public class WorkspaceDelegatorTest {
 		when(m.wc.getTypeInfo("sometype")).thenThrow(new JsonClientException("dang bruh"));
 		
 		final Exception got = failDelegate(m.del, null, c -> c.getTypeInfo("sometype"),
-				new WorkspaceDelegationException("dang bruh"));
+				new TypeDelegationException("dang bruh"));
 		TestCommon.assertExceptionCorrect(got.getCause(), new JsonClientException("dang bruh"));
 	}
 	
@@ -153,7 +153,7 @@ public class WorkspaceDelegatorTest {
 		when(m.wc.getTypeInfo("sometype")).thenThrow(new IOException("ow my liver"));
 		
 		final Exception got = failDelegate(m.del, null, c -> c.getTypeInfo("sometype"),
-				new WorkspaceDelegationException("ow my liver"));
+				new TypeDelegationException("ow my liver"));
 		TestCommon.assertExceptionCorrect(got.getCause(), new IOException("ow my liver"));
 	}
 	
@@ -170,8 +170,8 @@ public class WorkspaceDelegatorTest {
 				"server side\nstacktrace goes here\nline 1: int foo = 0"));
 		
 		final Exception got = failDelegate(m.del, null, c -> c.getTypeInfo("sometype"),
-				new WorkspaceDelegationException("reindeer prodding"));
-		TestCommon.assertExceptionCorrect(got.getCause(), new WorkspaceDelegationException(
+				new TypeDelegationException("reindeer prodding"));
+		TestCommon.assertExceptionCorrect(got.getCause(), new TypeDelegationException(
 				"server side\nstacktrace goes here\nline 1: int foo = 0"));
 		TestCommon.assertExceptionCorrect(
 				got.getCause().getCause(),

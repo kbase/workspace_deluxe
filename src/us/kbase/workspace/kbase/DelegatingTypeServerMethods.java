@@ -18,7 +18,6 @@ import us.kbase.workspace.RegisterTypespecCopyParams;
 import us.kbase.workspace.RegisterTypespecParams;
 import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.TypeInfo;
-import us.kbase.workspace.kbase.WorkspaceDelegator.WorkspaceDelegationException;
 
 /** An implementation of the type service methods that delegate to another workspace service.
  * Note that any asAdmin param toggles are ignored - administration methods should be delegated
@@ -40,7 +39,7 @@ public class DelegatingTypeServerMethods implements TypeServerMethods {
 			final GrantModuleOwnershipParams params,
 			final AuthToken token,
 			final boolean asAdmin) // admin methods should not call this when delegating
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		delegator.delegate(token, c -> {c.grantModuleOwnership(params); return null;});
 	}
 
@@ -49,13 +48,13 @@ public class DelegatingTypeServerMethods implements TypeServerMethods {
 			final RemoveModuleOwnershipParams params,
 			final AuthToken token,
 			final boolean asAdmin) // admin methods should not call this when delegating
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		delegator.delegate(token, c -> {c.removeModuleOwnership(params); return null;});
 	}
 
 	@Override
 	public void requestModuleOwnership(final String mod, final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		delegator.delegate(token, c -> {c.requestModuleOwnership(mod); return null;});
 	}
 
@@ -63,7 +62,7 @@ public class DelegatingTypeServerMethods implements TypeServerMethods {
 	public Map<String, String> registerTypespec(
 			final RegisterTypespecParams params,
 			final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.registerTypespec(params));
 	}
 
@@ -71,19 +70,19 @@ public class DelegatingTypeServerMethods implements TypeServerMethods {
 	public Long registerTypespecCopy(
 			final RegisterTypespecCopyParams params,
 			final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.registerTypespecCopy(params));
 	}
 
 	@Override
 	public List<String> releaseModule(final String mod, final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.releaseModule(mod));
 	}
 
 	@Override
 	public List<String> listModules(final ListModulesParams params)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(null, c -> c.listModules(params));
 	}
 
@@ -91,7 +90,7 @@ public class DelegatingTypeServerMethods implements TypeServerMethods {
 	public ModuleVersions listModuleVersions(
 			final ListModuleVersionsParams params,
 			final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.listModuleVersions(params));
 	}
 
@@ -99,19 +98,19 @@ public class DelegatingTypeServerMethods implements TypeServerMethods {
 	public ModuleInfo getModuleInfo(
 			final GetModuleInfoParams params,
 			final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.getModuleInfo(params));
 	}
 
 	@Override
 	public String getJsonschema(final String type, final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.getJsonschema(type));
 	}
 
 	@Override
 	public Map<String, List<String>> translateFromMD5Types(final List<String> md5Types)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(null, c -> c.translateFromMD5Types(md5Types));
 	}
 
@@ -119,31 +118,31 @@ public class DelegatingTypeServerMethods implements TypeServerMethods {
 	public Map<String, String> translateToMD5Types(
 			final List<String> semTypes,
 			final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.translateToMD5Types(semTypes));
 	}
 
 	@Override
 	public TypeInfo getTypeInfo(final String type, final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.getTypeInfo(type));
 	}
 
 	@Override
 	public List<TypeInfo> getAllTypeInfo(final String mod, final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.getAllTypeInfo(mod));
 	}
 
 	@Override
 	public FuncInfo getFuncInfo(final String func, final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.getFuncInfo(func));
 	}
 
 	@Override
 	public List<FuncInfo> getAllFuncInfo(final String mod, final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.getAllFuncInfo(mod));
 	}
 
@@ -151,7 +150,7 @@ public class DelegatingTypeServerMethods implements TypeServerMethods {
 	public Map<String, Map<String, String>> listAllTypes(
 			final ListAllTypesParams params,
 			final AuthToken token)
-			throws WorkspaceDelegationException {
+			throws TypeDelegationException {
 		return delegator.delegate(token, c -> c.listAllTypes(params));
 	}
 
