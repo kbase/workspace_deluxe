@@ -228,7 +228,7 @@ public class InitWorkspaceServer {
 		
 		final MongoDatabase db = buildMongo(cfg, cfg.getDBname()).getDatabase(cfg.getDBname());
 		
-		final BlobStore bs = setupBlobStore(db, cfg, auth);
+		final BlobStore bs = setupBlobStore(db, cfg);
 		
 		final Optional<TypeDelegation> typeDelegator = getTypeDelegator(cfg, rep);
 		final TypeProvider typeProvider;
@@ -511,8 +511,7 @@ public class InitWorkspaceServer {
 
 	private static BlobStore setupBlobStore(
 			final MongoDatabase db,
-			final KBaseWorkspaceConfig cfg,
-			final ConfigurableAuthService auth)
+			final KBaseWorkspaceConfig cfg)
 			throws WorkspaceInitException {
 		
 		if (cfg.getBackendType().equals(BackendType.GridFS)) {
