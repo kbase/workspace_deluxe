@@ -76,11 +76,6 @@ import us.kbase.workspace.listener.WorkspaceEventListenerFactory;
 
 public class InitWorkspaceServer {
 	
-	// TODO NOW_TYPES document type delegation setup, constraints, caching,
-	// and long term type server split plans in rst
-	// Note that if the bootstrap admin for each server is not also an admin in all other
-	// servers confusion will ensue. Does this matter for auth2 based admins? Check
-	
 	// TODO TEST unittests... are going to be a real pain.
 	// TODO JAVADOC
 	// TODO CODE try and clean this mess up. Nulls everywhere, long methods.
