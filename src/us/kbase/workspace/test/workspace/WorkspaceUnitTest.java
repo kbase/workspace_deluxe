@@ -552,8 +552,8 @@ public class WorkspaceUnitTest {
 				Provenance.getBuilder(new WorkspaceUser("u"), now()).build(),
 				false);
 	}
+	
 	@Test
-
 	public void saveObjectValidationFailNoSuchModuleException() throws Exception {
 		failSaveObjectValidationException(
 				list(saveObjectValidationFailGetBadObject(new ObjectIDNoWSNoVer(42))),

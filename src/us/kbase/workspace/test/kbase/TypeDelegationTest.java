@@ -34,7 +34,6 @@ import us.kbase.common.test.controllers.mongo.MongoController;
 import us.kbase.test.auth2.authcontroller.AuthController;
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.workspace.CreateWorkspaceParams;
-import us.kbase.workspace.FuncInfo;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GetObjects2Params;
 import us.kbase.workspace.GrantModuleOwnershipParams;
@@ -147,12 +146,10 @@ public class TypeDelegationTest {
 		System.out.println(String.format("Started mongo at %s with temp dir %s",
 				mongohost, MONGO.getTempDir()));
 		
-		// set up auth
-		final String dbname = JSONRPCLayerTester.class.getSimpleName() + "Auth";
 		AUTHC = new AuthController(
 				TestCommon.getJarsDir(),
-				"localhost:" + MONGO.getServerPort(),
-				dbname,
+				mongohost,
+				CLS + "Auth",
 				Paths.get(TestCommon.getTempDir()));
 		final URL authURL = new URL("http://localhost:" + AUTHC.getServerPort() + "/testmode");
 		System.out.println("started auth server at " + authURL + "\n");
@@ -178,7 +175,7 @@ public class TypeDelegationTest {
 				new LinkedList<>(),
 				new ResourceUsageConfigurationBuilder().build());
 		
-		int typeport = TYPE_SERVER.getServerPort();
+		final int typeport = TYPE_SERVER.getServerPort();
 		System.out.println("Started test type server on port " + typeport + "\n");
 		TYPE_SERVER_URL = new URL("http://localhost:" + typeport);
 		TYPE_CLIENT = new WorkspaceClient(TYPE_SERVER_URL, t1);
@@ -201,7 +198,7 @@ public class TypeDelegationTest {
 				new LinkedList<>(),
 				new ResourceUsageConfigurationBuilder().build());
 		
-		int delport = DELEGATION_SERVER.getServerPort();
+		final int delport = DELEGATION_SERVER.getServerPort();
 		System.out.println("Started test delegating server on port " + delport + "\n");
 		final URL wsurl_del = new URL("http://localhost:" + delport);
 		DELEGATION_CLIENT = new WorkspaceClient(wsurl_del, t1);
@@ -407,7 +404,8 @@ public class TypeDelegationTest {
 		checkModVers(modversT, expectedModVers);
 		
 		// getFuncInfo
-		final FuncInfo expectedFuncInfo = new FuncInfo()
+		@SuppressWarnings("deprecation")
+		final us.kbase.workspace.FuncInfo expectedFuncInfo = new us.kbase.workspace.FuncInfo()
 				.withDescription("")
 				.withFuncDef("MyMod.myfunc-1.0")
 				.withFuncVers(list("MyMod.myfunc-0.1", "MyMod.myfunc-1.0"))
@@ -418,15 +416,20 @@ public class TypeDelegationTest {
 				.withReleasedModuleVers(list(releaseModVer))
 				.withSpecDef("funcdef myfunc(int req) returns (int ret) authentication none;")
 				.withUsedTypeDefs(list());
-		final FuncInfo funcD = DELEGATION_CLIENT.getFuncInfo("MyMod.myfunc");
+		@SuppressWarnings("deprecation")
+		final us.kbase.workspace.FuncInfo funcD = DELEGATION_CLIENT.getFuncInfo("MyMod.myfunc");
 		checkFuncInfo(funcD, expectedFuncInfo);
-		final FuncInfo funcT = TYPE_CLIENT.getFuncInfo("MyMod.myfunc");
+		@SuppressWarnings("deprecation")
+		final us.kbase.workspace.FuncInfo funcT = TYPE_CLIENT.getFuncInfo("MyMod.myfunc");
 		checkFuncInfo(funcT, expectedFuncInfo);
 		// getAllFuncInfo
-		final List<FuncInfo> allFuncD = DELEGATION_CLIENT.getAllFuncInfo("MyMod");
+		@SuppressWarnings("deprecation")
+		final List<us.kbase.workspace.FuncInfo> allFuncD = DELEGATION_CLIENT.getAllFuncInfo(
+				"MyMod");
 		assertThat("incorrect func count", allFuncD.size(), is(1));
 		checkFuncInfo(allFuncD.get(0), expectedFuncInfo);
-		final List<FuncInfo> allFuncT = TYPE_CLIENT.getAllFuncInfo("MyMod");
+		@SuppressWarnings("deprecation")
+		final List<us.kbase.workspace.FuncInfo> allFuncT = TYPE_CLIENT.getAllFuncInfo("MyMod");
 		assertThat("incorrect func count", allFuncT.size(), is(1));
 		checkFuncInfo(allFuncT.get(0), expectedFuncInfo);
 		
@@ -770,7 +773,10 @@ public class TypeDelegationTest {
 				got.getUsingTypeDefs(), is(expected.getUsingTypeDefs()));
 	}
 	
-	private void checkFuncInfo(final FuncInfo got, final FuncInfo expected) {
+	@SuppressWarnings("deprecation")
+	private void checkFuncInfo(
+			final us.kbase.workspace.FuncInfo got,
+			final us.kbase.workspace.FuncInfo expected) {
 		// the SDK classes not having equals suuuucks
 		assertThat("incorrect add props",
 				got.getAdditionalProperties(), is(expected.getAdditionalProperties()));

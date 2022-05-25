@@ -924,38 +924,39 @@ public class Workspace {
 		final ValidatedTypedObject rep;
 		try {
 			rep = validator.validate(wo.getData(), wo.getType(), idhandler);
-		} catch (NoSuchTypeException nste) {
-			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking: ", getObjectErrorId(wo, objcount))
-					+ nste.getLocalizedMessage(), nste);
-		} catch (NoSuchModuleException nsme) {
-			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking: ", getObjectErrorId(wo, objcount))
-					+ nsme.getLocalizedMessage(), nsme);
+		} catch (NoSuchTypeException e) {
+			throw new TypedObjectValidationException(
+					getValidationErrorPrefix(wo, objcount) + ": " +  e.getLocalizedMessage(), e);
+		} catch (NoSuchModuleException e) {
+			throw new TypedObjectValidationException(
+					getValidationErrorPrefix(wo, objcount) + ": " +  e.getLocalizedMessage(), e);
 		} catch (TooManyIdsException e) {
 			throw wrapTooManyIDsException(wo, objcount, idhandler.getMaximumIdCount(), e);
-		} catch (JsonParseException jpe) {
-			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking ", getObjectErrorId(wo, objcount)) + 
-					"- a fatal JSON processing error occurred: " + jpe.getMessage(), jpe);
-		} catch (IOException ioe) {
-			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking ", getObjectErrorId(wo, objcount)) + 
-					"- a fatal IO error occurred: " + ioe.getMessage(), ioe);
-		} catch (TypeFetchException tfe) {
-			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking ", getObjectErrorId(wo, objcount)) + 
-					"- a fatal error occurred attempting to fetch the type specification: "
-					+ tfe.getMessage(), tfe);
+		} catch (JsonParseException e) {
+			throw new TypedObjectValidationException(
+					getValidationErrorPrefix(wo, objcount) +
+					" - a fatal JSON processing error occurred: " + e.getMessage(), e);
+		} catch (IOException e) {
+			throw new TypedObjectValidationException(
+					getValidationErrorPrefix(wo, objcount) +
+					" - a fatal IO error occurred: " + e.getMessage(), e);
+		} catch (TypeFetchException e) {
+			throw new TypedObjectValidationException(
+					getValidationErrorPrefix(wo, objcount) +
+					" - a fatal error occurred attempting to fetch the type specification: " +
+					e.getMessage(), e);
 		}
 		if (!rep.isInstanceValid()) {
 			final List<String> e = rep.getErrorMessages();
 			final String err = StringUtils.join(e, "\n");
-			throw new TypedObjectValidationException(String.format(
-					"Object %s failed type checking:\n",
-					getObjectErrorId(wo, objcount)) + err);
+			throw new TypedObjectValidationException(
+					getValidationErrorPrefix(wo, objcount) + ":\n" + err);
 		}
 		return rep;
+	}
+	
+	private String getValidationErrorPrefix(final WorkspaceSaveObject wo, final int objcount) {
+		return String.format("Object %s failed type checking", getObjectErrorId(wo, objcount));
 	}
 	
 	private TypedObjectValidationException wrapTooManyIDsException(
@@ -963,11 +964,10 @@ public class Workspace {
 			final int objcount,
 			final int maximumIDCount,
 			final TooManyIdsException e) {
-		return new TypedObjectValidationException(String.format(
-				"Object %s failed type checking - the number of " +
-				"unique IDs in the saved objects exceeds the maximum " +
-				"allowed, %s",
-				getObjectErrorId(wo, objcount), maximumIDCount), e);
+		return new TypedObjectValidationException(
+				getValidationErrorPrefix(wo, objcount) +
+				" - the number of unique IDs in the saved objects exceeds the maximum allowed, " +
+				maximumIDCount, e);
 	}
 
 	//should definitely make an options builder
