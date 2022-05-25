@@ -1968,23 +1968,8 @@ module Workspace {
 	funcdef get_all_type_info(modulename mod) returns(list<TypeInfo>)
 		authentication optional;
 	
-	/* Information about a function
-	
-		func_string func_def - resolved func definition id.
-		string description - the description of the function from spec file.
-		string spec_def - reconstruction of function definition from spec file.
-		string parsing_structure - json document describing parsing structure of function 
-			in spec file including types of arguments.
-		list<spec_version> module_vers - versions of spec files containing
-			given func version.
-		list<spec_version> released_module_vers - released versions of spec files 
-			containing given func version.
-		list<func_string> func_vers - all versions of function with given type
-			name.
-		list<func_string> released_func_vers - all released versions of function 
-			with given type name.
-		list<type_string> used_type_defs - list of types (with versions) 
-			referred to from this function version.
+	/* DEPRECATED
+		@deprecated
 	*/
 	typedef structure {
 		func_string func_def;
@@ -1998,9 +1983,11 @@ module Workspace {
 		list<type_string> used_type_defs;
 	} FuncInfo;
 	
+	/* @deprecated */
 	funcdef get_func_info(func_string func) returns(FuncInfo info)
 		authentication optional;
 	
+	/* @deprecated */
 	funcdef get_all_func_info(modulename mod) returns(list<FuncInfo> info)
 		authentication optional;
 	

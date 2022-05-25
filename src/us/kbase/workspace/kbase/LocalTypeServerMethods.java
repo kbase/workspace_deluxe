@@ -30,7 +30,6 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
-import us.kbase.workspace.FuncInfo;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListAllTypesParams;
@@ -302,11 +301,12 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 		return returnVal;
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Override
-	public FuncInfo getFuncInfo(final String func, final AuthToken token)
+	public us.kbase.workspace.FuncInfo getFuncInfo(final String func, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
 		final FuncDetailedInfo fdi = types.getFuncInfo(func, true, getUser(token));
-		return new FuncInfo().withFuncDef(fdi.getFuncDefId())
+		return new us.kbase.workspace.FuncInfo().withFuncDef(fdi.getFuncDefId())
 				.withDescription(fdi.getDescription())
 				.withSpecDef(fdi.getSpecDef())
 				.withParsingStructure(fdi.getParsingStructure())
@@ -317,12 +317,13 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 				.withUsedTypeDefs(fdi.getUsedTypeDefIds());
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Override
-	public List<FuncInfo> getAllFuncInfo(final String mod, final AuthToken token)
+	public List<us.kbase.workspace.FuncInfo> getAllFuncInfo(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchFuncException {
 		final ModuleInfo mi = getModuleInfo(new GetModuleInfoParams().withMod(mod), token);
-		final List<FuncInfo> returnVal = new ArrayList<FuncInfo>();
+		final List<us.kbase.workspace.FuncInfo> returnVal = new ArrayList<>();
 		for (String funcDef : mi.getFunctions()) {
 			returnVal.add(getFuncInfo(funcDef, token));
 		}

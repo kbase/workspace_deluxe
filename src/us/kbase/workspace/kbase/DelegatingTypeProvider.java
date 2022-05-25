@@ -35,16 +35,17 @@ public class DelegatingTypeProvider implements TypeProvider {
 	 */
 	public static final int DEFAULT_TYPE_CACHE_TIME_MS = 5 * 60 * 1000; // 5m between checks
 
-	/** The maximum size of the non-absolute to absolute type mapping cache in bytes. Mapping sizes
-	 * are calculated as sum of the Java UTF-16 encoding size of the non-absolute type string and
-	 * absolute type string. References, etc. are not accounted for.
+	/** The default maximum size of the non-absolute to absolute type mapping cache in bytes.
+	 * Mapping sizes are calculated as sum of the Java UTF-16 encoding size of the non-absolute
+	 * type string and absolute type string. References, etc. are not accounted for.
 	 */
 	public static final int DEFAULT_TYPE_CACHE_MAX_SIZE = 128 * 1024;
 	
 	
-	/** The maximum size of the absolute type to JSONschema mapping cache in bytes. Mapping sizes
-	 * are calculated as sum of the Java UTF-16 encoding size of the absolute type string and the
-	 * size of the UTF-8 encoded JSON schema. References, etc. are not accounted for.
+	/** The default maximum size of the absolute type to JSONschema mapping cache in bytes.
+	 * Mapping sizes are calculated as sum of the Java UTF-16 encoding size of the absolute
+	 * type string and the size of the UTF-8 encoded JSON schema. References, etc. are not
+	 * accounted for.
 	 * 
 	 * This value is the minimum size allowed for the maximum size of the cache as the caching
 	 * logic depends on the jsonschema cache being populated.
@@ -276,7 +277,7 @@ public class DelegatingTypeProvider implements TypeProvider {
 		}
 		
 		/** Set the amount of time an entry in the non-absolute to absolute type cache should
-		 * remain in milliseconds. Typically is this a small amount of time to that type updates
+		 * remain in milliseconds. Typically is this a small amount of time so that type updates
 		 * are reflected reasonably quickly.
 		 * @param typeCacheTimeMS the cache expiration time in milliseconds defaulting to
 		 * {@link DelegatingTypeProvider#DEFAULT_TYPE_CACHE_TIME_MS}.

@@ -12,7 +12,6 @@ import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.ServerException;
 import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
-import us.kbase.workspace.FuncInfo;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListAllTypesParams;
@@ -26,7 +25,7 @@ import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.TypeInfo;
 import us.kbase.workspace.WorkspaceClient;
 
-/** An type client that delegates type operations to another service.
+/** A type client that delegates type operations to another service.
  * Note that any asAdmin param toggles are ignored - administration methods should be delegated
  * to {@link #administer(UObject, AuthToken)} rather than the standard methods.
  */
@@ -183,14 +182,18 @@ public class TypeClient implements TypeServerMethods {
 		return delegate(token, c -> c.getAllTypeInfo(mod));
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
-	public FuncInfo getFuncInfo(final String func, final AuthToken token)
+	public us.kbase.workspace.FuncInfo getFuncInfo(final String func, final AuthToken token)
 			throws TypeDelegationException {
 		return delegate(token, c -> c.getFuncInfo(func));
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
-	public List<FuncInfo> getAllFuncInfo(final String mod, final AuthToken token)
+	public List<us.kbase.workspace.FuncInfo> getAllFuncInfo(
+			final String mod,
+			final AuthToken token)
 			throws TypeDelegationException {
 		return delegate(token, c -> c.getAllFuncInfo(mod));
 	}

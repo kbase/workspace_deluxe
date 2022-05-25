@@ -14,7 +14,6 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
-import us.kbase.workspace.FuncInfo;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListAllTypesParams;
@@ -102,11 +101,13 @@ public interface TypeServerMethods {
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchTypeException, TypeDelegationException;
 	
-	FuncInfo getFuncInfo(final String func, final AuthToken token)
+	@SuppressWarnings("deprecation")
+	us.kbase.workspace.FuncInfo getFuncInfo(final String func, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException,
 				TypeDelegationException;
 	
-	List<FuncInfo> getAllFuncInfo(final String mod, final AuthToken token)
+	@SuppressWarnings("deprecation")
+	List<us.kbase.workspace.FuncInfo> getAllFuncInfo(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchFuncException, TypeDelegationException;
 

@@ -207,7 +207,7 @@ public class DelegatingTypeProviderTest {
 	
 	@Test
 	public void jsonSchemaTypeCacheUpatedNoUpdateOnNewerTypes() throws Exception {
-		/* Tests that an type cache isn't updated when requesting an absolute type
+		/* Tests that the type cache isn't updated when requesting an absolute type
 		 * if the type cache already has newer entries
 		 */
 		final TestMocks m = initMocks(50000, 50000, 2000000); // no eviction
@@ -276,7 +276,7 @@ public class DelegatingTypeProviderTest {
 		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-7.23")),
 				is(new ResolvedType(atype("Foo.Bar-7.23"), "jsonschema 3 here")));
 		
-		// we confirm that by pulling the non-absolute types and checking they haven't changed
+		// we confirm that by pulling the non-absolute types and checking they have changed
 		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar")),
 				is(new ResolvedType(atype("Foo.Bar-7.23"), "jsonschema 3 here")));
 		assertThat(m.p.getTypeJsonSchema(type("Foo.Bar-7")),
@@ -545,7 +545,7 @@ public class DelegatingTypeProviderTest {
 	
 	@Test
 	public void jsonSchemaCacheEvictOnWeight() throws Exception {
-		// See the notes for the type cash test above. Testing cache eviction here is
+		// See the notes for the type cache test above. Testing cache eviction here is
 		// difficult to do without a really clear understanding of the cache eviction algorithm
 		// which is pretty complex and is not worth the time to get my head around right now
 		
