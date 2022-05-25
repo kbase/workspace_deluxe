@@ -45,8 +45,8 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
 import us.kbase.workspace.kbase.LocalTypeServerMethods;
+import us.kbase.workspace.kbase.TypeClient;
 import us.kbase.workspace.kbase.TypeDelegationException;
-import us.kbase.workspace.kbase.WorkspaceDelegator;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.AdminCommandSpecification;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration.Builder;
@@ -126,7 +126,7 @@ public class AdministrationCommandSetInstaller {
 			final WorkspaceAdministration.Builder builder,
 			// see note above about calling the underlying workspace instance.
 			final WorkspaceServerMethods wsmeth,
-			final WorkspaceDelegator delegator) {
+			final TypeClient delegator) {
 
 		requireNonNull(wsmeth, "wsmeth");
 		installTypeHandlers(
@@ -142,7 +142,7 @@ public class AdministrationCommandSetInstaller {
 	}
 	
 	private static void installTypeDelegationTargetHandler(
-			final WorkspaceDelegator delegator,
+			final TypeClient delegator,
 			final Builder builder) {
 		// TODO NOW_TYPES document when this feature is enabled
 		builder.withCommand(new AdminCommandSpecification(
@@ -151,26 +151,26 @@ public class AdministrationCommandSetInstaller {
 				getLogger().info(GET_TYPE_DELEGATION_TARGET);
 				final Map<String, Object> ret = new HashMap<>();
 				ret.put("delegateTarget", delegator == null ? null :
-					delegator.getTargetWorkspace().toString());
+					delegator.getTargetURL().toString());
 				return ret;
 			}));
 	}
 
 	private static void installTypeHandlers(
-			final WorkspaceDelegator delegator,
+			final TypeClient delegator,
 			final Builder builder) {
 		builder.withCommand(new AdminCommandSpecification(
 			LIST_MOD_REQUESTS,
 			(cmd, token, toDelete) -> {
 				getLogger().info(LIST_MOD_REQUESTS +
-						" delegated to " + delegator.getTargetWorkspace());
+						" delegated to " + delegator.getTargetURL());
 				return delegate(delegator, cmd, token);
 			}));
 		builder.withCommand(new AdminCommandSpecification(
 			APPROVE_MOD_REQUEST,
 			(cmd, token, toDelete) -> {
 				getLogger().info(APPROVE_MOD_REQUEST + " " + cmd.getModule() +
-						" delegated to " + delegator.getTargetWorkspace());
+						" delegated to " + delegator.getTargetURL());
 				return delegate(delegator, cmd, token);
 			},
 			true));
@@ -178,7 +178,7 @@ public class AdministrationCommandSetInstaller {
 			DENY_MOD_REQUEST,
 			(cmd, token, toDelete) -> {
 				getLogger().info(DENY_MOD_REQUEST + " " + cmd.getModule() +
-						" delegated to " + delegator.getTargetWorkspace());
+						" delegated to " + delegator.getTargetURL());
 				return delegate(delegator, cmd, token);
 			},
 			true));
@@ -189,7 +189,7 @@ public class AdministrationCommandSetInstaller {
 						GrantModuleOwnershipParams.class);
 				getLogger().info(GRANT_MODULE_OWNERSHIP + " " + params.getMod() +
 						" " + params.getNewOwner() +
-						" delegated to " + delegator.getTargetWorkspace());
+						" delegated to " + delegator.getTargetURL());
 				return delegate(delegator, cmd, token);
 			},
 			true));
@@ -200,18 +200,18 @@ public class AdministrationCommandSetInstaller {
 						RemoveModuleOwnershipParams.class);
 				getLogger().info(REMOVE_MODULE_OWNERSHIP + " " + params.getMod() +
 						" " + params.getOldOwner() +
-						" delegated to " + delegator.getTargetWorkspace());
+						" delegated to " + delegator.getTargetURL());
 				return delegate(delegator, cmd, token);
 			},
 			true));
 	}
 
-	private static Object delegate(
-			final WorkspaceDelegator delegator,
+	public static Object delegate(
+			final TypeClient delegator,
 			final AdminCommand cmd,
 			final AuthToken token)
 			throws TypeDelegationException {
-		final UObject res = delegator.delegate(token, c -> c.administer(new UObject(cmd)));
+		final UObject res = delegator.administer(new UObject(cmd), token);
 		return res == null ? null : res.isNull() ? null : res.asClassInstance(Object.class);
 	}
 

@@ -16,7 +16,6 @@ import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.common.test.TestCommon.list;
 import static us.kbase.common.test.TestCommon.set;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,7 +38,6 @@ import com.google.common.collect.ImmutableMap;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import us.kbase.auth.AuthToken;
-import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.Tuple11;
 import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
@@ -65,7 +63,6 @@ import us.kbase.workspace.RemoveModuleOwnershipParams;
 import us.kbase.workspace.SaveObjectsParams;
 import us.kbase.workspace.SetGlobalPermissionsParams;
 import us.kbase.workspace.SetPermissionsParams;
-import us.kbase.workspace.WorkspaceClient;
 import us.kbase.workspace.WorkspaceIdentity;
 import us.kbase.workspace.WorkspacePermissions;
 import us.kbase.workspace.database.DynamicConfig;
@@ -78,10 +75,9 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.LocalTypeServerMethods;
+import us.kbase.workspace.kbase.TypeClient;
 import us.kbase.workspace.kbase.TypeServerMethods;
-import us.kbase.workspace.kbase.WorkspaceDelegator;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
-import us.kbase.workspace.kbase.WorkspaceDelegator.WorkspaceCommand;
 import us.kbase.workspace.kbase.admin.AdminRole;
 import us.kbase.workspace.kbase.admin.AdministrationCommandSetInstaller;
 import us.kbase.workspace.kbase.admin.AdministratorHandler;
@@ -115,7 +111,7 @@ public class AdministrationCommandSetInstallerTest {
 		private final WorkspaceServerMethods wsmeth;
 		private final Types types;
 		private final TypeServerMethods tsm;
-		private final WorkspaceDelegator del;
+		private final TypeClient tc;
 		private final AdministratorHandler ah;
 		private final WorkspaceAdministration admin;
 		private final WorkspaceAdministration admindel;
@@ -125,7 +121,7 @@ public class AdministrationCommandSetInstallerTest {
 				final WorkspaceServerMethods wsmeth,
 				final Types types,
 				final TypeServerMethods tsm,
-				final WorkspaceDelegator del,
+				final TypeClient tc,
 				final AdministratorHandler ah,
 				final WorkspaceAdministration admin,
 				final WorkspaceAdministration admindel) {
@@ -133,7 +129,7 @@ public class AdministrationCommandSetInstallerTest {
 			this.wsmeth = wsmeth;
 			this.types = types;
 			this.tsm = tsm;
-			this.del = del;
+			this.tc = tc;
 			this.ah = ah;
 			this.admin = admin;
 			this.admindel = admindel;
@@ -147,7 +143,7 @@ public class AdministrationCommandSetInstallerTest {
 		final Types types = mock(Types.class);
 		final LocalTypeServerMethods tsm = mock(LocalTypeServerMethods.class);
 		when(tsm.getTypes()).thenReturn(types);
-		final WorkspaceDelegator del = mock(WorkspaceDelegator.class);
+		final TypeClient tc = mock(TypeClient.class);
 		final UserValidator userVal = (user, token) -> wsmeth.validateUser(user, token);
 		final AdministratorHandler ah = mock(AdministratorHandler.class);
 		final WorkspaceAdministration admin = AdministrationCommandSetInstaller.install(
@@ -156,11 +152,11 @@ public class AdministrationCommandSetInstallerTest {
 				.withCacheTimeMS(0)
 				.build();
 		final WorkspaceAdministration admindel = AdministrationCommandSetInstaller.install(
-				WorkspaceAdministration.getBuilder(ah, userVal), wsmeth, del)
+				WorkspaceAdministration.getBuilder(ah, userVal), wsmeth, tc)
 				.withCacheMaxSize(0)
 				.withCacheTimeMS(0)
 				.build();
-		return new TestMocks(ws, wsmeth, types, tsm, del, ah, admin, admindel);
+		return new TestMocks(ws, wsmeth, types, tsm, tc, ah, admin, admindel);
 	}
 	
 	private void runCommandFail(
@@ -184,20 +180,20 @@ public class AdministrationCommandSetInstallerTest {
 		final WorkspaceAdministration.Builder b = WorkspaceAdministration.getBuilder(m.ah, uval);
 
 		failInstall(null, m.wsmeth, ltsm, new NullPointerException("builder"));
-		failInstall(null, m.wsmeth, m.del, new NullPointerException("builder"));
+		failInstall(null, m.wsmeth, m.tc, new NullPointerException("builder"));
 		failInstall(b, null, ltsm, new NullPointerException("wsmeth"));
-		failInstall(b, null, m.del, new NullPointerException("wsmeth"));
+		failInstall(b, null, m.tc, new NullPointerException("wsmeth"));
 		failInstall(b, m.wsmeth, (LocalTypeServerMethods) null, new NullPointerException("type"));
-		failInstall(b, m.wsmeth, (WorkspaceDelegator) null, new NullPointerException("delegator"));
+		failInstall(b, m.wsmeth, (TypeClient) null, new NullPointerException("delegator"));
 	}
 	
 	private void failInstall(
 			final WorkspaceAdministration.Builder b,
 			final WorkspaceServerMethods m,
-			final WorkspaceDelegator d,
+			final TypeClient tc,
 			final Exception expected) {
 		try {
-			AdministrationCommandSetInstaller.install(b, m, d);
+			AdministrationCommandSetInstaller.install(b, m, tc);
 			fail("expected exception");
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, expected);
@@ -1754,52 +1750,24 @@ public class AdministrationCommandSetInstallerTest {
 		}
 	}
 
-	private static class WorkspaceUObjectCommandMatcher implements
-			ArgumentMatcher<WorkspaceCommand<UObject>>{
+	private static class UObjectMatcher implements ArgumentMatcher<UObject> {
 		
 		private final UObject command;
 		
-		public WorkspaceUObjectCommandMatcher(final UObject command) {
+		public UObjectMatcher(final UObject command) {
 			this.command = command;
 		}
 		
 		@Override
-		public boolean matches(final WorkspaceCommand<UObject> cmd) {
-			// this is utterly insane
-			final WorkspaceClient wc = mock(WorkspaceClient.class);
-			final ArgumentMatcher<UObject> uom = new ArgumentMatcher<UObject>() {
-
-				@Override
-				public boolean matches(final UObject got) {
-					@SuppressWarnings("unchecked")
-					final Map<String, Object> expected = command.asClassInstance(Map.class);
-					final Object gotobj = got.asClassInstance(Object.class);
-					if (!expected.equals(gotobj)) {
-						System.out.format("%s: expected %s, got %s\n",
-								WorkspaceUObjectCommandMatcher.class.getSimpleName(),
-								expected, gotobj);
-					}
-					return expected.equals(gotobj);
-				}
-			};
-			// test that the command sent to the delegator is ok
-			try {
-				when(wc.administer(argThat(uom))).thenReturn(new UObject("foo$"));
-			} catch (IOException | JsonClientException e) {
-				throw new RuntimeException("should be impossible", e);
+		public boolean matches(final UObject got) {
+			@SuppressWarnings("unchecked")
+			final Map<String, Object> expected = command.asClassInstance(Map.class);
+			final Object gotobj = got.asClassInstance(Object.class);
+			if (!expected.equals(gotobj)) {
+				System.out.format("%s: expected %s, got %s\n",
+						UObjectMatcher.class.getSimpleName(), expected, gotobj);
 			}
-			final Object res;
-			try {
-				res = cmd.execute(wc).asClassInstance(Object.class);
-			} catch (Exception e) {
-				e.printStackTrace();
-				return false;
-			}
-			if (!res.equals("foo$")) {
-				System.out.println(WorkspaceUObjectCommandMatcher.class.getSimpleName()
-						+ ": wanted foo$, got " + res);
-			}
-			return res.equals("foo$");
+			return expected.equals(gotobj);
 		}
 	}
 	
@@ -1836,17 +1804,15 @@ public class AdministrationCommandSetInstallerTest {
 		oi.setModuleName("mod");
 
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
-		when(mocks.del.getTargetWorkspace())
-				.thenReturn(new URL("https://holycrapthistestisnuts.com"));
-		when(mocks.del.delegate(
-				eq(new AuthToken("tok", "fake")),
-				argThat(new WorkspaceUObjectCommandMatcher(
-						new UObject(map(
-								"command", "listModRequests",
-								"params", null,
-								"module", null,
-								"user", null)
-						)))))
+		when(mocks.tc.getTargetURL())
+				.thenReturn(new URL("https://holycrapthistestisnowlessnuts.com"));
+		final UObjectMatcher cmdmatch = new UObjectMatcher(new UObject(map(
+				"command", "listModRequests",
+				"params", null,
+				"module", null,
+				"user", null)
+				));
+		when(mocks.tc.administer(argThat(cmdmatch), eq(new AuthToken("tok", "fake"))))
 				.thenReturn(new UObject(Arrays.asList(oi)));
 		
 		final Object o =  mocks.admindel.runCommand(new AuthToken("tok", "fake"), command, null);
@@ -1854,7 +1820,7 @@ public class AdministrationCommandSetInstallerTest {
 				"moduleName", "mod", "ownerUserId", null, "withChangeOwnersPrivilege", false))));
 		
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-				"listModRequests delegated to https://holycrapthistestisnuts.com",
+				"listModRequests delegated to https://holycrapthistestisnowlessnuts.com",
 				AdministrationCommandSetInstaller.class));
 	}
 	
@@ -1869,16 +1835,15 @@ public class AdministrationCommandSetInstallerTest {
 					"command", "approveModRequest", "module", "somemod"));
 			
 			when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
-			when(mocks.del.getTargetWorkspace())
+			when(mocks.tc.getTargetURL())
 					.thenReturn(new URL("https://devpocsuredoessuckuptime.com"));
-			final WorkspaceUObjectCommandMatcher cmdmtch = new WorkspaceUObjectCommandMatcher(
-					new UObject(map(
-							"command", "approveModRequest",
-							"params", null,
-							"module", "somemod",
-							"user", null)
+			final UObjectMatcher cmdmtch = new UObjectMatcher(new UObject(map(
+					"command", "approveModRequest",
+					"params", null,
+					"module", "somemod",
+					"user", null)
 					));
-			when(mocks.del.delegate(eq(new AuthToken("tok", "fake")), argThat(cmdmtch)))
+			when(mocks.tc.administer(argThat(cmdmtch), eq(new AuthToken("tok", "fake"))))
 					.thenReturn(ret);
 			
 			final Object o = mocks.admindel.runCommand(
@@ -1902,23 +1867,22 @@ public class AdministrationCommandSetInstallerTest {
 					"command", "denyModRequest", "module", "somemod2"));
 			
 			when(mocks.ah.getAdminRole(new AuthToken("t", "u"))).thenReturn(AdminRole.ADMIN);
-			when(mocks.del.getTargetWorkspace())
-					.thenReturn(new URL("https://thesetestsarepainful.com"));
-			final WorkspaceUObjectCommandMatcher cmdmtch = new WorkspaceUObjectCommandMatcher(
-					new UObject(map(
-							"command", "denyModRequest",
-							"params", null,
-							"module", "somemod2",
-							"user", null)
+			when(mocks.tc.getTargetURL())
+					.thenReturn(new URL("https://thesetestsarenowlesspainful.com"));
+			final UObjectMatcher cmdmtch = new UObjectMatcher(new UObject(map(
+					"command", "denyModRequest",
+					"params", null,
+					"module", "somemod2",
+					"user", null)
 					));
-			when(mocks.del.delegate(eq(new AuthToken("t", "u")), argThat(cmdmtch)))
+			when(mocks.tc.administer(argThat(cmdmtch), eq(new AuthToken("t", "u"))))
 					.thenReturn(ret);
 			
 			final Object o = mocks.admindel.runCommand(new AuthToken("t", "u"), command, null);
 			assertThat("incorrect return", o, nullValue());
 			
 			assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
-					"denyModRequest somemod2 delegated to https://thesetestsarepainful.com",
+					"denyModRequest somemod2 delegated to https://thesetestsarenowlesspainful.com",
 					AdministrationCommandSetInstaller.class));
 		}
 	}
@@ -1938,18 +1902,17 @@ public class AdministrationCommandSetInstallerTest {
 							"with_grant_option", 0)));
 			
 			when(mocks.ah.getAdminRole(new AuthToken("t2", "u"))).thenReturn(AdminRole.ADMIN);
-			when(mocks.del.getTargetWorkspace()).thenReturn(new URL("https://owowow.com"));
-			final WorkspaceUObjectCommandMatcher cmdmtch = new WorkspaceUObjectCommandMatcher(
-					new UObject(map(
-							"command", "grantModuleOwnership",
-							"params", map(
-									"mod", "ModName",
-									"new_owner", "owner",
-									"with_grant_option", 0),
-							"module", null,
-							"user", null)
+			when(mocks.tc.getTargetURL()).thenReturn(new URL("https://owowow.com"));
+			final UObjectMatcher cmdmtch = new UObjectMatcher(new UObject(map(
+					"command", "grantModuleOwnership",
+					"params", map(
+							"mod", "ModName",
+							"new_owner", "owner",
+							"with_grant_option", 0),
+					"module", null,
+					"user", null)
 					));
-			when(mocks.del.delegate(eq(new AuthToken("t2", "u")), argThat(cmdmtch)))
+			when(mocks.tc.administer(argThat(cmdmtch), eq(new AuthToken("t2", "u"))))
 					.thenReturn(ret);
 	
 			final Object o = mocks.admindel.runCommand(new AuthToken("t2", "u"), command, null);
@@ -1974,17 +1937,16 @@ public class AdministrationCommandSetInstallerTest {
 							"old_owner", "owner")));
 			
 			when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
-			when(mocks.del.getTargetWorkspace()).thenReturn(new URL("http://iamwebsite.com"));
-			final WorkspaceUObjectCommandMatcher cmdmtch = new WorkspaceUObjectCommandMatcher(
-					new UObject(map(
-							"command", "removeModuleOwnership",
-							"params", ImmutableMap.of(
-									"mod", "ModName",
-									"old_owner", "owner"),
-							"module", null,
-							"user", null)
+			when(mocks.tc.getTargetURL()).thenReturn(new URL("http://iamwebsite.com"));
+			final UObjectMatcher cmdmtch = new UObjectMatcher(new UObject(map(
+					"command", "removeModuleOwnership",
+					"params", ImmutableMap.of(
+							"mod", "ModName",
+							"old_owner", "owner"),
+					"module", null,
+					"user", null)
 					));
-			when(mocks.del.delegate(eq(new AuthToken("tok", "fake")), argThat(cmdmtch)))
+			when(mocks.tc.administer(argThat(cmdmtch), eq(new AuthToken("tok", "fake"))))
 					.thenReturn(ret);
 	
 			final Object o = mocks.admindel.runCommand(
@@ -2004,7 +1966,7 @@ public class AdministrationCommandSetInstallerTest {
 		final UObject command = new UObject(ImmutableMap.of("command", "getTypeDelegationTarget"));
 		
 		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
-		when(mocks.del.getTargetWorkspace()).thenReturn(
+		when(mocks.tc.getTargetURL()).thenReturn(
 				new URL("http://internal.kbase.us/services/ws"));
 		
 		@SuppressWarnings("unchecked")
