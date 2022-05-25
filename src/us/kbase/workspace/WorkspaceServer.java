@@ -313,8 +313,7 @@ public class WorkspaceServer extends JsonServerServlet {
 		return new WorkspaceInitResults(null, null, null);
 	}
 	
-	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
-			new ThreadLocal<List<WorkspaceObjectData>>();
+	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete = new ThreadLocal<>();
 	
 	@Override
 	protected File generateTempFile() {
