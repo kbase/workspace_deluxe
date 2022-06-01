@@ -1,7 +1,8 @@
 package us.kbase.workspace.test.kbase.admin;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -12,11 +13,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static us.kbase.common.test.TestCommon.assertLogEventsCorrect;
 import static us.kbase.common.test.TestCommon.inst;
+import static us.kbase.common.test.TestCommon.list;
 import static us.kbase.common.test.TestCommon.set;
 
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -71,6 +75,7 @@ import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.LocalTypeServerMethods;
+import us.kbase.workspace.kbase.TypeClient;
 import us.kbase.workspace.kbase.TypeServerMethods;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 import us.kbase.workspace.kbase.admin.AdminRole;
@@ -106,22 +111,28 @@ public class AdministrationCommandSetInstallerTest {
 		private final WorkspaceServerMethods wsmeth;
 		private final Types types;
 		private final TypeServerMethods tsm;
+		private final TypeClient tc;
 		private final AdministratorHandler ah;
 		private final WorkspaceAdministration admin;
+		private final WorkspaceAdministration admindel;
 		
 		private TestMocks(
 				final Workspace ws,
 				final WorkspaceServerMethods wsmeth,
 				final Types types,
 				final TypeServerMethods tsm,
+				final TypeClient tc,
 				final AdministratorHandler ah,
-				final WorkspaceAdministration admin) {
+				final WorkspaceAdministration admin,
+				final WorkspaceAdministration admindel) {
 			this.ws = ws;
 			this.wsmeth = wsmeth;
 			this.types = types;
 			this.tsm = tsm;
+			this.tc = tc;
 			this.ah = ah;
 			this.admin = admin;
+			this.admindel = admindel;
 		}
 	}
 	
@@ -132,6 +143,7 @@ public class AdministrationCommandSetInstallerTest {
 		final Types types = mock(Types.class);
 		final LocalTypeServerMethods tsm = mock(LocalTypeServerMethods.class);
 		when(tsm.getTypes()).thenReturn(types);
+		final TypeClient tc = mock(TypeClient.class);
 		final UserValidator userVal = (user, token) -> wsmeth.validateUser(user, token);
 		final AdministratorHandler ah = mock(AdministratorHandler.class);
 		final WorkspaceAdministration admin = AdministrationCommandSetInstaller.install(
@@ -139,7 +151,12 @@ public class AdministrationCommandSetInstallerTest {
 				.withCacheMaxSize(0)
 				.withCacheTimeMS(0)
 				.build();
-		return new TestMocks(ws, wsmeth, types, tsm, ah, admin);
+		final WorkspaceAdministration admindel = AdministrationCommandSetInstaller.install(
+				WorkspaceAdministration.getBuilder(ah, userVal), wsmeth, tc)
+				.withCacheMaxSize(0)
+				.withCacheTimeMS(0)
+				.build();
+		return new TestMocks(ws, wsmeth, types, tsm, tc, ah, admin, admindel);
 	}
 	
 	private void runCommandFail(
@@ -155,9 +172,50 @@ public class AdministrationCommandSetInstallerTest {
 		}
 	}
 	
+	@Test
+	public void installFailNulls() throws Exception {
+		final TestMocks m = initTestMocks();
+		final LocalTypeServerMethods ltsm = (LocalTypeServerMethods) m.tsm;
+		final UserValidator uval = mock(UserValidator.class);
+		final WorkspaceAdministration.Builder b = WorkspaceAdministration.getBuilder(m.ah, uval);
+
+		failInstall(null, m.wsmeth, ltsm, new NullPointerException("builder"));
+		failInstall(null, m.wsmeth, m.tc, new NullPointerException("builder"));
+		failInstall(b, null, ltsm, new NullPointerException("wsmeth"));
+		failInstall(b, null, m.tc, new NullPointerException("wsmeth"));
+		failInstall(b, m.wsmeth, (LocalTypeServerMethods) null, new NullPointerException("type"));
+		failInstall(b, m.wsmeth, (TypeClient) null, new NullPointerException("delegator"));
+	}
+	
+	private void failInstall(
+			final WorkspaceAdministration.Builder b,
+			final WorkspaceServerMethods m,
+			final TypeClient tc,
+			final Exception expected) {
+		try {
+			AdministrationCommandSetInstaller.install(b, m, tc);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
+	private void failInstall(
+			final WorkspaceAdministration.Builder b,
+			final WorkspaceServerMethods m,
+			final LocalTypeServerMethods l,
+			final Exception expected) {
+		try {
+			AdministrationCommandSetInstaller.install(b, m, l);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, expected);
+		}
+	}
+	
 	/* ***********************************************
 	 * Command error tests for error types that
-	 * affect all commands
+	 * affect all commands without type delegation
 	 * ***********************************************
 	 */
 	
@@ -317,7 +375,7 @@ public class AdministrationCommandSetInstallerTest {
 	}
 	
 	/* ***********************************************
-	 * Command specific tests
+	 * Command specific tests without type delegation
 	 * ***********************************************
 	 */
 	
@@ -370,6 +428,24 @@ public class AdministrationCommandSetInstallerTest {
 
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"setConfig", AdministrationCommandSetInstaller.class));
+	}
+	
+	@Test
+	public void getTypeDelegationTarget() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getTypeDelegationTarget"));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> o = (Map<String, Object>) mocks.admin.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		assertThat("incorrect return", o, is(MapBuilder.<String, Object>newHashMap()
+				.with("delegateTarget", null).build()));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getTypeDelegationTarget", AdministrationCommandSetInstaller.class));
 	}
 	
 	@Test
@@ -1599,4 +1675,308 @@ public class AdministrationCommandSetInstallerTest {
 		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
 				"removeModuleOwnership ModName owner", AdministrationCommandSetInstaller.class));
 	}
+	
+	/* ***********************************************
+	 * Type delegation tests
+	 * ***********************************************
+	 */
+	
+	@Test
+	public void typeDelegationFailNotFullAdmin() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		when(mocks.ah.getAdminRole(new AuthToken("t", "user1"))).thenReturn(AdminRole.READ_ONLY);
+		
+		final List<String> commands = Arrays.asList(
+				"approveModRequest", "denyModRequest",
+				"grantModuleOwnership", "removeModuleOwnership");
+		
+		for (final String command: commands) {
+			runCommandFail(
+					mocks.admindel,
+					new AuthToken("t", "user1"),
+					new UObject(ImmutableMap.of("command", command)),
+					new IllegalArgumentException(
+							"Full administration rights required for this command"));
+		}
+	}
+	
+	@Test
+	public void typeDelegationFailNoParams() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+		
+		final Map<String, String> commandToClass = ImmutableMap.of(
+				"grantModuleOwnership", "GrantModuleOwnershipParams",
+				"removeModuleOwnership", "RemoveModuleOwnershipParams");
+		
+		for (final String commandStr: commandToClass.keySet()) {
+			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
+					"user", "u1"));
+			
+			runCommandFail(mocks.admindel, new AuthToken("tok", "fake"), command,
+					new NullPointerException(String.format("Method parameters %s may not be null",
+							commandToClass.get(commandStr))));
+		}
+	}
+	
+	@Test
+	public void typeDelegationFailParamsMappingException() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final Map<String, MapErr> commandToClass = ImmutableMap.of(
+				"grantModuleOwnership",
+				new MapErr("GrantModuleOwnershipParams", "with_grant_option", "foo"),
+				"removeModuleOwnership",
+				new MapErr("RemoveModuleOwnershipParams", "mod", set("foo", "bar")));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "usah"))).thenReturn(AdminRole.ADMIN);
+		
+		for (final String commandStr: commandToClass.keySet()) {
+			final MapErr me = commandToClass.get(commandStr);
+			final UObject command = new UObject(ImmutableMap.of("command", commandStr,
+					"user", "fake",
+					"params", ImmutableMap.of(me.key, me.value)));
+			
+			try {
+				mocks.admindel.runCommand(new AuthToken("tok", "usah"), command, null);
+				fail("expected exception for command " + commandStr);
+			} catch (IllegalArgumentException got) {
+				final String err = "incorrect message for exception:\n" +
+						ExceptionUtils.getStackTrace(got);
+				assertThat(err, got.getMessage(), containsString(
+						"Unable to deserialize " + me.clazz + " out of params field: Cannot"));
+			}
+		}
+	}
+
+	private static class UObjectMatcher implements ArgumentMatcher<UObject> {
+		
+		private final UObject command;
+		
+		public UObjectMatcher(final UObject command) {
+			this.command = command;
+		}
+		
+		@Override
+		public boolean matches(final UObject got) {
+			@SuppressWarnings("unchecked")
+			final Map<String, Object> expected = command.asClassInstance(Map.class);
+			final Object gotobj = got.asClassInstance(Object.class);
+			if (!expected.equals(gotobj)) {
+				System.out.format("%s: expected %s, got %s\n",
+						UObjectMatcher.class.getSimpleName(), expected, gotobj);
+			}
+			return expected.equals(gotobj);
+		}
+	}
+	
+	private Map<String, Object> map(
+			final String k1, final Object v1,
+			final String k2, final Object v2,
+			final String k3, final Object v3) {
+		return _map(Arrays.asList(k1, v1, k2, v2, k3, v3));
+	}
+	
+	private Map<String, Object> map(
+			final String k1, final Object v1,
+			final String k2, final Object v2,
+			final String k3, final Object v3,
+			final String k4, final Object v4) {
+		return _map(Arrays.asList(k1, v1, k2, v2, k3, v3, k4, v4));
+	}
+
+	public Map<String, Object> _map(final List<Object> o) {
+		final MapBuilder<String, Object> b = MapBuilder.<String, Object>newHashMap();
+		final Iterator<Object> i = o.iterator();
+		while (i.hasNext()) {
+			b.with((String) i.next(), i.next());
+		}
+		return b.build();
+	}
+	
+	@Test
+	public void typeDelegationListModRequests() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "listModRequests"));
+		final OwnerInfo oi = new OwnerInfo();
+		oi.setModuleName("mod");
+
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.tc.getTargetURL())
+				.thenReturn(new URL("https://holycrapthistestisnowlessnuts.com"));
+		final UObjectMatcher cmdmatch = new UObjectMatcher(new UObject(map(
+				"command", "listModRequests",
+				"params", null,
+				"module", null,
+				"user", null)
+				));
+		when(mocks.tc.administer(argThat(cmdmatch), eq(new AuthToken("tok", "fake"))))
+				.thenReturn(new UObject(Arrays.asList(oi)));
+		
+		final Object o =  mocks.admindel.runCommand(new AuthToken("tok", "fake"), command, null);
+		assertThat("incorrect return", o, is(Arrays.asList(map(
+				"moduleName", "mod", "ownerUserId", null, "withChangeOwnersPrivilege", false))));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"listModRequests delegated to https://holycrapthistestisnowlessnuts.com",
+				AdministrationCommandSetInstaller.class));
+	}
+	
+	@Test
+	public void typeDelegationApproveModRequest() throws Exception {
+		// testing with both null and UObject(null) to be safe
+		for (final UObject ret: list(new UObject(null), null)) {
+			logEvents.clear();
+			final TestMocks mocks = initTestMocks();
+			
+			final UObject command = new UObject(ImmutableMap.of(
+					"command", "approveModRequest", "module", "somemod"));
+			
+			when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+			when(mocks.tc.getTargetURL())
+					.thenReturn(new URL("https://devpocsuredoessuckuptime.com"));
+			final UObjectMatcher cmdmtch = new UObjectMatcher(new UObject(map(
+					"command", "approveModRequest",
+					"params", null,
+					"module", "somemod",
+					"user", null)
+					));
+			when(mocks.tc.administer(argThat(cmdmtch), eq(new AuthToken("tok", "fake"))))
+					.thenReturn(ret);
+			
+			final Object o = mocks.admindel.runCommand(
+					new AuthToken("tok", "fake"), command, null);
+			assertThat("incorrect return", o, nullValue());
+			
+			assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+					"approveModRequest somemod delegated to https://devpocsuredoessuckuptime.com",
+					AdministrationCommandSetInstaller.class));
+		}
+	}
+	
+	@Test
+	public void typeDelegationDenyModRequest() throws Exception {
+		// testing with both null and UObject(null) to be safe
+		for (final UObject ret: list(new UObject(null), null)) {
+			logEvents.clear();
+			final TestMocks mocks = initTestMocks();
+			
+			final UObject command = new UObject(ImmutableMap.of(
+					"command", "denyModRequest", "module", "somemod2"));
+			
+			when(mocks.ah.getAdminRole(new AuthToken("t", "u"))).thenReturn(AdminRole.ADMIN);
+			when(mocks.tc.getTargetURL())
+					.thenReturn(new URL("https://thesetestsarenowlesspainful.com"));
+			final UObjectMatcher cmdmtch = new UObjectMatcher(new UObject(map(
+					"command", "denyModRequest",
+					"params", null,
+					"module", "somemod2",
+					"user", null)
+					));
+			when(mocks.tc.administer(argThat(cmdmtch), eq(new AuthToken("t", "u"))))
+					.thenReturn(ret);
+			
+			final Object o = mocks.admindel.runCommand(new AuthToken("t", "u"), command, null);
+			assertThat("incorrect return", o, nullValue());
+			
+			assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+					"denyModRequest somemod2 delegated to https://thesetestsarenowlesspainful.com",
+					AdministrationCommandSetInstaller.class));
+		}
+	}
+	
+	@Test
+	public void typeDelegationGrantModuleOwnership() throws Exception {
+		// testing with both null and UObject(null) to be safe
+		for (final UObject ret: list(new UObject(null), null)) {
+			logEvents.clear();
+			final TestMocks mocks = initTestMocks();
+			
+			final UObject command = new UObject(ImmutableMap.of(
+					"command", "grantModuleOwnership",
+					"params", map(
+							"mod", "ModName",
+							"new_owner", "owner",
+							"with_grant_option", 0)));
+			
+			when(mocks.ah.getAdminRole(new AuthToken("t2", "u"))).thenReturn(AdminRole.ADMIN);
+			when(mocks.tc.getTargetURL()).thenReturn(new URL("https://owowow.com"));
+			final UObjectMatcher cmdmtch = new UObjectMatcher(new UObject(map(
+					"command", "grantModuleOwnership",
+					"params", map(
+							"mod", "ModName",
+							"new_owner", "owner",
+							"with_grant_option", 0),
+					"module", null,
+					"user", null)
+					));
+			when(mocks.tc.administer(argThat(cmdmtch), eq(new AuthToken("t2", "u"))))
+					.thenReturn(ret);
+	
+			final Object o = mocks.admindel.runCommand(new AuthToken("t2", "u"), command, null);
+			assertThat("incorrect return", o, nullValue());
+			
+			assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+					"grantModuleOwnership ModName owner delegated to https://owowow.com",
+					AdministrationCommandSetInstaller.class));
+		}
+	}
+	
+	@Test
+	public void typeDelegationRemoveModuleOwnership() throws Exception {
+		// testing with both null and UObject(null) to be safe
+		for (final UObject ret: list(new UObject(null), null)) {
+			logEvents.clear();
+			final TestMocks mocks = initTestMocks();
+			
+			final UObject command = new UObject(ImmutableMap.of("command", "removeModuleOwnership",
+					"params", ImmutableMap.of(
+							"mod", "ModName",
+							"old_owner", "owner")));
+			
+			when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.ADMIN);
+			when(mocks.tc.getTargetURL()).thenReturn(new URL("http://iamwebsite.com"));
+			final UObjectMatcher cmdmtch = new UObjectMatcher(new UObject(map(
+					"command", "removeModuleOwnership",
+					"params", ImmutableMap.of(
+							"mod", "ModName",
+							"old_owner", "owner"),
+					"module", null,
+					"user", null)
+					));
+			when(mocks.tc.administer(argThat(cmdmtch), eq(new AuthToken("tok", "fake"))))
+					.thenReturn(ret);
+	
+			final Object o = mocks.admindel.runCommand(
+					new AuthToken("tok", "fake"), command, null);
+			assertThat("incorrect return", o, nullValue());
+			
+			assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+					"removeModuleOwnership ModName owner delegated to http://iamwebsite.com",
+					AdministrationCommandSetInstaller.class));
+		}
+	}
+	
+	@Test
+	public void typeDelegationsGetTypeDelegationTarget() throws Exception {
+		final TestMocks mocks = initTestMocks();
+		
+		final UObject command = new UObject(ImmutableMap.of("command", "getTypeDelegationTarget"));
+		
+		when(mocks.ah.getAdminRole(new AuthToken("tok", "fake"))).thenReturn(AdminRole.READ_ONLY);
+		when(mocks.tc.getTargetURL()).thenReturn(
+				new URL("http://internal.kbase.us/services/ws"));
+		
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> o = (Map<String, Object>) mocks.admindel.runCommand(
+				new AuthToken("tok", "fake"), command, null);
+		assertThat("incorrect return", o, is(MapBuilder.<String, Object>newHashMap()
+				.with("delegateTarget", "http://internal.kbase.us/services/ws").build()));
+		
+		assertLogEventsCorrect(logEvents, new LogEvent(Level.INFO,
+				"getTypeDelegationTarget", AdministrationCommandSetInstaller.class));
+	}
+	
 }

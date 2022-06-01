@@ -3,6 +3,14 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.13.2 (Released 6/1/2022)
+-----------------------------------
+
+UPDATES:
+
+* Type delegation has been added. See :ref:`workspacescaling` for more information.
+* The ``get_func_info`` and ``get_all_func_info`` methods are deprecated.
+
 VERSION: 0.13.1 (Released 4/27/2022)
 ------------------------------------
 

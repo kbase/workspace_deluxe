@@ -30,7 +30,6 @@ import us.kbase.typedobj.exceptions.NoSuchPrivilegeException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
 import us.kbase.typedobj.exceptions.SpecParseException;
 import us.kbase.typedobj.exceptions.TypeStorageException;
-import us.kbase.workspace.FuncInfo;
 import us.kbase.workspace.GetModuleInfoParams;
 import us.kbase.workspace.GrantModuleOwnershipParams;
 import us.kbase.workspace.ListAllTypesParams;
@@ -68,35 +67,36 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 	@Override
 	public void grantModuleOwnership(
 			final GrantModuleOwnershipParams params,
-			final AuthToken authPart,
+			final AuthToken token,
 			final boolean asAdmin)
 			throws TypeStorageException, NoSuchPrivilegeException {
 		checkAddlArgs(params.getAdditionalProperties(), GrantModuleOwnershipParams.class);
+		// TODO CODE it looks like this never validated the user name, should be fixed
 		types.grantModuleOwnership(params.getMod(), params.getNewOwner(),
-				longToBoolean(params.getWithGrantOption()), getUser(authPart), asAdmin);
+				longToBoolean(params.getWithGrantOption()), getUser(token), asAdmin);
 	}
 	
 	@Override
 	public void removeModuleOwnership(
 			final RemoveModuleOwnershipParams params,
-			final AuthToken authPart,
+			final AuthToken token,
 			final boolean asAdmin)
 			throws NoSuchPrivilegeException, TypeStorageException {
 		checkAddlArgs(params.getAdditionalProperties(), RemoveModuleOwnershipParams.class);
 		types.removeModuleOwnership(params.getMod(), params.getOldOwner(),
-				getUser(authPart), asAdmin);
+				getUser(token), asAdmin);
 	}
 
 	@Override
-	public void requestModuleOwnership(final String mod, final AuthToken authPart)
+	public void requestModuleOwnership(final String mod, final AuthToken token)
 			throws TypeStorageException {
-		types.requestModuleRegistration(getUser(authPart), mod);
+		types.requestModuleRegistration(getUser(token), mod);
 	}
 	
 	@Override
 	public Map<String,String> registerTypespec(
 			final RegisterTypespecParams params,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws SpecParseException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchModuleException {
 		//TODO improve parse errors, don't need include path, currentlyCompiled
@@ -114,12 +114,12 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 		final Map<TypeDefName, TypeChange> res;
 		if (params.getMod() != null) {
 			 res = types.compileTypeSpec(
-					getUser(authPart), params.getMod(),
+					getUser(token), params.getMod(),
 					add, rem, deps, params.getDryrun() == null ? true :
 						params.getDryrun() != 0);
 		} else {
 			res = types.compileNewTypeSpec(
-					getUser(authPart), params.getSpec(),
+					getUser(token), params.getSpec(),
 					add, rem, deps, params.getDryrun() == null ? true :
 						params.getDryrun() != 0, params.getPrevVer());
 		}
@@ -136,7 +136,7 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 	@Override
 	public Long registerTypespecCopy(
 			final RegisterTypespecCopyParams params,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws UnauthorizedException, MalformedURLException, IOException, JsonClientException,
 				NoSuchModuleException, TypeStorageException, SpecParseException,
 				NoSuchPrivilegeException {
@@ -150,7 +150,7 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 					"Must provide a module name");
 		}
 		final WorkspaceClient client = new WorkspaceClient(
-				new URL(params.getExternalWorkspaceUrl()), authPart);
+				new URL(params.getExternalWorkspaceUrl()), token);
 		if (!params.getExternalWorkspaceUrl().startsWith("https:")) {
 			client.setIsInsecureHttpConnectionAllowed(true);
 		}
@@ -167,7 +167,7 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 					client.getModuleInfo(includeParams);
 			includesToMd5.put(includedModule, extIncludedInfo.getChsum());
 		}
-		final String userId = authPart.getUserName();
+		final String userId = token.getUserName();
 		final String specDocument = extInfo.getSpec();
 		final Set<String> extTypeSet = new LinkedHashSet<String>();
 		for (final String typeDef : extInfo.getTypes().keySet()) {
@@ -178,9 +178,9 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 	}
 
 	@Override
-	public List<String> releaseModule(final String mod, final AuthToken authPart)
+	public List<String> releaseModule(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
-		return types.releaseTypes(getUser(authPart), mod).stream()
+		return types.releaseTypes(getUser(token), mod).stream()
 				.map(t -> t.getTypeString()).collect(Collectors.toList());
 	}
 	
@@ -194,7 +194,7 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 	@Override
 	public ModuleVersions listModuleVersions(
 			final ListModuleVersionsParams params,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchTypeException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
@@ -206,11 +206,11 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 		final String module;
 		if (params.getMod() != null) {
 			vers = types.getModuleVersions(
-					params.getMod(), getUser(authPart));
+					params.getMod(), getUser(token));
 			module = params.getMod();
 		} else {
 			final TypeDefId type = TypeDefId.fromTypeString(params.getType());
-			vers = types.getModuleVersions(type, getUser(authPart));
+			vers = types.getModuleVersions(type, getUser(token));
 			module = type.getType().getModule();
 		}
 		return new ModuleVersions().withMod(module).withVers(vers);
@@ -219,7 +219,7 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 	@Override
 	public ModuleInfo getModuleInfo(
 			final GetModuleInfoParams params,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		if (params.getMod() == null) {
@@ -233,7 +233,7 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 			module = new ModuleDefId(params.getMod());
 		}
 		final us.kbase.workspace.database.ModuleInfo mi =
-				types.getModuleInfo(getUser(authPart), module);
+				types.getModuleInfo(getUser(token), module);
 		final Map<String, String> types = new HashMap<String, String>();
 		for (final AbsoluteTypeDefId t: mi.getTypes().keySet()) {
 			types.put(t.getTypeString(), mi.getTypes().get(t));
@@ -251,9 +251,9 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 	}
 	
 	@Override
-	public String getJsonschema(final String type, final AuthToken authPart)
+	public String getJsonschema(final String type, final AuthToken token)
 			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
-		return types.getJsonSchema(TypeDefId.fromTypeString(type), getUser(authPart));
+		return types.getJsonSchema(TypeDefId.fromTypeString(type), getUser(token));
 	}
 	
 	@Override
@@ -265,16 +265,16 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 	@Override
 	public Map<String,String> translateToMD5Types(
 			final List<String> semTypes,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws TypeStorageException, NoSuchTypeException, NoSuchModuleException {
-		return types.translateToMd5Types(semTypes, getUser(authPart));
+		return types.translateToMd5Types(semTypes, getUser(token));
 	}
 	
 	@Override
-	public TypeInfo getTypeInfo(final String type, final AuthToken authPart)
+	public TypeInfo getTypeInfo(final String type, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchTypeException {
 		final TypeDetailedInfo tdi = types.getTypeInfo(
-				type, true, getUser(authPart));
+				type, true, getUser(token));
 		return new TypeInfo().withTypeDef(tdi.getTypeDefId())
 				.withDescription(tdi.getDescription())
 				.withSpecDef(tdi.getSpecDef())
@@ -290,22 +290,23 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 	}
 	
 	@Override
-	public List<TypeInfo> getAllTypeInfo(final String mod, final AuthToken authPart)
+	public List<TypeInfo> getAllTypeInfo(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchTypeException {
-		final ModuleInfo mi = getModuleInfo(new GetModuleInfoParams().withMod(mod), authPart);
+		final ModuleInfo mi = getModuleInfo(new GetModuleInfoParams().withMod(mod), token);
 		final List<TypeInfo> returnVal = new ArrayList<>();
 		for (String typeDef : mi.getTypes().keySet()) {
-			returnVal.add(getTypeInfo(typeDef, authPart));
+			returnVal.add(getTypeInfo(typeDef, token));
 		}
 		return returnVal;
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Override
-	public FuncInfo getFuncInfo(final String func, final AuthToken authPart)
+	public us.kbase.workspace.FuncInfo getFuncInfo(final String func, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchFuncException {
-		final FuncDetailedInfo fdi = types.getFuncInfo(func, true, getUser(authPart));
-		return new FuncInfo().withFuncDef(fdi.getFuncDefId())
+		final FuncDetailedInfo fdi = types.getFuncInfo(func, true, getUser(token));
+		return new us.kbase.workspace.FuncInfo().withFuncDef(fdi.getFuncDefId())
 				.withDescription(fdi.getDescription())
 				.withSpecDef(fdi.getSpecDef())
 				.withParsingStructure(fdi.getParsingStructure())
@@ -316,14 +317,15 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 				.withUsedTypeDefs(fdi.getUsedTypeDefIds());
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Override
-	public List<FuncInfo> getAllFuncInfo(final String mod, final AuthToken authPart)
+	public List<us.kbase.workspace.FuncInfo> getAllFuncInfo(final String mod, final AuthToken token)
 			throws NoSuchModuleException, TypeStorageException, NoSuchPrivilegeException,
 				NoSuchFuncException {
-		final ModuleInfo mi = getModuleInfo(new GetModuleInfoParams().withMod(mod), authPart);
-		final List<FuncInfo> returnVal = new ArrayList<FuncInfo>();
+		final ModuleInfo mi = getModuleInfo(new GetModuleInfoParams().withMod(mod), token);
+		final List<us.kbase.workspace.FuncInfo> returnVal = new ArrayList<>();
 		for (String funcDef : mi.getFunctions()) {
-			returnVal.add(getFuncInfo(funcDef, authPart));
+			returnVal.add(getFuncInfo(funcDef, token));
 		}
 		return returnVal;
 	}
@@ -331,7 +333,7 @@ public class LocalTypeServerMethods implements TypeServerMethods {
 	@Override
 	public Map<String,Map<String,String>> listAllTypes(
 			final ListAllTypesParams params,
-			final AuthToken authPart)
+			final AuthToken token)
 			throws TypeStorageException, NoSuchModuleException {
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
 		return types.listAllTypes(params.getWithEmptyModules() != null &&

@@ -51,6 +51,9 @@ public class KBaseWorkspaceConfig {
 	private static final String MONGO_PWD = "mongodb-pwd";
 	private static final String MONGO_RETRY_WRITES = "mongodb-retrywrites";
 	
+	// type delegating parameters
+	private static final String TYPE_DELEGATION_TARGET = "type-delegation-target";
+	
 	// startup workspace admin user
 	private static final String WSADMIN = "ws-admin";
 
@@ -73,7 +76,7 @@ public class KBaseWorkspaceConfig {
 	private static final String KBASE_AUTH_ADMIN_FULL_ROLES =
 			"auth2-ws-admin-full-roles";
 	
-	// shock / blobstore info 
+	// blobstore info 
 	private static final String BYTESTREAM_USER = "bytestream-user";
 	private static final String BYTESTREAM_TOKEN = "bytestream-token";
 	private static final String BYTESTREAM_URL = "bytestream-url";
@@ -102,7 +105,7 @@ public class KBaseWorkspaceConfig {
 	
 	// the auth2 urls are checked when getting the url
 	private static final List<String> REQUIRED_PARAMS = Arrays.asList(
-			HOST, DB, TYPE_DB, TEMP_DIR, BACKEND_TYPE);
+			HOST, DB, TEMP_DIR, BACKEND_TYPE);
 	
 	private static final Map<String, List<String>> BACKEND_TYPES = ImmutableMap.of(
 			BackendType.S3.name(), Arrays.asList(BACKEND_TOKEN, BACKEND_URL, BACKEND_USER,
@@ -112,6 +115,7 @@ public class KBaseWorkspaceConfig {
 	private final String host;
 	private final String db;
 	private final String typedb;
+	private final URL delegateTypeTarget;
 	private final boolean mongoRetryWrites;
 	private final BackendType backendType;
 	private final Region backendRegion;
@@ -271,7 +275,12 @@ public class KBaseWorkspaceConfig {
 		}
 		host = nullIfEmpty(config.get(HOST));
 		db = nullIfEmpty(config.get(DB));
-		typedb = nullIfEmpty(config.get(TYPE_DB));
+		delegateTypeTarget = getUrl(config, TYPE_DELEGATION_TARGET, paramErrors, false);
+		typedb = delegateTypeTarget == null ? nullIfEmpty(config.get(TYPE_DB)) : null;
+		if (delegateTypeTarget == null && typedb == null) {
+			paramErrors.add(String.format(
+					"Must provide param %s or %s in config file", TYPE_DB, TYPE_DELEGATION_TARGET));
+		}
 		mongoRetryWrites = TRUE_STR.equals(nullIfEmpty(config.get(MONGO_RETRY_WRITES)));
 		if (db != null && db.equals(typedb)) {
 			paramErrors.add(String.format("The parameters %s and %s have the same value, %s",
@@ -461,19 +470,23 @@ public class KBaseWorkspaceConfig {
 		String params = "";
 		// TODO CODE move this up top where it's easier to see & alter, document
 		final List<String> paramSet = new LinkedList<String>(
-				Arrays.asList(HOST, DB, TYPE_DB, MONGO_RETRY_WRITES, MONGO_USER,
+				Arrays.asList(
+						HOST, DB, TYPE_DB, TYPE_DELEGATION_TARGET, MONGO_RETRY_WRITES, MONGO_USER,
 						KBASE_AUTH_URL, KBASE_AUTH2_URL,
 						KBASE_AUTH_ADMIN_READ_ONLY_ROLES, KBASE_AUTH_ADMIN_FULL_ROLES,
 						BACKEND_TYPE, BACKEND_URL, BACKEND_USER, BACKEND_REGION,
 						BACKEND_CONTAINER, BACKEND_SSC_SSL));
+		if (delegateTypeTarget != null) {
+			paramSet.remove(TYPE_DB); // hack hack hack, see todo below
+		}
 		if (!ignoreHandleService) {
-			paramSet.addAll(Arrays.asList(HANDLE_SERVICE_URL));
+			paramSet.add(HANDLE_SERVICE_URL);
 		}
 		if (bytestreamURL != null) {
 			paramSet.addAll(Arrays.asList(BYTESTREAM_URL, BYTESTREAM_USER));
 		}
 		if (sampleServiceURL != null) {
-			paramSet.addAll(Arrays.asList(SAMPLE_SERVICE_URL));
+			paramSet.add(SAMPLE_SERVICE_URL);
 		}
 		for (final String s: paramSet) {
 			if (!nullOrEmpty(cfg.get(s))) {
@@ -535,6 +548,10 @@ public class KBaseWorkspaceConfig {
 	
 	public String getTypeDBName() {
 		return typedb;
+	}
+	
+	public URL getTypeDelegationTarget() {
+		return delegateTypeTarget;
 	}
 	
 	public boolean getMongoRetryWrites() {
@@ -673,6 +690,7 @@ public class KBaseWorkspaceConfig {
 		result = prime * result + ((bytestreamURL == null) ? 0 : bytestreamURL.hashCode());
 		result = prime * result + ((bytestreamUser == null) ? 0 : bytestreamUser.hashCode());
 		result = prime * result + ((db == null) ? 0 : db.hashCode());
+		result = prime * result + ((delegateTypeTarget == null) ? 0 : delegateTypeTarget.hashCode());
 		result = prime * result + ((errors == null) ? 0 : errors.hashCode());
 		result = prime * result + ((handleServiceToken == null) ? 0 : handleServiceToken.hashCode());
 		result = prime * result + ((handleServiceURL == null) ? 0 : handleServiceURL.hashCode());
@@ -771,6 +789,11 @@ public class KBaseWorkspaceConfig {
 			if (other.db != null)
 				return false;
 		} else if (!db.equals(other.db))
+			return false;
+		if (delegateTypeTarget == null) {
+			if (other.delegateTypeTarget != null)
+				return false;
+		} else if (!delegateTypeTarget.equals(other.delegateTypeTarget))
 			return false;
 		if (errors == null) {
 			if (other.errors != null)

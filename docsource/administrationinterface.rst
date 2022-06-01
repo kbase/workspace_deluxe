@@ -16,6 +16,17 @@ First initialize a workspace client with administrator credentials::
    These examples use the Python client, but translating the commands to
    other languages is trivial.
 
+Getting type delegation information
+-----------------------------------
+
+Getting the url of the workspace service to which the current workspace service is delegating
+type operations::
+
+    wsadmin.administer({'command': 'getTypeDelegationTarget'})
+    {'delegateTarget', 'https://kbase.us/services/ws_for_types'}
+
+See :ref:`workspacescaling` for more information.
+
 Managing administrators
 -----------------------
 

@@ -5035,6 +5035,7 @@ class Workspace(object):
 
     def get_func_info(self, func, context=None):
         """
+        @deprecated
         :param func: instance of type "func_string" (A function string for
            referencing a funcdef. Specifies the function and its version in a
            single string in the format
@@ -5049,25 +5050,13 @@ class Workspace(object):
            compatible with previous function definitions. In many cases, the
            major and minor versions are optional, and if not provided the
            most recent version will be used. Example: MyModule.MyFunc-3.1)
-        :returns: instance of type "FuncInfo" (Information about a function
-           func_string func_def - resolved func definition id. string
-           description - the description of the function from spec file.
-           string spec_def - reconstruction of function definition from spec
-           file. string parsing_structure - json document describing parsing
-           structure of function in spec file including types of arguments.
-           list<spec_version> module_vers - versions of spec files containing
-           given func version. list<spec_version> released_module_vers -
-           released versions of spec files containing given func version.
-           list<func_string> func_vers - all versions of function with given
-           type name. list<func_string> released_func_vers - all released
-           versions of function with given type name. list<type_string>
-           used_type_defs - list of types (with versions) referred to from
-           this function version.) -> structure: parameter "func_def" of type
-           "func_string" (A function string for referencing a funcdef.
-           Specifies the function and its version in a single string in the
-           format [modulename].[funcname]-[major].[minor]: modulename - a
-           string. The name of the module containing the function. funcname -
-           a string. The name of the function as assigned by the funcdef
+        :returns: instance of type "FuncInfo" (DEPRECATED @deprecated) ->
+           structure: parameter "func_def" of type "func_string" (A function
+           string for referencing a funcdef. Specifies the function and its
+           version in a single string in the format
+           [modulename].[funcname]-[major].[minor]: modulename - a string.
+           The name of the module containing the function. funcname - a
+           string. The name of the function as assigned by the funcdef
            statement. major - an integer. The major version of the function.
            A change in the major version implies the function has changed in
            a non-backwards compatible way. minor - an integer. The minor
@@ -5127,28 +5116,16 @@ class Workspace(object):
 
     def get_all_func_info(self, mod, context=None):
         """
+        @deprecated
         :param mod: instance of type "modulename" (A module name defined in a
            KIDL typespec.)
-        :returns: instance of list of type "FuncInfo" (Information about a
-           function func_string func_def - resolved func definition id.
-           string description - the description of the function from spec
-           file. string spec_def - reconstruction of function definition from
-           spec file. string parsing_structure - json document describing
-           parsing structure of function in spec file including types of
-           arguments. list<spec_version> module_vers - versions of spec files
-           containing given func version. list<spec_version>
-           released_module_vers - released versions of spec files containing
-           given func version. list<func_string> func_vers - all versions of
-           function with given type name. list<func_string>
-           released_func_vers - all released versions of function with given
-           type name. list<type_string> used_type_defs - list of types (with
-           versions) referred to from this function version.) -> structure:
-           parameter "func_def" of type "func_string" (A function string for
-           referencing a funcdef. Specifies the function and its version in a
-           single string in the format
-           [modulename].[funcname]-[major].[minor]: modulename - a string.
-           The name of the module containing the function. funcname - a
-           string. The name of the function as assigned by the funcdef
+        :returns: instance of list of type "FuncInfo" (DEPRECATED
+           @deprecated) -> structure: parameter "func_def" of type
+           "func_string" (A function string for referencing a funcdef.
+           Specifies the function and its version in a single string in the
+           format [modulename].[funcname]-[major].[minor]: modulename - a
+           string. The name of the module containing the function. funcname -
+           a string. The name of the function as assigned by the funcdef
            statement. major - an integer. The major version of the function.
            A change in the major version implies the function has changed in
            a non-backwards compatible way. minor - an integer. The minor

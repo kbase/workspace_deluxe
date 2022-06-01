@@ -13,6 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.kbase.common.service.JsonTokenStream;
 import us.kbase.common.service.UObject;
+import us.kbase.typedobj.core.TypeProvider.ResolvedType;
+import us.kbase.typedobj.core.TypeProvider.TypeFetchException;
 import us.kbase.typedobj.exceptions.*;
 import us.kbase.typedobj.idref.IdReference;
 import us.kbase.typedobj.idref.IdReferenceHandlerSet;
@@ -108,6 +110,7 @@ public class TypedObjectValidator {
 	 * @throws TooManyIdsException 
 	 * @throws IOException 
 	 * @throws JsonParseException 
+	 * @throws TypeFetchException if type information could not be fetched.
 	 */
 	public ValidatedTypedObject validate(final String instance,
 			final TypeDefId type, final IdReferenceHandlerSet<?> handlers)
@@ -115,7 +118,7 @@ public class TypedObjectValidator {
 			TypeStorageException, TypedObjectValidationException,
 			TypedObjectSchemaException,
 			TooManyIdsException, IdReferenceHandlerException,
-			JsonParseException, IOException {
+			JsonParseException, IOException, TypeFetchException {
 		// parse the instance document into a JsonNode
 		ObjectMapper mapper = new ObjectMapper();
 		final JsonNode instanceRootNode;
@@ -146,13 +149,14 @@ public class TypedObjectValidator {
 	 * @throws TooManyIdsException 
 	 * @throws IOException 
 	 * @throws JsonParseException 
+	 * @throws TypeFetchException if type information could not be fetched.
 	 */
 	public ValidatedTypedObject validate(final JsonNode instanceRootNode,
 			final TypeDefId typeDefId, final IdReferenceHandlerSet<?> handlers)
 			throws NoSuchTypeException, NoSuchModuleException,
 			TypeStorageException, TypedObjectSchemaException,
 			TooManyIdsException, IdReferenceHandlerException,
-			JsonParseException, IOException {
+			JsonParseException, IOException, TypeFetchException {
 		final UObject obj;
 		try {
 			obj = new UObject(new JsonTokenStream(instanceRootNode), null);
@@ -166,19 +170,17 @@ public class TypedObjectValidator {
 		return validate(obj, typeDefId, handlers);
 	}
 	
-	public ValidatedTypedObject validate(final UObject obj,
-			final TypeDefId typeDefId, final IdReferenceHandlerSet<?> handlers)
-			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException, TypedObjectSchemaException,
-			TooManyIdsException, JsonParseException, IOException {
-		AbsoluteTypeDefId absoluteTypeDefId = typeProvider.resolveTypeDef(
-				typeDefId);
-		
-		// Actually perform the validation and return the report
-		final List<String> errors = new ArrayList<String>();
-		String schemaText = typeProvider.getTypeJsonSchema(absoluteTypeDefId);
+	public ValidatedTypedObject validate(
+			final UObject obj,
+			final TypeDefId typeDefId,
+			final IdReferenceHandlerSet<?> handlers)
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException,
+				TypedObjectSchemaException, TooManyIdsException, JsonParseException, IOException,
+				TypeFetchException {
+		final List<String> errors = new ArrayList<>();
+		final ResolvedType rtype = typeProvider.getTypeJsonSchema(typeDefId);
 		final JsonTokenValidationSchema schema =
-				JsonTokenValidationSchema.parseJsonSchema(schemaText);
+				JsonTokenValidationSchema.parseJsonSchema(rtype.getJsonSchema());
 		
 		// these must be arrays to get the inner class def override to work
 		final JsonNode [] metadataSelection = new JsonNode[] {null};
@@ -263,12 +265,12 @@ public class TypedObjectValidator {
 		}
 
 		return new ValidatedTypedObject(
-									obj,
-									absoluteTypeDefId,
-									errors, 
-									metadataSelection[0],
-									schema,
-									handlers);
+				obj,
+				rtype.getType(),
+				errors, 
+				metadataSelection[0],
+				schema,
+				handlers);
 	}
 	
 	private void mapErrors(final List<String> errors, final String err) {

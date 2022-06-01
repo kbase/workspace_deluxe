@@ -99,7 +99,7 @@ import com.google.common.collect.ImmutableMap;
  */
 public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	
-	private static final String VER = "0.13.1";
+	private static final String VER = "0.13.2";
 
 	@Test
 	public void ver() throws Exception {
@@ -1928,7 +1928,8 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 			fail("saved object with too many refs");
 		} catch (ServerException se) {
 			assertThat("correct exception", se.getMessage(),
-					is("Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 4"));
+					is("Object #1, auto3 failed type checking - the number of unique IDs in the "
+						+ "saved objects exceeds the maximum allowed, 4"));
 		}
 
 	}
@@ -4407,7 +4408,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 		assertThat(cl.getTypeInfo("UnreleasedModule.AType").getTypeVers().size(), is(1));
 		assertThat(cl.getTypeInfo("UnreleasedModule.AType-0.1").getTypeVers().size(), is(1));
 		assertThat(cl.getJsonschema("UnreleasedModule.AType").length() > 0, is(true));
-		assertThat(cl.getFuncInfo("UnreleasedModule.aFunc").getFuncVers().size(), is(1));
+		@SuppressWarnings("deprecation")
+		final List<String> funcVers = cl.getFuncInfo("UnreleasedModule.aFunc").getFuncVers();
+		assertThat(funcVers.size(), is(1));
 		try {
 			cl.getTypeInfo("UnreleasedModule.AType-0.2");
 			fail();
@@ -4516,8 +4519,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 				is("TestModule.Feature-1.0"));
 
 		// make sure we can get func info
-		assertThat(CLIENT1.getFuncInfo("TestModule.getFeature").getFuncDef(),
-				is("TestModule.getFeature-1.0"));
+		@SuppressWarnings("deprecation")
+		final String funcDef = CLIENT1.getFuncInfo("TestModule.getFeature").getFuncDef();
+		assertThat(funcDef, is("TestModule.getFeature-1.0"));
 	}
 
 	@Test
@@ -4576,7 +4580,9 @@ public class JSONRPCLayerTest extends JSONRPCLayerTester {
 	@Test
 	public void testGetAllTypeAndFuncInfo() throws Exception {
 		assertThat(CLIENT1.getAllTypeInfo("RefSpec").size(), is(1));
-		assertThat(CLIENT_FOR_SRV2.getAllFuncInfo("UnreleasedModule").size(), is(1));
+		@SuppressWarnings("deprecation")
+		final int size = CLIENT_FOR_SRV2.getAllFuncInfo("UnreleasedModule").size();
+		assertThat(size, is(1));
 	}
 
 	@Test

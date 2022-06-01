@@ -103,5 +103,6 @@
 	<classpathentry kind="lib" path="/jars/lib/jars/picocli/picocli-4.6.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/sample/SampleServiceClient-0.1.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/mongo/mongo-java-driver-3.12.10.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/caffeinecache/caffeine-2.9.3.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
