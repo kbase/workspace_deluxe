@@ -15,8 +15,8 @@ UPDATES:
 
 * The ``auth-service-url`` configuration parameter has been removed.
 
-VERSION: 0.13.2 (Released TBD)
-------------------------------
+VERSION: 0.13.2 (Released 6/1/2022)
+-----------------------------------
 
 UPDATES:
 
