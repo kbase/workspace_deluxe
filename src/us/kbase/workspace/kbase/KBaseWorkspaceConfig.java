@@ -67,7 +67,6 @@ public class KBaseWorkspaceConfig {
 	private static final String BACKEND_SSC_SSL = "backend-trust-all-ssl-certificates";
 	
 	//auth servers
-	private static final String KBASE_AUTH_URL = "auth-service-url";
 	private static final String KBASE_AUTH2_URL = "auth2-service-url";
 	
 	//admin roles
@@ -101,6 +100,10 @@ public class KBaseWorkspaceConfig {
 	//directory for temp files
 	private static final String TEMP_DIR = "temp-dir";
 	
+	// header handling, 1st is for backwards compatibility
+	private static final String DONT_TRUST_X_IP_HEADERS_LEGACY = "dont_trust_x_ip_headers";
+	private static final String DONT_TRUST_X_IP_HEADERS = "dont-trust-x-ip-headers";
+	
 	private static final String TRUE_STR = "true";
 	
 	// the auth2 urls are checked when getting the url
@@ -133,7 +136,6 @@ public class KBaseWorkspaceConfig {
 	private final String workspaceAdmin;
 	private final String mongoUser;
 	private final String mongoPassword;
-	private final URL authURL;
 	private final URL auth2URL;
 	private final Set<String> adminRoles;
 	private final Set<String> adminReadOnlyRoles;
@@ -144,6 +146,7 @@ public class KBaseWorkspaceConfig {
 	private final List<String> infoMessages;
 	private final String paramReport;
 	private final List<ListenerConfig> listenerConfigs;
+	private final boolean dontTrustXIPHeaders;
 	
 	public static class ListenerConfig {
 		
@@ -288,8 +291,11 @@ public class KBaseWorkspaceConfig {
 		}
 		tempDir = nullIfEmpty(config.get(TEMP_DIR));
 		
-		authURL = getUrl(config, KBASE_AUTH_URL, paramErrors, true);
 		auth2URL = getUrl(config, KBASE_AUTH2_URL, paramErrors, true);
+		
+		dontTrustXIPHeaders =
+				TRUE_STR.equals(nullIfEmpty(config.get(DONT_TRUST_X_IP_HEADERS_LEGACY))) ||
+				TRUE_STR.equals(nullIfEmpty(config.get(DONT_TRUST_X_IP_HEADERS)));
 		
 		adminRoles = getStringSet(config, KBASE_AUTH_ADMIN_FULL_ROLES);
 		adminReadOnlyRoles = getStringSet(config, KBASE_AUTH_ADMIN_READ_ONLY_ROLES);
@@ -472,7 +478,7 @@ public class KBaseWorkspaceConfig {
 		final List<String> paramSet = new LinkedList<String>(
 				Arrays.asList(
 						HOST, DB, TYPE_DB, TYPE_DELEGATION_TARGET, MONGO_RETRY_WRITES, MONGO_USER,
-						KBASE_AUTH_URL, KBASE_AUTH2_URL,
+						KBASE_AUTH2_URL, DONT_TRUST_X_IP_HEADERS,
 						KBASE_AUTH_ADMIN_READ_ONLY_ROLES, KBASE_AUTH_ADMIN_FULL_ROLES,
 						BACKEND_TYPE, BACKEND_URL, BACKEND_USER, BACKEND_REGION,
 						BACKEND_CONTAINER, BACKEND_SSC_SSL));
@@ -558,10 +564,6 @@ public class KBaseWorkspaceConfig {
 		return mongoRetryWrites;
 	}
 
-	public URL getAuthURL() {
-		return authURL;
-	}
-	
 	public URL getAuth2URL() {
 		return auth2URL;
 	}
@@ -666,6 +668,10 @@ public class KBaseWorkspaceConfig {
 		return paramReport;
 	}
 	
+	public boolean dontTrustXIPHeaders() {
+		return dontTrustXIPHeaders;
+	}
+	
 	public boolean hasErrors() {
 		return !errors.isEmpty();
 	}
@@ -677,7 +683,6 @@ public class KBaseWorkspaceConfig {
 		result = prime * result + ((adminReadOnlyRoles == null) ? 0 : adminReadOnlyRoles.hashCode());
 		result = prime * result + ((adminRoles == null) ? 0 : adminRoles.hashCode());
 		result = prime * result + ((auth2URL == null) ? 0 : auth2URL.hashCode());
-		result = prime * result + ((authURL == null) ? 0 : authURL.hashCode());
 		result = prime * result + ((backendContainer == null) ? 0 : backendContainer.hashCode());
 		// Region doesn't implement hashcode or equals
 		result = prime * result + ((backendRegion == null) ? 0 : backendRegion.id().hashCode());
@@ -691,6 +696,7 @@ public class KBaseWorkspaceConfig {
 		result = prime * result + ((bytestreamUser == null) ? 0 : bytestreamUser.hashCode());
 		result = prime * result + ((db == null) ? 0 : db.hashCode());
 		result = prime * result + ((delegateTypeTarget == null) ? 0 : delegateTypeTarget.hashCode());
+		result = prime * result + (dontTrustXIPHeaders ? 1231 : 1237);
 		result = prime * result + ((errors == null) ? 0 : errors.hashCode());
 		result = prime * result + ((handleServiceToken == null) ? 0 : handleServiceToken.hashCode());
 		result = prime * result + ((handleServiceURL == null) ? 0 : handleServiceURL.hashCode());
@@ -733,11 +739,6 @@ public class KBaseWorkspaceConfig {
 			if (other.auth2URL != null)
 				return false;
 		} else if (!auth2URL.equals(other.auth2URL))
-			return false;
-		if (authURL == null) {
-			if (other.authURL != null)
-				return false;
-		} else if (!authURL.equals(other.authURL))
 			return false;
 		if (backendContainer == null) {
 			if (other.backendContainer != null)
@@ -794,6 +795,8 @@ public class KBaseWorkspaceConfig {
 			if (other.delegateTypeTarget != null)
 				return false;
 		} else if (!delegateTypeTarget.equals(other.delegateTypeTarget))
+			return false;
+		if (dontTrustXIPHeaders != other.dontTrustXIPHeaders)
 			return false;
 		if (errors == null) {
 			if (other.errors != null)

@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Arrays;
@@ -31,7 +30,6 @@ import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoDatabase;
 
 import us.kbase.abstracthandle.AbstractHandleClient;
-import us.kbase.auth.AuthConfig;
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
 import us.kbase.auth.ConfigurableAuthService;
@@ -119,7 +117,6 @@ public class InitWorkspaceServer {
 				final WorkspaceServerMethods wsmeth,
 				final WorkspaceAdministration wsadmin,
 				final TypeServerMethods types) {
-			super();
 			this.wsmeth = wsmeth;
 			this.wsadmin = wsadmin;
 			this.types = types;
@@ -144,14 +141,9 @@ public class InitWorkspaceServer {
 	
 	public static WorkspaceInitResults initWorkspaceServer(
 			final KBaseWorkspaceConfig cfg,
+			final ConfigurableAuthService auth,
 			final InitReporter rep) {
 		final TempFilesManager tfm = initTempFilesManager(cfg.getTempDir(), rep);
-		
-		final ConfigurableAuthService auth = setUpAuthClient(cfg, rep);
-		if (rep.isFailed()) {
-			rep.reportFail("Server startup failed - all calls will error out.");
-			return null;
-		} 
 		
 		// TODO CODE move this into buildWorkspace. Change so rep isn't used for fails
 		AbstractHandleClient hsc = null;
@@ -236,7 +228,7 @@ public class InitWorkspaceServer {
 		
 		final MongoDatabase db = buildMongo(cfg, cfg.getDBname()).getDatabase(cfg.getDBname());
 		
-		final BlobStore bs = setupBlobStore(db, cfg, auth);
+		final BlobStore bs = setupBlobStore(db, cfg);
 		
 		final Optional<TypeDelegation> typeDelegator = getTypeDelegator(cfg, rep);
 		final TypeProvider typeProvider;
@@ -251,7 +243,8 @@ public class InitWorkspaceServer {
 			final TypeDefinitionDB typeDB;
 			try {
 				typeDB = new TypeDefinitionDB(new MongoTypeStorage(mongoTypes));
-			} catch (TypeStorageException e) {
+				// TODO CODE Mongo exceptions should be wrapped and not exposed
+			} catch (TypeStorageException | MongoException e) {
 				throw new WorkspaceInitException("Couldn't set up the type database: "
 						+ e.getLocalizedMessage(), e);
 			}
@@ -518,8 +511,7 @@ public class InitWorkspaceServer {
 
 	private static BlobStore setupBlobStore(
 			final MongoDatabase db,
-			final KBaseWorkspaceConfig cfg,
-			final ConfigurableAuthService auth)
+			final KBaseWorkspaceConfig cfg)
 			throws WorkspaceInitException {
 		
 		if (cfg.getBackendType().equals(BackendType.GridFS)) {
@@ -607,37 +599,6 @@ public class InitWorkspaceServer {
 
 		return cli;
 	}
-	
-	private static ConfigurableAuthService setUpAuthClient(
-			final KBaseWorkspaceConfig cfg,
-			final InitReporter rep) {
-		final AuthConfig c = new AuthConfig();
-		if (cfg.getAuth2URL().getProtocol().equals("http")) {
-			c.withAllowInsecureURLs(true);
-			rep.reportInfo("Warning - the Auth Service MKII url uses insecure http. " +
-					"https is recommended.");
-		}
-		if (cfg.getAuthURL().getProtocol().equals("http")) {
-			c.withAllowInsecureURLs(true);
-			rep.reportInfo(
-					"Warning - the Auth Service url uses insecure http. https is recommended.");
-		}
-		try {
-			final URL globusURL = cfg.getAuth2URL().toURI().resolve("api/legacy/globus").toURL();
-			c.withGlobusAuthURL(globusURL).withKBaseAuthServerURL(cfg.getAuthURL());
-		} catch (URISyntaxException | MalformedURLException e) {
-			rep.reportFail("Invalid Auth Service url: " + cfg.getAuth2URL());
-			return null;
-		}
-		try {
-			return new ConfigurableAuthService(c);
-		} catch (IOException e) {
-			rep.reportFail("Couldn't connect to authorization service at " +
-					c.getAuthServerURL() + " : " + e.getLocalizedMessage());
-			return null;
-		}
-	}
-
 	
 	public static class WorkspaceInitException extends Exception {
 		
