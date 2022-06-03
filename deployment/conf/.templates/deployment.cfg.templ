@@ -26,9 +26,6 @@ temp-dir={{ default .Env.temp_dir "ws_temp_dir" }}
 server-threads={{ default .Env.server_threads "20" }}
 ignore-handle-service={{ default .Env.ignore_handle_service ""}}
 handle-service-url={{ default .Env.handle_service "https://ci.kbase.us/services/handleservice/" }}
-# The KBase authorization server url for the legacy KBase endpoint.
-auth-service-url={{ default .Env.auth_service "https://ci.kbase.us/services/auth/api/legacy/KBase" }}
-auth-service-url-allow-insecure={{ default .Env.auth_service_url_allow_insecure "" }}
 # The KBase authorization server url.
 auth2-service-url = {{ default .Env.auth2_service "https://ci.kbase.us/services/auth/" }}
 auth2-ws-admin-read-only-roles = {{ default .Env.auth2_ws_admin_read_only_roles "" }}

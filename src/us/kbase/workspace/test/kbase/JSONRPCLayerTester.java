@@ -424,6 +424,41 @@ public class JSONRPCLayerTester {
 			final List<TempFilesManager> managerList,
 			final ResourceUsageConfiguration config)
 			throws Exception {
+		// TODO TEST make a crappy builder for this method and start using it for all the
+		// integration tests
+		return startupWorkspaceServer(
+				mongohost,
+				db,
+				typedb,
+				typeDelegationURL,
+				authPort,
+				authRoleRead1,
+				authRoleRead2,
+				authRoleFull,
+				adminUser,
+				tempDirPath,
+				maxIDsPerCall,
+				managerList,
+				config,
+				true);
+	}
+		
+		public static WorkspaceServer startupWorkspaceServer(
+				final String mongohost,
+				final String db,
+				final String typedb,
+				final URL typeDelegationURL,
+				final int authPort,
+				final String authRoleRead1,
+				final String authRoleRead2,
+				final String authRoleFull,
+				final String adminUser,
+				final String tempDirPath,
+				final int maxIDsPerCall,
+				final List<TempFilesManager> managerList,
+				final ResourceUsageConfiguration config,
+				boolean silenceLogs)
+				throws Exception {
 		
 		//write the server config file:
 		File iniFile = File.createTempFile("test", ".cfg", new File(TestCommon.getTempDir()));
@@ -440,10 +475,7 @@ public class JSONRPCLayerTester {
 		} else {
 			ws.add("type-delegation-target", typeDelegationURL.toString());
 		}
-		ws.add("auth-service-url-allow-insecure", "true");
-		ws.add("auth-service-url", new URL("http://localhost:" + authPort +
-				"/testmode/api/legacy/KBase"));
-		ws.add("auth2-service-url", new URL("http://localhost:" + authPort + "/testmode/"));
+		ws.add("auth2-service-url", "http://localhost:" + authPort + "/testmode/");
 		ws.add("backend-type", "GridFS");
 		ws.add("ws-admin", adminUser);
 		if (authRoleRead1 != null) {
@@ -461,11 +493,9 @@ public class JSONRPCLayerTester {
 		//set up env
 		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
-		env.put("KB_SERVICE_NAME", "Workspace");
 
-		WorkspaceServer.clearConfigForTests();
 		InitWorkspaceServer.setMaximumUniqueIdCountForTests(maxIDsPerCall);
-		WorkspaceServer server = new WorkspaceServer();
+		final WorkspaceServer server = new WorkspaceServer(silenceLogs);
 		server.setResourceUsageConfiguration(config);
 		managerList.add(server.getTempFilesManager());
 		new WorkspaceServerThread(server).start();

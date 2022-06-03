@@ -312,9 +312,6 @@ public class HandleAndBytestreamIntegrationTest {
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db);
 		ws.add("mongodb-type-database", typedb);
-		ws.add("auth-service-url-allow-insecure", "true");
-		ws.add("auth-service-url", "http://localhost:" + AUTH.getServerPort() +
-				"/testmode/api/legacy/KBase");
 		ws.add("auth2-service-url", "http://localhost:" + AUTH.getServerPort() + "/testmode/");
 		ws.add("backend-type", "S3");
 		ws.add("backend-url", miniohost);
@@ -336,10 +333,8 @@ public class HandleAndBytestreamIntegrationTest {
 		//set up env
 		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
-		env.put("KB_SERVICE_NAME", "Workspace");
 
-		WorkspaceServer.clearConfigForTests();
-		WorkspaceServer server = new WorkspaceServer();
+		final WorkspaceServer server = new WorkspaceServer(true);
 		new WorkspaceServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {

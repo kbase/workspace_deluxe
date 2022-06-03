@@ -32,9 +32,6 @@ mongodb-type-database = types
 # type delegation.
 # type-delegation-target = 
 
-# The legacy KBase authorization server url.
-auth-service-url = https://kbase.us/services/auth/api/legacy/KBase/Sessions/Login
-
 # The KBase authorization service mkII url.
 auth2-service-url = https://kbase.us/services/auth
 
