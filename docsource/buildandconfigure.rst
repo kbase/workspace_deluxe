@@ -200,12 +200,6 @@ mongodb-pwd
 **Description**: Password for an account with readWrite access to the MongoDB
 database
 
-auth-service-url
-""""""""""""""""
-**Required**: Yes
-
-**Description**: URL of the KBase legacy API for the KBase authentication service MKII
-
 auth2-service-url
 """""""""""""""""
 **Required**: Yes

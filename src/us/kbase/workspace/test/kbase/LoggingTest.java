@@ -191,11 +191,7 @@ public class LoggingTest {
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db);
 		ws.add("mongodb-type-database", typedb);
-		ws.add("auth-service-url-allow-insecure", "true");
-		ws.add("auth-service-url", new URL("http://localhost:" + authc.getServerPort() +
-				"/testmode/api/legacy/KBase"));
-		ws.add("auth2-service-url", new URL("http://localhost:" + authc.getServerPort() +
-				"/testmode/"));
+		ws.add("auth2-service-url", "http://localhost:" + authc.getServerPort() + "/testmode/");
 		ws.add("backend-type", "GridFS");
 		ws.add("ws-admin", USER2);
 		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
@@ -207,10 +203,8 @@ public class LoggingTest {
 		//set up env
 		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
-		env.put("KB_SERVICE_NAME", "Workspace");
 
-		WorkspaceServer.clearConfigForTests();
-		WorkspaceServer server = new WorkspaceServer();
+		final WorkspaceServer server = new WorkspaceServer(true);
 		new WorkspaceServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {

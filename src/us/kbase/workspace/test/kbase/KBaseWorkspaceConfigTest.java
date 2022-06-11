@@ -40,8 +40,6 @@ import us.kbase.workspace.kbase.KBaseWorkspaceConfig.ListenerConfig;
 public class KBaseWorkspaceConfigTest {
 	
 	private final static String CI_SERV = "https://ci.kbase.us/services/";
-	private final static String AUTH_LEGACY_URL =
-			CI_SERV + "auth/api/legacy/KBase/Sessions/Login";
 	private final static String IGNORE_HANDLE = 
 			"Ignoring Handle Service config. Objects with handle IDs will fail typechecking.";
 	private final static String MISSING_PARAM = "Must provide param %s in config file";
@@ -168,7 +166,7 @@ public class KBaseWorkspaceConfigTest {
 	private static class ExpectedConfig {
 		
 		public URL auth2URL = null;
-		public URL authURL = null;
+		public boolean dontTrustXIPHeaders = false;
 		public Set<String> adminReadOnlyRoles = set();
 		public Set<String> adminRoles = set();
 		public String workspaceAdmin = null;
@@ -201,6 +199,11 @@ public class KBaseWorkspaceConfigTest {
 		public boolean hasErrors = false;
 		public List<String> errors = Collections.emptyList();
 
+		public ExpectedConfig withDontTrustXIPHeaders(final boolean dontTrust) {
+			this.dontTrustXIPHeaders = dontTrust;
+			return this;
+		}
+		
 		public ExpectedConfig withAdminReadOnlyRoles(final Set<String> adminReadOnlyRoles) {
 			this.adminReadOnlyRoles = adminReadOnlyRoles;
 			return this;
@@ -213,11 +216,6 @@ public class KBaseWorkspaceConfigTest {
 
 		public ExpectedConfig withAuth2URL(final URL auth2URL) {
 			this.auth2URL = auth2URL;
-			return this;
-		}
-
-		public ExpectedConfig withAuthURL(final URL authURL) {
-			this.authURL = authURL;
 			return this;
 		}
 
@@ -375,11 +373,12 @@ public class KBaseWorkspaceConfigTest {
 				new KBaseWorkspaceConfig(tempfile, "Workspace")
 				)) {
 		
+			assertThat("incorrect don't trust XIP headers",
+					kwc.dontTrustXIPHeaders(), is(exp.dontTrustXIPHeaders));
 			assertThat("incorrect admin read roles",
 					kwc.getAdminReadOnlyRoles(), is(exp.adminReadOnlyRoles));
 			assertThat("incorrect admin roles", kwc.getAdminRoles(), is(exp.adminRoles));
 			assertThat("incorrect auth2 url", kwc.getAuth2URL(), is(exp.auth2URL));
-			assertThat("incorrect auth url", kwc.getAuthURL(), is(exp.authURL));
 			assertThat("incorrect backend token", kwc.getBackendToken(), is(exp.backendToken));
 			assertThat("incorrect backend type", kwc.getBackendType(), is(exp.backendType));
 			assertThat("incorrect backend url", kwc.getBackendURL(), is(exp.backendURL));
@@ -445,7 +444,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-type-database", "typedb")
 				.with("backend-type", "   GridFS   ")
 				.with("temp-dir", "temp")
-				.with("auth-service-url", AUTH_LEGACY_URL)
 				.with("auth2-service-url", CI_SERV + "auth")
 				.with("ignore-handle-service", "blearg")
 				.build();
@@ -454,7 +452,6 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-host=somehost\n" +
 				"mongodb-database=somedb\n" +
 				"mongodb-type-database=typedb\n" +
-				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
 				"backend-type=GridFS\n";
 		
@@ -462,7 +459,6 @@ public class KBaseWorkspaceConfigTest {
 				cfg,
 				new ExpectedConfig()
 						.withAuth2URL(new URL(CI_SERV + "auth"))
-						.withAuthURL(new URL(AUTH_LEGACY_URL))
 						.withMongohost("somehost")
 						.withMongoDBname("somedb")
 						.withTypeDBname("typedb")
@@ -476,7 +472,7 @@ public class KBaseWorkspaceConfigTest {
 	
 	@Test
 	public void configMaximalS3AndDelegateTypes() throws Exception {
-		// also tests full sample service config
+		// also tests full sample service config and standard xip headers flag
 		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
 				.with("mongodb-host", "    somehost    ")
 				.with("mongodb-database", "    somedb   ")
@@ -484,7 +480,7 @@ public class KBaseWorkspaceConfigTest {
 				.with("type-delegation-target", "     http://localhost:12345     ")
 				.with("mongodb-retrywrites", "     true     ")
 				.with("temp-dir", "   temp   ")
-				.with("auth-service-url", "    " + AUTH_LEGACY_URL + "    ")
+				.with("dont-trust-x-ip-headers", "    true     ")
 				.with("auth2-service-url", "   " + CI_SERV + "auth     ")
 				.with("mongodb-user", "   muser   ")
 				.with("mongodb-pwd", "    mpwd    ")
@@ -521,8 +517,8 @@ public class KBaseWorkspaceConfigTest {
 				"type-delegation-target=http://localhost:12345\n" +
 				"mongodb-retrywrites=true\n" +
 				"mongodb-user=muser\n" +
-				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
+				"dont-trust-x-ip-headers=true\n" +
 				"auth2-ws-admin-read-only-roles=role1,   ,   role2   ,\n" +
 				"auth2-ws-admin-full-roles=role3,   ,   role4   ,\n" +
 				"backend-type=S3\n" +
@@ -542,7 +538,7 @@ public class KBaseWorkspaceConfigTest {
 				cfg,
 				new ExpectedConfig()
 						.withAuth2URL(new URL(CI_SERV + "auth"))
-						.withAuthURL(new URL(AUTH_LEGACY_URL))
+						.withDontTrustXIPHeaders(true)
 						.withAdminReadOnlyRoles(set("role1", "role2"))
 						.withAdminRoles(set("role3", "role4"))
 						.withWorkspaceAdmin("wsadminuser")
@@ -577,6 +573,42 @@ public class KBaseWorkspaceConfigTest {
 	}
 	
 	@Test
+	public void configWithLegacyXIPHeadersFlag() throws Exception {
+		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
+				.with("mongodb-host", "somehost")
+				.with("mongodb-database", "somedb")
+				.with("mongodb-type-database", "typedb")
+				.with("backend-type", "   GridFS   ")
+				.with("temp-dir", "temp")
+				.with("auth2-service-url", CI_SERV + "auth")
+				.with("dont_trust_x_ip_headers", "    true     ")
+				.with("ignore-handle-service", "blearg")
+				.build();
+		
+		final String paramReport =
+				"mongodb-host=somehost\n" +
+				"mongodb-database=somedb\n" +
+				"mongodb-type-database=typedb\n" +
+				"auth2-service-url=" + CI_SERV + "auth\n" +
+				"backend-type=GridFS\n";
+		
+		assertConfigCorrect(
+				cfg,
+				new ExpectedConfig()
+						.withAuth2URL(new URL(CI_SERV + "auth"))
+						.withDontTrustXIPHeaders(true)
+						.withMongohost("somehost")
+						.withMongoDBname("somedb")
+						.withTypeDBname("typedb")
+						.withBackendType(BackendType.GridFS)
+						.withInfoMessages(Arrays.asList(IGNORE_HANDLE))
+						.withParamReport(paramReport)
+						.withTempDir("temp")
+						.withIgnoreHandleService(true)
+				);
+	}
+	
+	@Test
 	public void configWithWhitespace() throws Exception {
 		final Map<String, String> cfg = MapBuilder.<String, String>newHashMap()
 				.with("mongodb-host", "somehost")
@@ -584,8 +616,8 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-type-database", "     typedb     ")
 				.with("mongodb-retrywrites", "     \t     ")
 				.with("temp-dir", "temp")
-				.with("auth-service-url", AUTH_LEGACY_URL)
 				.with("auth2-service-url", CI_SERV + "auth")
+				.with("dont-trust-x-ip-headers", "    \t     ")
 				.with("mongodb-user", "   \t    ")
 				.with("mongodb-pwd", "   \t    ")
 				.with("ws-admin", "   \t    ")
@@ -613,7 +645,6 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-host=somehost\n" +
 				"mongodb-database=somedb\n" +
 				"mongodb-type-database=typedb\n" +
-				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
 				"backend-type=GridFS\n" +
 				"handle-service-url=" + CI_SERV + "handle_service\n" +
@@ -623,7 +654,6 @@ public class KBaseWorkspaceConfigTest {
 				cfg,
 				new ExpectedConfig()
 						.withAuth2URL(new URL(CI_SERV + "auth"))
-						.withAuthURL(new URL(AUTH_LEGACY_URL))
 						.withMongohost("somehost")
 						.withMongoDBname("somedb")
 						.withTypeDBname("typedb")
@@ -643,7 +673,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-host", "somehost")
 				.with("mongodb-database", "somedb")
 				.with("temp-dir", "temp")
-				.with("auth-service-url", AUTH_LEGACY_URL)
 				.with("auth2-service-url", CI_SERV + "auth")
 				.with("ignore-handle-service", "true")
 				.with("auth2-ws-admin-read-only-roles", " r1  \t    ")
@@ -697,10 +726,10 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-database", null)
 				.with("mongodb-type-database", null)
 				.with("type-delegation-target", null)
+				.with("dont-trust-x-ip-headers", null)
 				.with("mongodb-user", "user")
 				.with("mongodb-pwd", null)
 				.with("temp-dir", null)
-				.with("auth-service-url", null)
 				.with("auth2-service-url", null)
 				.with("backend-type", null)
 				.with("handle-manager-token", null)
@@ -722,7 +751,6 @@ public class KBaseWorkspaceConfigTest {
 				String.format(MISSING_PARAM, "backend-type"),
 				"Must provide param mongodb-type-database or type-delegation-target in "
 						+ "config file",
-				String.format(MISSING_PARAM, "auth-service-url"),
 				String.format(MISSING_PARAM, "auth2-service-url"),
 				"If sample-service-url is supplied, sample-service-administrator-token is " +
 						"required",
@@ -752,11 +780,11 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-database", "   \t    ")
 				.with("mongodb-type-database", "   \t    ")
 				.with("type-delegation-target", "   \t   ")
+				.with("dont-trust-x-ip-headers", "        ")
 				.with("mongodb-user", "   \t    ")
 				.with("mongodb-pwd", "pwd")
 				.with("backend-type", "   \t    ")
 				.with("temp-dir", "   \t    ")
-				.with("auth-service-url", "   \t    ")
 				.with("auth2-service-url", "   \t    ")
 				.with("handle-manager-token", "   \t    ")
 				.with("handle-service-url", "   \t    ")
@@ -777,7 +805,6 @@ public class KBaseWorkspaceConfigTest {
 				String.format(MISSING_PARAM, "backend-type"),
 				"Must provide param mongodb-type-database or type-delegation-target in "
 						+ "config file",
-				String.format(MISSING_PARAM, "auth-service-url"),
 				String.format(MISSING_PARAM, "auth2-service-url"),
 				"If sample-service-url is supplied, sample-service-administrator-token is " +
 						"required",
@@ -815,7 +842,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-region", " over there")
 				.with("bytestream-url", "    crappy ass url for shock   ")
 				.with("temp-dir", "   temp   ")
-				.with("auth-service-url", "   crappy ass url   ")
 				.with("auth2-service-url", "   crappy ass url2   ")
 				.with("handle-manager-token", "    hmtoken    ")
 				.with("handle-service-url", "   crappy ass url4   ")
@@ -828,7 +854,6 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-database=somedb\n" +
 				"mongodb-type-database=typedb\n" +
 				"type-delegation-target=crappy ass url for type delegation\n" +
-				"auth-service-url=crappy ass url\n" +
 				"auth2-service-url=crappy ass url2\n" +
 				"backend-type=S3\n" +
 				"backend-url=crappy ass url for backend\n" +
@@ -841,7 +866,6 @@ public class KBaseWorkspaceConfigTest {
 		
 		final List<String> errors = Arrays.asList(
 				String.format(err, "type-delegation-target", " for type delegation"),
-				String.format(err, "auth-service-url", ""),
 				String.format(err, "auth2-service-url", "2"),
 				String.format(err, "backend-url", " for backend"),
 				String.format(err, "bytestream-url", " for shock"),
@@ -875,7 +899,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-type-database", "    somedb   ")
 				.with("backend-type", "GridFS")
 				.with("temp-dir", "   temp   ")
-				.with("auth-service-url", AUTH_LEGACY_URL)
 				.with("auth2-service-url", CI_SERV + "auth")
 				.with("ignore-handle-service", "foo")
 				.build();
@@ -884,7 +907,6 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-host=somehost\n" +
 				"mongodb-database=somedb\n" +
 				"mongodb-type-database=somedb\n" +
-				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
 				"backend-type=GridFS\n";
 		
@@ -896,7 +918,6 @@ public class KBaseWorkspaceConfigTest {
 				cfg,
 				new ExpectedConfig()
 						.withAuth2URL(new URL(CI_SERV + "auth"))
-						.withAuthURL(new URL(AUTH_LEGACY_URL))
 						.withMongohost("somehost")
 						.withMongoDBname("somedb")
 						.withTypeDBname("somedb")
@@ -918,7 +939,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("mongodb-type-database", "    typedb   ")
 				.with("backend-type", "   GreedFS   ")
 				.with("temp-dir", "   temp   ")
-				.with("auth-service-url", AUTH_LEGACY_URL)
 				.with("auth2-service-url", CI_SERV + "auth")
 				.with("ignore-handle-service", "foo")
 				.build();
@@ -927,7 +947,6 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-host=somehost\n" +
 				"mongodb-database=somedb\n" +
 				"mongodb-type-database=typedb\n" +
-				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
 				"backend-type=GreedFS\n";
 		
@@ -937,7 +956,6 @@ public class KBaseWorkspaceConfigTest {
 				cfg,
 				new ExpectedConfig()
 						.withAuth2URL(new URL(CI_SERV + "auth"))
-						.withAuthURL(new URL(AUTH_LEGACY_URL))
 						.withMongohost("somehost")
 						.withMongoDBname("somedb")
 						.withTypeDBname("typedb")
@@ -972,7 +990,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("bytestream-user", bytestreamUser)
 				.with("bytestream-url", "https://foo.com")
 				.with("temp-dir", "   temp   ")
-				.with("auth-service-url", AUTH_LEGACY_URL)
 				.with("auth2-service-url", CI_SERV + "auth")
 				.with("ignore-handle-service", "foo")
 				.build();
@@ -981,7 +998,6 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-host=somehost\n" +
 				"mongodb-database=somedb\n" +
 				"mongodb-type-database=typedb\n" +
-				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
 				"backend-type=GridFS\n" +
 				"bytestream-url=https://foo.com\n" + 
@@ -1000,7 +1016,6 @@ public class KBaseWorkspaceConfigTest {
 				cfg,
 				new ExpectedConfig()
 						.withAuth2URL(new URL(CI_SERV + "auth"))
-						.withAuthURL(new URL(AUTH_LEGACY_URL))
 						.withMongohost("somehost")
 						.withMongoDBname("somedb")
 						.withTypeDBname("typedb")
@@ -1035,7 +1050,6 @@ public class KBaseWorkspaceConfigTest {
 				.with("backend-container", backendParam)
 				.with("backend-region", backendParam)
 				.with("temp-dir", "   temp   ")
-				.with("auth-service-url", AUTH_LEGACY_URL)
 				.with("auth2-service-url", CI_SERV + "auth")
 				.with("ignore-handle-service", "foo")
 				.build();
@@ -1044,7 +1058,6 @@ public class KBaseWorkspaceConfigTest {
 				"mongodb-host=somehost\n" +
 				"mongodb-database=somedb\n" +
 				"mongodb-type-database=typedb\n" +
-				"auth-service-url=" + AUTH_LEGACY_URL + "\n" +
 				"auth2-service-url=" + CI_SERV + "auth\n" +
 				"backend-type=S3\n";
 		
@@ -1061,7 +1074,6 @@ public class KBaseWorkspaceConfigTest {
 				cfg,
 				new ExpectedConfig()
 						.withAuth2URL(new URL(CI_SERV + "auth"))
-						.withAuthURL(new URL(AUTH_LEGACY_URL))
 						.withMongohost("somehost")
 						.withMongoDBname("somedb")
 						.withTypeDBname("typedb")
