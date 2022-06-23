@@ -1,5 +1,7 @@
 package us.kbase.typedobj.core;
 
+import static java.util.Objects.requireNonNull;
+
 import us.kbase.typedobj.db.TypeDefinitionDB;
 import us.kbase.typedobj.exceptions.NoSuchModuleException;
 import us.kbase.typedobj.exceptions.NoSuchTypeException;
@@ -7,36 +9,24 @@ import us.kbase.typedobj.exceptions.TypeStorageException;
 
 /** A type provider for the typed object validator that takes a direct instance
  * of a type database.
- * @author gaprice@lbl.gov
  *
  */
 public class LocalTypeProvider implements TypeProvider {
 
-	//TODO TEST unit tests
-	
 	private final TypeDefinitionDB typeDB;
 	
 	/** Create a type provider that connects directly to a type database.
 	 * @param typeDB a type database.
 	 */
 	public LocalTypeProvider(final TypeDefinitionDB typeDB) {
-		if (typeDB == null) {
-			throw new NullPointerException("typeDB cannot be null");
-		}
-		this.typeDB = typeDB;
-	}
-	@Override
-	public AbsoluteTypeDefId resolveTypeDef(TypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException {
-		return typeDB.resolveTypeDefId(typeDefId);
+		this.typeDB = requireNonNull(typeDB, "typeDB");
 	}
 
 	@Override
-	public String getTypeJsonSchema(AbsoluteTypeDefId typeDefId)
-			throws NoSuchTypeException, NoSuchModuleException,
-			TypeStorageException {
-		return typeDB.getJsonSchemaDocument(typeDefId);
+	public ResolvedType getTypeJsonSchema(final TypeDefId type)
+			throws NoSuchTypeException, NoSuchModuleException, TypeStorageException {
+		final AbsoluteTypeDefId rtype = typeDB.resolveTypeDefId(requireNonNull(type, "type"));
+		return new ResolvedType(rtype, typeDB.getJsonSchemaDocument(rtype));
 	}
 
 }

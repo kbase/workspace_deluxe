@@ -9,7 +9,9 @@ import static us.kbase.common.test.TestCommon.inst;
 import static us.kbase.common.test.TestCommon.list;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -193,6 +195,16 @@ public class ArgUtilsTest {
 	}
 	
 	@Test
+	public void processProvenanceWithEmptyActions() throws Exception {
+		assertThat("incorrect provenance",
+				processProvenance(
+						U2, inst(10000), list(newPA(), newPA().withCaller("c"), newPA())),
+				is(Provenance.getBuilder(U2, inst(10000)).withAction(
+						ProvenanceAction.getBuilder().withCaller("c").build())
+						.build()));
+	}
+	
+	@Test
 	public void processProvenanceMaximal() throws Exception {
 		final List<us.kbase.workspace.ProvenanceAction> inc = list(
 				newPA()
@@ -330,11 +342,13 @@ public class ArgUtilsTest {
 	// there's lots of ways a PA build can fail, we just test a couple of them here
 	
 	@Test
-	public void processProvenanceFailBuildEmpty() throws Exception {
+	public void processProvenanceFailBuildNullCustom() throws Exception {
 		final us.kbase.workspace.ProvenanceAction pa = newPA().withCaller("c");
-		failProcessProvenance(U2, inst(0), list(pa, pa, newPA()),
-				new IllegalArgumentException("Provenance action #3: At least one field in a "
-						+ "provenance action must be provided"));
+		final Map<String, String> custom = new HashMap<>();
+		custom.put(null, "foo");
+		failProcessProvenance(U2, inst(0), list(pa, pa, newPA().withCustom(custom)),
+				new IllegalArgumentException(
+						"Provenance action #3: Null key in custom provenance"));
 	}
 	
 	@Test

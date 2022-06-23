@@ -2408,27 +2408,27 @@ public class WorkspaceTest extends WorkspaceTester {
 		final ObjectIDNoWSNoVer fail = new ObjectIDNoWSNoVer("fail");
 		failSave(userfoo, wspace, fail, data1, new TypeDefId("NoModHere.Foo"), emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nModule doesn't exist: NoModHere"));
+						"Object #1, fail failed type checking: Module doesn't exist: NoModHere"));
 		failSave(userfoo, wspace, fail, data1, new TypeDefId("SomeModule.Foo"), emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"Object #1, fail failed type checking: Unable to locate type: " +
 						"SomeModule.Foo"));
 		
 		failSave(userfoo, wspace, fail, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"Object #1, fail failed type checking: This type wasn't released yet " +
 						"and you should be an owner to access unreleased version information"));
 		failSave(userfoo, wspace, fail, data1, relmintype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"Object #1, fail failed type checking: Unable to locate type: " +
 						"TestTypeChecking.CheckType-1"));
 		failSave(userfoo, wspace, fail, data1, abstype1, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"Object #1, fail failed type checking: Unable to locate type: " +
 						"TestTypeChecking.CheckType-1.0"));
 		failSave(userfoo, wspace, fail, data1, relmaxtype, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nThis type wasn't released yet " + 
+						"Object #1, fail failed type checking: This type wasn't released yet " + 
 						"and you should be an owner to access unreleased version information"));
 		
 		types.releaseTypes(userfoo, mod);
@@ -2444,14 +2444,14 @@ public class WorkspaceTest extends WorkspaceTester {
 				getIdFactory());
 		failSave(userfoo, wspace, fail, data1, relmintype0, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"Object #1, fail failed type checking: This type wasn't released yet " +
 						"and you should be an owner to access unreleased version information"));
 		ws.saveObjects(userfoo, wspace, Arrays.asList(new WorkspaceSaveObject( //should work
 				getRandomName(), data1, relmintype1, null, emptyprov, false)),
 				getIdFactory());
 		failSave(userfoo, wspace, fail, data1, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nUnable to locate type: " +
+						"Object #1, fail failed type checking: Unable to locate type: " +
 						"TestTypeChecking.CheckType-2"));
 		
 		types.compileNewTypeSpec(userfoo, specTypeCheck2, null, null, null, false, null);
@@ -2474,7 +2474,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"not match any allowed primitive type (allowed: [\"integer\"]), at /baz"));
 		failSave(userfoo, wspace, fail, data1, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"Object #1, fail failed type checking: This type wasn't released yet " +
 						"and you should be an owner to access unreleased version information"));
 		
 		
@@ -2501,7 +2501,7 @@ public class WorkspaceTest extends WorkspaceTester {
 						"not match any allowed primitive type (allowed: [\"string\"]), at /baz"));
 		failSave(userfoo, wspace, fail, newdata, relmintype2, emptyprov,
 				new TypedObjectValidationException(
-						"Object #1, fail failed type checking:\nThis type wasn't released yet " +
+						"Object #1, fail failed type checking: This type wasn't released yet " +
 						"and you should be an owner to access unreleased version information"));
 		
 		types.releaseTypes(userfoo, mod);
@@ -3028,7 +3028,7 @@ public class WorkspaceTest extends WorkspaceTester {
 	
 	
 	private WorkspaceSaveObject renameWSO(final WorkspaceSaveObject obj, final String name) {
-		return new WorkspaceSaveObject(new ObjectIDNoWSNoVer(name), obj.getData(), obj.getType(),
+		return new WorkspaceSaveObject(saveName(name), obj.getData(), obj.getType(),
 				obj.getUserMeta(), obj.getProvenance(), obj.isHidden());
 	}
 
@@ -3280,12 +3280,18 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		//should work
 		final List<WorkspaceSaveObject> objs1 = Arrays.asList(new WorkspaceSaveObject(
-				getRandomName(), data1, listidtype, null, emptyprov, false));
+				saveName("my_neato_object_name"),
+				data1,
+				listidtype,
+				null,
+				emptyprov,
+				false));
 		ws.saveObjects(user, wsi, objs1, fac);
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 7);
 		failSave(user, wsi, objs1, fac, new TypedObjectValidationException(
-				"Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 7"));
+				"Object #1, my_neato_object_name failed type checking - the "
+				+ "number of unique IDs in the saved objects exceeds the maximum allowed, 7"));
 		
 		final Provenance p = Provenance.getBuilder(user, now())
 				.withAction(ProvenanceAction.getBuilder().withWorkspaceObjects(list(
@@ -3293,17 +3299,24 @@ public class WorkspaceTest extends WorkspaceTester {
 				.build();
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 10);
-		objs1.set(0, new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, p, false));
+		objs1.set(0, new WorkspaceSaveObject(
+				saveName("othername"),
+				data1,
+				listidtype,
+				null,
+				p,
+				false));
 		//should work
 		ws.saveObjects(user, wsi, objs1, fac);
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 9);
 		failSave(user, wsi, objs1, fac, new TypedObjectValidationException(
-				"Failed type checking at object #1 - the number of unique IDs in the saved objects exceeds the maximum allowed, 9"));
+				"Object #1, othername failed type checking - the number of unique IDs in the "
+				+ "saved objects exceeds the maximum allowed, 9"));
 		
 		final List<WorkspaceSaveObject> objs2 = Arrays.asList(
-				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, emptyprov,
+				new WorkspaceSaveObject(saveName("o1"), data1, listidtype, null, emptyprov,
 						false),
-				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, emptyprov,
+				new WorkspaceSaveObject(saveName("o2"), data1, listidtype, null, emptyprov,
 						false));
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 16);
@@ -3313,12 +3326,13 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 15);
 		failSave(user, wsi, objs2, fac, new TypedObjectValidationException(
-				"Failed type checking at object #2 - the number of unique IDs in the saved objects exceeds the maximum allowed, 15"));
+				"Object #2, o2 failed type checking - the number of unique IDs in the "
+						+ "saved objects exceeds the maximum allowed, 15"));
 		
 		final List<WorkspaceSaveObject> objs3 = Arrays.asList(
-				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, p,
+				new WorkspaceSaveObject(saveName("o3"), data1, listidtype, null, p,
 						false),
-				new WorkspaceSaveObject(getRandomName(), data1, listidtype, null, p,
+				new WorkspaceSaveObject(saveName("o4"), data1, listidtype, null, p,
 						false));
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 20);
 		
@@ -3327,7 +3341,12 @@ public class WorkspaceTest extends WorkspaceTester {
 		
 		fac = makeFacForMaxIDTests(Arrays.asList(idtype1, idtype2), user, 19);
 		failSave(user, wsi, objs3, fac, new TypedObjectValidationException(
-				"Failed type checking at object #2 - the number of unique IDs in the saved objects exceeds the maximum allowed, 19"));
+				"Object #2, o4 failed type checking - the number of unique IDs in the "
+						+ "saved objects exceeds the maximum allowed, 19"));
+	}
+
+	public ObjectIDNoWSNoVer saveName(final String name) {
+		return new ObjectIDNoWSNoVer(name);
 	}
 
 	private IdReferenceHandlerSetFactory makeFacForMaxIDTests(List<String> idtypes,

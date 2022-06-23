@@ -9,7 +9,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/commons-logging-1.1.1.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/slf4j/slf4j-api-1.7.7.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/ini4j/ini4j-0.5.2.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/jetty/jetty-all-7.0.0.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/jna/jna-3.4.0.jar"/>
@@ -82,26 +81,30 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="/jars/lib/jars/arangodb/velocypack-2.4.0.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/reactivestreams/reactive-streams-1.0.3.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/annotations-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/arns-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/auth-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/aws-core-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/aws-query-protocol-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/aws-xml-protocol-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/http-client-spi-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/metrics-spi-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/profiles-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/protocol-core-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/regions-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/s3-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/sdk-core-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/url-connection-client-2.14.25.jar"/>
-	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/utils-2.14.25.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpclient-4.5.9.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpcore-4.4.5.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/apache_commons/http/httpmime-4.5.8.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/picocli/picocli-4.6.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/kbase/sample/SampleServiceClient-0.1.1.jar"/>
 	<classpathentry kind="lib" path="/jars/lib/jars/mongo/mongo-java-driver-3.12.10.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/caffeinecache/caffeine-2.9.3.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/slf4j/slf4j-api-1.7.30.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/annotations-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/arns-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/auth-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/aws-core-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/aws-query-protocol-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/aws-xml-protocol-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/http-client-spi-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/json-utils-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/metrics-spi-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/profiles-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/protocol-core-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/regions-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/s3-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/sdk-core-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/third-party-jackson-core-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/url-connection-client-2.17.214.jar"/>
+	<classpathentry kind="lib" path="/jars/lib/jars/amazon/V2/utils-2.17.214.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -157,10 +157,22 @@ mongodb-database
 
 mongodb-type-database
 """""""""""""""""""""
-**Required**: Yes
+**Required**: If not delegating type operations
 
 **Description**: Name of the workspace MongoDB types database. This database name must not be
 the same as ``mongodb-database``.
+
+.. warning:: Once any data has been saved by the workspace, changing the type database will
+   result in unspecified behavior, including data corruption.
+
+type-delegation-target
+""""""""""""""""""""""
+**Required**: If delegating type operations
+
+**Description**: URL of the workspace service to which type operations should be delegated. If
+this parameter is set ``mongodb-type-database`` is ignored.
+
+.. warning:: Read :ref:`workspacescaling` carefully before delegating types.
 
 .. warning:: Once any data has been saved by the workspace, changing the type database will
    result in unspecified behavior, including data corruption.
@@ -187,12 +199,6 @@ mongodb-pwd
 
 **Description**: Password for an account with readWrite access to the MongoDB
 database
-
-auth-service-url
-""""""""""""""""
-**Required**: Yes
-
-**Description**: URL of the KBase legacy API for the KBase authentication service MKII
 
 auth2-service-url
 """""""""""""""""

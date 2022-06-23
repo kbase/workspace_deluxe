@@ -1,60 +1,34 @@
 package us.kbase.workspace.kbase.admin;
 
-import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
-import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Ticker;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.ImmutableMap;
 
 import us.kbase.auth.AuthException;
 import us.kbase.auth.AuthToken;
-import us.kbase.common.service.JacksonTupleModule;
-import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
-import us.kbase.workspace.CreateWorkspaceParams;
-import us.kbase.workspace.GetObjectInfo3Params;
-import us.kbase.workspace.GetObjects2Params;
-import us.kbase.workspace.GetPermissionsMassParams;
-import us.kbase.workspace.GrantModuleOwnershipParams;
-import us.kbase.workspace.ListObjectsParams;
-import us.kbase.workspace.ListWorkspaceIDsParams;
-import us.kbase.workspace.ListWorkspaceInfoParams;
-import us.kbase.workspace.ObjectIdentity;
-import us.kbase.workspace.RemoveModuleOwnershipParams;
-import us.kbase.workspace.SaveObjectsParams;
-import us.kbase.workspace.SetGlobalPermissionsParams;
-import us.kbase.workspace.SetPermissionsParams;
-import us.kbase.workspace.SetWorkspaceDescriptionParams;
-import us.kbase.workspace.WorkspaceIdentity;
-import us.kbase.workspace.WorkspacePermissions;
-import us.kbase.workspace.database.DynamicConfig.DynamicConfigUpdate;
-import us.kbase.workspace.database.Types;
-import us.kbase.workspace.database.Workspace;
-import us.kbase.workspace.database.WorkspaceIdentifier;
-import us.kbase.workspace.database.WorkspaceInformation;
 import us.kbase.workspace.database.WorkspaceObjectData;
 import us.kbase.workspace.database.WorkspaceUser;
-import us.kbase.workspace.kbase.WorkspaceServerMethods;
 
 /** A workspace administration mediator. Administration calls should be routed to this class,
  * which checks that the user is authorized, transforms the input parameters, and calls
@@ -67,96 +41,184 @@ import us.kbase.workspace.kbase.WorkspaceServerMethods;
  */
 public class WorkspaceAdministration {
 	
-	//TODO JAVADOC
-	//TODO TEST unit tests
-	
-	private static final String GET_CONFIG = "getConfig";
-	private static final String SET_CONFIG = "setConfig";
-	
-	private static final String DENY_MOD_REQUEST = "denyModRequest";
-	private static final String APPROVE_MOD_REQUEST = "approveModRequest";
-	private static final String LIST_MOD_REQUESTS = "listModRequests";
-
 	private static final String REMOVE_ADMIN = "removeAdmin";
 	private static final String ADD_ADMIN = "addAdmin";
 	private static final String LIST_ADMINS = "listAdmins";
-
-	private static final String SET_WORKSPACE_OWNER = "setWorkspaceOwner";
-	private static final String LIST_WORKSPACE_OWNERS = "listWorkspaceOwners";
-
-	private static final String REMOVE_MODULE_OWNERSHIP = "removeModuleOwnership";
-	private static final String GRANT_MODULE_OWNERSHIP = "grantModuleOwnership";
-	private static final String LIST_WORKSPACES = "listWorkspaces";
-	private static final String LIST_WORKSPACE_IDS = "listWorkspaceIDs";
-	private static final String GET_WORKSPACE_DESCRIPTION = "getWorkspaceDescription";
-	private static final String SET_WORKSPACE_DESCRIPTION = "setWorkspaceDescription";
-	private static final String LIST_OBJECTS = "listObjects";
-	private static final String SAVE_OBJECTS = "saveObjects";
-	private static final String GET_OBJECT_INFO = "getObjectInfo";
-	private static final String GET_OBJECT_HIST = "getObjectHistory";
-	private static final String GET_OBJECTS = "getObjects";
-	private static final String SET_GLOBAL_PERMISSION = "setGlobalPermission";
-	private static final String GET_WORKSPACE_INFO = "getWorkspaceInfo";
-	private static final String GET_PERMISSIONS = "getPermissions";
-	private static final String GET_PERMISSIONS_MASS = "getPermissionsMass";
-	private static final String SET_PERMISSIONS = "setPermissions";
-	private static final String CREATE_WORKSPACE = "createWorkspace";
-	private static final String DELETE_WS = "deleteWorkspace";
-	private static final String UNDELETE_WS = "undeleteWorkspace";
-
-	private final static ObjectMapper MAPPER = new ObjectMapper()
-			.registerModule(new JacksonTupleModule());
 	
-	private final Workspace ws;
-	private final WorkspaceServerMethods wsmeth;
-	private final Types types;
-	private final AdministratorHandler admin;
-	private final Cache<String, AdminRole> adminCache;
-	
-	/** Create the workspace administration instance.
-	 * @param ws a workspace instance.
-	 * @param wsmeth a workspace methods instance.
-	 * @param types a workspace types instance.
-	 * @param admin an administrator handler.
-	 * @param maxCacheSize the maximum number of {@link AdminRole}s to cache.
-	 * @param cacheTimeInMS the maximum time an {@link AdminRole} will be cached in milliseconds.
+	/** Commands that are reserved for use by {@link WorkspaceAdministration}. Attempting
+	 * to install a command with one of these names is an error.
 	 */
-	public WorkspaceAdministration(
-			final Workspace ws, 
-			final WorkspaceServerMethods wsmeth,
-			final Types types,
-			final AdministratorHandler admin,
-			final int maxCacheSize,
-			final int cacheTimeInMS) {
-		this(ws, wsmeth, types, admin, maxCacheSize, cacheTimeInMS, Ticker.systemTicker());
+	public static final Set<String> RESERVED_COMMANDS = Collections.unmodifiableSet(new HashSet<>(
+			Arrays.asList(REMOVE_ADMIN, ADD_ADMIN, LIST_ADMINS)));
+	
+	/** The default maximum size of the admin user cache. */
+	public static final int DEFAULT_CACHE_MAX_SIZE = 100; // seems like more than enough admins
+	
+	/** The default amount time an administrator will be cached in milliseconds. */
+	public static final int DEFAULT_CACHE_EXP_TIME_MS = 5 * 60 * 1000; // cache admin role for 5m
+	
+	/** An interface for handling an administration command. */
+	@FunctionalInterface
+	public static interface AdminCommandHandler {
+		
+		/** Run the command.
+		 * @param cmd the command.
+		 * @param token the user's token.
+		 * @param resourcesToDelete a threadlocal in which resources that must be deleted when
+		 * the command is completed can be stored.
+		 * @return the result of the command.
+		 * @throws Exception if an error occurs.
+		 */
+		Object runCommand(
+				AdminCommand command,
+				AuthToken token,
+				// there's got to be a better way to deal with this...
+				ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
+			throws Exception;
 	}
 	
-	/** This constructor should only be used for tests. */
-	public WorkspaceAdministration(
-			final Workspace ws, 
-			final WorkspaceServerMethods wsmeth,
-			final Types types,
+	/** A specification for an administration command. */
+	public static class AdminCommandSpecification {
+		private final String commandName;
+		private final AdminCommandHandler commandHandler;
+		private final boolean requireWrite;
+		
+		/** Create the specification.
+		 * @param the name of the command to respond to.
+		 * @param commandHandler the handler for the command.
+		 */
+		public AdminCommandSpecification(
+				final String commandName,
+				final AdminCommandHandler commandHandler) {
+			this(commandName, commandHandler, false);
+		}
+		
+		/** Create the specification.
+		 * @param the name of the command to respond to.
+		 * @param commandHandler the handler for the command.
+		 * @param requireWrite true if this command requires write privileges.
+		 */
+		public AdminCommandSpecification(
+				final String commandName,
+				final AdminCommandHandler commandHandler,
+				final boolean requireWrite) {
+			this.commandName = requireNonNull(commandName, "commandName");
+			this.commandHandler = requireNonNull(commandHandler, "commandHandler");
+			this.requireWrite = requireWrite;
+		}
+		
+		/** Get the name of the command.
+		 * @return the name.
+		 */
+		public String getName() {
+			return this.commandName;
+		}
+
+		/** Run the command.
+		 * @param cmd the command.
+		 * @param token the user's token.
+		 * @param resourcesToDelete a threadlocal in which resources that must be deleted when
+		 * the command is completed can be stored.
+		 * @return the result of the command.
+		 * @throws Exception if an error occurs.
+		 */
+		public Object runCommand(
+				final AdminCommand cmd,
+				final AuthToken token,
+				final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
+				throws Exception {
+			return commandHandler.runCommand(cmd, token, resourcesToDelete);
+		}
+
+		/** Whether write privileges are required to run this command.
+		 * @return true if write privileges are required.
+		 */
+		public boolean isRequireWrite() {
+			return requireWrite;
+		}
+	}
+	
+	/** A validator for KBase users. */
+	@FunctionalInterface
+	public static interface UserValidator {
+		
+		/** Validate and get a user.
+		 * @param user the KBase user name.
+		 * @param token a valid KBase token, which need not be for the user to be validated.
+		 * @return the user name.
+		 * @throws IOException if an IOException occurs.
+		 * @throws AuthException if an error occurs validating the user.
+		 */
+		WorkspaceUser validateUser(String user, AuthToken token) throws IOException, AuthException;
+	}
+	
+	private final AdministratorHandler admin;
+	private final Cache<String, AdminRole> adminCache;
+	private final Map<String, AdminCommandSpecification> commandHandlers;
+	private final UserValidator userValidator;
+	
+	private WorkspaceAdministration(
 			final AdministratorHandler admin,
+			final Map<String, AdminCommandSpecification> commandHandlers,
+			final UserValidator userValidator,
 			final int maxCacheSize,
 			final int cacheTimeInMS,
 			final Ticker ticker) {
-		this.ws = ws;
-		this.types = types;
-		this.wsmeth = wsmeth;
 		this.admin = admin;
 		adminCache = CacheBuilder.newBuilder()
 				.maximumSize(maxCacheSize)
 				.expireAfterWrite(cacheTimeInMS, TimeUnit.MILLISECONDS)
 				.ticker(ticker)
 				.build();
+		this.commandHandlers = commandHandlers;
+		this.userValidator = userValidator;
+		installAdminCommandSpecs();
+	}
+	
+	private void installAdminCommandSpecs() {
+		final List<AdminCommandSpecification> specs = Arrays.asList(
+			new AdminCommandSpecification(
+				LIST_ADMINS,
+				(cmd, tok, toDelete) -> {
+					getLogger().info(LIST_ADMINS);
+					return admin.getAdmins().stream().map(u -> u.getUser())
+							.collect(Collectors.toList());
+				}),
+			new AdminCommandSpecification(
+				ADD_ADMIN,
+				(cmd, tok, toDelete) -> {
+					final WorkspaceUser user = userValidator.validateUser(cmd.getUser(), tok);
+					getLogger().info(ADD_ADMIN + " " + user.getUser());
+					admin.addAdmin(user);
+					adminCache.invalidate(user.getUser());
+					return null;
+				},
+				true),
+			new AdminCommandSpecification(
+				REMOVE_ADMIN,
+				(cmd, tok, toDelete) -> {
+					final WorkspaceUser user = userValidator.validateUser(cmd.getUser(), tok);
+					getLogger().info(REMOVE_ADMIN + " " + user.getUser());
+					admin.removeAdmin(user);
+					adminCache.invalidate(user.getUser());
+					return null;
+				},
+				true)
+			);
+		
+		for (final AdminCommandSpecification spec: specs) {
+			commandHandlers.put(spec.getName(), spec);
+		}
 	}
 	
 	private static Logger getLogger() {
 		return LoggerFactory.getLogger(WorkspaceAdministration.class);
 	}
 	
-	private void requireWrite(final AdminRole role) {
-		if (!AdminRole.ADMIN.equals(role)) {
+	private void checkRequireWrite(
+			final AdminCommandSpecification cmdspec,
+			final AdminRole role) {
+		if (cmdspec.isRequireWrite() && !AdminRole.ADMIN.equals(role)) {
 			throw new IllegalArgumentException(
 					"Full administration rights required for this command");
 		}
@@ -176,15 +238,22 @@ public class WorkspaceAdministration {
 		}
 	}
 
+	/** Run an administration command.
+	 * @param token the administrator's token.
+	 * @param command the command to run. This is expected to contain an {@link AdminCommand}
+	 * class instance.
+	 * @param resourcesToDelete a container for data to be deleted once the command is complete.
+	 * @return the result of the command.
+	 * @throws Exception if any exception occurs.
+	 */
 	public Object runCommand(
 			final AuthToken token,
 			final UObject command,
 			final ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete)
 			throws Exception {
 		final AdminRole role = getAdminRole(token);
-		final String putativeAdmin = token.getUserName();
 		if (AdminRole.NONE.equals(role)) {
-			throw new IllegalArgumentException("User " + putativeAdmin + " is not an admin");
+			throw new IllegalArgumentException("User " + token.getUserName() + " is not an admin");
 		}
 		final AdminCommand cmd;
 		try {
@@ -197,299 +266,101 @@ public class WorkspaceAdministration {
 			}
 			throw ioe;
 		}
-		// should look into some sort of interface w/ registration instead of a massive if else
-		final String fn = (String) cmd.getCommand();
-		if (GET_CONFIG.contentEquals(fn)) {
-			getLogger().info(GET_CONFIG);
-			return ImmutableMap.of("config", ws.getConfig().toMap());
+		final String fn = cmd.getCommand();
+		if (!commandHandlers.containsKey(fn)) {
+			throw new IllegalArgumentException(
+					"I don't know how to process the command: " + fn);
 		}
-		if (SET_CONFIG.equals(fn)) {
-			requireWrite(role);
-			getLogger().info(SET_CONFIG); // add parameters?
-			final SetConfigParams params = getParams(cmd, SetConfigParams.class);
-			ws.setConfig(DynamicConfigUpdate.getBuilder().withMap(params.set).build());
-			return null;
+		checkRequireWrite(commandHandlers.get(fn), role);
+		return commandHandlers.get(fn).runCommand(cmd, token, resourcesToDelete);
+	}
+	
+	/** Get a builder for a {@link WorkspaceAdministration}.
+	 * @param admin an administrator handler instance.
+	 * @param userValidator a user validator instance.
+	 * @return the builder.
+	 */
+	public static final Builder getBuilder(
+			final AdministratorHandler admin,
+			final UserValidator userValidator) {
+		return new Builder(admin, userValidator);
+	}
+	
+	/** A builder for a {@link WorkspaceAdministration}. */
+	public static class Builder {
+		
+		private final AdministratorHandler admin;
+		private final UserValidator userValidator;
+		private final Map<String, AdminCommandSpecification> commandHandlers = new HashMap<>();
+		private int maxCacheSize = DEFAULT_CACHE_MAX_SIZE;
+		private int cacheTimeInMS = DEFAULT_CACHE_EXP_TIME_MS;
+		private Ticker ticker = Ticker.systemTicker();
+		
+		private Builder(final AdministratorHandler admin, final UserValidator userValidator) {
+			this.admin = requireNonNull(admin, "admin");
+			this.userValidator = requireNonNull(userValidator, "userValidator");
 		}
-		if (LIST_MOD_REQUESTS.equals(fn)) {
-			getLogger().info(LIST_MOD_REQUESTS);
-			return types.listModuleRegistrationRequests();
-		}
-		if (APPROVE_MOD_REQUEST.equals(fn)) {
-			requireWrite(role);
-			final String mod = cmd.getModule();
-			getLogger().info(APPROVE_MOD_REQUEST + " " + mod);
-			types.resolveModuleRegistration(mod, true);
-			return null;
-		}
-		if (DENY_MOD_REQUEST.equals(fn)) {
-			requireWrite(role);
-			final String mod = cmd.getModule();
-			getLogger().info(DENY_MOD_REQUEST + " " + mod);
-			types.resolveModuleRegistration(mod, false);
-			return null;
-		}
-		if (LIST_ADMINS.equals(fn)) {
-			getLogger().info(LIST_ADMINS);
-			return usersToStrings(admin.getAdmins());
-		}
-		if (ADD_ADMIN.equals(fn)) {
-			requireWrite(role);
-			final WorkspaceUser user = getUser(cmd, token);
-			getLogger().info(ADD_ADMIN + " " + user.getUser());
-			admin.addAdmin(user);
-			adminCache.invalidate(user.getUser());
-			return null;
-		}
-		if (REMOVE_ADMIN.equals(fn)) {
-			requireWrite(role);
-			final WorkspaceUser user = getUser(cmd, token);
-			getLogger().info(REMOVE_ADMIN + " " + user.getUser());
-			admin.removeAdmin(user);
-			adminCache.invalidate(user.getUser());
-			return null;
-		}
-		if (SET_WORKSPACE_OWNER.equals(fn)) {
-			requireWrite(role);
-			final SetWorkspaceOwnerParams params = getParams(cmd, SetWorkspaceOwnerParams.class);
-			
-			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(params.wsi);
-			final WorkspaceInformation info = ws.setWorkspaceOwner(null, wsi,
-					params.new_user == null ? null : getUser(params.new_user, token),
-					Optional.ofNullable(params.new_name), true);
-			getLogger().info(SET_WORKSPACE_OWNER + " " + info.getId() + " " +
-					info.getOwner().getUser());
-			return wsInfoToTuple(info);
-		}
-		if (CREATE_WORKSPACE.equals(fn)) {
-			requireWrite(role);
-			final WorkspaceUser user = getUser(cmd, token);
-			final CreateWorkspaceParams params = getParams(cmd, CreateWorkspaceParams.class);
-			final Tuple9<Long, String, String, String, Long, String, String, String,
-					Map<String, String>> ws =  wsmeth.createWorkspace(params, user);
-			getLogger().info(CREATE_WORKSPACE + " " + ws.getE1() + " " + ws.getE3());
-			return ws;
-		}
-		if (SET_PERMISSIONS.equals(fn)) {
-			requireWrite(role);
-			final SetPermissionsParams params = getParams(cmd, SetPermissionsParams.class);
-			final long id = wsmeth.setPermissionsAsAdmin(params, token);
-			getLogger().info(SET_PERMISSIONS + " " + id + " " + params.getNewPermission() + " " +
-					StringUtils.join(params.getUsers(), " "));
-			return null;
-		}
-		if (SET_WORKSPACE_DESCRIPTION.equals(fn)) {
-			requireWrite(role);
-			final SetWorkspaceDescriptionParams params = getParams(
-					cmd, SetWorkspaceDescriptionParams.class);
-			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
-					params.getWorkspace(), params.getId());
-			final long id = ws.setWorkspaceDescription(null, wsi, params.getDescription(), true);
-			getLogger().info(SET_WORKSPACE_DESCRIPTION + " " + id);
-			return null;
-		}
-		if (GET_WORKSPACE_DESCRIPTION.equals(fn)) {
-			final WorkspaceIdentity wsi = getParams(cmd, WorkspaceIdentity.class);
-			final WorkspaceIdentifier wsid = processWorkspaceIdentifier(wsi);
-			final String desc = ws.getWorkspaceDescription(null, wsid, true);
-			// TODO FEATURE would be better if could always provide ID vs. name
-			getLogger().info(GET_WORKSPACE_DESCRIPTION + " " + wsi.getId() + " " +
-					wsi.getWorkspace());
-			return desc;
-		}
-		if (GET_PERMISSIONS.equals(fn)) {
-			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
-			final WorkspaceUser user = getNullableUser(cmd, token);
-			final Map<String, String> perms;
-			if (user == null) {
-				perms = wsmeth.getPermissions(Arrays.asList(params), null, true).getPerms().get(0);
-			} else {
-				perms = wsmeth.getPermissions(params, user);
+		
+		/** Set the maximum number of users to be kept in the administrator cache. The cache
+		 * prevents multiple rapid lookups of the admin status of users, which are
+		 * likely to be over network connections and therefore expensive.
+		 * @param maxCacheSize the maximum number of users, defaulting to
+		 * {@link WorkspaceAdministration#DEFAULT_CACHE_MAX_SIZE}.
+		 * @return this builder.
+		 */
+		public Builder withCacheMaxSize(final int maxCacheSize) {
+			if (maxCacheSize < 0) {
+				throw new IllegalArgumentException("maxCacheSize must be >= 0");
 			}
-			//TODO FEATURE would be better if could always provide ID vs. name
-			getLogger().info(GET_PERMISSIONS + " " + params.getId() + " " +
-					params.getWorkspace() + (user == null ? "" : " " + user.getUser()));
-			return perms;
+			this.maxCacheSize = maxCacheSize;
+			return this;
 		}
-		if (GET_PERMISSIONS_MASS.equals(fn)) {
-			final GetPermissionsMassParams params = getParams(cmd, GetPermissionsMassParams.class);
-			// not sure what to log here, could be 1K entries.
-			final WorkspacePermissions perms = wsmeth.getPermissions(
-					params.getWorkspaces(), null, true);
-			getLogger().info(GET_PERMISSIONS_MASS + " " + params.getWorkspaces().size() +
-					" workspaces in input");
-			return perms;
-		}
-		if (GET_WORKSPACE_INFO.equals(fn)) {
-			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
-			final WorkspaceIdentifier wsi = processWorkspaceIdentifier(
-							params.getWorkspace(), params.getId());
-			final WorkspaceInformation info = ws.getWorkspaceInformationAsAdmin(wsi);
-			getLogger().info(GET_WORKSPACE_INFO + " " + info.getId());
-			return wsInfoToTuple(info);
-		}
-		if (SET_GLOBAL_PERMISSION.equals(fn)) {
-			requireWrite(role);
-			final WorkspaceUser user = getUser(cmd, token);
-			final SetGlobalPermissionsParams params = getParams(cmd,
-					SetGlobalPermissionsParams.class);
-			final long id = wsmeth.setGlobalPermission(params, user);
-			getLogger().info(SET_GLOBAL_PERMISSION + " " + id + " " +
-					params.getNewPermission() + " " + user.getUser());
-			return null;
-		}
-		if (SAVE_OBJECTS.equals(fn)) {
-			requireWrite(role);
-			final WorkspaceUser user = getUser(cmd, token);
-			final SaveObjectsParams params = getParams(cmd, SaveObjectsParams.class);
-			//method has its own logging
-			getLogger().info(SAVE_OBJECTS + " " + user.getUser());
-			return wsmeth.saveObjects(params, user, token);
-		}
-		if (GET_OBJECT_INFO.equals(fn)) {
-			final GetObjectInfo3Params params = getParams(cmd, GetObjectInfo3Params.class);
-			// method has its own logging
-			getLogger().info(GET_OBJECT_INFO);
-			// is passing the admin user really necessary? Check at some point, maybe remove
-			return wsmeth.getObjectInformation(params, new WorkspaceUser(putativeAdmin), true);
-		}
-		if (GET_OBJECT_HIST.equals(fn)) {
-			final ObjectIdentity params = getParams(cmd, ObjectIdentity.class);
-			// method has its own logging
-			getLogger().info(GET_OBJECT_HIST);
-			return wsmeth.getObjectHistory(params, new WorkspaceUser(putativeAdmin), true);
-		}
-		if (GET_OBJECTS.equals(fn)) {
-			final GetObjects2Params params = getParams(cmd, GetObjects2Params.class);
-			// method has its own logging
-			getLogger().info(GET_OBJECTS);
-			return wsmeth.getObjects(params, new WorkspaceUser(putativeAdmin), true,
-					resourcesToDelete);
-		}
-		if (LIST_WORKSPACES.equals(fn)) {
-			final WorkspaceUser user = getUser(cmd, token);
-			final ListWorkspaceInfoParams params = getParams(cmd, ListWorkspaceInfoParams.class);
-			getLogger().info(LIST_WORKSPACES + " " + user.getUser());
-			return wsmeth.listWorkspaceInfo(params, user);
-		}
-		if (LIST_WORKSPACE_IDS.equals(fn)) {
-			final WorkspaceUser user = getUser(cmd, token);
-			final ListWorkspaceIDsParams params = getParams(cmd, ListWorkspaceIDsParams.class);
-			getLogger().info(LIST_WORKSPACE_IDS + " " + user.getUser());
-			return wsmeth.listWorkspaceIDs(params, user);
-		}
-		if (LIST_OBJECTS.equals(fn)) {
-			final ListObjectsParams params = getParams(cmd, ListObjectsParams.class);
-			final WorkspaceUser user = getNullableUser(cmd, token);
-			final String ustr = user == null ? "adminuser" : "user: " + user.getUser();
-			getLogger().info(LIST_OBJECTS + " " + ustr);
-			return wsmeth.listObjects(params, user, user == null);
-		}
-		if (DELETE_WS.equals(fn)) {
-			requireWrite(role);
-			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
-			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
-			final long id = ws.setWorkspaceDeleted(null, wksp, true, true);
-			getLogger().info(DELETE_WS + " " + id);
-			return null;
-		}
-		if (UNDELETE_WS.equals(fn)) {
-			requireWrite(role);
-			final WorkspaceIdentity params = getParams(cmd, WorkspaceIdentity.class);
-			final WorkspaceIdentifier wksp = processWorkspaceIdentifier(params);
-			final long id = ws.setWorkspaceDeleted(null, wksp, false, true);
-			getLogger().info(UNDELETE_WS + " " + id);
-			return null;
-		}
-		if (LIST_WORKSPACE_OWNERS.equals(fn)) {
-			getLogger().info(LIST_WORKSPACE_OWNERS);
-			return usersToStrings(ws.getAllWorkspaceOwners());
-		}
-		if (GRANT_MODULE_OWNERSHIP.equals(fn)) {
-			requireWrite(role);
-			final GrantModuleOwnershipParams params = getParams(cmd,
-					GrantModuleOwnershipParams.class);
-			getLogger().info(GRANT_MODULE_OWNERSHIP + " " + params.getMod() +
-					" " + params.getNewOwner());
-			wsmeth.grantModuleOwnership(params, null, true);
-			return null;
-		}
-		if (REMOVE_MODULE_OWNERSHIP.equals(fn)) {
-			requireWrite(role);
-			final RemoveModuleOwnershipParams params = getParams(cmd,
-					RemoveModuleOwnershipParams.class);
-			getLogger().info(REMOVE_MODULE_OWNERSHIP + " " + params.getMod() +
-					" " + params.getOldOwner());
-			wsmeth.removeModuleOwnership(params, null, true);
-			return null;
-		}
-		throw new IllegalArgumentException(
-				"I don't know how to process the command: " + fn);
-	}
-
-	private List<String> usersToStrings(final Set<WorkspaceUser> users) {
-		final List<String> ret = new ArrayList<String>();
-		for (final WorkspaceUser u: users) {
-			ret.add(u.getUser());
-		}
-		return ret;
-	}
-
-	private WorkspaceUser getUser(final AdminCommand cmd, final AuthToken token)
-			throws IOException, AuthException {
-		return getUser((String) cmd.getUser(), token);
-	}
-
-	private WorkspaceUser getUser(final String user, final AuthToken token)
-			throws IOException, AuthException {
-		if (user == null) {
-			throw new NullPointerException("User may not be null");
-		}
-		return wsmeth.validateUsers(Arrays.asList(user), token).get(0);
-	}
-	
-	private WorkspaceUser getNullableUser(final AdminCommand cmd, final AuthToken token)
-			throws IOException, AuthException {
-		if (cmd.getUser() == null) {
-			return null;
-		}
-		return wsmeth.validateUsers(Arrays.asList(cmd.getUser()), token).get(0);
-	}
-	
-	private static class SetConfigParams {
-		public Map<String, Object> set;
 		
-		@SuppressWarnings("unused")
-		public SetConfigParams() {}; // for jackson
-	}
-	
-	private static class SetWorkspaceOwnerParams {
-		public WorkspaceIdentity wsi;
-		public String new_user;
-		public String new_name;
+		/** Set the amount of time users remain in the administrator cache. Any change in status
+		 * at the source of the administrator information will not be reflected until the user
+		 * expires from the cache.
+		 * @param cacheTimeMS the cache time in milliseconds, defaulting to
+		 * {@link WorkspaceAdministration#DEFAULT_CACHE_MAX_SIZE}.
+		 * @return this builder.
+		 */
+		public Builder withCacheTimeMS(final int cacheTimeMS) {
+			if (cacheTimeMS < 0) {
+				throw new IllegalArgumentException("cacheTimeMS must be >= 0");
+			}
+			this.cacheTimeInMS = cacheTimeMS;
+			return this;
+		}
 		
-		@SuppressWarnings("unused")
-		public SetWorkspaceOwnerParams() {}; //for jackson
-	}
-	
-	private <T> T getParams(final AdminCommand input, final Class<T> clazz)
-			throws IOException {
-		final UObject p = input.getParams();
-		if (p == null) {
-			throw new NullPointerException("Method parameters " +
-					clazz.getSimpleName() + " may not be null");
+		/** Set the ticker for the administrator cache; generally only useful for testing purposes.
+		 * @param ticker the ticker. Null input is silently ignored.
+		 * @return this builder.
+		 */
+		public Builder withCacheTicker(final Ticker ticker) {
+			if (ticker != null) {
+				this.ticker = ticker;
+			}
+			return this;
 		}
-		try {
-			return MAPPER.readValue(p.getPlacedStream(), clazz);
-		} catch (JsonMappingException e) { // parse exception can't happen here
-			throw new IllegalArgumentException("Unable to deserialize "
-					+ clazz.getSimpleName() + " out of params field: " + e.getMessage(), e);
+		
+		/** Add an admin command to the administration instance. Cannot be a reserved command in
+		 * {@link WorkspaceAdministration#RESERVED_COMMANDS}.
+		 * @param spec the admin command.
+		 * @return this builder.
+		 */
+		public Builder withCommand(final AdminCommandSpecification spec) {
+			if (RESERVED_COMMANDS.contains(requireNonNull(spec, "spec").getName())) {
+				throw new IllegalArgumentException("Reserved command: " + spec.getName());
+			}
+			commandHandlers.put(spec.getName(), spec);
+			return this;
+		}
+		
+		/** Build the {@link WorkspaceAdministration}.
+		 * @return the administration instance.
+		 */
+		public WorkspaceAdministration build() {
+			return new WorkspaceAdministration(
+					admin, commandHandlers, userValidator, maxCacheSize, cacheTimeInMS, ticker);
 		}
 	}
-
-//	//why doesn't this work?
-//	@SuppressWarnings("unused")
-//	private <T> T getParams(final Map<String, Object> input) {
-//		return UObject.transformObjectToObject(input.get("params"),
-//				new TypeReference<T>() {});
-//	}
 }

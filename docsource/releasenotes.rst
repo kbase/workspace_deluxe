@@ -3,6 +3,42 @@
 Workspace service release notes
 ===============================
 
+VERSION: 0.14.1 (Released 6/21/2022)
+------------------------------------
+
+UPDATES:
+
+* Updated the S3 client; no user visible changes.
+
+
+VERSION: 0.14.0 (Released 6/10/2022)
+------------------------------------
+
+BACKWARDS INCOMPATIBILIES:
+
+* The workspace now logs to standard out rather than syslog.
+* The ``KB_SERVICE_NAME`` environment variable is now ignored.
+
+UPDATES:
+
+* The ``auth-service-url`` configuration parameter has been removed.
+
+VERSION: 0.13.2 (Released 6/1/2022)
+-----------------------------------
+
+UPDATES:
+
+* Type delegation has been added. See :ref:`workspacescaling` for more information.
+* The ``get_func_info`` and ``get_all_func_info`` methods are deprecated.
+
+VERSION: 0.13.1 (Released 4/27/2022)
+------------------------------------
+
+UPDATES:
+
+* ``save_objects`` will no longer throw an error if an empty ``ProvenanceAction`` is included in
+  the call. Rather, empty ``ProvenanceAction`` instances will be silently omitted from the list.
+
 VERSION: 0.13.0 (Released 4/13/2022)
 ------------------------------------
 

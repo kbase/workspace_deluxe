@@ -8,8 +8,8 @@ import java.util.regex.Pattern;
 
 public class TypeDefName {
 	
-	private final static Pattern INVALID_TYPE_NAMES = 
-			Pattern.compile("[^\\w]");
+	// In java, unlike, say, python 3, this is a-zA-Z0-9_ only, no unicode chars
+	private final static Pattern INVALID_TYPE_NAMES = Pattern.compile("[^\\w]");
 	private final static int MAX_NAME_SIZE_BYTES = 255;
 	
 	private final String module;
@@ -27,7 +27,7 @@ public class TypeDefName {
 	 */
 	public TypeDefName(String fullname) {
 		String [] tokens = fullname.split("\\.");
-		if(tokens.length != 2) {
+		if (tokens.length != 2) {
 			throw new IllegalArgumentException(String.format(
 					"Illegal fullname of a typed object: %s", fullname));
 		}

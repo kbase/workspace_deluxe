@@ -74,6 +74,7 @@ import us.kbase.workspace.database.DynamicConfig;
 import us.kbase.workspace.database.ObjectInformation;
 import us.kbase.workspace.database.ResolvedWorkspaceID;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder;
+import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
 import us.kbase.workspace.database.UncheckedUserMetadata;
 import us.kbase.workspace.database.WorkspaceUser;
 import us.kbase.workspace.kbase.InitWorkspaceServer;
@@ -388,10 +389,79 @@ public class JSONRPCLayerTester {
 			final String typedb,
 			final boolean authAdminRoles)
 			throws Exception {
+		return startupWorkspaceServer(
+				mongohost,
+				db,
+				typedb,
+				null,
+				authc.getServerPort(),
+				authAdminRoles ? AUTH_ROLE_READ1 : null,
+				authAdminRoles ? AUTH_ROLE_READ2 : null,
+				authAdminRoles ? AUTH_ROLE_FULL : null,
+				USER2,
+				"tempForJSONRPCLayerTester",
+				MAX_UNIQUE_IDS_PER_CALL,
+				TFMS,
+				//as of 3/10/14 out of 64 objects this would force 15 to be written as temp files
+				new ResourceUsageConfigurationBuilder()
+					.withMaxIncomingDataMemoryUsage(24)
+					.withMaxReturnedDataMemoryUsage(24)
+					.build());
+	}
+	
+	public static WorkspaceServer startupWorkspaceServer(
+			final String mongohost,
+			final String db,
+			final String typedb,
+			final URL typeDelegationURL,
+			final int authPort,
+			final String authRoleRead1,
+			final String authRoleRead2,
+			final String authRoleFull,
+			final String adminUser,
+			final String tempDirPath,
+			final int maxIDsPerCall,
+			final List<TempFilesManager> managerList,
+			final ResourceUsageConfiguration config)
+			throws Exception {
+		// TODO TEST make a crappy builder for this method and start using it for all the
+		// integration tests
+		return startupWorkspaceServer(
+				mongohost,
+				db,
+				typedb,
+				typeDelegationURL,
+				authPort,
+				authRoleRead1,
+				authRoleRead2,
+				authRoleFull,
+				adminUser,
+				tempDirPath,
+				maxIDsPerCall,
+				managerList,
+				config,
+				true);
+	}
+		
+		public static WorkspaceServer startupWorkspaceServer(
+				final String mongohost,
+				final String db,
+				final String typedb,
+				final URL typeDelegationURL,
+				final int authPort,
+				final String authRoleRead1,
+				final String authRoleRead2,
+				final String authRoleFull,
+				final String adminUser,
+				final String tempDirPath,
+				final int maxIDsPerCall,
+				final List<TempFilesManager> managerList,
+				final ResourceUsageConfiguration config,
+				boolean silenceLogs)
+				throws Exception {
 		
 		//write the server config file:
-		File iniFile = File.createTempFile("test", ".cfg",
-				new File(TestCommon.getTempDir()));
+		File iniFile = File.createTempFile("test", ".cfg", new File(TestCommon.getTempDir()));
 		if (iniFile.exists()) {
 			iniFile.delete();
 		}
@@ -400,23 +470,22 @@ public class JSONRPCLayerTester {
 		Section ws = ini.add("Workspace");
 		ws.add("mongodb-host", mongohost);
 		ws.add("mongodb-database", db);
-		ws.add("mongodb-type-database", typedb);
-		ws.add("auth-service-url-allow-insecure", "true");
-		ws.add("auth-service-url", new URL("http://localhost:" + authc.getServerPort() +
-				"/testmode/api/legacy/KBase"));
-		ws.add("auth2-service-url", new URL("http://localhost:" + authc.getServerPort() +
-				"/testmode/"));
+		if (typedb != null) {
+			ws.add("mongodb-type-database", typedb);
+		} else {
+			ws.add("type-delegation-target", typeDelegationURL.toString());
+		}
+		ws.add("auth2-service-url", "http://localhost:" + authPort + "/testmode/");
 		ws.add("backend-type", "GridFS");
-		ws.add("ws-admin", USER2);
-		if (authAdminRoles) {
-			ws.add("auth2-ws-admin-read-only-roles", "  ,  " + AUTH_ROLE_READ1 + " ,   ,    " +
-					AUTH_ROLE_READ2);
-			ws.add("auth2-ws-admin-full-roles", "    " + AUTH_ROLE_FULL  + ",   ,    ");
+		ws.add("ws-admin", adminUser);
+		if (authRoleRead1 != null) {
+			ws.add("auth2-ws-admin-read-only-roles", "  ,  " + authRoleRead1 + " ,   ,    " +
+					authRoleRead2);
+			ws.add("auth2-ws-admin-full-roles", "    " + authRoleFull  + ",   ,    ");
 		} else {
 			ws.add("auth2-ws-admin-full-roles", "        ");
 		}
-		ws.add("temp-dir", Paths.get(TestCommon.getTempDir())
-				.resolve("tempForJSONRPCLayerTester"));
+		ws.add("temp-dir", Paths.get(TestCommon.getTempDir()).resolve(tempDirPath));
 		ws.add("ignore-handle-service", "true");
 		ini.store(iniFile);
 		iniFile.deleteOnExit();
@@ -424,19 +493,11 @@ public class JSONRPCLayerTester {
 		//set up env
 		Map<String, String> env = TestCommon.getenv();
 		env.put("KB_DEPLOYMENT_CONFIG", iniFile.getAbsolutePath());
-		env.put("KB_SERVICE_NAME", "Workspace");
 
-		WorkspaceServer.clearConfigForTests();
-		InitWorkspaceServer.setMaximumUniqueIdCountForTests(
-				MAX_UNIQUE_IDS_PER_CALL);
-		WorkspaceServer server = new WorkspaceServer();
-		//as of 3/10/14 out of 64 objects this would force 15 to be written as temp files
-		server.setResourceUsageConfiguration(
-				new ResourceUsageConfigurationBuilder(
-						server.getWorkspaceResourceUsageConfig())
-				.withMaxIncomingDataMemoryUsage(24)
-				.withMaxReturnedDataMemoryUsage(24).build());
-		TFMS.add(server.getTempFilesManager());
+		InitWorkspaceServer.setMaximumUniqueIdCountForTests(maxIDsPerCall);
+		final WorkspaceServer server = new WorkspaceServer(silenceLogs);
+		server.setResourceUsageConfiguration(config);
+		managerList.add(server.getTempFilesManager());
 		new WorkspaceServerThread(server).start();
 		System.out.println("Main thread waiting for server to start up");
 		while (server.getServerPort() == null) {
@@ -471,6 +532,7 @@ public class JSONRPCLayerTester {
 		}
 		JsonTokenStreamOCStat.showStat();
 	}
+	
 	@Before
 	public void clearDB() throws Exception {
 		try (final MongoClient mcli = new MongoClient("localhost:" + mongo.getServerPort())) {

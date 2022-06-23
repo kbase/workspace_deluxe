@@ -16,6 +16,9 @@ import us.kbase.common.service.Tuple9;
 import us.kbase.common.service.UObject;
 
 //BEGIN_HEADER
+import us.kbase.auth.AuthConfig;
+import us.kbase.auth.AuthException;
+import us.kbase.auth.ConfigurableAuthService;
 import static us.kbase.common.utils.ServiceUtils.checkAddlArgs;
 import static us.kbase.workspace.kbase.ArgUtils.getGlobalWSPerm;
 import static us.kbase.workspace.kbase.ArgUtils.wsInfoToTuple;
@@ -31,15 +34,18 @@ import static us.kbase.workspace.kbase.IdentifierUtils.processSubObjectIdentifie
 import static us.kbase.workspace.kbase.IdentifierUtils.processWorkspaceIdentifier;
 import static us.kbase.workspace.version.WorkspaceVersion.VERSION;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
+import org.productivity.java.syslog4j.SyslogIF;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
@@ -47,19 +53,12 @@ import ch.qos.logback.classic.Logger;
 
 //import org.apache.commons.lang3.builder.ToStringBuilder;
 
-import us.kbase.typedobj.core.AbsoluteTypeDefId;
 import us.kbase.typedobj.core.TempFilesManager;
 import us.kbase.typedobj.core.TypeDefId;
-import us.kbase.typedobj.core.TypeDefName;
-import us.kbase.typedobj.db.FuncDetailedInfo;
-import us.kbase.typedobj.db.ModuleDefId;
-import us.kbase.typedobj.db.TypeChange;
-import us.kbase.typedobj.db.TypeDetailedInfo;
 import us.kbase.workspace.database.DependencyStatus;
 import us.kbase.workspace.database.ListObjectsParameters;
 import us.kbase.workspace.database.ObjectIDNoWSNoVer;
 import us.kbase.workspace.database.ResourceUsageConfigurationBuilder.ResourceUsageConfiguration;
-import us.kbase.workspace.database.Types;
 import us.kbase.workspace.database.Workspace;
 import us.kbase.workspace.database.ObjectIdentifier;
 import us.kbase.workspace.database.Permission;
@@ -73,6 +72,8 @@ import us.kbase.workspace.kbase.InitWorkspaceServer;
 import us.kbase.workspace.kbase.InitWorkspaceServer.WorkspaceInitResults;
 import us.kbase.workspace.kbase.admin.WorkspaceAdministration;
 import us.kbase.workspace.kbase.KBaseWorkspaceConfig;
+import us.kbase.workspace.kbase.KBaseWorkspaceConfig.KBaseWorkspaceConfigException;
+import us.kbase.workspace.kbase.TypeServerMethods;
 import us.kbase.workspace.kbase.WorkspaceServerMethods;
 //END_HEADER
 
@@ -103,26 +104,216 @@ public class WorkspaceServer extends JsonServerServlet {
 	//TODO JAVADOC really low priority, sorry
 	//TODO INIT timestamps for startup script
 	//TODO DOCS workspace glossary
+	//TODO TEST add server startup tests
 
 	private static final String GIT = "https://github.com/kbase/workspace_deluxe";
+	private static final String SERVICE_NAME = "Workspace";
 
 	private static final long MAX_RPC_PACKAGE_SIZE = 1005000000;
 	private static final int MAX_RPC_PACKAGE_MEM_USE = 100000000;
 	
-	private static Map<String, String> wsConfig = null;
-	
 	private final Workspace ws;
 	private final WorkspaceServerMethods wsmeth;
-	private final Types types;
+	private final TypeServerMethods types;
 	private final WorkspaceAdministration wsadmin;
 	
-	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete =
-			new ThreadLocal<List<WorkspaceObjectData>>();
+	/* To my future self or future devs:
+	 * The startup code below is only tested in happy path mode. If you make changes that could
+	 * affect any of the paths that result in a startup fail or affect logging (which is shut off
+	 * in tests to avoid massive test log spam), be sure to test the changes manually. The
+	 * easiest way to to that is to run one of the several integration tests and insert errors
+	 * into the configuration file that the test creates.
+	 * 
+	 * Also be sure that logs from classes lower in the hierarchy are getting handled - primarily
+	 * the administration classes.
+	 */
 	
+	// hack hack hack. gross
+	private static ThreadLocal<JsonServerSyslog> _tempSyslog = new ThreadLocal<>();
+	private static ThreadLocal<KBaseWorkspaceConfig> _tempConfig = new ThreadLocal<>();
+	private static ThreadLocal<Boolean> _tempStartupFailed = new ThreadLocal<>();
+	private static ThreadLocal<ConfigurableAuthService> _tempAuth = new ThreadLocal<>();
 	
-	public static void clearConfigForTests() {
-		wsConfig = null;
+	public WorkspaceServer() {
+		// This deliberately replaces the constructor compiled by kb-sdk. If you recompile the
+		// server, delete the compiled in constructor.
+		// This constructor is also tested manually to avoid swamping the test logs
+		this(false);
 	}
+	
+	public WorkspaceServer(final boolean silenceLogs) {
+		/* Note that SLF4J logs are intercepted by the JsonServerSyslog class and an
+		 * appender sends them to the standard log output. However, appenders are *global*
+		 * and so the last Workspace service to be started in the same process will set the
+		 * behavior for SLFJ4 logs and overwrite the behavior of any previously started
+		 * service. This is extremely confusing and can waste a lot of debugging time but
+		 * has no effect on non-test use, since starting multiple workspace servers in the same
+		 * process with different logging requirements would be weird, at best.
+		 */
+		// This is an incredible hack, but I don't see another way to do it
+		super(
+				getAuth(silenceLogs),
+				getTrustXIPHeaders(),
+				getSystemLogger(),
+				getUserLogger(silenceLogs)
+				);
+		final WorkspaceInitResults res;
+		if (_tempStartupFailed.get()) {
+			startupFailed();
+			res = new WorkspaceInitResults(null, null, null);
+		} else {
+			res = initWorkspace(_tempConfig.get(), _tempAuth.get(), _tempSyslog.get());
+		}
+		_tempStartupFailed.remove();
+		_tempSyslog.remove();
+		_tempConfig.remove();
+		_tempAuth.remove();
+		wsmeth = res.getWsmeth();
+		// TODO CODE ideally don't expose the underlying ws
+		ws = wsmeth == null ? null : wsmeth.getWorkspace();
+		types = res.getTypes();
+		wsadmin = res.getWsAdmin();
+	}
+	
+	private static AuthenticationHandler getAuth(final boolean silenceLogs) {
+		_tempStartupFailed.set(false);
+		JsonServerSyslog.setStaticUseSyslog(false);
+		final JsonServerSyslog sysLogger = setUpLoggerOutput(
+				new JsonServerSyslog(SERVICE_NAME, KB_DEP, LOG_LEVEL_INFO, false),
+				silenceLogs);
+		_tempSyslog.set(sysLogger);
+		final KBaseWorkspaceConfig cfg = getConfig(sysLogger);
+		if (cfg == null) {
+			return t -> {throw new AuthException("failed to set up auth");};
+		}
+		final AuthConfig c = new AuthConfig();
+		if (cfg.getAuth2URL().getProtocol().equals("http")) {
+			c.withAllowInsecureURLs(true);
+			sysLogger.logInfo("Warning - the Auth Service MKII url uses insecure http. " +
+					"https is recommended.");
+		}
+		try {
+			final URL globusURL = cfg.getAuth2URL().toURI().resolve("api/legacy/globus").toURL();
+			final URL kbaseURL = cfg.getAuth2URL().toURI()
+					.resolve("api/legacy/KBase/Sessions/Login").toURL();
+			c.withGlobusAuthURL(globusURL).withKBaseAuthServerURL(kbaseURL);
+		} catch (URISyntaxException | MalformedURLException e) {
+			sysLogger.logErr("Invalid Auth Service url: " + cfg.getAuth2URL());
+			_tempStartupFailed.set(true);
+			return t -> {throw new AuthException("failed to set up auth");};
+		}
+		try {
+			final ConfigurableAuthService cas = new ConfigurableAuthService(c);
+			_tempAuth.set(cas);
+			return token -> cas.validateToken(token);
+		} catch (IOException e) {
+			sysLogger.logErr("Couldn't connect to authorization service at " +
+					c.getAuthServerURL() + " : " + e.getLocalizedMessage());
+			sysLogger.logErr(e);
+			_tempStartupFailed.set(true);
+			return t -> {throw new AuthException("failed to set up auth");};
+		}
+	}
+
+	private static KBaseWorkspaceConfig getConfig(final JsonServerSyslog sysLogger) {
+		final String cfgfile = System.getProperty(KB_DEP) == null ?
+				System.getenv(KB_DEP) : System.getProperty(KB_DEP);
+		if (cfgfile == null) {
+			sysLogger.logErr(
+					"No configuration file location set in environment variable " + KB_DEP);
+			_tempStartupFailed.set(true);
+			return null;
+		}
+		final KBaseWorkspaceConfig cfg;
+		try {
+			cfg = new KBaseWorkspaceConfig(Paths.get(cfgfile), SERVICE_NAME);
+		} catch (KBaseWorkspaceConfigException e) {
+			sysLogger.logErr(e.getMessage());
+			_tempStartupFailed.set(true);
+			return null;
+		}
+		for (final String info: cfg.getInfoMessages()) {
+			sysLogger.logInfo(info);
+		}
+		for (final String error: cfg.getErrors()) {
+			sysLogger.logErr(error);
+		}
+		if (cfg.hasErrors()) {
+			sysLogger.logErr("Workspace server configuration has errors - all calls will fail");
+			_tempStartupFailed.set(true);
+			return null;
+		}
+		_tempConfig.set(cfg);
+		return cfg;
+	}
+	
+	private static JsonServerSyslog setUpLoggerOutput(
+			final JsonServerSyslog logger,
+			final boolean silenceLogs) {
+		if (silenceLogs) {
+			logger.changeOutput(new JsonServerSyslog.SyslogOutput() {
+				
+				@Override
+				public void logToSystem(
+						final SyslogIF log,
+						final int level,
+						final String message) {
+					// /dev/null
+				}
+			});
+		} else {
+			logger.changeOutput(new JsonServerSyslog.SyslogOutput() {
+				
+				@Override
+				public void logToSystem(
+						final SyslogIF log,
+						final int level,
+						final String message) {
+					System.out.println(message);
+				}
+			});
+		}
+		return logger;
+	}
+	
+	private static boolean getTrustXIPHeaders() {
+		/* this function is manually tested, example:
+		 * curl -H "X-Forwarded-For: 123.456.789.123,123.123.123.123"
+		 *  -H "X-Real-IP: 456.456.123.123" -d '{"id":42,"method":"Workspace.ver","params":[]}'
+		 *  http://localhost:44583 | python -m json.tool
+		 */
+		final KBaseWorkspaceConfig cfg = _tempConfig.get();
+		// if null, means startup failed, so doesn't really matter
+		return cfg == null ? true : !cfg.dontTrustXIPHeaders();
+	}
+	
+	private static JsonServerSyslog getSystemLogger() {
+		return _tempSyslog.get();
+	}
+
+	private static JsonServerSyslog getUserLogger(final boolean silenceLogs) {
+		return setUpLoggerOutput(new JsonServerSyslog(_tempSyslog.get(), true), silenceLogs);
+	}
+
+	private WorkspaceInitResults initWorkspace(
+			final KBaseWorkspaceConfig cfg,
+			final ConfigurableAuthService auth,
+			final JsonServerSyslog logger) {
+		setUpLogger();
+		setMaxRPCPackageSize(MAX_RPC_PACKAGE_SIZE);
+		setMaxRpcMemoryCacheSize(MAX_RPC_PACKAGE_MEM_USE);
+		final WorkspaceInitReporter rep = new WorkspaceInitReporter(logger);
+		final WorkspaceInitResults res = InitWorkspaceServer.initWorkspaceServer(cfg, auth, rep);
+
+		if (!rep.isFailed()) {
+			setRpcDiskCacheTempDir( // ew
+					res.getWsmeth().getWorkspace().getTempFilesManager().getTempDir());
+			return res;
+		}
+		return new WorkspaceInitResults(null, null, null);
+	}
+	
+	private ThreadLocal<List<WorkspaceObjectData>> resourcesToDelete = new ThreadLocal<>();
 	
 	@Override
 	protected File generateTempFile() {
@@ -161,77 +352,25 @@ public class WorkspaceServer extends JsonServerServlet {
 	}
 	
 	private class WorkspaceInitReporter extends InitReporter {
+		private final JsonServerSyslog logger;
+		
+		public WorkspaceInitReporter(final JsonServerSyslog logger) {
+			this.logger = logger;
+		}
 
 		@Override
 		public void reportInfo(final String info) {
-			logInfo(info);
-			System.out.println(info);
+			logger.logInfo(info);
 		}
 
 		@Override
 		public void handleFail(final String fail) {
-			logErr(fail);
-			System.out.println(fail);
+			logger.logErr(fail);
 			startupFailed();
 		}
 		
 	}
     //END_CLASS_HEADER
-
-    public WorkspaceServer() throws Exception {
-        super("Workspace");
-        //BEGIN_CONSTRUCTOR
-		setUpLogger();
-		// TODO CODE force service name to always be Workspace, screw this KB_SERVICE_NAME crap
-		setMaxRPCPackageSize(MAX_RPC_PACKAGE_SIZE);
-		setMaxRpcMemoryCacheSize(MAX_RPC_PACKAGE_MEM_USE);
-		//assign config once per jvm, otherwise you could wind up with
-		//different threads talking to different mongo instances
-		//E.g. first thread's config applies to all threads.
-		if (wsConfig == null) {
-			wsConfig = new HashMap<String, String>();
-			wsConfig.putAll(super.config);
-		}
-		
-		final KBaseWorkspaceConfig cfg = new KBaseWorkspaceConfig(wsConfig);
-		for (final String info: cfg.getInfoMessages()) {
-			logInfo(info);
-			System.out.println(info);
-		}
-		for (final String error: cfg.getErrors()) {
-			logErr(error);
-			System.out.println(error);
-		}
-		
-		Workspace ws = null;
-		WorkspaceServerMethods wsmeth = null;
-		Types types = null;
-		WorkspaceAdministration wsadmin = null;
-		//TODO TEST add server startup tests
-		if (cfg.hasErrors()) {
-			logErr("Workspace server configuration has errors - all calls will fail");
-			System.out.println(
-					"Workspace server configuration has errors - all calls will fail");
-			startupFailed();
-		} else {
-			final WorkspaceInitReporter rep = new WorkspaceInitReporter();
-			final WorkspaceInitResults res =
-					InitWorkspaceServer.initWorkspaceServer(cfg, rep);
-
-			if (!rep.isFailed()) {
-				ws = res.getWs();
-				wsmeth = res.getWsmeth();
-				types = res.getTypes();
-				wsadmin = res.getWsAdmin();
-				setRpcDiskCacheTempDir(ws.getTempFilesManager().getTempDir());
-			}
-		}
-		this.ws = ws;
-		this.wsmeth = wsmeth;
-		this.types = types;
-		this.wsadmin = wsadmin;
-        //END_CONSTRUCTOR
-    }
 
     /**
      * <p>Original spec-file function name: ver</p>
@@ -1227,10 +1366,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.request_module_ownership", async=true)
     public void requestModuleOwnership(String mod, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN request_module_ownership
-		final WorkspaceUser u = wsmeth.getUser(authPart);
-		types.requestModuleRegistration(u, mod);
-		//bail on this, there's no mail daemon running on magellean AFAIK
-//		wsadmin.notifyOnModuleRegRequest(authPart, u, mod);
+		types.requestModuleOwnership(mod, authPart);
         //END request_module_ownership
     }
 
@@ -1249,37 +1385,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> registerTypespec(RegisterTypespecParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN register_typespec
-		//TODO improve parse errors, don't need include path, currentlyCompiled
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		if (!(params.getMod() == null) ^ (params.getSpec() == null)) {
-			throw new IllegalArgumentException(
-					"Must provide either a spec or module name");
-		}
-		final List<String> add = params.getNewTypes() != null ?
-				params.getNewTypes() : new ArrayList<String>();
-		final List<String> rem = params.getRemoveTypes() != null ?
-				params.getRemoveTypes() : new ArrayList<String>();
-		final Map<String, Long> deps = params.getDependencies() != null ?
-				params.getDependencies() : new HashMap<String, Long>();
-		final Map<TypeDefName, TypeChange> res;
-		if (params.getMod() != null) {
-			 res = types.compileTypeSpec(
-					wsmeth.getUser(authPart), params.getMod(),
-					add, rem, deps, params.getDryrun() == null ? true :
-						params.getDryrun() != 0);
-		} else {
-			res = types.compileNewTypeSpec(
-					wsmeth.getUser(authPart), params.getSpec(),
-					add, rem, deps, params.getDryrun() == null ? true :
-						params.getDryrun() != 0, params.getPrevVer());
-		}
-		returnVal = new HashMap<String, String>();
-		for (final TypeChange tc: res.values()) {
-			if (!tc.isUnregistered()) {
-				returnVal.put(tc.getTypeVersion().getTypeString(),
-						tc.getJsonSchema());
-			}
-		}
+		returnVal = types.registerTypespec(params, authPart);
         //END register_typespec
         return returnVal;
     }
@@ -1299,41 +1405,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Long registerTypespecCopy(RegisterTypespecCopyParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         Long returnVal = null;
         //BEGIN register_typespec_copy
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		if (params.getExternalWorkspaceUrl() == null) {
-			throw new IllegalArgumentException(
-					"Must provide a URL for an external workspace service");
-		}
-		if (params.getMod() == null) {
-			throw new IllegalArgumentException(
-					"Must provide a module name");
-		}
-		final WorkspaceClient client = new WorkspaceClient(
-				new URL(params.getExternalWorkspaceUrl()), authPart);
-		if (!params.getExternalWorkspaceUrl().startsWith("https:")) {
-			client.setIsInsecureHttpConnectionAllowed(true);
-		}
-		final GetModuleInfoParams gmiparams = new GetModuleInfoParams()
-			.withMod(params.getMod()).withVer(params.getVersion());
-		final us.kbase.workspace.ModuleInfo extInfo = client.getModuleInfo(gmiparams);
-		final Map<String, String> includesToMd5 = new HashMap<String, String>();
-		for (final Map.Entry<String, Long> entry : extInfo.getIncludedSpecVersion().entrySet()) {
-			final String includedModule = entry.getKey();
-			final long extIncludedVer = entry.getValue();
-			final GetModuleInfoParams includeParams = new GetModuleInfoParams()
-				.withMod(includedModule).withVer(extIncludedVer);
-			final us.kbase.workspace.ModuleInfo extIncludedInfo =
-					client.getModuleInfo(includeParams);
-			includesToMd5.put(includedModule, extIncludedInfo.getChsum());
-		}
-		final String userId = authPart.getUserName();
-		final String specDocument = extInfo.getSpec();
-		final Set<String> extTypeSet = new LinkedHashSet<String>();
-		for (final String typeDef : extInfo.getTypes().keySet()) {
-			extTypeSet.add(TypeDefId.fromTypeString(typeDef).getType().getName());
-		}
-		returnVal = types.compileTypeSpecCopy(params.getMod(), specDocument,
-				extTypeSet, userId, includesToMd5, extInfo.getIncludedSpecVersion());
+		returnVal = types.registerTypespecCopy(params, authPart);
         //END register_typespec_copy
         return returnVal;
     }
@@ -1361,12 +1433,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<String> releaseModule(String mod, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<String> returnVal = null;
         //BEGIN release_module
-		returnVal = new LinkedList<String>();
-		final List<AbsoluteTypeDefId> ret =
-				types.releaseTypes(wsmeth.getUser(authPart), mod);
-		for (final AbsoluteTypeDefId t: ret) {
-			returnVal.add(t.getTypeString());
-		}
+		returnVal = types.releaseModule(mod, authPart);
         //END release_module
         return returnVal;
     }
@@ -1383,12 +1450,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<String> listModules(ListModulesParams params, RpcContext jsonRpcContext) throws Exception {
         List<String> returnVal = null;
         //BEGIN list_modules
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		WorkspaceUser user = null;
-		if (params.getOwner() != null) {
-			user = new WorkspaceUser(params.getOwner());
-		}
-		returnVal = types.listModules(user);
+		returnVal = types.listModules(params);
         //END list_modules
         return returnVal;
     }
@@ -1405,23 +1467,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public ModuleVersions listModuleVersions(ListModuleVersionsParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         ModuleVersions returnVal = null;
         //BEGIN list_module_versions
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		if (!(params.getMod() == null ^ params.getType() == null)) {
-			throw new IllegalArgumentException(
-					"Must provide either a module name or a type");
-		}
-		final List<Long> vers;
-		final String module;
-		if (params.getMod() != null) {
-			vers = types.getModuleVersions(
-					params.getMod(), wsmeth.getUser(authPart));
-			module = params.getMod();
-		} else {
-			final TypeDefId type = TypeDefId.fromTypeString(params.getType());
-			vers = types.getModuleVersions(type, wsmeth.getUser(authPart));
-			module = type.getType().getModule();
-		}
-		returnVal = new ModuleVersions().withMod(module).withVers(vers);
+		returnVal = types.listModuleVersions(params, authPart);
         //END list_module_versions
         return returnVal;
     }
@@ -1437,34 +1483,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public ModuleInfo getModuleInfo(GetModuleInfoParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         ModuleInfo returnVal = null;
         //BEGIN get_module_info
-		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		if (params.getMod() == null) {
-			throw new IllegalArgumentException(
-					"Must provide a module name");
-		}
-		final ModuleDefId module;
-		if (params.getVer() != null) {
-			module = new ModuleDefId(params.getMod(), params.getVer());
-		} else {
-			module = new ModuleDefId(params.getMod());
-		}
-		WorkspaceUser user = wsmeth.getUser(authPart);
-		final us.kbase.workspace.database.ModuleInfo mi =
-				types.getModuleInfo(user, module);
-		final Map<String, String> types = new HashMap<String, String>();
-		for (final AbsoluteTypeDefId t: mi.getTypes().keySet()) {
-			types.put(t.getTypeString(), mi.getTypes().get(t));
-		}
-		returnVal = new ModuleInfo()
-				.withDescription(mi.getDescription())
-				.withOwners(mi.getOwners())
-				.withSpec(mi.getTypespec())
-				.withVer(mi.getVersion())
-				.withTypes(types)
-				.withIncludedSpecVersion(mi.getIncludedSpecVersions())
-				.withChsum(mi.getMd5hash())
-				.withFunctions(mi.getFunctions())
-				.withIsReleased(mi.isReleased() ? 1L : 0L);
+		returnVal = types.getModuleInfo(params, authPart);
         //END get_module_info
         return returnVal;
     }
@@ -1481,8 +1500,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public String getJsonschema(String type, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         String returnVal = null;
         //BEGIN get_jsonschema
-		returnVal = types.getJsonSchema(TypeDefId.fromTypeString(type),
-				wsmeth.getUser(authPart));
+		returnVal = types.getJsonschema(type, authPart);
         //END get_jsonschema
         return returnVal;
     }
@@ -1499,7 +1517,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,List<String>> translateFromMD5Types(List<String> md5Types, RpcContext jsonRpcContext) throws Exception {
         Map<String,List<String>> returnVal = null;
         //BEGIN translate_from_MD5_types
-        returnVal = types.translateFromMd5Types(md5Types);
+		returnVal = types.translateFromMD5Types(md5Types);
         //END translate_from_MD5_types
         return returnVal;
     }
@@ -1516,7 +1534,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public Map<String,String> translateToMD5Types(List<String> semTypes, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         Map<String,String> returnVal = null;
         //BEGIN translate_to_MD5_types
-        returnVal = types.translateToMd5Types(semTypes, wsmeth.getUser(authPart));
+		returnVal = types.translateToMD5Types(semTypes, authPart);
         //END translate_to_MD5_types
         return returnVal;
     }
@@ -1532,20 +1550,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public TypeInfo getTypeInfo(String type, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         TypeInfo returnVal = null;
         //BEGIN get_type_info
-        TypeDetailedInfo tdi = types.getTypeInfo(
-        		type, true, wsmeth.getUser(authPart));
-        returnVal = new TypeInfo().withTypeDef(tdi.getTypeDefId())
-        		.withDescription(tdi.getDescription())
-        		.withSpecDef(tdi.getSpecDef())
-        		.withJsonSchema(tdi.getJsonSchema())
-        		.withParsingStructure(tdi.getParsingStructure())
-        		.withModuleVers(tdi.getModuleVersions())
-        		.withReleasedModuleVers(tdi.getReleasedModuleVersions())
-        		.withTypeVers(tdi.getTypeVersions())
-        		.withReleasedTypeVers(tdi.getReleasedTypeVersions())
-        		.withUsingFuncDefs(tdi.getUsingFuncDefIds())
-        		.withUsingTypeDefs(tdi.getUsingTypeDefIds())
-        		.withUsedTypeDefs(tdi.getUsedTypeDefIds());
+		returnVal = types.getTypeInfo(type, authPart);
         //END get_type_info
         return returnVal;
     }
@@ -1561,11 +1566,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<TypeInfo> getAllTypeInfo(String mod, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<TypeInfo> returnVal = null;
         //BEGIN get_all_type_info
-        returnVal = new ArrayList<TypeInfo>();
-        ModuleInfo mi = getModuleInfo(new GetModuleInfoParams().withMod(mod),
-                authPart, jsonRpcContext);
-        for (String typeDef : mi.getTypes().keySet())
-        	returnVal.add(getTypeInfo(typeDef, authPart, jsonRpcContext));
+		returnVal = types.getAllTypeInfo(mod, authPart);
         //END get_all_type_info
         return returnVal;
     }
@@ -1573,6 +1574,7 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_func_info</p>
      * <pre>
+     * @deprecated
      * </pre>
      * @param   func   instance of original type "func_string" (A function string for referencing a funcdef. Specifies the function and its version in a single string in the format [modulename].[funcname]-[major].[minor]: modulename - a string. The name of the module containing the function. funcname - a string. The name of the function as assigned by the funcdef statement. major - an integer. The major version of the function. A change in the major version implies the function has changed in a non-backwards compatible way. minor - an integer. The minor version of the function. A change in the minor version implies that the function has changed in a way that is backwards compatible with previous function definitions. In many cases, the major and minor versions are optional, and if not provided the most recent version will be used. Example: MyModule.MyFunc-3.1)
      * @return   parameter "info" of type {@link us.kbase.workspace.FuncInfo FuncInfo}
@@ -1581,17 +1583,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public FuncInfo getFuncInfo(String func, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         FuncInfo returnVal = null;
         //BEGIN get_func_info
-        FuncDetailedInfo fdi = types.getFuncInfo(
-        		func, true, wsmeth.getUser(authPart));
-        returnVal = new FuncInfo().withFuncDef(fdi.getFuncDefId())
-        		.withDescription(fdi.getDescription())
-        		.withSpecDef(fdi.getSpecDef())
-        		.withParsingStructure(fdi.getParsingStructure())
-        		.withModuleVers(fdi.getModuleVersions())
-        		.withReleasedModuleVers(fdi.getReleasedModuleVersions())
-        		.withFuncVers(fdi.getFuncVersions())
-        		.withReleasedFuncVers(fdi.getReleasedFuncVersions())
-        		.withUsedTypeDefs(fdi.getUsedTypeDefIds());
+		returnVal = types.getFuncInfo(func, authPart);
         //END get_func_info
         return returnVal;
     }
@@ -1599,6 +1591,7 @@ public class WorkspaceServer extends JsonServerServlet {
     /**
      * <p>Original spec-file function name: get_all_func_info</p>
      * <pre>
+     * @deprecated
      * </pre>
      * @param   mod   instance of original type "modulename" (A module name defined in a KIDL typespec.)
      * @return   parameter "info" of list of type {@link us.kbase.workspace.FuncInfo FuncInfo}
@@ -1607,11 +1600,7 @@ public class WorkspaceServer extends JsonServerServlet {
     public List<FuncInfo> getAllFuncInfo(String mod, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         List<FuncInfo> returnVal = null;
         //BEGIN get_all_func_info
-        returnVal = new ArrayList<FuncInfo>();
-        ModuleInfo mi = getModuleInfo(new GetModuleInfoParams().withMod(mod),
-                authPart, jsonRpcContext);
-        for (String funcDef : mi.getFunctions())
-        	returnVal.add(getFuncInfo(funcDef, authPart, jsonRpcContext));
+		returnVal = types.getAllFuncInfo(mod, authPart);
         //END get_all_func_info
         return returnVal;
     }
@@ -1627,7 +1616,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.grant_module_ownership", async=true)
     public void grantModuleOwnership(GrantModuleOwnershipParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN grant_module_ownership
-		wsmeth.grantModuleOwnership(params, wsmeth.getUser(authPart), false);
+		types.grantModuleOwnership(params, authPart, false);
         //END grant_module_ownership
     }
 
@@ -1642,7 +1631,7 @@ public class WorkspaceServer extends JsonServerServlet {
     @JsonServerMethod(rpc = "Workspace.remove_module_ownership", async=true)
     public void removeModuleOwnership(RemoveModuleOwnershipParams params, AuthToken authPart, RpcContext jsonRpcContext) throws Exception {
         //BEGIN remove_module_ownership
-		wsmeth.removeModuleOwnership(params, wsmeth.getUser(authPart), false);
+		types.removeModuleOwnership(params, authPart, false);
         //END remove_module_ownership
     }
 
@@ -1661,8 +1650,7 @@ public class WorkspaceServer extends JsonServerServlet {
         Map<String,Map<String,String>> returnVal = null;
         //BEGIN list_all_types
 		checkAddlArgs(params.getAdditionalProperties(), params.getClass());
-		returnVal = types.listAllTypes(params.getWithEmptyModules() != null &&
-				params.getWithEmptyModules() != 0L);
+		returnVal = types.listAllTypes(params, authPart);
         //END list_all_types
         return returnVal;
     }
