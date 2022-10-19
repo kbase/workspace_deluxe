@@ -5,6 +5,9 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Information about an organization.
+ */
 public class Organization {
 	private final String organizationName;
 	private final String organizationID;
