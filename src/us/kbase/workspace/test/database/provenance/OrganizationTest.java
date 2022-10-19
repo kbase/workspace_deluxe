@@ -57,13 +57,25 @@ public class OrganizationTest {
 	}
 
 	@Test
+	public void buildAndOverwriteOrgIdWithNull() throws Exception {
+		final Organization org1 = Organization.getBuilder("The Organisation").withOrganizationID("The:GrandWazoo")
+				.withOrganizationID("    \t\t   \n   ").build();
+		assertThat("incorrect org name", org1.getOrganizationName(), is("The Organisation"));
+		assertThat("incorrect org ID", org1.getOrganizationID(), is(Optional.empty()));
+
+		final Organization org2 = Organization.getBuilder("The Organisation").withOrganizationID("The:GrandWazoo")
+				.withOrganizationID(null).build();
+		assertThat("incorrect org name", org2.getOrganizationName(), is("The Organisation"));
+		assertThat("incorrect org ID", org2.getOrganizationID(), is(Optional.empty()));
+	}
+
+	@Test
 	public void buildFailWhitespaceOrgName() throws Exception {
 		try {
 			Organization.getBuilder("          ").build();
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, new NullPointerException(
-					"organizationName"));
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("organizationName"));
 		}
 	}
 
@@ -73,8 +85,7 @@ public class OrganizationTest {
 			Organization.getBuilder(null).build();
 			fail("expected exception");
 		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, new NullPointerException(
-					"organizationName"));
+			TestCommon.assertExceptionCorrect(got, new NullPointerException("organizationName"));
 		}
 	}
 
