@@ -5,6 +5,8 @@ import static us.kbase.workspace.database.Util.isNullOrWhitespace;
 import static us.kbase.workspace.database.Util.noNulls;
 import static us.kbase.workspace.database.Util.checkString;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -128,8 +130,8 @@ class Common {
 		try {
 			url = new URL(putativeURL);
 		} catch (MalformedURLException e) {
-			throw new IllegalArgumentException(String.format(
-					"Illegal %s url '%s': %s", name, putativeURL, e.getLocalizedMessage()), e);
+			throw new IllegalArgumentException(
+					String.format("Illegal %s url '%s': %s", name, putativeURL, e.getLocalizedMessage()), e);
 		}
 		return checkURL(url, name);
 	}
@@ -139,8 +141,8 @@ class Common {
 			url.toURI();
 			return url;
 		} catch (URISyntaxException e) {
-			throw new IllegalArgumentException(String.format(
-					"Illegal %s url '%s': %s", name, url, e.getLocalizedMessage()), e);
+			throw new IllegalArgumentException(
+					String.format("Illegal %s url '%s': %s", name, url, e.getLocalizedMessage()), e);
 		}
 	}
 
