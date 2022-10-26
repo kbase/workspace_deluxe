@@ -5,8 +5,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Collection;
 
 public class Util {
-	
-	//TODO TEST unit tests 
 
 	/** Check that one and only one of a name or id is provided.
 	 * @param name the name.
@@ -20,7 +18,7 @@ public class Util {
 					type, name, id));
 		}
 	}
-	
+
 	/** Check if a string is null or whitespace only.
 	 * @param s the string to test.
 	 * @return true if the string is null or whitespace only, false otherwise.
@@ -28,7 +26,46 @@ public class Util {
 	public static boolean isNullOrEmpty(final String s) {
 		return s == null || s.trim().isEmpty();
 	}
-	
+
+	/** Throws a null pointer exception if an object is null.
+	 * @param o the object to check.
+	 * @param message the message for the exception.
+	 */
+	public static void nonNull(final Object o, final String message) {
+		// TODO CODE replace with requireNonNull
+		if (o == null) {
+			throw new NullPointerException(message);
+		}
+	}
+
+	/** Throws a null pointer exception if any elements in a collection are null.
+	 * @param col the collection to check.
+	 * @param message the exception message.
+	 * @param <T> the type of the elements in the collection.
+	 */
+	public static <T> void noNulls(final Collection<T> col, final String message) {
+		for (final T item: col) {
+			if (item == null) {
+				throw new NullPointerException(message);
+			}
+		}
+	}
+
+	/** Check that the provided collection is not null and contains no null or whitespace-only
+	 * strings.
+	 * @param strings the collection to check.
+	 * @param name the name of the collection to use in any error messages.
+	 */
+	public static void checkNoNullsOrEmpties(final Collection<String> strings, final String name) {
+		checkNotNull(strings, name);
+		for (final String s: strings) {
+			if (isNullOrEmpty(s)) {
+				throw new IllegalArgumentException(
+						"Null or whitespace only string in collection " + name);
+			}
+		}
+	}
+
 	/** Check that a string is non-null and has at least one non-whitespace character.
 	 * @param s the string to check.
 	 * @param name the name of the string to use in any error messages.
@@ -38,7 +75,7 @@ public class Util {
 			throws IllegalArgumentException {
 		return checkString(s, name, -1);
 	}
-	
+
 	/** Check that a string is non-null, has at least one non-whitespace character, and is below
 	 * a specified length (not including surrounding whitespace).
 	 * @param s the string to check.
@@ -60,7 +97,7 @@ public class Util {
 		}
 		return s.trim();
 	}
-	
+
 	/** Return the number of code points in a string. Equivalent to
 	 * {@link String#codePointCount(int, int)} with arguments of 0 and {@link String#length()}.
 	 * @param s the string.
@@ -69,44 +106,4 @@ public class Util {
 	public static int codePoints(final String s) {
 		return s.codePointCount(0, s.length());
 	}
-	
-	/** Throws a null pointer exception if an object is null.
-	 * @param o the object to check.
-	 * @param message the message for the exception.
-	 */
-	public static void nonNull(final Object o, final String message) {
-		// TODO CODE replace with requireNonNull
-		if (o == null) {
-			throw new NullPointerException(message);
-		}
-	}
-	
-	/** Throws a null pointer exception if any elements in a collection are null.
-	 * @param col the collection to check.
-	 * @param message the exception message.
-	 * @param <T> the type of the elements in the collection.
-	 */
-	public static <T> void noNulls(final Collection<T> col, final String message) {
-		for (final T item: col) {
-			if (item == null) {
-				throw new NullPointerException(message);
-			}
-		}
-	}
-	
-	/** Check that the provided collection is not null and contains no null or whitespace-only
-	 * strings.
-	 * @param strings the collection to check.
-	 * @param name the name of the collection to use in any error messages.
-	 */
-	public static void checkNoNullsOrEmpties(final Collection<String> strings, final String name) {
-		checkNotNull(strings, name);
-		for (final String s: strings) {
-			if (isNullOrEmpty(s)) {
-				throw new IllegalArgumentException(
-						"Null or whitespace only string in collection " + name);
-			}
-		}
-	}
-
 }
