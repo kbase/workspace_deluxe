@@ -14,7 +14,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -289,6 +291,15 @@ public class TestCommon {
 	public static final Optional<String> ES = Optional.empty();
 	public static final Optional<Long> EL = Optional.empty();
 	public static final Optional<Integer> EI = Optional.empty();
+
+        public static final Long NL = null;
+        public static final Long L = (long) 123456;
+
+        public static final String NS = null;
+        public static final String WHITESPACE = "\n\n    \f     \t\t  \r\n   ";
+        public static final String STRING = "some string of stingy stringy strings strung together";
+        public static final String STRING_WITH_WHITESPACE = "\n\n    \f  some string of stingy stringy strings strung together \t  \n";
+
 
 	public static <T> Optional<T> opt(final T obj) {
 		return Optional.of(obj);
