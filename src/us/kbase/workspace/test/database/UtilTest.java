@@ -12,23 +12,22 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import us.kbase.common.test.TestCommon;
+import static us.kbase.common.test.TestCommon.L;
+import static us.kbase.common.test.TestCommon.NL;
+import static us.kbase.common.test.TestCommon.NS;
+import static us.kbase.common.test.TestCommon.WHITESPACE;
+import static us.kbase.common.test.TestCommon.STRING;
+import static us.kbase.common.test.TestCommon.STRING_WITH_WHITESPACE;
 import us.kbase.workspace.database.Util;
 
 public class UtilTest {
 
-    public static final String EXP_EXC = "expected exception";
-    public static final String UNEXP_EXC = "unexpected exception";
-    public static final String INCORRECT_NULL_EMPTY = "incorrect null or empty";
-    public static final String NULL_STRING = null;
-    public static final String OK_STRING = "some string of stingy stringy strings strung together";
-    public static final String STRING_WITH_SPACES = "\n\n\n   string \t  \n";
-    public static final String FUN_UNICODE_STRING = "❌❉ ⨍∪ℕ ᏬᏁᎥς๏๔є sтя⌽ηg ❉❓❗";
+    private static final String EXP_EXC = "expected exception";
+    private static final String INCORRECT_NULL_EMPTY = "incorrect null or empty";
+    private static final String INCORRECT_CHECKSTRING = "incorrect checkString";
+    private static final String TYPE_NAME = "some type";
 
-    public static final String WHITESPACE = "\n\n         \t\t  \r\n   ";
-    public static final Long NULL_LONG = null;
-    public static final Long OK_LONG = (long) 123456;
-
-    public static final String TYPE_NAME = "some type";
+    private static final String FUN_UNICODE_STRING = "❌❉ ⨍∪ℕ ᏬᏁᎥς๏๔є sтя⌽ηg ❉❓❗";
 
     private static final List<String> EMPTY_STRINGS = Arrays.asList(
             "",
@@ -37,37 +36,37 @@ public class UtilTest {
             WHITESPACE);
 
     private static final List<String> NON_EMPTY_STRINGS = Arrays.asList(
-            OK_STRING,
+            STRING,
             "ab",
             "\n5\n6\n7\n8\n",
-            STRING_WITH_SPACES,
+            STRING_WITH_WHITESPACE,
             FUN_UNICODE_STRING);
 
     private static final List<String> EMPTY_STRINGS_WITH_NULL = Arrays.asList(
             "",
             "   ",
-            NULL_STRING,
+            NS,
             "\n",
             WHITESPACE);
 
     private static final List<String> NON_EMPTY_STRINGS_WITH_NULL = Arrays.asList(
-            OK_STRING,
+            STRING,
             "ab",
             "\n5\n6\n7\n8\n",
-            NULL_STRING,
-            STRING_WITH_SPACES,
+            NS,
+            STRING_WITH_WHITESPACE,
             FUN_UNICODE_STRING);
 
     @Test
     public void xorNameIdPass() throws Exception {
-        Util.xorNameId(NULL_STRING, OK_LONG, TYPE_NAME);
-        Util.xorNameId(OK_STRING, NULL_LONG, TYPE_NAME);
+        Util.xorNameId(NS, L, TYPE_NAME);
+        Util.xorNameId(STRING, NL, TYPE_NAME);
     }
 
     @Test
     public void xorNameIdFail() throws Exception {
         try {
-            Util.xorNameId(NULL_STRING, NULL_LONG, TYPE_NAME);
+            Util.xorNameId(NS, NL, TYPE_NAME);
             fail(EXP_EXC);
         } catch (Exception got) {
             TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
@@ -75,7 +74,7 @@ public class UtilTest {
         }
 
         try {
-            Util.xorNameId(OK_STRING, OK_LONG, "a different type");
+            Util.xorNameId(STRING, L, "a different type");
             fail(EXP_EXC);
         } catch (Exception got) {
             TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
@@ -100,21 +99,21 @@ public class UtilTest {
     @Test
     public void nonNullPass() throws Exception {
         for (String empty : EMPTY_STRINGS) {
-            Util.nonNull(empty, OK_STRING);
+            Util.nonNull(empty, STRING);
         }
 
         for (String nonEmpty : NON_EMPTY_STRINGS) {
-            Util.nonNull(nonEmpty, OK_STRING);
+            Util.nonNull(nonEmpty, STRING);
         }
     }
 
     @Test
     public void nonNullFail() throws Exception {
         try {
-            Util.nonNull(null, OK_STRING);
+            Util.nonNull(null, STRING);
             fail(EXP_EXC);
         } catch (Exception got) {
-            TestCommon.assertExceptionCorrect(got, new NullPointerException(OK_STRING));
+            TestCommon.assertExceptionCorrect(got, new NullPointerException(STRING));
         }
     }
 
@@ -132,10 +131,10 @@ public class UtilTest {
 
         for (List<String> testListItem : testList) {
             try {
-                Util.noNulls(testListItem, OK_STRING);
+                Util.noNulls(testListItem, STRING);
                 fail(EXP_EXC);
             } catch (Exception got) {
-                TestCommon.assertExceptionCorrect(got, new NullPointerException(OK_STRING));
+                TestCommon.assertExceptionCorrect(got, new NullPointerException(STRING));
             }
         }
     }
@@ -165,11 +164,10 @@ public class UtilTest {
 
     @Test
     public void checkStringPass() throws Exception {
-        final String INCORRECT_CHECKSTRING = "incorrect checkString";
         final Map<String, String> trimmedNonEmptyStrings = new HashMap<>();
-        trimmedNonEmptyStrings.put(OK_STRING, OK_STRING);
+        trimmedNonEmptyStrings.put(STRING, STRING);
         trimmedNonEmptyStrings.put("\n5\n6\n7\n8\n", "5\n6\n7\n8");
-        trimmedNonEmptyStrings.put(STRING_WITH_SPACES, "string");
+        trimmedNonEmptyStrings.put(STRING_WITH_WHITESPACE, STRING);
 
         for (Map.Entry<String, String> mapElement : trimmedNonEmptyStrings.entrySet()) {
             assertThat(
@@ -195,20 +193,40 @@ public class UtilTest {
                     is(mapElement.getValue()));
         }
 
+    }
+
+    @Test
+    public void checkStringFancyUnicode() throws Exception {
+
         // FUN_UNICODE_STRING should be 25 codePoints long.
         final int codePointCount = 25;
         assertThat(
                 INCORRECT_CHECKSTRING,
                 Util.checkString(FUN_UNICODE_STRING, TYPE_NAME, codePointCount),
                 is(FUN_UNICODE_STRING));
-        // force failure by adding a character
+
+        // 𝔊 is two characters in length but only one code point
+        final String amendedFunString = FUN_UNICODE_STRING + "𝔊";
+
+        assertThat(
+            "incorrect length vs codePointCount",
+            amendedFunString.length(),
+            is(amendedFunString.codePointCount(0, amendedFunString.length()) + 1));
+
+        // the amended string will now fail
         try {
-            Util.checkString(FUN_UNICODE_STRING + "⛔", TYPE_NAME, codePointCount);
+            Util.checkString(amendedFunString, TYPE_NAME, codePointCount);
             fail(EXP_EXC);
         } catch (Exception got) {
             TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
                     "some type size greater than limit 25"));
         }
+
+        // but will pass with size 26
+        assertThat(
+                INCORRECT_CHECKSTRING,
+                Util.checkString(amendedFunString, TYPE_NAME, codePointCount + 1),
+                is(amendedFunString));
     }
 
     @Test

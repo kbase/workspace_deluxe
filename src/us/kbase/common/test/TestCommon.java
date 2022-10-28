@@ -37,11 +37,10 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.core.AppenderBase;
-import us.kbase.common.test.TestException;
 import us.kbase.typedobj.core.TempFilesManager;
 
 public class TestCommon {
-	
+
 	public static final String MINIOEXE = "test.minio.exe";
 	public static final String BLOBSTOREEXE = "test.blobstore.exe";
 	public static final String MONGOEXE = "test.mongo.exe";
@@ -50,15 +49,15 @@ public class TestCommon {
 	public static final String SAMPLE_SERVICE_DIR = "test.sampleservice.dir";
 	public static final String ARANGOEXE = "test.arango.exe";
 	public static final String ARANGOJS = "test.arango.js";
-	
+
 	public static final String JARS_PATH = "test.jars.dir";
-	
+
 	public static final String TEST_TEMP_DIR = "test.temp.dir";
 	public static final String KEEP_TEMP_DIR = "test.temp.dir.keep";
-	
+
 	public static final String TEST_CONFIG_FILE_PROP_NAME = "test.cfg";
 	public static final String TEST_CONFIG_FILE_SECTION = "Workspacetest";
-	
+
 	public static final String LONG101;
 	public static final String LONG1001;
 	static {
@@ -74,9 +73,9 @@ public class TestCommon {
 		LONG101 = s100 + "a";
 		LONG1001 = sb2.toString() + "a";
 	}
-	
+
 	private static Map<String, String> testConfig = null;
-			
+
 	public static void stfuLoggers() {
 		((ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory
 				.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME))
@@ -84,12 +83,12 @@ public class TestCommon {
 		java.util.logging.Logger.getLogger("com.mongodb")
 			.setLevel(java.util.logging.Level.OFF);
 	}
-	
+
 	public static void printJava() {
 		System.out.println("Java: " +
 				System.getProperty("java.runtime.version"));
 	}
-	
+
 	public static String getTestProperty(final String propertyKey, final boolean allowNull) {
 		getTestConfig();
 		final String prop = testConfig.get(propertyKey);
@@ -100,7 +99,7 @@ public class TestCommon {
 		}
 		return prop;
 	}
-	
+
 	public static String getTestProperty(final String propertyKey) {
 		return getTestProperty(propertyKey, false);
 	}
@@ -134,24 +133,24 @@ public class TestCommon {
 		}
 		return Paths.get(testCfgFilePathStr).toAbsolutePath().normalize();
 	}
-	
+
 	// TODO CODE return Paths for all of these
 	public static String getTempDir() {
 		return getTestProperty(TEST_TEMP_DIR);
 	}
-	
+
 	public static String getMongoExe() {
 		return getTestProperty(MONGOEXE);
 	}
-	
+
 	public static String getBlobstoreExe() {
 		return getTestProperty(BLOBSTOREEXE);
 	}
-	
+
 	public static Path getArangoExe() {
 		return Paths.get(getTestProperty(ARANGOEXE));
 	}
-	
+
 	public static Path getArangoJS() {
 		return Paths.get(getTestProperty(ARANGOJS));
 	}
@@ -159,27 +158,27 @@ public class TestCommon {
 	public static String getMinioExe() {
 		return getTestProperty(MINIOEXE);
 	}
-	
+
 	public static String getHandleServiceDir() {
 		return getTestProperty(HANDLE_SERVICE_DIR);
 	}
-	
+
 	public static Path getSampleServiceDir() {
 		return Paths.get(getTestProperty(SAMPLE_SERVICE_DIR));
 	}
-	
+
 	public static Path getJarsDir() {
 		return Paths.get(getTestProperty(JARS_PATH));
 	}
-	
+
 	public static boolean getDeleteTempFiles() {
 		return !"true".equals(getTestProperty(KEEP_TEMP_DIR));
 	}
-	
+
 	public static boolean useWiredTigerEngine() {
 		return "true".equals(getTestProperty(MONGO_USE_WIRED_TIGER));
 	}
-	
+
 	public static void destroyDB(final MongoDatabase db) {
 		for (String name: db.listCollectionNames()) {
 			if (!name.startsWith("system.")) {
@@ -188,8 +187,8 @@ public class TestCommon {
 			}
 		}
 	}
-	
-	
+
+
 	/** Get the name of a method in the stack.
 	 * @param index determines which method to get. 1 = the method calling this method,
 	 * 2 = the method calling that method, etc.
@@ -198,7 +197,7 @@ public class TestCommon {
 	public static String getMethodName(final int index) {
 		return new Throwable().getStackTrace()[index].getMethodName();
 	}
-	
+
 	public static void assertExceptionCorrect(
 			final Throwable got,
 			final Throwable expected) {
@@ -208,22 +207,22 @@ public class TestCommon {
 				is(expected.getLocalizedMessage()));
 		assertThat("incorrect exception type", got, instanceOf(expected.getClass()));
 	}
-	
+
 	public static void assertCloseToNow(final long epochMillis) {
 		assertCloseToNow(epochMillis, 1000);
 	}
-	
+
 	public static void assertCloseToNow(final long epochMillis, final int rangeMillis) {
 		final long now = Instant.now().toEpochMilli();
 		assertThat(String.format("time (%s) not within %sms of now: %s",
 				epochMillis, rangeMillis, now),
 				Math.abs(epochMillis - now) < rangeMillis, is(true));
 	}
-	
+
 	public static void assertCloseToNow(final Instant creationDate) {
 		assertCloseToNow(creationDate.toEpochMilli());
 	}
-	
+
 	public static void assertCloseToNow(final Instant creationDate, final int rangeMillis) {
 		assertCloseToNow(creationDate.toEpochMilli(), rangeMillis);
 	}
@@ -232,8 +231,8 @@ public class TestCommon {
 			throws Exception {
 		assertNoTempFilesExist(Arrays.asList(tfm));
 	}
-	
-	
+
+
 	public static void assertNoTempFilesExist(List<TempFilesManager> tfms)
 			throws Exception {
 		int i = 0;
@@ -256,8 +255,8 @@ public class TestCommon {
 				tfm.cleanup();
 		}
 	}
-	
-	//http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
+
+	// http://quirkygba.blogspot.com/2009/11/setting-environment-variables-in-java.html
 	@SuppressWarnings("unchecked")
 	public static Map<String, String> getenv()
 			throws NoSuchFieldException, SecurityException,
@@ -268,44 +267,53 @@ public class TestCommon {
 		m.setAccessible(true);
 		return (Map<String, String>) m.get(unmodifiable);
 	}
-	
+
 	@SafeVarargs
 	public static <T> Set<T> set(final T... objects) {
 		return new HashSet<T>(Arrays.asList(objects));
 	}
-	
+
 	@SafeVarargs
 	public static <T> List<T> list(final T... objects) {
 		return Arrays.asList(objects);
 	}
-	
+
 	public static Instant inst(final long epoch) {
 		return Instant.ofEpochMilli(epoch);
 	}
-	
+
 	public static Instant now() {
 		return Instant.now();
 	}
-	
+
 	public static final Optional<String> ES = Optional.empty();
 	public static final Optional<Long> EL = Optional.empty();
 	public static final Optional<Integer> EI = Optional.empty();
-	
+
+        public static final Long NL = null;
+        public static final Long L = (long) 123456;
+
+        public static final String NS = null;
+        public static final String WHITESPACE = "\n\n    \f     \t\t  \r\n   ";
+        public static final String STRING = "some string of stingy stringy strings strung together";
+        public static final String STRING_WITH_WHITESPACE = "\n\n    \f  some string of stingy stringy strings strung together \t  \n";
+
+
 	public static <T> Optional<T> opt(final T obj) {
 		return Optional.of(obj);
 	}
-	
+
 	public static <T> Optional<T> optn(final T obj) {
 		return Optional.ofNullable(obj);
 	}
-	
+
 	public static class LogEvent {
-		
+
 		public final Level level;
 		public final String message;
 		public final String className;
 		public final Throwable ex;
-		
+
 		public LogEvent(final Level level, final String message, final Class<?> clazz) {
 			this.level = level;
 			this.message = message;
@@ -319,7 +327,7 @@ public class TestCommon {
 			this.className = className;
 			ex = null;
 		}
-		
+
 		public LogEvent(
 				final Level level,
 				final String message,
@@ -330,7 +338,7 @@ public class TestCommon {
 			this.className = clazz.getName();
 			this.ex = ex;
 		}
-		
+
 		public LogEvent(
 				final Level level,
 				final String message,
@@ -357,7 +365,7 @@ public class TestCommon {
 			return builder.toString();
 		}
 	}
-	
+
 	public static List<ILoggingEvent> setUpSLF4JTestLoggerAppender(final String package_) {
 		final Logger authRootLogger = (Logger) LoggerFactory.getLogger(package_);
 		authRootLogger.setAdditive(false);
@@ -374,11 +382,11 @@ public class TestCommon {
 		authRootLogger.addAppender(appender);
 		return logEvents;
 	}
-	
+
 	public static void assertLogEventsCorrect(
 			final List<ILoggingEvent> logEvents,
 			final LogEvent... expectedlogEvents) {
-		
+
 		assertThat("incorrect log event count for list: " + logEvents, logEvents.size(),
 				is(expectedlogEvents.length));
 		final Iterator<ILoggingEvent> iter = logEvents.iterator();
@@ -398,12 +406,12 @@ public class TestCommon {
 					assertThat("incorrect error message for event " + le, err.getMessage(),
 							is(le.ex.getMessage()));
 				}
-			} else if (le.ex != null) { 
+			} else if (le.ex != null) {
 				fail("Expected exception but none was logged: " + le);
 			}
 		}
 	}
-	
+
 	public static void createAuthUser(
 			final URL authURL,
 			final String userName,
@@ -425,11 +433,11 @@ public class TestCommon {
 	private static HttpURLConnection getPOSTConnection(final URL target) throws Exception {
 		return getConnection("POST", target);
 	}
-	
+
 	private static HttpURLConnection getPUTConnection(final URL target) throws Exception {
 		return getConnection("PUT", target);
 	}
-	
+
 	private static HttpURLConnection getConnection(final String verb, final URL target)
 			throws Exception {
 		final HttpURLConnection conn = (HttpURLConnection) target.openConnection();
@@ -444,7 +452,7 @@ public class TestCommon {
 		final int rescode = conn.getResponseCode();
 		if (rescode < 200 || rescode >= 300) {
 			System.out.println("Response code: " + rescode);
-			String err = IOUtils.toString(conn.getErrorStream()); 
+			String err = IOUtils.toString(conn.getErrorStream());
 			System.out.println(err);
 			if (err.length() > 200) {
 				err = err.substring(0, 200);
@@ -470,7 +478,7 @@ public class TestCommon {
 		final Map<String, Object> resp = new ObjectMapper().readValue(out, Map.class);
 		return (String) resp.get("token");
 	}
-	
+
 	public static void createCustomRole(
 			final URL authURL,
 			final String role,
@@ -488,7 +496,7 @@ public class TestCommon {
 
 		checkForError(conn);
 	}
-	
+
 	// will zero out standard roles, which don't do much in test mode
 	public static void setUserRoles(
 			final URL authURL,
@@ -497,7 +505,7 @@ public class TestCommon {
 			throws Exception {
 		final URL target = new URL(authURL.toString() + "/api/V2/testmodeonly/userroles");
 		final HttpURLConnection conn = getPUTConnection(target);
-		
+
 		final DataOutputStream writer = new DataOutputStream(conn.getOutputStream());
 		writer.writeBytes(new ObjectMapper().writeValueAsString(ImmutableMap.of(
 				"user", user,
