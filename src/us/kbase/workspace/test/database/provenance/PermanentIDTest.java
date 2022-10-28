@@ -48,7 +48,11 @@ public class PermanentIDTest {
 		validPids.put(tldr, tldr);
 		validPids.put("\r\n  TL:DR    \n\n\t ", tldr);
 		validPids.put("Too.Long:Didn't.Read", "Too.Long:Didn't.Read");
-		validPids.put("TooLong:didn't read", "TooLong:didn't read");
+		validPids.put("toolong : didn't read", "toolong:didn't read");
+		validPids.put("2.long: didn't read", "2.long:didn't read");
+		validPids.put("too.long:\n\ndidn't.read", "too.long:didn't.read");
+		validPids.put("tl\n\n  :d\tr\n\n  ", "tl:d\tr");
+		validPids.put("tl: +__+ ", "tl:+__+");
 		validPids.put(" https://this.is.the.url/ ", "https://this.is.the.url/");
 
 		for (Map.Entry<String, String> mapElement : validPids.entrySet()) {
@@ -113,16 +117,21 @@ public class PermanentIDTest {
 	@Test
 	public void buildFailInvalidPID() throws Exception {
 		final List<String> invalidPids = Arrays.asList(
-				"Too long: didn't read",
-				"too-long:didn'tread",
-				"toolong : didn't read",
-				"2long: didn't read",
+				// spaces in prefix
+			"Too long: didn't read",
+				"t\tl:d\tr",
+				// no prefix
 				":didn't read",
-				"  :didn't read",
+				"\f  :didn't read",
+				"\t\t\t      :D\n  \t  ",
+				// invalid prefix
+				"too-long:didn'tread",
+				"'too.long:didnotread'",
+				".toolong:didnotread",
+				"too\blong:didn't.read",
+				// no suffix
 				"too long:",
-				"too long:\r\n",
-				"too.long:\n\ndidn't read",
-				"\t\t\t      :D\n  \t  ");
+				"too long:\r\n   \f     \n");
 
 		for (String invalidPid : invalidPids) {
 			try {
@@ -130,8 +139,8 @@ public class PermanentIDTest {
 				fail(EXP_EXC);
 			} catch (Exception got) {
 				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(String.format(
-						"Illegal ID format for %s: \"%s\"%nID prefixes should match the pattern \"%s\"",
-						ID, invalidPid, "^[a-zA-Z0-9\\.]+:\\S")));
+						"Illegal ID format for %s: \"%s\"%nPermanent IDs should match the pattern \"%s\"",
+						ID, invalidPid, "^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$")));
 			}
 		}
 	}
