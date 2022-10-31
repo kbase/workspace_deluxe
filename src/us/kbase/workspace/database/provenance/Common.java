@@ -54,10 +54,13 @@ class Common {
 		}
 	}
 
-	/** Check that a PID string is non-null, has at least one non-whitespace character,
+	/**
+	 * Checks that a PID string is non-null, has at least one non-whitespace
+	 * character,
 	 * and conforms to the specified regular expression.
+	 *
 	 * @param putativePid the string to check.
-	 * @param name the name of the string to use in any error messages.
+	 * @param name        the name of the string to use in any error messages.
 	 * @return the trimmed PID.
 	 */
 	static String checkPid(final String putativePid, final String name)
@@ -70,6 +73,23 @@ class Common {
 		throw new IllegalArgumentException(String.format(
 				"Illegal ID format for %s: \"%s\"%nPIDs should match the pattern \"%s\"",
 				name, putativePid, VALID_PID_REGEX_STRING));
+	}
+
+	/**
+	 * Checks that a PID string is either null or that it has at least one
+	 * non-whitespace character,
+	 * and conforms to the specified regular expression.
+	 *
+	 * @param putativePid the string to check.
+	 * @param name        the name of the string to use in any error messages.
+	 * @return the trimmed PID or null.
+	 */
+
+	static String checkOptionalPid(final String putativePid, final String name) {
+		if (isNullOrEmpty(putativePid)) {
+			return null;
+		}
+		return checkPid(putativePid, name);
 	}
 
 	private static URL checkURL(final String putativeURL, final String name) {
@@ -94,7 +114,8 @@ class Common {
 	}
 
 	static <T> List<T> immutable(final List<T> list) {
-		/* makes a list immutable by
+		/*
+		 * makes a list immutable by
 		 * 1) making changes to the returned list impossible
 		 * 2) making a copy of the list so mutating the old list doesn't mutate the new one.
 		 *
