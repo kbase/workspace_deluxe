@@ -79,7 +79,7 @@ public class Organization {
 		 * @return this builder.
 		 */
 		public Builder withOrganizationID(final String organizationID) {
-			this.organizationID = Common.processString(organizationID);
+			this.organizationID = Common.checkOptionalPid(organizationID, "organizationID");
 			return this;
 		}
 

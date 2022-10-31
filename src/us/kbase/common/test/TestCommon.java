@@ -290,15 +290,6 @@ public class TestCommon {
 	public static final Optional<Long> EL = Optional.empty();
 	public static final Optional<Integer> EI = Optional.empty();
 
-        public static final Long NL = null;
-        public static final Long L = (long) 123456;
-
-        public static final String NS = null;
-        public static final String WHITESPACE = "\n\n    \f     \t\t  \r\n   ";
-        public static final String STRING = "some string of stingy stringy strings strung together";
-        public static final String STRING_WITH_WHITESPACE = "\n\n    \f  some string of stingy stringy strings strung together \t  \n";
-
-
 	public static <T> Optional<T> opt(final T obj) {
 		return Optional.of(obj);
 	}
