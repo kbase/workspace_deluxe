@@ -10,7 +10,7 @@ public class ProvenanceTestCommon {
 	public static final String NS = null;
 	public static final String WHITESPACE = "\n\n    \f     \t\t  \r\n   ";
 
-	public static final List<String> EMPTY_STRINGS = Collections.unmodifiableList(Arrays.asList(
+	public static final List<String> WHITESPACE_STRINGS = Collections.unmodifiableList(Arrays.asList(
 		"",
 		"   ",
 		" \f ",
@@ -18,7 +18,7 @@ public class ProvenanceTestCommon {
 		"\n",
 		WHITESPACE));
 
-	public static final List<String> EMPTY_STRINGS_WITH_NULL = Collections.unmodifiableList(Arrays.asList(
+	public static final List<String> WHITESPACE_STRINGS_WITH_NULL = Collections.unmodifiableList(Arrays.asList(
 		"",
 		"   ",
 		NS,
