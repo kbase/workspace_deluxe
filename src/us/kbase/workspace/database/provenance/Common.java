@@ -55,17 +55,20 @@ class Common {
 	}
 
 	/**
-	 * Checks that a PID string is non-null, has at least one non-whitespace
-	 * character,
-	 * and conforms to the specified regular expression.
+	 * Checks that a PID string is either null, or has at least one non-whitespace
+	 * character and conforms to the specified regular expression.
 	 *
 	 * @param putativePid the string to check.
 	 * @param name        the name of the string to use in any error messages.
+	 * @param optional    whether or not the field is optional. If true, null is a valid value for the PID.
 	 * @return the trimmed PID.
 	 */
-	static String checkPid(final String putativePid, final String name)
+	static String checkPid(final String putativePid, final String name, final boolean optional)
 			throws IllegalArgumentException {
-		final String pid = checkString(putativePid, name, -1);
+		final String pid = checkString(putativePid, name, optional);
+		if (pid == null) {
+			return null;
+		}
 		final Matcher m = VALID_PID_REGEX.matcher(pid);
 		if (m.find()) {
 			return m.replaceAll("$1:$2");
@@ -76,20 +79,16 @@ class Common {
 	}
 
 	/**
-	 * Checks that a PID string is either null or that it has at least one
-	 * non-whitespace character,
-	 * and conforms to the specified regular expression.
+	 * Checks that a PID string is non-null with at least one
+	 * non-whitespace character, and conforms to the specified regular expression.
 	 *
 	 * @param putativePid the string to check.
 	 * @param name        the name of the string to use in any error messages.
 	 * @return the trimmed PID or null.
 	 */
 
-	static String checkOptionalPid(final String putativePid, final String name) {
-		if (isNullOrEmpty(putativePid)) {
-			return null;
-		}
-		return checkPid(putativePid, name);
+	static String checkPid(final String putativePid, final String name) {
+		return checkPid(putativePid, name, false);
 	}
 
 	private static URL checkURL(final String putativeURL, final String name) {

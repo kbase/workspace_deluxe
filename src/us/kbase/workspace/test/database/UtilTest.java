@@ -13,15 +13,15 @@ import static org.junit.Assert.fail;
 
 import us.kbase.common.test.TestCommon;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.NS;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.EMPTY_STRINGS;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.EMPTY_STRINGS_WITH_NULL;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 
 import us.kbase.workspace.database.Util;
 
 public class UtilTest {
 
 	private static final String EXP_EXC = "expected exception";
-	private static final String INCORRECT_NULL_EMPTY = "incorrect null or empty";
+	private static final String INCORRECT_NULL_WHITESPACE = "incorrect null or empty";
 	private static final String INCORRECT_CHECKSTRING = "incorrect checkString";
 	private static final String TYPE_NAME = "some type";
 
@@ -36,7 +36,7 @@ public class UtilTest {
 	public static final String STRING2 = "A Series of Unfortunate Elephants";
 	public static final String STRING2_WITH_WHITESPACE = "\n\t   \t  A Series of Unfortunate Elephants\n\n ";
 
-	private static final List<String> NON_EMPTY_STRINGS = Arrays.asList(
+	private static final List<String> NON_WHITESPACE_STRINGS = Arrays.asList(
 			STRING,
 			STRING2,
 			"ab",
@@ -45,7 +45,7 @@ public class UtilTest {
 			STRING2_WITH_WHITESPACE,
 			FUN_UNICODE_STRING);
 
-	private static final List<String> NON_EMPTY_STRINGS_WITH_NULL = Arrays.asList(
+	private static final List<String> NON_WHITESPACE_STRINGS_WITH_NULL = Arrays.asList(
 			STRING,
 			STRING2,
 			"ab",
@@ -82,23 +82,23 @@ public class UtilTest {
 
 	@Test
 	public void isNullOrEmptyPass() throws Exception {
-		for (String empty : EMPTY_STRINGS_WITH_NULL) {
-			assertThat(INCORRECT_NULL_EMPTY, Util.isNullOrEmpty(empty), is(true));
+		for (String empty : WHITESPACE_STRINGS_WITH_NULL) {
+			assertThat(INCORRECT_NULL_WHITESPACE, Util.isNullOrEmpty(empty), is(true));
 		}
 	}
 
 	@Test
 	public void isNullOrEmptyFail() throws Exception {
-		for (String nullOrEmpty : NON_EMPTY_STRINGS) {
-			assertThat(INCORRECT_NULL_EMPTY, Util.isNullOrEmpty(nullOrEmpty), is(false));
+		for (String nullOrEmpty : NON_WHITESPACE_STRINGS) {
+			assertThat(INCORRECT_NULL_WHITESPACE, Util.isNullOrEmpty(nullOrEmpty), is(false));
 		}
 	}
 
 	@Test
 	public void nonNullPass() throws Exception {
 		final List<String> testList = new ArrayList<>();
-		testList.addAll(EMPTY_STRINGS);
-		testList.addAll(NON_EMPTY_STRINGS);
+		testList.addAll(WHITESPACE_STRINGS);
+		testList.addAll(NON_WHITESPACE_STRINGS);
 
 		for (String testString : testList) {
 			Util.nonNull(testString, "some message");
@@ -117,15 +117,15 @@ public class UtilTest {
 
 	@Test
 	public void noNullsPass() throws Exception {
-		Util.noNulls(NON_EMPTY_STRINGS, TYPE_NAME);
-		Util.noNulls(EMPTY_STRINGS, TYPE_NAME);
+		Util.noNulls(NON_WHITESPACE_STRINGS, TYPE_NAME);
+		Util.noNulls(WHITESPACE_STRINGS, TYPE_NAME);
 	}
 
 	@Test
 	public void noNullsFail() throws Exception {
 		final List<List<String>> testList = new ArrayList<>();
-		testList.add(EMPTY_STRINGS_WITH_NULL);
-		testList.add(NON_EMPTY_STRINGS_WITH_NULL);
+		testList.add(WHITESPACE_STRINGS_WITH_NULL);
+		testList.add(NON_WHITESPACE_STRINGS_WITH_NULL);
 
 		for (List<String> testListItem : testList) {
 			try {
@@ -139,15 +139,15 @@ public class UtilTest {
 
 	@Test
 	public void checkNoNullsOrEmptiesPass() throws Exception {
-		Util.checkNoNullsOrEmpties(NON_EMPTY_STRINGS, TYPE_NAME);
+		Util.checkNoNullsOrEmpties(NON_WHITESPACE_STRINGS, TYPE_NAME);
 	}
 
 	@Test
 	public void checkNoNullsOrEmptiesFail() throws Exception {
 		final List<List<String>> testList = new ArrayList<>();
-		testList.add(EMPTY_STRINGS);
-		testList.add(EMPTY_STRINGS_WITH_NULL);
-		testList.add(NON_EMPTY_STRINGS_WITH_NULL);
+		testList.add(WHITESPACE_STRINGS);
+		testList.add(WHITESPACE_STRINGS_WITH_NULL);
+		testList.add(NON_WHITESPACE_STRINGS_WITH_NULL);
 
 		for (List<String> testListItem : testList) {
 			try {
@@ -229,7 +229,7 @@ public class UtilTest {
 
 	@Test
 	public void checkStringFailNullOrEmpty() throws Exception {
-		for (String emptyNullString : EMPTY_STRINGS_WITH_NULL) {
+		for (String emptyNullString : WHITESPACE_STRINGS_WITH_NULL) {
 			try {
 				Util.checkString(emptyNullString, TYPE_NAME);
 				fail(EXP_EXC);
@@ -241,9 +241,19 @@ public class UtilTest {
 	}
 
 	@Test
+	public void checkStringPassNullOrEmpty() throws Exception {
+		for (String emptyNullString : WHITESPACE_STRINGS_WITH_NULL) {
+			assertThat(
+				INCORRECT_CHECKSTRING,
+				Util.checkString(emptyNullString, TYPE_NAME, true),
+				is(NS));
+		}
+	}
+
+	@Test
 	public void checkStringFailTooLong() throws Exception {
 		final int max = 1;
-		for (String nonEmptyString : NON_EMPTY_STRINGS) {
+		for (String nonEmptyString : NON_WHITESPACE_STRINGS) {
 			try {
 				Util.checkString(nonEmptyString, TYPE_NAME, max);
 				fail(EXP_EXC);

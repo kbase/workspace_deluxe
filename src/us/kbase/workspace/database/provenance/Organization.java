@@ -1,9 +1,8 @@
 package us.kbase.workspace.database.provenance;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Objects;
 import java.util.Optional;
+import us.kbase.workspace.database.Util;
 
 /**
  * Information about an organization.
@@ -68,7 +67,7 @@ public class Organization {
 		private String organizationID = null;
 
 		private Builder(final String organizationName) {
-			this.organizationName = requireNonNull(Common.processString(organizationName), "organizationName");
+			this.organizationName = Util.checkString(organizationName, "organizationName");
 		}
 
 		/**
@@ -79,7 +78,7 @@ public class Organization {
 		 * @return this builder.
 		 */
 		public Builder withOrganizationID(final String organizationID) {
-			this.organizationID = Common.checkOptionalPid(organizationID, "organizationID");
+			this.organizationID = Common.checkPid(organizationID, "organizationID", true);
 			return this;
 		}
 

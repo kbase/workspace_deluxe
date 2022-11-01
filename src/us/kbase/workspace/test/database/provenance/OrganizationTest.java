@@ -12,7 +12,7 @@ import us.kbase.common.test.TestCommon;
 
 import static us.kbase.common.test.TestCommon.opt;
 import static us.kbase.common.test.TestCommon.ES;
-import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.EMPTY_STRINGS_WITH_NULL;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.VALID_PID_MAP;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.INVALID_PID_LIST;
 
@@ -58,7 +58,7 @@ public class OrganizationTest {
 
 	@Test
 	public void buildWithNullOrEmptyOrgId() throws Exception {
-		for (String nullOrWs : EMPTY_STRINGS_WITH_NULL) {
+		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			final Organization org1 = Organization.getBuilder(ORG_NAME)
 					.withOrganizationID(nullOrWs)
 					.build();
@@ -69,7 +69,7 @@ public class OrganizationTest {
 
 	@Test
 	public void buildAndOverwriteOrgIdWithNullOrEmpty() throws Exception {
-		for (String nullOrWs : EMPTY_STRINGS_WITH_NULL) {
+		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			final Organization org1 = Organization.getBuilder(ORG_NAME)
 					.withOrganizationID(PID_STRING)
 					.withOrganizationID(nullOrWs)
@@ -97,12 +97,13 @@ public class OrganizationTest {
 
 	@Test
 	public void buildFailNullOrEmptyOrgName() throws Exception {
-		for (String nullOrWs : EMPTY_STRINGS_WITH_NULL) {
+		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			try {
 				Organization.getBuilder(nullOrWs).build();
 				fail(EXP_EXC);
 			} catch (Exception got) {
-				TestCommon.assertExceptionCorrect(got, new NullPointerException("organizationName"));
+				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
+					"organizationName cannot be null or whitespace only"));
 			}
 		}
 	}

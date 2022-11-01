@@ -66,14 +66,40 @@ public class Util {
 		}
 	}
 
-	/** Check that a string is non-null and has at least one non-whitespace character.
+        /** Check that a string is non-null and has at least one non-whitespace character.
+	 * @param s the string to check.
+	 * @param name the name of the string to use in any error messages.
+         * @param max maximum number of code points in the string.
+	 * @return the trimmed string.
+	 */
+	public static String checkString(
+			final String s,
+			final String name,
+			final int max) throws IllegalArgumentException {
+                return checkString(s, name, max, false);
+        }
+
+        /** Check that a string is either null or that it has at least one non-whitespace character.
+	 * @param s the string to check.
+	 * @param name the name of the string to use in any error messages.
+         * @param optional whether or not the field can be null.
+	 * @return the trimmed string.
+	 */
+        public static String checkString(
+                final String s,
+                final String name,
+                final boolean optional) throws IllegalArgumentException {
+                return checkString(s, name, -1, optional);
+        }
+
+        /** Check that a string is non-null and has at least one non-whitespace character.
 	 * @param s the string to check.
 	 * @param name the name of the string to use in any error messages.
 	 * @return the trimmed string.
 	 */
 	public static String checkString(final String s, final String name)
 			throws IllegalArgumentException {
-		return checkString(s, name, -1);
+		return checkString(s, name, -1, false);
 	}
 
 	/** Check that a string is non-null, has at least one non-whitespace character, and is below
@@ -82,21 +108,28 @@ public class Util {
 	 * @param name the name of the string to use in any error messages.
 	 * @param max the maximum number of code points in the string. If 0 or less, the length is not
 	 * checked.
+         * @param optional whether or not the field is optional; if the field is optional,
+         *                 checkString will not throw an error for null or whitespace-only values.
 	 * @return the trimmed string.
 	 */
 	public static String checkString(
 			final String s,
 			final String name,
-			final int max) {
+			final int max,
+                        final boolean optional) {
 		if (isNullOrEmpty(s)) {
-			throw new IllegalArgumentException(name + " cannot be null or whitespace only");
-		}
+                        if (optional) {
+                                return null;
+                        }
+                        throw new IllegalArgumentException(name + " cannot be null or whitespace only");
+                }
 		if (max > 0 && codePoints(s.trim()) > max) {
 			throw new IllegalArgumentException(
 					name + " size greater than limit " + max);
 		}
 		return s.trim();
 	}
+
 
 	/** Return the number of code points in a string. Equivalent to
 	 * {@link String#codePointCount(int, int)} with arguments of 0 and {@link String#length()}.
