@@ -9,12 +9,6 @@ import java.util.Map;
 public class ProvenanceTestCommon {
 	public static final String NS = null;
 	public static final String WHITESPACE = "\n\n    \f     \t\t  \r\n   ";
-	public static final String STRING = "some string of stingy stringy strings strung together";
-	public static final String STRING_WITH_WHITESPACE = "\n\n    \f  some string of stingy stringy strings strung together \t  \n";
-	public static final String STRING2 = "A Series of Unfortunate Elephants";
-	public static final String STRING2_WITH_WHITESPACE = "\n\t   \t  A Series of Unfortunate Elephants\n\n ";
-	public static final String PID_STRING = "data.base:cross-reference";
-	public static final String PID_STRING_WITH_WHITESPACE = "  \ndata.base : cross-reference\t\t    \n  ";
 
 	public static final List<String> EMPTY_STRINGS = Collections.unmodifiableList(Arrays.asList(
 		"",
