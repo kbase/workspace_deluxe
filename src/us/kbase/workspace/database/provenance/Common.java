@@ -74,21 +74,8 @@ class Common {
 			return m.replaceAll("$1:$2");
 		}
 		throw new IllegalArgumentException(String.format(
-				"Illegal ID format for %s: \"%s\"%nPIDs should match the pattern \"%s\"",
+				"Illegal ID format for %s: \"%s\"\nPIDs should match the pattern \"%s\"",
 				name, putativePid, VALID_PID_REGEX_STRING));
-	}
-
-	/**
-	 * Checks that a PID string is non-null with at least one
-	 * non-whitespace character, and conforms to the specified regular expression.
-	 *
-	 * @param putativePid the string to check.
-	 * @param name        the name of the string to use in any error messages.
-	 * @return the trimmed PID or null.
-	 */
-
-	static String checkPid(final String putativePid, final String name) {
-		return checkPid(putativePid, name, false);
 	}
 
 	private static URL checkURL(final String putativeURL, final String name) {
