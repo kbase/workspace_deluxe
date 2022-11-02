@@ -57,7 +57,7 @@ public class OrganizationTest {
 	}
 
 	@Test
-	public void buildWithNullOrEmptyOrgId() throws Exception {
+	public void buildWithNullOrWhitespaceOrgId() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			final Organization org1 = Organization.getBuilder(ORG_NAME)
 					.withOrganizationID(nullOrWs)
@@ -68,7 +68,7 @@ public class OrganizationTest {
 	}
 
 	@Test
-	public void buildAndOverwriteOrgIdWithNullOrEmpty() throws Exception {
+	public void buildAndOverwriteOrgIdWithNullOrWhitespace() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			final Organization org1 = Organization.getBuilder(ORG_NAME)
 					.withOrganizationID(PID_STRING)
@@ -89,14 +89,14 @@ public class OrganizationTest {
 				fail(EXP_EXC);
 			} catch (Exception got) {
 				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-						"Illegal ID format for organizationID: \"" + invalidPid + "\"\n" +
-								"PIDs should match the pattern \"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\""));
+						"Illegal format for organizationID: \"" + invalidPid + "\"\n" +
+								"It should match the pattern \"^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$\""));
 			}
 		}
 	}
 
 	@Test
-	public void buildFailNullOrEmptyOrgName() throws Exception {
+	public void buildFailNullOrWhitespaceOrgName() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			try {
 				Organization.getBuilder(nullOrWs).build();
