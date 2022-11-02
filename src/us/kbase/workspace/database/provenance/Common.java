@@ -55,16 +55,19 @@ class Common {
 	}
 
 	/**
-	 * Checks that a string is either null, or has at least one non-whitespace
-	 * character and conforms to the specified regular expression.
+	 * Trims leading and trailing whitespace and then checks that a string is either null,
+	 * or has at least one non-whitespace character and conforms to the specified regular
+	 * expression. If replace is not null, it is used for a replaceAll operation, and the
+	 * resulting string returned. Otherwise, the trimmed string is returned.
 	 *
 	 * @param stringToCheck the string to check.
 	 * @param pattern       the pattern to validate against.
+	 * @param replace       if non-null, the pattern to use for the replaceAll operation.
 	 * @param name          the name of the string to use in any error messages.
 	 * @param optional      whether or not the field is optional. If true, null is a valid value for the field.
 	 * @return the trimmed field.
 	 */
-	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String name, final boolean optional)
+	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String replace, final String name, final boolean optional)
 			throws IllegalArgumentException {
 		final String checkedString = checkString(stringToCheck, name, optional);
 		if (checkedString == null) {
@@ -72,6 +75,9 @@ class Common {
 		}
 		final Matcher m = pattern.matcher(checkedString);
 		if (m.find()) {
+			if (replace != null) {
+				return m.replaceAll(replace);
+			}
 			return checkedString;
 		}
 		throw new IllegalArgumentException(String.format(
@@ -80,8 +86,22 @@ class Common {
 	}
 
 	/**
-	 * Checks that a putative PID is either null, or has at least one non-whitespace
-	 * character and conforms to the specified regular expression.
+	 * Trims leading and trailing whitespace, and then checks that a string is either null, or
+	 * has at least one non-whitespace character and conforms to the specified regular expression.
+	 *
+	 * @param stringToCheck the string to check.
+	 * @param pattern       the pattern to validate against.
+	 * @param name          the name of the string to use in any error messages.
+	 * @param optional      whether or not the field is optional. If true, null is a valid value for the field.
+	 * @return the trimmed field.
+	 */
+	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String name, final boolean optional) {
+		return checkAgainstRegex(stringToCheck, pattern, null, name, optional);
+	}
+
+	/**
+	 * Trims leading and trailing whitespace, and then checks that a putative PID is either null,
+	 * or has at least one non-whitespace character and conforms to the specified regular expression.
 	 *
 	 * @param putativePid the putative PID string.
 	 * @param name        the name of the string to use in any error messages.
@@ -90,12 +110,7 @@ class Common {
 	 */
 	static String checkPid(final String putativePid, final String name, final boolean optional)
 			throws IllegalArgumentException {
-		final String pid = checkAgainstRegex(putativePid, VALID_PID_REGEX, name, optional);
-		if (pid == null) {
-			return null;
-		}
-		final Matcher m = VALID_PID_REGEX.matcher(pid);
-		return m.replaceAll(VALID_PID_REPLACEMENT);
+		return checkAgainstRegex(putativePid, VALID_PID_REGEX, VALID_PID_REPLACEMENT, name, optional);
 	}
 
 	private static URL checkURL(final String putativeURL, final String name) {
