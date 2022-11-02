@@ -81,16 +81,16 @@ public class UtilTest {
 	}
 
 	@Test
-	public void isNullOrEmptyPass() throws Exception {
+	public void isNullOrWhitespacePass() throws Exception {
 		for (String empty : WHITESPACE_STRINGS_WITH_NULL) {
-			assertThat(INCORRECT_NULL_WHITESPACE, Util.isNullOrEmpty(empty), is(true));
+			assertThat(INCORRECT_NULL_WHITESPACE, Util.isNullOrWhitespace(empty), is(true));
 		}
 	}
 
 	@Test
-	public void isNullOrEmptyFail() throws Exception {
+	public void isNullOrWhitespaceFail() throws Exception {
 		for (String nullOrEmpty : NON_WHITESPACE_STRINGS) {
-			assertThat(INCORRECT_NULL_WHITESPACE, Util.isNullOrEmpty(nullOrEmpty), is(false));
+			assertThat(INCORRECT_NULL_WHITESPACE, Util.isNullOrWhitespace(nullOrEmpty), is(false));
 		}
 	}
 

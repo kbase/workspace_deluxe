@@ -23,7 +23,7 @@ public class Util {
 	 * @param s the string to test.
 	 * @return true if the string is null or whitespace only, false otherwise.
 	 */
-	public static boolean isNullOrEmpty(final String s) {
+	public static boolean isNullOrWhitespace(final String s) {
 		return s == null || s.trim().isEmpty();
 	}
 
@@ -59,7 +59,7 @@ public class Util {
 	public static void checkNoNullsOrEmpties(final Collection<String> strings, final String name) {
 		checkNotNull(strings, name);
 		for (final String s: strings) {
-			if (isNullOrEmpty(s)) {
+			if (isNullOrWhitespace(s)) {
 				throw new IllegalArgumentException(
 						"Null or whitespace only string in collection " + name);
 			}
@@ -117,7 +117,7 @@ public class Util {
 			final String name,
 			final int max,
                         final boolean optional) {
-		if (isNullOrEmpty(s)) {
+		if (isNullOrWhitespace(s)) {
                         if (optional) {
                                 return null;
                         }

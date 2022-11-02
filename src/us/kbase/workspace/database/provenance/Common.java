@@ -1,7 +1,7 @@
 package us.kbase.workspace.database.provenance;
 
 import static us.kbase.workspace.database.Util.checkNoNullsOrEmpties;
-import static us.kbase.workspace.database.Util.isNullOrEmpty;
+import static us.kbase.workspace.database.Util.isNullOrWhitespace;
 import static us.kbase.workspace.database.Util.noNulls;
 import static us.kbase.workspace.database.Util.checkString;
 
@@ -25,11 +25,11 @@ class Common {
 	private Common() {}
 
 	static String processString(final String input) {
-		return isNullOrEmpty(input) ? null : input.trim();
+		return isNullOrWhitespace(input) ? null : input.trim();
 	}
 
 	static URL processURL(final String url, final String name) {
-		return isNullOrEmpty(url) ? null : checkURL(url, name);
+		return isNullOrWhitespace(url) ? null : checkURL(url, name);
 	}
 
 	static URL processURL(final URL url, final String name) {
