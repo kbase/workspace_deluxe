@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 class Common {
 
 	static final Pattern VALID_PID_REGEX = Pattern.compile("^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$");
-	static final String VALID_PID_REGEX_STRING = VALID_PID_REGEX.toString();
+	static final String VALID_PID_REPLACEMENT = "$1:$2";
 
 	private Common() {}
 
@@ -55,27 +55,47 @@ class Common {
 	}
 
 	/**
-	 * Checks that a PID string is either null, or has at least one non-whitespace
+	 * Checks that a string is either null, or has at least one non-whitespace
 	 * character and conforms to the specified regular expression.
 	 *
-	 * @param putativePid the string to check.
+	 * @param stringToCheck the string to check.
+	 * @param pattern       the pattern to validate against.
+	 * @param name          the name of the string to use in any error messages.
+	 * @param optional      whether or not the field is optional. If true, null is a valid value for the field.
+	 * @return the trimmed field.
+	 */
+	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String name, final boolean optional)
+			throws IllegalArgumentException {
+		final String checkedString = checkString(stringToCheck, name, optional);
+		if (checkedString == null) {
+			return null;
+		}
+		final Matcher m = pattern.matcher(checkedString);
+		if (m.find()) {
+			return checkedString;
+		}
+		throw new IllegalArgumentException(String.format(
+				"Illegal format for %s: \"%s\"\nIt should match the pattern \"%s\"",
+				name, stringToCheck, pattern.toString()));
+	}
+
+	/**
+	 * Checks that a putative PID is either null, or has at least one non-whitespace
+	 * character and conforms to the specified regular expression.
+	 *
+	 * @param putativePid the putative PID string.
 	 * @param name        the name of the string to use in any error messages.
-	 * @param optional    whether or not the field is optional. If true, null is a valid value for the PID.
-	 * @return the trimmed PID.
+	 * @param optional    whether or not the field is optional. If true, null is a valid value for the field.
+	 * @return the trimmed field.
 	 */
 	static String checkPid(final String putativePid, final String name, final boolean optional)
 			throws IllegalArgumentException {
-		final String pid = checkString(putativePid, name, optional);
+		final String pid = checkAgainstRegex(putativePid, VALID_PID_REGEX, name, optional);
 		if (pid == null) {
 			return null;
 		}
 		final Matcher m = VALID_PID_REGEX.matcher(pid);
-		if (m.find()) {
-			return m.replaceAll("$1:$2");
-		}
-		throw new IllegalArgumentException(String.format(
-				"Illegal ID format for %s: \"%s\"\nPIDs should match the pattern \"%s\"",
-				name, putativePid, VALID_PID_REGEX_STRING));
+		return m.replaceAll(VALID_PID_REPLACEMENT);
 	}
 
 	private static URL checkURL(final String putativeURL, final String name) {
