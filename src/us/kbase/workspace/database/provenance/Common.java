@@ -55,17 +55,21 @@ class Common {
 	}
 
 	/**
-	 * Trims leading and trailing whitespace and then checks that a string is either null,
-	 * or has at least one non-whitespace character and conforms to the specified regular
-	 * expression. If replace is not null, it is used for a replaceAll operation, and the
+	 * Trims leading and trailing whitespace, converts empty strings to null, and then
+         * checks that a string is either null or has at least one non-whitespace character
+         * and conforms to the specified regular expression.
+         * If optional is true, null is a valid output value; if false, null will throw an error.
+         * If replace is not null, it is used for a replaceAll operation, and the
 	 * resulting string returned. Otherwise, the trimmed string is returned.
 	 *
 	 * @param stringToCheck the string to check.
 	 * @param pattern       the pattern to validate against.
 	 * @param replace       if non-null, the pattern to use for the replaceAll operation.
 	 * @param name          the name of the string to use in any error messages.
-	 * @param optional      whether or not the field is optional. If true, null is a valid value for the field.
-	 * @return the trimmed field.
+	 * @param optional      whether or not the field is optional. If false, null and
+         *                      empty or whitespace-only input strings will throw an error.
+         *
+	 * @return the trimmed field, or null if the input string was null or whitespace.
 	 */
 	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String replace, final String name, final boolean optional)
 			throws IllegalArgumentException {
@@ -86,27 +90,33 @@ class Common {
 	}
 
 	/**
-	 * Trims leading and trailing whitespace, and then checks that a string is either null, or
-	 * has at least one non-whitespace character and conforms to the specified regular expression.
+	 * Trims leading and trailing whitespace, converts empty strings to null, and then
+         * checks that a string is either null or has at least one non-whitespace character
+         * and conforms to the specified regular expression.
+         * If optional is true, null is a valid output value; if false, null will throw an error.
 	 *
 	 * @param stringToCheck the string to check.
 	 * @param pattern       the pattern to validate against.
 	 * @param name          the name of the string to use in any error messages.
-	 * @param optional      whether or not the field is optional. If true, null is a valid value for the field.
-	 * @return the trimmed field.
+	 * @param optional      whether or not the field is optional. If false, null and
+         *                      empty or whitespace-only input strings will throw an error.
+	 * @return the trimmed field, or null if the input string was null or whitespace.
 	 */
 	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String name, final boolean optional) {
 		return checkAgainstRegex(stringToCheck, pattern, null, name, optional);
 	}
 
 	/**
-	 * Trims leading and trailing whitespace, and then checks that a putative PID is either null,
-	 * or has at least one non-whitespace character and conforms to the specified regular expression.
+	 * Trims leading and trailing whitespace, converts empty strings to null, and then
+         * checks that a string is either null or has at least one non-whitespace character
+         * and conforms to the specified regular expression.
+         * If optional is true, null is a valid output value; if false, null will throw an error.
 	 *
-	 * @param putativePid the putative PID string.
-	 * @param name        the name of the string to use in any error messages.
-	 * @param optional    whether or not the field is optional. If true, null is a valid value for the field.
-	 * @return the trimmed field.
+	 * @param putativePid   the putative PID string.
+	 * @param name          the name of the string to use in any error messages.
+	 * @param optional      whether or not the field is optional. If false, null and
+         *                      empty or whitespace-only input strings will throw an error.
+	 * @return the trimmed field, or null if the input string was null or whitespace.
 	 */
 	static String checkPid(final String putativePid, final String name, final boolean optional)
 			throws IllegalArgumentException {
