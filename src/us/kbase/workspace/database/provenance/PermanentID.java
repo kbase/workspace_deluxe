@@ -121,7 +121,9 @@ public class PermanentID {
 		/**
 		 * Builds the {@link PermanentID}.
 		 *
-		 * @return the external data.
+		 * @param id  the permanent ID, for example DOI:10.25982/59912.37.
+		 *
+		 * @return the permanent ID.
 		 */
 		public PermanentID build() {
 			return new PermanentID(id, description, relationshipType);
