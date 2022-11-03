@@ -58,6 +58,7 @@ public class PermanentID {
 	/**
 	 * Gets a builder for an {@link PermanentID}.
 	 *
+	 * @param id  the permanent ID, for example DOI:10.25982/59912.37.
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(final String id) {
@@ -120,8 +121,6 @@ public class PermanentID {
 
 		/**
 		 * Builds the {@link PermanentID}.
-		 *
-		 * @param id  the permanent ID, for example DOI:10.25982/59912.37.
 		 *
 		 * @return the permanent ID.
 		 */
