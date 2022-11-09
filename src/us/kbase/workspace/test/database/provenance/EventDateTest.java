@@ -14,6 +14,7 @@ import us.kbase.common.test.TestCommon;
 import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 
 import us.kbase.workspace.database.provenance.EventDate;
+import us.kbase.workspace.database.provenance.Event;
 
 public class EventDateTest {
 	static final String INCORRECT_DATE = "incorrect date";
@@ -21,9 +22,9 @@ public class EventDateTest {
 	static final String EXP_EXC = "expected exception";
 
 	static final String DATE_STRING = "2022-12-12";
-	static final String EVENT_STRING = "blah blah blah";
-	static final String EVENT_STRING_UNTRIMMED = " \n\n\n blah blah blah \r\n  ";
-
+	static final String EVENT_STRING = "accepted";
+	static final String EVENT_STRING_UNTRIMMED = " \n\n\n accepted \r\n  ";
+	static final Event SOME_EVENT = Event.ACCEPTED;
 	static final Map<String, String> DATE_INPUTS;
 	static {
 		Map<String, String> dateInputs = new HashMap<>();
@@ -56,20 +57,31 @@ public class EventDateTest {
 	}
 
 	@Test
-	public void buildEventDate() throws Exception {
-		for (String key : DATE_INPUTS.keySet()) {
-			final EventDate ed1 = EventDate.getBuilder(key, EVENT_STRING).build();
-			assertThat(INCORRECT_DATE, ed1.getDate(), is(DATE_INPUTS.get(key)));
-			assertThat(INCORRECT_EVENT, ed1.getEvent(), is(EVENT_STRING));
+	public void buildEventDateWithEnum() throws Exception {
+		for (Map.Entry<String, String> entry : DATE_INPUTS.entrySet()) {
+			final EventDate ed1 = EventDate.getBuilder(entry.getKey(), SOME_EVENT).build();
+			assertThat(INCORRECT_DATE, ed1.getDate(), is(entry.getValue()));
+			assertThat(INCORRECT_EVENT, ed1.getEvent(), is(SOME_EVENT));
 
 		}
 	}
 
 	@Test
+	public void buildEventDateWithString() throws Exception {
+		for (Map.Entry<String, String> entry : DATE_INPUTS.entrySet()) {
+			final EventDate ed1 = EventDate.getBuilder(entry.getKey(), EVENT_STRING).build();
+			assertThat(INCORRECT_DATE, ed1.getDate(), is(entry.getValue()));
+			assertThat(INCORRECT_EVENT, ed1.getEvent(), is(SOME_EVENT));
+
+		}
+	}
+
+
+	@Test
 	public void buildEventDateFailDate() throws Exception {
 		for (String dateStr : invalidDateStrings) {
 			try {
-				EventDate.getBuilder(dateStr, EVENT_STRING).build();
+				EventDate.getBuilder(dateStr, SOME_EVENT).build();
 				fail(EXP_EXC);
 			} catch (Exception got) {
 				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
@@ -81,10 +93,36 @@ public class EventDateTest {
 	}
 
 	@Test
+	public void buildEventDateFailEvent() throws Exception {
+		try {
+			EventDate.getBuilder(DATE_STRING, "kookaburra").build();
+			fail(EXP_EXC);
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
+				"Invalid event: kookaburra"
+			));
+		}
+	}
+
+	@Test
+	public void buildEventDateFailNullEvent() throws Exception {
+		final Event nullEvent = null;
+		try {
+			EventDate.getBuilder(DATE_STRING, nullEvent).build();
+			fail(EXP_EXC);
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, new NullPointerException(
+				"event cannot be null"
+			));
+		}
+	}
+
+
+	@Test
 	public void buildAndTrimEvent() throws Exception {
 		final EventDate ed1 = EventDate.getBuilder(DATE_STRING, EVENT_STRING_UNTRIMMED).build();
 		assertThat(INCORRECT_DATE, ed1.getDate(), is(DATE_STRING));
-		assertThat(INCORRECT_EVENT, ed1.getEvent(), is(EVENT_STRING));
+		assertThat(INCORRECT_EVENT, ed1.getEvent(), is(SOME_EVENT));
 	}
 
 	@Test

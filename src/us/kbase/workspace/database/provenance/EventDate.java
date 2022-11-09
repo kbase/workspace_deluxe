@@ -10,7 +10,7 @@ import us.kbase.workspace.database.Util;
 public class EventDate {
 
 	private final String date;
-	private final String event;
+	private final Event event;
 
 	/**
 	 * VALID_DATE_REGEX ensures that dates are in one of the following formats:
@@ -26,7 +26,7 @@ public class EventDate {
 
 	private EventDate(
 			final String date,
-			final String event) {
+			final Event event) {
 		this.date = date;
 		this.event = event;
 	}
@@ -43,11 +43,11 @@ public class EventDate {
 	}
 
 	/**
-	 * Gets the event that occurred on the date in question, for example "updated".
+	 * Gets the event that occurred on the date in question, for example Event.UPDATED.
 	 *
 	 * @return the event.
 	 */
-	public String getEvent() {
+	public Event getEvent() {
 		return event;
 	}
 
@@ -73,10 +73,22 @@ public class EventDate {
 	 *
 	 * @param date  the date when the event occurred,
 	 *              in the format yyyy-MM-dd, yyyy-MM, or yyyy.
-	 * @param event the event that occurred on that date
+	 * @param event the event that occurred on that date, as a string
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(final String date, final String event) {
+		return new Builder(date, event);
+	}
+
+	/**
+	 * Gets a builder for an {@link EventDate}.
+	 *
+	 * @param date  the date when the event occurred,
+	 *              in the format yyyy-MM-dd, yyyy-MM, or yyyy.
+	 * @param event the event that occurred on that date, as an Event
+	 * @return the builder.
+	 */
+	public static Builder getBuilder(final String date, final Event event) {
 		return new Builder(date, event);
 	}
 
@@ -84,10 +96,18 @@ public class EventDate {
 	public static class Builder {
 
 		private String date;
-		private String event;
+		private Event event;
 
 		private Builder(final String date, final String event) {
-			this.event = Util.checkString(event, "event");
+			final String protoEvent = Util.checkString(event, "event");
+			this.event = Event.getEvent(protoEvent);
+			final String protoDate = Util.checkString(date, "date");
+			this.date = Common.checkAgainstRegex(protoDate, VALID_DATE_REGEX, "date", false);
+		}
+
+		private Builder(final String date, final Event event) {
+			Objects.requireNonNull(event, "event cannot be null");
+			this.event = event;
 			final String protoDate = Util.checkString(date, "date");
 			this.date = Common.checkAgainstRegex(protoDate, VALID_DATE_REGEX, "date", false);
 		}
