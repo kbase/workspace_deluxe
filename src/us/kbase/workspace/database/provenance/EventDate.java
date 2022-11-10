@@ -80,7 +80,7 @@ public class EventDate {
 	 * @param date  the date when the event occurred,
 	 *              in the format yyyy-MM-dd, yyyy-MM, or yyyy.
 	 * @param event the event that occurred on that date, as an Event
-	 * @return the new EventDate.
+	 * @return the new {@link EventDate}.
 	 */
 	public static EventDate build(final String date, final Event event) {
 		Objects.requireNonNull(event, "event cannot be null");
