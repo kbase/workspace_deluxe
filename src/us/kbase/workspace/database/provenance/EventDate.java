@@ -66,7 +66,8 @@ public class EventDate {
 	 *
 	 * @param date  the date when the event occurred,
 	 *              in the format yyyy-MM-dd, yyyy-MM, or yyyy.
-	 * @param event the event that occurred on that date, as a string
+	 * @param event the event that occurred on that date, as a string.
+	 *              See the {@link Event} class for valid string values.
 	 * @return the new {@link EventDate}.
 	 */
 	public static EventDate build(final String date, final String event) {
@@ -114,6 +115,6 @@ public class EventDate {
 				// report the error below as an IllegalArgumentException
 			}
 		}
-		throw new IllegalArgumentException("Invalid date: \"" + protoDate + "\"\ndate must be in the format yyyy, yyyy-MM, or yyyy-MM-dd");
+		throw new IllegalArgumentException("Invalid date: \"" + protoDate + "\"\ndate must be in the format yyyy, yyyy-MM, or yyyy-MM-dd and be a valid combination of day, month, and year.");
 	}
 }
