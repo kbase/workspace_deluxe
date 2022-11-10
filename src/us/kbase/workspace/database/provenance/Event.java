@@ -47,7 +47,7 @@ public enum Event {
 	/**
 	 * Get an event based on a supplied string.
 	 *
-	 * @param str a string representing an event.
+	 * @param input a string representing an event.
 	 * @return an Event.
 	 * @throws IllegalArgumentException if there is no event corresponding to the
 	 *                                  input string.
