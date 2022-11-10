@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 class Common {
 
 	static final Pattern VALID_PID_REGEX = Pattern.compile("^([a-zA-Z0-9][a-zA-Z0-9\\.]+)\\s*:\\s*(\\S.+)$");
-	static final String VALID_PID_REGEX_STRING = VALID_PID_REGEX.toString();
+	static final String VALID_PID_REPLACEMENT = "$1:$2";
 
 	private Common() {}
 
@@ -55,27 +55,72 @@ class Common {
 	}
 
 	/**
-	 * Checks that a PID string is either null, or has at least one non-whitespace
-	 * character and conforms to the specified regular expression.
+	 * Trims leading and trailing whitespace, converts empty strings to null, and then
+         * checks that a string is either null or has at least one non-whitespace character
+         * and conforms to the specified regular expression.
+         * If optional is true, null is a valid output value; if false, null will throw an error.
+         * If replace is not null, it is used for a replaceAll operation, and the
+	 * resulting string returned. Otherwise, the trimmed string is returned.
 	 *
-	 * @param putativePid the string to check.
-	 * @param name        the name of the string to use in any error messages.
-	 * @param optional    whether or not the field is optional. If true, null is a valid value for the PID.
-	 * @return the trimmed PID.
+	 * @param stringToCheck the string to check.
+	 * @param pattern       the pattern to validate against.
+	 * @param replace       if non-null, the pattern to use for the replaceAll operation.
+	 * @param name          the name of the string to use in any error messages.
+	 * @param optional      whether or not the field is optional. If false, null and
+         *                      empty or whitespace-only input strings will throw an error.
+         *
+	 * @return the trimmed field, or null if the input string was null or whitespace.
+	 */
+	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String replace, final String name, final boolean optional)
+			throws IllegalArgumentException {
+		final String checkedString = checkString(stringToCheck, name, optional);
+		if (checkedString == null) {
+			return null;
+		}
+		final Matcher m = pattern.matcher(checkedString);
+		if (m.find()) {
+			if (replace != null) {
+				return m.replaceAll(replace);
+			}
+			return checkedString;
+		}
+		throw new IllegalArgumentException(String.format(
+				"Illegal format for %s: \"%s\"\nIt should match the pattern \"%s\"",
+				name, stringToCheck, pattern.toString()));
+	}
+
+	/**
+	 * Trims leading and trailing whitespace, converts empty strings to null, and then
+         * checks that a string is either null or has at least one non-whitespace character
+         * and conforms to the specified regular expression.
+         * If optional is true, null is a valid output value; if false, null will throw an error.
+	 *
+	 * @param stringToCheck the string to check.
+	 * @param pattern       the pattern to validate against.
+	 * @param name          the name of the string to use in any error messages.
+	 * @param optional      whether or not the field is optional. If false, null and
+         *                      empty or whitespace-only input strings will throw an error.
+	 * @return the trimmed field, or null if the input string was null or whitespace.
+	 */
+	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String name, final boolean optional) {
+		return checkAgainstRegex(stringToCheck, pattern, null, name, optional);
+	}
+
+	/**
+	 * Trims leading and trailing whitespace, converts empty strings to null, and then
+         * checks that a string is either null or has at least one non-whitespace character
+         * and conforms to the regular expression VALID_PID_REGEX.
+         * If optional is true, null is a valid output value; if false, null will throw an error.
+	 *
+	 * @param putativePid   the putative PID string.
+	 * @param name          the name of the string to use in any error messages.
+	 * @param optional      whether or not the field is optional. If false, null and
+         *                      empty or whitespace-only input strings will throw an error.
+	 * @return the trimmed field, or null if the input string was null or whitespace.
 	 */
 	static String checkPid(final String putativePid, final String name, final boolean optional)
 			throws IllegalArgumentException {
-		final String pid = checkString(putativePid, name, optional);
-		if (pid == null) {
-			return null;
-		}
-		final Matcher m = VALID_PID_REGEX.matcher(pid);
-		if (m.find()) {
-			return m.replaceAll("$1:$2");
-		}
-		throw new IllegalArgumentException(String.format(
-				"Illegal ID format for %s: \"%s\"\nPIDs should match the pattern \"%s\"",
-				name, putativePid, VALID_PID_REGEX_STRING));
+		return checkAgainstRegex(putativePid, VALID_PID_REGEX, VALID_PID_REPLACEMENT, name, optional);
 	}
 
 	private static URL checkURL(final String putativeURL, final String name) {
