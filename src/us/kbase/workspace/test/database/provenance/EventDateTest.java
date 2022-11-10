@@ -38,6 +38,7 @@ public class EventDateTest {
 	}
 
 	static final String[] invalidDateStrings = {
+		"a porcupine with a hat on",
 		"22",
 		"22.03.31",
 		"2022/12/31",
@@ -47,30 +48,49 @@ public class EventDateTest {
 		"2022-00-31",
 		"2022-44-55",
 		"2022-04-31",
+		"20-22-22-04",
 		"22-31",
 		"987-01-01",
+		"2022-1",
+		"2022-1-1",
 	};
-
 
 	@Test
 	public void equals() throws Exception {
 		EqualsVerifier.forClass(EventDate.class).usingGetClass().verify();
 	}
 
+	private void buildEventDateFailWithError(final String dateInput, final String eventInput, final Exception error) {
+		try {
+			EventDate.build(dateInput, eventInput);
+			fail(EXP_EXC);
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, error);
+		}
+	}
+
+	private void buildEventDateFailWithError(final String dateInput, final Event eventInput, final Exception error) {
+		try {
+			EventDate.build(dateInput, eventInput);
+			fail(EXP_EXC);
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, error);
+		}
+	}
+
 	@Test
 	public void buildEventDateWithEnum() throws Exception {
 		for (Map.Entry<String, String> entry : DATE_INPUTS.entrySet()) {
-			final EventDate ed1 = EventDate.getBuilder(entry.getKey(), SOME_EVENT).build();
+			final EventDate ed1 = EventDate.build(entry.getKey(), SOME_EVENT);
 			assertThat(INCORRECT_DATE, ed1.getDate(), is(entry.getValue()));
 			assertThat(INCORRECT_EVENT, ed1.getEvent(), is(SOME_EVENT));
-
 		}
 	}
 
 	@Test
 	public void buildEventDateWithString() throws Exception {
 		for (Map.Entry<String, String> entry : DATE_INPUTS.entrySet()) {
-			final EventDate ed1 = EventDate.getBuilder(entry.getKey(), EVENT_STRING).build();
+			final EventDate ed1 = EventDate.build(entry.getKey(), EVENT_STRING);
 			assertThat(INCORRECT_DATE, ed1.getDate(), is(entry.getValue()));
 			assertThat(INCORRECT_EVENT, ed1.getEvent(), is(SOME_EVENT));
 
@@ -82,65 +102,47 @@ public class EventDateTest {
 	public void buildEventDateFailDate() throws Exception {
 		for (String dateStr : invalidDateStrings) {
 			try {
-				EventDate.getBuilder(dateStr, SOME_EVENT).build();
+				EventDate.build(dateStr, SOME_EVENT);
 				fail(EXP_EXC);
 			} catch (Exception got) {
 				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
- 					"Illegal format for date: \"" + dateStr +
- 					"\"\nIt should match the pattern \"" +  EventDate.VALID_DATE_REGEX.toString() + "\""
+ 					"Invalid date: \"" + dateStr + "\"\ndate must be in the format yyyy, yyyy-MM, or yyyy-MM-dd"
  				));
 			}
 		}
 	}
 
 	@Test
-	public void buildEventDateFailEvent() throws Exception {
-		try {
-			EventDate.getBuilder(DATE_STRING, "kookaburra").build();
-			fail(EXP_EXC);
-		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-				"Invalid event: kookaburra"
-			));
-		}
-	}
-
-	@Test
-	public void buildEventDateFailNullEvent() throws Exception {
-		try {
-			EventDate.getBuilder(DATE_STRING, (Event) null).build();
-			fail(EXP_EXC);
-		} catch (Exception got) {
-			TestCommon.assertExceptionCorrect(got, new NullPointerException(
-				"event cannot be null"
-			));
-		}
-	}
-
-
-	@Test
 	public void buildAndTrimEvent() throws Exception {
-		final EventDate ed1 = EventDate.getBuilder(DATE_STRING, EVENT_STRING_UNTRIMMED).build();
+		final EventDate ed1 = EventDate.build(DATE_STRING, EVENT_STRING_UNTRIMMED);
 		assertThat(INCORRECT_DATE, ed1.getDate(), is(DATE_STRING));
 		assertThat(INCORRECT_EVENT, ed1.getEvent(), is(SOME_EVENT));
 	}
 
 	@Test
+	public void buildEventDateFailEvent() throws Exception {
+		buildEventDateFailWithError(
+			DATE_STRING, "kookaburra", new IllegalArgumentException(
+				"Invalid event: kookaburra"
+			)
+		);
+	}
+
+	@Test
+	public void buildEventDateFailNullEvent() throws Exception {
+		buildEventDateFailWithError(DATE_STRING, (Event) null, new NullPointerException("event cannot be null"));
+	}
+
+
+	@Test
 	public void buildFailNullOrWhitespaceEventDate() throws Exception {
 		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
-			final String[][] nullOrWhitespaceArgs = {
-				{nullOrWs, EVENT_STRING, "date"},
-				{DATE_STRING, nullOrWs, "event"}
-			};
 
-			for (String[] arr : nullOrWhitespaceArgs) {
-				try {
-					EventDate.getBuilder(arr[0], arr[1]).build();
-					fail(EXP_EXC);
-				} catch (Exception got) {
-					TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(arr[2] + " cannot be null or whitespace only"));
-				}
-			}
+			buildEventDateFailWithError(nullOrWs, EVENT_STRING, new IllegalArgumentException("date cannot be null or whitespace only"));
+
+			buildEventDateFailWithError(DATE_STRING, nullOrWs, new IllegalArgumentException("event cannot be null or whitespace only"));
+
+			buildEventDateFailWithError(nullOrWs, nullOrWs, new IllegalArgumentException("event cannot be null or whitespace only"));
 		}
 	}
 }

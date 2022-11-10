@@ -2,6 +2,7 @@ package us.kbase.workspace.database.provenance;
 
 import java.util.HashMap;
 import java.util.Map;
+import us.kbase.workspace.database.Util;
 
 /**
  * A class representing resource lifecycle events
@@ -21,7 +22,6 @@ public enum Event {
 	WITHDRAWN("withdrawn"),
 	OTHER("other");
 
-	// mapping of PIDs and lowercaseNames to ContributorRole
 	private static final Map<String, Event> STRING_TO_EVENT_MAP = new HashMap<>();
 	static {
 		for (final Event e : Event.values()) {
@@ -36,9 +36,9 @@ public enum Event {
 	}
 
 	/**
-	 * Get the lowercase name of this contributor role.
+	 * Get the event name.
 	 *
-	 * @return the lowercaseName.
+	 * @return the eventName.
 	 */
 	public String getEventName() {
 		return eventName;
@@ -53,7 +53,7 @@ public enum Event {
 	 *                                  input string.
 	 */
 	public static Event getEvent(final String input) {
-		final String lowercaseInput = Common.processString(input.toLowerCase());
+		final String lowercaseInput = Util.checkString(input, "event").toLowerCase();
 		if (!STRING_TO_EVENT_MAP.containsKey(lowercaseInput)) {
 			throw new IllegalArgumentException("Invalid event: " + input);
 		}

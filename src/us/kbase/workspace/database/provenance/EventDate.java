@@ -1,8 +1,13 @@
 package us.kbase.workspace.database.provenance;
 
 import java.util.Objects;
-import java.util.regex.Pattern;
 import us.kbase.workspace.database.Util;
+
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.LocalDate;
+import java.time.Year;
+import java.time.YearMonth;
 
 /**
  * The date of a specified event.
@@ -11,18 +16,6 @@ public class EventDate {
 
 	private final String date;
 	private final Event event;
-
-	/**
-	 * VALID_DATE_REGEX ensures that dates are in one of the following formats:
-	 * yyyy
-	 * yyyy-MM
-	 * yyyy-MM-dd
-	 *
-	 * It also ensures that months are in the range 00-12 and days are in the range
-	 * 00-31.
-	 */
-	public static final Pattern VALID_DATE_REGEX = Pattern.compile(
-			"^[12]\\d{3}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\\d|3[01]))?)?$");
 
 	private EventDate(
 			final String date,
@@ -69,56 +62,58 @@ public class EventDate {
 	}
 
 	/**
-	 * Gets a builder for an {@link EventDate}.
+	 * Builds an {@link EventDate}.
 	 *
 	 * @param date  the date when the event occurred,
 	 *              in the format yyyy-MM-dd, yyyy-MM, or yyyy.
 	 * @param event the event that occurred on that date, as a string
-	 * @return the builder.
+	 * @return the new EventDate.
 	 */
-	public static Builder getBuilder(final String date, final String event) {
-		return new Builder(date, event);
+	public static EventDate build(final String date, final String event) {
+		final Event eventObject = Event.getEvent(Util.checkString(event, "event"));
+		return build(date, eventObject);
 	}
 
 	/**
-	 * Gets a builder for an {@link EventDate}.
+	 * Builds an {@link EventDate}.
 	 *
 	 * @param date  the date when the event occurred,
 	 *              in the format yyyy-MM-dd, yyyy-MM, or yyyy.
 	 * @param event the event that occurred on that date, as an Event
-	 * @return the builder.
+	 * @return the new EventDate.
 	 */
-	public static Builder getBuilder(final String date, final Event event) {
-		return new Builder(date, event);
+	public static EventDate build(final String date, final Event event) {
+		Objects.requireNonNull(event, "event cannot be null");
+		final String protoDate = checkDate(Util.checkString(date, "date"));
+		return new EventDate(protoDate, event);
 	}
 
-	/** A builder for an {@link EventDate}. */
-	public static class Builder {
-
-		private String date;
-		private Event event;
-
-		private Builder(final String date, final String event) {
-			final String protoEvent = Util.checkString(event, "event");
-			this.event = Event.getEvent(protoEvent);
-			final String protoDate = Util.checkString(date, "date");
-			this.date = Common.checkAgainstRegex(protoDate, VALID_DATE_REGEX, "date", false);
+	/** Ensures that a string can be parsed as a valid date.throws
+	 *
+	 * @param protoDate the string that may or may not be a date
+	 * @return the valid string
+	 * @throws IllegalArgumentException if the string can't be parsed as a date
+	 */
+	private static String checkDate(final String protoDate) {
+		final String[] dateParts = protoDate.split("-");
+		if (dateParts.length < 4) {
+			try {
+				switch (dateParts.length) {
+					case 1:
+						final Year y = Year.parse(protoDate);
+						return y.toString();
+					case 2:
+						final YearMonth ym = YearMonth.parse(protoDate);
+						return ym.toString();
+					default:
+						final LocalDate ymd = LocalDate.parse(protoDate, DateTimeFormatter.ISO_LOCAL_DATE);
+						return ymd.toString();
+				}
+			}
+			catch (DateTimeParseException e) {
+				// report the error below as an IllegalArgumentException
+			}
 		}
-
-		private Builder(final String date, final Event event) {
-			Objects.requireNonNull(event, "event cannot be null");
-			this.event = event;
-			final String protoDate = Util.checkString(date, "date");
-			this.date = Common.checkAgainstRegex(protoDate, VALID_DATE_REGEX, "date", false);
-		}
-
-		/**
-		 * Builds the {@link EventDate}.
-		 *
-		 * @return the event date.
-		 */
-		public EventDate build() {
-			return new EventDate(date, event);
-		}
+		throw new IllegalArgumentException("Invalid date: \"" + protoDate + "\"\ndate must be in the format yyyy, yyyy-MM, or yyyy-MM-dd");
 	}
 }

@@ -8,6 +8,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import us.kbase.common.test.TestCommon;
+import static us.kbase.workspace.test.database.provenance.ProvenanceTestCommon.WHITESPACE_STRINGS_WITH_NULL;
 
 public class EventTest {
 
@@ -35,22 +36,34 @@ public class EventTest {
 		}
 	}
 
+	private void getEventFail(final String input, final Exception output) {
+		try {
+			Event.getEvent(input);
+			fail("expected exception");
+		} catch (Exception got) {
+			TestCommon.assertExceptionCorrect(got, output);
+		}
+	}
+
 	@Test
 	public void testGetEventFail() throws Exception {
-
 		final String[] invalidEvents = {
 				"catastrophic loss of life",
 				"Event:ISSUED",
+				"    Event:ISSUED\r",
 		};
 
 		for (final String invalidEvent : invalidEvents) {
-			try {
-				Event.getEvent(invalidEvent);
-				fail("expected exception");
-			} catch (Exception got) {
-				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-						"Invalid event: " + invalidEvent));
-			}
+			getEventFail(invalidEvent, new IllegalArgumentException(
+				"Invalid event: " + invalidEvent));
+		}
+	}
+
+	@Test
+	public void testGetEventNullOrWs() throws Exception {
+		for (final String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
+			getEventFail(nullOrWs, new IllegalArgumentException(
+				"event cannot be null or whitespace only"));
 		}
 	}
 }
