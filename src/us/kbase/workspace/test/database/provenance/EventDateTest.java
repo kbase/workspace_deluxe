@@ -46,6 +46,7 @@ public class EventDateTest {
 		"2022-13-31",
 		"2022-00-31",
 		"2022-44-55",
+		"2022-04-31",
 		"22-31",
 		"987-01-01",
 	};
@@ -106,9 +107,8 @@ public class EventDateTest {
 
 	@Test
 	public void buildEventDateFailNullEvent() throws Exception {
-		final Event nullEvent = null;
 		try {
-			EventDate.getBuilder(DATE_STRING, nullEvent).build();
+			EventDate.getBuilder(DATE_STRING, (Event) null).build();
 			fail(EXP_EXC);
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new NullPointerException(

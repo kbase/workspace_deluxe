@@ -43,7 +43,7 @@ public class EventDate {
 	}
 
 	/**
-	 * Gets the event that occurred on the date in question, for example Event.UPDATED.
+	 * Gets the event that occurred on the date in question, for example {@link Event#UPDATED}.
 	 *
 	 * @return the event.
 	 */
