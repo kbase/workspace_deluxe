@@ -109,7 +109,7 @@ class Common {
 	/**
 	 * Trims leading and trailing whitespace, converts empty strings to null, and then
          * checks that a string is either null or has at least one non-whitespace character
-         * and conforms to the specified regular expression.
+         * and conforms to the regular expression VALID_PID_REGEX.
          * If optional is true, null is a valid output value; if false, null will throw an error.
 	 *
 	 * @param putativePid   the putative PID string.
