@@ -106,7 +106,7 @@ public class EventDateTest {
 				fail(EXP_EXC);
 			} catch (Exception got) {
 				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
- 					"Invalid date: \"" + dateStr + "\"\ndate must be in the format yyyy, yyyy-MM, or yyyy-MM-dd"
+ 					"Invalid date: \"" + dateStr + "\"\ndate must be in the format yyyy, yyyy-MM, or yyyy-MM-dd and be a valid combination of day, month, and year."
  				));
 			}
 		}
