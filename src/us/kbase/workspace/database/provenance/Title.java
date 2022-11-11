@@ -18,7 +18,7 @@ public class Title {
 	/**
 	 * An enum representing types of title.
 	 */
-	public enum TitleType {
+	public static enum TitleType {
 		SUBTITLE,
 		ALTERNATIVE_TITLE,
 		TRANSLATED_TITLE,
