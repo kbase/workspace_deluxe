@@ -92,23 +92,6 @@ class Common {
 	/**
 	 * Trims leading and trailing whitespace, converts empty strings to null, and then
          * checks that a string is either null or has at least one non-whitespace character
-         * and conforms to the specified regular expression.
-         * If optional is true, null is a valid output value; if false, null will throw an error.
-	 *
-	 * @param stringToCheck the string to check.
-	 * @param pattern       the pattern to validate against.
-	 * @param name          the name of the string to use in any error messages.
-	 * @param optional      whether or not the field is optional. If false, null and
-         *                      empty or whitespace-only input strings will throw an error.
-	 * @return the trimmed field, or null if the input string was null or whitespace.
-	 */
-	static String checkAgainstRegex(final String stringToCheck, final Pattern pattern, final String name, final boolean optional) {
-		return checkAgainstRegex(stringToCheck, pattern, null, name, optional);
-	}
-
-	/**
-	 * Trims leading and trailing whitespace, converts empty strings to null, and then
-         * checks that a string is either null or has at least one non-whitespace character
          * and conforms to the regular expression VALID_PID_REGEX.
          * If optional is true, null is a valid output value; if false, null will throw an error.
 	 *
