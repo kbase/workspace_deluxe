@@ -82,15 +82,15 @@ public class UtilTest {
 
 	@Test
 	public void isNullOrWhitespacePass() throws Exception {
-		for (String empty : WHITESPACE_STRINGS_WITH_NULL) {
-			assertThat(INCORRECT_NULL_WHITESPACE, Util.isNullOrWhitespace(empty), is(true));
+		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
+			assertThat(INCORRECT_NULL_WHITESPACE, Util.isNullOrWhitespace(nullOrWs), is(true));
 		}
 	}
 
 	@Test
 	public void isNullOrWhitespaceFail() throws Exception {
-		for (String nullOrEmpty : NON_WHITESPACE_STRINGS) {
-			assertThat(INCORRECT_NULL_WHITESPACE, Util.isNullOrWhitespace(nullOrEmpty), is(false));
+		for (String nonWhitespaceString : NON_WHITESPACE_STRINGS) {
+			assertThat(INCORRECT_NULL_WHITESPACE, Util.isNullOrWhitespace(nonWhitespaceString), is(false));
 		}
 	}
 
@@ -228,10 +228,10 @@ public class UtilTest {
 	}
 
 	@Test
-	public void checkStringFailNullOrEmpty() throws Exception {
-		for (String emptyNullString : WHITESPACE_STRINGS_WITH_NULL) {
+	public void checkStringFailNullOrWhitespace() throws Exception {
+		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			try {
-				Util.checkString(emptyNullString, TYPE_NAME);
+				Util.checkString(nullOrWs, TYPE_NAME);
 				fail(EXP_EXC);
 			} catch (Exception got) {
 				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
@@ -241,11 +241,11 @@ public class UtilTest {
 	}
 
 	@Test
-	public void checkStringPassNullOrEmpty() throws Exception {
-		for (String emptyNullString : WHITESPACE_STRINGS_WITH_NULL) {
+	public void checkStringPassNullOrWhitespace() throws Exception {
+		for (String nullOrWs : WHITESPACE_STRINGS_WITH_NULL) {
 			assertThat(
 				INCORRECT_CHECKSTRING,
-				Util.checkString(emptyNullString, TYPE_NAME, true),
+				Util.checkString(nullOrWs, TYPE_NAME, true),
 				is(NS));
 		}
 	}
@@ -253,9 +253,9 @@ public class UtilTest {
 	@Test
 	public void checkStringFailTooLong() throws Exception {
 		final int max = 1;
-		for (String nonEmptyString : NON_WHITESPACE_STRINGS) {
+		for (String nonWhitespaceString : NON_WHITESPACE_STRINGS) {
 			try {
-				Util.checkString(nonEmptyString, TYPE_NAME, max);
+				Util.checkString(nonWhitespaceString, TYPE_NAME, max);
 				fail(EXP_EXC);
 			} catch (Exception got) {
 				TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
