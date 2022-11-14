@@ -15,19 +15,19 @@ public class FundingReference {
 	private final String funderName;
 	private final String awardID;
 	private final String awardTitle;
-	private final URL awardURI;
+	private final URL awardURL;
 
 	private FundingReference(
 			final String funderID,
 			final String funderName,
 			final String awardID,
 			final String awardTitle,
-			final URL awardURI) {
+			final URL awardURL) {
 		this.funderID = funderID;
 		this.funderName = funderName;
 		this.awardID = awardID;
 		this.awardTitle = awardTitle;
-		this.awardURI = awardURI;
+		this.awardURL = awardURL;
 	}
 
 	/**
@@ -69,17 +69,17 @@ public class FundingReference {
 	}
 
 	/**
-	 * Gets the URI of the award.
+	 * Gets the URL of the award.
 	 *
-	 * @return the award URI, if present.
+	 * @return the award URL, if present.
 	 */
-	public Optional<URL> getAwardURI() {
-		return Optional.ofNullable(awardURI);
+	public Optional<URL> getAwardURL() {
+		return Optional.ofNullable(awardURL);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(awardID, awardTitle, awardURI, funderID, funderName);
+		return Objects.hash(awardID, awardTitle, awardURL, funderID, funderName);
 	}
 
 	@Override
@@ -92,7 +92,7 @@ public class FundingReference {
 			return false;
 		FundingReference other = (FundingReference) obj;
 		return Objects.equals(awardID, other.awardID) && Objects.equals(awardTitle, other.awardTitle)
-				&& Objects.equals(awardURI, other.awardURI) && Objects.equals(funderID, other.funderID)
+				&& Objects.equals(awardURL, other.awardURL) && Objects.equals(funderID, other.funderID)
 				&& Objects.equals(funderName, other.funderName);
 	}
 
@@ -114,7 +114,7 @@ public class FundingReference {
 		private String funderName;
 		private String awardID = null;
 		private String awardTitle = null;
-		private URL awardURI = null;
+		private URL awardURL = null;
 
 		private Builder(final String funderName) {
 			this.funderName = Util.checkString(funderName, "funderName");
@@ -159,26 +159,26 @@ public class FundingReference {
 		}
 
 		/**
-		 * Sets the URI for the award.
+		 * Sets the URL for the award.
 		 *
-		 * @param awardURI the URI for the award. Null or the empty string removes any
+		 * @param awardURL the URL for the award. Null or the empty string removes any
 		 *                 current url in the builder.
 		 * @return this builder.
 		 */
-		public Builder withAwardURI(final String awardURI) {
-			this.awardURI = Common.processURL(awardURI, "awardURI");
+		public Builder withAwardURL(final String awardURL) {
+			this.awardURL = Common.processURL(awardURL, "awardURL");
 			return this;
 		}
 
 		/**
-		 * Sets the URI for the award.
+		 * Sets the URL for the award.
 		 *
-		 * @param awardURI the URI of the award. Null removes any current url in the
+		 * @param awardURL the URL of the award. Null removes any current url in the
 		 *                 builder.
 		 * @return this builder.
 		 */
-		public Builder withAwardURI(final URL awardURI) {
-			this.awardURI = Common.processURL(awardURI, "awardURI");
+		public Builder withAwardURL(final URL awardURL) {
+			this.awardURL = Common.processURL(awardURL, "awardURL");
 			return this;
 		}
 
@@ -188,7 +188,7 @@ public class FundingReference {
 		 * @return the funding reference.
 		 */
 		public FundingReference build() {
-			return new FundingReference(funderID, funderName, awardID, awardTitle, awardURI);
+			return new FundingReference(funderID, funderName, awardID, awardTitle, awardURL);
 		}
 	}
 }

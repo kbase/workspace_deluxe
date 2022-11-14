@@ -25,7 +25,7 @@ public class FundingReferenceTest {
 	static final String INCORRECT_FUNDER_ID = "incorrect funder id";
 	static final String INCORRECT_AWARD_ID = "incorrect award id";
 	static final String INCORRECT_AWARD_TITLE = "incorrect award title";
-	static final String INCORRECT_AWARD_URI = "incorrect award URI";
+	static final String INCORRECT_AWARD_URL = "incorrect award URL";
 
 	static final String EXP_EXC = "expected exception";
 
@@ -35,8 +35,8 @@ public class FundingReferenceTest {
 	static final String FUNDER_ID_UNTRIMMED = "\t\t\t   "  + FUNDER_ID + "  \f  \r \n\n";
 	static final String AWARD_ID = "198170392";
 	static final String AWARD_ID_UNTRIMMED = "" + AWARD_ID + "";
-	static final String AWARD_URI = "http://example.com/cgi-bin/wtf.cgi";
-	static final String AWARD_URI_UNTRIMMED = "  \t  \r\n " + AWARD_URI + "                \n";
+	static final String AWARD_URL = "http://example.com/cgi-bin/wtf.cgi";
+	static final String AWARD_URL_UNTRIMMED = "  \t  \r\n " + AWARD_URL + "                \n";
 	static final String AWARD_TITLE = "The Best Little Toaster";
 	static final String AWARD_TITLE_UNTRIMMED = "\r\n  \f   " + AWARD_TITLE + "   \t \n\n \t";
 
@@ -53,7 +53,7 @@ public class FundingReferenceTest {
 		assertThat(INCORRECT_FUNDER_ID, fr.getFunderID(), is(ES));
 		assertThat(INCORRECT_AWARD_ID, fr.getAwardID(), is(ES));
 		assertThat(INCORRECT_AWARD_TITLE, fr.getAwardTitle(), is(ES));
-		assertThat(INCORRECT_AWARD_URI, fr.getAwardURI(), is(ES));
+		assertThat(INCORRECT_AWARD_URL, fr.getAwardURL(), is(ES));
 	}
 
 	@Test
@@ -62,29 +62,29 @@ public class FundingReferenceTest {
 			.withFunderID(FUNDER_ID)
 			.withAwardID(AWARD_ID)
 			.withAwardTitle(AWARD_TITLE)
-			.withAwardURI(AWARD_URI)
+			.withAwardURL(AWARD_URL)
 			.build();
 		assertThat(INCORRECT_FUNDER_NAME, fr.getFunderName(), is(FUNDER_NAME));
 		assertThat(INCORRECT_FUNDER_ID, fr.getFunderID(), is(opt(FUNDER_ID)));
 		assertThat(INCORRECT_AWARD_ID, fr.getAwardID(), is(opt(AWARD_ID)));
 		assertThat(INCORRECT_AWARD_TITLE, fr.getAwardTitle(), is(opt(AWARD_TITLE)));
-		assertThat(INCORRECT_AWARD_URI, fr.getAwardURI(), is(opt(new URL(AWARD_URI))));
+		assertThat(INCORRECT_AWARD_URL, fr.getAwardURL(), is(opt(new URL(AWARD_URL))));
 	}
 
 	@Test
 	public void buildMaximalWithURL() throws Exception {
-		final URL awardUri = new URL(AWARD_URI);
+		final URL awardURL = new URL(AWARD_URL);
 		final FundingReference fr = FundingReference.getBuilder(FUNDER_NAME)
 			.withFunderID(FUNDER_ID)
 			.withAwardID(AWARD_ID)
 			.withAwardTitle(AWARD_TITLE)
-			.withAwardURI(awardUri)
+			.withAwardURL(awardURL)
 			.build();
 		assertThat(INCORRECT_FUNDER_NAME, fr.getFunderName(), is(FUNDER_NAME));
 		assertThat(INCORRECT_FUNDER_ID, fr.getFunderID(), is(opt(FUNDER_ID)));
 		assertThat(INCORRECT_AWARD_ID, fr.getAwardID(), is(opt(AWARD_ID)));
 		assertThat(INCORRECT_AWARD_TITLE, fr.getAwardTitle(), is(opt(AWARD_TITLE)));
-		assertThat(INCORRECT_AWARD_URI, fr.getAwardURI(), is(opt(awardUri)));
+		assertThat(INCORRECT_AWARD_URL, fr.getAwardURL(), is(opt(awardURL)));
 	}
 
 
@@ -95,13 +95,13 @@ public class FundingReferenceTest {
 				.withFunderID(mapElement.getKey())
 				.withAwardID(AWARD_ID_UNTRIMMED)
 				.withAwardTitle(AWARD_TITLE_UNTRIMMED)
-				.withAwardURI(AWARD_URI_UNTRIMMED)
+				.withAwardURL(AWARD_URL_UNTRIMMED)
 				.build();
 			assertThat(INCORRECT_FUNDER_NAME, fr.getFunderName(), is(FUNDER_NAME));
 			assertThat(INCORRECT_FUNDER_ID, fr.getFunderID(), is(opt(mapElement.getValue())));
 			assertThat(INCORRECT_AWARD_ID, fr.getAwardID(), is(opt(AWARD_ID)));
 			assertThat(INCORRECT_AWARD_TITLE, fr.getAwardTitle(), is(opt(AWARD_TITLE)));
-			assertThat(INCORRECT_AWARD_URI, fr.getAwardURI(), is(opt(new URL(AWARD_URI))));
+			assertThat(INCORRECT_AWARD_URL, fr.getAwardURL(), is(opt(new URL(AWARD_URL))));
 		}
 	}
 
@@ -113,13 +113,13 @@ public class FundingReferenceTest {
 				.withFunderID(nullOrWs)
 				.withAwardID(nullOrWs)
 				.withAwardTitle(nullOrWs)
-				.withAwardURI(nullOrWs)
+				.withAwardURL(nullOrWs)
 				.build();
 			assertThat(INCORRECT_FUNDER_NAME, fr.getFunderName(), is(FUNDER_NAME));
 			assertThat(INCORRECT_FUNDER_ID, fr.getFunderID(), is(ES));
 			assertThat(INCORRECT_AWARD_ID, fr.getAwardID(), is(ES));
 			assertThat(INCORRECT_AWARD_TITLE, fr.getAwardTitle(), is(ES));
-			assertThat(INCORRECT_AWARD_URI, fr.getAwardURI(), is(ES));
+			assertThat(INCORRECT_AWARD_URL, fr.getAwardURL(), is(ES));
 		}
 	}
 
@@ -130,13 +130,13 @@ public class FundingReferenceTest {
 				.withFunderID(FUNDER_ID).withFunderID(nullOrWs)
 				.withAwardID(AWARD_ID).withAwardID(nullOrWs)
 				.withAwardTitle(AWARD_TITLE).withAwardTitle(nullOrWs)
-				.withAwardURI(AWARD_URI).withAwardURI(nullOrWs)
+				.withAwardURL(AWARD_URL).withAwardURL(nullOrWs)
 				.build();
 			assertThat(INCORRECT_FUNDER_NAME, fr.getFunderName(), is(FUNDER_NAME));
 			assertThat(INCORRECT_FUNDER_ID, fr.getFunderID(), is(ES));
 			assertThat(INCORRECT_AWARD_ID, fr.getAwardID(), is(ES));
 			assertThat(INCORRECT_AWARD_TITLE, fr.getAwardTitle(), is(ES));
-			assertThat(INCORRECT_AWARD_URI, fr.getAwardURI(), is(ES));
+			assertThat(INCORRECT_AWARD_URL, fr.getAwardURL(), is(ES));
 		}
 	}
 
@@ -155,13 +155,13 @@ public class FundingReferenceTest {
 	}
 
 	@Test
-	public void buildFailInvalidAwardURI() throws Exception {
+	public void buildFailInvalidAwardURL() throws Exception {
 		try {
-			FundingReference.getBuilder(FUNDER_NAME).withAwardURI(FUNDER_ID).build();
+			FundingReference.getBuilder(FUNDER_NAME).withAwardURL(FUNDER_ID).build();
 			fail(EXP_EXC);
 		} catch (Exception got) {
 			TestCommon.assertExceptionCorrect(got, new IllegalArgumentException(
-				"Illegal awardURI url '" + FUNDER_ID + "': unknown protocol: ror"));
+				"Illegal awardURL url '" + FUNDER_ID + "': unknown protocol: ror"));
 		}
 	}
 
