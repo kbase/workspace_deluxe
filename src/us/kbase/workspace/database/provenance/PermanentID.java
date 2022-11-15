@@ -58,7 +58,7 @@ public class PermanentID {
 	/**
 	 * Gets a builder for an {@link PermanentID}.
 	 *
-	 * @param id  the permanent ID, for example DOI:10.25982/59912.37.
+	 * @param id the permanent ID, for example DOI:10.25982/59912.37.
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(final String id) {
@@ -117,15 +117,16 @@ public class PermanentID {
 		public Builder withRelationshipType(final String relationshipType) {
 			final String protoRelationshipType = Common.processString(relationshipType);
 			this.relationshipType = protoRelationshipType == null
-				? null
-				: RelationshipType.getRelationshipType(relationshipType);
+					? null
+					: RelationshipType.getRelationshipType(relationshipType);
 			return this;
 		}
 
-				/**
+		/**
 		 * Sets the relationship type between the ID and the resource.
 		 *
-		 * @param relationshipType the relationship type as a {@link RelationshipType} object.
+		 * @param relationshipType the relationship type as a {@link RelationshipType}
+		 *                         object.
 		 *                         Null will remove the current content in the builder.
 		 *
 		 * @return this builder.
