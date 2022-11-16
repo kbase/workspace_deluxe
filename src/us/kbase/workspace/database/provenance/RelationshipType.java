@@ -52,22 +52,13 @@ public enum RelationshipType {
 		for (final RelationshipType rt : RelationshipType.values()) {
 			STRING_TO_REL_TYPE_MAP.put(rt.name().toLowerCase(), rt);
 			STRING_TO_REL_TYPE_MAP.put(rt.name().replace("_", "").toLowerCase(), rt);
-			STRING_TO_REL_TYPE_MAP.put(rt.getSource().toLowerCase() + ":" + rt.name().toLowerCase(), rt);
+			STRING_TO_REL_TYPE_MAP.put(SOURCE.toLowerCase() + ":" + rt.name().toLowerCase(), rt);
 			STRING_TO_REL_TYPE_MAP.put(rt.getPid().toLowerCase(), rt);
 		}
 	}
 
 	private RelationshipType(final String identifier) {
 		this.identifier = identifier;
-	}
-
-	/**
-	 * Get the source (DataCite) of this relationship type.
-	 *
-	 * @return the source.
-	 */
-	private String getSource() {
-		return SOURCE;
 	}
 
 	/**
