@@ -152,6 +152,11 @@ public class PermanentIDTest {
 						.build();
 				assertTitleStringAndOptionalNulls(pid1, mapElement.getValue());
 			}
+			final PermanentID pid1 = PermanentID.getBuilder(mapElement.getKey())
+					.withDescription(DESC_STRING).withDescription(null)
+					.withRelationshipType(REL_TYPE).withRelationshipType((RelationshipType) null)
+					.build();
+			assertTitleStringAndOptionalNulls(pid1, mapElement.getValue());
 		}
 	}
 

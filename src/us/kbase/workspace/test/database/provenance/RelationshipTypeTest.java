@@ -15,14 +15,18 @@ public class RelationshipTypeTest {
 
 	@Test
 	public void testGetPid() throws Exception {
-		final RelationshipType rt = RelationshipType.OBSOLETES;
+		final RelationshipType rt1 = RelationshipType.OBSOLETES;
 		assertThat("incorrect PID",
-				rt.getPid(),
+				rt1.getPid(),
 				is("DataCite:Obsoletes"));
+		final RelationshipType rt2 = RelationshipType.IS_PREVIOUS_VERSION_OF;
+		assertThat("incorrect PID",
+				rt2.getPid(),
+				is("DataCite:IsPreviousVersionOf"));
 	}
 
 	@Test
-	public void testgetRelationshipType() throws Exception {
+	public void testGetRelationshipType() throws Exception {
 		final String[] testDateciteInputs = {
 				"DataCite:isNewVersionOf",
 				"    DATACITE:ISNEWVERSIONOF\n\n",
@@ -41,7 +45,7 @@ public class RelationshipTypeTest {
 	}
 
 	@Test
-	public void testgetRelationshipTypeFail() throws Exception {
+	public void testGetRelationshipTypeFail() throws Exception {
 
 		final String[] invalidTypes = {
 				"magical fairy princess",
