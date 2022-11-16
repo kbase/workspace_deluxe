@@ -13,9 +13,9 @@ public class PermanentID {
 
 	private final String id;
 	private final String description;
-	private final String relationshipType;
+	private final RelationshipType relationshipType;
 
-	private PermanentID(final String id, final String description, final String relationshipType) {
+	private PermanentID(final String id, final String description, final RelationshipType relationshipType) {
 		this.id = id;
 		this.description = description;
 		this.relationshipType = relationshipType;
@@ -46,19 +46,19 @@ public class PermanentID {
 	 * field captures the relationship between the {@link Resource} and
 	 * the entity represented by this.id.
 	 *
-	 * This field is currently only settable by workspace admins. More
-	 * validation may be added in the future to control the field contents.
+	 * This field is currently only settable by workspace admins. See the
+	 * {@link RelationshipType} class for valid values.
 	 *
 	 * @return the relationship type, if present.
 	 */
-	public Optional<String> getRelationshipType() {
+	public Optional<RelationshipType> getRelationshipType() {
 		return Optional.ofNullable(relationshipType);
 	}
 
 	/**
 	 * Gets a builder for an {@link PermanentID}.
 	 *
-	 * @param id  the permanent ID, for example DOI:10.25982/59912.37.
+	 * @param id the permanent ID, for example DOI:10.25982/59912.37.
 	 * @return the builder.
 	 */
 	public static Builder getBuilder(final String id) {
@@ -86,7 +86,7 @@ public class PermanentID {
 
 		private String id;
 		private String description = null;
-		private String relationshipType = null;
+		private RelationshipType relationshipType = null;
 
 		private Builder(final String id) {
 			this.id = Common.checkPid(id, "id", false);
@@ -108,14 +108,31 @@ public class PermanentID {
 		/**
 		 * Sets the relationship type between the ID and the resource.
 		 *
-		 * @param relationshipType the relationship type. Null, whitespace, or
-		 *                         the empty string will remove the
-		 *                         current content in the builder.
+		 * @param relationshipType the relationship type as a string.
+		 *                         Null, whitespace, or the empty string will
+		 *                         remove the current content in the builder.
 		 *
 		 * @return this builder.
 		 */
 		public Builder withRelationshipType(final String relationshipType) {
-			this.relationshipType = Util.checkString(relationshipType, "relationshipType", true);
+			final String protoRelationshipType = Common.processString(relationshipType);
+			this.relationshipType = protoRelationshipType == null
+					? null
+					: RelationshipType.getRelationshipType(relationshipType);
+			return this;
+		}
+
+		/**
+		 * Sets the relationship type between the ID and the resource.
+		 *
+		 * @param relationshipType the relationship type as a {@link RelationshipType}
+		 *                         object.
+		 *                         Null will remove the current content in the builder.
+		 *
+		 * @return this builder.
+		 */
+		public Builder withRelationshipType(final RelationshipType relationshipType) {
+			this.relationshipType = relationshipType;
 			return this;
 		}
 
