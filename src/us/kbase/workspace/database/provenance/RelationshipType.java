@@ -43,7 +43,7 @@ public enum RelationshipType {
 	REQUIRES("Requires"),
 	OBSOLETES("Obsoletes");
 
-	private final String source = "DataCite";
+	private final static String SOURCE = "DataCite";
 	private final String identifier;
 
 	// mapping of PIDs and related strings to RelationshipType
@@ -67,7 +67,7 @@ public enum RelationshipType {
 	 * @return the source.
 	 */
 	private String getSource() {
-		return source;
+		return SOURCE;
 	}
 
 	/**
@@ -76,7 +76,7 @@ public enum RelationshipType {
 	 * @return the PID.
 	 */
 	public String getPid() {
-		return source + ":" + identifier;
+		return SOURCE + ":" + identifier;
 	}
 
 	/**
