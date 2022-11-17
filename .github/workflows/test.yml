@@ -72,10 +72,10 @@ jobs:
           curl -O https://download.arangodb.com/arangodb$ARANGODB_V/Community/Linux/arangodb3-linux-$ARANGODB_VER.tar.gz
           tar -xf arangodb3-linux-$ARANGODB_VER.tar.gz
           ls
-          ls arangodb3-3.9.1
-          ls arangodb3-3.9.1/bin
-          export ARANGO_EXE=$(pwd)/arangodb3-$ARANGODB_VER/bin/arangod
-          export ARANGO_JS=$(pwd)/arangodb3-$ARANGODB_VER/usr/share/arangodb3/js/
+          ls arangodb3-linux-3.9.1
+          ls arangodb3-linux-3.9.1/bin
+          export ARANGO_EXE=$(pwd)/arangodb3-linux-$ARANGODB_VER/bin/arangod
+          export ARANGO_JS=$(pwd)/arangodb3-linux-$ARANGODB_VER/usr/share/arangodb3/js/
 
            # set up handle service
           export HS_COMMIT=08e18379817e16db920501b66ba62b66598f506c
