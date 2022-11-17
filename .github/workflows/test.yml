@@ -48,14 +48,6 @@ jobs:
         with:
           python-version: "3.7"
 
-      - name: Clone jars as sister repo
-        shell: bash
-        run: |
-          cd ..
-          git clone https://github.com/kbase/jars
-          export JARSDIR=`pwd`/jars/lib/jars/
-          cd -
-
       - name: Install dependencies and set up test config
         shell: bash
         run: |
@@ -69,6 +61,10 @@ jobs:
           
           # move to parent dir of homedir to install binaries etc
           cd ..
+          
+          # set up jars
+          git clone https://github.com/kbase/jars
+          export JARSDIR=$(pwd)/jars/lib/jars/
 
           # set up arango
           export ARANGODB_VER=3.9.1
@@ -103,7 +99,7 @@ jobs:
           cd ../..
 
           # set up blobstore
-          wget -O blobstore https://github.com/kbase/blobstore/releases/download/v0.1.2/blobstore_linux_amd64
+          wget -q -O blobstore https://github.com/kbase/blobstore/releases/download/v0.1.2/blobstore_linux_amd64
           chmod a+x blobstore
           export BLOBEXE=$(pwd)/blobstore
 
@@ -113,7 +109,7 @@ jobs:
           export MONGOD=`pwd`/${{matrix.mongo}}/bin/mongod
 
           # set up minio
-          wget https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.${{matrix.minio}} -O minio
+          wget -q https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.${{matrix.minio}} -O minio
           chmod a+x minio
           export MINIOD=`pwd`/minio
           
@@ -136,7 +132,7 @@ jobs:
         shell: bash
         run: |
           ant javadoc
-          ant {{matrix.ant_test}}
+          ant ${{matrix.ant_test}}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
